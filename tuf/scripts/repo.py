@@ -58,9 +58,9 @@ repo_tool.disable_console_log_messages()
 
 PROG_NAME = 'repo.py'
 
-DEFAULT_REPO_PATH = 'tufrepo'
-DEFAULT_CLIENT_PATH = 'tufclient'
-DEFAULT_KEYSTORE = 'tufkeystore'
+DEFAULT_REPO_DIR = 'tufrepo'
+DEFAULT_CLIENT_DIR = 'tufclient'
+DEFAULT_KEYSTORE_DIR = 'tufkeystore'
 
 DEFAULT_ROOT_KEY = 'root_key'
 DEFAULT_TARGETS_KEY = 'targets_key'
@@ -114,9 +114,9 @@ def process_arguments(parsed_arguments):
 
 
 def clean_repo(parsed_arguments):
-  repo_dir = os.path.join(parsed_arguments.clean, DEFAULT_REPO_PATH)
-  client_dir = os.path.join(parsed_arguments.clean, DEFAULT_CLIENT_PATH)
-  keystore_dir = os.path.join(parsed_arguments.clean, DEFAULT_KEYSTORE)
+  repo_dir = os.path.join(parsed_arguments.path, DEFAULT_REPO_DIR)
+  client_dir = os.path.join(parsed_arguments.path, DEFAULT_CLIENT_DIR)
+  keystore_dir = os.path.join(parsed_arguments.path, DEFAULT_KEYSTORE_DIR)
 
   shutil.rmtree(repo_dir, ignore_errors=True)
   shutil.rmtree(client_dir, ignore_errors=True)
@@ -125,8 +125,10 @@ def clean_repo(parsed_arguments):
 
 
 def write_to_live_repo():
-  staged_meta_directory = os.path.join(DEFAULT_REPO_PATH, DEFAULT_STAGED_DIR)
-  live_meta_directory = os.path.join(DEFAULT_REPO_PATH, DEFAULT_METADATA_DIR)
+  staged_meta_directory = os.path.join(
+      parsed_arguments.path, DEFAULT_REPO_DIR, DEFAULT_STAGED_DIR)
+  live_meta_directory = os.path.join(
+      parsed_arguments.path, DEFAULT_REPO_DIR, DEFAULT_METADATA_DIR)
 
   shutil.rmtree(live_meta_directory, ignore_errors=True)
   shutil.copytree(staged_meta_directory, live_meta_directory)
@@ -136,8 +138,8 @@ def write_to_live_repo():
 def add_targets(parsed_arguments):
   target_paths = os.path.join(parsed_arguments.add)
 
-  repo_targets_path = os.path.join(DEFAULT_REPO_PATH, 'targets')
-  repository = repo_tool.load_repository(DEFAULT_REPO_PATH)
+  repo_targets_path = os.path.join(DEFAULT_REPO_DIR, 'targets')
+  repository = repo_tool.load_repository(DEFAULT_REPO_DIR)
 
   for target_path in target_paths:
     if not os.path.exists(target_path):
@@ -158,11 +160,11 @@ def add_targets(parsed_arguments):
 
   # Load the top-level, non-root, keys to make a new release.
   targets_private = repo_tool.import_ecdsa_privatekey_from_file(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TARGETS_KEY), parsed_arguments.pw)
+      os.path.join(DEFAULT_KEYSTORE_DIR, DEFAULT_TARGETS_KEY), parsed_arguments.pw)
   snapshot_private = repo_tool.import_ecdsa_privatekey_from_file(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_SNAPSHOT_KEY), parsed_arguments.pw)
+      os.path.join(DEFAULT_KEYSTORE_DIR, DEFAULT_SNAPSHOT_KEY), parsed_arguments.pw)
   timestamp_private = repo_tool.import_ecdsa_privatekey_from_file(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TIMESTAMP_KEY), parsed_arguments.pw)
+      os.path.join(DEFAULT_KEYSTORE_DIR, DEFAULT_TIMESTAMP_KEY), parsed_arguments.pw)
 
   repository.targets.load_signing_key(targets_private)
   repository.snapshot.load_signing_key(snapshot_private)
@@ -177,10 +179,13 @@ def add_targets(parsed_arguments):
 
 def init_repo(parsed_arguments):
   """
-  Create default repo.  Each top-level role has one key, if
-  'parsed_argument.bare' is False (default).
+  Create a repo at the specified location in --path (the current working
+  directory, by default).  Each top-level role has one key, if --bare' is False
+  (default).
   """
-  repository = repo_tool.create_new_repository(DEFAULT_REPO_PATH)
+
+  repo_path = os.path.join(parsed_arguments.path, DEFAULT_REPO_DIR)
+  repository = repo_tool.create_new_repository(repo_path)
 
   if not parsed_arguments.bare:
     set_top_level_keys(repository)
@@ -188,7 +193,8 @@ def init_repo(parsed_arguments):
         consistent_snapshot=parsed_arguments.consistent_snapshot)
 
   else:
-    repository.write('root', consistent_snapshot=parsed_arguments.consistent_snapshot)
+    repository.write(
+        'root', consistent_snapshot=parsed_arguments.consistent_snapshot)
     repository.write('targets')
     repository.write('snapshot')
     repository.write('timestamp')
@@ -198,8 +204,9 @@ def init_repo(parsed_arguments):
   # Create the client files.  The client directory contains the required
   # directory structure and metadata files for clients to successfully perform
   # an update.
-  repo_tool.create_tuf_client_directory(DEFAULT_REPO_PATH,
-      os.path.join(DEFAULT_CLIENT_PATH, DEFAULT_REPO_PATH))
+  repo_tool.create_tuf_client_directory(
+      os.path.join(parsed_arguments.path, DEFAULT_REPO_DIR),
+      os.path.join(parsed_arguments.path, DEFAULT_CLIENT_DIR, DEFAULT_REPO_DIR))
 
 
 
@@ -217,36 +224,48 @@ def set_top_level_keys(repository):
         prompt='Enter a password for the top-level role keys: ', confirm=True)
 
   repo_tool.generate_and_write_ecdsa_keypair(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_ROOT_KEY), password=parsed_arguments.pw)
+      os.path.join(parsed_arguments.path, DEFAULT_KEYSTORE_DIR,
+      DEFAULT_ROOT_KEY), password=parsed_arguments.pw)
   repo_tool.generate_and_write_ecdsa_keypair(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TARGETS_KEY), password=parsed_arguments.pw)
+      os.path.join(parsed_arguments.path, DEFAULT_KEYSTORE_DIR,
+      DEFAULT_TARGETS_KEY), password=parsed_arguments.pw)
   repo_tool.generate_and_write_ecdsa_keypair(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_SNAPSHOT_KEY), password=parsed_arguments.pw)
+      os.path.join(parsed_arguments.path, DEFAULT_KEYSTORE_DIR,
+      DEFAULT_SNAPSHOT_KEY), password=parsed_arguments.pw)
   repo_tool.generate_and_write_ecdsa_keypair(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TIMESTAMP_KEY), password=parsed_arguments.pw)
+      os.path.join(parsed_arguments.path, DEFAULT_KEYSTORE_DIR,
+      DEFAULT_TIMESTAMP_KEY), password=parsed_arguments.pw)
 
   # Import the public keys.  They are needed so that metadata roles are
   # assigned verification keys, which clients need in order to verify the
   # signatures created by the corresponding private keys.
   root_public = repo_tool.import_ecdsa_publickey_from_file(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_ROOT_KEY) + '.pub')
+      os.path.join(parsed_arguments.path, DEFAULT_KEYSTORE_DIR,
+      DEFAULT_ROOT_KEY) + '.pub')
   targets_public = repo_tool.import_ecdsa_publickey_from_file(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TARGETS_KEY) + '.pub')
+      os.path.join(parsed_arguments.path, DEFAULT_KEYSTORE_DIR,
+      DEFAULT_TARGETS_KEY) + '.pub')
   snapshot_public = repo_tool.import_ecdsa_publickey_from_file(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_SNAPSHOT_KEY) + '.pub')
+      os.path.join(parsed_arguments.path, DEFAULT_KEYSTORE_DIR,
+      DEFAULT_SNAPSHOT_KEY) + '.pub')
   timestamp_public = repo_tool.import_ecdsa_publickey_from_file(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TIMESTAMP_KEY) + '.pub')
+      os.path.join(parsed_arguments.path, DEFAULT_KEYSTORE_DIR,
+      DEFAULT_TIMESTAMP_KEY) + '.pub')
 
   # Import the private keys.  They are needed to generate the signatures
   # included in metadata.
   root_private = repo_tool.import_ecdsa_privatekey_from_file(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_ROOT_KEY), parsed_arguments.pw)
+      os.path.join(parsed_arguments.path, DEFAULT_KEYSTORE_DIR,
+      DEFAULT_ROOT_KEY), parsed_arguments.pw)
   targets_private = repo_tool.import_ecdsa_privatekey_from_file(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TARGETS_KEY), parsed_arguments.pw)
+      os.path.join(parsed_arguments.path, DEFAULT_KEYSTORE_DIR,
+      DEFAULT_TARGETS_KEY), parsed_arguments.pw)
   snapshot_private = repo_tool.import_ecdsa_privatekey_from_file(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_SNAPSHOT_KEY), parsed_arguments.pw)
+      os.path.join(parsed_arguments.path, DEFAULT_KEYSTORE_DIR,
+      DEFAULT_SNAPSHOT_KEY), parsed_arguments.pw)
   timestamp_private = repo_tool.import_ecdsa_privatekey_from_file(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TIMESTAMP_KEY), parsed_arguments.pw)
+      os.path.join(parsed_arguments.path, DEFAULT_KEYSTORE_DIR,
+      DEFAULT_TIMESTAMP_KEY), parsed_arguments.pw)
 
   # Add the verification keys to the top-level roles.
   repository.root.add_verification_key(root_public)
@@ -305,6 +324,10 @@ def parse_arguments():
 
   parser.add_argument('-i', '--init', nargs='?', const='.',
       help='Create a repository.')
+
+  parser.add_argument('-p', '--path', nargs='?', default='.',
+      help='Specify a repository path.  If used with --init, the initialized'
+      ' repository is saved to the specified path.')
 
   parser.add_argument('-b', '--bare', type=bool, nargs='?', const=True,
       default=False, choices=[True, False],
