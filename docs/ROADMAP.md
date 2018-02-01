@@ -17,9 +17,9 @@ release dates are as follows:
 
 
 ## Latest release
-Pre-release v0.10.1 shipped on November 13, 2017.
-* [Release notes](https://github.com/theupdateframework/tuf/releases/tag/v0.10.1)
-* [Download](https://github.com/theupdateframework/tuf/releases/tag/v0.10.1)
+Pre-release v0.10.2 shipped on January 31, 2018.
+* [Release notes](https://github.com/theupdateframework/tuf/releases/tag/v0.10.2)
+* [Download](https://github.com/theupdateframework/tuf/releases/tag/v0.10.2)
 * Packaged by Vladimir Diaz <vladimir.v.diaz@gmail.com, @vladimir-v-diaz>
 * PGP fingerprint: 3E87 BB33 9378 BC7B 3DD0  E5B2 5DEE 9B97 B0E2 289A
 
@@ -28,19 +28,19 @@ Pre-release v0.10.1 shipped on November 13, 2017.
 
 In no particular order...
 
-- [ ] [CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1351) badge.
-  - [ ] silver badge
+- [x] [CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1351) badge.
+  - [ ] silver badge (currently at 98%)
   - [ ] gold badge
 
 - [ ] [TAP 3: Multi-role delegations](https://github.com/theupdateframework/taps/blob/master/tap3.md).
 
-- [ ] [TAP 4: Multiple repository consensus on entrusted targets](https://github.com/theupdateframework/taps/blob/master/tap4.md).
+- [x] [TAP 4: Multiple repository consensus on entrusted targets](https://github.com/theupdateframework/taps/blob/master/tap4.md).
 
 - [ ] [TAP 5: Setting URLs for roles in the Root metadata file](https://github.com/theupdateframework/taps/blob/master/tap5.md).
 
 - [ ] [TAP 8: Key rotation and explicit self-revocation](https://github.com/theupdateframework/taps/blob/master/tap8.md).
 
-- [ ] CLI tool and quickstart guide.
+- [x] CLI tool and quickstart guide.
 
 - [ ] Generalize metadata format in specification.
 
