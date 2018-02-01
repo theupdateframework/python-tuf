@@ -11,14 +11,18 @@ any targets nor does it delegate trust to any roles.
 ```Bash
 $ repo.py --init
 ```
-Note: Support for arbitrary repo paths will be added in the near future.
-`$ repo.py --init --path </path/to/repo>`
 
-By default, `pw` is used to encrypt the top-level key files created with
---init.  Instead, the user can enter a password on the command line, or be
-prompted for one.
+Optionally, the repository can be written to a specified location.
 ```Bash
-$ repo.py --init --pw my_pw
+$ repo.py --init --path </path/to/repo>
+```
+
+Note:  The default top-level key files created with --init are saved to disk
+encrypted, with a default password of 'pw'.  Instead of using the default
+password, the user can enter one on the command line or be prompted
+for it via password masking.
+```Bash
+$ repo.py --init --pw my_password
 ```
 
 ```Bash
@@ -51,6 +55,12 @@ More than one target file may be specified.
 ```Bash
 $ repo.py --add <foo.tar.gz> <bar.tar.gz>
 ```
+
+Similar to the --init case, the repository location can be specified.
+```Bash
+$ repo.py --add <foo.tar.gz> --path </path/to/my_repo>
+```
+
 Note: Support for directories will be added in the near future.
 `$ repo.py --add </path/to/dir> [--recursive]`
 
@@ -68,4 +78,6 @@ $ repo.py --verbose <0-5>
 Remove the files created via `repo.py --init`.
 ```Bash
 $ repo.py --clean
+$ repo.py --clean --path </path/to/dirty/repo>
 ```
+(--clean by itself removes TUF files from the current working directory.)
