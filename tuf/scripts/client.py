@@ -197,7 +197,6 @@ def parse_arguments():
 
   parsed_arguments = parser.parse_args()
 
-  print('parsed_arguments: ' + repr(parsed_arguments))
 
   # Set the logging level.
   if parsed_arguments.verbose == 5:
