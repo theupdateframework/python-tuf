@@ -51,9 +51,13 @@ $ repo.py --init --consistent_snapshot
 
 ## Add a target file ##
 
-More than one target file may be specified.
+Copy a target file to the repo and add it to Targets metadata.  More than one
+target file, or directory, may be specified with --add.  The --recursive option
+may be selected to also include files in subdirectories of a specified
+directory.
 ```Bash
 $ repo.py --add <foo.tar.gz> <bar.tar.gz>
+$ repo.py --add </path/to/dir> [--recursive]
 ```
 
 Similar to the --init case, the repository location can be specified.
@@ -61,8 +65,6 @@ Similar to the --init case, the repository location can be specified.
 $ repo.py --add <foo.tar.gz> --path </path/to/my_repo>
 ```
 
-Note: Support for directories will be added in the near future.
-`$ repo.py --add </path/to/dir> [--recursive]`
 
 
 ## Verbosity ##
