@@ -23,10 +23,10 @@
   developer_tool.py.
 
 <Usage>
-  $ repo.py --init [--consistent_snapshot, --bare]
-  $ repo.py --add <target>
+  $ repo.py --init [--consistent_snapshot, --bare, --path]
+  $ repo.py --add <target> <dir> ... [--path, --recursive]
   $ repo.py --verbose
-  $ repo.py --clean
+  $ repo.py --clean [--path]
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
@@ -42,6 +42,7 @@ import sys
 import logging
 import argparse
 import shutil
+import errno
 import getpass
 
 import tuf
@@ -135,6 +136,24 @@ def write_to_live_repo():
 
 
 
+def add_target_to_repo(target_path, repo_targets_path, repository):
+  """
+  (1) Copy 'target_path' to 'repo_targets_path'.
+  (2) Add 'target_path' to Targets metadata of 'repository'.
+  """
+
+  if not os.path.exists(target_path):
+    print(repr(target_path) + ' does not exist.  Skipping.')
+
+  else:
+    securesystemslib.util.ensure_parent_dir(
+        os.path.join(repo_targets_path, target_path))
+    shutil.copy(target_path, os.path.join(repo_targets_path, target_path))
+    repository.targets.add_target(
+        os.path.join(repo_targets_path, target_path))
+
+
+
 def add_targets(parsed_arguments):
   target_paths = os.path.join(parsed_arguments.add)
 
@@ -142,19 +161,22 @@ def add_targets(parsed_arguments):
   repository = repo_tool.load_repository(
       os.path.join(parsed_arguments.path, REPO_DIR))
 
+  # Copy the target files in --path to the repo directory, and
+  # add them to Targets metadata.  Make sure to also copy & add files
+  # in directories (and subdirectories, if --recursive is True).
   for target_path in target_paths:
-    if not os.path.exists(target_path):
-      print(repr(target_path) + ' does not exist.  Skipping.')
+    if os.path.isdir(target_path):
+      for sub_target_path in repository.get_filepaths_in_directory(
+          target_path, parsed_arguments.recursive):
+        add_target_to_repo(sub_target_path, repo_targets_path, repository)
 
     else:
-      shutil.copy(target_path, repo_targets_path)
-      repository.targets.add_target(
-          os.path.join(repo_targets_path, os.path.basename(target_path)))
+      add_target_to_repo(target_path, repo_targets_path, repository)
 
   # Examples of how the --pw command-line option is interpreted:
   # repo.py --init': parsed_arguments.pw = 'pw'
-  # repo.py --init --pw my_pw: parsed_arguments.pw = 'my_pw'
-  # repo.py --init --pw: The user is prompted for a password, here.
+  # repo.py --init --pw my_password: parsed_arguments.pw = 'my_password'
+  # repo.py --init --pw: The user is prompted for a password, as follows:
   if not parsed_arguments.pw:
     parsed_arguments.pw = securesystemslib.interface.get_password(
         prompt='Enter a password for the top-level role keys: ', confirm=True)
@@ -347,6 +369,10 @@ def parse_arguments():
 
   parser.add_argument('-a', '--add', type=str, nargs='+',
       help='Add one or more target files.')
+
+  parser.add_argument('-r', '--recursive', type=bool, nargs='?',
+      choices=[True, False], const=True, default=False,
+      help='Specify whether a directory should be processed recursively.')
 
   parser.add_argument('--role', nargs='?', type=str, const='targets',
       default='targets', help='Specify a role.')
