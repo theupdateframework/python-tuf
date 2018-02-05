@@ -67,6 +67,29 @@ $ repo.py --add <foo.tar.gz> --path </path/to/my_repo>
 
 
 
+## Sign metadata ##
+Sign, using the specified key argument, the metadata of the role indicated by
+--role.  If no key argument or --role is given, the Targets role or its key is
+used.  The Snapshot and Timestamp role are also automatically signed, if
+possible.
+```Bash
+$ repo.py --sign
+$ repo.py --sign </path/to/key>
+$ repo.py --sign </path/to/key> [--role <rolename>]
+$ repo.py --sign </path/to/key> [--role <rolename>, --path </path/to/repo>]
+```
+
+For example, to sign a new Timestamp:
+```Bash
+$ repo.py --sign /path/to/timestamp_key --role timestamp
+```
+
+Note: In the future, the user might be given the option of disabling automatic
+signing of Snapshot and Timestamp metadata.  Also, only ECDSA keys are
+presently supported, but other key types will be added.
+
+
+
 ## Verbosity ##
 
 Set the verbosity of the logger (2, by default).  Logger messages are saved to
@@ -74,6 +97,8 @@ Set the verbosity of the logger (2, by default).  Logger messages are saved to
 ```Bash
 $ repo.py --verbose <0-5>
 ```
+
+
 
 ## Clean ##
 
