@@ -14,7 +14,7 @@
   February 15, 2012.
 
 <Copyright>
-  See LICENSE-MIT.txt or LICENSE-APACHE.txt for licensing information.
+  See LICENSE-MIT or LICENSE for licensing information.
 
 <Purpose>
   This is a basic server that was designed to be used in conjunction with

@@ -19,7 +19,7 @@
     discontinue use of the old repository tools. -vladimir.v.diaz
 
 <Copyright>
-  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
+  See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
   Simulate an arbitrary package attack, where an updater client attempts to

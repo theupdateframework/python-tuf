@@ -14,7 +14,7 @@
   April 4, 2012.  Based on a previous version of this module by Geremy Condra.
 
 <Copyright>
-  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
+  See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
   A central location for all logging-related configuration.  This module should

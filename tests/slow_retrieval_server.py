@@ -14,7 +14,7 @@
   March 13, 2012.
 
 <Copyright>
-  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
+  See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
   Server that throttles data by sending one byte at a time (specified time

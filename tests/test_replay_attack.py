@@ -20,7 +20,7 @@
     -vladimir.v.diaz
 
 <Copyright>
-  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
+  See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
   Simulate a replay, or rollback, attack.  In a replay attack, a client is

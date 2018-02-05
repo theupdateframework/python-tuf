@@ -15,7 +15,7 @@
   March 12, 2012.
 
 <Copyright>
-  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
+  See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
   Extract a list of mirror urls corresponding to the file type and the location

@@ -17,7 +17,7 @@
   January 22, 2014.
 
 <Copyright>
-  See LICENCE-MIT.txt OR LICENCE-APACHE.txt for licensing information.
+  See LICENCE-MIT OR LICENCE for licensing information.
 
 <Purpose>
   See 'tuf/README-developer-tools.md' for a complete guide on using

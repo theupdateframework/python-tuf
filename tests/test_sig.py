@@ -15,7 +15,7 @@
   February 28, 2012.  Based on a previous version of this module.
 
 <Copyright>
-  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
+  See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
   Test cases for for sig.py.

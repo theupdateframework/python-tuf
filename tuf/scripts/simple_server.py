@@ -14,7 +14,7 @@
   February 15, 2012.
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
   This is a basic server that was designed to be used in conjunction with

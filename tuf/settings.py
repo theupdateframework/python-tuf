@@ -14,7 +14,7 @@
   January 11, 2017
 
 <Copyright>
-  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
+  See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
  A central location for TUF configuration settings.  Example options include

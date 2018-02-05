@@ -14,7 +14,7 @@
   July 14, 2017.
 
 <Copyright>
-  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
+  See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
   Test cases for unittest_toolbox.py.

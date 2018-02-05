@@ -19,7 +19,7 @@
   unit tests. -Zane Fisher
 
 <Copyright>
-  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
+  See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
   Run all the unit tests from every .py file beginning with "test_" in
