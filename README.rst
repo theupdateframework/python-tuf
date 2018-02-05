@@ -89,8 +89,8 @@ License
 
 This work is `dual-licensed <https://en.wikipedia.org/wiki/Multi-licensing>`_
 and distributed under the (1) MIT License and (2) Apache License, Version 2.0.
-Please see `LICENSE-MIT.txt <docs/LICENSE-MIT.txt>`_ and `LICENSE-APACHE.txt
-<docs/LICENSE-APACHE.txt>`_.
+Please see `LICENSE-MIT <LICENSE-MIT>`_ and `LICENSE
+<LICENSE>`_.
 
 
 Acknowledgements
