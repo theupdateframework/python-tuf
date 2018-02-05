@@ -14,7 +14,7 @@
   June 17, 2014
 
 <Copyright>
-  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
+  See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
   Provide a simple https server that can be used by the unit tests.  For

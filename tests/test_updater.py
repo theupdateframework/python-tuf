@@ -18,7 +18,7 @@
     exact repositories, and add realistic retrieval of files. -vladimir.v.diaz
 
 <Copyright>
-  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
+  See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
   'test_updater.py' provides a collection of methods that test the public /

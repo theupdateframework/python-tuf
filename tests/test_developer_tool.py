@@ -15,7 +15,7 @@
   January 22, 2014.
 
 <Copyright>
-  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing inforation.
+  See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
   Unit test for the 'developer_tool.py' module.

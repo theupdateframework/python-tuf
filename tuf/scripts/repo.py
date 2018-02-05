@@ -14,7 +14,7 @@
   January 2018.
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
   Provide a command-line interface to create and modify TUF repositories.  The

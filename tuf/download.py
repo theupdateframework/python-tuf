@@ -15,7 +15,7 @@
   Vladimir Diaz <vladimir.v.diaz@gmail.com>
 
 <Copyright>
-  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
+  See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
   Download metadata and target files and check their validity.  The hash and

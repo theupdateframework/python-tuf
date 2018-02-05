@@ -28,7 +28,7 @@
     -sebastien.awwad
 
 <Copyright>
-  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
+  See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
   Simulate an indefinite freeze attack.  In an indefinite freeze attack,

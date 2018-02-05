@@ -15,7 +15,7 @@
   Refactored April 30, 2012. -vladimir.v.diaz
 
 <Copyright>
-  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
+  See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
   A central location for all format-related checking of TUF objects.

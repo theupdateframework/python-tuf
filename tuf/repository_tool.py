@@ -14,7 +14,7 @@
   October 19, 2013
 
 <Copyright>
-  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
+  See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
   Provide a tool that can create a TUF repository.  It can be used with the

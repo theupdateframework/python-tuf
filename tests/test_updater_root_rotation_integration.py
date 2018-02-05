@@ -14,7 +14,7 @@
   August 8, 2016.
 
 <Copyright>
-  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
+  See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
   'test_updater_root_rotation.py' provides a collection of methods that test

@@ -20,7 +20,7 @@
     simulated for the mix-and-match attack.  -vladimir.v.diaz
 
 <Copyright>
-  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
+  See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
   Simulate a mix-and-match attack.  In a mix-and-match attack, an attacker is

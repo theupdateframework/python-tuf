@@ -14,7 +14,7 @@
   April 28, 2016.
 
 <Copyright>
-  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
+  See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
   Integration test that verifies top-level roles are updated after all of their

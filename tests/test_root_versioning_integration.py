@@ -14,7 +14,7 @@
   July 21, 2016.
 
 <Copyright>
-  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
+  See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
   Test root versioning for efficient root key rotation.
