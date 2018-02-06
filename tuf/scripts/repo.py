@@ -116,6 +116,33 @@ def process_arguments(parsed_arguments):
   if parsed_arguments.sign:
     sign_role(parsed_arguments)
 
+  if parsed_arguments.key:
+    gen_key(parsed_arguments)
+
+
+
+def gen_key(parsed_arguments):
+
+  if parsed_arguments.key == 'ecdsa':
+    repo_tool.generate_and_write_ecdsa_keypair(
+        os.path.join(parsed_arguments.path, KEYSTORE_DIR,
+        parsed_arguments.filename), password=parsed_arguments.pw)
+
+  elif parsed_arguments.key == 'ed25519':
+    repo_tool.generate_and_write_ed25519_keypair(
+        os.path.join(parsed_arguments.path, KEYSTORE_DIR,
+        parsed_arguments.filename), password=parsed_arguments.pw)
+
+  elif parsed_arguments.key == 'rsa':
+    repo_tool.generate_and_write_rsa_keypair(
+        os.path.join(parsed_arguments.path, KEYSTORE_DIR,
+        parsed_arguments.filename), password=parsed_arguments.pw)
+
+  else:
+    tuf.exceptions.Error(
+        'Invalid key type: ' + repr(parsed_arguments.key) + '.  Supported'
+        ' key types: "ecdsa", "ed25519", "rsa."')
+
 
 
 def sign_role(parsed_arguments):
@@ -426,11 +453,18 @@ def parse_arguments():
       default=None, help='Sign --role <rolename> (Targets role, if'
       ' --role is unset) with the specified key.')
 
+  parser.add_argument('--key', type=str, nargs='?', const='ecdsa',
+      default=None, choices=['ecdsa', 'ed25519', 'rsa'],
+      help='Generate an ECDSA, Ed25519, or RSA key.')
+
   parser.add_argument('--role', nargs='?', type=str, const='targets',
       default='targets', help='Specify a role.')
 
   parser.add_argument('--pw', nargs='?', default='pw',
       help='Specify a password for the top-level key files.')
+
+  parser.add_argument('--filename', nargs='?', default=None, const=None,
+      help='Specify filename of generated key.')
 
   parsed_args = parser.parse_args()
 
