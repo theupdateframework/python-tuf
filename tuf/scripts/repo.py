@@ -103,7 +103,7 @@ def process_arguments(parsed_arguments):
     logger.debug('We have a valid argparse Namespace: ' + repr(parsed_arguments))
 
   # TODO: Process all of the supported command-line actions.  --init, --clean,
-  # --add, --sign are currently implemented.
+  # --add, --sign, --key are currently implemented.
   if parsed_arguments.init:
     init_repo(parsed_arguments)
 
@@ -123,25 +123,40 @@ def process_arguments(parsed_arguments):
 
 def gen_key(parsed_arguments):
 
+  if parsed_arguments.filename:
+    parsed_arguments.filename = os.path.join(parsed_arguments.path,
+        KEYSTORE_DIR, parsed_arguments.filename)
+
+  keypath = None
+
   if parsed_arguments.key == 'ecdsa':
-    repo_tool.generate_and_write_ecdsa_keypair(
-        os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-        parsed_arguments.filename), password=parsed_arguments.pw)
+    keypath = securesystemslib.interface.generate_and_write_ecdsa_keypair(
+      parsed_arguments.filename, password=parsed_arguments.pw)
 
   elif parsed_arguments.key == 'ed25519':
-    repo_tool.generate_and_write_ed25519_keypair(
-        os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-        parsed_arguments.filename), password=parsed_arguments.pw)
+    keypath = securesystemslib.interface.generate_and_write_ed25519_keypair(
+        parsed_arguments.filename, password=parsed_arguments.pw)
 
   elif parsed_arguments.key == 'rsa':
-    repo_tool.generate_and_write_rsa_keypair(
-        os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-        parsed_arguments.filename), password=parsed_arguments.pw)
+    keypath = securesystemslib.interface.generate_and_write_rsa_keypair(
+        parsed_arguments.filename, password=parsed_arguments.pw)
 
   else:
     tuf.exceptions.Error(
         'Invalid key type: ' + repr(parsed_arguments.key) + '.  Supported'
         ' key types: "ecdsa", "ed25519", "rsa."')
+
+
+  # If a filename is not given, the generated keypair is saved to the current
+  # working directory.  By default, the filenames are written to <KEYID>.pub
+  # and <KEYID> (private key).  Move them from the CWD to the repo's keystore.
+  if not parsed_arguments.filename:
+    shutil.move(keypath, os.path.join(parsed_arguments.path,
+        KEYSTORE_DIR, os.path.basename(keypath)))
+    shutil.move(keypath + '.pub', os.path.join(parsed_arguments.path,
+        KEYSTORE_DIR, os.path.basename(keypath + '.pub')))
+
+
 
 
 
