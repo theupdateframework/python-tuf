@@ -25,6 +25,7 @@
 <Usage>
   $ repo.py --init [--consistent_snapshot, --bare, --path]
   $ repo.py --add <target> <dir> ... [--path, --recursive]
+  $ repo.py --sign </path/to/key> --role <targets>
   $ repo.py --verbose
   $ repo.py --clean [--path]
 """
@@ -53,7 +54,7 @@ import tuf.repository_tool as repo_tool
 import securesystemslib
 
 # See 'log.py' to learn how logging is handled in TUF.
-logger = logging.getLogger('tuf.script.repo')
+logger = logging.getLogger('tuf.scripts.repo')
 
 repo_tool.disable_console_log_messages()
 
@@ -102,7 +103,7 @@ def process_arguments(parsed_arguments):
     logger.debug('We have a valid argparse Namespace: ' + repr(parsed_arguments))
 
   # TODO: Process all of the supported command-line actions.  --init, --clean,
-  # --add are currently implemented.
+  # --add, --sign are currently implemented.
   if parsed_arguments.init:
     init_repo(parsed_arguments)
 
@@ -111,6 +112,53 @@ def process_arguments(parsed_arguments):
 
   if parsed_arguments.add:
     add_targets(parsed_arguments)
+
+  if parsed_arguments.sign:
+    sign_role(parsed_arguments)
+
+
+
+def sign_role(parsed_arguments):
+
+  repository = repo_tool.load_repository(
+      os.path.join(parsed_arguments.path, REPO_DIR))
+
+  # Was a private key path given with --sign?  If so, load the specified
+  # private key. Otherwise, load the default key path.
+  if parsed_arguments.sign != '.':
+    role_privatekey = repo_tool.import_ecdsa_privatekey_from_file(
+        parsed_arguments.sign)
+
+  else:
+    role_privatekey = repo_tool.import_ecdsa_privatekey_from_file(
+        os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
+        parsed_arguments.pw)
+
+  if parsed_arguments.role == 'targets':
+    repository.targets.load_signing_key(role_privatekey)
+
+  elif parsed_arguments.role in ['snapshot', 'timestamp']:
+    pass
+
+  else:
+    repository.targets(parsed_arguments.role).load_signing_key(role_privatekey)
+
+  # Update the required top-level roles, Snapshot and Timestamp, to make a new
+  # release.
+  snapshot_private = repo_tool.import_ecdsa_privatekey_from_file(
+      os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
+      parsed_arguments.pw)
+  timestamp_private = repo_tool.import_ecdsa_privatekey_from_file(
+      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
+      TIMESTAMP_KEY_NAME), parsed_arguments.pw)
+
+  repository.snapshot.load_signing_key(snapshot_private)
+  repository.timestamp.load_signing_key(timestamp_private)
+
+  repository.writeall()
+
+  # Move staged metadata directory to "live" metadata directory.
+  write_to_live_repo()
 
 
 
@@ -373,6 +421,10 @@ def parse_arguments():
   parser.add_argument('-r', '--recursive', type=bool, nargs='?',
       choices=[True, False], const=True, default=False,
       help='Specify whether a directory should be processed recursively.')
+
+  parser.add_argument('--sign', nargs='?', type=str, const='.',
+      default=None, help='Sign --role <rolename> (Targets role, if'
+      ' --role is unset) with the specified key.')
 
   parser.add_argument('--role', nargs='?', type=str, const='targets',
       default='targets', help='Specify a role.')
