@@ -68,6 +68,9 @@ $ repo.py --add <foo.tar.gz> --path </path/to/my_repo>
 
 
 # Generate key ##
+Generate a cryptographic key.  The generated key can later be used with --sign
+to sign specific metadata.  Key types supported: `ecdsa`, `ed25519`, and
+`rsa`.
 ```Bash
 $ repo.py --key
 $ repo.py --key <keytype>
