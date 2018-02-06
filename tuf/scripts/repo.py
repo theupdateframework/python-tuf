@@ -103,7 +103,7 @@ def process_arguments(parsed_arguments):
     logger.debug('We have a valid argparse Namespace: ' + repr(parsed_arguments))
 
   # TODO: Process all of the supported command-line actions.  --init, --clean,
-  # --add, --sign are currently implemented.
+  # --add, --sign, --key are currently implemented.
   if parsed_arguments.init:
     init_repo(parsed_arguments)
 
@@ -115,6 +115,48 @@ def process_arguments(parsed_arguments):
 
   if parsed_arguments.sign:
     sign_role(parsed_arguments)
+
+  if parsed_arguments.key:
+    gen_key(parsed_arguments)
+
+
+
+def gen_key(parsed_arguments):
+
+  if parsed_arguments.filename:
+    parsed_arguments.filename = os.path.join(parsed_arguments.path,
+        KEYSTORE_DIR, parsed_arguments.filename)
+
+  keypath = None
+
+  if parsed_arguments.key == 'ecdsa':
+    keypath = securesystemslib.interface.generate_and_write_ecdsa_keypair(
+      parsed_arguments.filename, password=parsed_arguments.pw)
+
+  elif parsed_arguments.key == 'ed25519':
+    keypath = securesystemslib.interface.generate_and_write_ed25519_keypair(
+        parsed_arguments.filename, password=parsed_arguments.pw)
+
+  elif parsed_arguments.key == 'rsa':
+    keypath = securesystemslib.interface.generate_and_write_rsa_keypair(
+        parsed_arguments.filename, password=parsed_arguments.pw)
+
+  else:
+    tuf.exceptions.Error(
+        'Invalid key type: ' + repr(parsed_arguments.key) + '.  Supported'
+        ' key types: "ecdsa", "ed25519", "rsa."')
+
+
+  # If a filename is not given, the generated keypair is saved to the current
+  # working directory.  By default, the filenames are written to <KEYID>.pub
+  # and <KEYID> (private key).  Move them from the CWD to the repo's keystore.
+  if not parsed_arguments.filename:
+    shutil.move(keypath, os.path.join(parsed_arguments.path,
+        KEYSTORE_DIR, os.path.basename(keypath)))
+    shutil.move(keypath + '.pub', os.path.join(parsed_arguments.path,
+        KEYSTORE_DIR, os.path.basename(keypath + '.pub')))
+
+
 
 
 
@@ -426,11 +468,18 @@ def parse_arguments():
       default=None, help='Sign --role <rolename> (Targets role, if'
       ' --role is unset) with the specified key.')
 
+  parser.add_argument('--key', type=str, nargs='?', const='ecdsa',
+      default=None, choices=['ecdsa', 'ed25519', 'rsa'],
+      help='Generate an ECDSA, Ed25519, or RSA key.')
+
   parser.add_argument('--role', nargs='?', type=str, const='targets',
       default='targets', help='Specify a role.')
 
   parser.add_argument('--pw', nargs='?', default='pw',
       help='Specify a password for the top-level key files.')
+
+  parser.add_argument('--filename', nargs='?', default=None, const=None,
+      help='Specify filename of generated key.')
 
   parsed_args = parser.parse_args()
 
