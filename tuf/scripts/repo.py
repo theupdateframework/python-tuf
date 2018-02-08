@@ -23,9 +23,13 @@
   developer_tool.py.
 
 <Usage>
+  Note: arguments within brackets are optional.
+
   $ repo.py --init [--consistent_snapshot, --bare, --path]
   $ repo.py --add <target> <dir> ... [--path, --recursive]
-  $ repo.py --sign </path/to/key> --role <targets>
+  $ repo.py --sign </path/to/key> [--role <targets>]
+  $ repo.py --key <keytype> [--filename <filename>
+      --path </path/to/repo>, --pw [my_password]]
   $ repo.py --verbose
   $ repo.py --clean [--path]
 """
@@ -438,48 +442,54 @@ def parse_arguments():
       ' levels: 0=UNSET, 1=DEBUG, 2=INFO, 3=WARNING, 4=ERROR,'
       ' 5=CRITICAL')
 
-  parser.add_argument('-i', '--init', nargs='?', const='.',
-      help='Create a repository.')
+  parser.add_argument('-i', '--init', action='store_true',
+      help='Create a repository.  The current working directory is'
+      ' used by default.')
 
   parser.add_argument('-p', '--path', nargs='?', default='.',
-      help='Specify a repository path.  If used with --init, the initialized'
-      ' repository is saved to the specified path.')
+      metavar='</path/to/repo_dir>', help='Specify a repository path.  If used'
+      ' with --init, the initialized repository is saved to the specified'
+      ' path.  The current working directory is used by default.')
 
-  parser.add_argument('-b', '--bare', type=bool, nargs='?', const=True,
-      default=False, choices=[True, False],
-      help='If initializing a repository, ' + repr(PROG_NAME) + ' should not'
-      ' create nor set keys for any of the top-level roles.')
+  parser.add_argument('-b', '--bare', action='store_true',
+      help='If initializing a repository, neither create nor set keys'
+      ' for any of the top-level roles.  False, by default.')
 
-  parser.add_argument('--consistent_snapshot', type=bool, nargs='?',
-      choices=[True, False], const=True, default=False,
-      help='Enable consistent snapshot.')
+  parser.add_argument('--consistent_snapshot', action='store_true',
+      help='Enable consistent snapshots.  Consistent snapshot is False by'
+      ' default.')
 
   parser.add_argument('-c', '--clean', type=str, nargs='?', const='.',
-      help='Erase the repository directory.')
+      metavar='</path/to/dir', help='Delete repo files from the'
+      ' specified directory.')
 
   parser.add_argument('-a', '--add', type=str, nargs='+',
-      help='Add one or more target files.')
+      metavar='</path/to/file>', help='Add one or more target files.'
+      '  If a directory is given, all files in the directory are added.')
 
-  parser.add_argument('-r', '--recursive', type=bool, nargs='?',
-      choices=[True, False], const=True, default=False,
-      help='Specify whether a directory should be processed recursively.')
+  parser.add_argument('-r', '--recursive', action='store_true',
+      help='Any directory specified with --add is processed recursively.'
+      '  False, by default.')
 
   parser.add_argument('--sign', nargs='?', type=str, const='.',
-      default=None, help='Sign --role <rolename> (Targets role, if'
-      ' --role is unset) with the specified key.')
+      default=None, metavar='</path/to/privkey>', help='Sign a role file'
+      '  with the specified key.')
 
-  parser.add_argument('--key', type=str, nargs='?', const='ecdsa',
+  parser.add_argument('-k', '--key', type=str, nargs='?', const='ecdsa',
       default=None, choices=['ecdsa', 'ed25519', 'rsa'],
-      help='Generate an ECDSA, Ed25519, or RSA key.')
+      help='Generate an ECDSA, Ed25519, or RSA key.  An "ecdsa" key is'
+      ' created by default.')
 
   parser.add_argument('--role', nargs='?', type=str, const='targets',
-      default='targets', help='Specify a role.')
+      default='targets', metavar='<rolename>', help='Specify a rolename.'
+      ' The rolename "targets" is used by default.')
 
-  parser.add_argument('--pw', nargs='?', default='pw',
-      help='Specify a password for the top-level key files.')
+  parser.add_argument('--pw', nargs='?', default='pw', metavar='<password>',
+      help='Specify a password. "pw" is used by default.')
 
   parser.add_argument('--filename', nargs='?', default=None, const=None,
-      help='Specify filename of generated key.')
+      metavar='<filename>', help='Specify a filename.')
+
 
   parsed_args = parser.parse_args()
 
