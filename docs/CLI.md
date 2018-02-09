@@ -102,6 +102,19 @@ presently supported with `--sign`, but other key types will be added.
 
 
 
+## Delegate trust ##
+
+Delegate trust of target files from the targets role (or the one specified
+in --role) to some other role (--delegatee).  --delegatee is trusted to
+sign for target files that match the delegated glob patterns.
+```Bash
+$ repo.py --delegate <glob pattern> ... --role <rolename>
+    --delegatee <rolename> --terminating --threshold <X>
+    --keys </path/to/pubkey> --sign </path/to/role_privkey>
+```
+
+
+
 ## Verbosity ##
 
 Set the verbosity of the logger (2, by default).  The lower the number, the
