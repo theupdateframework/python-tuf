@@ -187,13 +187,13 @@ def parse_arguments():
       ' levels: 0=UNSET, 1=DEBUG, 2=INFO, 3=WARNING, 4=ERROR,'
       ' 5=CRITICAL')
 
-  parser.add_argument('-r', '--repo', type=str, required=True,
-      help='Specify the repository mirror URL prefix'
+  parser.add_argument('-r', '--repo', type=str, required=True, metavar='<URI>',
+      help='Specify the remote repository\'s URI'
       ' (e.g., http://www.example.com:8001/tuf/).  The client retrieves'
-      ' updates from this mirror.')
+      ' updates from the remote repository.')
 
-  parser.add_argument('targets', nargs='+', help='Specify the target files to'
-      ' retrieve from the remote TUF repository.')
+  parser.add_argument('targets', nargs='+', metavar='<file>', help='Specify'
+      ' the target files to retrieve from the specified TUF repository.')
 
   parsed_arguments = parser.parse_args()
 
