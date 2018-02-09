@@ -435,60 +435,66 @@ def parse_arguments():
   parser = argparse.ArgumentParser(
       description='Create or modify a TUF repository.')
 
-  # Add the parser arguments supported by PROG_NAME.
-  parser.add_argument('-v', '--verbose', type=int, default=2,
-      choices=range(0, 6), help='Set the verbosity level of logging messages.'
-      ' The lower the setting, the greater the verbosity.  Supported logging'
-      ' levels: 0=UNSET, 1=DEBUG, 2=INFO, 3=WARNING, 4=ERROR,'
-      ' 5=CRITICAL')
-
   parser.add_argument('-i', '--init', action='store_true',
-      help='Create a repository.  The current working directory is'
-      ' used by default.')
+      help='Create a repository.  The repository is created in the current'
+      ' working directory unless --path is specified.')
 
   parser.add_argument('-p', '--path', nargs='?', default='.',
       metavar='</path/to/repo_dir>', help='Specify a repository path.  If used'
-      ' with --init, the initialized repository is saved to the specified'
-      ' path.  The current working directory is used by default.')
+      ' with --init, the initialized repository is saved to the given'
+      ' path.')
 
   parser.add_argument('-b', '--bare', action='store_true',
       help='If initializing a repository, neither create nor set keys'
       ' for any of the top-level roles.  False, by default.')
 
   parser.add_argument('--consistent_snapshot', action='store_true',
-      help='Enable consistent snapshots.  Consistent snapshot is False by'
-      ' default.')
+      help='Set consistent snapshots for an initialized repository.'
+      '  Consistent snapshot is False by default.')
 
   parser.add_argument('-c', '--clean', type=str, nargs='?', const='.',
-      metavar='</path/to/dir', help='Delete repo files from the'
-      ' specified directory.')
+      metavar='</path/to/repo_dir', help='Delete the repo files from the'
+      ' specified directory.  If a directory is not specified, the current'
+      ' working directory is cleaned.')
 
   parser.add_argument('-a', '--add', type=str, nargs='+',
-      metavar='</path/to/file>', help='Add one or more target files.'
-      '  If a directory is given, all files in the directory are added.')
-
-  parser.add_argument('-r', '--recursive', action='store_true',
-      help='Any directory specified with --add is processed recursively.'
-      '  False, by default.')
-
-  parser.add_argument('--sign', nargs='?', type=str, const='.',
-      default=None, metavar='</path/to/privkey>', help='Sign a role file'
-      '  with the specified key.')
-
-  parser.add_argument('-k', '--key', type=str, nargs='?', const='ecdsa',
-      default=None, choices=['ecdsa', 'ed25519', 'rsa'],
-      help='Generate an ECDSA, Ed25519, or RSA key.  An "ecdsa" key is'
-      ' created by default.')
+      metavar='</path/to/file>', help='Add one or more target files to the'
+      ' "targets" role (or the role specified in --role).  If a directory'
+      ' is given, all files in the directory are added.')
 
   parser.add_argument('--role', nargs='?', type=str, const='targets',
       default='targets', metavar='<rolename>', help='Specify a rolename.'
       ' The rolename "targets" is used by default.')
 
-  parser.add_argument('--pw', nargs='?', default='pw', metavar='<password>',
-      help='Specify a password. "pw" is used by default.')
+  parser.add_argument('-r', '--recursive', action='store_true',
+      help='By setting -r, any directory specified with --add is processed'
+      ' recursively.  If unset, the default behavior is to not add target'
+      ' files in subdirectories.')
+
+  parser.add_argument('-k', '--key', type=str, nargs='?', const='ecdsa',
+      default=None, choices=['ecdsa', 'ed25519', 'rsa'],
+      help='Generate an ECDSA, Ed25519, or RSA key.  An ECDSA key is'
+      ' created if the key type is unspecified.')
 
   parser.add_argument('--filename', nargs='?', default=None, const=None,
-      metavar='<filename>', help='Specify a filename.')
+      metavar='<filename>', help='Specify a filename.  This option can'
+      ' be used to name a generated key file.')
+
+  parser.add_argument('--sign', nargs='?', type=str, const='.',
+      default=None, metavar='</path/to/privkey>', help='Sign the "targets"'
+      ' metadata (or the one for --role) with the specified key.')
+
+  parser.add_argument('--pw', nargs='?', default='pw', metavar='<password>',
+      help='Specify a password. "pw" is used if --pw is unset, or a'
+      ' password can be entered via a prompt by specifying --pw by itself.'
+      '  This option can be used with --sign and --key.')
+
+  # Add the parser arguments supported by PROG_NAME.
+  parser.add_argument('-v', '--verbose', type=int, default=2,
+      choices=range(0, 6), help='Set the verbosity level of logging messages.'
+      ' The lower the setting, the greater the verbosity.  Supported logging'
+      ' levels: 0=UNSET, 1=DEBUG, 2=INFO, 3=WARNING, 4=ERROR,'
+      ' 5=CRITICAL')
 
 
   parsed_args = parser.parse_args()
