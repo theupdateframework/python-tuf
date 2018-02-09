@@ -30,6 +30,9 @@
   $ repo.py --sign </path/to/key> [--role <targets>]
   $ repo.py --key <keytype> [--filename <filename>
       --path </path/to/repo>, --pw [my_password]]
+  $ repo.py --delegate <glob pattern> ... --role <rolename>
+      --delegatee <rolename> --terminating --threshold <X>
+      --keys </path/to/pubkey> --sign </path/to/role_privkey>
   $ repo.py --verbose
   $ repo.py --clean [--path]
 """
@@ -122,6 +125,72 @@ def process_arguments(parsed_arguments):
 
   if parsed_arguments.key:
     gen_key(parsed_arguments)
+
+  if parsed_arguments.delegate:
+    delegate(parsed_arguments)
+
+
+
+def delegate(parsed_arguments):
+
+  if not parsed_arguments.delegatee:
+    raise tuf.exceptions.Error('--delegatee must be set to perform a delegation.')
+
+  if parsed_arguments.delegatee in ['root', 'snapshot', 'timestamp', 'targets']:
+    raise tuf.exceptions.Error('Cannot delegate to a top-level role.')
+
+  public_keys = []
+  for public_key in parsed_arguments.pubkeys:
+    # In the future, any type of key can be imported...
+    imported_pubkey = repo_tool.import_ecdsa_publickey_from_file(
+        public_key)
+    public_keys.append(imported_pubkey)
+
+  repository = repo_tool.load_repository(
+      os.path.join(parsed_arguments.path, REPO_DIR))
+
+  if parsed_arguments.role == 'targets':
+    repository.targets.delegate(parsed_arguments.delegatee, public_keys,
+        parsed_arguments.delegate, parsed_arguments.threshold,
+        parsed_arguments.terminating, list_of_targets=None,
+        path_hash_prefixes=None)
+
+    targets_private = repo_tool.import_ecdsa_privatekey_from_file(
+        os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
+        parsed_arguments.pw)
+
+    repository.targets.load_signing_key(targets_private)
+
+
+  else:
+    repository.targets(parsed_arguments.role).delegate(
+        parsed_arguments.delegatee, public_keys,
+        parsed_arguments.delegate, parsed_arguments.threshold,
+        parsed_arguments.terminating, list_of_targets=None,
+        path_hash_prefixes=None)
+
+    role_privatekey = repo_tool.import_ecdsa_privatekey_from_file(
+        parsed_arguments.sign)
+
+    repository.targets(parsed_arguments.role).load_signing_key(role_privatekey)
+
+
+  # Update the required top-level roles, Snapshot and Timestamp, to make a new
+  # release.
+  snapshot_private = repo_tool.import_ecdsa_privatekey_from_file(
+      os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
+      parsed_arguments.pw)
+  timestamp_private = repo_tool.import_ecdsa_privatekey_from_file(
+      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
+      TIMESTAMP_KEY_NAME), parsed_arguments.pw)
+
+  repository.snapshot.load_signing_key(snapshot_private)
+  repository.timestamp.load_signing_key(timestamp_private)
+
+  repository.writeall()
+
+  # Move staged metadata directory to "live" metadata directory.
+  write_to_live_repo()
 
 
 
@@ -489,6 +558,27 @@ def parse_arguments():
       ' password can be entered via a prompt by specifying --pw by itself.'
       '  This option can be used with --sign and --key.')
 
+  parser.add_argument('-d', '--delegate', type=str, nargs='+',
+      metavar='<glob pattern>', help='Delegate trust of target files'
+      ' from the "targets" role (or --role) to some other role (--delegatee).'
+      '  The named delegatee is trusted to sign for the target files that'
+      ' match the glob pattern(s).')
+
+  parser.add_argument('--delegatee', nargs='?', type=str, const=None,
+      default=None, metavar='<rolename>', help='Specify the rolename'
+      ' of the delegated role.  Can be used with --delegate.')
+
+  parser.add_argument('-t', '--terminating', action='store_true',
+      help='Set the terminating flag to True.  Can be used with --delegate.')
+
+  parser.add_argument('--threshold', type=int, default=1, metavar='<int>',
+      help='Set the threshold number of signatures'
+      ' needed to validate a metadata file.  Can be used with --delegate.')
+
+  parser.add_argument('--pubkeys', type=str, nargs='+',
+      metavar='</path/to/pubkey_file>', help='Specify one or more public keys'
+      ' for the delegated role.  Can be used with --delegate.')
+
   # Add the parser arguments supported by PROG_NAME.
   parser.add_argument('-v', '--verbose', type=int, default=2,
       choices=range(0, 6), help='Set the verbosity level of logging messages.'
@@ -496,6 +586,7 @@ def parse_arguments():
       ' levels: 0=UNSET, 1=DEBUG, 2=INFO, 3=WARNING, 4=ERROR,'
       ' 5=CRITICAL')
 
+  # Should we include usage examples in the help output?
 
   parsed_args = parser.parse_args()
 
