@@ -1814,6 +1814,10 @@ class Targets(Metadata):
     securesystemslib.formats.PATHS_SCHEMA.check_match(paths)
     tuf.formats.ROLENAME_SCHEMA.check_match(child_rolename)
 
+    # A list of relative and verified paths or glob patterns to be added to the
+    # child role's entry in the parent's delegations field.
+    relative_paths = []
+
     # Ensure that 'child_rolename' exists, otherwise it will not have an entry
     # in the parent role's delegations field.
     if not tuf.roledb.role_exists(child_rolename, self._repository_name):
@@ -1830,6 +1834,8 @@ class Targets(Metadata):
         logger.debug(repr(path) + ' is not located in the'
             ' repository\'s targets'
             ' directory: ' + repr(self._targets_directory))
+
+      relative_paths.append(path)
 
     # Get the current role's roleinfo, so that its delegations field can be
     # updated.
