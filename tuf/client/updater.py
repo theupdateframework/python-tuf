@@ -944,7 +944,7 @@ class Updater(object):
 
     # Iterate the keys of the delegated roles of 'parent_role' and load them.
     for keyid, keyinfo in six.iteritems(keys_info):
-      if keyinfo['keytype'] in ['rsa', 'ed25519']:
+      if keyinfo['keytype'] in ['rsa', 'ed25519', 'ecdsa-sha2-nistp256']:
 
         # We specify the keyid to ensure that it's the correct keyid
         # for the key.
