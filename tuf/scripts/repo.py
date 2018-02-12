@@ -137,7 +137,8 @@ def delegate(parsed_arguments):
     raise tuf.exceptions.Error('--delegatee must be set to perform a delegation.')
 
   if parsed_arguments.delegatee in ['root', 'snapshot', 'timestamp', 'targets']:
-    raise tuf.exceptions.Error('Cannot delegate to a top-level role.')
+    raise tuf.exceptions.Error(
+        'Cannot delegate to the top-level role: ' + repr(parsed_arguments.delegatee))
 
   public_keys = []
   for public_key in parsed_arguments.pubkeys:
@@ -162,6 +163,7 @@ def delegate(parsed_arguments):
     repository.targets.load_signing_key(targets_private)
 
 
+  # A non-top-level role.
   else:
     repository.targets(parsed_arguments.role).delegate(
         parsed_arguments.delegatee, public_keys,
@@ -306,7 +308,7 @@ def add_target_to_repo(target_path, repo_targets_path, repository):
   """
 
   if not os.path.exists(target_path):
-    print(repr(target_path) + ' does not exist.  Skipping.')
+    logger.debug(repr(target_path) + ' does not exist.  Skipping.')
 
   else:
     securesystemslib.util.ensure_parent_dir(
