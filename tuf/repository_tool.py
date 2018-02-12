@@ -1814,10 +1814,6 @@ class Targets(Metadata):
     securesystemslib.formats.PATHS_SCHEMA.check_match(paths)
     tuf.formats.ROLENAME_SCHEMA.check_match(child_rolename)
 
-    # A list of relative and verified paths or glob patterns to be added to the
-    # child role's entry in the parent's delegations field.
-    relative_paths = []
-
     # Ensure that 'child_rolename' exists, otherwise it will not have an entry
     # in the parent role's delegations field.
     if not tuf.roledb.role_exists(child_rolename, self._repository_name):
@@ -1834,8 +1830,6 @@ class Targets(Metadata):
         logger.debug(repr(path) + ' is not located in the'
             ' repository\'s targets'
             ' directory: ' + repr(self._targets_directory))
-
-      relative_paths.append(path[len(self._targets_directory):])
 
     # Get the current role's roleinfo, so that its delegations field can be
     # updated.
@@ -2269,17 +2263,10 @@ class Targets(Metadata):
 
         relative_targetpaths.update({target[targets_directory_length:]: {}})
 
-    # Verify whether each path in 'paths' is located in the repository's
-    # targets directory.
-    relative_paths = []
-
     for path in paths:
       if not path.startswith(self._targets_directory + os.sep):
         logger.debug(repr(path) + ' is not loated in the repository\'s'
           ' targets directory: ' + repr(self._targets_directory))
-
-      # Append a trailing path separator with os.path.join(path, '').
-      relative_paths.append(path[targets_directory_length:])
 
     # Create a new Targets object for the 'rolename' delegation.  An initial
     # expiration is set (3 months from the current time).
@@ -2311,7 +2298,7 @@ class Targets(Metadata):
                 'paths': list(roleinfo['paths'].keys())}
 
     if paths:
-      roleinfo['paths'] = relative_paths
+      roleinfo['paths'] = paths
 
     if path_hash_prefixes:
       roleinfo['path_hash_prefixes'] = path_hash_prefixes
