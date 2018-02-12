@@ -1464,9 +1464,7 @@ class TestTargets(unittest.TestCase):
     # delegated paths are not added to a child role that was not requested).
     self.targets_object.delegate('junk_role', public_keys, [])
 
-    delegated_path = os.path.join(self.targets_directory, 'tuf_files')
-    os.mkdir(delegated_path)
-    paths = [delegated_path + '/*']
+    paths = ['/tuf_files/*']
     self.targets_object.add_paths(paths, 'tuf')
 
     # Retrieve 'targets_object' roleinfo, and verify the roleinfo contains the
