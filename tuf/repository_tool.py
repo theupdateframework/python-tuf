@@ -2385,14 +2385,15 @@ class Targets(Metadata):
         repository_name=self._repository_name)
 
     # Remove 'rolename' from 'tuf.roledb.py'.
-    tuf.roledb.remove_role(rolename, self._repository_name)
+    try:
+      tuf.roledb.remove_role(rolename, self._repository_name)
+      # Remove the rolename delegation from the current role.  For example, the
+      # 'django' role is removed from repository.targets('django').
+      del self._delegated_roles[rolename]
+      self._parent_targets_object.remove_delegated_role(rolename)
 
-    # Remove the rolename delegation from the current role.  For example, the
-    # 'django' role is removed from repository.targets('django').
-    del self._delegated_roles[rolename]
-    self._parent_targets_object.remove_delegated_role(rolename)
-
-
+    except tuf.exceptions.UnknownRoleError, KeyError:
+      pass
 
 
 
