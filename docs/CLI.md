@@ -5,8 +5,8 @@ Note: This is a work in progress and subject to change.
 ## Create a repository ##
 
 Create a TUF repository in the current working directory.  A cryptographic key
-is created and set for each top-level role.  The Targets role does not sign for
-any targets nor does it delegate trust to any roles.
+is created and set for each top-level role.  The written Targets metadata does
+not sign for any targets, nor does it delegate trust to any roles.
 
 ```Bash
 $ repo.py --init
@@ -14,10 +14,10 @@ $ repo.py --init
 
 Optionally, the repository can be written to a specified location.
 ```Bash
-$ repo.py --init --path </path/to/repo>
+$ repo.py --init --path </path/to/repo_dir>
 ```
 
-Note:  The default top-level key files created with --init are saved to disk
+Note:  The default top-level key files created with `--init` are saved to disk
 encrypted, with a default password of 'pw'.  Instead of using the default
 password, the user can enter one on the command line or be prompted
 for it via password masking.
@@ -42,7 +42,7 @@ $ repo.py --init --bare
 
 Create a TUF repository with [consistent
 snapshots](https://github.com/theupdateframework/specification/blob/master/tuf-spec.md#7-consistent-snapshots)
-enabled.  If enabled, all target filenames have their hash prepended.
+enabled, where all target files have their hash prepended to the filename.
 ```Bash
 $ repo.py --init --consistent_snapshot
 ```
@@ -60,7 +60,7 @@ $ repo.py --add <foo.tar.gz> <bar.tar.gz>
 $ repo.py --add </path/to/dir> [--recursive]
 ```
 
-Similar to the --init case, the repository location can be specified.
+Similar to the --init case, the repository location can be chosen.
 ```Bash
 $ repo.py --add <foo.tar.gz> --path </path/to/my_repo>
 ```
@@ -68,13 +68,13 @@ $ repo.py --add <foo.tar.gz> --path </path/to/my_repo>
 
 
 # Generate key ##
-Generate a cryptographic key.  The generated key can later be used with --sign
-to sign specific metadata.  Key types supported: `ecdsa`, `ed25519`, and
-`rsa`.
+Generate a cryptographic key.  The generated key can later be used to sign
+specific metadata with `--sign`.  The supported key types are: `ecdsa`,
+`ed25519`, and `rsa`.  If a keytype is not given, an ECDSA key is generated.
 ```Bash
 $ repo.py --key
 $ repo.py --key <keytype>
-$ repo.py --key <keytype> --path </path/to/repo> --pw [my_password], --filename
+$ repo.py --key <keytype> --path </path/to/repo_dir> --pw [my_password], --filename <key_filename>
 ```
 
 
@@ -91,21 +91,35 @@ $ repo.py --sign </path/to/key> [--role <rolename>]
 $ repo.py --sign </path/to/key> [--role <rolename>, --path </path/to/repo>]
 ```
 
-For example, to sign a new Timestamp:
+For example, to sign new Timestamp metadata:
 ```Bash
 $ repo.py --sign /path/to/timestamp_key --role timestamp
 ```
 
-Note: In the future, the user might be given the option of disabling automatic
-signing of Snapshot and Timestamp metadata.  Also, only ECDSA keys are
-presently supported, but other key types will be added.
+Note: In the future, the user might have the option of disabling automatic
+signing of Snapshot and Timestamp metadata.  Only ECDSA keys are
+presently supported with `--sign`, but other key types will be added.
+
+
+
+## Delegate trust ##
+
+Delegate trust of target files from the targets role (or the one specified
+in --role) to some other role (--delegatee).  --delegatee is trusted to
+sign for target files that match the delegated glob patterns.
+```Bash
+$ repo.py --delegate <glob pattern> ... --role <rolename>
+    --delegatee <rolename> --terminating --threshold <X>
+    --keys </path/to/pubkey> --sign </path/to/role_privkey>
+```
 
 
 
 ## Verbosity ##
 
-Set the verbosity of the logger (2, by default).  Logger messages are saved to
-`tuf.log` in the current working directory.
+Set the verbosity of the logger (2, by default).  The lower the number, the
+greater the verbosity.  Logger messages are saved to `tuf.log` in the current
+working directory.
 ```Bash
 $ repo.py --verbose <0-5>
 ```

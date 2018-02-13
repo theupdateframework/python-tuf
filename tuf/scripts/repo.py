@@ -30,6 +30,9 @@
   $ repo.py --sign </path/to/key> [--role <targets>]
   $ repo.py --key <keytype> [--filename <filename>
       --path </path/to/repo>, --pw [my_password]]
+  $ repo.py --delegate <glob pattern> ... --role <rolename>
+      --delegatee <rolename> --terminating --threshold <X>
+      --keys </path/to/pubkey> --sign </path/to/role_privkey>
   $ repo.py --verbose
   $ repo.py --clean [--path]
 """
@@ -122,6 +125,74 @@ def process_arguments(parsed_arguments):
 
   if parsed_arguments.key:
     gen_key(parsed_arguments)
+
+  if parsed_arguments.delegate:
+    delegate(parsed_arguments)
+
+
+
+def delegate(parsed_arguments):
+
+  if not parsed_arguments.delegatee:
+    raise tuf.exceptions.Error('--delegatee must be set to perform a delegation.')
+
+  if parsed_arguments.delegatee in ['root', 'snapshot', 'timestamp', 'targets']:
+    raise tuf.exceptions.Error(
+        'Cannot delegate to the top-level role: ' + repr(parsed_arguments.delegatee))
+
+  public_keys = []
+  for public_key in parsed_arguments.pubkeys:
+    # In the future, any type of key can be imported...
+    imported_pubkey = repo_tool.import_ecdsa_publickey_from_file(
+        public_key)
+    public_keys.append(imported_pubkey)
+
+  repository = repo_tool.load_repository(
+      os.path.join(parsed_arguments.path, REPO_DIR))
+
+  if parsed_arguments.role == 'targets':
+    repository.targets.delegate(parsed_arguments.delegatee, public_keys,
+        parsed_arguments.delegate, parsed_arguments.threshold,
+        parsed_arguments.terminating, list_of_targets=None,
+        path_hash_prefixes=None)
+
+    targets_private = repo_tool.import_ecdsa_privatekey_from_file(
+        os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
+        parsed_arguments.pw)
+
+    repository.targets.load_signing_key(targets_private)
+
+
+  # A non-top-level role.
+  else:
+    repository.targets(parsed_arguments.role).delegate(
+        parsed_arguments.delegatee, public_keys,
+        parsed_arguments.delegate, parsed_arguments.threshold,
+        parsed_arguments.terminating, list_of_targets=None,
+        path_hash_prefixes=None)
+
+    role_privatekey = repo_tool.import_ecdsa_privatekey_from_file(
+        parsed_arguments.sign)
+
+    repository.targets(parsed_arguments.role).load_signing_key(role_privatekey)
+
+
+  # Update the required top-level roles, Snapshot and Timestamp, to make a new
+  # release.
+  snapshot_private = repo_tool.import_ecdsa_privatekey_from_file(
+      os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
+      parsed_arguments.pw)
+  timestamp_private = repo_tool.import_ecdsa_privatekey_from_file(
+      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
+      TIMESTAMP_KEY_NAME), parsed_arguments.pw)
+
+  repository.snapshot.load_signing_key(snapshot_private)
+  repository.timestamp.load_signing_key(timestamp_private)
+
+  repository.writeall()
+
+  # Move staged metadata directory to "live" metadata directory.
+  write_to_live_repo()
 
 
 
@@ -237,7 +308,7 @@ def add_target_to_repo(target_path, repo_targets_path, repository):
   """
 
   if not os.path.exists(target_path):
-    print(repr(target_path) + ' does not exist.  Skipping.')
+    logger.debug(repr(target_path) + ' does not exist.  Skipping.')
 
   else:
     securesystemslib.util.ensure_parent_dir(
@@ -435,6 +506,81 @@ def parse_arguments():
   parser = argparse.ArgumentParser(
       description='Create or modify a TUF repository.')
 
+  parser.add_argument('-i', '--init', action='store_true',
+      help='Create a repository.  The repository is created in the current'
+      ' working directory unless --path is specified.')
+
+  parser.add_argument('-p', '--path', nargs='?', default='.',
+      metavar='</path/to/repo_dir>', help='Specify a repository path.  If used'
+      ' with --init, the initialized repository is saved to the given'
+      ' path.')
+
+  parser.add_argument('-b', '--bare', action='store_true',
+      help='If initializing a repository, neither create nor set keys'
+      ' for any of the top-level roles.  False, by default.')
+
+  parser.add_argument('--consistent_snapshot', action='store_true',
+      help='Set consistent snapshots for an initialized repository.'
+      '  Consistent snapshot is False by default.')
+
+  parser.add_argument('-c', '--clean', type=str, nargs='?', const='.',
+      metavar='</path/to/repo_dir', help='Delete the repo files from the'
+      ' specified directory.  If a directory is not specified, the current'
+      ' working directory is cleaned.')
+
+  parser.add_argument('-a', '--add', type=str, nargs='+',
+      metavar='</path/to/file>', help='Add one or more target files to the'
+      ' "targets" role (or the role specified in --role).  If a directory'
+      ' is given, all files in the directory are added.')
+
+  parser.add_argument('--role', nargs='?', type=str, const='targets',
+      default='targets', metavar='<rolename>', help='Specify a rolename.'
+      ' The rolename "targets" is used by default.')
+
+  parser.add_argument('-r', '--recursive', action='store_true',
+      help='By setting -r, any directory specified with --add is processed'
+      ' recursively.  If unset, the default behavior is to not add target'
+      ' files in subdirectories.')
+
+  parser.add_argument('-k', '--key', type=str, nargs='?', const='ecdsa',
+      default=None, choices=['ecdsa', 'ed25519', 'rsa'],
+      help='Generate an ECDSA, Ed25519, or RSA key.  An ECDSA key is'
+      ' created if the key type is unspecified.')
+
+  parser.add_argument('--filename', nargs='?', default=None, const=None,
+      metavar='<filename>', help='Specify a filename.  This option can'
+      ' be used to name a generated key file.')
+
+  parser.add_argument('--sign', nargs='?', type=str, const='.',
+      default=None, metavar='</path/to/privkey>', help='Sign the "targets"'
+      ' metadata (or the one for --role) with the specified key.')
+
+  parser.add_argument('--pw', nargs='?', default='pw', metavar='<password>',
+      help='Specify a password. "pw" is used if --pw is unset, or a'
+      ' password can be entered via a prompt by specifying --pw by itself.'
+      '  This option can be used with --sign and --key.')
+
+  parser.add_argument('-d', '--delegate', type=str, nargs='+',
+      metavar='<glob pattern>', help='Delegate trust of target files'
+      ' from the "targets" role (or --role) to some other role (--delegatee).'
+      '  The named delegatee is trusted to sign for the target files that'
+      ' match the glob pattern(s).')
+
+  parser.add_argument('--delegatee', nargs='?', type=str, const=None,
+      default=None, metavar='<rolename>', help='Specify the rolename'
+      ' of the delegated role.  Can be used with --delegate.')
+
+  parser.add_argument('-t', '--terminating', action='store_true',
+      help='Set the terminating flag to True.  Can be used with --delegate.')
+
+  parser.add_argument('--threshold', type=int, default=1, metavar='<int>',
+      help='Set the threshold number of signatures'
+      ' needed to validate a metadata file.  Can be used with --delegate.')
+
+  parser.add_argument('--pubkeys', type=str, nargs='+',
+      metavar='</path/to/pubkey_file>', help='Specify one or more public keys'
+      ' for the delegated role.  Can be used with --delegate.')
+
   # Add the parser arguments supported by PROG_NAME.
   parser.add_argument('-v', '--verbose', type=int, default=2,
       choices=range(0, 6), help='Set the verbosity level of logging messages.'
@@ -442,54 +588,7 @@ def parse_arguments():
       ' levels: 0=UNSET, 1=DEBUG, 2=INFO, 3=WARNING, 4=ERROR,'
       ' 5=CRITICAL')
 
-  parser.add_argument('-i', '--init', action='store_true',
-      help='Create a repository.  The current working directory is'
-      ' used by default.')
-
-  parser.add_argument('-p', '--path', nargs='?', default='.',
-      metavar='</path/to/repo_dir>', help='Specify a repository path.  If used'
-      ' with --init, the initialized repository is saved to the specified'
-      ' path.  The current working directory is used by default.')
-
-  parser.add_argument('-b', '--bare', action='store_true',
-      help='If initializing a repository, neither create nor set keys'
-      ' for any of the top-level roles.  False, by default.')
-
-  parser.add_argument('--consistent_snapshot', action='store_true',
-      help='Enable consistent snapshots.  Consistent snapshot is False by'
-      ' default.')
-
-  parser.add_argument('-c', '--clean', type=str, nargs='?', const='.',
-      metavar='</path/to/dir', help='Delete repo files from the'
-      ' specified directory.')
-
-  parser.add_argument('-a', '--add', type=str, nargs='+',
-      metavar='</path/to/file>', help='Add one or more target files.'
-      '  If a directory is given, all files in the directory are added.')
-
-  parser.add_argument('-r', '--recursive', action='store_true',
-      help='Any directory specified with --add is processed recursively.'
-      '  False, by default.')
-
-  parser.add_argument('--sign', nargs='?', type=str, const='.',
-      default=None, metavar='</path/to/privkey>', help='Sign a role file'
-      '  with the specified key.')
-
-  parser.add_argument('-k', '--key', type=str, nargs='?', const='ecdsa',
-      default=None, choices=['ecdsa', 'ed25519', 'rsa'],
-      help='Generate an ECDSA, Ed25519, or RSA key.  An "ecdsa" key is'
-      ' created by default.')
-
-  parser.add_argument('--role', nargs='?', type=str, const='targets',
-      default='targets', metavar='<rolename>', help='Specify a rolename.'
-      ' The rolename "targets" is used by default.')
-
-  parser.add_argument('--pw', nargs='?', default='pw', metavar='<password>',
-      help='Specify a password. "pw" is used by default.')
-
-  parser.add_argument('--filename', nargs='?', default=None, const=None,
-      metavar='<filename>', help='Specify a filename.')
-
+  # Should we include usage examples in the help output?
 
   parsed_args = parser.parse_args()
 

@@ -1051,7 +1051,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # default.)
     targets_directory = os.path.join(self.repository_directory, 'targets')
     foo_directory = os.path.join(targets_directory, 'foo')
-    foo_pattern = os.path.join(foo_directory, 'foo*.tar.gz')
+    foo_pattern = '/foo/foo*.tar.gz'
     os.makedirs(foo_directory)
 
     foo_package = os.path.join(foo_directory, 'foo1.1.tar.gz')
