@@ -2392,7 +2392,7 @@ class Targets(Metadata):
       del self._delegated_roles[rolename]
       self._parent_targets_object.remove_delegated_role(rolename)
 
-    except tuf.exceptions.UnknownRoleError, KeyError:
+    except (tuf.exceptions.UnknownRoleError, KeyError):
       pass
 
 
