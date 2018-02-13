@@ -129,6 +129,9 @@ def process_arguments(parsed_arguments):
   if parsed_arguments.delegate:
     delegate(parsed_arguments)
 
+  if parsed_arguments.revoke:
+    revoke(parsed_arguments)
+
 
 
 def delegate(parsed_arguments):
@@ -176,6 +179,49 @@ def delegate(parsed_arguments):
 
     repository.targets(parsed_arguments.role).load_signing_key(role_privatekey)
 
+
+  # Update the required top-level roles, Snapshot and Timestamp, to make a new
+  # release.
+  snapshot_private = repo_tool.import_ecdsa_privatekey_from_file(
+      os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
+      parsed_arguments.pw)
+  timestamp_private = repo_tool.import_ecdsa_privatekey_from_file(
+      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
+      TIMESTAMP_KEY_NAME), parsed_arguments.pw)
+
+  repository.snapshot.load_signing_key(snapshot_private)
+  repository.timestamp.load_signing_key(timestamp_private)
+
+  repository.writeall()
+
+  # Move staged metadata directory to "live" metadata directory.
+  write_to_live_repo()
+
+
+
+def revoke(parsed_arguments):
+
+  repository = repo_tool.load_repository(
+      os.path.join(parsed_arguments.path, REPO_DIR))
+
+  if parsed_arguments.role == 'targets':
+    repository.targets.revoke(parsed_arguments.delegatee)
+
+    targets_private = repo_tool.import_ecdsa_privatekey_from_file(
+        os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
+        parsed_arguments.pw)
+
+    repository.targets.load_signing_key(targets_private)
+
+
+  # A non-top-level role.
+  else:
+    repository.targets(parsed_arguments.role).revoke(parsed_arguments.delegatee)
+
+    role_privatekey = repo_tool.import_ecdsa_privatekey_from_file(
+        parsed_arguments.sign)
+
+    repository.targets(parsed_arguments.role).load_signing_key(role_privatekey)
 
   # Update the required top-level roles, Snapshot and Timestamp, to make a new
   # release.
@@ -580,6 +626,9 @@ def parse_arguments():
   parser.add_argument('--pubkeys', type=str, nargs='+',
       metavar='</path/to/pubkey_file>', help='Specify one or more public keys'
       ' for the delegated role.  Can be used with --delegate.')
+
+  parser.add_argument('--revoke', action='store_true',
+      help='Revoke trust of target files from a delegated role.')
 
   # Add the parser arguments supported by PROG_NAME.
   parser.add_argument('-v', '--verbose', type=int, default=2,

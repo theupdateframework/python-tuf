@@ -67,7 +67,7 @@ $ repo.py --add <foo.tar.gz> --path </path/to/my_repo>
 
 
 
-# Generate key ##
+## Generate key ##
 Generate a cryptographic key.  The generated key can later be used to sign
 specific metadata with `--sign`.  The supported key types are: `ecdsa`,
 `ed25519`, and `rsa`.  If a keytype is not given, an ECDSA key is generated.
@@ -108,9 +108,20 @@ Delegate trust of target files from the targets role (or the one specified
 in --role) to some other role (--delegatee).  --delegatee is trusted to
 sign for target files that match the delegated glob patterns.
 ```Bash
-$ repo.py --delegate <glob pattern> ... --role <rolename>
-    --delegatee <rolename> --terminating --threshold <X>
-    --keys </path/to/pubkey> --sign </path/to/role_privkey>
+$ repo.py --delegate <glob pattern>... --delegatee <rolename> --pubkeys
+</path/to/pubkey.pub>... [--role <rolename> --terminating --threshold <X>
+--sign </path/to/role_privkey>]
+```
+
+
+
+## Revoke trust ##
+
+Revoke trust of target files from a delegated role (--delegatee).  The
+"targets" role performs the revocation if --role is not specified.
+```Bash
+$ repo.py --revoke --delegatee <rolename> [--role <rolename>
+--sign </path/to/role_privkey>]
 ```
 
 
