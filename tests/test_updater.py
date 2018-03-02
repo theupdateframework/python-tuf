@@ -1085,7 +1085,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # backtracking to 'role3'.  'role2' allows backtracking.
     self.repository_updater.refresh()
     self.repository_updater.get_one_valid_targetinfo('foo/foo1.1.tar.gz')
-
+    self.repository_updater.get_one_valid_targetinfo('/foo/foo1.1.tar.gz')
 
     # Test when 'role2' does *not* allow backtracking.  If 'foo/foo1.1.tar.gz'
     # is not provided by the authoritative 'role2',
