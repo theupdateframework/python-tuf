@@ -59,6 +59,7 @@ import tuf.formats
 import tuf.repository_tool as repo_tool
 
 import securesystemslib
+from colorama import Fore
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.scripts.repo')
@@ -79,7 +80,7 @@ TIMESTAMP_KEY_NAME = 'timestamp_key'
 STAGED_METADATA_DIR = 'metadata.staged'
 METADATA_DIR = 'metadata'
 
-
+SUPPORTED_KEY_TYPES = ['ed25519', 'ecdsa-sha2-nistp256', 'rsa']
 
 def process_arguments(parsed_arguments):
   """
@@ -159,7 +160,7 @@ def delegate(parsed_arguments):
         parsed_arguments.terminating, list_of_targets=None,
         path_hash_prefixes=None)
 
-    targets_private = repo_tool.import_ecdsa_privatekey_from_file(
+    targets_private = import_privatekey_from_file(
         os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
         parsed_arguments.pw)
 
@@ -174,18 +175,17 @@ def delegate(parsed_arguments):
         parsed_arguments.terminating, list_of_targets=None,
         path_hash_prefixes=None)
 
-    role_privatekey = repo_tool.import_ecdsa_privatekey_from_file(
-        parsed_arguments.sign)
+    role_privatekey = import_privatekey_from_file(parsed_arguments.sign)
 
     repository.targets(parsed_arguments.role).load_signing_key(role_privatekey)
 
 
   # Update the required top-level roles, Snapshot and Timestamp, to make a new
   # release.
-  snapshot_private = repo_tool.import_ecdsa_privatekey_from_file(
+  snapshot_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
       parsed_arguments.pw)
-  timestamp_private = repo_tool.import_ecdsa_privatekey_from_file(
+  timestamp_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       TIMESTAMP_KEY_NAME), parsed_arguments.pw)
 
@@ -207,7 +207,7 @@ def revoke(parsed_arguments):
   if parsed_arguments.role == 'targets':
     repository.targets.revoke(parsed_arguments.delegatee)
 
-    targets_private = repo_tool.import_ecdsa_privatekey_from_file(
+    targets_private = import_privatekey_from_file(
         os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
         parsed_arguments.pw)
 
@@ -218,17 +218,16 @@ def revoke(parsed_arguments):
   else:
     repository.targets(parsed_arguments.role).revoke(parsed_arguments.delegatee)
 
-    role_privatekey = repo_tool.import_ecdsa_privatekey_from_file(
-        parsed_arguments.sign)
+    role_privatekey = import_privatekey_from_file(parsed_arguments.sign)
 
     repository.targets(parsed_arguments.role).load_signing_key(role_privatekey)
 
   # Update the required top-level roles, Snapshot and Timestamp, to make a new
   # release.
-  snapshot_private = repo_tool.import_ecdsa_privatekey_from_file(
+  snapshot_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
       parsed_arguments.pw)
-  timestamp_private = repo_tool.import_ecdsa_privatekey_from_file(
+  timestamp_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       TIMESTAMP_KEY_NAME), parsed_arguments.pw)
 
@@ -279,6 +278,55 @@ def gen_key(parsed_arguments):
 
 
 
+def import_privatekey_from_file(keypath, password=None):
+  # Note: should securesystemslib support this functionality (import any
+  # privatekey type)?
+  # If the caller does not provide a password argument, prompt for one.
+  # Password confirmation is disabled here, which should ideally happen only
+  # when creating encrypted key files.
+  if password is None: # pragma: no cover
+
+    # It is safe to specify the full path of 'filepath' in the prompt and not
+    # worry about leaking sensitive information about the key's location.
+    # However, care should be taken when including the full path in exceptions
+    # and log files.
+    password = securesystemslib.interface.get_password('Enter a password for'
+        ' the encrypted key (' + Fore.RED + keypath + Fore.RESET + '): ',
+        confirm=False)
+
+  # Does 'password' have the correct format?
+  securesystemslib.formats.PASSWORD_SCHEMA.check_match(password)
+
+  # Store the encrypted contents of 'filepath' prior to calling the decryption
+  # routine.
+  encrypted_key = None
+
+  with open(keypath, 'rb') as file_object:
+    encrypted_key = file_object.read()
+
+  # Decrypt the loaded key file, calling the 'cryptography' library to generate
+  # the derived encryption key from 'password'.  Raise
+  # 'securesystemslib.exceptions.CryptoError' if the decryption fails.
+  try:
+    key_object = securesystemslib.keys.decrypt_key(encrypted_key.decode('utf-8'),
+        password)
+
+  except securesystemslib.exceptions.CryptoError:
+    key_object = securesystemslib.keys.import_rsakey_from_private_pem(
+        encrypted_key, 'rsassa-pss-sha256', password)
+
+  if key_object['keytype'] not in SUPPORTED_KEY_TYPES:
+    raise tuf.exceptions.Error('Trying to import an unsupported key'
+        ' type: ' + repr(key_object['keytype'] + '.'
+        '  Supported key types: ' + repr(SUPPORTED_KEY_TYPES)))
+
+  else:
+    # Add "keyid_hash_algorithms" so that equal keys with different keyids can
+    # be associated using supported keyid_hash_algorithms.
+    key_object['keyid_hash_algorithms'] = securesystemslib.settings.HASH_ALGORITHMS
+
+    return key_object
+
 
 
 def sign_role(parsed_arguments):
@@ -289,11 +337,10 @@ def sign_role(parsed_arguments):
   # Was a private key path given with --sign?  If so, load the specified
   # private key. Otherwise, load the default key path.
   if parsed_arguments.sign != '.':
-    role_privatekey = repo_tool.import_ecdsa_privatekey_from_file(
-        parsed_arguments.sign)
+    role_privatekey = import_privatekey_from_file(parsed_arguments.sign)
 
   else:
-    role_privatekey = repo_tool.import_ecdsa_privatekey_from_file(
+    role_privatekey = import_privatekey_from_file(
         os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
         parsed_arguments.pw)
 
@@ -308,10 +355,10 @@ def sign_role(parsed_arguments):
 
   # Update the required top-level roles, Snapshot and Timestamp, to make a new
   # release.
-  snapshot_private = repo_tool.import_ecdsa_privatekey_from_file(
+  snapshot_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
       parsed_arguments.pw)
-  timestamp_private = repo_tool.import_ecdsa_privatekey_from_file(
+  timestamp_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       TIMESTAMP_KEY_NAME), parsed_arguments.pw)
 
@@ -393,13 +440,13 @@ def add_targets(parsed_arguments):
         prompt='Enter a password for the top-level role keys: ', confirm=True)
 
   # Load the top-level, non-root, keys to make a new release.
-  targets_private = repo_tool.import_ecdsa_privatekey_from_file(
+  targets_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
       parsed_arguments.pw)
-  snapshot_private = repo_tool.import_ecdsa_privatekey_from_file(
+  snapshot_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
       parsed_arguments.pw)
-  timestamp_private = repo_tool.import_ecdsa_privatekey_from_file(
+  timestamp_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       TIMESTAMP_KEY_NAME), parsed_arguments.pw)
 
@@ -491,16 +538,16 @@ def set_top_level_keys(repository):
 
   # Import the private keys.  They are needed to generate the signatures
   # included in metadata.
-  root_private = repo_tool.import_ecdsa_privatekey_from_file(
+  root_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       ROOT_KEY_NAME), parsed_arguments.pw)
-  targets_private = repo_tool.import_ecdsa_privatekey_from_file(
+  targets_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       TARGETS_KEY_NAME), parsed_arguments.pw)
-  snapshot_private = repo_tool.import_ecdsa_privatekey_from_file(
+  snapshot_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       SNAPSHOT_KEY_NAME), parsed_arguments.pw)
-  timestamp_private = repo_tool.import_ecdsa_privatekey_from_file(
+  timestamp_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       TIMESTAMP_KEY_NAME), parsed_arguments.pw)
 
