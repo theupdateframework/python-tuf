@@ -80,10 +80,10 @@ $ repo.py --key <keytype> --path </path/to/repo_dir> --pw [my_password], --filen
 
 
 ## Sign metadata ##
-Sign, using the specified key argument, the metadata of the role indicated by
---role.  If no key argument or --role is given, the Targets role or its key is
-used.  The Snapshot and Timestamp role are also automatically signed, if
-possible.
+Sign, using the specified key, the metadata of the role indicated by --role
+(must be Targets or a delegated role).  If no key argument or --role is given,
+the Targets role or its key is used.  The Snapshot and Timestamp role are also
+automatically signed, if possible.
 ```Bash
 $ repo.py --sign
 $ repo.py --sign </path/to/key>
@@ -97,8 +97,7 @@ $ repo.py --sign /path/to/timestamp_key --role timestamp
 ```
 
 Note: In the future, the user might have the option of disabling automatic
-signing of Snapshot and Timestamp metadata.  Only ECDSA keys are
-presently supported with `--sign`, but other key types will be added.
+signing of Snapshot and Timestamp metadata.
 
 
 
