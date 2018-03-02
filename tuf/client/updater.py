@@ -435,7 +435,11 @@ class MultiRepoUpdater(object):
       logger.debug('Interrogating pattern ' + repr(path_pattern) + 'for'
           ' target: ' + repr(target_filename))
 
-      if fnmatch.fnmatch(target_filename, path_pattern):
+      # Example: "foo.tgz" should match with "/*.tgz".  Make sure to strip any
+      # leading path separators so that a match is made if a repo maintainer
+      # uses a leading separator with a delegated glob pattern, but a client
+      # doesn't include one when a target file is requested.
+      if fnmatch.fnmatch(target_filename.lstrip(os.sep), path_pattern.lstrip(os.sep)):
         logger.debug('Found a match for ' + repr(target_filename))
         return True
 
@@ -2856,20 +2860,24 @@ class Updater(object):
     elif child_role_paths is not None:
       # Is 'child_role_name' allowed to sign for 'target_filepath'?
       for child_role_path in child_role_paths:
-        # A child role path may be an explicit path or pattern (Unix
+        # A child role path may be an explicit path or glob pattern (Unix
         # shell-style wildcards).  The child role 'child_role_name' is returned
         # if 'target_filepath' is equal to or matches 'child_role_path'.
-        # Explicit filepaths are also considered matches.
-        if fnmatch.fnmatch(target_filepath, child_role_path):
+        # Explicit filepaths are also considered matches.  A repo maintainer
+        # might delegate a glob pattern with a leading path separator, while
+        # the client requests a matching target without a leading path
+        # separator - make sure to strip any leading path separators so that a
+        # match is made.  Example: "foo.tgz" should match with "/*.tgz".
+        if fnmatch.fnmatch(target_filepath.lstrip(os.sep), child_role_path.lstrip(os.sep)):
           logger.debug('Child role ' + repr(child_role_name) + ' is allowed to'
             ' sign for ' + repr(target_filepath))
 
           return child_role_name
 
         else:
-          logger.debug('The given target path ' + repr(target_filepath) + ' is'
-              ' not an allowed trusted path of ' + repr(child_role_path))
-
+          logger.debug(
+              'The given target path ' + repr(target_filepath) + ' does not'
+              ' match the trusted path or glob pattern: ' + repr(child_role_path))
           continue
 
     else:
