@@ -52,6 +52,7 @@ import argparse
 import shutil
 import errno
 import getpass
+import time
 
 import tuf
 import tuf.log
@@ -147,7 +148,7 @@ def delegate(parsed_arguments):
   public_keys = []
   for public_key in parsed_arguments.pubkeys:
     # In the future, any type of key can be imported...
-    imported_pubkey = repo_tool.import_ecdsa_publickey_from_file(
+    imported_pubkey = import_publickey_from_file(
         public_key)
     public_keys.append(imported_pubkey)
 
@@ -329,6 +330,21 @@ def import_privatekey_from_file(keypath, password=None):
 
 
 
+def import_publickey_from_file(keypath):
+
+  key_metadata = securesystemslib.util.load_json_file(keypath)
+  key_object, junk = securesystemslib.keys.format_metadata_to_key(key_metadata)
+
+  if key_object['keytype'] not in SUPPORTED_KEY_TYPES:
+    raise tuf.exceptions.Error('Trying to import an unsupported key'
+        ' type: ' + repr(key_object['keytype'] + '.'
+        '  Supported key types: ' + repr(SUPPORTED_KEY_TYPES)))
+
+  else:
+    return key_object
+
+
+
 def sign_role(parsed_arguments):
 
   repository = repo_tool.load_repository(
@@ -351,7 +367,34 @@ def sign_role(parsed_arguments):
     pass
 
   else:
-    repository.targets(parsed_arguments.role).load_signing_key(role_privatekey)
+    # TODO: The repository tool will be refactored to clean up the following
+    # approach, which adds and signs for a non-existent role.
+    if not tuf.roledb.role_exists(parsed_arguments.role):
+
+      # Load the private key keydb and set the roleinfo in roledb so that
+      # metadata can be written with repository.write().
+      try:
+        tuf.keydb.add_key(
+            role_privatekey, repository_name = repository._repository_name)
+
+      except securesystemslib.exceptions.KeyAlreadyExistsError:
+        pass
+
+      expiration = tuf.formats.unix_timestamp_to_datetime(
+          int(time.time() + 7889230))
+      expiration = expiration.isoformat() + 'Z'
+
+      roleinfo = {'name': parsed_arguments.role, 'keyids': [],
+          'signing_keyids': [role_privatekey['keyid']], 'partial_loaded': False, 'paths': {},
+          'signatures': [], 'version': 1, 'expires': expiration,
+          'delegations': {'keys': {}, 'roles': []}}
+
+      tuf.roledb.add_role(parsed_arguments.role, roleinfo,
+          repository_name=repository._repository_name)
+      repository.write(parsed_arguments.role, increment_version_number=False)
+
+    else:
+      repository.targets(parsed_arguments.role).load_signing_key(role_privatekey)
 
   # Update the required top-level roles, Snapshot and Timestamp, to make a new
   # release.
@@ -523,16 +566,16 @@ def set_top_level_keys(repository):
   # Import the public keys.  They are needed so that metadata roles are
   # assigned verification keys, which clients need in order to verify the
   # signatures created by the corresponding private keys.
-  root_public = repo_tool.import_ecdsa_publickey_from_file(
+  root_public = import_publickey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       ROOT_KEY_NAME) + '.pub')
-  targets_public = repo_tool.import_ecdsa_publickey_from_file(
+  targets_public = import_publickey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       TARGETS_KEY_NAME) + '.pub')
-  snapshot_public = repo_tool.import_ecdsa_publickey_from_file(
+  snapshot_public = import_publickey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       SNAPSHOT_KEY_NAME) + '.pub')
-  timestamp_public = repo_tool.import_ecdsa_publickey_from_file(
+  timestamp_public = import_publickey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       TIMESTAMP_KEY_NAME) + '.pub')
 
