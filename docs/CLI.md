@@ -112,6 +112,11 @@ $ repo.py --delegate <glob pattern>... --delegatee <rolename> --pubkeys
 --sign </path/to/role_privkey>]
 ```
 
+Example:
+```
+$ repo.py --delegate "/foo*.tgz" --delegatee foo --pubkeys ./keystore/foo.pub
+```
+
 
 
 ## Revoke trust ##

@@ -482,11 +482,11 @@ targets and generate signed metadata.
 >>> generate_and_write_rsa_keypair("keystore/unclaimed_key", bits=2048, password="password")
 >>> public_unclaimed_key = import_rsa_publickey_from_file("keystore/unclaimed_key.pub")
 
-# Make a delegation from "targets" to "unclaimed", initially containing zero
-# targets.
+# Make a delegation (delegate trust of '/foo*.tgz' files) from "targets" to
+# "unclaimed", where 'unclaimed' initially containing zero targets.
 # delegate(rolename, list_of_public_keys, paths, threshold=1,
 #     list_of_targets=None, path_hash_prefixes=None)
->>> repository.targets.delegate("unclaimed", [public_unclaimed_key], [])
+>>> repository.targets.delegate("unclaimed", [public_unclaimed_key], ['/foo*.tgz'])
 
 # Load the private key of "unclaimed" so that unclaimed's metadata can be
 # signed, and valid metadata created.
@@ -514,7 +514,7 @@ Dirty roles: ['timestamp', 'snapshot', 'targets', 'unclaimed']
 # Continuing from the previous section . . .
 
 # Create a delegated role that will be revoked in the next step...
->>> repository.targets('unclaimed').delegate("django", [public_unclaimed_key], [])
+>>> repository.targets('unclaimed').delegate("django", [public_unclaimed_key], ['/bar*.tgz'])
 
 # Revoke "django" and write the metadata of all remaining roles.
 >>> repository.targets('unclaimed').revoke("django")
