@@ -2233,11 +2233,6 @@ class Targets(Metadata):
     if path_hash_prefixes is not None:
       securesystemslib.formats.PATH_HASH_PREFIXES_SCHEMA.check_match(path_hash_prefixes)
 
-    # Check if 'rolename' is not already a delegation.
-    if tuf.roledb.role_exists(rolename, self._repository_name):
-      raise securesystemslib.exceptions.Error(repr(rolename) + ' already'
-          ' delegated.')
-
     # Keep track of the valid keyids (added to the new Targets object) and
     # their keydicts (added to this Targets delegations).
     keyids = []
