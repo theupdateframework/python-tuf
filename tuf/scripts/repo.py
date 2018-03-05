@@ -373,18 +373,16 @@ def sign_role(parsed_arguments):
 
       # Load the private key keydb and set the roleinfo in roledb so that
       # metadata can be written with repository.write().
-      try:
-        tuf.keydb.add_key(
-            role_privatekey, repository_name = repository._repository_name)
-
-      except securesystemslib.exceptions.KeyAlreadyExistsError:
-        pass
+      tuf.keydb.remove_key(role_privatekey['keyid'],
+          repository_name = repository._repository_name)
+      tuf.keydb.add_key(
+          role_privatekey, repository_name = repository._repository_name)
 
       expiration = tuf.formats.unix_timestamp_to_datetime(
           int(time.time() + 7889230))
       expiration = expiration.isoformat() + 'Z'
 
-      roleinfo = {'name': parsed_arguments.role, 'keyids': [],
+      roleinfo = {'name': parsed_arguments.role, 'keyids': [role_privatekey['keyid']],
           'signing_keyids': [role_privatekey['keyid']], 'partial_loaded': False, 'paths': {},
           'signatures': [], 'version': 1, 'expires': expiration,
           'delegations': {'keys': {}, 'roles': []}}
