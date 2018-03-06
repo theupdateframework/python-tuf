@@ -86,14 +86,12 @@ the Targets role or its key is used.  The Snapshot and Timestamp role are also
 automatically signed, if possible.
 ```Bash
 $ repo.py --sign
-$ repo.py --sign </path/to/key>
-$ repo.py --sign </path/to/key> [--role <rolename>]
 $ repo.py --sign </path/to/key> [--role <rolename>, --path </path/to/repo>]
 ```
 
 For example, to sign new Timestamp metadata:
 ```Bash
-$ repo.py --sign /path/to/timestamp_key --role timestamp
+$ repo.py --sign /path/to/foo_key --role foo
 ```
 
 Note: In the future, the user might have the option of disabling automatic
@@ -112,7 +110,8 @@ $ repo.py --delegate <glob pattern>... --delegatee <rolename> --pubkeys
 --sign </path/to/role_privkey>]
 ```
 
-Example:
+For example, to delegate trust of `/foo*.gz` packages to the `foo` role:
+
 ```
 $ repo.py --delegate "/foo*.tgz" --delegatee foo --pubkeys ./keystore/foo.pub
 ```

@@ -1189,12 +1189,6 @@ class TestTargets(unittest.TestCase):
     self.assertEqual(self.targets_object.get_delegated_rolenames(),
                      ['tuf'])
 
-    # Try to delegate to a role that has already been delegated.
-    self.assertRaises(securesystemslib.exceptions.Error,
-        self.targets_object.delegate, rolename, public_keys, paths, threshold,
-        terminating=False, list_of_targets=list_of_targets,
-        path_hash_prefixes=path_hash_prefixes)
-
     # Test for targets that do not exist under the targets directory.
     self.targets_object.revoke(rolename)
     self.assertRaises(securesystemslib.exceptions.Error,
