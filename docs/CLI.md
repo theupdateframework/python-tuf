@@ -51,10 +51,10 @@ $ repo.py --init --consistent_snapshot
 
 ## Add a target file ##
 
-Copy a target file to the repo and add it to Targets metadata.  More than one
-target file, or directory, may be specified with --add.  The --recursive option
-may be selected to also include files in subdirectories of a specified
-directory.
+Copy a target file to the repo and add it to the Targets metadata (or the
+Targets role specified in --role).  More than one target file, or directory,
+may be specified in --add.  The --recursive option may be toggled to also
+include files in subdirectories of a specified directory.
 ```Bash
 $ repo.py --add <foo.tar.gz> <bar.tar.gz>
 $ repo.py --add </path/to/dir> [--recursive]
@@ -65,6 +65,30 @@ Similar to the --init case, the repository location can be chosen.
 $ repo.py --add <foo.tar.gz> --path </path/to/my_repo>
 ```
 
+
+
+
+## Remove a target file ##
+
+Remove a target file from the Targets metadata (or the Targets role specified
+in --role).  More than one target file or glob pattern may be specified in
+--remove.
+
+```Bash
+$ repo.py --remove <glob_pattern> ...
+```
+
+Examples:
+
+Remove all target files, that match `foo*.tgz,` from the Targets metadata.
+```Bash
+$ repo.py --remove "foo*.tgz"
+```
+
+Remove all target files from the `my_role` Targets metadata.
+```Bash
+$ repo.py --remove "*" --role my_role --sign tufkeystore/my_role_key
+```
 
 
 ## Generate key ##
@@ -105,7 +129,7 @@ Delegate trust of target files from the targets role (or the one specified
 in --role) to some other role (--delegatee).  --delegatee is trusted to
 sign for target files that match the delegated glob patterns.
 ```Bash
-$ repo.py --delegate <glob pattern>... --delegatee <rolename> --pubkeys
+$ repo.py --delegate <glob pattern> ... --delegatee <rolename> --pubkeys
 </path/to/pubkey.pub>... [--role <rolename> --terminating --threshold <X>
 --sign </path/to/role_privkey>]
 ```
