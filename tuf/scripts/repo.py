@@ -53,6 +53,7 @@ import shutil
 import errno
 import getpass
 import time
+import fnmatch
 
 import tuf
 import tuf.log
@@ -61,6 +62,8 @@ import tuf.repository_tool as repo_tool
 
 import securesystemslib
 from colorama import Fore
+import six
+
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.scripts.repo')
@@ -121,6 +124,9 @@ def process_arguments(parsed_arguments):
 
   if parsed_arguments.add:
     add_targets(parsed_arguments)
+
+  if parsed_arguments.remove:
+    remove_targets(parsed_arguments)
 
   if parsed_arguments.sign:
     sign_role(parsed_arguments)
@@ -453,6 +459,36 @@ def add_target_to_repo(target_path, repo_targets_path, repository):
 
 
 
+def remove_target_files_from_metadata(repository):
+
+  if parsed_arguments.role in ['root', 'snapshot', 'timestamp']:
+    raise tuf.exceptions.Error(
+        'Invalid rolename specified: ' + repr(parsed_arguments.role) + '.'
+        '  It must be "targets" or a delegated rolename.')
+
+  else:
+    # NOTE: The following approach of using tuf.roledb to update the target
+    # files will be modified in the future when the repository tool's API is
+    # refactored.
+    roleinfo = tuf.roledb.get_roleinfo(
+        parsed_arguments.role, repository._repository_name)
+
+    for glob_pattern in parsed_arguments.remove:
+      for path in list(six.iterkeys(roleinfo['paths'])):
+        if fnmatch.fnmatch(path, glob_pattern):
+          del roleinfo['paths'][path]
+
+        else:
+          logger.debug('Delegated path ' + repr(path) + ' does not match'
+              ' given path/glob pattern ' +  repr(glob_pattern))
+          continue
+
+    tuf.roledb.update_roleinfo(
+        parsed_arguments.role, roleinfo, mark_role_as_dirty=True,
+        repository_name=repository._repository_name)
+
+
+
 def add_targets(parsed_arguments):
   target_paths = os.path.join(parsed_arguments.add)
 
@@ -471,6 +507,47 @@ def add_targets(parsed_arguments):
 
     else:
       add_target_to_repo(target_path, repo_targets_path, repository)
+
+  # Examples of how the --pw command-line option is interpreted:
+  # repo.py --init': parsed_arguments.pw = 'pw'
+  # repo.py --init --pw my_password: parsed_arguments.pw = 'my_password'
+  # repo.py --init --pw: The user is prompted for a password, as follows:
+  if not parsed_arguments.pw:
+    parsed_arguments.pw = securesystemslib.interface.get_password(
+        prompt='Enter a password for the top-level role keys: ', confirm=True)
+
+  # Load the top-level, non-root, keys to make a new release.
+  targets_private = import_privatekey_from_file(
+      os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
+      parsed_arguments.pw)
+  snapshot_private = import_privatekey_from_file(
+      os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
+      parsed_arguments.pw)
+  timestamp_private = import_privatekey_from_file(
+      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
+      TIMESTAMP_KEY_NAME), parsed_arguments.pw)
+
+  repository.targets.load_signing_key(targets_private)
+  repository.snapshot.load_signing_key(snapshot_private)
+  repository.timestamp.load_signing_key(timestamp_private)
+
+  repository.writeall()
+
+  # Move staged metadata directory to "live" metadata directory.
+  write_to_live_repo()
+
+
+
+def remove_targets(parsed_arguments):
+  target_paths = os.path.join(parsed_arguments.remove)
+
+  repo_targets_path = os.path.join(parsed_arguments.path, REPO_DIR, 'targets')
+  repository = repo_tool.load_repository(
+      os.path.join(parsed_arguments.path, REPO_DIR))
+
+  # Remove target files from the Targets metadata (or the role specified in
+  # --role) that match the glob patterns specified in --remove.
+  remove_target_files_from_metadata(repository)
 
   # Examples of how the --pw command-line option is interpreted:
   # repo.py --init': parsed_arguments.pw = 'pw'
@@ -666,6 +743,10 @@ def parse_arguments():
       metavar='</path/to/file>', help='Add one or more target files to the'
       ' "targets" role (or the role specified in --role).  If a directory'
       ' is given, all files in the directory are added.')
+
+  parser.add_argument('--remove', type=str, nargs='+',
+      metavar='<glob pattern>', help='Remove one or more target files from the'
+      ' "targets" role (or the role specified in --role).')
 
   parser.add_argument('--role', nargs='?', type=str, const='targets',
       default='targets', metavar='<rolename>', help='Specify a rolename.'
