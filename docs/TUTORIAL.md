@@ -25,7 +25,7 @@
 ### Overview ###
 A software update system must follow two steps to integrate The Update
 Framework (TUF).  First, it must add the framework to the client side of the
-update system.  The [tuf.client.updater](client/README.md) module assists in
+update system.  The [tuf.client.updater](../tuf/client/README.md) module assists in
 integrating TUF on the client side.  Second, the software repository on the
 server side must be modified to include a minimum of four top-level metadata
 (root.json, targets.json, snapshot.json, and timestamp.json).  No additional
@@ -33,9 +33,9 @@ software is required to convert a software repository to a TUF one.  The
 low-level repository tool that generates the required TUF metadata for a
 software repository is the focus of this tutorial.  There is also separate
 document that [demonstrates how TUF protects against malicious
-updates](ATTACKS.md).
+updates](SECURITY.md).
 
-The [repository tool](repository_tool.py) contains functions to generate all of
+The [repository tool](../tuf/repository_tool.py) contains functions to generate all of
 the files needed to populate and manage a TUF repository.  The tool may either
 be imported into a Python module, or used with the Python interpreter in
 interactive mode.  For instance, here is an example of loading a TUF repository
@@ -76,7 +76,7 @@ The repository tool supports multiple public-key algorithms, such as
 [RSA](https://en.wikipedia.org/wiki/RSA_%28cryptosystem%29) and
 [Ed25519](http://ed25519.cr.yp.to/), and multiple cryptography libraries.
 Which cryptography library to use is determined by the default, or user modified,
-settings in [settings.py](settings.py).
+settings in [settings.py](../tuf/settings.py).
 
 The [PyCrypto](https://www.dlitz.net/software/pycrypto/) library may be
 selected to generate RSA keys and
@@ -181,7 +181,7 @@ Note: Methods are also available to generate and write keys from memory.
 * import_rsakey_from_pem(pem)
 
 ### Create Top-level Metadata ###
-The [metadata document](../METADATA.md) outlines the JSON files that must exist
+The [metadata document](METADATA.md) outlines the JSON files that must exist
 on a TUF repository.  The following sub-sections demonstrate the
 `repository_tool.py` calls repository maintainers may issue to generate the
 required roles.  The top-level roles to be created are `root`, `timestamp`,
@@ -457,7 +457,7 @@ The externally generated signature can then be appended to metadata:
 
 Note that the format of the signature is the format expected in metadata, which
 is a dictionary that contains a KEYID, the signature itself, etc.  See the
-specification and METADATA.md for a detailed example.
+specification and [METADATA.md](METADATA.md) for a detailed example.
 
 ### Delegations ###
 All of the target files available on the software repository created so far
@@ -614,12 +614,12 @@ to some role.
 ## How to Perform an Update ##
 
 Documentation for setting up a TUF client and performing an update is
-available [here](client_setup_and_repository_example.md).  The documentation
+available [here](../tuf/client_setup_and_repository_example.md).  The documentation
 there is provided here for convenience.
 
-The following [repository tool](README.md) function creates a directory
+The following [repository tool](../tuf/repository_tool.py) function creates a directory
 structure that a client downloading new software using TUF (via
-tuf/client/updater.py) expects. The `root.json` metadata file must exist, and
+[tuf/client/updater.py](../tuf/client/updater.py)) expects. The `root.json` metadata file must exist, and
 also the directories that hold the metadata files downloaded from a repository.
 Software updaters integrating TUF may use this directory to store TUF updates
 saved on the client side.
@@ -631,8 +631,7 @@ saved on the client side.
 
 `create_tuf_client_directory()` moves metadata from `repository/metadata` to
 `client/` in this example.  The repository in `repository/` may be the
-repository example created in the repository tool [README](README.md) (this
-document).
+repository example created earlier in this document.
 
 ## Test TUF Locally ##
 Run the local TUF repository server.
