@@ -33,7 +33,7 @@ software is required to convert a software repository to a TUF one.  The
 low-level repository tool that generates the required TUF metadata for a
 software repository is the focus of this tutorial.  There is also separate
 document that [demonstrates how TUF protects against malicious
-updates](SECURITY.md).
+updates](../tuf/ATTACKS.md).
 
 The [repository tool](../tuf/repository_tool.py) contains functions to generate all of
 the files needed to populate and manage a TUF repository.  The tool may either
