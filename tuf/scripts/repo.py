@@ -169,7 +169,7 @@ def delegate(parsed_arguments):
 
     targets_private = import_privatekey_from_file(
         os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
-        parsed_arguments.pw)
+        parsed_arguments.targets_pw)
 
     repository.targets.load_signing_key(targets_private)
 
@@ -191,10 +191,10 @@ def delegate(parsed_arguments):
   # release.
   snapshot_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
-      parsed_arguments.pw)
+      parsed_arguments.snapshot_pw)
   timestamp_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      TIMESTAMP_KEY_NAME), parsed_arguments.pw)
+      TIMESTAMP_KEY_NAME), parsed_arguments.timestamp_pw)
 
   repository.snapshot.load_signing_key(snapshot_private)
   repository.timestamp.load_signing_key(timestamp_private)
@@ -216,7 +216,7 @@ def revoke(parsed_arguments):
 
     targets_private = import_privatekey_from_file(
         os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
-        parsed_arguments.pw)
+        parsed_arguments.targets_pw)
 
     repository.targets.load_signing_key(targets_private)
 
@@ -233,10 +233,10 @@ def revoke(parsed_arguments):
   # release.
   snapshot_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
-      parsed_arguments.pw)
+      parsed_arguments.snapshot_pw)
   timestamp_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      TIMESTAMP_KEY_NAME), parsed_arguments.pw)
+      TIMESTAMP_KEY_NAME), parsed_arguments.timestamp_pw)
 
   repository.snapshot.load_signing_key(snapshot_private)
   repository.timestamp.load_signing_key(timestamp_private)
@@ -357,14 +357,14 @@ def sign_role(parsed_arguments):
       os.path.join(parsed_arguments.path, REPO_DIR))
 
   # Was a private key path given with --sign?  If so, load the specified
-  # private key. Otherwise, load the default key path.
+  # private key. Otherwise, load the default Targets key.
   if parsed_arguments.sign != '.':
     role_privatekey = import_privatekey_from_file(parsed_arguments.sign)
 
   else:
     role_privatekey = import_privatekey_from_file(
         os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
-        parsed_arguments.pw)
+        parsed_arguments.targets_pw)
 
   if parsed_arguments.role == 'targets':
     repository.targets.load_signing_key(role_privatekey)
@@ -399,15 +399,16 @@ def sign_role(parsed_arguments):
 
     else:
       repository.targets(parsed_arguments.role).load_signing_key(role_privatekey)
+      repository.write(parsed_arguments.role, increment_version_number=False)
 
   # Update the required top-level roles, Snapshot and Timestamp, to make a new
   # release.
   snapshot_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
-      parsed_arguments.pw)
+      parsed_arguments.snapshot_pw)
   timestamp_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      TIMESTAMP_KEY_NAME), parsed_arguments.pw)
+      TIMESTAMP_KEY_NAME), parsed_arguments.timestamp_pw)
 
   repository.snapshot.load_signing_key(snapshot_private)
   repository.timestamp.load_signing_key(timestamp_private)
@@ -441,11 +442,14 @@ def write_to_live_repo():
 
 
 
-def add_target_to_repo(target_path, repo_targets_path, repository):
+def add_target_to_repo(target_path, repo_targets_path, repository, custom=None):
   """
   (1) Copy 'target_path' to 'repo_targets_path'.
   (2) Add 'target_path' to Targets metadata of 'repository'.
   """
+
+  if custom is None:
+    custom = {}
 
   if not os.path.exists(target_path):
     logger.debug(repr(target_path) + ' does not exist.  Skipping.')
@@ -454,8 +458,24 @@ def add_target_to_repo(target_path, repo_targets_path, repository):
     securesystemslib.util.ensure_parent_dir(
         os.path.join(repo_targets_path, target_path))
     shutil.copy(target_path, os.path.join(repo_targets_path, target_path))
-    repository.targets.add_target(
-        os.path.join(repo_targets_path, target_path))
+
+
+    roleinfo = tuf.roledb.get_roleinfo(
+        parsed_arguments.role, repository_name=repository._repository_name)
+
+    # It is assumed we have a delegated role, and that the caller has made
+    # sure to reject top-level roles specified with --role.
+    if target_path not in roleinfo['paths']:
+      logger.debug('Adding new target: ' + repr(target_path))
+      roleinfo['paths'].update({target_path: custom})
+
+    else:
+      logger.debug('Replacing target: ' + repr(target_path))
+      roleinfo['paths'].update({relative_path: custom})
+
+    tuf.roledb.update_roleinfo(parsed_arguments.role, roleinfo,
+        mark_role_as_dirty=True, repository_name=repository._repository_name)
+
 
 
 
@@ -491,7 +511,6 @@ def remove_target_files_from_metadata(repository):
 
 def add_targets(parsed_arguments):
   target_paths = os.path.join(parsed_arguments.add)
-
   repo_targets_path = os.path.join(parsed_arguments.path, REPO_DIR, 'targets')
   repository = repo_tool.load_repository(
       os.path.join(parsed_arguments.path, REPO_DIR))
@@ -516,18 +535,32 @@ def add_targets(parsed_arguments):
     parsed_arguments.pw = securesystemslib.interface.get_password(
         prompt='Enter a password for the top-level role keys: ', confirm=True)
 
-  # Load the top-level, non-root, keys to make a new release.
-  targets_private = import_privatekey_from_file(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
-      parsed_arguments.pw)
+  if parsed_arguments.role == 'targets':
+    # Load the top-level, non-root, keys to make a new release.
+    targets_private = import_privatekey_from_file(
+        os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
+        parsed_arguments.pw)
+    repository.targets.load_signing_key(targets_private)
+    repository.write('targets', increment_version_number=True)
+
+  elif parsed_arguments.role not in ['root', 'snapshot', 'timestamp']:
+    # TODO
+    """
+    # Load the private key keydb and set the roleinfo in roledb so that
+    # metadata can be written with repository.write().
+    tuf.keydb.remove_key(role_privatekey['keyid'], repository_name = repository._repository_name)
+    tuf.keydb.add_key(
+        role_privatekey, repository_name = repository._repository_name)
+    """
+    repository.write(parsed_arguments.role, increment_version_number=True)
+
   snapshot_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
-      parsed_arguments.pw)
+      parsed_arguments.snapshot_pw)
   timestamp_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      TIMESTAMP_KEY_NAME), parsed_arguments.pw)
+      TIMESTAMP_KEY_NAME), parsed_arguments.timestamp_pw)
 
-  repository.targets.load_signing_key(targets_private)
   repository.snapshot.load_signing_key(snapshot_private)
   repository.timestamp.load_signing_key(timestamp_private)
 
@@ -560,13 +593,13 @@ def remove_targets(parsed_arguments):
   # Load the top-level, non-root, keys to make a new release.
   targets_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
-      parsed_arguments.pw)
+      parsed_arguments.targets_pw)
   snapshot_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
-      parsed_arguments.pw)
+      parsed_arguments.snapshot_pw)
   timestamp_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      TIMESTAMP_KEY_NAME), parsed_arguments.pw)
+      TIMESTAMP_KEY_NAME), parsed_arguments.timestamp_pw)
 
   repository.targets.load_signing_key(targets_private)
   repository.snapshot.load_signing_key(snapshot_private)
@@ -627,16 +660,16 @@ def set_top_level_keys(repository):
 
   repo_tool.generate_and_write_ecdsa_keypair(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      ROOT_KEY_NAME), password=parsed_arguments.pw)
+      ROOT_KEY_NAME), password=parsed_arguments.root_pw)
   repo_tool.generate_and_write_ecdsa_keypair(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      TARGETS_KEY_NAME), password=parsed_arguments.pw)
+      TARGETS_KEY_NAME), password=parsed_arguments.targets_pw)
   repo_tool.generate_and_write_ecdsa_keypair(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      SNAPSHOT_KEY_NAME), password=parsed_arguments.pw)
+      SNAPSHOT_KEY_NAME), password=parsed_arguments.snapshot_pw)
   repo_tool.generate_and_write_ecdsa_keypair(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      TIMESTAMP_KEY_NAME), password=parsed_arguments.pw)
+      TIMESTAMP_KEY_NAME), password=parsed_arguments.timestamp_pw)
 
   # Import the public keys.  They are needed so that metadata roles are
   # assigned verification keys, which clients need in order to verify the
@@ -658,16 +691,16 @@ def set_top_level_keys(repository):
   # included in metadata.
   root_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      ROOT_KEY_NAME), parsed_arguments.pw)
+      ROOT_KEY_NAME), parsed_arguments.root_pw)
   targets_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      TARGETS_KEY_NAME), parsed_arguments.pw)
+      TARGETS_KEY_NAME), parsed_arguments.targets_pw)
   snapshot_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      SNAPSHOT_KEY_NAME), parsed_arguments.pw)
+      SNAPSHOT_KEY_NAME), parsed_arguments.snapshot_pw)
   timestamp_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      TIMESTAMP_KEY_NAME), parsed_arguments.pw)
+      TIMESTAMP_KEY_NAME), parsed_arguments.timestamp_pw)
 
   # Add the verification keys to the top-level roles.
   repository.root.add_verification_key(root_public)
@@ -772,8 +805,24 @@ def parse_arguments():
 
   parser.add_argument('--pw', nargs='?', default='pw', metavar='<password>',
       help='Specify a password. "pw" is used if --pw is unset, or a'
-      ' password can be entered via a prompt by specifying --pw by itself.'
-      '  This option can be used with --sign and --key.')
+          ' password can be entered via a prompt by specifying --pw by itself.'
+          '  This option can be used with --sign and --key.')
+
+  parser.add_argument('--root_pw', nargs='?', default='pw', metavar='<password>',
+      help='Specify a Root password. "pw" is used if --pw is unset, or a'
+      ' password can be entered via a prompt by specifying --pw by itself.')
+
+  parser.add_argument('--targets_pw', nargs='?', default='pw', metavar='<password>',
+      help='Specify a Targets password. "pw" is used if --pw is unset, or a'
+      ' password can be entered via a prompt by specifying --pw by itself.')
+
+  parser.add_argument('--snapshot_pw', nargs='?', default='pw', metavar='<password>',
+      help='Specify a Snapshot password. "pw" is used if --pw is unset, or a'
+      ' password can be entered via a prompt by specifying --pw by itself.')
+
+  parser.add_argument('--timestamp_pw', nargs='?', default='pw', metavar='<password>',
+      help='Specify a Timestamp password. "pw" is used if --pw is unset, or a'
+      ' password can be entered via a prompt by specifying --pw by itself.')
 
   parser.add_argument('-d', '--delegate', type=str, nargs='+',
       metavar='<glob pattern>', help='Delegate trust of target files'
