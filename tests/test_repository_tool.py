@@ -318,7 +318,7 @@ class TestRepository(unittest.TestCase):
 
     # Verify that a writeall() fails if a repository is loaded and a change
     # is made to a role.
-    repo_tool.load_repository(repository_directory, repository_name)
+    repository = repo_tool.load_repository(repository_directory, repository_name)
 
     repository.timestamp.expiration = datetime.datetime(2030, 1, 1, 12, 0)
     self.assertRaises(tuf.exceptions.UnsignedMetadataError, repository.writeall)
@@ -331,7 +331,6 @@ class TestRepository(unittest.TestCase):
     # snapshot modifies the Root metadata, which specifies whether a repository
     # supports consistent snapshots.  Verify that an exception is raised due to
     # the missing signatures of Root and Snapshot.
-    repository.root.unload_signing_key(root_privkey)
     self.assertRaises(tuf.exceptions.UnsignedMetadataError, repository.writeall, consistent_snapshot=True)
 
     # Load the private keys of Root and Snapshot (new version required since
