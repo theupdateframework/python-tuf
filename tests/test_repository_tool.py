@@ -331,7 +331,8 @@ class TestRepository(unittest.TestCase):
     # snapshot modifies the Root metadata, which specifies whether a repository
     # supports consistent snapshots.  Verify that an exception is raised due to
     # the missing signatures of Root and Snapshot.
-    self.assertRaises(tuf.exceptions.UnsignedMetadataError, repository.writeall, True)
+    repository.root.unload_signing_key(root_privkey)
+    self.assertRaises(tuf.exceptions.UnsignedMetadataError, repository.writeall, consistent_snapshot=True)
 
     # Load the private keys of Root and Snapshot (new version required since
     # Root will change to enable consistent snapshots.
