@@ -252,7 +252,7 @@ class Repository(object):
     # metadata file.  _generate_and_write_metadata() raises a
     # 'securesystemslib.exceptions.Error' exception if the metadata cannot be
     # written.
-    if 'root' in dirty_rolenames or consistent_snapshot:
+    if 'root' in dirty_rolenames:
       repo_lib._generate_and_write_metadata('root', filenames['root'],
           self._targets_directory, self._metadata_directory,
           consistent_snapshot, filenames,
