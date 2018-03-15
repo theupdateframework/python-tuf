@@ -544,14 +544,6 @@ def add_targets(parsed_arguments):
     repository.write('targets', increment_version_number=True)
 
   elif parsed_arguments.role not in ['root', 'snapshot', 'timestamp']:
-    # TODO
-    """
-    # Load the private key keydb and set the roleinfo in roledb so that
-    # metadata can be written with repository.write().
-    tuf.keydb.remove_key(role_privatekey['keyid'], repository_name = repository._repository_name)
-    tuf.keydb.add_key(
-        role_privatekey, repository_name = repository._repository_name)
-    """
     repository.write(parsed_arguments.role, increment_version_number=True)
 
   snapshot_private = import_privatekey_from_file(
