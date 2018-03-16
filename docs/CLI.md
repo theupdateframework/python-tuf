@@ -19,17 +19,13 @@ $ repo.py --init --path </path/to/repo_dir>
 
 Note:  The default top-level key files created with `--init` are saved to disk
 encrypted, with a default password of 'pw'.  Instead of using the default
-password, the user can enter one on the command line or be prompted
-for it via password masking.
+password, the user can enter one on the command line for each top-level role.
+These optional command-line options also work with other CLI actions (e.g.,
+repo.py --add).
 ```Bash
-$ repo.py --init --pw my_password
+$ repo.py --init [--targets_pw, --root_pw, --snapshot_pw, --timestamp_pw]
 ```
 
-```Bash
-$ repo.py --init --pw
-Enter a password for the top-level role keys:
-Confirm:
-```
 
 
 Create a TUF repository in the current working directory.  A cryptographic key
@@ -101,6 +97,17 @@ $ repo.py --key <keytype>
 $ repo.py --key <keytype> --path </path/to/repo_dir> --pw [my_password], --filename <key_filename>
 ```
 
+Instead of using some default password, the user can enter one on the command
+line or be prompted for it via password masking.
+```Bash
+$ repo.py --key ... --pw my_password
+```
+
+```Bash
+$ repo.py --key ... --pw
+Enter a password for the top-level role keys:
+Confirm:
+```
 
 
 ## Sign metadata ##
