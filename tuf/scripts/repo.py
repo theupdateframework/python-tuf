@@ -145,11 +145,16 @@ def process_arguments(parsed_arguments):
 def delegate(parsed_arguments):
 
   if not parsed_arguments.delegatee:
-    raise tuf.exceptions.Error('--delegatee must be set to perform a delegation.')
+    raise tuf.exceptions.Error(
+        '--delegatee must be set to perform the delegation.')
 
   if parsed_arguments.delegatee in ['root', 'snapshot', 'timestamp', 'targets']:
     raise tuf.exceptions.Error(
         'Cannot delegate to the top-level role: ' + repr(parsed_arguments.delegatee))
+
+  if not parsed_arguments.pubkeys:
+    raise tuf.exceptions.Error(
+        '--pubkeys must be set to perform the delegation.')
 
   public_keys = []
   for public_key in parsed_arguments.pubkeys:
