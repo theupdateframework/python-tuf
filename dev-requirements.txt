@@ -27,5 +27,5 @@ securesystemslib==0.10.10
 tox==2.9.1
 
 # Linting requirements.
-pylint==1.8.2
+pylint==1.8.3
 bandit==1.4.0
