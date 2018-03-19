@@ -1126,6 +1126,181 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
+  def test_6_get_one_valid_targetinfo__promiscuous(self):
+    """
+    Test behavior when multiple roles have delegated to the same role,
+    in two scenarios.
+
+    In all cases, the delegation structure is:
+      Targets delegates foo/* to roleA
+      Targets delegates foo/* to roleB
+      roleA delegates foo/bar/* to roleC
+      roleB delegates foo/baz/* to roleC
+    """
+
+    # Prepare for the two test scenarios:
+
+    # Modify delegations on the remote repository to test behavior in cases
+    # where multiple roles delegate to one role.
+    repo = repo_tool.load_repository(self.repository_directory)
+
+    targets_directory = os.path.join(self.repository_directory, 'targets')
+
+    # Patterns for delegating the directories
+    foo_pattern = '/foo/*'
+    bar_pattern = '/foo/bar/*'
+    baz_pattern = '/foo/baz/*'
+
+    os.makedirs(os.path.join(targets_directory, 'foo', 'bar'))
+    os.makedirs(os.path.join(targets_directory, 'foo', 'baz'))
+
+    # Filepaths within repo namespace (for retrieving from repo)
+    bar_target_fname = os.path.join('foo', 'bar', 'a.txt')
+    baz_target_fname = os.path.join('foo', 'baz', 'b.txt')
+
+    # Full filepaths on-disk (for creating files and adding to repo)
+    bar_target_full_fname = os.path.join(targets_directory, bar_target_fname)
+    baz_target_full_fname = os.path.join(targets_directory, baz_target_fname)
+
+    # Create the target files that roleC will list.
+    with open(bar_target_full_fname, 'w') as fobj:
+      fobj.write('bar')
+    with open(baz_target_full_fname, 'w') as fobj:
+      fobj.write('baz')
+
+    # Pick some sample keys to use for the roles.
+    # We'll have A expect one key from C and B expect a different key from C.
+    # (pubkey_C_A being the key A expects C to be signed with, and
+    #  pubkey_C_B being the key B expects C to be signed with)
+    # Be sure to use keys for C_A and C_B that would not be currently loaded by
+    # some other role, due to a quirk in current repository_tool behavior.
+    # (See Issue #646)
+    pubkey_A = self.role_keys['targets']['public']
+    prikey_A = self.role_keys['targets']['private']
+    pubkey_B = self.role_keys['targets']['public']
+    prikey_B = self.role_keys['targets']['private']
+    pubkey_C_A = self.role_keys['root']['public']
+    prikey_C_A = self.role_keys['root']['private']
+    pubkey_C_B = self.role_keys['role1']['public']
+    prikey_C_B = self.role_keys['role1']['private']
+
+    # Delegate
+    repo.targets.delegate('roleA', [pubkey_A], [foo_pattern])
+    repo.targets.delegate('roleB', [pubkey_B], [foo_pattern])
+    repo.targets('roleA').delegate('roleC', [pubkey_C_A], [bar_pattern])
+    repo.targets('roleB').delegate('roleC', [pubkey_C_B], [baz_pattern])
+
+    # Have C specify two targets: /foo/bar/a.txt, /foo/baz/b.txt
+    repo.targets('roleC').add_targets(
+      [bar_target_full_fname, baz_target_full_fname])
+
+
+
+    # SCENARIO 2
+    # roleC is signed by the key that B expects of it, but not the key that
+    # A expects of it.
+    # We should still be able to traverse Targets->roleB->roleC and retrieve
+    # target info for targets delegated through that path, but not through
+    # Targets->roleA->roleC.
+    # Further, the inability to validate roleC through the roleA path should
+    # not prevent us from validating roleC through the roleB path.
+    # See TUF Specification repo's Issue #16 for more about the latter:
+    # https://github.com/theupdateframework/specification/issues/15
+
+    # IN PROGRESS - WIP
+
+    # Unload signing key that role A expects of role C.
+    # Load signing keys.
+    repo.targets('roleA').load_signing_key(prikey_A)
+    repo.targets('roleB').load_signing_key(prikey_B)
+    #repo.targets('roleC').load_signing_key(prikey_C_A)
+    repo.targets('roleC').load_signing_key(prikey_C_B)
+
+    # Updating these delegated role files doesn't mark timestamp or snapshot
+    # dirty, so we'll have to manually write them all (or mark them all dirty).
+    repo.targets.load_signing_key(self.role_keys['targets']['private'])
+    repo.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
+    repo.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+    for role in ['roleC', 'roleB', 'roleA', 'targets','snapshot', 'timestamp']:
+      repo.write(role)
+
+    # Move the freshly written metadata to the hosted metadata directory.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+
+    # Update top-level metadata on the client.
+    self.repository_updater.refresh()
+
+    # We should be able to find target info for the file listed by roleC in the
+    # Targets->RoleB->RoleC traversal, but not the Targets->RoleA->RoleC,
+    # since we're missing the signature on roleC that roleA expects, but we
+    # have the signature on roleC that roleB expects.
+    with self.assertRaises(tuf.exceptions.NoWorkingMirrorError):
+      self.repository_updater.get_one_valid_targetinfo(bar_target_fname)
+      # TODO: Consider checking inside NoWorkingMirrorError to make sure that
+      # there is a BadSignatureError('roleC') in it.
+
+    with self.assertRaises(tuf.exceptions.NoWorkingMirrorError):
+      self.repository_updater.get_one_valid_targetinfo('/' + bar_target_fname)
+      # TODO: Consider checking inside NoWorkingMirrorError to make sure that
+      # there is a BadSignatureError('roleC') in it.
+
+    self.repository_updater.get_one_valid_targetinfo(baz_target_fname)
+    self.repository_updater.get_one_valid_targetinfo('/' + baz_target_fname)
+
+
+
+
+
+
+
+    # SCENARIO 1:
+    # All roles are signed by all keys expected of them.
+    #     (e.g. C is signed by a threshold of all keys that A and B expect of
+    #      it for the delegations listed)
+
+    # Load signing keys.
+    repo.targets('roleA').load_signing_key(prikey_A)
+    repo.targets('roleB').load_signing_key(prikey_B)
+    repo.targets('roleC').load_signing_key(prikey_C_A)
+    repo.targets('roleC').load_signing_key(prikey_C_B)
+
+    # Updating these delegated role files doesn't mark timestamp or snapshot
+    # dirty, so we'll have to manually write them all (or mark them all dirty).
+    repo.targets.load_signing_key(self.role_keys['targets']['private'])
+    repo.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
+    repo.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+    for role in ['roleC', 'roleB', 'roleA', 'targets','snapshot', 'timestamp']:
+      repo.write(role)
+
+    # Move the freshly written metadata to the hosted metadata directory.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+
+
+    # Update top-level metadata on the client.
+    self.repository_updater.refresh()
+
+    # We should be able to find target info for the two files listed by roleC,
+    # in one case traversing Targets->RoleA->RoleC, and in the other case
+    # Targets->RoleB->RoleC. Both traversals should find the appropriate
+    # signatures for Scenario 1.
+    self.repository_updater.get_one_valid_targetinfo(bar_target_fname)
+    self.repository_updater.get_one_valid_targetinfo('/' + bar_target_fname)
+    self.repository_updater.get_one_valid_targetinfo(baz_target_fname)
+    self.repository_updater.get_one_valid_targetinfo('/' + baz_target_fname)
+
+
+
+
+
+
+
+
+
+
   def test_6_download_target(self):
     # Create temporary directory (destination directory of downloaded targets)
     # that will be passed as an argument to 'download_target()'.
