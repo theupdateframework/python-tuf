@@ -25,14 +25,25 @@
 <Usage>
   Note: arguments within brackets are optional.
 
-  $ repo.py --init [--consistent_snapshot, --bare, --path]
+  $ repo.py --init
+      [--consistent_snapshot, --bare, --path, --root_pw, --targets_pw,
+      --snapshot_pw, --timestamp_pw]
   $ repo.py --add <target> <dir> ... [--path, --recursive]
+  $ repo.py --remove <glob pattern>
+  $ repo.py --trust --pubkeys </path/to/pubkey> [--role]
   $ repo.py --sign </path/to/key> [--role <targets>]
-  $ repo.py --key <keytype> [--filename <filename>
+  $ repo.py --key <keytype>
+      [--filename <filename>
       --path </path/to/repo>, --pw [my_password]]
-  $ repo.py --delegate <glob pattern> ... --role <rolename>
-      --delegatee <rolename> --terminating --threshold <X>
-      --keys </path/to/pubkey> --sign </path/to/role_privkey>
+
+  $ repo.py --delegate <glob pattern> --delegatee <rolename>
+      --pubkeys </path/to/pubkey>
+      [role <rolename> --terminating --threshold <X>
+      --sign </path/to/role_privkey>]
+
+  $ repo.py --revoke --delegatee <rolename>
+      [--role <rolename> --sign </path/to/role_privkey>]
+
   $ repo.py --verbose
   $ repo.py --clean [--path]
 """
@@ -128,6 +139,9 @@ def process_arguments(parsed_arguments):
   if parsed_arguments.remove:
     remove_targets(parsed_arguments)
 
+  if parsed_arguments.trust:
+    add_verification_key(parsed_arguments)
+
   if parsed_arguments.sign:
     sign_role(parsed_arguments)
 
@@ -158,7 +172,6 @@ def delegate(parsed_arguments):
 
   public_keys = []
   for public_key in parsed_arguments.pubkeys:
-    # In the future, any type of key can be imported...
     imported_pubkey = import_publickey_from_file(
         public_key)
     public_keys.append(imported_pubkey)
@@ -320,12 +333,22 @@ def import_privatekey_from_file(keypath, password=None):
   # the derived encryption key from 'password'.  Raise
   # 'securesystemslib.exceptions.CryptoError' if the decryption fails.
   try:
+
     key_object = securesystemslib.keys.decrypt_key(encrypted_key.decode('utf-8'),
         password)
 
   except securesystemslib.exceptions.CryptoError:
-    key_object = securesystemslib.keys.import_rsakey_from_private_pem(
-        encrypted_key, 'rsassa-pss-sha256', password)
+    try:
+      logger.debug(
+          'Decryption failsed.  Attempting to import a private PEM instead.')
+      key_object = securesystemslib.keys.import_rsakey_from_private_pem(
+          encrypted_key, 'rsassa-pss-sha256', password)
+
+    except securesystemslib.exceptions.CryptoError as e:
+      raise tuf.exceptions.Error(repr(keypath) + ' cannot be imported, possibly'
+          ' because the decryption password is incorrect.  Encryption'
+          ' passwords can be specified via the --root_pw, --targets_pw,'
+          ' --snapshot_pw, and --timestamp_pw command-line options.')
 
   if key_object['keytype'] not in SUPPORTED_KEY_TYPES:
     raise tuf.exceptions.Error('Trying to import an unsupported key'
@@ -356,6 +379,40 @@ def import_publickey_from_file(keypath):
 
 
 
+def add_verification_key(parsed_arguments):
+  if not parsed_arguments.pubkeys:
+    raise tuf.exception.Error('--pubkeys must be given with --trust.')
+
+  repository = repo_tool.load_repository(
+      os.path.join(parsed_arguments.path, REPO_DIR))
+
+  for keypath in parsed_arguments.pubkeys:
+    imported_pubkey = import_publickey_from_file(keypath)
+
+    if parsed_arguments.role == 'root':
+      repository.root.add_verification_key(imported_pubkey)
+
+    elif parsed_arguments.role == 'targets':
+      repository.targets.add_verification_key(imported_pubkey)
+
+    elif parsed_arguments.role == 'snapshot':
+      repository.snapshot.add_verification_key(imported_pubkey)
+
+    elif parsed_arguments.role == 'timestamp':
+      repository.timestamp.add_verification_key(imported_pubkey)
+
+    else:
+      raise tuf.exception.Error('The given --role is not a top-level role.')
+
+  repository.write('root', increment_version_number=False)
+
+  # Move staged metadata directory to "live" metadata directory.
+  write_to_live_repo()
+
+
+
+
+
 def sign_role(parsed_arguments):
 
   repository = repo_tool.load_repository(
@@ -378,7 +435,7 @@ def sign_role(parsed_arguments):
     pass
 
   else:
-    # TODO: The repository tool will be refactored to clean up the following
+    # TODO: repository_tool.py will be refactored to clean up the following
     # approach, which adds and signs for a non-existent role.
     if not tuf.roledb.role_exists(parsed_arguments.role):
 
@@ -476,7 +533,7 @@ def add_target_to_repo(target_path, repo_targets_path, repository, custom=None):
 
     else:
       logger.debug('Replacing target: ' + repr(target_path))
-      roleinfo['paths'].update({relative_path: custom})
+      roleinfo['paths'].update({target_path: custom})
 
     tuf.roledb.update_roleinfo(parsed_arguments.role, roleinfo,
         mark_role_as_dirty=True, repository_name=repository._repository_name)
@@ -795,6 +852,10 @@ def parse_arguments():
   parser.add_argument('--filename', nargs='?', default=None, const=None,
       metavar='<filename>', help='Specify a filename.  This option can'
       ' be used to name a generated key file.')
+
+  parser.add_argument('--trust', action='store_true',
+      help='Indicate the trusted key(s) (via --pubkeys) for the role in --role.'
+      '  This action modifies Root metadata with the trusted key(s).')
 
   parser.add_argument('--sign', nargs='?', type=str, const='.',
       default=None, metavar='</path/to/privkey>', help='Sign the "targets"'
