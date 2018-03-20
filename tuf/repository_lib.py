@@ -549,6 +549,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
 
     # Load Root's roleinfo and update 'tuf.roledb'.
     roleinfo = tuf.roledb.get_roleinfo('root', repository_name)
+    roleinfo['consistent_snapshot'] = root_metadata['consistent_snapshot']
     roleinfo['signatures'] = []
     for signature in signable['signatures']:
       if signature not in roleinfo['signatures']:

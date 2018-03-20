@@ -323,27 +323,27 @@ class TestRepository(unittest.TestCase):
     repository.timestamp.expiration = datetime.datetime(2030, 1, 1, 12, 0)
     self.assertRaises(tuf.exceptions.UnsignedMetadataError, repository.writeall)
 
-    # Next, perform a writeall() with consistent snapshots enabled.
-    # Since the timestamp was modified, load its private key.
+    # Load the required Timestamp key so that a valid repository can be written.
     repository.timestamp.load_signing_key(timestamp_privkey)
+    repository.writeall()
 
     # Test creation of a consistent snapshot repository.  Writing a consistent
     # snapshot modifies the Root metadata, which specifies whether a repository
-    # supports consistent snapshots.  Verify that an exception is raised due to
-    # the missing signatures of Root and Snapshot.
+    # supports consistent snapshot.  Verify that an exception is raised due to
+    # the missing signature of Root.
     self.assertRaises(tuf.exceptions.UnsignedMetadataError, repository.writeall, True)
 
-    # Load the private keys of Root and Snapshot (new version required since
-    # Root will change to enable consistent snapshots.
+    # Make sure the private keys of Root (new version required since Root will
+    # change to enable consistent snapshot), Snapshot, role1, and timestamp
+    # loaded before writing consistent snapshot.
     repository.root.load_signing_key(root_privkey)
-    repository.targets.load_signing_key(targets_privkey)
     repository.snapshot.load_signing_key(snapshot_privkey)
     repository.targets('role1').load_signing_key(role1_privkey)
 
-    # Verify that a consistent snapshot can be written and loaded.  The
-    # 'targets' and 'role1' roles must be marked as dirty, otherwise writeall()
-    # will not create consistent snapshots for them.
-    repository.mark_dirty(['targets', 'role1'])
+    # Verify that a consistent snapshot can be written and loaded.  The roles
+    # above must be marked as dirty, otherwise writeall() will not create a
+    # consistent snapshot for them.
+    repository.mark_dirty(['role1', 'root', 'snapshot', 'timestamp'])
     repository.writeall(consistent_snapshot=True)
 
     # Verify that the newly written consistent snapshot can be loaded
