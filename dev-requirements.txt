@@ -19,7 +19,7 @@ cffi==1.11.5
 six==1.11.0
 iso8601==0.1.12
 pynacl==1.2.1
-cryptography==2.1.4
+cryptography==2.2
 securesystemslib==0.10.10
 
 # Testing requirements.  The rest of the testing dependencies available in
@@ -27,5 +27,5 @@ securesystemslib==0.10.10
 tox==2.9.1
 
 # Linting requirements.
-pylint==1.8.2
+pylint==1.8.3
 bandit==1.4.0
