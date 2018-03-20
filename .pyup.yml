@@ -10,7 +10,7 @@ branch: develop
 # update schedule
 # default: empty
 # allowed: "every day", "every week", ..
-schedule: "every day"
+schedule: "every week"
 
 # configure dependency pinning globally
 # default: True
