@@ -296,10 +296,16 @@ def gen_key(parsed_arguments):
   # working directory.  By default, the filenames are written to <KEYID>.pub
   # and <KEYID> (private key).  Move them from the CWD to the repo's keystore.
   if not parsed_arguments.filename:
-    shutil.move(keypath, os.path.join(parsed_arguments.path,
-        KEYSTORE_DIR, os.path.basename(keypath)))
-    shutil.move(keypath + '.pub', os.path.join(parsed_arguments.path,
-        KEYSTORE_DIR, os.path.basename(keypath + '.pub')))
+    privkey_repo_path =  os.path.join(parsed_arguments.path,
+        KEYSTORE_DIR, os.path.basename(keypath))
+    pubkey_repo_path =  os.path.join(parsed_arguments.path,
+        KEYSTORE_DIR, os.path.basename(keypath + '.pub'))
+
+    securesystemslib.util.ensure_parent_dir(privkey_repo_path)
+    securesystemslib.util.ensure_parent_dir(pubkey_repo_path)
+
+    shutil.move(keypath, privkey_repo_path)
+    shutil.move(keypath + '.pub', pubkey_repo_path)
 
 
 
