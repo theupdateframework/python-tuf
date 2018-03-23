@@ -1,11 +1,15 @@
 Installation
 ------------
 
-pip is the recommended installer.  The project can be installed either locally
-or from the Python Package Index.  All `TUF releases
+*pip* is the recommended installer.  The project can be installed either
+locally or from the Python Package Index.  All `TUF releases
 <https://github.com/theupdateframework/tuf/releases>`_ are cryptographically
 signed, with GPG signatures available on both GitHub and `PyPI
-<https://pypi.python.org/pypi/tuf/>`_.
+<https://pypi.python.org/pypi/tuf/>`_.  PGP key information for our maintainers
+is available on our `website
+<https://theupdateframework.github.io/people.html>`_, on major keyservers,
+and on the `maintainers page
+<https://github.com/theupdateframework/tuf/blob/develop/docs/MAINTAINERS.txt>`_.
 
 The latest release and its packaging information, such as who signed the
 release and their PGP fingerprint, can also be found on our 1-year `roadmap
