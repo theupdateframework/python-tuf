@@ -449,7 +449,7 @@ def remove_verification_key(parsed_arguments):
         raise tuf.exception.Error('The given --role is not a top-level role.')
 
     except securesystemslib.exceptions.Error:
-      print(repr(keypath) + ' is not trusted key.  Skipping.')
+      print(repr(keypath) + ' is not a trusted key.  Skipping.')
 
   repository.write('root', increment_version_number=False)
 
