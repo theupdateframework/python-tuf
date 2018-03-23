@@ -128,8 +128,14 @@ $ repo.py --init --bare
 $ repo.py --trust --pubkeys keystore/my_key.pub keystore/my_key_too.pub --role root
 ```
 
-Note: This action replaces any previously trusted keys that might have been
-specified for --role.
+### Distrust keys ###
+
+Conversely, the Root role can discontinue trust of specified key(s).
+
+Example of how to discontinue trust of a key:
+```Bash
+$ repo.py --distrust --pubkeys keystore/my_key_too.pub --role root
+```
 
 
 
