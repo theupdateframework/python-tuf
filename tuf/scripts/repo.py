@@ -142,6 +142,9 @@ def process_arguments(parsed_arguments):
   if parsed_arguments.trust:
     add_verification_key(parsed_arguments)
 
+  if parsed_arguments.distrust:
+    remove_verification_key(parsed_arguments)
+
   if parsed_arguments.sign:
     sign_role(parsed_arguments)
 
@@ -409,6 +412,44 @@ def add_verification_key(parsed_arguments):
 
     else:
       raise tuf.exception.Error('The given --role is not a top-level role.')
+
+  repository.write('root', increment_version_number=False)
+
+  # Move staged metadata directory to "live" metadata directory.
+  write_to_live_repo()
+
+
+
+
+
+def remove_verification_key(parsed_arguments):
+  if not parsed_arguments.pubkeys:
+    raise tuf.exception.Error('--pubkeys must be given with --distrust.')
+
+  repository = repo_tool.load_repository(
+      os.path.join(parsed_arguments.path, REPO_DIR))
+
+  for keypath in parsed_arguments.pubkeys:
+    imported_pubkey = import_publickey_from_file(keypath)
+
+    try:
+      if parsed_arguments.role == 'root':
+        repository.root.remove_verification_key(imported_pubkey)
+
+      elif parsed_arguments.role == 'targets':
+        repository.targets.remove_verification_key(imported_pubkey)
+
+      elif parsed_arguments.role == 'snapshot':
+        repository.snapshot.remove_verification_key(imported_pubkey)
+
+      elif parsed_arguments.role == 'timestamp':
+        repository.timestamp.remove_verification_key(imported_pubkey)
+
+      else:
+        raise tuf.exception.Error('The given --role is not a top-level role.')
+
+    except securesystemslib.exceptions.Error:
+      print(repr(keypath) + ' is not trusted key.  Skipping.')
 
   repository.write('root', increment_version_number=False)
 
@@ -862,6 +903,10 @@ def parse_arguments():
   parser.add_argument('--trust', action='store_true',
       help='Indicate the trusted key(s) (via --pubkeys) for the role in --role.'
       '  This action modifies Root metadata with the trusted key(s).')
+
+  parser.add_argument('--distrust', action='store_true',
+      help='Discontinue trust of key(s) (via --pubkeys) for the role in --role.'
+      '  This action modifies Root metadata by removing trusted key(s).')
 
   parser.add_argument('--sign', nargs='?', type=str, const='.',
       default=None, metavar='</path/to/privkey>', help='Sign the "targets"'
