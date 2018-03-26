@@ -87,10 +87,9 @@ gitdb2==2.0.3 \
     --hash=sha256:b60e29d4533e5e25bb50b7678bbc187c8f6bcff1344b4f293b2ba55c85795f09 \
     --hash=sha256:cf9a4b68e8c4da8d42e48728c944ff7af2d8c9db303ac1ab32eac37aa4194b0e \
     # via gitpython
-gitpython==2.1.8 \
-    --hash=sha256:ad61bc25deadb535b047684d06f3654c001d9415e1971e51c9c20f5b510076e9 \
-    --hash=sha256:b8367c432de995dc330b5b146c5bfdc0926b8496e100fda6692134e00c0dcdc5 \
-    # via bandit
+gitpython==2.1.9 \
+    --hash=sha256:05069e26177c650b3cb945dd543a7ef7ca449f8db5b73038b465105673c1ef61 \
+    --hash=sha256:c47cc31af6e88979c57a33962cbc30a7c25508d74a1b3a19ec5aa7ed64b03129    # via bandit
 idna==2.6 \
     --hash=sha256:2c6a5de3089009e3da7c5dde64a141dbc8551d5b7f6cf4ed7c2568d0cc520a8f \
     --hash=sha256:8c7309c718f94b3a625cb648ace320157ad16ff131ae0af362c9f21b80ef6ec4 \
