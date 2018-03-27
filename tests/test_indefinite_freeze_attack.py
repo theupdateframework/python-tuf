@@ -313,10 +313,11 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
                 'successfully. Now sleeping until snapshot metadata expires.')
 
     # Sleep until expiry_time ('repository.snapshot.expiration')
-    time.sleep(max(0, expiry_time - time.time()))
+    time.sleep(max(0, expiry_time - time.time() + 1))
 
     logger.info('Test: Refreshing #2 - Now trying to refresh again after local'
       ' snapshot expiry.')
+
     try:
       self.repository_updater.refresh() # We expect this to fail!
 
@@ -329,6 +330,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     # NoWorkingMirrorError indicates something else in this case - unavailable
     # repo, for example.
     else:
+
       self.fail('TUF failed to detect expired stale snapshot metadata. Freeze'
         ' attack successful.')
 
@@ -377,7 +379,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
 
     # Wait just long enough for the timestamp metadata (which is now both on
     # the repository and on the client) to expire.
-    time.sleep(max(0, expiry_time - time.time()))
+    time.sleep(max(0, expiry_time - time.time() + 1))
 
     # Try to refresh top-level metadata on the client. Since we're already past
     # 'repository.timestamp.expiration', the TUF client is expected to detect

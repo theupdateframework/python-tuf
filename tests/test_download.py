@@ -111,25 +111,26 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
   # Test: Incorrect lengths.
   def test_download_url_to_tempfileobj_and_lengths(self):
-    # We do *not* catch 'securesystemslib.exceptions.DownloadLengthMismatchError' in the following two
-    # calls because the file at 'self.url' contains enough bytes to satisfy the
-    # smaller number of required bytes requested. safe_download() and
-    # unsafe_download() will only log a warning when the the server-reported
-    # length of the file does not match the required_length.  'updater.py'
-    # *does* verify the hashes of downloaded content.
+    # We do *not* catch
+    # 'securesystemslib.exceptions.DownloadLengthMismatchError' in the
+    # following two calls because the file at 'self.url' contains enough bytes
+    # to satisfy the smaller number of required bytes requested.
+    # safe_download() and unsafe_download() will only log a warning when the
+    # the server-reported length of the file does not match the
+    # required_length.  'updater.py' *does* verify the hashes of downloaded
+    # content.
     download.safe_download(self.url, self.target_data_length - 4)
     download.unsafe_download(self.url, self.target_data_length - 4)
 
-    # We catch 'tuf.exceptions.SlowRetrievalError' for both safe_download() and
-    # unsafe_download() because they will not download more bytes than
-    # requested and the connection eventually hits a slow retrieval error when
-    # the server can't satisfy the request (in this case, a length greater
-    # than the size of the target file).
-    self.assertRaises(tuf.exceptions.SlowRetrievalError, download.safe_download,
-                      self.url, self.target_data_length + 1)
+    # We catch 'tuf.exceptions.DownloadLengthMismatchError' for safe_download()
+    # because it will not download more bytes than requested (in this case, a
+    # length greater than the size of the target file).
+    self.assertRaises(tuf.exceptions.DownloadLengthMismatchError,
+        download.safe_download, self.url, self.target_data_length + 1)
 
-    self.assertRaises(tuf.exceptions.SlowRetrievalError, download.unsafe_download,
-                      self.url, self.target_data_length + 1)
+    # Calling unsafe_download() with a mismatched length should not raise an
+    # exception.
+    download.unsafe_download(self.url, self.target_data_length + 1)
 
 
 

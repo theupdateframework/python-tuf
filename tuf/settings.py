@@ -82,14 +82,15 @@ DEFAULT_TARGETS_REQUIRED_LENGTH = 5000000 #bytes
 SOCKET_TIMEOUT = 2 #seconds
 
 # The maximum chunk of data, in bytes, we would download in every round.
-CHUNK_SIZE = 8192 #bytes
+#CHUNK_SIZE = 8192 #bytes
+CHUNK_SIZE = 100000 #bytes
 
 # The minimum average download speed (bytes/second) that must be met to
 # avoid being considered as a slow retrieval attack.
 MIN_AVERAGE_DOWNLOAD_SPEED = 100 #bytes/second
 
 # The time (in seconds) we ignore a server with a slow initial retrieval speed.
-SLOW_START_GRACE_PERIOD = 3 #seconds
+SLOW_START_GRACE_PERIOD = 0.01 #seconds
 
 # Software updaters that integrate the framework are required to specify
 # the URL prefix for the mirrors that clients can contact to download updates.
@@ -114,3 +115,9 @@ CONSISTENT_METHOD = 'copy'
 # bin delegations.  The other instances (e.g., digest of files) that require a
 # hashing algorithm rely on settings in the securesystemslib external library.
 DEFAULT_HASH_ALGORITHM = 'sha256'
+
+# The client's update procedure (contained within a while-loop) can potentially
+# hog the CPU.  The following setting can be used to force the update sequence
+# to suspend execution for a specified amount of time.  See
+# theupdateframework/tuf/issue#338.
+SLEEP_BEFORE_ROUND = None

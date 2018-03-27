@@ -339,13 +339,15 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
     while True:
       # We download a fixed chunk of data in every round. This is so that we
       # can defend against slow retrieval attacks. Furthermore, we do not wish
-      # to download an extremely large file in one shot.  Before beginning the
-      # round, sleep for a short amount of time so that the CPU is not hogged
-      # in the while loop.
-      time.sleep(0.05)
+      # to download an extremely large file in one shot.
+      # Before beginning the round, sleep (if set) for a short amount of time
+      # so that the CPU is not hogged in the while loop.
+      if tuf.settings.SLEEP_BEFORE_ROUND:
+        time.sleep(tuf.settings.SLEEP_BEFORE_ROUND)
+
       data = b''
       read_amount = min(tuf.settings.CHUNK_SIZE,
-                        required_length - number_of_bytes_received)
+          required_length - number_of_bytes_received)
 
       try:
         data = connection.read(read_amount)
