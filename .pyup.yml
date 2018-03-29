@@ -30,6 +30,10 @@ requirements:
       # update all dependencies and pin them
       update: all
       pin: True
+  - requirements.txt
+      # update all dependencies and pin them
+      update: all
+      pin: True
 
 # configure the branch prefix the bot is using
 # default: pyup-
