@@ -2952,7 +2952,7 @@ def load_repository(repository_directory, repository_name='default'):
   loaded_metadata = []
   targets_objects['targets'] = repository.targets
 
-  for metadata_role in os.listdir(metadata_directory):
+  for metadata_role in sorted(os.listdir(metadata_directory), reverse=True):
 
     metadata_path = os.path.join(metadata_directory, metadata_role)
     metadata_name = \
