@@ -1491,7 +1491,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   # files found there.  This information is stored in the 'meta' field of
   # 'snapshot.json'.
 
-  for metadata_filename in os.listdir(metadata_directory):
+  for metadata_filename in sorted(os.listdir(metadata_directory), reverse=True):
     # Strip the version number if 'consistent_snapshot' is True.
     # Example:  '10.django.json'  --> 'django.json'
     metadata_name, junk = _strip_version_number(metadata_filename,
