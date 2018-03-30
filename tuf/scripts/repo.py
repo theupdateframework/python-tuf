@@ -120,10 +120,10 @@ def process_arguments(parsed_arguments):
 
   # Do we have a valid argparse Namespace?
   if not isinstance(parsed_arguments, argparse.Namespace):
-    raise tuf.exception.Error('Invalid namespace.')
+    raise tuf.exception.Error('Invalid namespace: ' + repr(parsed_arguments))
 
   else:
-    logger.debug('We have a valid argparse Namespace: ' + repr(parsed_arguments))
+    logger.debug('We have a valid argparse Namespace.')
 
   # TODO: Process all of the supported command-line actions.  --init, --clean,
   # --add, --sign, --key are currently implemented.
@@ -483,7 +483,7 @@ def sign_role(parsed_arguments):
 
   else:
     # TODO: repository_tool.py will be refactored to clean up the following
-    # approach, which adds and signs for a non-existent role.
+    # code, which adds and signs for a non-existent role.
     if not tuf.roledb.role_exists(parsed_arguments.role):
 
       # Load the private key keydb and set the roleinfo in roledb so that
@@ -958,7 +958,7 @@ def parse_arguments():
       help='Revoke trust of target files from a delegated role.')
 
   # Add the parser arguments supported by PROG_NAME.
-  parser.add_argument('-v', '--verbose', type=int, default=2,
+  parser.add_argument('-v', '--verbose', type=int, default=1,
       choices=range(0, 6), help='Set the verbosity level of logging messages.'
       ' The lower the setting, the greater the verbosity.  Supported logging'
       ' levels: 0=UNSET, 1=DEBUG, 2=INFO, 3=WARNING, 4=ERROR,'
