@@ -349,15 +349,14 @@ def import_privatekey_from_file(keypath, password=None):
   except securesystemslib.exceptions.CryptoError:
     try:
       logger.debug(
-          'Decryption failsed.  Attempting to import a private PEM instead.')
+          'Decryption failed.  Attempting to import a private PEM instead.')
       key_object = securesystemslib.keys.import_rsakey_from_private_pem(
           encrypted_key, 'rsassa-pss-sha256', password)
 
     except securesystemslib.exceptions.CryptoError as e:
       raise tuf.exceptions.Error(repr(keypath) + ' cannot be imported, possibly'
-          ' because the decryption password is incorrect.  Encryption'
-          ' passwords can be specified via the --root_pw, --targets_pw,'
-          ' --snapshot_pw, and --timestamp_pw command-line options.')
+          ' because an invalid key file is given or the decryption password is'
+          ' incorrect.')
 
   if key_object['keytype'] not in SUPPORTED_KEY_TYPES:
     raise tuf.exceptions.Error('Trying to import an unsupported key'
@@ -465,58 +464,60 @@ def sign_role(parsed_arguments):
   repository = repo_tool.load_repository(
       os.path.join(parsed_arguments.path, REPO_DIR))
 
-  # Was a private key path given with --sign?  If so, load the specified
-  # private key. Otherwise, load the default Targets key.
-  if parsed_arguments.sign != '.':
-    role_privatekey = import_privatekey_from_file(parsed_arguments.sign)
+  for keypath in parsed_arguments.sign:
 
-  else:
-    role_privatekey = import_privatekey_from_file(
-        os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
-        parsed_arguments.targets_pw)
-
-  if parsed_arguments.role in ['targets']:
-    repository.targets.load_signing_key(role_privatekey)
-
-  elif parsed_arguments.role in ['root']:
-    repository.root.load_signing_key(role_privatekey)
-
-  elif parsed_arguments.role in ['snapshot']:
-    repository.snapshot.load_signing_key(role_privatekey)
-
-  elif parsed_arguments.role in ['timestamp']:
-    repository.timestamp.load_signing_key(role_privatekey)
-
-  else:
-    # TODO: repository_tool.py will be refactored to clean up the following
-    # code, which adds and signs for a non-existent role.
-    if not tuf.roledb.role_exists(parsed_arguments.role):
-
-      # Load the private key keydb and set the roleinfo in roledb so that
-      # metadata can be written with repository.write().
-      tuf.keydb.remove_key(role_privatekey['keyid'],
-          repository_name = repository._repository_name)
-      tuf.keydb.add_key(
-          role_privatekey, repository_name = repository._repository_name)
-
-      expiration = tuf.formats.unix_timestamp_to_datetime(
-          int(time.time() + 7889230))
-      expiration = expiration.isoformat() + 'Z'
-
-      roleinfo = {'name': parsed_arguments.role,
-          'keyids': [role_privatekey['keyid']],
-          'signing_keyids': [role_privatekey['keyid']],
-          'partial_loaded': False, 'paths': {},
-          'signatures': [], 'version': 1, 'expires': expiration,
-          'delegations': {'keys': {}, 'roles': []}}
-
-      tuf.roledb.add_role(parsed_arguments.role, roleinfo,
-          repository_name=repository._repository_name)
-      repository.write(parsed_arguments.role, increment_version_number=False)
+    # Was a private key path given with --sign?  If so, load the specified
+    # private key. Otherwise, load the default Targets key.
+    if keypath != '.':
+      role_privatekey = import_privatekey_from_file(keypath)
 
     else:
-      repository.targets(parsed_arguments.role).load_signing_key(role_privatekey)
-      repository.write(parsed_arguments.role, increment_version_number=False)
+      role_privatekey = import_privatekey_from_file(
+          os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
+          parsed_arguments.targets_pw)
+
+    if parsed_arguments.role in ['targets']:
+      repository.targets.load_signing_key(role_privatekey)
+
+    elif parsed_arguments.role in ['root']:
+      repository.root.load_signing_key(role_privatekey)
+
+    elif parsed_arguments.role in ['snapshot']:
+      repository.snapshot.load_signing_key(role_privatekey)
+
+    elif parsed_arguments.role in ['timestamp']:
+      repository.timestamp.load_signing_key(role_privatekey)
+
+    else:
+      # TODO: repository_tool.py will be refactored to clean up the following
+      # code, which adds and signs for a non-existent role.
+      if not tuf.roledb.role_exists(parsed_arguments.role):
+
+        # Load the private key keydb and set the roleinfo in roledb so that
+        # metadata can be written with repository.write().
+        tuf.keydb.remove_key(role_privatekey['keyid'],
+            repository_name = repository._repository_name)
+        tuf.keydb.add_key(
+            role_privatekey, repository_name = repository._repository_name)
+
+        expiration = tuf.formats.unix_timestamp_to_datetime(
+            int(time.time() + 7889230))
+        expiration = expiration.isoformat() + 'Z'
+
+        roleinfo = {'name': parsed_arguments.role,
+            'keyids': [role_privatekey['keyid']],
+            'signing_keyids': [role_privatekey['keyid']],
+            'partial_loaded': False, 'paths': {},
+            'signatures': [], 'version': 1, 'expires': expiration,
+            'delegations': {'keys': {}, 'roles': []}}
+
+        tuf.roledb.add_role(parsed_arguments.role, roleinfo,
+            repository_name=repository._repository_name)
+        repository.write(parsed_arguments.role, increment_version_number=False)
+
+      else:
+        repository.targets(parsed_arguments.role).load_signing_key(role_privatekey)
+        repository.write(parsed_arguments.role, increment_version_number=False)
 
   # Write the updated top-level roles, if any.  Also write Snapshot and
   # Timestamp to make a new release.
@@ -916,9 +917,9 @@ def parse_arguments():
       help='Discontinue trust of key(s) (via --pubkeys) for the role in --role.'
       '  This action modifies Root metadata by removing trusted key(s).')
 
-  parser.add_argument('--sign', nargs='?', type=str, const='.',
-      default=None, metavar='</path/to/privkey>', help='Sign the "targets"'
-      ' metadata (or the one for --role) with the specified key.')
+  parser.add_argument('--sign', nargs='+', default='.', type=str,
+      metavar='</path/to/privkey>', help='Sign the "targets"'
+      ' metadata (or the one for --role) with the specified key(s).')
 
   parser.add_argument('--pw', nargs='?', default='pw', metavar='<password>',
       help='Specify a password. "pw" is used if --pw is unset, or a'
