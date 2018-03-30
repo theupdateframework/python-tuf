@@ -475,11 +475,17 @@ def sign_role(parsed_arguments):
         os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
         parsed_arguments.targets_pw)
 
-  if parsed_arguments.role == 'targets':
+  if parsed_arguments.role in ['targets']:
     repository.targets.load_signing_key(role_privatekey)
 
-  elif parsed_arguments.role in ['snapshot', 'timestamp']:
-    pass
+  elif parsed_arguments.role in ['root']:
+    repository.root.load_signing_key(role_privatekey)
+
+  elif parsed_arguments.role in ['snapshot']:
+    repository.snapshot.load_signing_key(role_privatekey)
+
+  elif parsed_arguments.role in ['timestamp']:
+    repository.timestamp.load_signing_key(role_privatekey)
 
   else:
     # TODO: repository_tool.py will be refactored to clean up the following
@@ -497,8 +503,10 @@ def sign_role(parsed_arguments):
           int(time.time() + 7889230))
       expiration = expiration.isoformat() + 'Z'
 
-      roleinfo = {'name': parsed_arguments.role, 'keyids': [role_privatekey['keyid']],
-          'signing_keyids': [role_privatekey['keyid']], 'partial_loaded': False, 'paths': {},
+      roleinfo = {'name': parsed_arguments.role,
+          'keyids': [role_privatekey['keyid']],
+          'signing_keyids': [role_privatekey['keyid']],
+          'partial_loaded': False, 'paths': {},
           'signatures': [], 'version': 1, 'expires': expiration,
           'delegations': {'keys': {}, 'roles': []}}
 
@@ -510,8 +518,8 @@ def sign_role(parsed_arguments):
       repository.targets(parsed_arguments.role).load_signing_key(role_privatekey)
       repository.write(parsed_arguments.role, increment_version_number=False)
 
-  # Update the required top-level roles, Snapshot and Timestamp, to make a new
-  # release.
+  # Write the updated top-level roles, if any.  Also write Snapshot and
+  # Timestamp to make a new release.
   snapshot_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
       parsed_arguments.snapshot_pw)
@@ -958,7 +966,7 @@ def parse_arguments():
       help='Revoke trust of target files from a delegated role.')
 
   # Add the parser arguments supported by PROG_NAME.
-  parser.add_argument('-v', '--verbose', type=int, default=1,
+  parser.add_argument('-v', '--verbose', type=int, default=2,
       choices=range(0, 6), help='Set the verbosity level of logging messages.'
       ' The lower the setting, the greater the verbosity.  Supported logging'
       ' levels: 0=UNSET, 1=DEBUG, 2=INFO, 3=WARNING, 4=ERROR,'
