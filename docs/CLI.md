@@ -140,10 +140,9 @@ $ repo.py --distrust --pubkeys keystore/my_key_too.pub --role root
 
 
 ## Sign metadata ##
-Sign, using the specified key, the metadata of the role indicated in --role
-(must be Targets or a delegated role).  If no key argument or --role is given,
-the Targets role or its key is used.  The Snapshot and Timestamp role are also
-automatically signed, if possible.
+Sign, with the specified key, the metadata of the role indicated in --role.  If
+no key argument or --role is given, the Targets role or its key is used.  The
+Snapshot and Timestamp role are also automatically signed, if possible.
 ```Bash
 $ repo.py --sign
 $ repo.py --sign </path/to/key> [--role <rolename>, --path </path/to/repo>]
