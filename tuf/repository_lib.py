@@ -711,7 +711,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
 
 
 def _log_warning_if_expires_soon(rolename, expires_iso8601_timestamp,
-                                 seconds_remaining_to_warn):
+    seconds_remaining_to_warn):
   """
   Non-public function that logs a warning if 'rolename' expires in
   'seconds_remaining_to_warn' seconds, or less.
@@ -727,12 +727,17 @@ def _log_warning_if_expires_soon(rolename, expires_iso8601_timestamp,
   seconds_until_expires = expires_unix_timestamp - int(time.time())
 
   if seconds_until_expires <= seconds_remaining_to_warn:
-    days_until_expires = seconds_until_expires / 86400
+    if seconds_until_expires <= 0:
+      logger.warning(
+          repr(rolename) + ' expired ' + repr(datetime_object.ctime() + ' (UTC).'))
 
-    message = repr(rolename) + ' expires ' + datetime_object.ctime() + \
-      ' (UTC).\n' + repr(days_until_expires) + ' day(s) until it expires.'
+    else:
+      days_until_expires = seconds_until_expires / 86400
+      logger.warning(repr(rolename) + ' expires ' + datetime_object.ctime() + ''
+        ' (UTC).  ' + repr(days_until_expires) + ' day(s) until it expires.')
 
-    logger.warning(message)
+  else:
+    pass
 
 
 
@@ -1764,7 +1769,7 @@ def write_metadata_file(metadata, filename, version_number, consistent_snapshot)
     # would always point to the current version.  Example: 1.root.json and
     # 2.root.json -> root.json.  If consistent snapshot is True, we should save
     # the consistent snapshot and point 'written_filename' to it.
-    logger.debug('Creating a consistent snapshot for ' + repr(written_filename))
+    logger.debug('Creating a consistent file for ' + repr(written_filename))
     logger.debug('Saving ' + repr(written_consistent_filename))
     file_object.move(written_consistent_filename)
 
@@ -1774,7 +1779,8 @@ def write_metadata_file(metadata, filename, version_number, consistent_snapshot)
     # to its expected filename (e.g., root.json).  The option of either
     # creating a copy or link should be configurable in tuf.settings.py.
     if (tuf.settings.CONSISTENT_METHOD == 'copy'):
-      logger.debug('Pointing ' + repr(filename) + ' to the consistent snapshot.')
+      logger.debug('Pointing ' + repr(filename) + ' to the consistent'
+          ' file: ' + repr(written_consistent_filename))
       shutil.copyfile(written_consistent_filename, written_filename)
 
     elif (tuf.settings.CONSISTENT_METHOD == 'hard_link'):

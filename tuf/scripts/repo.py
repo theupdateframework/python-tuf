@@ -120,10 +120,10 @@ def process_arguments(parsed_arguments):
 
   # Do we have a valid argparse Namespace?
   if not isinstance(parsed_arguments, argparse.Namespace):
-    raise tuf.exception.Error('Invalid namespace.')
+    raise tuf.exception.Error('Invalid namespace: ' + repr(parsed_arguments))
 
   else:
-    logger.debug('We have a valid argparse Namespace: ' + repr(parsed_arguments))
+    logger.debug('We have a valid argparse Namespace.')
 
   # TODO: Process all of the supported command-line actions.  --init, --clean,
   # --add, --sign, --key are currently implemented.
@@ -475,15 +475,21 @@ def sign_role(parsed_arguments):
         os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
         parsed_arguments.targets_pw)
 
-  if parsed_arguments.role == 'targets':
+  if parsed_arguments.role in ['targets']:
     repository.targets.load_signing_key(role_privatekey)
 
-  elif parsed_arguments.role in ['snapshot', 'timestamp']:
-    pass
+  elif parsed_arguments.role in ['root']:
+    repository.root.load_signing_key(role_privatekey)
+
+  elif parsed_arguments.role in ['snapshot']:
+    repository.snapshot.load_signing_key(role_privatekey)
+
+  elif parsed_arguments.role in ['timestamp']:
+    repository.timestamp.load_signing_key(role_privatekey)
 
   else:
     # TODO: repository_tool.py will be refactored to clean up the following
-    # approach, which adds and signs for a non-existent role.
+    # code, which adds and signs for a non-existent role.
     if not tuf.roledb.role_exists(parsed_arguments.role):
 
       # Load the private key keydb and set the roleinfo in roledb so that
@@ -497,8 +503,10 @@ def sign_role(parsed_arguments):
           int(time.time() + 7889230))
       expiration = expiration.isoformat() + 'Z'
 
-      roleinfo = {'name': parsed_arguments.role, 'keyids': [role_privatekey['keyid']],
-          'signing_keyids': [role_privatekey['keyid']], 'partial_loaded': False, 'paths': {},
+      roleinfo = {'name': parsed_arguments.role,
+          'keyids': [role_privatekey['keyid']],
+          'signing_keyids': [role_privatekey['keyid']],
+          'partial_loaded': False, 'paths': {},
           'signatures': [], 'version': 1, 'expires': expiration,
           'delegations': {'keys': {}, 'roles': []}}
 
@@ -510,8 +518,8 @@ def sign_role(parsed_arguments):
       repository.targets(parsed_arguments.role).load_signing_key(role_privatekey)
       repository.write(parsed_arguments.role, increment_version_number=False)
 
-  # Update the required top-level roles, Snapshot and Timestamp, to make a new
-  # release.
+  # Write the updated top-level roles, if any.  Also write Snapshot and
+  # Timestamp to make a new release.
   snapshot_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
       parsed_arguments.snapshot_pw)
