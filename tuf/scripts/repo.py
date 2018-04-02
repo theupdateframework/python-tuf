@@ -26,7 +26,7 @@
   Note: arguments within brackets are optional.
 
   $ repo.py --init
-      [--consistent_snapshot, --bare, --path, --root_pw, --targets_pw,
+      [--consistent, --bare, --path, --root_pw, --targets_pw,
       --snapshot_pw, --timestamp_pw]
   $ repo.py --add <target> <dir> ... [--path, --recursive]
   $ repo.py --remove <glob pattern>
@@ -727,11 +727,11 @@ def init_repo(parsed_arguments):
   if not parsed_arguments.bare:
     set_top_level_keys(repository)
     repository.writeall(
-        consistent_snapshot=parsed_arguments.consistent_snapshot)
+        consistent_snapshot=parsed_arguments.consistent)
 
   else:
     repository.write(
-        'root', consistent_snapshot=parsed_arguments.consistent_snapshot)
+        'root', consistent_snapshot=parsed_arguments.consistent)
     repository.write('targets')
     repository.write('snapshot')
     repository.write('timestamp')
@@ -830,7 +830,7 @@ def parse_arguments():
       # top-level roles are created, each containing one key.
       $ repo.py --init
 
-      $ repo.py --init --bare --consistent-snapshot --verbose 3
+      $ repo.py --init --bare --consistent --verbose 3
 
     If a required argument is unset, a parser error is printed and the script
     exits.
@@ -865,7 +865,7 @@ def parse_arguments():
       help='If initializing a repository, neither create nor set keys'
       ' for any of the top-level roles.  False, by default.')
 
-  parser.add_argument('--consistent_snapshot', action='store_true',
+  parser.add_argument('--consistent', action='store_true',
       help='Set consistent snapshots for an initialized repository.'
       '  Consistent snapshot is False by default.')
 
