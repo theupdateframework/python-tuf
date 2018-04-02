@@ -40,7 +40,7 @@ Create a TUF repository with [consistent
 snapshots](https://github.com/theupdateframework/specification/blob/master/tuf-spec.md#7-consistent-snapshots)
 enabled, where all target files have their hash prepended to the filename.
 ```Bash
-$ repo.py --init --consistent_snapshot
+$ repo.py --init --consistent
 ```
 
 
