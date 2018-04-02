@@ -40,7 +40,7 @@ Create a TUF repository with [consistent
 snapshots](https://github.com/theupdateframework/specification/blob/master/tuf-spec.md#7-consistent-snapshots)
 enabled, where all target files have their hash prepended to the filename.
 ```Bash
-$ repo.py --init --consistent_snapshot
+$ repo.py --init --consistent
 ```
 
 
@@ -140,12 +140,10 @@ $ repo.py --distrust --pubkeys keystore/my_key_too.pub --role root
 
 
 ## Sign metadata ##
-Sign, with the specified key, the metadata of the role indicated in --role.  If
-no key argument or --role is given, the Targets role or its key is used.  The
-Snapshot and Timestamp role are also automatically signed, if possible.
+Sign, with the specified key(s), the metadata of the role indicated in --role.
+The Snapshot and Timestamp role are also automatically signed, if possible.
 ```Bash
-$ repo.py --sign
-$ repo.py --sign </path/to/key> [--role <rolename>, --path </path/to/repo>]
+$ repo.py --sign </path/to/key> ... [--role <rolename>, --path </path/to/repo>]
 ```
 
 For example, to sign the delegated `foo` metadata:

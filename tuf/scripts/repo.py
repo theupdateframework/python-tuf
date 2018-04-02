@@ -26,7 +26,7 @@
   Note: arguments within brackets are optional.
 
   $ repo.py --init
-      [--consistent_snapshot, --bare, --path, --root_pw, --targets_pw,
+      [--consistent, --bare, --path, --root_pw, --targets_pw,
       --snapshot_pw, --timestamp_pw]
   $ repo.py --add <target> <dir> ... [--path, --recursive]
   $ repo.py --remove <glob pattern>
@@ -349,15 +349,14 @@ def import_privatekey_from_file(keypath, password=None):
   except securesystemslib.exceptions.CryptoError:
     try:
       logger.debug(
-          'Decryption failsed.  Attempting to import a private PEM instead.')
+          'Decryption failed.  Attempting to import a private PEM instead.')
       key_object = securesystemslib.keys.import_rsakey_from_private_pem(
           encrypted_key, 'rsassa-pss-sha256', password)
 
     except securesystemslib.exceptions.CryptoError as e:
       raise tuf.exceptions.Error(repr(keypath) + ' cannot be imported, possibly'
-          ' because the decryption password is incorrect.  Encryption'
-          ' passwords can be specified via the --root_pw, --targets_pw,'
-          ' --snapshot_pw, and --timestamp_pw command-line options.')
+          ' because an invalid key file is given or the decryption password is'
+          ' incorrect.')
 
   if key_object['keytype'] not in SUPPORTED_KEY_TYPES:
     raise tuf.exceptions.Error('Trying to import an unsupported key'
@@ -465,58 +464,52 @@ def sign_role(parsed_arguments):
   repository = repo_tool.load_repository(
       os.path.join(parsed_arguments.path, REPO_DIR))
 
-  # Was a private key path given with --sign?  If so, load the specified
-  # private key. Otherwise, load the default Targets key.
-  if parsed_arguments.sign != '.':
-    role_privatekey = import_privatekey_from_file(parsed_arguments.sign)
+  for keypath in parsed_arguments.sign:
 
-  else:
-    role_privatekey = import_privatekey_from_file(
-        os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
-        parsed_arguments.targets_pw)
+    role_privatekey = import_privatekey_from_file(keypath)
 
-  if parsed_arguments.role in ['targets']:
-    repository.targets.load_signing_key(role_privatekey)
+    if parsed_arguments.role in ['targets']:
+      repository.targets.load_signing_key(role_privatekey)
 
-  elif parsed_arguments.role in ['root']:
-    repository.root.load_signing_key(role_privatekey)
+    elif parsed_arguments.role in ['root']:
+      repository.root.load_signing_key(role_privatekey)
 
-  elif parsed_arguments.role in ['snapshot']:
-    repository.snapshot.load_signing_key(role_privatekey)
+    elif parsed_arguments.role in ['snapshot']:
+      repository.snapshot.load_signing_key(role_privatekey)
 
-  elif parsed_arguments.role in ['timestamp']:
-    repository.timestamp.load_signing_key(role_privatekey)
-
-  else:
-    # TODO: repository_tool.py will be refactored to clean up the following
-    # code, which adds and signs for a non-existent role.
-    if not tuf.roledb.role_exists(parsed_arguments.role):
-
-      # Load the private key keydb and set the roleinfo in roledb so that
-      # metadata can be written with repository.write().
-      tuf.keydb.remove_key(role_privatekey['keyid'],
-          repository_name = repository._repository_name)
-      tuf.keydb.add_key(
-          role_privatekey, repository_name = repository._repository_name)
-
-      expiration = tuf.formats.unix_timestamp_to_datetime(
-          int(time.time() + 7889230))
-      expiration = expiration.isoformat() + 'Z'
-
-      roleinfo = {'name': parsed_arguments.role,
-          'keyids': [role_privatekey['keyid']],
-          'signing_keyids': [role_privatekey['keyid']],
-          'partial_loaded': False, 'paths': {},
-          'signatures': [], 'version': 1, 'expires': expiration,
-          'delegations': {'keys': {}, 'roles': []}}
-
-      tuf.roledb.add_role(parsed_arguments.role, roleinfo,
-          repository_name=repository._repository_name)
-      repository.write(parsed_arguments.role, increment_version_number=False)
+    elif parsed_arguments.role in ['timestamp']:
+      repository.timestamp.load_signing_key(role_privatekey)
 
     else:
-      repository.targets(parsed_arguments.role).load_signing_key(role_privatekey)
-      repository.write(parsed_arguments.role, increment_version_number=False)
+      # TODO: repository_tool.py will be refactored to clean up the following
+      # code, which adds and signs for a non-existent role.
+      if not tuf.roledb.role_exists(parsed_arguments.role):
+
+        # Load the private key keydb and set the roleinfo in roledb so that
+        # metadata can be written with repository.write().
+        tuf.keydb.remove_key(role_privatekey['keyid'],
+            repository_name = repository._repository_name)
+        tuf.keydb.add_key(
+            role_privatekey, repository_name = repository._repository_name)
+
+        expiration = tuf.formats.unix_timestamp_to_datetime(
+            int(time.time() + 7889230))
+        expiration = expiration.isoformat() + 'Z'
+
+        roleinfo = {'name': parsed_arguments.role,
+            'keyids': [role_privatekey['keyid']],
+            'signing_keyids': [role_privatekey['keyid']],
+            'partial_loaded': False, 'paths': {},
+            'signatures': [], 'version': 1, 'expires': expiration,
+            'delegations': {'keys': {}, 'roles': []}}
+
+        tuf.roledb.add_role(parsed_arguments.role, roleinfo,
+            repository_name=repository._repository_name)
+        repository.write(parsed_arguments.role, increment_version_number=False)
+
+      else:
+        repository.targets(parsed_arguments.role).load_signing_key(role_privatekey)
+        repository.write(parsed_arguments.role, increment_version_number=False)
 
   # Write the updated top-level roles, if any.  Also write Snapshot and
   # Timestamp to make a new release.
@@ -734,11 +727,11 @@ def init_repo(parsed_arguments):
   if not parsed_arguments.bare:
     set_top_level_keys(repository)
     repository.writeall(
-        consistent_snapshot=parsed_arguments.consistent_snapshot)
+        consistent_snapshot=parsed_arguments.consistent)
 
   else:
     repository.write(
-        'root', consistent_snapshot=parsed_arguments.consistent_snapshot)
+        'root', consistent_snapshot=parsed_arguments.consistent)
     repository.write('targets')
     repository.write('snapshot')
     repository.write('timestamp')
@@ -780,6 +773,21 @@ def set_top_level_keys(repository):
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       TIMESTAMP_KEY_NAME), password=parsed_arguments.timestamp_pw)
 
+  # Import the private keys.  They are needed to generate the signatures
+  # included in metadata.
+  root_private = import_privatekey_from_file(
+      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
+      ROOT_KEY_NAME), parsed_arguments.root_pw)
+  targets_private = import_privatekey_from_file(
+      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
+      TARGETS_KEY_NAME), parsed_arguments.targets_pw)
+  snapshot_private = import_privatekey_from_file(
+      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
+      SNAPSHOT_KEY_NAME), parsed_arguments.snapshot_pw)
+  timestamp_private = import_privatekey_from_file(
+      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
+      TIMESTAMP_KEY_NAME), parsed_arguments.timestamp_pw)
+
   # Import the public keys.  They are needed so that metadata roles are
   # assigned verification keys, which clients need in order to verify the
   # signatures created by the corresponding private keys.
@@ -795,21 +803,6 @@ def set_top_level_keys(repository):
   timestamp_public = import_publickey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       TIMESTAMP_KEY_NAME) + '.pub')
-
-  # Import the private keys.  They are needed to generate the signatures
-  # included in metadata.
-  root_private = import_privatekey_from_file(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      ROOT_KEY_NAME), parsed_arguments.root_pw)
-  targets_private = import_privatekey_from_file(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      TARGETS_KEY_NAME), parsed_arguments.targets_pw)
-  snapshot_private = import_privatekey_from_file(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      SNAPSHOT_KEY_NAME), parsed_arguments.snapshot_pw)
-  timestamp_private = import_privatekey_from_file(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      TIMESTAMP_KEY_NAME), parsed_arguments.timestamp_pw)
 
   # Add the verification keys to the top-level roles.
   repository.root.add_verification_key(root_public)
@@ -837,7 +830,7 @@ def parse_arguments():
       # top-level roles are created, each containing one key.
       $ repo.py --init
 
-      $ repo.py --init --bare --consistent-snapshot --verbose 3
+      $ repo.py --init --bare --consistent --verbose 3
 
     If a required argument is unset, a parser error is printed and the script
     exits.
@@ -872,7 +865,7 @@ def parse_arguments():
       help='If initializing a repository, neither create nor set keys'
       ' for any of the top-level roles.  False, by default.')
 
-  parser.add_argument('--consistent_snapshot', action='store_true',
+  parser.add_argument('--consistent', action='store_true',
       help='Set consistent snapshots for an initialized repository.'
       '  Consistent snapshot is False by default.')
 
@@ -916,9 +909,9 @@ def parse_arguments():
       help='Discontinue trust of key(s) (via --pubkeys) for the role in --role.'
       '  This action modifies Root metadata by removing trusted key(s).')
 
-  parser.add_argument('--sign', nargs='?', type=str, const='.',
-      default=None, metavar='</path/to/privkey>', help='Sign the "targets"'
-      ' metadata (or the one for --role) with the specified key.')
+  parser.add_argument('--sign', nargs='+', type=str,
+      metavar='</path/to/privkey>', help='Sign the "targets"'
+      ' metadata (or the one for --role) with the specified key(s).')
 
   parser.add_argument('--pw', nargs='?', default='pw', metavar='<password>',
       help='Specify a password. "pw" is used if --pw is unset, or a'
