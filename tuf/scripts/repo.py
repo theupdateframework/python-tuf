@@ -466,15 +466,7 @@ def sign_role(parsed_arguments):
 
   for keypath in parsed_arguments.sign:
 
-    # Was a private key path given with --sign?  If so, load the specified
-    # private key. Otherwise, load the default Targets key.
-    if keypath != '.':
-      role_privatekey = import_privatekey_from_file(keypath)
-
-    else:
-      role_privatekey = import_privatekey_from_file(
-          os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
-          parsed_arguments.targets_pw)
+    role_privatekey = import_privatekey_from_file(keypath)
 
     if parsed_arguments.role in ['targets']:
       repository.targets.load_signing_key(role_privatekey)
@@ -781,6 +773,21 @@ def set_top_level_keys(repository):
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       TIMESTAMP_KEY_NAME), password=parsed_arguments.timestamp_pw)
 
+  # Import the private keys.  They are needed to generate the signatures
+  # included in metadata.
+  root_private = import_privatekey_from_file(
+      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
+      ROOT_KEY_NAME), parsed_arguments.root_pw)
+  targets_private = import_privatekey_from_file(
+      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
+      TARGETS_KEY_NAME), parsed_arguments.targets_pw)
+  snapshot_private = import_privatekey_from_file(
+      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
+      SNAPSHOT_KEY_NAME), parsed_arguments.snapshot_pw)
+  timestamp_private = import_privatekey_from_file(
+      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
+      TIMESTAMP_KEY_NAME), parsed_arguments.timestamp_pw)
+
   # Import the public keys.  They are needed so that metadata roles are
   # assigned verification keys, which clients need in order to verify the
   # signatures created by the corresponding private keys.
@@ -796,21 +803,6 @@ def set_top_level_keys(repository):
   timestamp_public = import_publickey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       TIMESTAMP_KEY_NAME) + '.pub')
-
-  # Import the private keys.  They are needed to generate the signatures
-  # included in metadata.
-  root_private = import_privatekey_from_file(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      ROOT_KEY_NAME), parsed_arguments.root_pw)
-  targets_private = import_privatekey_from_file(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      TARGETS_KEY_NAME), parsed_arguments.targets_pw)
-  snapshot_private = import_privatekey_from_file(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      SNAPSHOT_KEY_NAME), parsed_arguments.snapshot_pw)
-  timestamp_private = import_privatekey_from_file(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      TIMESTAMP_KEY_NAME), parsed_arguments.timestamp_pw)
 
   # Add the verification keys to the top-level roles.
   repository.root.add_verification_key(root_public)
@@ -917,7 +909,7 @@ def parse_arguments():
       help='Discontinue trust of key(s) (via --pubkeys) for the role in --role.'
       '  This action modifies Root metadata by removing trusted key(s).')
 
-  parser.add_argument('--sign', nargs='+', default='.', type=str,
+  parser.add_argument('--sign', nargs='+', type=str,
       metavar='</path/to/privkey>', help='Sign the "targets"'
       ' metadata (or the one for --role) with the specified key(s).')
 
