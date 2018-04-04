@@ -48,16 +48,27 @@ have so far implemented the framework in the Go (`1
 <https://medium.com/square-corner-blog/securing-rubygems-with-tuf-part-1-d374fdd05d85>`_,
 and `Rust <https://github.com/heartsucker/rust-tuf>`_ programming languages.
 
-TUF is hosted by the `Cloud Native Computing Foundation
-<https://www.cncf.io/>`_ (CNCF) and follows the `CNCF Code of Conduct
-<https://github.com/cncf/foundation/blob/master/code-of-conduct.md>`_.
+The Update Framework (TUF) helps developers maintain the security of a software
+update system, even against attackers that compromise the repository or signing
+keys. TUF provides a flexible framework and specification that developers can
+adopt into any software update system.
+
+TUF is hosted by the `Linux Foundation <https://www.linuxfoundation.org/>`_ as
+part of the `Cloud Native Computing Foundation <https://www.cncf.io/>`_ (CNCF)
+and is used `in production <docs/ADOPTERS.md>`_ by companies such as Docker,
+DigitalOcean, Flynn, LEAP, Kolide, Cloudflare, and VMware. A variant of TUF
+called `Uptane <https://uptane.github.io/>`_ is widely used to secure
+over-the-air updates in automobiles.
+
 
 Documentation
 -------------
 * `Overview <docs/OVERVIEW.rst>`_
 * `Specification <https://github.com/theupdateframework/specification/blob/master/tuf-spec.md>`_
 * `Getting Started <docs/GETTING_STARTED.rst>`_
-* `Governance <docs/GOVERNANCE.md>`_
+* `Governance <docs/GOVERNANCE.md>`_ and `Maintainers <docs/MAINTAINERS.txt>`_
+* `Miscellaneous Docs <docs/>`_
+
 
 Contact
 -------
@@ -96,8 +107,15 @@ Please see `LICENSE-MIT <LICENSE-MIT>`_ and `LICENSE
 Acknowledgements
 ----------------
 
-This project is managed by Prof. Justin Cappos and other members of the `Secure
-Systems Lab <https://ssl.engineering.nyu.edu/>`_ at NYU.
+This project is managed by Prof. `Justin Cappos
+<https://ssl.engineering.nyu.edu/personalpages/jcappos/>`_ and other members of
+the `Secure Systems Lab <https://ssl.engineering.nyu.edu/>`_ at `New York
+University <https://engineering.nyu.edu/>`_.  `Contributors
+<https://github.com/theupdateframework/tuf/blob/develop/docs/AUTHORS.txt>`_ and
+`maintainers
+<https://github.com/theupdateframework/tuf/blob/develop/docs/MAINTAINERS.txt>`_
+are governed by the `CNCF Community Code of Conduct
+<https://github.com/cncf/foundation/blob/master/code-of-conduct.md>`_.
 
 This material is based upon work supported by the National Science Foundation
 under Grant Nos. CNS-1345049 and CNS-0959138. Any opinions, findings, and
