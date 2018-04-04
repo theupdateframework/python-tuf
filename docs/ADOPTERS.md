@@ -1,11 +1,15 @@
 ## Adopters
+* Advanced Telematics Systems
+* Airbiquity
+* Automotive Grade Linux
 * Cloudfare
-* CoreOS
 * Docker
 * DigitalOcean
 * Flynn
 * Kolide
 * LEAP
+* Notary
+* Quay by CoreOS
 * VMWare
 
 ## Ongoing integrations
