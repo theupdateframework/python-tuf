@@ -33,21 +33,6 @@ A Framework for Securing Software Update Systems
 
 ---------------------------------------------------------------
 
-The Update Framework (TUF) helps developers secure new or existing software
-update systems, which are often found to be vulnerable to many known attacks.
-TUF addresses this widespread problem by providing a comprehensive, flexible
-security framework that developers can integrate with any software update
-system.  The framework can be easily integrated (or implemented in the native
-programming languages of these update systems) due to its concise,
-self-contained architecture and specification.  `Adopters <docs/ADOPTERS.md>`_
-have so far implemented the framework in the Go (`1
-<https://github.com/theupdateframework/notary>`_, `2
-<https://github.com/flynn/go-tuf>`_), `Haskell
-<https://www.well-typed.com/blog/2015/07/hackage-security-alpha/>`_, `Python
-<https://github.com/theupdateframework/tuf>`_, `Ruby
-<https://medium.com/square-corner-blog/securing-rubygems-with-tuf-part-1-d374fdd05d85>`_,
-and `Rust <https://github.com/heartsucker/rust-tuf>`_ programming languages.
-
 The Update Framework (TUF) helps developers maintain the security of a software
 update system, even against attackers that compromise the repository or signing
 keys. TUF provides a flexible framework and specification that developers can
