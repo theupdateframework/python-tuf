@@ -2706,8 +2706,8 @@ class Targets(Metadata):
 
     # Log warning if 'target_filepath' is not located in the repository's
     # targets directory.
-    if not os.isfile(os.path.join(self._targets_directory, target_filepath):
-      logger.warning(repr(filepath) + ' is not located in the'
+    if not os.path.isfile(os.path.join(self._targets_directory, target_filepath)):
+      logger.warning(repr(target_filepath) + ' is not located in the'
           ' repository\'s targets directory: ' + repr(self._targets_directory))
 
     # Determine the hash prefix of 'target_path' by computing the digest of
