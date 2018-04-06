@@ -2483,20 +2483,17 @@ class Targets(Metadata):
     for bin_index in six.moves.xrange(total_hash_prefixes):
       target_paths_in_bin[bin_index] = []
 
-    # Assign every path to its bin.  Ensure every target is located in the
-    # repository's targets directory.
+    # Assign every path to its bin.  Log a warning if the target path does not
+    # exist in the repository's targets directory.
     for target_path in list_of_targets:
-      """
-      target_path = os.path.join(self._targets_directory, target_path)
-      if not target_path.startswith(self._targets_directory + os.sep):
-        raise securesystemslib.exceptions.Error('A path in "list of'
+      if not os.path.isfile(os.path.join(self._targets_directory, target_path)):
+        logger.warning('A path in "list of'
             ' targets" is not located in the repository\'s targets'
             ' directory: ' + repr(target_path))
 
       else:
         logger.debug(repr(target_path) + ' is located in the repository\'s'
             ' targets directory.')
-      """
 
       # Determine the hash prefix of 'target_path' by computing the digest of
       # its path relative to the targets directory.  Example:
