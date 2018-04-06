@@ -122,7 +122,9 @@ file_permissions = {'file_permissions': octal_file_permissions}
 repository.targets.add_target(target1_filepath, file_permissions)
 repository.targets.add_target(target2_filepath)
 
-repository.targets.delegate('role1', [delegation_public], [target3_filepath])
+repository.targets.delegate('role1', [delegation_public],
+    [os.path.basename(target3_filepath)])
+repository.targets('role1').add_target(target3_filepath)
 repository.targets('role1').load_signing_key(delegation_private)
 
 repository.targets('role1').delegate('role2', [delegation_public], [])
@@ -153,4 +155,4 @@ if not options.dry_run:
 # Create the client files (required directory structure and minimal metadata)
 # required by the 'tuf.interposition' and 'tuf.client.updater.py' updaters.
 if not options.dry_run:
-  create_tuf_client_directory('repository', os.path.join('client', 'test_repository'))
+  create_tuf_client_directory('repository', os.path.join('client', 'test_repository1'))

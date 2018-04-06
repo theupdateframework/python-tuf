@@ -87,8 +87,8 @@ project = create_new_project("test-flat", 'project/test-flat', 'prefix', 'projec
 
 # Add target files to the top-level projects role.  These target files should
 # already exist.
-project.add_target(target1_filepath)
-project.add_target(target2_filepath)
+project.add_target('file1.txt')
+project.add_target('file2.txt')
 
 # Add one key to the project.
 project.add_verification_key(project_public)
