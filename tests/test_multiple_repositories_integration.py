@@ -216,7 +216,7 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
 
     # 'role1.json' should be downloaded, because it provides info for the
     # requested 'file3.txt'.
-    valid_targetinfo = self.repository_updater.get_one_valid_targetinfo('/file3.txt')
+    valid_targetinfo = self.repository_updater.get_one_valid_targetinfo('file3.txt')
 
     self.assertEqual(sorted(['role2', 'role1', 'root', 'snapshot', 'targets', 'timestamp']),
         sorted(tuf.roledb.get_rolenames('test_repository1')))

@@ -263,8 +263,8 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
       os.path.join(self.repository_directory, 'metadata', 'targets.json')
 
     metadata = securesystemslib.util.load_json_file(metadata_path)
-    metadata['signed']['targets']['/file1.txt']['hashes'] = hashes
-    metadata['signed']['targets']['/file1.txt']['length'] = length
+    metadata['signed']['targets']['file1.txt']['hashes'] = hashes
+    metadata['signed']['targets']['file1.txt']['length'] = length
 
     tuf.formats.check_signable_object_format(metadata)
 
