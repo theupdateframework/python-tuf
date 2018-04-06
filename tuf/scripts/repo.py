@@ -637,24 +637,17 @@ def add_targets(parsed_arguments):
     else:
       add_target_to_repo(target_path, repo_targets_path, repository)
 
-  # Examples of how the --pw command-line option is interpreted:
-  # repo.py --init': parsed_arguments.pw = 'pw'
-  # repo.py --init --pw my_password: parsed_arguments.pw = 'my_password'
-  # repo.py --init --pw: The user is prompted for a password, as follows:
-  if not parsed_arguments.pw:
-    parsed_arguments.pw = securesystemslib.interface.get_password(
-        prompt='Enter a password for the top-level role keys: ', confirm=True)
-
   if parsed_arguments.role == 'targets':
     # Load the top-level, non-root, keys to make a new release.
     targets_private = import_privatekey_from_file(
         os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
-        parsed_arguments.pw)
+        parsed_arguments.targets_pw)
     repository.targets.load_signing_key(targets_private)
     repository.write('targets', increment_version_number=True)
 
   elif parsed_arguments.role not in ['root', 'snapshot', 'timestamp']:
     repository.write(parsed_arguments.role, increment_version_number=True)
+    return
 
   snapshot_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
