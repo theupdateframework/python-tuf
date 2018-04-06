@@ -2621,8 +2621,9 @@ class Updater(object):
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     securesystemslib.formats.RELPATH_SCHEMA.check_match(target_filepath)
 
-    if not target_filepath.startswith('/'):
-      target_filepath = '/' + target_filepath
+    if target_filepath.startswith('/'):
+      raise tuf.exceptions.FormatError('The requested target file cannot'
+          ' contain a leading path separator: ' + repr(target_filepath))
 
     # Get target by looking at roles in order of priority tags.
     target = self._preorder_depth_first_walk(target_filepath)

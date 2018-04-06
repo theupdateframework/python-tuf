@@ -976,7 +976,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
 
 def _strip_prefix_from_targets_metadata(targets_metadata, prefix):
   """
-    Non-public method that removes the prefix from each of the target pahts in
+    Non-public method that removes the prefix from each of the target paths in
     'targets_metadata' so they can be used again in compliance with the local
     copies.  The prefix is needed in metadata to match the layout of the remote
     repository.
@@ -986,7 +986,6 @@ def _strip_prefix_from_targets_metadata(targets_metadata, prefix):
 
   for targets in targets_metadata['targets'].keys():
     unprefixed_target = os.path.relpath(targets, prefix)
-    unprefixed_target = '/' + unprefixed_target
     unprefixed_targets_metadata[unprefixed_target] = \
                             targets_metadata['targets'][targets]
   targets_metadata['targets'] = unprefixed_targets_metadata
