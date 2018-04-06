@@ -14,7 +14,6 @@ colorama==0.3.9           # via securesystemslib
 configparser==3.5.0       # via pylint
 cryptography==2.2.1
 enum34==1.1.6             # via astroid, cryptography
-futures==3.2.0            # via isort
 gitdb2==2.0.3             # via gitpython
 gitpython==2.1.9          # via bandit
 idna==2.6                 # via cryptography
