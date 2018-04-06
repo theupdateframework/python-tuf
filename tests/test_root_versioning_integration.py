@@ -173,7 +173,7 @@ class TestRepository(unittest.TestCase):
 
 
     # (5) Perform delegation.
-    repository.targets.delegate('role1', [role1_pubkey], [target3])
+    repository.targets.delegate('role1', [role1_pubkey], [os.path.basename(target3)])
     repository.targets('role1').load_signing_key(role1_privkey)
 
     # (6) Write repository.

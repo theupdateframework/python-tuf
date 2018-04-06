@@ -279,7 +279,7 @@ class TestProject(unittest.TestCase):
 
 
     # Add the targets.
-    project.add_target(target_filepath)
+    project.add_target(os.path.basename(target_filepath))
 
     # Add verification keys.
     keystore_path = os.path.join('repository_data', 'keystore')

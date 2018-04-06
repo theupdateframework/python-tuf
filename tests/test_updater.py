@@ -908,7 +908,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Verify that the client's metadata was updated.
     targets_metadata = self.repository_updater.metadata['current']['targets']
     targets_directory = os.path.join(self.repository_directory, 'targets')
-    target3 = target3[len(targets_directory):]
+    target3 = target3[len(targets_directory) + 1:]
     self.assertTrue(target3 in targets_metadata['targets'])
 
     # Verify the expected version numbers of the updated roles.
@@ -973,9 +973,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
    for target in all_targets:
     target_filepaths.append(target['filepath'])
 
-   self.assertTrue('/file1.txt' in target_filepaths)
-   self.assertTrue('/file2.txt' in target_filepaths)
-   self.assertTrue('/file3.txt' in target_filepaths)
+   self.assertTrue('file1.txt' in target_filepaths)
+   self.assertTrue('file2.txt' in target_filepaths)
+   self.assertTrue('file3.txt' in target_filepaths)
 
 
 
@@ -1045,13 +1045,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Test: invalid target path.
     self.assertRaises(tuf.exceptions.UnknownTargetError,
-        self.repository_updater.get_one_valid_targetinfo, self.random_path())
+        self.repository_updater.get_one_valid_targetinfo, self.random_path().lstrip(os.sep))
 
     # Test updater.get_one_valid_targetinfo() backtracking behavior (enabled by
     # default.)
     targets_directory = os.path.join(self.repository_directory, 'targets')
     foo_directory = os.path.join(targets_directory, 'foo')
-    foo_pattern = '/foo/foo*.tar.gz'
+    foo_pattern = 'foo/foo*.tar.gz'
     os.makedirs(foo_directory)
 
     foo_package = os.path.join(foo_directory, 'foo1.1.tar.gz')
@@ -1067,6 +1067,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     repository.targets.delegate('role4', [self.role_keys['targets']['public']],
         [foo_pattern], list_of_targets=[foo_package])
+    repository.targets('role4').add_target(foo_package)
 
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
     repository.targets('role3').load_signing_key(self.role_keys['targets']['private'])
@@ -1085,7 +1086,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # backtracking to 'role3'.  'role2' allows backtracking.
     self.repository_updater.refresh()
     self.repository_updater.get_one_valid_targetinfo('foo/foo1.1.tar.gz')
-    self.repository_updater.get_one_valid_targetinfo('/foo/foo1.1.tar.gz')
+
+    # A leading path separator is disallowed.
+    self.assertRaises(tuf.exceptions.FormatError,
+    self.repository_updater.get_one_valid_targetinfo, '/foo/foo1.1.tar.gz')
 
     # Test when 'role2' does *not* allow backtracking.  If 'foo/foo1.1.tar.gz'
     # is not provided by the authoritative 'role2',
@@ -1121,6 +1125,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertRaises(tuf.exceptions.UnknownTargetError,
                       self.repository_updater.get_one_valid_targetinfo,
                       'foo/foo1.1.tar.gz')
+
+    # Verify that a 'tuf.exceptions.FormatError' is raised for delegated paths
+    # that contain a leading path separator.
+    self.assertRaises(tuf.exceptions.FormatError,
+        self.repository_updater.get_one_valid_targetinfo,
+        '/foo/foo1.1.tar.gz')
 
 
 
@@ -1298,9 +1308,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Modify one target file on the remote repository.
     repository = repo_tool.load_repository(self.repository_directory)
-    target1 = os.path.join(self.repository_directory, 'targets', 'file1.txt')
 
-    repository.targets.remove_target(target1)
+    target1 = os.path.join(self.repository_directory, 'targets', 'file1.txt')
+    repository.targets.remove_target(os.path.basename(target1))
 
     length, hashes = securesystemslib.util.get_file_details(target1)
 
@@ -1355,7 +1365,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Remove two target files from the server's repository.
     repository = repo_tool.load_repository(self.repository_directory)
     target1 = os.path.join(self.repository_directory, 'targets', 'file1.txt')
-    repository.targets.remove_target(target1)
+    repository.targets.remove_target(os.path.basename(target1))
 
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
@@ -1399,7 +1409,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater.remove_obsolete_targets(bad_destination_directory)
 
     # Test coverage for a target that is not specified in current metadata.
-    del self.repository_updater.metadata['current']['targets']['targets']['/file2.txt']
+    del self.repository_updater.metadata['current']['targets']['targets']['file2.txt']
     self.repository_updater.remove_obsolete_targets(destination_directory)
 
     # Test coverage for a role that doesn't exist in the previously trusted set
@@ -1868,8 +1878,10 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     # different custom field.  Make sure to set the 'match_custom_field'
     # argument to 'False' when calling get_valid_targetinfo().
     repository = repo_tool.load_repository(self.repository_directory2)
+
     target1 = os.path.join(self.repository_directory2, 'targets', 'file1.txt')
-    repository.targets.remove_target(target1)
+    repository.targets.remove_target(os.path.basename(target1))
+
     custom_field = {"custom": "my_custom_data"}
     repository.targets.add_target(target1, custom_field)
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
@@ -1894,7 +1906,9 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     target1 = os.path.join(self.repository_directory2, 'targets', 'file1.txt')
     with open(target1, 'ab') as file_object:
       file_object.write(b'append extra text')
-    repository.targets.remove_target(target1)
+
+    repository.targets.remove_target(os.path.basename(target1))
+
     repository.targets.add_target(target1)
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])

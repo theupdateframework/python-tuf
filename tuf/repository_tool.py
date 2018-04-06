@@ -1765,7 +1765,6 @@ class Targets(Metadata):
 
     target_files = tuf.roledb.get_roleinfo(self._rolename,
         self._repository_name)['paths']
-
     return target_files
 
 
@@ -1903,18 +1902,14 @@ class Targets(Metadata):
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     securesystemslib.formats.PATH_SCHEMA.check_match(filepath)
+
     if custom is None:
       custom = {}
 
     else:
       tuf.formats.CUSTOM_SCHEMA.check_match(custom)
 
-    filepath = os.path.abspath(filepath)
-
-    # Ensure 'filepath' is located in the repository's targets directory.
-    if not filepath.startswith(self._targets_directory):
-      raise securesystemslib.exceptions.Error(repr(filepath) + ' is not located'
-          ' in the repository\'s targets directory: ' + repr(self._targets_directory))
+    filepath = os.path.join(self._targets_directory, filepath)
 
     # Add 'filepath' (i.e., relative to the targets directory) to the role's
     # list of targets.  'filepath' will not be verified as an allowed path
@@ -1924,8 +1919,10 @@ class Targets(Metadata):
     # delegate trust of packages to this Targes role.
     if os.path.isfile(filepath):
 
-      # Update the role's 'tuf.roledb.py' entry and avoid duplicates.
-      targets_directory_length = len(self._targets_directory)
+      # Update the role's 'tuf.roledb.py' entry and avoid duplicates.  Make
+      # sure to exclude the path separator when calculating the length of the
+      # targets directory.
+      targets_directory_length = len(self._targets_directory) + 1
       roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
       relative_path = filepath[targets_directory_length:]
 
@@ -1937,12 +1934,14 @@ class Targets(Metadata):
         logger.debug('Replacing target: ' + repr(relative_path))
         roleinfo['paths'].update({relative_path: custom})
 
+
       tuf.roledb.update_roleinfo(self._rolename, roleinfo,
           repository_name=self._repository_name)
 
     else:
       raise securesystemslib.exceptions.Error(repr(filepath) + ' is not'
-          ' a valid file.')
+          ' a valid file in the repository\'s targets'
+          ' directory: ' + repr(self._targets_directory))
 
 
 
@@ -2058,22 +2057,10 @@ class Targets(Metadata):
     # 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     securesystemslib.formats.RELPATH_SCHEMA.check_match(filepath)
 
-    filepath = os.path.abspath(filepath)
-    targets_directory_length = len(self._targets_directory)
-
-    # Ensure 'filepath' is located in the repository targets directory.
-    if not filepath.startswith(self._targets_directory + os.sep):
-      raise securesystemslib.exceptions.Error(
-          repr(filepath) + ' is not located in the Repository\'s targets'
-          ' directory: ' + repr(self._targets_directory))
-
-    # The relative filepath is listed in 'paths'.
-    relative_filepath = filepath[targets_directory_length:]
-
     # Remove 'relative_filepath', if found, and update this Targets roleinfo.
     fileinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
-    if relative_filepath in fileinfo['paths']:
-      del fileinfo['paths'][relative_filepath]
+    if filepath in fileinfo['paths']:
+      del fileinfo['paths'][filepath]
       tuf.roledb.update_roleinfo(self.rolename, fileinfo,
           repository_name=self._repository_name)
 
@@ -2258,17 +2245,21 @@ class Targets(Metadata):
 
     if list_of_targets:
       for target in list_of_targets:
-        target = os.path.abspath(target)
-        if not target.startswith(self._targets_directory + os.sep):
-          raise securesystemslib.exceptions.Error(
-              repr(target) + ' is not located in the repository\'s targets'
-              ' directory: ' + repr(self._targets_directory))
+        target = os.path.join(self._targets_directory, target)
+        if not os.path.isfile(target):
+          logger.warning(repr(target) + ' does not exist in the'
+              ' repository\'s targets directory: ' + repr(self._targets_directory))
 
         relative_targetpaths.update({target[targets_directory_length:]: {}})
 
     for path in paths:
+      if path.startswith(os.sep):
+        raise tuf.exceptions.Error('One of the given paths contains a leading'
+            ' path separator: ' + repr(path) + '.  All delegated paths should'
+            ' be relative to the repo\'s targets directory.')
+
       if not path.startswith(self._targets_directory + os.sep):
-        logger.debug(repr(path) + ' is not loated in the repository\'s'
+        logger.warning(repr(path) + ' is not located in the repository\'s'
           ' targets directory: ' + repr(self._targets_directory))
 
     # Create a new Targets object for the 'rolename' delegation.  An initial
@@ -2492,12 +2483,11 @@ class Targets(Metadata):
     for bin_index in six.moves.xrange(total_hash_prefixes):
       target_paths_in_bin[bin_index] = []
 
-    # Assign every path to its bin.  Ensure every target is located in the
-    # repository's targets directory.
+    # Assign every path to its bin.  Log a warning if the target path does not
+    # exist in the repository's targets directory.
     for target_path in list_of_targets:
-      target_path = os.path.abspath(target_path)
-      if not target_path.startswith(self._targets_directory + os.sep):
-        raise securesystemslib.exceptions.Error('A path in "list of'
+      if not os.path.isfile(os.path.join(self._targets_directory, target_path)):
+        logger.warning('A path in "list of'
             ' targets" is not located in the repository\'s targets'
             ' directory: ' + repr(target_path))
 
@@ -2508,9 +2498,9 @@ class Targets(Metadata):
       # Determine the hash prefix of 'target_path' by computing the digest of
       # its path relative to the targets directory.  Example:
       # '{repository_root}/targets/file1.txt' -> 'file1.txt'.
-      relative_path = target_path[len(self._targets_directory):]
+      #relative_path = target_path[len(self._targets_directory):]
       digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
-      digest_object.update(relative_path.encode('utf-8'))
+      digest_object.update(target_path.encode('utf-8'))
       relative_path_hash = digest_object.hexdigest()
       relative_path_hash_prefix = relative_path_hash[:prefix_length]
 
@@ -2655,7 +2645,7 @@ class Targets(Metadata):
   def _locate_and_update_target_in_bin(self, target_filepath, method_name):
     """
     <Purpose>
-      Assuming the target filepath are located in the repository's targets
+      Assuming the target filepath is located in the repository's targets
       directory, determine the filepath's hash prefix, locate the expected bin
       (if any), and then call the 'method_name' method of the expected hashed
       bin role.
@@ -2711,20 +2701,17 @@ class Targets(Metadata):
       raise securesystemslib.exceptions.Error(self.rolename + ' has not'
         ' delegated to hashed bins.')
 
-    # Ensure 'target_filepath' is located in the repository's targets
-    # directory.
-    filepath = os.path.abspath(target_filepath)
-    if not filepath.startswith(self._targets_directory + os.sep):
-      raise securesystemslib.exceptions.Error(
-          repr(filepath) + ' is not located in the repository\'s targets'
-          ' directory: ' + repr(self._targets_directory))
+    # Log warning if 'target_filepath' is not located in the repository's
+    # targets directory.
+    if not os.path.isfile(os.path.join(self._targets_directory, target_filepath)):
+      logger.warning(repr(target_filepath) + ' is not located in the'
+          ' repository\'s targets directory: ' + repr(self._targets_directory))
 
     # Determine the hash prefix of 'target_path' by computing the digest of
     # its path relative to the targets directory.  Example:
     # '{repository_root}/targets/file1.txt' -> '/file1.txt'.
-    relative_path = filepath[len(self._targets_directory):]
     digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
-    digest_object.update(relative_path.encode('utf-8'))
+    digest_object.update(target_filepath.encode('utf-8'))
     path_hash = digest_object.hexdigest()
     path_hash_prefix = path_hash[:prefix_length]
 

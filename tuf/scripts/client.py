@@ -232,7 +232,8 @@ if __name__ == '__main__':
   try:
     update_client(parsed_arguments)
 
-  except (tuf.exceptions.NoWorkingMirrorError, tuf.exceptions.RepositoryError) as e:
+  except (tuf.exceptions.NoWorkingMirrorError, tuf.exceptions.RepositoryError,
+      tuf.exceptions.FormatError) as e:
     sys.stderr.write('Error: ' + str(e) + '\n')
     sys.exit(1)
 
