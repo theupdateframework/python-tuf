@@ -2783,23 +2783,20 @@ class Updater(object):
       'tuf.formats.TARGETINFO_SCHEMA'.
     """
 
-    target = None
-
     # Does the current role name have our target?
-    logger.debug('Asking role ' + repr(role_name) + ' about target ' +\
-      repr(target_filepath))
+    logger.debug('Asking role ' + repr(role_name) + ' about'
+        ' target ' + repr(target_filepath))
 
-    for filepath, fileinfo in six.iteritems(targets):
-      if filepath == target_filepath:
-        logger.debug('Found target ' + target_filepath + ' in role ' + role_name)
-        target = {'filepath': filepath, 'fileinfo': fileinfo}
-        break
+    target = targets.get(target_filepath)
 
-      else:
-        logger.debug('No target ' + target_filepath + ' in role ' + role_name)
+    if target:
+      logger.debug('Found target ' + target_filepath + ' in role ' + role_name)
+      return {'filepath': target_filepath, 'fileinfo': target}
 
-    return target
-
+    else:
+      logger.debug(
+          'Target file ' + target_filepath + ' not found in role ' + role_name)
+      return None
 
 
 
