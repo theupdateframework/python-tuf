@@ -26,7 +26,7 @@ pbr==4.0.1                # via stevedore
 pluggy==0.6.0             # via tox
 py==1.5.3                 # via tox
 pycparser==2.18           # via cffi
-pylint==1.8.3
+pylint==1.8.4
 pynacl==1.2.1
 pyyaml==3.12              # via bandit
 securesystemslib==0.10.11
