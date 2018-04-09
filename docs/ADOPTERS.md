@@ -2,7 +2,7 @@
 * [Advanced Telematics Systems](https://advancedtelematic.com/en/press-releases/ats-is-integrating-the-uptane-security-framework-for-over-the-air-software-updates-to-connected-vehicles.html)
 * [Airbiquity](https://www.airbiquity.com/news/press-releases/airbiquity-unveils-new-otamatictm-release-further-strengthening-over-air-ota-software-and-data-management-offering-automotive)
 * [Automotive Grade Linux](https://www.google.com/url?q=http://docs.automotivelinux.org/docs/architecture/en/dev/reference/security/05-platform-security.html%23agl-platform-software-update&sa=D&source=hangouts&ust=1522950213471000&usg=AFQjCNGdejcp1J7RAHJczEVZv924z17aNg)
-* [Cloudfare](https://blog.cloudflare.com/pal-a-container-identity-bootstrapping-tool/)
+* [Cloudflare](https://blog.cloudflare.com/pal-a-container-identity-bootstrapping-tool/)
 * [DigitalOcean](https://github.com/digitalocean/do-agent)
 * [Docker](https://blog.docker.com/2015/08/content-trust-docker-1-8/)
 * [Flynn](https://flynn.io/docs/development#the-update-framework-%28tuf%29)
