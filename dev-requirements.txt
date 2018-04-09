@@ -6,7 +6,7 @@
 #
 -e .
 asn1crypto==0.24.0        # via cryptography
-astroid==1.6.2            # via pylint
+astroid==1.6.3            # via pylint
 backports.functools-lru-cache==1.5  # via astroid, pylint
 bandit==1.4.0
 cffi==1.11.5
