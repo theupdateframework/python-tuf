@@ -34,6 +34,6 @@ singledispatch==3.4.0.3   # via astroid, pylint
 six==1.11.0
 smmap2==2.0.3             # via gitdb2
 stevedore==1.28.0         # via bandit
-tox==2.9.1
+tox==3.0.0
 virtualenv==15.2.0        # via tox
 wrapt==1.10.11            # via astroid
