@@ -22,7 +22,7 @@ iso8601==0.1.12
 isort==4.3.4              # via pylint
 lazy-object-proxy==1.3.1  # via astroid
 mccabe==0.6.1             # via pylint
-pbr==4.0.0                # via stevedore
+pbr==4.0.1                # via stevedore
 pluggy==0.6.0             # via tox
 py==1.5.3                 # via tox
 pycparser==2.18           # via cffi
