@@ -132,7 +132,7 @@ $ repo.py --trust --pubkeys --role
 For example:
 ```Bash
 $ repo.py --init --bare
-$ repo.py --trust --pubkeys keystore/my_key.pub keystore/my_key_too.pub
+$ repo.py --trust --pubkeys tufkeystore/my_key.pub tufkeystore/my_key_too.pub
   --role root
 ```
 
@@ -142,7 +142,7 @@ Conversely, the Root role can discontinue trust of specified key(s).
 
 Example of how to discontinue trust of a key:
 ```Bash
-$ repo.py --distrust --pubkeys keystore/my_key_too.pub --role root
+$ repo.py --distrust --pubkeys tufkeystore/my_key_too.pub --role root
 ```
 
 
@@ -176,10 +176,10 @@ $ repo.py --delegate <glob pattern> ... --delegatee <rolename> --pubkeys
 --sign </path/to/role_privkey>]
 ```
 
-For example, to delegate trust of `/foo*.gz` packages to the `foo` role:
+For example, to delegate trust of `foo*.gz` packages to the `foo` role:
 
 ```
-$ repo.py --delegate "/foo*.tgz" --delegatee foo --pubkeys ./keystore/foo.pub
+$ repo.py --delegate "foo*.tgz" --delegatee foo --pubkeys tufkeystore/foo.pub
 ```
 
 
