@@ -1,6 +1,7 @@
 # CLI #
 
-Note: This is a work in progress and subject to change.
+Note: This is a work in progress and subject to change.  See
+[CLI_EXAMPLES.md](CLI_EXAMPLES.md) for more complex examples.
 
 ## Create a repository ##
 

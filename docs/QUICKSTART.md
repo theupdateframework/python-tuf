@@ -31,6 +31,6 @@ $ client.py --repo http://localhost:8001 testfile
 ```
 
 
-See [CLI.md](CLI.md) to learn about the other supported CLI options.  A
-[tutorial](TUTORIAL.md) is also available, and intended for users that want
-more control over the creation process.
+See [CLI.md](CLI.md) and [CLI_EXAMPLES.md](CLI_EXAMPLES.md) to learn about the
+other supported CLI options.  A [tutorial](TUTORIAL.md) is also available, and
+intended for users that want more control over the repo creation process.
