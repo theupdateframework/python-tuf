@@ -38,7 +38,9 @@ $ repo.py --init --bare
 
 Create a TUF repository with [consistent
 snapshots](https://github.com/theupdateframework/specification/blob/master/tuf-spec.md#7-consistent-snapshots)
-enabled, where all target files have their hash prepended to the filename.
+enabled, where target filenames have their hash prepended (e.g.,
+<hash>.README.txt), and metadata filenames have their version numbers
+prepended (e.g., <hash>.snapshot.json).
 ```Bash
 $ repo.py --init --consistent
 ```
@@ -98,7 +100,7 @@ $ repo.py --key <keytype>
 $ repo.py --key <keytype> [--path </path/to/repo_dir> --pw [my_password], --filename <key_filename>]
 ```
 
-Instead of using some default password, the user can enter one on the command
+Instead of using a default password, the user can enter one on the command
 line or be prompted for it via password masking.
 ```Bash
 $ repo.py --key ed25519 --pw my_password
@@ -106,7 +108,7 @@ $ repo.py --key ed25519 --pw my_password
 
 ```Bash
 $ repo.py --key rsa --pw
-Enter a password for the top-level role keys:
+Enter a password for the RSA key (...):
 Confirm:
 ```
 
