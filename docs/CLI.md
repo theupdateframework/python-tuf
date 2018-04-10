@@ -96,8 +96,8 @@ specific metadata with `--sign`.  The supported key types are: `ecdsa`,
 `ed25519`, and `rsa`.  If a keytype is not given, an ECDSA key is generated.
 Note: If adding a top-level key to a bare repo (i.e., repo.py --init --bare),
 the top-level keys should be named "root_key," "targets_key," "snapshot_key,"
-"timestamp_key."
-
+"timestamp_key."  Additional top-level keys may be named anything, and must be
+used with --sign.
 ```Bash
 $ repo.py --key
 $ repo.py --key <keytype>
