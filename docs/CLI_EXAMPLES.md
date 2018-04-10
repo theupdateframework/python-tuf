@@ -1,9 +1,13 @@
 # CLI Examples #
 
 ## Basic example ##
-(1) initialize a repo (2) delegate trust of target files to another role (3)
-add a trusted file to the delegated role (4) fetch the trusted file from the
-delegated role.
+(1) initialize a repo.
+
+(2) delegate trust of target files to another role.
+
+(3) add a trusted file to the delegated role.
+
+(4) fetch the trusted file from the delegated role.
 
 ```Bash
 $ repo.py --init
@@ -66,15 +70,25 @@ Enter a password for the encrypted key (tufkeystore/root_key):
 
 
 ## A more complicated example ##
-(1) create a bare repo (2) add keys to the top-level roles (3) delegate trust
-of particular target files to another role X, where role X has a signature
-threshold 2 and is marked as a terminating delegation (4) Delegate from role X
-to role Y.  (5) have role X sign for a file also signed by the Targets role, to
-demonstrate the expected file that should be downloaded by the client (6)
-perform an update (7) halt the server, add README.txt to the Targets role,
-restart server, and fetch the Target's role README.txt (8) Add LICENSE to
-yrole and demonstate that the client must not fetch it because xrole is
-a terminating delegation (and hasn't signed for it).
+(1) create a bare repo.
+
+(2) add keys to the top-level roles.
+
+(3) delegate trust of particular target files to another role X, where role X
+has a signature threshold 2 and is marked as a terminating delegation.
+
+(4) Delegate from role X to role Y.
+
+(5) have role X sign for a file also signed by the Targets role, to demonstrate
+the expected file that should be downloaded by the client.
+
+(6) perform an update.
+
+(7) halt the server, add README.txt to the Targets role, restart server, and
+fetch the Target's role README.txt.
+
+(8) Add LICENSE to 'yrole' and demonstate that the client must not fetch it
+because xrole is a terminating delegation (and hasn't signed for it).
 
 (1) and (2)
 ```Bash
