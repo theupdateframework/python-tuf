@@ -40,8 +40,8 @@ $ repo.py --init --bare
 Create a TUF repository with [consistent
 snapshots](https://github.com/theupdateframework/specification/blob/master/tuf-spec.md#7-consistent-snapshots)
 enabled, where target filenames have their hash prepended (e.g.,
-<hash>.README.txt), and metadata filenames have their version numbers
-prepended (e.g., <hash>.snapshot.json).
+`<hash>.README.txt`), and metadata filenames have their version numbers
+prepended (e.g., `<hash>.snapshot.json`).
 ```Bash
 $ repo.py --init --consistent
 ```
