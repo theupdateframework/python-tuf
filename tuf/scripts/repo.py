@@ -145,9 +145,6 @@ def process_arguments(parsed_arguments):
   if parsed_arguments.distrust:
     remove_verification_key(parsed_arguments)
 
-  if parsed_arguments.sign:
-    sign_role(parsed_arguments)
-
   if parsed_arguments.key:
     gen_key(parsed_arguments)
 
@@ -156,6 +153,11 @@ def process_arguments(parsed_arguments):
 
   if parsed_arguments.revoke:
     revoke(parsed_arguments)
+
+  # --sign should be processed last, after the other options, so that metadata
+  # is signed last after potentially being modified by the other options.
+  if parsed_arguments.sign:
+    sign_role(parsed_arguments)
 
 
 
@@ -195,7 +197,7 @@ def delegate(parsed_arguments):
     repository.targets.load_signing_key(targets_private)
 
 
-  # A non-top-level role.
+  # A delegated (non-Targets) role.
   else:
     repository.targets(parsed_arguments.role).delegate(
         parsed_arguments.delegatee, public_keys,
@@ -203,10 +205,10 @@ def delegate(parsed_arguments):
         parsed_arguments.terminating, list_of_targets=None,
         path_hash_prefixes=None)
 
-    role_privatekey = import_privatekey_from_file(parsed_arguments.sign)
-
-    repository.targets(parsed_arguments.role).load_signing_key(role_privatekey)
-
+    consistent_snapshot = tuf.roledb.get_roleinfo('root',
+        repository._repository_name)['consistent_snapshot']
+    repository.write('root', consistent_snapshot=consistent_snapshot,
+        increment_version_number=True)
 
   # Update the required top-level roles, Snapshot and Timestamp, to make a new
   # release.
@@ -220,7 +222,9 @@ def delegate(parsed_arguments):
   repository.snapshot.load_signing_key(snapshot_private)
   repository.timestamp.load_signing_key(timestamp_private)
 
-  repository.writeall()
+  consistent_snapshot = tuf.roledb.get_roleinfo('root',
+      repository._repository_name)['consistent_snapshot']
+  repository.writeall(consistent_snapshot=consistent_snapshot)
 
   # Move staged metadata directory to "live" metadata directory.
   write_to_live_repo()
@@ -262,7 +266,9 @@ def revoke(parsed_arguments):
   repository.snapshot.load_signing_key(snapshot_private)
   repository.timestamp.load_signing_key(timestamp_private)
 
-  repository.writeall()
+  consistent_snapshot = tuf.roledb.get_roleinfo('root',
+      repository._repository_name)['consistent_snapshot']
+  repository.writeall(consistent_snapshot=consistent_snapshot)
 
   # Move staged metadata directory to "live" metadata directory.
   write_to_live_repo()
@@ -325,7 +331,7 @@ def import_privatekey_from_file(keypath, password=None):
     # However, care should be taken when including the full path in exceptions
     # and log files.
     password = securesystemslib.interface.get_password('Enter a password for'
-        ' the encrypted key (' + Fore.RED + keypath + Fore.RESET + '): ',
+        ' the encrypted key (' + Fore.RED + repr(keypath) + Fore.RESET + '): ',
         confirm=False)
 
   # Does 'password' have the correct format?
@@ -374,7 +380,15 @@ def import_privatekey_from_file(keypath, password=None):
 
 def import_publickey_from_file(keypath):
 
-  key_metadata = securesystemslib.util.load_json_file(keypath)
+  try:
+    key_metadata = securesystemslib.util.load_json_file(keypath)
+
+  # An RSA public key is saved to disk in PEM format (not JSON), so the
+  # load_json_file() call above can fail for this reason.  Try to potentially
+  # load the PEM string in keypath if an exception is raised.
+  except securesystemslib.exceptions.Error:
+    key_metadata = securesystemslib.interface.import_rsa_publickey_from_file(keypath)
+
   key_object, junk = securesystemslib.keys.format_metadata_to_key(key_metadata)
 
   if key_object['keytype'] not in SUPPORTED_KEY_TYPES:
@@ -412,7 +426,10 @@ def add_verification_key(parsed_arguments):
     else:
       raise tuf.exception.Error('The given --role is not a top-level role.')
 
-  repository.write('root', increment_version_number=False)
+  consistent_snapshot = tuf.roledb.get_roleinfo('root',
+      repository._repository_name)['consistent_snapshot']
+  repository.write('root', consistent_snapshot=consistent_snapshot,
+      increment_version_number=False)
 
   # Move staged metadata directory to "live" metadata directory.
   write_to_live_repo()
@@ -450,7 +467,10 @@ def remove_verification_key(parsed_arguments):
     except securesystemslib.exceptions.Error:
       print(repr(keypath) + ' is not a trusted key.  Skipping.')
 
-  repository.write('root', increment_version_number=False)
+  consistent_snapshot = tuf.roledb.get_roleinfo('root',
+      repository._repository_name)['consistent_snapshot']
+  repository.write('root', consistent_snapshot=consistent_snapshot,
+      increment_version_number=False)
 
   # Move staged metadata directory to "live" metadata directory.
   write_to_live_repo()
@@ -463,6 +483,8 @@ def sign_role(parsed_arguments):
 
   repository = repo_tool.load_repository(
       os.path.join(parsed_arguments.path, REPO_DIR))
+  consistent_snapshot = tuf.roledb.get_roleinfo('root',
+      repository._repository_name)['consistent_snapshot']
 
   for keypath in parsed_arguments.sign:
 
@@ -505,11 +527,20 @@ def sign_role(parsed_arguments):
 
         tuf.roledb.add_role(parsed_arguments.role, roleinfo,
             repository_name=repository._repository_name)
-        repository.write(parsed_arguments.role, increment_version_number=False)
+
+        # Generate the Targets object of --role, and add it to the top-level
+        # 'targets' object.
+        new_targets_object = repo_tool.Targets(repository._targets_directory,
+            parsed_arguments.role, roleinfo,
+            repository_name=repository._repository_name)
+        repository.targets._delegated_roles[parsed_arguments.role] = new_targets_object
 
       else:
         repository.targets(parsed_arguments.role).load_signing_key(role_privatekey)
-        repository.write(parsed_arguments.role, increment_version_number=False)
+
+  # Write the Targets metadata now that it's been modified.
+  repository.write(parsed_arguments.role,
+      consistent_snapshot=consistent_snapshot, increment_version_number=False)
 
   # Write the updated top-level roles, if any.  Also write Snapshot and
   # Timestamp to make a new release.
@@ -523,7 +554,7 @@ def sign_role(parsed_arguments):
   repository.snapshot.load_signing_key(snapshot_private)
   repository.timestamp.load_signing_key(timestamp_private)
 
-  repository.writeall()
+  repository.writeall(consistent_snapshot=consistent_snapshot)
 
   # Move staged metadata directory to "live" metadata directory.
   write_to_live_repo()
@@ -637,16 +668,21 @@ def add_targets(parsed_arguments):
     else:
       add_target_to_repo(target_path, repo_targets_path, repository)
 
+  consistent_snapshot = tuf.roledb.get_roleinfo('root',
+      repository._repository_name)['consistent_snapshot']
+
   if parsed_arguments.role == 'targets':
     # Load the top-level, non-root, keys to make a new release.
     targets_private = import_privatekey_from_file(
         os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
         parsed_arguments.targets_pw)
     repository.targets.load_signing_key(targets_private)
-    repository.write('targets', increment_version_number=True)
+    repository.write('targets', consistent_snapshot=consistent_snapshot,
+        increment_version_number=True)
 
   elif parsed_arguments.role not in ['root', 'snapshot', 'timestamp']:
-    repository.write(parsed_arguments.role, increment_version_number=True)
+    repository.write(parsed_arguments.role,
+        consistent_snapshot=consistent_snapshot, increment_version_number=True)
     return
 
   snapshot_private = import_privatekey_from_file(
@@ -659,7 +695,7 @@ def add_targets(parsed_arguments):
   repository.snapshot.load_signing_key(snapshot_private)
   repository.timestamp.load_signing_key(timestamp_private)
 
-  repository.writeall()
+  repository.writeall(consistent_snapshot=consistent_snapshot)
 
   # Move staged metadata directory to "live" metadata directory.
   write_to_live_repo()
@@ -700,7 +736,9 @@ def remove_targets(parsed_arguments):
   repository.snapshot.load_signing_key(snapshot_private)
   repository.timestamp.load_signing_key(timestamp_private)
 
-  repository.writeall()
+  consistent_snapshot = tuf.roledb.get_roleinfo('root',
+      repository._repository_name)['consistent_snapshot']
+  repository.writeall(consistent_snapshot=consistent_snapshot)
 
   # Move staged metadata directory to "live" metadata directory.
   write_to_live_repo()
@@ -719,15 +757,14 @@ def init_repo(parsed_arguments):
 
   if not parsed_arguments.bare:
     set_top_level_keys(repository)
-    repository.writeall(
-        consistent_snapshot=parsed_arguments.consistent)
+    repository.writeall(consistent_snapshot=parsed_arguments.consistent)
 
   else:
     repository.write(
         'root', consistent_snapshot=parsed_arguments.consistent)
-    repository.write('targets')
-    repository.write('snapshot')
-    repository.write('timestamp')
+    repository.write('targets', consistent_snapshot=parsed_arguments.consistent)
+    repository.write('snapshot', consistent_snapshot=parsed_arguments.consistent)
+    repository.write('timestamp', consistent_snapshot=parsed_arguments.consistent)
 
   write_to_live_repo()
 
@@ -892,7 +929,8 @@ def parse_arguments():
 
   parser.add_argument('--filename', nargs='?', default=None, const=None,
       metavar='<filename>', help='Specify a filename.  This option can'
-      ' be used to name a generated key file.')
+      ' be used to name a generated key file.  The top-level keys should'
+      ' be named "root_key", "targets_key", "snapshot_key", "timestamp_key."')
 
   parser.add_argument('--trust', action='store_true',
       help='Indicate the trusted key(s) (via --pubkeys) for the role in --role.'
