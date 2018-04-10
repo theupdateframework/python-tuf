@@ -94,10 +94,15 @@ $ repo.py --remove "*" --role my_role --sign tufkeystore/my_role_key
 Generate a cryptographic key.  The generated key can later be used to sign
 specific metadata with `--sign`.  The supported key types are: `ecdsa`,
 `ed25519`, and `rsa`.  If a keytype is not given, an ECDSA key is generated.
+Note: If adding a top-level key to a bare repo (i.e., repo.py --init --bare),
+the top-level keys should be named "root_key," "targets_key," "snapshot_key,"
+"timestamp_key."
+
 ```Bash
 $ repo.py --key
 $ repo.py --key <keytype>
-$ repo.py --key <keytype> [--path </path/to/repo_dir> --pw [my_password], --filename <key_filename>]
+$ repo.py --key <keytype> [--path </path/to/repo_dir> --pw [my_password],
+  --filename <key_filename>]
 ```
 
 Instead of using a default password, the user can enter one on the command
@@ -127,7 +132,8 @@ $ repo.py --trust --pubkeys --role
 For example:
 ```Bash
 $ repo.py --init --bare
-$ repo.py --trust --pubkeys keystore/my_key.pub keystore/my_key_too.pub --role root
+$ repo.py --trust --pubkeys keystore/my_key.pub keystore/my_key_too.pub
+  --role root
 ```
 
 ### Distrust keys ###
