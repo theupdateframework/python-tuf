@@ -105,9 +105,9 @@ pynacl==1.2.1 \
     --hash=sha256:f5ce9e26d25eb0b2d96f3ef0ad70e1d3ae89b5d60255c462252a3e456a48c053 \
     --hash=sha256:fabf73d5d0286f9e078774f3435601d2735c94ce9e514ac4fb945701edead7e4 \
     # via securesystemslib
-securesystemslib==0.10.11 \
-    --hash=sha256:28f8899ff3b25e1fc6d254b24a467b20b905a2a5d59a1b3a10878559b6da485c \
-    --hash=sha256:fb707a0f5d8d2d403d68d1901a27db0a3fd4f005038d6ad3ad7e2f81681abdb0
+securesystemslib==0.11.0 \
+    --hash=sha256:3fe215d0824aa25ad79273fc821b486efb6d7b8ce0f1760231156de490f999b5 \
+    --hash=sha256:c91a2c4577e8e9638e4f876c98b0ff85d1a02e67b28417267122427c469a2dfb
 six==1.11.0 \
     --hash=sha256:70e8a77beed4562e7f14fe23a786b54f6296e34344c23bc42f07b15018ff98e9 \
     --hash=sha256:832dc0e10feb1aa2c68dcc57dbb658f1c7e65b9b61af69048abc87a2db00a0eb

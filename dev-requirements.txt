@@ -5,35 +5,35 @@
 #    pip-compile --output-file dev-requirements.txt dev-requirements.txt
 #
 -e .
-asn1crypto==0.24.0        # via cryptography
-astroid==1.6.2            # via pylint
-backports.functools-lru-cache==1.5  # via astroid, pylint
+asn1crypto==0.24.0
+astroid==1.6.3
+backports.functools-lru-cache==1.5
 bandit==1.4.0
 cffi==1.11.5
-colorama==0.3.9           # via securesystemslib
-configparser==3.5.0       # via pylint
-cryptography==2.2.1
-enum34==1.1.6             # via astroid, cryptography
-gitdb2==2.0.3             # via gitpython
-gitpython==2.1.9          # via bandit
-idna==2.6                 # via cryptography
-ipaddress==1.0.19         # via cryptography
+colorama==0.3.9
+configparser==3.5.0
+cryptography==2.2.2
+enum34==1.1.6
+gitdb2==2.0.3
+gitpython==2.1.9
+idna==2.6
+ipaddress==1.0.19
 iso8601==0.1.12
-isort==4.3.4              # via pylint
-lazy-object-proxy==1.3.1  # via astroid
-mccabe==0.6.1             # via pylint
-pbr==4.0.0                # via stevedore
-pluggy==0.6.0             # via tox
-py==1.5.3                 # via tox
-pycparser==2.18           # via cffi
-pylint==1.8.3
+isort==4.3.4
+lazy-object-proxy==1.3.1
+mccabe==0.6.1
+pbr==4.0.1
+pluggy==0.6.0
+py==1.5.3
+pycparser==2.18
+pylint==1.8.4
 pynacl==1.2.1
-pyyaml==3.12              # via bandit
-securesystemslib==0.10.11
-singledispatch==3.4.0.3   # via astroid, pylint
+pyyaml==3.12
+securesystemslib==0.11.0
+singledispatch==3.4.0.3
 six==1.11.0
-smmap2==2.0.3             # via gitdb2
-stevedore==1.28.0         # via bandit
-tox==2.9.1
-virtualenv==15.2.0        # via tox
-wrapt==1.10.11            # via astroid
+smmap2==2.0.3
+stevedore==1.28.0
+tox==3.0.0
+virtualenv==15.2.0
+wrapt==1.10.11
