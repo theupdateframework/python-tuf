@@ -22,13 +22,14 @@
 
 import logging
 import unittest
-import imp
 
 import tuf
 import tuf.log
 import tuf.settings
 
 import securesystemslib
+from six.moves import reload_module
+
 
 logger = logging.getLogger('tuf.test_log')
 
@@ -75,8 +76,7 @@ class TestLog(unittest.TestCase):
     # Test that the log level of the file handler cannot be set because
     # file logging is disabled (via tuf.settings.ENABLE_FILE_LOGGING).
     tuf.settings.ENABLE_FILE_LOGGING = False
-    imp.reload(tuf.log)
-    #self.assertRaises(securesystemslib.exceptions.Error, tuf.log.set_filehandler_log_level, logging.INFO)
+    reload_module(tuf.log)
 
     # Test for improperly formatted argument.
     self.assertRaises(securesystemslib.exceptions.FormatError, tuf.log.set_filehandler_log_level, '123')
