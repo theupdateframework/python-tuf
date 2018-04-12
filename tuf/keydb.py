@@ -117,12 +117,19 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
   for junk, key_metadata in six.iteritems(root_metadata['keys']):
     if key_metadata['keytype'] in _SUPPORTED_KEY_TYPES:
       # 'key_metadata' is stored in 'KEY_SCHEMA' format.  Call
-      # create_from_metadata_format() to get the key in 'RSAKEY_SCHEMA'
-      # format, which is the format expected by 'add_key()'.  Note:
-      # The 'keyids' returned by format_metadata_to_key() include keyids in
-      # addition to the default keyid listed in 'key_dict'.  The additional
-      # keyids are generated according to settings.REPOSITORY_HASH_ALGORITHMS.
+      # create_from_metadata_format() to get the key in 'RSAKEY_SCHEMA' format,
+      # which is the format expected by 'add_key()'.  Note: The 'keyids'
+      # returned by format_metadata_to_key() include keyids in addition to the
+      # default keyid listed in 'key_dict'.  The additional keyids are
+      # generated according to securesystemslib.settings.HASH_ALGORITHMS.
+
+      # The repo may have used hashing algorithms for the generated keyids that
+      # doesn't match the client's set of hash algorithms.  Make sure to only
+      # used the repo's selected hashing algorithms.
+      hash_algorithms = securesystemslib.settings.HASH_ALGORITHMS
+      securesystemslib.settings.HASH_ALGORITHMS = key_metadata['keyid_hash_algorithms']
       key_dict, keyids = securesystemslib.keys.format_metadata_to_key(key_metadata)
+      securesystemslib.settings.HASH_ALGORITHMS = hash_algorithms
 
       try:
         for keyid in keyids:

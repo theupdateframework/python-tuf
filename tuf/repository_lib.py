@@ -685,7 +685,14 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
 
     # Add the keys specified in the delegations field of the Targets role.
     for key_metadata in six.itervalues(targets_metadata['delegations']['keys']):
+
+      # The repo may have used hashing algorithms for the generated keyids
+      # that doesn't match the client's set of hash algorithms.  Make sure
+      # to only used the repo's selected hashing algorithms.
+      hash_algorithms = securesystemslib.settings.HASH_ALGORITHMS
+      securesystemslib.settings.HASH_ALGORITHMS = key_metadata['keyid_hash_algorithms']
       key_object, keyids = securesystemslib.keys.format_metadata_to_key(key_metadata)
+      securesystemslib.settings.HASH_ALGORITHMS = hash_algorithms
 
       # Add 'key_object' to the list of recognized keys.  Keys may be shared,
       # so do not raise an exception if 'key_object' has already been loaded.
