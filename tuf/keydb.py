@@ -123,6 +123,9 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
       # default keyid listed in 'key_dict'.  The additional keyids are
       # generated according to securesystemslib.settings.HASH_ALGORITHMS.
 
+      # The repo may have used hashing algorithms for the generated keyids that
+      # doesn't match the client's set of hash algorithms.  Make sure to only
+      # used the repo's selected hashing algorithms.
       hash_algorithms = securesystemslib.settings.HASH_ALGORITHMS
       securesystemslib.settings.HASH_ALGORITHMS = key_metadata['keyid_hash_algorithms']
       key_dict, keyids = securesystemslib.keys.format_metadata_to_key(key_metadata)

@@ -3024,6 +3024,10 @@ def load_repository(repository_directory, repository_name='default'):
     # The repository maintainer should have also been made aware of the
     # duplicate key when it was added.
     for key_metadata in six.itervalues(metadata_object['delegations']['keys']):
+
+      # The repo may have used hashing algorithms for the generated keyids
+      # that doesn't match the client's set of hash algorithms.  Make sure
+      # to only used the repo's selected hashing algorithms.
       hash_algorithms = securesystemslib.settings.HASH_ALGORITHMS
       securesystemslib.settings.HASH_ALGORITHMS = key_metadata['keyid_hash_algorithms']
       key_object, keyids = securesystemslib.keys.format_metadata_to_key(key_metadata)

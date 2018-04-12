@@ -954,6 +954,9 @@ class Updater(object):
         # for the key.
         try:
 
+          # The repo may have used hashing algorithms for the generated keyids
+          # that doesn't match the client's set of hash algorithms.  Make sure
+          # to only used the repo's selected hashing algorithms.
           hash_algorithms = securesystemslib.settings.HASH_ALGORITHMS
           securesystemslib.settings.HASH_ALGORITHMS = keyinfo['keyid_hash_algorithms']
           key, keyids = securesystemslib.keys.format_metadata_to_key(keyinfo)
