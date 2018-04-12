@@ -953,7 +953,12 @@ class Updater(object):
         # We specify the keyid to ensure that it's the correct keyid
         # for the key.
         try:
+
+          hash_algorithms = securesystemslib.settings.HASH_ALGORITHMS
+          securesystemslib.settings.HASH_ALGORITHMS = keyinfo['keyid_hash_algorithms']
           key, keyids = securesystemslib.keys.format_metadata_to_key(keyinfo)
+          securesystemslib.settings.HASH_ALGORITHMS = hash_algorithms
+
           for key_id in keyids:
             key['keyid'] = key_id
             tuf.keydb.add_key(key, keyid=None, repository_name=self.repository_name)
