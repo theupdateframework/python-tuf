@@ -1371,7 +1371,7 @@ class Updater(object):
         In case the repository is somehow inconsistent; e.g. a parent has not
         delegated to a child (contrary to expectations).
 
-      tuf.SignatureError:
+      securesystemslib.exceptions.BadSignatureError:
         In case the metadata file does not have a valid signature.
 
     <Side Effects>
