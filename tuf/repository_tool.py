@@ -1993,15 +1993,10 @@ class Targets(Metadata):
     # freedom to add targets and parent restrictions in any order, and minimize
     # the number of times these checks are performed.
     for target in list_of_targets:
-      filepath = os.path.abspath(target)
-
-      if not filepath.startswith(self._targets_directory+os.sep):
-        raise securesystemslib.exceptions.Error(repr(filepath) + ' is not'
-          ' located in the Repository\'s targets'
-          ' directory: ' + repr(self._targets_directory))
+      filepath = os.path.join(self._targets_directory, target)
 
       if os.path.isfile(filepath):
-        relative_list_of_targets.append(filepath[targets_directory_length:])
+        relative_list_of_targets.append(filepath[targets_directory_length+1:])
 
       else:
         raise securesystemslib.exceptions.Error(repr(filepath) + ' is not'
