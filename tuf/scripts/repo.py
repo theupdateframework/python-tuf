@@ -651,7 +651,6 @@ def remove_target_files_from_metadata(repository):
 
 
 def add_targets(parsed_arguments):
-  target_paths = os.path.join(parsed_arguments.add)
   repo_targets_path = os.path.join(parsed_arguments.path, REPO_DIR, 'targets')
   repository = repo_tool.load_repository(
       os.path.join(parsed_arguments.path, REPO_DIR))
@@ -659,7 +658,7 @@ def add_targets(parsed_arguments):
   # Copy the target files in --path to the repo directory, and
   # add them to Targets metadata.  Make sure to also copy & add files
   # in directories (and subdirectories, if --recursive is True).
-  for target_path in target_paths:
+  for target_path in parsed_arguments.add:
     if os.path.isdir(target_path):
       for sub_target_path in repository.get_filepaths_in_directory(
           target_path, parsed_arguments.recursive):
