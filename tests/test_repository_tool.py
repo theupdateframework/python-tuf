@@ -1090,12 +1090,12 @@ class TestTargets(unittest.TestCase):
     # Add a 'target1_filepath' duplicate for testing purposes
     # ('target1_filepath' should not be added twice.)
     target_files = \
-      [target1_filepath, target2_filepath, target3_filepath, target1_filepath]
+      ['file1.txt', 'file2.txt', 'file3.txt', 'file1.txt']
     self.targets_object.add_targets(target_files)
 
     self.assertEqual(len(self.targets_object.target_files), 3)
     self.assertEqual(self.targets_object.target_files,
-                     {'/file1.txt': {}, '/file2.txt': {}, '/file3.txt': {}})
+        {'file1.txt': {}, 'file2.txt': {}, 'file3.txt': {}})
 
     # Attempt to replace targets that has already been added.
     self.targets_object.add_targets(target_files)
