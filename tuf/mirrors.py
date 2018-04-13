@@ -104,7 +104,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   list_of_mirrors = []
   for junk, mirror_info in six.iteritems(mirrors_dict):
     if file_type == 'meta':
-      base = mirror_info['url_prefix'] + '/' + mirror_info['metadata_path']
+      base = os.path.join(mirror_info['url_prefix'], mirror_info['metadata_path'])
 
     # 'file_type' == 'target'.  'file_type' should have been verified to
     # contain a supported string value above (either 'meta' or 'target').
@@ -112,9 +112,9 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
       targets_path = mirror_info['targets_path']
       full_filepath = os.path.join(targets_path, file_path)
       if not in_confined_directory(full_filepath,
-                                   mirror_info['confined_target_dirs']):
+          mirror_info['confined_target_dirs']):
         continue
-      base = mirror_info['url_prefix'] + '/' + mirror_info['targets_path']
+      base = os.path.join(mirror_info['url_prefix'], mirror_info['targets_path'])
 
     # urllib.quote(string) replaces special characters in string using the %xx
     # escape.  This is done to avoid parsing issues of the URL on the server
@@ -122,7 +122,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
     # the URL as UTF-8. We need a long-term solution with #61.
     # http://bugs.python.org/issue1712522
     file_path = six.moves.urllib.parse.quote(file_path)
-    url = base + '/' + file_path.lstrip(os.sep)
+    url = os.path.join(base, file_path)
     list_of_mirrors.append(url)
 
   return list_of_mirrors
