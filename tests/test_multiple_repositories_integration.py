@@ -128,8 +128,8 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     while self.SERVER_PORT == self.SERVER_PORT2:
       self.SERVER_PORT2 = random.SystemRandom().randint(30000, 45000)
 
-    command = ['simple_server.py', str(self.SERVER_PORT)]
-    command2 = ['simple_server.py', str(self.SERVER_PORT2)]
+    command = ['python', 'simple_server.py', str(self.SERVER_PORT)]
+    command2 = ['python', 'simple_server.py', str(self.SERVER_PORT2)]
 
     self.server_process = subprocess.Popen(command, stderr=subprocess.PIPE,
         cwd=self.repository_directory)
