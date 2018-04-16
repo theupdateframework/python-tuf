@@ -1147,9 +1147,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     targets_directory = os.path.join(self.repository_directory, 'targets')
 
     # Patterns for delegating the directories
-    foo_pattern = '/foo/*'
-    bar_pattern = '/foo/bar/*'
-    baz_pattern = '/foo/baz/*'
+    foo_pattern = 'foo/*'
+    bar_pattern = 'foo/bar/*'
+    baz_pattern = 'foo/baz/*'
 
     os.makedirs(os.path.join(targets_directory, 'foo', 'bar'))
     os.makedirs(os.path.join(targets_directory, 'foo', 'baz'))
@@ -1242,12 +1242,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       # there is a BadSignatureError('roleC') in it.
 
     with self.assertRaises(tuf.exceptions.NoWorkingMirrorError):
-      self.repository_updater.get_one_valid_targetinfo('/' + bar_target_fname)
+      self.repository_updater.get_one_valid_targetinfo(bar_target_fname)
       # TODO: Consider checking inside NoWorkingMirrorError to make sure that
       # there is a BadSignatureError('roleC') in it.
 
     self.repository_updater.get_one_valid_targetinfo(baz_target_fname)
-    self.repository_updater.get_one_valid_targetinfo('/' + baz_target_fname)
+    self.repository_updater.get_one_valid_targetinfo(baz_target_fname)
 
 
 
