@@ -1701,8 +1701,8 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     self.SERVER_PORT = 30001
     self.SERVER_PORT2 = 30002
 
-    command = ['simple_server.py', str(self.SERVER_PORT)]
-    command2 = ['simple_server.py', str(self.SERVER_PORT2)]
+    command = ['python', 'simple_server.py', str(self.SERVER_PORT)]
+    command2 = ['python', 'simple_server.py', str(self.SERVER_PORT2)]
 
     self.server_process = subprocess.Popen(command, stderr=subprocess.PIPE,
         cwd=self.repository_directory)
