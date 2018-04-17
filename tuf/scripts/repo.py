@@ -227,7 +227,7 @@ def delegate(parsed_arguments):
   repository.writeall(consistent_snapshot=consistent_snapshot)
 
   # Move staged metadata directory to "live" metadata directory.
-  write_to_live_repo()
+  write_to_live_repo(parsed_arguments)
 
 
 
@@ -271,7 +271,7 @@ def revoke(parsed_arguments):
   repository.writeall(consistent_snapshot=consistent_snapshot)
 
   # Move staged metadata directory to "live" metadata directory.
-  write_to_live_repo()
+  write_to_live_repo(parsed_arguments)
 
 
 
@@ -432,7 +432,7 @@ def add_verification_key(parsed_arguments):
       increment_version_number=False)
 
   # Move staged metadata directory to "live" metadata directory.
-  write_to_live_repo()
+  write_to_live_repo(parsed_arguments)
 
 
 
@@ -473,7 +473,7 @@ def remove_verification_key(parsed_arguments):
       increment_version_number=False)
 
   # Move staged metadata directory to "live" metadata directory.
-  write_to_live_repo()
+  write_to_live_repo(parsed_arguments)
 
 
 
@@ -557,7 +557,7 @@ def sign_role(parsed_arguments):
   repository.writeall(consistent_snapshot=consistent_snapshot)
 
   # Move staged metadata directory to "live" metadata directory.
-  write_to_live_repo()
+  write_to_live_repo(parsed_arguments)
 
 
 
@@ -572,7 +572,7 @@ def clean_repo(parsed_arguments):
 
 
 
-def write_to_live_repo():
+def write_to_live_repo(parsed_arguments):
   staged_meta_directory = os.path.join(
       parsed_arguments.path, REPO_DIR, STAGED_METADATA_DIR)
   live_meta_directory = os.path.join(
@@ -583,7 +583,7 @@ def write_to_live_repo():
 
 
 
-def add_target_to_repo(target_path, repo_targets_path, repository, custom=None):
+def add_target_to_repo(parsed_arguments, target_path, repo_targets_path, repository, custom=None):
   """
   (1) Copy 'target_path' to 'repo_targets_path'.
   (2) Add 'target_path' to Targets metadata of 'repository'.
@@ -620,7 +620,7 @@ def add_target_to_repo(target_path, repo_targets_path, repository, custom=None):
 
 
 
-def remove_target_files_from_metadata(repository):
+def remove_target_files_from_metadata(parsed_arguments, repository):
 
   if parsed_arguments.role in ['root', 'snapshot', 'timestamp']:
     raise tuf.exceptions.Error(
@@ -662,10 +662,10 @@ def add_targets(parsed_arguments):
     if os.path.isdir(target_path):
       for sub_target_path in repository.get_filepaths_in_directory(
           target_path, parsed_arguments.recursive):
-        add_target_to_repo(sub_target_path, repo_targets_path, repository)
+        add_target_to_repo(parsed_arguments, sub_target_path, repo_targets_path, repository)
 
     else:
-      add_target_to_repo(target_path, repo_targets_path, repository)
+      add_target_to_repo(parsed_arguments, target_path, repo_targets_path, repository)
 
   consistent_snapshot = tuf.roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
@@ -697,7 +697,7 @@ def add_targets(parsed_arguments):
   repository.writeall(consistent_snapshot=consistent_snapshot)
 
   # Move staged metadata directory to "live" metadata directory.
-  write_to_live_repo()
+  write_to_live_repo(parsed_arguments)
 
 
 
@@ -710,7 +710,7 @@ def remove_targets(parsed_arguments):
 
   # Remove target files from the Targets metadata (or the role specified in
   # --role) that match the glob patterns specified in --remove.
-  remove_target_files_from_metadata(repository)
+  remove_target_files_from_metadata(parsed_arguments, repository)
 
   # Examples of how the --pw command-line option is interpreted:
   # repo.py --init': parsed_arguments.pw = 'pw'
@@ -740,7 +740,7 @@ def remove_targets(parsed_arguments):
   repository.writeall(consistent_snapshot=consistent_snapshot)
 
   # Move staged metadata directory to "live" metadata directory.
-  write_to_live_repo()
+  write_to_live_repo(parsed_arguments)
 
 
 
@@ -755,7 +755,7 @@ def init_repo(parsed_arguments):
   repository = repo_tool.create_new_repository(repo_path)
 
   if not parsed_arguments.bare:
-    set_top_level_keys(repository)
+    set_top_level_keys(repository, parsed_arguments)
     repository.writeall(consistent_snapshot=parsed_arguments.consistent)
 
   else:
@@ -765,7 +765,7 @@ def init_repo(parsed_arguments):
     repository.write('snapshot', consistent_snapshot=parsed_arguments.consistent)
     repository.write('timestamp', consistent_snapshot=parsed_arguments.consistent)
 
-  write_to_live_repo()
+  write_to_live_repo(parsed_arguments)
 
   # Create the client files.  The client directory contains the required
   # directory structure and metadata files for clients to successfully perform
@@ -776,7 +776,7 @@ def init_repo(parsed_arguments):
 
 
 
-def set_top_level_keys(repository):
+def set_top_level_keys(repository, parsed_arguments):
   """
   Generate, write, and set the top-level keys.  'repository' is modified.
   """
@@ -1025,7 +1025,7 @@ def parse_arguments():
 if __name__ == '__main__':
 
   # Parse the arguments and set the logging level.
-  parsed_arguments = parse_arguments()
+  arguments = parse_arguments()
 
   # Create or modify the repository depending on the option specified on the
   # command line.  For example, the following adds the 'foo.bar.gz' to the
@@ -1034,7 +1034,7 @@ if __name__ == '__main__':
   # $ repo.py --add foo.bar.gz
 
   try:
-    process_arguments(parsed_arguments)
+    process_arguments(arguments)
 
   except (tuf.exceptions.Error) as e:
     sys.stderr.write('Error: ' + str(e) + '\n')
