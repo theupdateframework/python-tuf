@@ -98,7 +98,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # as a delegated role 'targets/role1', three target files, five key files,
     # etc.
     cls.SERVER_PORT = random.randint(30000, 45000)
-    command = ['python', 'simple_server.py', str(cls.SERVER_PORT)]
+    command = ['python', '-m', 'tuf.scripts.simple_server', str(cls.SERVER_PORT)]
     cls.server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
     logger.info('\n\tServer process started.')
     logger.info('\tServer process id: '+str(cls.server_process.pid))
@@ -1701,8 +1701,8 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     self.SERVER_PORT = 30001
     self.SERVER_PORT2 = 30002
 
-    command = ['simple_server.py', str(self.SERVER_PORT)]
-    command2 = ['simple_server.py', str(self.SERVER_PORT2)]
+    command = ['python', '-m', 'tuf.scripts.simple_server', str(self.SERVER_PORT)]
+    command2 = ['python', '-m', 'tuf.scripts.simple_server', str(self.SERVER_PORT2)]
 
     self.server_process = subprocess.Popen(command, stderr=subprocess.PIPE,
         cwd=self.repository_directory)
