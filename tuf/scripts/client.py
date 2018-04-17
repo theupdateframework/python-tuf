@@ -223,12 +223,12 @@ def parse_arguments():
 if __name__ == '__main__':
 
   # Parse the command-line arguments and set the logging level.
-  parsed_arguments = parse_arguments()
+  arguments = parse_arguments()
 
   # Perform an update of all the files in the 'targets' directory located in
   # the current directory.
   try:
-    update_client(parsed_arguments)
+    update_client(arguments)
 
   except (tuf.exceptions.NoWorkingMirrorError, tuf.exceptions.RepositoryError,
       tuf.exceptions.FormatError) as e:
