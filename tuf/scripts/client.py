@@ -70,8 +70,6 @@ import tuf.client.updater
 import tuf.settings
 import tuf.log
 
-import securesystemslib
-
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.scripts.client')
 
