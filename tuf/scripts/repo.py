@@ -120,7 +120,7 @@ def process_arguments(parsed_arguments):
 
   # Do we have a valid argparse Namespace?
   if not isinstance(parsed_arguments, argparse.Namespace):
-    raise tuf.exception.Error('Invalid namespace: ' + repr(parsed_arguments))
+    raise tuf.exceptions.Error('Invalid namespace: ' + repr(parsed_arguments))
 
   else:
     logger.debug('We have a valid argparse Namespace.')
@@ -403,7 +403,7 @@ def import_publickey_from_file(keypath):
 
 def add_verification_key(parsed_arguments):
   if not parsed_arguments.pubkeys:
-    raise tuf.exception.Error('--pubkeys must be given with --trust.')
+    raise tuf.exceptions.Error('--pubkeys must be given with --trust.')
 
   repository = repo_tool.load_repository(
       os.path.join(parsed_arguments.path, REPO_DIR))
@@ -424,7 +424,7 @@ def add_verification_key(parsed_arguments):
       repository.timestamp.add_verification_key(imported_pubkey)
 
     else:
-      raise tuf.exception.Error('The given --role is not a top-level role.')
+      raise tuf.exceptions.Error('The given --role is not a top-level role.')
 
   consistent_snapshot = tuf.roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
@@ -440,7 +440,7 @@ def add_verification_key(parsed_arguments):
 
 def remove_verification_key(parsed_arguments):
   if not parsed_arguments.pubkeys:
-    raise tuf.exception.Error('--pubkeys must be given with --distrust.')
+    raise tuf.exceptions.Error('--pubkeys must be given with --distrust.')
 
   repository = repo_tool.load_repository(
       os.path.join(parsed_arguments.path, REPO_DIR))
@@ -462,7 +462,7 @@ def remove_verification_key(parsed_arguments):
         repository.timestamp.remove_verification_key(imported_pubkey)
 
       else:
-        raise tuf.exception.Error('The given --role is not a top-level role.')
+        raise tuf.exceptions.Error('The given --role is not a top-level role.')
 
     except securesystemslib.exceptions.Error:
       print(repr(keypath) + ' is not a trusted key.  Skipping.')
