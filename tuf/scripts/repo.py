@@ -700,9 +700,6 @@ def add_targets(parsed_arguments):
 
 
 def remove_targets(parsed_arguments):
-  target_paths = os.path.join(parsed_arguments.remove)
-
-  repo_targets_path = os.path.join(parsed_arguments.path, REPO_DIR, 'targets')
   repository = repo_tool.load_repository(
       os.path.join(parsed_arguments.path, REPO_DIR))
 
