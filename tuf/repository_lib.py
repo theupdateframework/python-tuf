@@ -37,6 +37,7 @@ import time
 import logging
 import shutil
 import json
+import platform
 
 import tuf
 import tuf.formats
@@ -1785,12 +1786,12 @@ def write_metadata_file(metadata, filename, version_number, consistent_snapshot)
     # consistent file or (2) creating a copy of the consistent file and saving
     # to its expected filename (e.g., root.json).  The option of either
     # creating a copy or link should be configurable in tuf.settings.py.
-    if (tuf.settings.CONSISTENT_METHOD == 'copy'):
+    if tuf.settings.CONSISTENT_METHOD == 'copy' or platform.system() == 'Windows':
       logger.debug('Pointing ' + repr(filename) + ' to the consistent'
           ' file: ' + repr(written_consistent_filename))
       shutil.copyfile(written_consistent_filename, written_filename)
 
-    elif (tuf.settings.CONSISTENT_METHOD == 'hard_link'):
+    elif tuf.settings.CONSISTENT_METHOD == 'hard_link':
       logger.info('Hard linking ' + repr(written_consistent_filename))
 
       # 'written_filename' must not exist, otherwise os.link() complains.
