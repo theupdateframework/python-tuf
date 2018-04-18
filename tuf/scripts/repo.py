@@ -357,7 +357,7 @@ def import_privatekey_from_file(keypath, password=None):
       key_object = securesystemslib.keys.import_rsakey_from_private_pem(
           encrypted_key, 'rsassa-pss-sha256', password)
 
-    except securesystemslib.exceptions.CryptoError as e:
+    except securesystemslib.exceptions.CryptoError:
       raise tuf.exceptions.Error(repr(keypath) + ' cannot be imported, possibly'
           ' because an invalid key file is given or the decryption password is'
           ' incorrect.')
