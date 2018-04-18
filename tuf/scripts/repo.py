@@ -61,8 +61,6 @@ import sys
 import logging
 import argparse
 import shutil
-import errno
-import getpass
 import time
 import fnmatch
 
