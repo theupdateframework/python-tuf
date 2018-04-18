@@ -344,7 +344,7 @@ defining-attr-methods=__init__,__new__,setUp
 
 # List of member names, which should be excluded from the protected access
 # warning.
-exclude-protected=_asdict, _fields, _replace, _source, _make, _generate_and_write_metadata, _delete_obsolete_metadata, _log_status_of_top_level_roles, _load_top_level_metadata, _strip_version_number, _delegated_roles, _remove_invalid_and_duplicate_signatures
+exclude-protected=_asdict, _fields, _replace, _source, _make, _generate_and_write_metadata, _delete_obsolete_metadata, _log_status_of_top_level_roles, _load_top_level_metadata, _strip_version_number, _delegated_roles, _remove_invalid_and_duplicate_signatures, _repository_name, _targets_directory
 
 # List of valid names for the first argument in a class method.
 valid-classmethod-first-arg=cls
