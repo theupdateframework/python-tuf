@@ -150,7 +150,7 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
 
     # NOTE: Following error is raised if a delay is not applied:
     # <urlopen error [Errno 111] Connection refused>
-    time.sleep(.8)
+    time.sleep(.3)
 
     url_prefix = 'http://localhost:' + str(self.SERVER_PORT)
     url_prefix2 = 'http://localhost:' + str(self.SERVER_PORT2)
@@ -178,10 +178,6 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
 
-    # Remove the temporary repository directory, which should contain all the
-    # metadata, targets, and key files generated of all the test cases.
-    shutil.rmtree(self.temporary_directory)
-
     # Kill the SimpleHTTPServer process.
     if self.server_process.returncode is None:
       logger.info('Server process ' + str(self.server_process.pid) + ' terminated.')
@@ -194,6 +190,12 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     # updater.Updater() populates the roledb with the name "test_repository1"
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
+
+    # Remove the temporary repository directory, which should contain all the
+    # metadata, targets, and key files generated of all the test cases.
+    # sleep for a bit to allow the kill'd server processes to terminate.
+    time.sleep(.3)
+    shutil.rmtree(self.temporary_directory)
 
 
 
