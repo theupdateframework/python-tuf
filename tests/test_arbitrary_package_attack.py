@@ -184,7 +184,9 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
 
     url_prefix = self.repository_mirrors['mirror1']['url_prefix']
     url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
-    six.moves.urllib.request.urlretrieve(url_file, client_target_path)
+
+    # On Windows, the URL portion should not contain back slashes.
+    six.moves.urllib.request.urlretrieve(url_file.replace('\\', '/'), client_target_path)
 
     self.assertTrue(os.path.exists(client_target_path))
     length, hashes = securesystemslib.util.get_file_details(client_target_path)
@@ -197,7 +199,8 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     length, hashes = securesystemslib.util.get_file_details(target_path)
     malicious_fileinfo = tuf.formats.make_fileinfo(length, hashes)
 
-    six.moves.urllib.request.urlretrieve(url_file, client_target_path)
+    # On Windows, the URL portion should not contain back slashes.
+    six.moves.urllib.request.urlretrieve(url_file.replace('\\', '/'), client_target_path)
 
     length, hashes = securesystemslib.util.get_file_details(client_target_path)
     download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
