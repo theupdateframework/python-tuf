@@ -102,7 +102,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
 
     # NOTE: Following error is raised if a delay is not applied:
     # <urlopen error [Errno 111] Connection refused>
-    time.sleep(.8)
+    time.sleep(.3)
 
 
 
@@ -222,8 +222,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
                    sort_keys=True).encode('utf-8')
       file_object.write(timestamp_content)
 
-    client_timestamp_path = os.path.join(self.client_directory,
-                                         'timestamp.json')
+    client_timestamp_path = os.path.join(self.client_directory, 'timestamp.json')
     shutil.copy(timestamp_path, client_timestamp_path)
 
     length, hashes = securesystemslib.util.get_file_details(timestamp_path)
@@ -232,7 +231,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     url_prefix = self.repository_mirrors['mirror1']['url_prefix']
     url_file = os.path.join(url_prefix, 'metadata', 'timestamp.json')
 
-    six.moves.urllib.request.urlretrieve(url_file, client_timestamp_path)
+    six.moves.urllib.request.urlretrieve(url_file.replace('\\', '/'), client_timestamp_path)
 
     length, hashes = securesystemslib.util.get_file_details(client_timestamp_path)
     download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
