@@ -234,7 +234,8 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     client_timestamp_path = os.path.join(self.client_directory,
         self.repository_name, 'metadata', 'current', 'timestamp.json')
 
-    six.moves.urllib.request.urlretrieve(url_file, client_timestamp_path)
+    # On Windows, the URL portion should not contain back slashes.
+    six.moves.urllib.request.urlretrieve(url_file.replace('\\', '/'), client_timestamp_path)
 
     length, hashes = securesystemslib.util.get_file_details(client_timestamp_path)
     download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
@@ -246,7 +247,8 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     # and verify that the non-TUF client downloads it (expected, but not ideal).
     shutil.move(backup_timestamp, timestamp_path)
 
-    six.moves.urllib.request.urlretrieve(url_file, client_timestamp_path)
+    # On Windows, the URL portion should not contain back slashes.
+    six.moves.urllib.request.urlretrieve(url_file.replace('\\', '/'), client_timestamp_path)
 
     length, hashes = securesystemslib.util.get_file_details(client_timestamp_path)
     download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
