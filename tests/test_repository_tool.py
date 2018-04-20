@@ -1616,7 +1616,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       repo_tool.create_new_repository('bad' * 2000, repository_name)
 
     except OSError as e:
-      self.assertTrue(e.errno == errno.ENAMETOOLONG)
+      # errno.ENOENT is raised in Windows.
+      self.assertTrue(e.errno == errno.ENAMETOOLONG or e.errno == errno.ENOENT)
 
     # Reset the 'repository_directory' so that the metadata and targets
     # directories can be tested likewise.
@@ -1631,7 +1632,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       repo_tool.create_new_repository(repository_directory, repository_name)
 
     except OSError as e:
-      self.assertTrue(e.errno == errno.ENAMETOOLONG)
+      # errno.ENOENT is raised in Windows.
+      self.assertTrue(e.errno == errno.ENAMETOOLONG or e.errno == errno.ENOENT)
 
     # Reset metadata staged directory so that the targets directory can be
     # tested...
@@ -1645,7 +1647,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       repo_tool.create_new_repository(repository_directory, repository_name)
 
     except OSError as e:
-      self.assertTrue(e.errno == errno.ENAMETOOLONG)
+      # errno.ENOENT is raised in Windows.
+      self.assertTrue(e.errno == errno.ENAMETOOLONG or e.errno == errno.ENOENT)
 
     tuf.repository_tool.TARGETS_DIRECTORY_NAME = \
       original_targets_directory
