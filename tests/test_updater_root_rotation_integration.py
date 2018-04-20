@@ -260,7 +260,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         url_file = os.path.join(url_prefix, 'metadata', '2.root.json')
 
         # Verify that '2.root.json' is the culprit.
-        self.assertEqual(url_file, mirror_url)
+        self.assertEqual(url_file.replace('\\', '/'), mirror_url)
         self.assertTrue(isinstance(mirror_error,
           securesystemslib.exceptions.BadSignatureError))
 

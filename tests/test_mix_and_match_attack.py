@@ -248,7 +248,7 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
         url_file = os.path.join(url_prefix, 'metadata', 'role1.json')
 
         # Verify that 'role1.json' is the culprit.
-        self.assertEqual(url_file, mirror_url)
+        self.assertEqual(url_file.replace('\\', '/'), mirror_url)
         self.assertTrue(isinstance(mirror_error,
                         securesystemslib.exceptions.BadVersionNumberError))
 

@@ -123,6 +123,8 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
     # http://bugs.python.org/issue1712522
     file_path = six.moves.urllib.parse.quote(file_path)
     url = os.path.join(base, file_path)
-    list_of_mirrors.append(url)
+
+    # Make sure the URL doesn't contain backward slashes on Windows.
+    list_of_mirrors.append(url.replace('\\', '/'))
 
   return list_of_mirrors
