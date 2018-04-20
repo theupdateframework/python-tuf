@@ -863,8 +863,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Creation of the '/' directory is forbidden on all supported OSs.  The '/'
     # argument to create_tuf_client_directory should cause it to re-raise a
     # non-errno.EEXIST exception.
-    self.assertRaises(OSError, repo_lib.create_tuf_client_directory,
-        repository_directory, '/')
+    self.assertRaises((OSError, securesystemslib.exceptions.RepositoryError),
+        repo_lib.create_tuf_client_directory, repository_directory, '/')
 
     # Restore the metadata directory name in repo_lib.
     repo_lib.METADATA_DIRECTORY_NAME = metadata_directory_name
