@@ -84,6 +84,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # metadata, targets, and key files generated for the test cases.
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
+
     shutil.rmtree(cls.temporary_directory)
 
 
@@ -853,19 +854,20 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Test invalid client metadata directory (i.e., non-errno.EEXIST exceptions
     # should be re-raised.)
     shutil.rmtree(metadata_directory)
-    current_client_directory_mode = os.stat(client_directory)[stat.ST_MODE]
 
-    # Remove write access for the client directory so that the 'metadata'
-    # directory cannot be created.  create_tuf_client_directory() should
-    # re-raise the 'OSError' (i.e., errno.EACCES) exception and only handle
-    # errno.EEXIST.
-    os.chmod(client_directory, current_client_directory_mode & ~stat.S_IWUSR)
+    # Save the original metadata directory name so that it can be restored
+    # after testing.
+    metadata_directory_name = repo_lib.METADATA_DIRECTORY_NAME
+    repo_lib.METADATA_DIRECTORY_NAME = '/'
 
+    # Creation of the '/' directory is forbidden on all supported OSs.  The '/'
+    # argument to create_tuf_client_directory should cause it to re-raise a
+    # non-errno.EEXIST exception.
     self.assertRaises(OSError, repo_lib.create_tuf_client_directory,
-        repository_directory, client_directory)
+        repository_directory, '/')
 
-    # Reset the client directory's mode.
-    os.chmod(client_directory, current_client_directory_mode)
+    # Restore the metadata directory name in repo_lib.
+    repo_lib.METADATA_DIRECTORY_NAME = metadata_directory_name
 
 
 
