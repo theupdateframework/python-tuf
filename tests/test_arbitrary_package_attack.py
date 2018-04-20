@@ -240,9 +240,10 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
 
       # Verify that the expected 'tuf.exceptions.DownloadLengthMismatchError' exception
       # is raised for 'url_file'.
-      self.assertTrue(url_file in exception.mirror_errors)
-      self.assertTrue(isinstance(exception.mirror_errors[url_file],
-                                 securesystemslib.exceptions.BadHashError))
+      self.assertTrue(url_file.replace('\\', '/') in exception.mirror_errors)
+      self.assertTrue(
+          isinstance(exception.mirror_errors[url_file.replace('\\', '/')],
+          securesystemslib.exceptions.BadHashError))
 
     else:
       self.fail('TUF did not prevent an arbitrary package attack.')
@@ -292,9 +293,10 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
       self.assertTrue(len(exception.mirror_errors), 1)
 
       # Verify that the specific and expected mirror exception is raised.
-      self.assertTrue(url_file in exception.mirror_errors)
-      self.assertTrue(isinstance(exception.mirror_errors[url_file],
-                                 securesystemslib.exceptions.BadHashError))
+      self.assertTrue(url_file.replace('\\', '/') in exception.mirror_errors)
+      self.assertTrue(
+          isinstance(exception.mirror_errors[url_file.replace('\\', '/')],
+          securesystemslib.exceptions.BadHashError))
 
     else:
       self.fail('TUF did not prevent an arbitrary package attack.')
