@@ -68,7 +68,7 @@ class TestMirrors(unittest_toolbox.Modified_TestCase):
     mirror_list = mirrors.get_list_of_mirrors('meta', 'release.txt', self.mirrors)
     self.assertEqual(len(mirror_list), 3)
     for mirror, mirror_info in six.iteritems(self.mirrors):
-      url = mirror_info['url_prefix']+'/metadata/release.txt'
+      url = mirror_info['url_prefix'] + '/metadata/release.txt'
       self.assertTrue(url in mirror_list)
 
     mirror_list = mirrors.get_list_of_mirrors('target', 'a.txt', self.mirrors)
