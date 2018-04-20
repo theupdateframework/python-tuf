@@ -2054,7 +2054,11 @@ def create_tuf_client_directory(repository_directory, client_directory):
         repr(client_metadata_directory) + '.  Already exists.'
       raise securesystemslib.exceptions.RepositoryError(message)
 
-    else:
+    # Testing of non-errno.EEXIST exceptions have been verified on all
+    # supported OSs.  An unexpected exception (the '/' directory exists, rather
+    # than disallowed path) is possible on Travis, so the '#pragma: no branch'
+    # below is included to prevent coverage failure.
+    else: #pragma: no branch
       raise
 
   # Move all  metadata to the client's 'current' and 'previous' directories.
