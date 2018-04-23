@@ -1924,7 +1924,7 @@ class Targets(Metadata):
       # targets directory.
       targets_directory_length = len(self._targets_directory) + 1
       roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
-      relative_path = filepath[targets_directory_length:]
+      relative_path = filepath[targets_directory_length:].replace('\\', '/')
 
       if relative_path not in roleinfo['paths']:
         logger.debug('Adding new target: ' + repr(relative_path))
@@ -1996,7 +1996,8 @@ class Targets(Metadata):
       filepath = os.path.join(self._targets_directory, target)
 
       if os.path.isfile(filepath):
-        relative_list_of_targets.append(filepath[targets_directory_length+1:])
+        relative_list_of_targets.append(
+            filepath[targets_directory_length + 1:].replace('\\', '/'))
 
       else:
         raise securesystemslib.exceptions.Error(repr(filepath) + ' is not'
