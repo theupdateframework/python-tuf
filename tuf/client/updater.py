@@ -2629,6 +2629,8 @@ class Updater(object):
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     securesystemslib.formats.RELPATH_SCHEMA.check_match(target_filepath)
 
+    target_filepath = target_filepath.replace('\\', '/')
+
     if target_filepath.startswith('/'):
       raise tuf.exceptions.FormatError('The requested target file cannot'
           ' contain a leading path separator: ' + repr(target_filepath))

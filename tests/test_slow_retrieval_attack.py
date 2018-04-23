@@ -266,9 +266,9 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
       file1_target = self.repository_updater.get_one_valid_targetinfo('file1.txt')
       self.repository_updater.download_target(file1_target, self.client_directory)
 
-    # Verify that the specific 'tuf.exceptions.SlowRetrievalError' exception is raised by
-    # each mirror.  'file1.txt' should be large enough to trigger a slow
-    # retrieval attack, otherwise the expected exception may not be
+    # Verify that the specific 'tuf.exceptions.SlowRetrievalError' exception is
+    # raised by each mirror.  'file1.txt' should be large enough to trigger a
+    # slow retrieval attack, otherwise the expected exception may not be
     # consistently raised.
     except tuf.exceptions.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
@@ -276,7 +276,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
         url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
 
         # Verify that 'file1.txt' is the culprit.
-        self.assertEqual(url_file, mirror_url)
+        self.assertEqual(url_file.replace('\\', '/'), mirror_url)
         self.assertTrue(isinstance(mirror_error, tuf.exceptions.SlowRetrievalError))
 
     else:

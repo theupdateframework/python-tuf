@@ -1047,7 +1047,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Test: invalid target path.
     self.assertRaises(tuf.exceptions.UnknownTargetError,
-        self.repository_updater.get_one_valid_targetinfo, self.random_path().lstrip(os.sep))
+        self.repository_updater.get_one_valid_targetinfo,
+        self.random_path().lstrip(os.sep).lstrip('/'))
 
     # Test updater.get_one_valid_targetinfo() backtracking behavior (enabled by
     # default.)
