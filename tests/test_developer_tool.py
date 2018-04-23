@@ -162,24 +162,12 @@ class TestProject(unittest.TestCase):
 
     tuf.roledb.clear_roledb()
     tuf.keydb.clear_keydb()
-    self.assertRaises(OSError, developer_tool.create_new_project ,project_name,
+    self.assertRaises(OSError, developer_tool.create_new_project, project_name,
         metadata_directory, location_in_repository, targets_directory,
         project_key)
 
     os.chmod(local_tmp, 0o0777)
 
-    shutil.rmtree(metadata_directory)
-    os.chmod(local_tmp, 0o0555)
-
-    tuf.roledb.clear_roledb()
-    tuf.keydb.clear_keydb()
-    self.assertRaises(OSError, developer_tool.create_new_project ,project_name,
-        metadata_directory, location_in_repository, targets_directory,
-        project_key)
-
-
-    os.chmod(local_tmp, 0o0777)
-    shutil.rmtree(local_tmp)
 
 
 
