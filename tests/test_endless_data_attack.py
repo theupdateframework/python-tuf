@@ -199,9 +199,8 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
 
     # Test: Download a target file that has been modified by an attacker with
     # extra data.
-    with open(target_path, 'r+t') as file_object:
-      original_content = file_object.read()
-      file_object.write(original_content+('append large amount of data' * 100000))
+    with open(target_path, 'a') as file_object:
+      file_object.write('append large amount of data' * 100000)
     large_length, hashes = securesystemslib.util.get_file_details(target_path)
     malicious_fileinfo = tuf.formats.make_fileinfo(large_length, hashes)
 
@@ -244,9 +243,8 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
 
     # Modify 'file1.txt' and confirm that the TUF client only downloads up to
     # the expected file length.
-    with open(target_path, 'r+t') as file_object:
-      original_content = file_object.read()
-      file_object.write(original_content+('append large amount of data' * 10000))
+    with open(target_path, 'a') as file_object:
+      file_object.write('append large amount of data' * 10000)
 
     # Is the modified file actually larger?
     large_length, hashes = securesystemslib.util.get_file_details(target_path)
