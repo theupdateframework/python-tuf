@@ -1397,7 +1397,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
     if len(custom):
       custom_data = custom
 
-    filedict[relative_targetpath] = \
+    filedict[relative_targetpath.replace('\\', '/').lstrip('/')] = \
       get_metadata_fileinfo(target_path, custom_data)
 
     # Copy 'target_path' to 'digest_target' if consistent hashing is enabled.
