@@ -137,7 +137,8 @@ class TestRepository(unittest.TestCase):
     # sub-directory in 'temporary_directory' if it does not exist.
     repository_directory = os.path.join(temporary_directory, 'repository')
     metadata_directory = os.path.join(repository_directory,
-                                      repo_tool.METADATA_STAGED_DIRECTORY_NAME)
+        repo_tool.METADATA_STAGED_DIRECTORY_NAME)
+
     repository = repo_tool.create_new_repository(repository_directory, repository_name)
 
     # (1) Load the public and private keys of the top-level roles, and one
@@ -230,7 +231,8 @@ class TestRepository(unittest.TestCase):
       role_filepath = os.path.join(metadata_directory, role)
       role_signable = securesystemslib.util.load_json_file(role_filepath)
 
-      # Raise 'securesystemslib.exceptions.FormatError' if 'role_signable' is an invalid signable.
+      # Raise 'securesystemslib.exceptions.FormatError' if 'role_signable' is
+      # an invalid signable.
       tuf.formats.check_signable_object_format(role_signable)
 
       self.assertTrue(os.path.exists(role_filepath))
