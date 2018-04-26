@@ -671,10 +671,13 @@ class Metadata(object):
     keyid = key['keyid']
     roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
 
-    previous_keyids = roleinfo['keyids']
+    # Save the keyids that are being replaced since certain roles will need to
+    # re-sign metadata with these keys (e.g., root).  Use list() to make a copy
+    # of roleinfo['keyids'] to ensure we're modifying distinct lists.
+    previous_keyids = list(roleinfo['keyids'])
 
-    # Add 'key' to the role's entry in 'tuf.roledb.py' and avoid duplicates.
-    if keyid not in previous_keyids:
+    # Add 'key' to the role's entry in 'tuf.roledb.py', and avoid duplicates.
+    if keyid not in roleinfo['keyids']:
       roleinfo['keyids'].append(keyid)
       roleinfo['previous_keyids'] = previous_keyids
 
