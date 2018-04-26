@@ -112,7 +112,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
   roleinfo = tuf.roledb.get_roleinfo(rolename, repository_name)
   previous_keyids = roleinfo.get('previous_keyids', [])
   previous_threshold = roleinfo.get('previous_threshold', 1)
-  signing_keyids = list(set(roleinfo['signing_keyids'] + previous_keyids))
+  signing_keyids = list(set(roleinfo['signing_keyids']))
 
   # Generate the appropriate role metadata for 'rolename'.
   if rolename == 'root':
