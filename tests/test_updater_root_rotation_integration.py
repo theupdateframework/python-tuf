@@ -272,9 +272,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Add verification keys
     repository.root.add_verification_key(self.role_keys['root']['public'])
     repository.root.add_verification_key(self.role_keys['role1']['public'])
+
     repository.targets.add_verification_key(self.role_keys['targets']['public'])
     repository.snapshot.add_verification_key(self.role_keys['snapshot']['public'])
     repository.timestamp.add_verification_key(self.role_keys['timestamp']['public'])
+
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
 
@@ -286,25 +288,42 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     repository.root.threshold = 2
     repository.writeall()
 
+    # Unload Root's previous signing keys to ensure that these keys are not
+    # used by mistake.
+    repository.root.unload_signing_key(self.role_keys['role1']['private'])
+    repository.root.unload_signing_key(self.role_keys['root']['private'])
+
     # Add new verification key
     repository.root.add_verification_key(self.role_keys['snapshot']['public'])
 
     # Remove one of the original signing keys
     repository.root.remove_verification_key(self.role_keys['role1']['public'])
-    repository.root.unload_signing_key(self.role_keys['role1']['private'])
 
-    # Set threshold
+    # Set the threshold for the new Root file, but note that the previous
+    # threshold of 2 must still be met.
     repository.root.threshold = 1
 
-    repository.writeall()
+    repository.root.load_signing_key(self.role_keys['role1']['private'])
+    repository.root.load_signing_key(self.role_keys['snapshot']['private'])
+
+    repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
+    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+
+    # We use write() rather than writeall() because the latter should fail due
+    # to the missing self.role_keys['root'] signature.
+    repository.write('root', increment_version_number=True)
+    repository.write('snapshot', increment_version_number=True)
+    repository.write('timestamp', increment_version_number=True)
 
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
 
+    # The following refresh should fail because root must be signed by the
+    # previous self.role_keys['root'] key, which wasn't loaded.
     self.assertRaises(tuf.exceptions.NoWorkingMirrorError,
-                      self.repository_updater.refresh)
+        self.repository_updater.refresh)
 
 
 

@@ -363,9 +363,9 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     repository.root.load_signing_key(self.role_keys['timestamp']['private'])
 
     # Note: We added the Snapshot, Targets, and Timetamp keys to the Root role.
-    # The Root's expected private key has not been loaded yet, so that
-    # we can verify that refresh() correctly raises a securesystemslib.exceptions.BadSignatureError
-    # exception.
+    # The Root's expected private key has not been loaded yet, so that we can
+    # verify that refresh() correctly raises a
+    # securesystemslib.exceptions.BadSignatureError exception.
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
 
@@ -384,7 +384,8 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
 
     except tuf.exceptions.NoWorkingMirrorError as exception:
       for mirror_exception in exception.mirror_errors.values():
-        self.assertTrue(isinstance(mirror_exception, securesystemslib.exceptions.BadSignatureError))
+        self.assertTrue(isinstance(mirror_exception,
+            securesystemslib.exceptions.BadSignatureError))
 
     repository.root.add_verification_key(self.role_keys['root']['public'])
     repository.root.load_signing_key(self.role_keys['root']['private'])
@@ -427,6 +428,13 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
 
     repository.root.remove_verification_key(self.role_keys['targets']['public'])
     repository.root.unload_signing_key(self.role_keys['targets']['private'])
+
+    # The following should fail because root rotation requires the new Root
+    # to be signed with the previous self.role_keys['targets'] key.
+    self.assertRaises(tuf.exceptions.UnsignedMetadataError,
+        repository.writeall)
+
+    repository.root.load_signing_key(self.role_keys['targets']['private'])
     repository.writeall()
 
     # Move the staged metadata to the "live" metadata.
