@@ -67,7 +67,7 @@ iso8601_logger.disabled = True
 
 
 def get_signature_status(signable, role=None, repository_name='default',
-                         threshold=None, keyids=None):
+    threshold=None, keyids=None):
   """
   <Purpose>
     Return a dictionary representing the status of the signatures listed in
@@ -214,12 +214,16 @@ def get_signature_status(signable, role=None, repository_name='default',
   # securesystemslib.exceptions.UnknownRoleError if we were given an invalid
   # role.
   if role is not None:
-    try:
-      threshold = \
-        tuf.roledb.get_role_threshold(role, repository_name=repository_name)
+    if threshold is None:
+      try:
+        threshold = \
+          tuf.roledb.get_role_threshold(role, repository_name=repository_name)
 
-    except tuf.exceptions.UnknownRoleError:
-      raise
+      except tuf.exceptions.UnknownRoleError:
+        raise
+
+    else:
+      logger.debug('Not using roledb.py\'s threshold for ' + repr(role))
 
   else:
     threshold = 0
