@@ -1029,6 +1029,31 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_6_get_one_valid_targetinfo(self):
     # Setup
+    # Unlike some of the other tests, start up a fresh server here.
+    # The SimpleHTTPServer started in the setupclass has a tendency to
+    # timeout in Windows after a few tests.
+    SERVER_PORT = random.randint(30000, 45000)
+    command = ['python', '-m', 'tuf.scripts.simple_server', str(SERVER_PORT)]
+    server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
+
+    # NOTE: Following error is raised if a delay is not applied:
+    # <urlopen error [Errno 111] Connection refused>
+    time.sleep(.3)
+
+    # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
+    repository_basepath = self.repository_directory[len(os.getcwd()):]
+    url_prefix = \
+      'http://localhost:' + str(SERVER_PORT) + repository_basepath
+
+    self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
+        'metadata_path': 'metadata', 'targets_path': 'targets',
+        'confined_target_dirs': ['']}}
+
+    # Creating a repository instance.  The test cases will use this client
+    # updater to refresh metadata, fetch target files, etc.
+    self.repository_updater = updater.Updater(self.repository_name,
+        self.repository_mirrors)
+
     # Extract the file information of the targets specified in 'targets.json'.
     self.repository_updater.refresh()
     targets_metadata = self.repository_updater.metadata['current']['targets']
@@ -1255,6 +1280,36 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # new target files.  Also, confirm that files that need not to be updated
     # are absent from the list.
     # Setup
+
+    # Unlike some of the other tests, start up a fresh server here.
+    # The SimpleHTTPServer started in the setupclass has a tendency to
+    # timeout in Windows after a few tests.
+    SERVER_PORT = random.randint(30000, 45000)
+    command = ['python', '-m', 'tuf.scripts.simple_server', str(SERVER_PORT)]
+    server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
+
+    # NOTE: Following error is raised if a delay is not applied:
+    # <urlopen error [Errno 111] Connection refused>
+    time.sleep(.3)
+
+    # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
+    repository_basepath = self.repository_directory[len(os.getcwd()):]
+    url_prefix = \
+      'http://localhost:' + str(SERVER_PORT) + repository_basepath
+
+    # Setting 'tuf.settings.repository_directory' with the temporary client
+    # directory copied from the original repository files.
+    tuf.settings.repositories_directory = self.client_directory
+
+    self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
+        'metadata_path': 'metadata', 'targets_path': 'targets',
+        'confined_target_dirs': ['']}}
+
+    # Creating a repository instance.  The test cases will use this client
+    # updater to refresh metadata, fetch target files, etc.
+    self.repository_updater = updater.Updater(self.repository_name,
+        self.repository_mirrors)
+
     # Create temporary directory which will hold client's target files.
     destination_directory = self.make_temp_directory()
 
@@ -1352,6 +1407,35 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_8_remove_obsolete_targets(self):
     # Setup.
+    # Unlike some of the other tests, start up a fresh server here.
+    # The SimpleHTTPServer started in the setupclass has a tendency to
+    # timeout in Windows after a few tests.
+    SERVER_PORT = random.randint(30000, 45000)
+    command = ['python', '-m', 'tuf.scripts.simple_server', str(SERVER_PORT)]
+    server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
+
+    # NOTE: Following error is raised if a delay is not applied:
+    # <urlopen error [Errno 111] Connection refused>
+    time.sleep(.3)
+
+    # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
+    repository_basepath = self.repository_directory[len(os.getcwd()):]
+    url_prefix = \
+      'http://localhost:' + str(SERVER_PORT) + repository_basepath
+
+    # Setting 'tuf.settings.repository_directory' with the temporary client
+    # directory copied from the original repository files.
+    tuf.settings.repositories_directory = self.client_directory
+
+    self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
+        'metadata_path': 'metadata', 'targets_path': 'targets',
+        'confined_target_dirs': ['']}}
+
+    # Creating a repository instance.  The test cases will use this client
+    # updater to refresh metadata, fetch target files, etc.
+    self.repository_updater = updater.Updater(self.repository_name,
+        self.repository_mirrors)
+
     # Create temporary directory that will hold the client's target files.
     destination_directory = self.make_temp_directory()
 
