@@ -1216,7 +1216,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.repository_updater.download_target(targetinfo, bad_destination_directory)
 
     except OSError as e:
-      self.assertTrue(e.errno == errno.ENAMETOOLONG)
+      self.assertTrue(e.errno == errno.ENAMETOOLONG or e.errno == errno.ENOENT)
 
     # Test: Invalid arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError,
