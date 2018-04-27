@@ -335,9 +335,8 @@ class Project(Targets):
 
     try:
       temp_project_directory = tempfile.mkdtemp()
-      metadata_directory = os.path.join(temp_project_directory,
-          self.metadata_directory[1:])
 
+      metadata_directory = os.path.join(temp_project_directory, 'metadata')
       targets_directory = self.targets_directory
 
       os.makedirs(metadata_directory)
@@ -608,7 +607,11 @@ def create_new_project(project_name, metadata_directory,
       # Should check if we have write permissions here.
       pass
 
-    else:
+    # Testing of non-errno.EEXIST exceptions have been verified on all
+    # supported # OSs.  An unexpected exception (the '/' directory exists,
+    # rather than disallowed path) is possible on Travis, so the '#pragma: no
+    # branch' below is included to prevent coverage failure.
+    else: #pragma: no branch
       raise
 
   # Try to create the targets directory that will hold all of the target files.
