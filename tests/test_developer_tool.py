@@ -165,9 +165,14 @@ class TestProject(unittest.TestCase):
     metadata_directory = '/'
     valid_metadata_directory_name = developer_tool.METADATA_DIRECTORY_NAME
     developer_tool.METADATA_DIRECTORY_NAME = '/'
-    self.assertRaises(OSError, developer_tool.create_new_project, project_name,
-        metadata_directory, location_in_repository, targets_directory,
-        project_key)
+
+    try:
+      developer_tool.create_new_project(project_name, metadata_directory,
+          location_in_repository, targets_directory, project_key)
+
+    except (OSError, securesystemslib.exceptions.RepositoryError):
+      pass
+
     developer_tool.METADATA_DIRECTORY_NAME = valid_metadata_directory_name
 
 
