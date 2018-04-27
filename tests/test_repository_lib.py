@@ -780,8 +780,14 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     first_version_output_file = os.path.join(temporary_directory, version_and_filename)
     self.assertTrue(os.path.exists(first_version_output_file))
 
+    # Verify that the consistent file content is equal to 'output_filename'.
+    self.assertEqual(
+        securesystemslib.util.get_file_details(output_filename),
+        securesystemslib.util.get_file_details(first_version_output_file))
+
     # Try to add more consistent metadata files.
     version_number += 1
+    root_signable['signed']['version'] = version_number
     repo_lib.write_metadata_file(root_signable, output_filename,
         version_number, consistent_snapshot=True)
 
@@ -790,8 +796,13 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     version_and_filename = str(version_number) + '.' + 'root.json'
     second_version_output_file = os.path.join(temporary_directory, version_and_filename)
     self.assertTrue(os.path.exists(second_version_output_file))
-    self.assertNotEqual(os.stat(output_filename).st_ino, os.stat(first_version_output_file).st_ino)
-    self.assertEqual(os.stat(output_filename).st_ino, os.stat(second_version_output_file).st_ino)
+
+    # Verify that the second version is equal to the second output file, and
+    # that the second output filename differs from the first.
+    self.assertEqual(securesystemslib.util.get_file_details(output_filename),
+        securesystemslib.util.get_file_details(second_version_output_file))
+    self.assertNotEqual(securesystemslib.util.get_file_details(output_filename),
+        securesystemslib.util.get_file_details(first_version_output_file))
 
     # Test for an improper settings.CONSISTENT_METHOD string value.
     tuf.settings.CONSISTENT_METHOD = 'somebadidea'
