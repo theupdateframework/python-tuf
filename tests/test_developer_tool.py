@@ -156,18 +156,24 @@ class TestProject(unittest.TestCase):
     self.assertTrue(len(project.keys) == 1)
     self.assertTrue(project.keys[0] == project_key['keyid'])
 
-    # Set as readonly and try to write a repo.
+    # Try to write to an invalid location.  The OSError should be re-raised by
+    # create_new_project().
     shutil.rmtree(targets_directory)
-    os.chmod(local_tmp, 0o0555)
-
     tuf.roledb.clear_roledb()
     tuf.keydb.clear_keydb()
-    self.assertRaises(OSError, developer_tool.create_new_project, project_name,
-        metadata_directory, location_in_repository, targets_directory,
-        project_key)
 
-    os.chmod(local_tmp, 0o0777)
+    metadata_directory = '/'
+    valid_metadata_directory_name = developer_tool.METADATA_DIRECTORY_NAME
+    developer_tool.METADATA_DIRECTORY_NAME = '/'
 
+    try:
+      developer_tool.create_new_project(project_name, metadata_directory,
+          location_in_repository, targets_directory, project_key)
+
+    except (OSError, securesystemslib.exceptions.RepositoryError):
+      pass
+
+    developer_tool.METADATA_DIRECTORY_NAME = valid_metadata_directory_name
 
 
 
