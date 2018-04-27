@@ -38,6 +38,7 @@ import shutil
 import stat
 import sys
 import unittest
+import platform
 
 import tuf
 import tuf.formats
@@ -806,9 +807,16 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Test for an improper settings.CONSISTENT_METHOD string value.
     tuf.settings.CONSISTENT_METHOD = 'somebadidea'
-    self.assertRaises(securesystemslib.exceptions.InvalidConfigurationError,
-        repo_lib.write_metadata_file, root_signable, output_filename,
-        version_number, consistent_snapshot=True)
+
+    # Test for invalid consistent methods on systems other than Windows,
+    # which always uses the copy method.
+    if platform.system() == 'Windows':
+      pass
+
+    else:
+      self.assertRaises(securesystemslib.exceptions.InvalidConfigurationError,
+          repo_lib.write_metadata_file, root_signable, output_filename,
+          version_number, consistent_snapshot=True)
 
     # Try to create a link to root.json when root.json doesn't exist locally.
     # repository_lib should log a message if this is the case.
