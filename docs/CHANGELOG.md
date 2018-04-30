@@ -1,5 +1,73 @@
 # Changelog
 
+## v.0.11.0
+
+Note: This is a backwards-incompatible pre-release.
+
+* Make significant improvements to execution speed of updater.
+
+* Resolve all of the unit test failures in Windows.
+
+* Add or revise many CLI options.
+  - Add --revoke
+  - Support ECDSA, RSA, and Ed25519 keys
+  - Fully support delegated roles
+  - Revise help descriptions
+  - Allow 2+ roles to delegate to the same role
+  - Add --remove
+  - Add --trust
+  - Remove obsolete code
+  - Add --distrust
+  - Allow any top-level role to be signed
+  - Allow multiple signing keys with --sign
+  - Rename default directories
+  - etc.
+
+* Revise CLI documentation, such as QUICKSTART.md.
+
+* Ensure consistent behavior between add_targets and add_target().
+
+* Add a CLI doc that demonstrates more complex examples.
+
+* Move LICENSE files to the root directory.
+
+* Update dependencies.
+
+* Update TUTORIAL.md to fix links.
+
+* Fix bug where the latest consistent metadata is not loaded.
+
+* Modify the pyup update schedule from daily to weekly.
+
+* Add hashes to requirements.txt.
+
+* Update AUTHORS.txt and add organizations.
+
+* Replace deprecated 'cryptography' functions.
+
+* Remove dependency in dev-requirements.txt that causes error.
+
+* Ensure that the latest consistent metadata is added to Snapshot.
+
+* Tweak a few logger and exception messages.
+
+* Revise introductory text in README.
+
+* Update ADOPTERS.md and link to pages that cover each adoption.
+
+* Remove target paths in metadata that contain leading path separators.
+
+* Address Pylint/Bandit warnings for the CLI modules.
+
+* Replace calls to deprecated 'imp' module.
+
+* Fix bug where the hashing algorithms used to generate local KEYIDs does not
+  match the ones chosen by the repo.
+
+* Fix bug in tuf.sig.get_signature_status() where a given threshold is not used.
+
+* Refactor code that stores the previous keyids of a role.
+
 ## v0.10.2
 
 Note: This is a backwards-incompatible pre-release.
