@@ -17,9 +17,9 @@ release dates are as follows:
 
 
 ## Latest release
-Pre-release v0.10.2 shipped on January 31, 2018.
-* [Release notes](https://github.com/theupdateframework/tuf/releases/tag/v0.10.2)
-* [Download](https://github.com/theupdateframework/tuf/releases/tag/v0.10.2)
+Pre-release v0.11.0 shipped on April 30, 2018.
+* [Release notes](https://github.com/theupdateframework/tuf/releases/tag/v0.11.0)
+* [Download](https://github.com/theupdateframework/tuf/releases/tag/v0.11.0)
 * Packaged by Vladimir Diaz <vladimir.v.diaz@gmail.com, @vladimir-v-diaz>
 * PGP fingerprint: 3E87 BB33 9378 BC7B 3DD0  E5B2 5DEE 9B97 B0E2 289A
 
@@ -41,6 +41,10 @@ In no particular order...
 - [ ] [TAP 8: Key rotation and explicit self-revocation](https://github.com/theupdateframework/taps/blob/master/tap8.md).
 
 - [x] CLI tool and quickstart guide.
+
+- [x] Improve update speed.
+
+- [x] Fully support Windows.
 
 - [ ] Generalize metadata format in specification.
 
