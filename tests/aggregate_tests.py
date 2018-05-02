@@ -43,7 +43,7 @@ import random
 # 'test_' and end with '.py'.  A shell-style wildcard is used with glob() to
 # match desired filenames.  All the tests matching the pattern will be loaded
 # and run in a test suite.
-tests_list = glob.glob('test_*_integration.py')
+tests_list = glob.glob('test_*_attack.py')
 
 # Remove '.py' from each filename to allow loadTestsFromNames() (called below)
 # to properly load the file as a module.
