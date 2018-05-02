@@ -16,8 +16,7 @@ install:
   - python -m pip install -U pip
   - pip install -e .
 
-build: true
+build: false
 
 test_script:
-  - ps: cd tests
-  - "%PYTHON%\\python.exe aggregate_tests.py"
+  - cd tests
