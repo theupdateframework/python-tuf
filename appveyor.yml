@@ -21,3 +21,4 @@ build: false
 test_script:
   - ps: cd tests
   - python aggregate_tests.py
+  - appveyor exit
