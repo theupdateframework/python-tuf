@@ -243,7 +243,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
         message = \
           'Server process ' + str(https_server_process.pid) + ' terminated.'
         logger.info(message)
-        self.server_proc.kill()
+        https_server_process.kill()
 
 
 
