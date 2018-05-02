@@ -1160,6 +1160,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         self.repository_updater.get_one_valid_targetinfo,
         '/foo/foo1.1.tar.gz')
 
+    server_process.kill()
 
 
 
@@ -1401,6 +1402,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.repository_updater.updated_targets(all_targets, destination_directory)
     self.assertEqual(len(updated_targets), 1)
 
+    server_process.kill()
 
 
 
@@ -1503,6 +1505,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # of metadata.
     del self.repository_updater.metadata['previous']['targets']
     self.repository_updater.remove_obsolete_targets(destination_directory)
+
+    server_process.kill()
 
 
 
