@@ -20,4 +20,4 @@ build: false
 
 test_script:
   - cd tests
-  - python test_script.py
+  - python aggregate_tests.py
