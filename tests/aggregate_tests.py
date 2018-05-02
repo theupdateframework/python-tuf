@@ -43,7 +43,7 @@ import random
 # 'test_' and end with '.py'.  A shell-style wildcard is used with glob() to
 # match desired filenames.  All the tests matching the pattern will be loaded
 # and run in a test suite.
-tests_list = glob.glob('test_*.py')
+tests_list = glob.glob('test_sig.py')
 
 # Remove '.py' from each filename to allow loadTestsFromNames() (called below)
 # to properly load the file as a module.
@@ -59,12 +59,9 @@ random.shuffle(tests_without_extension)
 
 if __name__ == '__main__':
   suite = unittest.TestLoader().loadTestsFromNames(tests_without_extension)
-  print('calling sys.exit(0) after loading tests')
   all_tests_passed = unittest.TextTestRunner(verbosity=1).run(suite).wasSuccessful()
   if not all_tests_passed:
-    print('calling sys.exit(1)')
     sys.exit(1)
 
   else:
-    print('calling sys.exit(0)')
     sys.exit(0)
