@@ -21,4 +21,4 @@ build: none
 test_script:
   - ps: cd tests
   - python aggregate_tests.py
-
+  - exit 0
