@@ -21,3 +21,4 @@ build: false
 test_script:
   - cd tests
   - python aggregate_tests.py
+  - ps: echo $?
