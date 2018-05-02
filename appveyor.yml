@@ -4,14 +4,6 @@ environment:
       PYTHON_VERSION: 3.6
       PYTHON_ARCH: 32
 
-    - PYTHON: "C:\\Python35"
-      PYTHON_VERSION: 3.5
-      PYTHON_ARCH: 32
-
-    - PYTHON: "C:\\Python34"
-      PYTHON_VERSION: 3.4
-      PYTHON_ARCH: 32
-
     - PYTHON: "C:\\Python27"
       PYTHON_VERSION: 2.7
       PYTHON_ARCH: 32
@@ -22,9 +14,11 @@ init:
 install:
   - set PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%
   - python -m pip install -U pip
-  - pip install tox
+  - pip install -r ci-requirements.txt
 
 build: none
 
 test_script:
-  - tox
+  - ps: cd tests
+  - python aggregate_tests.py
+
