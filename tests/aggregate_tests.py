@@ -62,3 +62,6 @@ if __name__ == '__main__':
   all_tests_passed = unittest.TextTestRunner(verbosity=1).run(suite).wasSuccessful()
   if not all_tests_passed:
     sys.exit(1)
+
+  else:
+    sys.exit(0)

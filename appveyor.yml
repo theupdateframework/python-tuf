@@ -1,0 +1,23 @@
+environment:
+  matrix:
+    - PYTHON: "C:\\Python36"
+      PYTHON_VERSION: 3.6
+      PYTHON_ARCH: 32
+
+    - PYTHON: "C:\\Python27"
+      PYTHON_VERSION: 2.7
+      PYTHON_ARCH: 32
+
+init:
+  - ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%
+
+install:
+  - set PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%
+  - python -m pip install -U pip
+  - pip install -e .
+
+build: false
+
+test_script:
+  - cd tests
+  - python aggregate_tests.py

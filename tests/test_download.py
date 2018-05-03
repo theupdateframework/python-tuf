@@ -238,12 +238,11 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
       download.unsafe_download(https_url, target_data_length)
 
     finally:
-      https_server_process
       if https_server_process.returncode is None:
         message = \
           'Server process ' + str(https_server_process.pid) + ' terminated.'
         logger.info(message)
-        self.server_proc.kill()
+        https_server_process.kill()
 
 
 
