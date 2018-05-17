@@ -8,8 +8,7 @@ A Framework for Securing Software Update Systems
 [![FOSSA](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf?ref=badge_shield)
 [![CII](https://bestpractices.coreinfrastructure.org/projects/1351/badge)](https://bestpractices.coreinfrastructure.org/projects/1351)
 
-<img src="https://cdn.rawgit.com/theupdateframework/artwork/3a649fa6/tuf-logo-text.svg" height="200" valign="middle" alt="TUF"/>
----------------------------------------------------------------
+# <img src="https://cdn.rawgit.com/theupdateframework/artwork/3a649fa6/tuf-logo-text.svg" height="100" valign="middle" alt="TUF"/>
 
 The Update Framework (TUF) helps developers maintain the security of a software
 update system, even against attackers that compromise the repository or signing
@@ -42,7 +41,7 @@ list.
 
 We strive to make the specification easy to implement, so if you come across
 any inconsistencies or experience any difficulty, do let us know by sending an
-email, or by reporting an issue in the [GitHub specification
+email, or by reporting an issue in the GitHub [specification
 repo](https://github.com/theupdateframework/specification/issues).
 
 Security Issues and Bugs
@@ -61,7 +60,7 @@ PGP key fingerprint **E9C0 59EC 0D32 64FA B35F  94AD 465B F9F6 F8EB 475A**.
 Please do not use the GitHub issue tracker to submit vulnerability reports.
 The issue tracker is intended for bug reports and to make feature requests.
 Major feature requests, such as design changes to the specification, should
-be proposed via a [TUF Augmentation Proposal](docs/TAP.rst).
+be proposed via a [TUF Augmentation Proposal](docs/TAP.rst) (TAP).
 
 License
 -------
