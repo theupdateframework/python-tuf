@@ -75,7 +75,7 @@ from setuptools import setup
 from setuptools import find_packages
 
 
-with open('README.rst') as file_object:
+with open('README.md') as file_object:
   long_description = file_object.read()
 
 setup(
