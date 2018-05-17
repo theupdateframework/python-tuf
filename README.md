@@ -8,7 +8,7 @@ A Framework for Securing Software Update Systems
 [![FOSSA](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf?ref=badge_shield)
 [![CII](https://bestpractices.coreinfrastructure.org/projects/1351/badge)](https://bestpractices.coreinfrastructure.org/projects/1351)
 
-# <img src="https://cdn.rawgit.com/theupdateframework/artwork/3a649fa6/tuf-logo-text.svg" height="100" valign="middle" alt="TUF"/>
+# <img src="https://cdn.rawgit.com/theupdateframework/artwork/3a649fa6/tuf-logo.svg" height="100" valign="middle" alt="TUF"/>
 
 The Update Framework (TUF) helps developers maintain the security of a software
 update system, even against attackers that compromise the repository or signing
