@@ -1,26 +1,20 @@
 A Framework for Securing Software Update Systems
 ------------------------------------------------
 
-[![Travis-CI](https://travis-ci.org/theupdateframework/tuf.svg?branch=develop)]
-(https://travis-ci.org/theupdateframework/tuf)
+[![Travis-CI](https://travis-ci.org/theupdateframework/tuf.svg?branch=develop)](https://travis-ci.org/theupdateframework/tuf)
 
-[![Coveralls](https://coveralls.io/repos/theupdateframework/tuf/badge.svg?branch=develop)]
-(https://coveralls.io/r/theupdateframework/tuf?branch=develop)
+[![Coveralls](https://coveralls.io/repos/theupdateframework/tuf/badge.svg?branch=develop)](https://coveralls.io/r/theupdateframework/tuf?branch=develop)
 
 
-[![PyUp](https://pyup.io/repos/github/theupdateframework/tuf/shield.svg)]
-(https://pyup.io/repos/github/theupdateframework/tuf/)
+[![PyUp](https://pyup.io/repos/github/theupdateframework/tuf/shield.svg)](https://pyup.io/repos/github/theupdateframework/tuf/)
 
-[![Python 3](https://pyup.io/repos/github/theupdateframework/tuf/python-3-shield.svg)]
-(https://pyup.io/repos/github/theupdateframework/tuf/)
+[![Python 3](https://pyup.io/repos/github/theupdateframework/tuf/python-3-shield.svg)](https://pyup.io/repos/github/theupdateframework/tuf/)
 
-[![FOSSA](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf.svg?type=shield)]
-(https://app.fossa.io/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf?ref=badge_shield)
+[![FOSSA](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf?ref=badge_shield)
 
-[![CII](https://bestpractices.coreinfrastructure.org/projects/1351/badge)]
-(https://bestpractices.coreinfrastructure.org/projects/1351)
+[![CII](https://bestpractices.coreinfrastructure.org/projects/1351/badge)](https://bestpractices.coreinfrastructure.org/projects/1351)
 
-# <img src="https://cdn.rawgit.com/theupdateframework/artwork/blob/master/tuf-logo-text.svg" height="200" width="100" valign="middle" alt="TUF"/>
+<img src="https://cdn.rawgit.com/theupdateframework/artwork/blob/master/tuf-logo-text.svg" height="200" valign="middle" alt="TUF"/>
 
 ---------------------------------------------------------------
 
@@ -55,8 +49,8 @@ list.
 
 We strive to make the specification easy to implement, so if you come across
 any inconsistencies or experience any difficulty, do let us know by sending an
-email, or by reporting an issue in the [specification
-GitHub repo](https://github.com/theupdateframework/specification/issues).
+email, or by reporting an issue in the [GitHub specification
+repo](https://github.com/theupdateframework/specification/issues).
 
 Security Issues and Bugs
 ------------------------
