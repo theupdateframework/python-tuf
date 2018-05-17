@@ -35,5 +35,5 @@ six==1.11.0
 smmap2==2.0.3
 stevedore==1.28.0
 tox==3.0.0
-virtualenv==15.2.0
+virtualenv==16.0.0
 wrapt==1.10.11
