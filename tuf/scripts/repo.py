@@ -784,16 +784,16 @@ def set_top_level_keys(repository, parsed_arguments):
     parsed_arguments.pw = securesystemslib.interface.get_password(
         prompt='Enter a password for the top-level role keys: ', confirm=True)
 
-  repo_tool.generate_and_write_ecdsa_keypair(
+  repo_tool.generate_and_write_ed25519_keypair(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       ROOT_KEY_NAME), password=parsed_arguments.root_pw)
-  repo_tool.generate_and_write_ecdsa_keypair(
+  repo_tool.generate_and_write_ed25519_keypair(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       TARGETS_KEY_NAME), password=parsed_arguments.targets_pw)
-  repo_tool.generate_and_write_ecdsa_keypair(
+  repo_tool.generate_and_write_ed25519_keypair(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       SNAPSHOT_KEY_NAME), password=parsed_arguments.snapshot_pw)
-  repo_tool.generate_and_write_ecdsa_keypair(
+  repo_tool.generate_and_write_ed25519_keypair(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       TIMESTAMP_KEY_NAME), password=parsed_arguments.timestamp_pw)
 
