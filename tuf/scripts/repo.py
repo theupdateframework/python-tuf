@@ -916,9 +916,9 @@ def parse_arguments():
       ' recursively.  If unset, the default behavior is to not add target'
       ' files in subdirectories.')
 
-  parser.add_argument('-k', '--key', type=str, nargs='?', const='ecdsa',
+  parser.add_argument('-k', '--key', type=str, nargs='?', const='ed25519',
       default=None, choices=['ecdsa', 'ed25519', 'rsa'],
-      help='Generate an ECDSA, Ed25519, or RSA key.  An ECDSA key is'
+      help='Generate an ECDSA, Ed25519, or RSA key.  An Ed25519 key is'
       ' created if the key type is unspecified.')
 
   parser.add_argument('--filename', nargs='?', default=None, const=None,
