@@ -784,16 +784,16 @@ def set_top_level_keys(repository, parsed_arguments):
     parsed_arguments.pw = securesystemslib.interface.get_password(
         prompt='Enter a password for the top-level role keys: ', confirm=True)
 
-  repo_tool.generate_and_write_ecdsa_keypair(
+  repo_tool.generate_and_write_ed25519_keypair(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       ROOT_KEY_NAME), password=parsed_arguments.root_pw)
-  repo_tool.generate_and_write_ecdsa_keypair(
+  repo_tool.generate_and_write_ed25519_keypair(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       TARGETS_KEY_NAME), password=parsed_arguments.targets_pw)
-  repo_tool.generate_and_write_ecdsa_keypair(
+  repo_tool.generate_and_write_ed25519_keypair(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       SNAPSHOT_KEY_NAME), password=parsed_arguments.snapshot_pw)
-  repo_tool.generate_and_write_ecdsa_keypair(
+  repo_tool.generate_and_write_ed25519_keypair(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       TIMESTAMP_KEY_NAME), password=parsed_arguments.timestamp_pw)
 
@@ -916,9 +916,9 @@ def parse_arguments():
       ' recursively.  If unset, the default behavior is to not add target'
       ' files in subdirectories.')
 
-  parser.add_argument('-k', '--key', type=str, nargs='?', const='ecdsa',
+  parser.add_argument('-k', '--key', type=str, nargs='?', const='ed25519',
       default=None, choices=['ecdsa', 'ed25519', 'rsa'],
-      help='Generate an ECDSA, Ed25519, or RSA key.  An ECDSA key is'
+      help='Generate an ECDSA, Ed25519, or RSA key.  An Ed25519 key is'
       ' created if the key type is unspecified.')
 
   parser.add_argument('--filename', nargs='?', default=None, const=None,
