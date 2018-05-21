@@ -15,7 +15,7 @@ configparser==3.5.0
 cryptography==2.2.2
 enum34==1.1.6
 gitdb2==2.0.3
-gitpython==2.1.9
+gitpython==2.1.10
 idna==2.6
 ipaddress==1.0.21
 iso8601==0.1.12
