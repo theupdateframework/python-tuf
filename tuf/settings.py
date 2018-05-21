@@ -79,18 +79,18 @@ DEFAULT_SNAPSHOT_REQUIRED_LENGTH = 2000000 #bytes
 DEFAULT_TARGETS_REQUIRED_LENGTH = 5000000 #bytes
 
 # Set a timeout value in seconds (float) for non-blocking socket operations.
-SOCKET_TIMEOUT = 2 #seconds
+SOCKET_TIMEOUT = 4 #seconds
 
 # The maximum chunk of data, in bytes, we would download in every round.
 #CHUNK_SIZE = 8192 #bytes
-CHUNK_SIZE = 100000 #bytes
+CHUNK_SIZE = 400000 #bytes
 
 # The minimum average download speed (bytes/second) that must be met to
 # avoid being considered as a slow retrieval attack.
-MIN_AVERAGE_DOWNLOAD_SPEED = 100 #bytes/second
+MIN_AVERAGE_DOWNLOAD_SPEED = 50 #bytes/second
 
 # The time (in seconds) we ignore a server with a slow initial retrieval speed.
-SLOW_START_GRACE_PERIOD = 0.01 #seconds
+SLOW_START_GRACE_PERIOD = 0.1 #seconds
 
 # Software updaters that integrate the framework are required to specify
 # the URL prefix for the mirrors that clients can contact to download updates.
