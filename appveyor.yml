@@ -4,6 +4,14 @@ environment:
       PYTHON_VERSION: 3.6
       PYTHON_ARCH: 32
 
+    - PYTHON: "C:\\Python35"
+      PYTHON_VERSION: 3.5
+      PYTHON_ARCH: 32
+
+    - PYTHON: "C:\\Python34"
+      PYTHON_VERSION: 3.4
+      PYTHON_ARCH: 32
+
     - PYTHON: "C:\\Python27"
       PYTHON_VERSION: 2.7
       PYTHON_ARCH: 32
