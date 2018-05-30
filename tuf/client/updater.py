@@ -1081,6 +1081,13 @@ class Updater(object):
     # do we blindly trust the downloaded root metadata here?
     self._update_root_metadata(root_metadata)
 
+    # Ensure the role and key information of the top-level roles is updated.
+    # We do this whether or not root needed to be updated, in order to ensure
+    # that, e.g., the entries in roledb for top-level roles are populated with
+    # expected keyid info so that roles can be validated. See Issue #736.
+    self._rebuild_key_and_role_db()
+    self.consistent_snapshot = self.metadata['current']['root']['consistent_snapshot']
+
     # Use default but sane information for timestamp metadata, and do not
     # require strict checks on its required length.
     self._update_metadata('timestamp', DEFAULT_TIMESTAMP_UPPERLENGTH)
@@ -1772,12 +1779,6 @@ class Updater(object):
     self.metadata['previous'][metadata_role] = current_metadata_object
     self.metadata['current'][metadata_role] = updated_metadata_object
     self._update_versioninfo(metadata_filename)
-
-    # Ensure the role and key information of the top-level roles is also updated
-    # according to the newly-installed Root metadata.
-    if metadata_role == 'root':
-      self._rebuild_key_and_role_db()
-      self.consistent_snapshot = updated_metadata_object['consistent_snapshot']
 
 
 
