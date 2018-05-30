@@ -257,7 +257,10 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
   temp_file = securesystemslib.util.TempFile()
 
   try:
-    # Open the connection to the remote file.
+    # Open the connection to the remote file.  _open_connection() can raise
+    # socket connection exceptions (such as SSLError).  Connection errors of
+    # this kind can be minimized by adjusting the socket timeout in
+    # settings.py.
     connection = _open_connection(url)
 
     # We ask the server about how big it thinks this file should be.
