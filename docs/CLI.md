@@ -172,9 +172,13 @@ signing of Snapshot and Timestamp metadata.
 
 ## Delegation ##
 
-Delegate trust of target files from the Targets role (or the one specified
-in --role) to some other role (--delegatee).  --delegatee is trusted to
-sign for target files that match the delegated glob patterns.
+Delegate trust of target files from the Targets role (or the one specified in
+--role) to some other role (--delegatee).  --delegatee is trusted to sign for
+target files that match the delegated glob pattern(s).  The --delegate option
+does not create metadata for the delegated role, rather it updates the
+delegator's metadata to list the delegation to --delegatee.  The Snapshot and
+Timestamp metadata are also updated and signed automatically, but this behavior
+can be toggled off with --no_release.
 
 ```Bash
 $ repo.py --delegate <glob pattern> ... --delegatee <rolename> --pubkeys
@@ -193,7 +197,13 @@ $ repo.py --delegate "foo*.tgz" --delegatee foo --pubkeys tufkeystore/foo.pub
 ## Revocation ##
 
 Revoke trust of target files from a delegated role (--delegatee).  The
-"targets" role performs the revocation if --role is not specified.
+"targets" role performs the revocation if --role is not specified.  The
+--revoke option does not delete the metadata belonging to --delegatee, instead
+it removes the delegation to it from the delegator's (or --role) metadata.  The
+Snapshot and Timestamp metadata are also updated and signed automatically, but
+this behavior can be toggled off with --no_release.
+
+
 ```Bash
 $ repo.py --revoke --delegatee <rolename> [--role <rolename>
 --sign </path/to/role_privkey>]
