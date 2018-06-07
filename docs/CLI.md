@@ -76,7 +76,8 @@ $ repo.py --add <foo.tar.gz> --path </path/to/my_repo>
 
 Remove a target file from the Targets metadata (or the Targets role specified
 in --role).  More than one target file or glob pattern may be specified in
---remove.
+--remove.  The Snapshot and Timestamp metadata are also updated and signed
+automatically, but this behavior can be toggled off with --no_release.
 
 ```Bash
 $ repo.py --remove <glob_pattern> ...
