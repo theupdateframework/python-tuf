@@ -54,7 +54,9 @@ $ repo.py --init --consistent
 Copy a target file to the repo and add it to the Targets metadata (or the
 Targets role specified in --role).  More than one target file, or directory,
 may be specified in --add.  The --recursive option may be toggled to also
-include files in subdirectories of a specified directory.
+include files in subdirectories of a specified directory.  The Snapshot
+and Timestamp metadata are also updated and signed automatically, but this
+behavior can be toggled off with --no_release.
 ```Bash
 $ repo.py --add <foo.tar.gz> <bar.tar.gz>
 $ repo.py --add </path/to/dir> [--recursive]
@@ -64,6 +66,8 @@ Similar to the --init case, the repository location can be chosen.
 ```Bash
 $ repo.py --add <foo.tar.gz> --path </path/to/my_repo>
 ```
+
+
 
 
 
