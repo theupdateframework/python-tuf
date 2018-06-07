@@ -545,8 +545,8 @@ def sign_role(parsed_arguments):
       consistent_snapshot=consistent_snapshot, increment_version_number=False)
 
   # Write the updated top-level roles, if any.  Also write Snapshot and
-  # Timestamp to make a new release.
-
+  # Timestamp to make a new release.  Automatically making a new release can be
+  # disabled via --no_release.
   if not parsed_arguments.no_release:
     snapshot_private = import_privatekey_from_file(
         os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),

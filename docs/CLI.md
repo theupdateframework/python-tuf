@@ -155,7 +155,8 @@ $ repo.py --distrust --pubkeys tufkeystore/my_key_too.pub --role root
 
 ## Sign metadata ##
 Sign, with the specified key(s), the metadata of the role indicated in --role.
-The Snapshot and Timestamp role are also automatically signed, if possible.
+The Snapshot and Timestamp role are also automatically signed, if possible, but
+this behavior can be disabled with --no_release.
 ```Bash
 $ repo.py --sign </path/to/key> ... [--role <rolename>, --path </path/to/repo>]
 ```
