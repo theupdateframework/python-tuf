@@ -2593,10 +2593,10 @@ class Updater(object):
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     securesystemslib.formats.RELPATH_SCHEMA.check_match(rolename)
 
+    self._refresh_targets_metadata(refresh_all_delegated_roles=True)
+
     if not tuf.roledb.role_exists(rolename, self.repository_name):
       raise tuf.exceptions.UnknownRoleError(rolename)
-
-    self._refresh_targets_metadata(rolename)
 
     return self._targets_of_role(rolename, skip_refresh=True)
 
