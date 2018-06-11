@@ -209,16 +209,18 @@ def delegate(parsed_arguments):
         increment_version_number=True)
 
   # Update the required top-level roles, Snapshot and Timestamp, to make a new
-  # release.
-  snapshot_private = import_privatekey_from_file(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
-      parsed_arguments.snapshot_pw)
-  timestamp_private = import_privatekey_from_file(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      TIMESTAMP_KEY_NAME), parsed_arguments.timestamp_pw)
+  # release.  Automatically making a new release can be disabled via
+  # --no_release.
+  if not parsed_arguments.no_release:
+    snapshot_private = import_privatekey_from_file(
+        os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
+        parsed_arguments.snapshot_pw)
+    timestamp_private = import_privatekey_from_file(
+        os.path.join(parsed_arguments.path, KEYSTORE_DIR,
+        TIMESTAMP_KEY_NAME), parsed_arguments.timestamp_pw)
 
-  repository.snapshot.load_signing_key(snapshot_private)
-  repository.timestamp.load_signing_key(timestamp_private)
+    repository.snapshot.load_signing_key(snapshot_private)
+    repository.timestamp.load_signing_key(timestamp_private)
 
   consistent_snapshot = tuf.roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
@@ -253,16 +255,18 @@ def revoke(parsed_arguments):
     repository.targets(parsed_arguments.role).load_signing_key(role_privatekey)
 
   # Update the required top-level roles, Snapshot and Timestamp, to make a new
-  # release.
-  snapshot_private = import_privatekey_from_file(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
-      parsed_arguments.snapshot_pw)
-  timestamp_private = import_privatekey_from_file(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      TIMESTAMP_KEY_NAME), parsed_arguments.timestamp_pw)
+  # release.  Automatically making a new release can be disabled via
+  # --no_release.
+  if not parsed_arguments.no_release:
+    snapshot_private = import_privatekey_from_file(
+        os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
+        parsed_arguments.snapshot_pw)
+    timestamp_private = import_privatekey_from_file(
+        os.path.join(parsed_arguments.path, KEYSTORE_DIR,
+        TIMESTAMP_KEY_NAME), parsed_arguments.timestamp_pw)
 
-  repository.snapshot.load_signing_key(snapshot_private)
-  repository.timestamp.load_signing_key(timestamp_private)
+    repository.snapshot.load_signing_key(snapshot_private)
+    repository.timestamp.load_signing_key(timestamp_private)
 
   consistent_snapshot = tuf.roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
@@ -541,16 +545,18 @@ def sign_role(parsed_arguments):
       consistent_snapshot=consistent_snapshot, increment_version_number=False)
 
   # Write the updated top-level roles, if any.  Also write Snapshot and
-  # Timestamp to make a new release.
-  snapshot_private = import_privatekey_from_file(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
-      parsed_arguments.snapshot_pw)
-  timestamp_private = import_privatekey_from_file(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      TIMESTAMP_KEY_NAME), parsed_arguments.timestamp_pw)
+  # Timestamp to make a new release.  Automatically making a new release can be
+  # disabled via --no_release.
+  if not parsed_arguments.no_release:
+    snapshot_private = import_privatekey_from_file(
+        os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
+        parsed_arguments.snapshot_pw)
+    timestamp_private = import_privatekey_from_file(
+        os.path.join(parsed_arguments.path, KEYSTORE_DIR,
+        TIMESTAMP_KEY_NAME), parsed_arguments.timestamp_pw)
 
-  repository.snapshot.load_signing_key(snapshot_private)
-  repository.timestamp.load_signing_key(timestamp_private)
+    repository.snapshot.load_signing_key(snapshot_private)
+    repository.timestamp.load_signing_key(timestamp_private)
 
   repository.writeall(consistent_snapshot=consistent_snapshot)
 
@@ -682,15 +688,19 @@ def add_targets(parsed_arguments):
         consistent_snapshot=consistent_snapshot, increment_version_number=True)
     return
 
-  snapshot_private = import_privatekey_from_file(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
-      parsed_arguments.snapshot_pw)
-  timestamp_private = import_privatekey_from_file(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      TIMESTAMP_KEY_NAME), parsed_arguments.timestamp_pw)
+  # Update the required top-level roles, Snapshot and Timestamp, to make a new
+  # release.  Automatically making a new release can be disabled via
+  # --no_release.
+  if not parsed_arguments.no_release:
+    snapshot_private = import_privatekey_from_file(
+        os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
+        parsed_arguments.snapshot_pw)
+    timestamp_private = import_privatekey_from_file(
+        os.path.join(parsed_arguments.path, KEYSTORE_DIR,
+        TIMESTAMP_KEY_NAME), parsed_arguments.timestamp_pw)
 
-  repository.snapshot.load_signing_key(snapshot_private)
-  repository.timestamp.load_signing_key(timestamp_private)
+    repository.snapshot.load_signing_key(snapshot_private)
+    repository.timestamp.load_signing_key(timestamp_private)
 
   repository.writeall(consistent_snapshot=consistent_snapshot)
 
@@ -715,20 +725,23 @@ def remove_targets(parsed_arguments):
     parsed_arguments.pw = securesystemslib.interface.get_password(
         prompt='Enter a password for the top-level role keys: ', confirm=True)
 
-  # Load the top-level, non-root, keys to make a new release.
   targets_private = import_privatekey_from_file(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
       parsed_arguments.targets_pw)
-  snapshot_private = import_privatekey_from_file(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
-      parsed_arguments.snapshot_pw)
-  timestamp_private = import_privatekey_from_file(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      TIMESTAMP_KEY_NAME), parsed_arguments.timestamp_pw)
-
   repository.targets.load_signing_key(targets_private)
-  repository.snapshot.load_signing_key(snapshot_private)
-  repository.timestamp.load_signing_key(timestamp_private)
+
+  # Load the top-level keys for Snapshot and Timestamp to make a new release.
+  # Automatically making a new release can be disabled via --no_release.
+  if not parsed_arguments.no_release:
+    snapshot_private = import_privatekey_from_file(
+        os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
+        parsed_arguments.snapshot_pw)
+    timestamp_private = import_privatekey_from_file(
+        os.path.join(parsed_arguments.path, KEYSTORE_DIR,
+        TIMESTAMP_KEY_NAME), parsed_arguments.timestamp_pw)
+
+    repository.snapshot.load_signing_key(snapshot_private)
+    repository.timestamp.load_signing_key(timestamp_private)
 
   consistent_snapshot = tuf.roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
@@ -888,6 +901,10 @@ def parse_arguments():
   parser.add_argument('-b', '--bare', action='store_true',
       help='If initializing a repository, neither create nor set keys'
       ' for any of the top-level roles.  False, by default.')
+
+  parser.add_argument('--no_release', action='store_true',
+      help='Do not automatically sign Snapshot and Timestamp metadata.'
+      '  False, by default.')
 
   parser.add_argument('--consistent', action='store_true',
       help='Set consistent snapshots for an initialized repository.'

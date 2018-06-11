@@ -29,7 +29,7 @@ pycparser==2.18
 pylint==1.9.1
 pynacl==1.2.1
 pyyaml==3.12
-securesystemslib==0.11.1
+securesystemslib[crypto,pynacl]==0.11.2
 singledispatch==3.4.0.3
 six==1.11.0
 smmap2==2.0.3

@@ -42,3 +42,9 @@ Installation instructions:
 
     Or from the root directory of the unpacked archive.
     $ pip install .
+
+    By default, C extensions are not installed and only Ed25519 signatures can
+    be verified in pure Python.  To fully support RSA, Ed25519, ECDSA, and
+    other crypto, you must install the extra dependencies declared by
+    securesystemslib:
+    $ pip install securesystemslib[crypto,pynacl]
