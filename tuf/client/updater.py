@@ -904,6 +904,7 @@ class Updater(object):
     # reloading delegated roles is not required here.
     tuf.keydb.create_keydb_from_root_metadata(self.metadata['current']['root'],
         self.repository_name)
+
     tuf.roledb.create_roledb_from_root_metadata(self.metadata['current']['root'],
         self.repository_name)
 

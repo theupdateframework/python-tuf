@@ -209,11 +209,16 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     self.assertEqual(sorted(['role1', 'root', 'snapshot', 'targets', 'timestamp']),
         sorted(tuf.roledb.get_rolenames('test_repository2')))
 
+    # Note: refresh() resets the known metadata and updates the latest
+    # top-level metadata.
     self.repository_updater.refresh()
 
-    self.assertEqual(sorted(['role1', 'root', 'snapshot', 'targets', 'timestamp']),
+    self.assertEqual(sorted(['root', 'snapshot', 'targets', 'timestamp']),
         sorted(tuf.roledb.get_rolenames('test_repository1')))
-    self.assertEqual(sorted(['role1', 'root', 'snapshot', 'targets', 'timestamp']),
+
+    # test_repository2 wasn't refreshed and should still know about delegated
+    # roles.
+    self.assertEqual(sorted(['root', 'role1', 'snapshot', 'targets', 'timestamp']),
         sorted(tuf.roledb.get_rolenames('test_repository2')))
 
     # 'role1.json' should be downloaded, because it provides info for the
