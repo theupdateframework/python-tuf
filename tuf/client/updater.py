@@ -873,8 +873,9 @@ class Updater(object):
       Non-public method that rebuilds the key and role databases from the
       currently trusted 'root' metadata object extracted from 'root.json'.
       This private method is called when a new/updated 'root' metadata file is
-      loaded.  This method will only store the role information of the
-      top-level roles (i.e., 'root', 'targets', 'snapshot', 'timestamp').
+      loaded or when updater.refresh() is called.  This method will only store
+      the role information of the top-level roles (i.e., 'root', 'targets',
+      'snapshot', 'timestamp').
 
     <Arguments>
       None.
