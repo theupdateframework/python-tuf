@@ -407,9 +407,11 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     #
     # Serve the client expired Snapshot.  The client should reject the given,
     # expired Snapshot and the locally trusted one, which should now be out of
-    # date.  After the attack, attempt to re-issue a valid Snapshot to verify
-    # that the client is able to recover from the indefinite freeze attack via
-    # the snapshot metadata.
+    # date.
+    # After the attack, attempt to re-issue a valid Snapshot to verify that
+    # the client is still able to update. A bug previously caused snapshot
+    # expiration or replay to result in an indefinite freeze; see
+    # github.com/theupdateframework/tuf/issues/736
     repository = repo_tool.load_repository(self.repository_directory)
 
     ts_key_file = os.path.join(self.keystore_directory, 'timestamp_key')
