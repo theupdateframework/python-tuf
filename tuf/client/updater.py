@@ -1091,7 +1091,8 @@ class Updater(object):
     # marked obsolete and deleted after a failed attempt, and thus we should
     # refresh them here as a protective measure.  See Issue #736.
     self._rebuild_key_and_role_db()
-    self.consistent_snapshot = self.metadata['current']['root']['consistent_snapshot']
+    self.consistent_snapshot = \
+        self.metadata['current']['root']['consistent_snapshot']
 
     # Use default but sane information for timestamp metadata, and do not
     # require strict checks on its required length.
