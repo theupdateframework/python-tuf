@@ -1086,7 +1086,8 @@ class Updater(object):
     # ensure that, e.g., the entries in roledb for top-level roles are
     # populated with expected keyid info so that roles can be validated.  In
     # certain circumstances, top-level metadata might be missing because it was
-    # marked obsolete and deleted after a failed attempt.  See Issue #736.
+    # marked obsolete and deleted after a failed attempt, and thus we should
+    # refresh them here as a protective measure.  See Issue #736.
     self._rebuild_key_and_role_db()
     self.consistent_snapshot = self.metadata['current']['root']['consistent_snapshot']
 
