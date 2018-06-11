@@ -401,5 +401,101 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
         ' Freeze attack successful.')
 
 
+
+
+    # Test 3 Begin:
+    #
+    # Serve the client expired Snapshot.  The client should reject the given,
+    # expired Snapshot and the locally trusted one, which should now be out of
+    # date.  After the attack, attempt to re-issue a valid Snapshot to verify
+    # that the client is able to recover from the indefinite freeze attack via
+    # the snapshot metadata.
+    repository = repo_tool.load_repository(self.repository_directory)
+
+    ts_key_file = os.path.join(self.keystore_directory, 'timestamp_key')
+    snapshot_key_file = os.path.join(self.keystore_directory, 'snapshot_key')
+    timestamp_private = repo_tool.import_ed25519_privatekey_from_file(
+        ts_key_file, 'password')
+    snapshot_private = repo_tool.import_ed25519_privatekey_from_file(
+        snapshot_key_file, 'password')
+
+    repository.timestamp.load_signing_key(timestamp_private)
+    repository.snapshot.load_signing_key(snapshot_private)
+
+    # Set ts to expire in 1 month.
+    ts_expiry_time = time.time() + 2630000
+
+    # Set snapshot to expire in 1 second.
+    snapshot_expiry_time = time.time() + 1
+
+    ts_datetime_object = tuf.formats.unix_timestamp_to_datetime(
+        int(ts_expiry_time))
+    snapshot_datetime_object = tuf.formats.unix_timestamp_to_datetime(
+        int(snapshot_expiry_time))
+    repository.timestamp.expiration = ts_datetime_object
+    repository.snapshot.expiration = snapshot_datetime_object
+    repository.writeall()
+
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+
+    # Wait just long enough for the Snapshot metadata (which is now on the
+    # repository) to expire.
+    time.sleep(max(0, snapshot_expiry_time - time.time() + 1))
+
+
+    try:
+      # We expect the following refresh() to raise a NoWorkingMirrorError.
+      self.repository_updater.refresh()
+
+    except tuf.exceptions.NoWorkingMirrorError as e:
+      # NoWorkingMirrorError indicates that we did not find valid, unexpired
+      # metadata at any mirror. That exception class preserves the errors from
+      # each mirror. We now assert that for each mirror, the particular error
+      # detected was that metadata was expired (the Snapshot we manually
+      # expired).
+      for mirror_url, mirror_error in six.iteritems(e.mirror_errors):
+        self.assertTrue(isinstance(mirror_error, tuf.exceptions.ExpiredMetadataError))
+        self.assertTrue(mirror_url.endswith('snapshot.json'))
+
+    else:
+      self.fail('TUF failed to detect expired, stale Snapshot metadata.'
+        ' Freeze attack successful.')
+
+    # The client should have rejected the malicious Snapshot metadata, and
+    # distrusted the local snapshot file that is no longer valid.
+    self.assertTrue('snapshot' not in self.repository_updater.metadata['current'])
+    self.assertEqual(sorted(['root', 'targets', 'timestamp']),
+        sorted(self.repository_updater.metadata['current']))
+
+    # Verify that the client is able to recover from the malicious Snapshot.
+    # Re-sign a valid Snapshot file that the client should accept.
+    repository = repo_tool.load_repository(self.repository_directory)
+
+    repository.timestamp.load_signing_key(timestamp_private)
+    repository.snapshot.load_signing_key(snapshot_private)
+
+    # Set snapshot to expire in 1 month.
+    snapshot_expiry_time = time.time() + 2630000
+
+    snapshot_datetime_object = tuf.formats.unix_timestamp_to_datetime(
+        int(snapshot_expiry_time))
+    repository.snapshot.expiration = snapshot_datetime_object
+    repository.writeall()
+
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+
+    self.repository_updater.refresh()
+    self.assertTrue('snapshot' in self.repository_updater.metadata['current'])
+    self.assertEqual(sorted(['root', 'targets', 'timestamp', 'snapshot']),
+        sorted(self.repository_updater.metadata['current']))
+
+
+
 if __name__ == '__main__':
   unittest.main()
