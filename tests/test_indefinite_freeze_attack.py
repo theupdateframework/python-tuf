@@ -241,12 +241,15 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
 
 
   def test_with_tuf(self):
-    # Two tests are conducted here.
+    # Three tests are conducted here.
     #
     # Test 1: If we find that the timestamp acquired from a mirror indicates
     #         that there is no new snapshot file, and our current snapshot
     #         file is expired, is it recognized as such?
     # Test 2: If an expired timestamp is downloaded, is it recognized as such?
+    # Test 3: If an expired Snapshot is downloaded, is it (1) rejected? (2) the
+    # local Snapshot file deleted? (3) and is the client able to recover when
+    # given a new, valid Snapshot?
 
 
     # Test 1 Begin:
@@ -492,6 +495,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
 
+    # Verify that the client accepts the valid metadata file.
     self.repository_updater.refresh()
     self.assertTrue('snapshot' in self.repository_updater.metadata['current'])
     self.assertEqual(sorted(['root', 'targets', 'timestamp', 'snapshot']),
