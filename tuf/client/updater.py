@@ -88,20 +88,28 @@
   # copies of the metadata files.
   updater.refresh()
 
-  # The target file information for all the repository targets is determined.
-  targets = updater.all_targets()
+  # get_one_valid_targetinfo() updates role metadata when required.  In other
+  # words, if the client doesn't possess the metadata that lists 'LICENSE.txt',
+  # get_one_valid_targetinfo() will try to fetch / update it.
+  target = updater.get_one_valid_targetinfo('LICENSE.txt')
 
-  # Among these targets, determine the ones that have changed since the client's
-  # last refresh().  A target is considered updated if it does not exist in
+  # Determine if 'target' has changed since the client's last refresh().  A
+  # target is considered updated if it does not exist in
   # 'destination_directory' (current directory) or the target located there has
   # changed.
   destination_directory = '.'
-  updated_targets = updater.updated_targets(targets, destination_directory)
+  updated_target = updater.updated_targets([target], destination_directory)
 
-  # Lastly, attempt to download each target among those that have changed.
-  # The updated target files are saved locally to 'destination_directory'.
-  for target in updated_targets:
+  for target in updated_target:
     updater.download_target(target, destination_directory)
+    # Client code here may also reference target information (including
+    # 'custom') by directly accessing the dictionary entries of the target.
+    # The 'custom' entry is additional file information explicitly set by the
+    # remote repository.
+    target_path = target['filepath']
+    target_length = target['fileinfo']['length']
+    target_hashes = target['fileinfo']['hashes']
+    target_custom_data = target['fileinfo']['custom']
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
