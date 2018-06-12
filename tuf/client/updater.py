@@ -625,12 +625,12 @@ class Updater(object):
     """
     <Purpose>
       Constructor.  Instantiating an updater object causes all the metadata
-      files for the top-level roles to be read from disk, including the key
-      and role information for the delegated targets of 'targets'.  The actual
-      metadata for delegated roles is not loaded in __init__.  The metadata
-      for these delegated roles, including nested delegated roles, are
-      loaded, updated, and saved to the 'self.metadata' store by the target
-      methods, like all_targets() and targets_of_role().
+      files for the top-level roles to be read from disk, including the key and
+      role information for the delegated targets of 'targets'.  The actual
+      metadata for delegated roles is not loaded in __init__.  The metadata for
+      these delegated roles, including nested delegated roles, are loaded,
+      updated, and saved to the 'self.metadata' store, as needed, by
+      get_one_valid_targetinfo().
 
       The initial set of metadata files are provided by the software update
       system utilizing TUF.
@@ -889,11 +889,11 @@ class Updater(object):
 
     # Clobbering this means all delegated metadata files are rendered outdated
     # and will need to be reloaded.  However, reloading the delegated metadata
-    # files is avoided here because fetching target information with methods
-    # like all_targets() and get_one_valid_targetinfo() always cause a refresh
-    # of these files.  The metadata files for delegated roles are also not
-    # loaded when the repository is first instantiated.  Due to this setup,
-    # reloading delegated roles is not required here.
+    # files is avoided here because fetching target information with
+    # get_one_valid_targetinfo() always causes a refresh of these files.  The
+    # metadata files for delegated roles are also not loaded when the
+    # repository is first instantiated.  Due to this setup, reloading delegated
+    # roles is not required here.
     tuf.keydb.create_keydb_from_root_metadata(self.metadata['current']['root'],
         self.repository_name)
 
@@ -1001,8 +1001,7 @@ class Updater(object):
       timestamp -> snapshot -> root (if necessary) -> targets.
 
       Delegated metadata is not refreshed by this method. After this method is
-      called, the use of target methods (e.g., all_targets(),
-      targets_of_role(), or get_one_valid_targetinfo()) will update delegated
+      called, the use of get_one_valid_targetinfo() will update delegated
       metadata, when required.  Calling refresh() ensures that top-level
       metadata is up-to-date, so that the target methods can refer to the
       latest available content. Thus, refresh() should always be called by the
@@ -2412,8 +2411,8 @@ class Updater(object):
       refresh() by the _update_metadata_if_changed('targets') call, not here.
       Delegated roles are not loaded when the repository is first initialized.
       They are loaded from disk, updated if they have changed, and stored to
-      the 'self.metadata' store by this method.  This method is called by the
-      target methods, like all_targets() and targets_of_role().
+      the 'self.metadata' store by this method.  This method is called by
+      get_one_valid_targetinfo().
 
     <Arguments>
       rolename:
