@@ -47,7 +47,7 @@ can decide how to proceed rather than automatically downloading a new Root file.
 
 
 ## Example Client
-### Refresh TUF Metadata and Download Target Files
+### Refresh TUF Metadata
 ```Python
 # The client first imports the 'updater.py' module, the only module the
 # client is required to import.  The client will utilize a single class
@@ -87,47 +87,8 @@ updater = tuf.client.updater.Updater('updater', repository_mirrors)
 # copies of the top-level metadata files (i.e., Root, Targets, Snapshot,
 # Timestamp).
 updater.refresh()
-
-# The target file information of all the repository targets is determined next.
-# Since all_targets() downloads the target files of every role, all role
-# metadata is updated.
-targets = updater.all_targets()
-
-# Among these targets, determine the ones that have changed since the client's
-# last refresh().  A target is considered updated if it does not exist in
-# 'destination_directory' (current directory) or the target located there has
-# changed.
-destination_directory = '.'
-updated_targets = updater.updated_targets(targets, destination_directory)
-
-# Lastly, attempt to download each target among those that have changed.
-# The updated target files are saved locally to 'destination_directory'.
-for target in updated_targets:
-  updater.download_target(target, destination_directory)
-
-# Remove any files from the destination directory that are no longer being
-# tracked. For example, a target file from a previous snapshot that has since
-# been removed on the remote repository.
-updater.remove_obsolete_targets(destination_directory)
 ```
 
-### Download Target Files of a Role
-```Python
-# Example demonstrating an update that only downloads the targets of
-# a specific role (i.e., 'targets/django').
-
-# Refresh the metadata of the top-level roles (i.e., Root, Targets, Snapshot, Timestamp).
-updater.refresh()
-
-# Update the 'targets/django' role, and determine the target files that have changed.
-# targets_of_role() refreshes the minimum metadata needed to download the target files
-# of the specified role (e.g., R1->R4->R5, where R2 and R3 are excluded).
-targets_of_django = updater.targets_of_role('targets/django')
-updated_targets = updater.updated_targets(targets_of_django, destination_directory)
-
-for target in updated_targets:
-  updater.download_target(target, destination_directory)
-```
 
 ### Download Specific Target File
 ```Python
@@ -151,12 +112,17 @@ for target in updated_target:
   target_length = target['fileinfo']['length']
   target_hashes = target['fileinfo']['hashes']
   target_custom_data = target['fileinfo']['custom']
+
+  # Remove any files from the destination directory that are no longer being
+  # tracked. For example, a target file from a previous snapshot that has since
+  # been removed on the remote repository.
+  updater.remove_obsolete_targets(destination_directory)
 ```
 
-### A Simple Integration Example with basic_client.py
+### A Simple Integration Example with client.py
 ``` Bash
-# Assume a simple TUF repository has been setup with 'tuf.repository_tool.py'.
-$ basic_client.py --repo http://localhost:8001
+# Assume a simple TUF repository has been setup with 'repo.py'.
+$ client.py --repo http://localhost:8001
 
 # Metadata and target files are silently updated.  An exception is only raised if an error,
 # or attack, is detected.  Inspect 'tuf.log' for the outcome of the update process.
