@@ -119,6 +119,7 @@ import shutil
 import time
 import fnmatch
 import copy
+import warnings
 
 import tuf
 import tuf.download
@@ -588,18 +589,9 @@ class Updater(object):
       The expiration time for downloaded metadata is also verified.
 
       The metadata for delegated roles are not refreshed by this method, but by
-      the target methods (e.g., all_targets(), targets_of_role(),
-      get_one_valid_targetinfo()).  The refresh() method should be called by
-      the client before any target requests.
-
-    all_targets():
-      Returns the target information for the 'targets' and delegated roles.
-      Prior to extracting the target information, this method attempts a file
-      download of all the target metadata that have changed.
-
-    targets_of_role('targets'):
-      Returns the target information for the targets of a specified role.
-      Like all_targets(), delegated metadata is updated if it has changed.
+      the method that returns targetinfo (i.e., get_one_valid_targetinfo()).
+      The refresh() method should be called by the client before any target
+      requests.
 
     get_one_valid_targetinfo(file_path):
       Returns the target information for a specific file identified by its file
@@ -2380,6 +2372,11 @@ class Updater(object):
      'tuf.formats.TARGETINFOS_SCHEMA'.
     """
 
+    warnings.warn(
+        'Support for all_targets() will be removed in a future release.'
+        '  get_one_valid_targetinfo() should be used instead.',
+        DeprecationWarning)
+
     # Load the most up-to-date targets of the 'targets' role and all
     # delegated roles.
     self._refresh_targets_metadata(refresh_all_delegated_roles=True)
@@ -2589,6 +2586,11 @@ class Updater(object):
       A list of targets, conformant to
       'tuf.formats.TARGETINFOS_SCHEMA'.
     """
+
+    warnings.warn(
+        'Support for targets_of_role() will be removed in a future release.'
+        '  get_one_valid_targetinfo() should be used instead.',
+        DeprecationWarning)
 
     # Does 'rolename' have the correct format?
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
