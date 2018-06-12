@@ -873,8 +873,9 @@ class Updater(object):
       Non-public method that rebuilds the key and role databases from the
       currently trusted 'root' metadata object extracted from 'root.json'.
       This private method is called when a new/updated 'root' metadata file is
-      loaded.  This method will only store the role information of the
-      top-level roles (i.e., 'root', 'targets', 'snapshot', 'timestamp').
+      loaded or when updater.refresh() is called.  This method will only store
+      the role information of the top-level roles (i.e., 'root', 'targets',
+      'snapshot', 'timestamp').
 
     <Arguments>
       None.
@@ -903,6 +904,7 @@ class Updater(object):
     # reloading delegated roles is not required here.
     tuf.keydb.create_keydb_from_root_metadata(self.metadata['current']['root'],
         self.repository_name)
+
     tuf.roledb.create_roledb_from_root_metadata(self.metadata['current']['root'],
         self.repository_name)
 
@@ -1081,9 +1083,21 @@ class Updater(object):
     # do we blindly trust the downloaded root metadata here?
     self._update_root_metadata(root_metadata)
 
+    # Ensure that the role and key information of the top-level roles is the
+    # latest.  We do this whether or not Root needed to be updated, in order to
+    # ensure that, e.g., the entries in roledb for top-level roles are
+    # populated with expected keyid info so that roles can be validated.  In
+    # certain circumstances, top-level metadata might be missing because it was
+    # marked obsolete and deleted after a failed attempt, and thus we should
+    # refresh them here as a protective measure.  See Issue #736.
+    self._rebuild_key_and_role_db()
+    self.consistent_snapshot = \
+        self.metadata['current']['root']['consistent_snapshot']
+
     # Use default but sane information for timestamp metadata, and do not
     # require strict checks on its required length.
     self._update_metadata('timestamp', DEFAULT_TIMESTAMP_UPPERLENGTH)
+
     # TODO: After fetching snapshot.json, we should either verify the root
     # fileinfo referenced there matches what was fetched earlier in
     # _update_root_metadata() or make another attempt to download root.json.
@@ -1663,10 +1677,12 @@ class Updater(object):
     """
     <Purpose>
       Non-public method that downloads, verifies, and 'installs' the metadata
-      belonging to 'metadata_role'.  Calling this method implies the metadata
-      has been updated by the repository and thus needs to be re-downloaded.
-      The current and previous metadata stores are updated if the newly
-      downloaded metadata is successfully downloaded and verified.
+      belonging to 'metadata_role'.  Calling this method implies that the
+      'metadata_role' on the repository is newer than the client's, and thus
+      needs to be re-downloaded.  The current and previous metadata stores are
+      updated if the newly downloaded metadata is successfully downloaded and
+      verified.  This method also assumes that the store of top-level metadata
+      is the latest and exists.
 
     <Arguments>
       metadata_role:
@@ -1772,12 +1788,6 @@ class Updater(object):
     self.metadata['previous'][metadata_role] = current_metadata_object
     self.metadata['current'][metadata_role] = updated_metadata_object
     self._update_versioninfo(metadata_filename)
-
-    # Ensure the role and key information of the top-level roles is also updated
-    # according to the newly-installed Root metadata.
-    if metadata_role == 'root':
-      self._rebuild_key_and_role_db()
-      self.consistent_snapshot = updated_metadata_object['consistent_snapshot']
 
 
 
@@ -2584,10 +2594,10 @@ class Updater(object):
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     securesystemslib.formats.RELPATH_SCHEMA.check_match(rolename)
 
+    self._refresh_targets_metadata(refresh_all_delegated_roles=True)
+
     if not tuf.roledb.role_exists(rolename, self.repository_name):
       raise tuf.exceptions.UnknownRoleError(rolename)
-
-    self._refresh_targets_metadata(rolename)
 
     return self._targets_of_role(rolename, skip_refresh=True)
 
