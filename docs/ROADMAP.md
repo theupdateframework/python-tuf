@@ -29,8 +29,10 @@ Pre-release v0.11.0 shipped on April 30, 2018.
 In no particular order...
 
 - [x] [CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1351) badge.
-  - [ ] silver badge (currently at 98%)
-  - [ ] gold badge
+  - [x] silver badge
+  - [ ] gold badge (currently at 74%)
+
+- [ ] Support graph of delegations (requires refactor of API and client code).
 
 - [ ] [TAP 3: Multi-role delegations](https://github.com/theupdateframework/taps/blob/master/tap3.md).
 
