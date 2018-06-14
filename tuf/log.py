@@ -109,6 +109,7 @@ formatter = logging.Formatter(_FORMAT_STRING)
 # be done with tuf.log.add_console_handler(). Logging messages to a file is not
 # set by default.
 console_handler = None
+file_handler = None
 
 # Set the logger and its settings.
 logger = logging.getLogger('tuf')
@@ -372,11 +373,12 @@ def enable_file_logging(log_filename=tuf.settings.LOG_FILENAME):
   """
   <Purpose>
     Log messages to a file (i.e., 'log_filename').  The log level for the file
-    handler can be set via set_filehandler_log_level().
+    handler can be set with set_filehandler_log_level().
 
   <Arguments>
     log_filename:
-      Logging messages are saved to this file.
+      Logging messages are saved to this file.  If not provided, the log
+      filename specified in tuf.settings.py is used.
 
   <Exceptions>
     None.
@@ -388,6 +390,9 @@ def enable_file_logging(log_filename=tuf.settings.LOG_FILENAME):
     None.
   """
 
+  global file_handler
+
+  # Will re-adding a file handler that has already been set cause issues?
   file_handler = logging.FileHandler(log_filename)
   file_handler.setLevel(_DEFAULT_FILE_LOG_LEVEL)
   file_handler.setFormatter(formatter)
@@ -398,6 +403,8 @@ def enable_file_logging(log_filename=tuf.settings.LOG_FILENAME):
 def disable_file_logging():
   """
   <Purpose>
+    Disable logging by removing any previously set file handler.  The file that
+    was written to will not be deleted.
 
   <Arguments>
     None.
@@ -411,3 +418,16 @@ def disable_file_logging():
   <Returns>
     None.
   """
+
+  # Assign to the global 'file_handler' object.
+  global file_handler
+
+  if file_handler:
+    logger.removeHandler(file_handler)
+    file_handler = None
+    logger.debug('Removed the file handler.')
+
+  else:
+    logger.warning('A file handler has not been set.')
+
+
