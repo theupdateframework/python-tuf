@@ -106,7 +106,7 @@ formatter = logging.Formatter(_FORMAT_STRING)
 # Set the handlers for the logger. The console handler is unset by default. A
 # module importing 'log.py' should explicitly set the console handler if
 # outputting log messages to the screen is needed. Adding a console handler can
-# be done with tuf.log.add_console_handler(). Logging messages to a file *is*
+# be done with tuf.log.add_console_handler(). Logging messages to a file is not
 # set by default.
 console_handler = None
 
@@ -365,3 +365,49 @@ def remove_console_handler():
 
   else:
     logger.warning('We do not have a console handler.')
+
+
+
+def enable_file_logging(log_filename=tuf.settings.LOG_FILENAME):
+  """
+  <Purpose>
+    Log messages to a file (i.e., 'log_filename').  The log level for the file
+    handler can be set via set_filehandler_log_level().
+
+  <Arguments>
+    log_filename:
+      Logging messages are saved to this file.
+
+  <Exceptions>
+    None.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
+  """
+
+  file_handler = logging.FileHandler(log_filename)
+  file_handler.setLevel(_DEFAULT_FILE_LOG_LEVEL)
+  file_handler.setFormatter(formatter)
+  logger.addHandler(file_handler)
+
+
+
+def disable_file_logging():
+  """
+  <Purpose>
+
+  <Arguments>
+    None.
+
+  <Exceptions>
+    None.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
+  """
