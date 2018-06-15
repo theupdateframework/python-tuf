@@ -407,7 +407,9 @@ def enable_file_logging(log_filename=tuf.settings.LOG_FILENAME):
     logger.addHandler(file_handler)
 
   else:
-    logger.warning('The file handler has already been been set.')
+    raise tuf.exceptions.Error(
+        'The file handler has already been been set.  A new file handler'
+        ' can be set by first calling disable_file_logging()')
 
 
 
