@@ -22,6 +22,7 @@
 
 import logging
 import unittest
+import os
 
 import tuf
 import tuf.log
@@ -42,6 +43,7 @@ class TestLog(unittest.TestCase):
 
   def tearDown(self):
     tuf.log.remove_console_handler()
+    tuf.log.disable_file_logging()
 
 
 
@@ -147,6 +149,23 @@ class TestLog(unittest.TestCase):
     tuf.log.remove_console_handler()
 
 
+  def test_enable_file_logging(self):
+    # Normal case.
+    tuf.log.enable_file_logging()
+    self.assertTrue(os.path.exists(tuf.settings.LOG_FILENAME))
+
+    # The file logger must first be unset before attempting to re-add it.
+    self.assertRaises(tuf.exceptions.Error, tuf.log.enable_file_logging)
+
+    tuf.log.disable_file_logging()
+    tuf.log.enable_file_logging('my_log_file.log')
+    logger.debug('testing file logging')
+    self.assertTrue(os.path.exists('my_log_file.log'))
+
+
+  def test_disable_file_logging(self):
+    # Normal case.
+    pass
 
 # Run unit test.
 if __name__ == '__main__':
