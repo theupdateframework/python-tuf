@@ -162,10 +162,16 @@ class TestLog(unittest.TestCase):
     logger.debug('testing file logging')
     self.assertTrue(os.path.exists('my_log_file.log'))
 
+    # Test for an improperly formatted argument.
+    tuf.log.disable_file_logging()
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        tuf.log.enable_file_logging, 1)
+
 
   def test_disable_file_logging(self):
     # Normal case.
     pass
+
 
 # Run unit test.
 if __name__ == '__main__':
