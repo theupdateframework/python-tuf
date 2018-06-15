@@ -359,6 +359,7 @@ def remove_console_handler():
     A handler belonging to the console is removed from the 'log.py' logger
     and the console handler is marked as unset.
 
+
   <Returns>
     None.
   """
@@ -388,7 +389,8 @@ def enable_file_logging(log_filename=tuf.settings.LOG_FILENAME):
       filename specified in tuf.settings.py is used.
 
   <Exceptions>
-    None.
+    securesystemslib.exceptions.FormatError, if any of the arguments are
+    not the expected format.
 
   <Side Effects>
     None.
@@ -396,6 +398,9 @@ def enable_file_logging(log_filename=tuf.settings.LOG_FILENAME):
   <Returns>
     None.
   """
+
+  # Are the arguments properly formatted?
+  securesystemslib.formats.PATH_SCHEMA.check_match(log_filename)
 
   global file_handler
 
