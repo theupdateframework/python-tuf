@@ -67,6 +67,10 @@ class TestLog(unittest.TestCase):
 
   def test_set_filehandler_log_level(self):
     # Normal case.  Default log level.
+    # A file handler is not set by default.  Add one now before attempting to
+    # set the log level.
+    self.assertRaises(tuf.exceptions.Error, tuf.log.set_filehandler_log_level)
+    tuf.log.enable_file_logging()
     tuf.log.set_filehandler_log_level()
 
     # Expected log levels.
