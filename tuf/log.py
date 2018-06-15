@@ -74,6 +74,7 @@ import time
 
 import tuf
 import tuf.settings
+import tuf.exceptions
 
 import securesystemslib.formats
 
@@ -240,7 +241,13 @@ def set_filehandler_log_level(log_level=_DEFAULT_FILE_LOG_LEVEL):
   # Raise 'securesystems.exceptions.FormatError' if there is a mismatch.
   securesystemslib.formats.LOGLEVEL_SCHEMA.check_match(log_level)
 
-  file_handler.setLevel(log_level)
+  if file_handler:
+    file_handler.setLevel(log_level)
+
+  else:
+    raise tuf.exceptions.Error(
+        'File handler has not been set.  Enable file logging'
+        ' before attempting to set its log level')
 
 
 
