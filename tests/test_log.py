@@ -29,6 +29,8 @@ import tuf.log
 import tuf.settings
 
 import securesystemslib
+import securesystemslib.util
+
 from six.moves import reload_module
 
 
@@ -170,7 +172,17 @@ class TestLog(unittest.TestCase):
 
   def test_disable_file_logging(self):
     # Normal case.
-    pass
+    tuf.log.enable_file_logging('my.log')
+    logger.debug('debug message')
+    junk, hashes = securesystemslib.util.get_file_details('my.log')
+    tuf.log.disable_file_logging()
+    logger.debug('new debug message')
+    junk, hashes2 = securesystemslib.util.get_file_details('my.log')
+    self.assertEqual(hashes, hashes2)
+
+    # An exception should not be raised if an attempt is made to disable
+    # the file logger if it has already been disabled.
+    tuf.log.disable_file_logging()
 
 
 # Run unit test.
