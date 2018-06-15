@@ -392,11 +392,15 @@ def enable_file_logging(log_filename=tuf.settings.LOG_FILENAME):
 
   global file_handler
 
-  # Will re-adding a file handler that has already been set cause issues?
-  file_handler = logging.FileHandler(log_filename)
-  file_handler.setLevel(_DEFAULT_FILE_LOG_LEVEL)
-  file_handler.setFormatter(formatter)
-  logger.addHandler(file_handler)
+  # Add a file handler to the logger if not already set.
+  if not file_handler:
+    file_handler = logging.FileHandler(log_filename)
+    file_handler.setLevel(_DEFAULT_FILE_LOG_LEVEL)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+  else:
+    logger.warning('The file handler has already been been set.')
 
 
 
@@ -429,5 +433,3 @@ def disable_file_logging():
 
   else:
     logger.warning('A file handler has not been set.')
-
-
