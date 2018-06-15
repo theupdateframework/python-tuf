@@ -483,7 +483,7 @@ targets and generate signed metadata.
 >>> public_unclaimed_key = import_rsa_publickey_from_file("keystore/unclaimed_key.pub")
 
 # Make a delegation (delegate trust of '/foo*.tgz' files) from "targets" to
-# "unclaimed", where 'unclaimed' initially containing zero targets.
+# "unclaimed", where 'unclaimed' initially contains zero targets.
 # delegate(rolename, list_of_public_keys, paths, threshold=1,
 #     list_of_targets=None, path_hash_prefixes=None)
 >>> repository.targets.delegate("unclaimed", [public_unclaimed_key], ['/foo*.tgz'])
