@@ -23,6 +23,7 @@
 import logging
 import unittest
 import os
+import shutil
 
 import tuf
 import tuf.log
@@ -153,8 +154,15 @@ class TestLog(unittest.TestCase):
 
   def test_enable_file_logging(self):
     # Normal case.
+    if os.path.exists(tuf.settings.LOG_FILENAME):
+      shutil.move(
+          tuf.settings.LOG_FILENAME, tuf.settings.LOG_FILENAME + '.backup')
+
     tuf.log.enable_file_logging()
     self.assertTrue(os.path.exists(tuf.settings.LOG_FILENAME))
+    if os.path.exists(tuf.settings.LOG_FILENAME + '.backup'):
+      shutil.move(
+          tuf.settings.LOG_FILENAME + '.backup', tuf.settings.LOG_FILENAME)
 
     # The file logger must first be unset before attempting to re-add it.
     self.assertRaises(tuf.exceptions.Error, tuf.log.enable_file_logging)
