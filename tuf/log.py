@@ -386,14 +386,16 @@ def enable_file_logging(log_filename=tuf.settings.LOG_FILENAME):
   <Arguments>
     log_filename:
       Logging messages are saved to this file.  If not provided, the log
-      filename specified in tuf.settings.py is used.
+      filename specified in tuf.settings.LOG_FILENAME is used.
 
   <Exceptions>
     securesystemslib.exceptions.FormatError, if any of the arguments are
     not the expected format.
 
+    tuf.exceptions.Error, if the file handler has already been set.
+
   <Side Effects>
-    None.
+    The global file handler is set.
 
   <Returns>
     None.
@@ -421,8 +423,10 @@ def enable_file_logging(log_filename=tuf.settings.LOG_FILENAME):
 def disable_file_logging():
   """
   <Purpose>
-    Disable logging by removing any previously set file handler.  The file that
-    was written to will not be deleted.
+    Disable file logging by removing any previously set file handler.
+    A warning is logged if the file handler cannot be removed.
+
+    The file that was written to will not be deleted.
 
   <Arguments>
     None.
@@ -431,7 +435,7 @@ def disable_file_logging():
     None.
 
   <Side Effects>
-    None.
+    The global file handler is unset.
 
   <Returns>
     None.
