@@ -22,12 +22,16 @@
 
 import logging
 import unittest
+import os
+import shutil
 
 import tuf
 import tuf.log
 import tuf.settings
 
 import securesystemslib
+import securesystemslib.util
+
 from six.moves import reload_module
 
 
@@ -42,6 +46,7 @@ class TestLog(unittest.TestCase):
 
   def tearDown(self):
     tuf.log.remove_console_handler()
+    tuf.log.disable_file_logging()
 
 
 
@@ -67,6 +72,10 @@ class TestLog(unittest.TestCase):
 
   def test_set_filehandler_log_level(self):
     # Normal case.  Default log level.
+    # A file handler is not set by default.  Add one now before attempting to
+    # set the log level.
+    self.assertRaises(tuf.exceptions.Error, tuf.log.set_filehandler_log_level)
+    tuf.log.enable_file_logging()
     tuf.log.set_filehandler_log_level()
 
     # Expected log levels.
@@ -142,6 +151,46 @@ class TestLog(unittest.TestCase):
     # Removing a console handler that has not been added.  Logs a warning.
     tuf.log.remove_console_handler()
 
+
+  def test_enable_file_logging(self):
+    # Normal case.
+    if os.path.exists(tuf.settings.LOG_FILENAME):
+      shutil.move(
+          tuf.settings.LOG_FILENAME, tuf.settings.LOG_FILENAME + '.backup')
+
+    tuf.log.enable_file_logging()
+    self.assertTrue(os.path.exists(tuf.settings.LOG_FILENAME))
+    if os.path.exists(tuf.settings.LOG_FILENAME + '.backup'):
+      shutil.move(
+          tuf.settings.LOG_FILENAME + '.backup', tuf.settings.LOG_FILENAME)
+
+    # The file logger must first be unset before attempting to re-add it.
+    self.assertRaises(tuf.exceptions.Error, tuf.log.enable_file_logging)
+
+    tuf.log.disable_file_logging()
+    tuf.log.enable_file_logging('my_log_file.log')
+    logger.debug('testing file logging')
+    self.assertTrue(os.path.exists('my_log_file.log'))
+
+    # Test for an improperly formatted argument.
+    tuf.log.disable_file_logging()
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        tuf.log.enable_file_logging, 1)
+
+
+  def test_disable_file_logging(self):
+    # Normal case.
+    tuf.log.enable_file_logging('my.log')
+    logger.debug('debug message')
+    junk, hashes = securesystemslib.util.get_file_details('my.log')
+    tuf.log.disable_file_logging()
+    logger.debug('new debug message')
+    junk, hashes2 = securesystemslib.util.get_file_details('my.log')
+    self.assertEqual(hashes, hashes2)
+
+    # An exception should not be raised if an attempt is made to disable
+    # the file logger if it has already been disabled.
+    tuf.log.disable_file_logging()
 
 
 # Run unit test.

@@ -74,6 +74,7 @@ import time
 
 import tuf
 import tuf.settings
+import tuf.exceptions
 
 import securesystemslib.formats
 
@@ -106,9 +107,10 @@ formatter = logging.Formatter(_FORMAT_STRING)
 # Set the handlers for the logger. The console handler is unset by default. A
 # module importing 'log.py' should explicitly set the console handler if
 # outputting log messages to the screen is needed. Adding a console handler can
-# be done with tuf.log.add_console_handler(). Logging messages to a file *is*
+# be done with tuf.log.add_console_handler(). Logging messages to a file is not
 # set by default.
 console_handler = None
+file_handler = None
 
 # Set the logger and its settings.
 logger = logging.getLogger('tuf')
@@ -239,7 +241,13 @@ def set_filehandler_log_level(log_level=_DEFAULT_FILE_LOG_LEVEL):
   # Raise 'securesystems.exceptions.FormatError' if there is a mismatch.
   securesystemslib.formats.LOGLEVEL_SCHEMA.check_match(log_level)
 
-  file_handler.setLevel(log_level)
+  if file_handler:
+    file_handler.setLevel(log_level)
+
+  else:
+    raise tuf.exceptions.Error(
+        'File handler has not been set.  Enable file logging'
+        ' before attempting to set its log level')
 
 
 
@@ -351,6 +359,7 @@ def remove_console_handler():
     A handler belonging to the console is removed from the 'log.py' logger
     and the console handler is marked as unset.
 
+
   <Returns>
     None.
   """
@@ -365,3 +374,80 @@ def remove_console_handler():
 
   else:
     logger.warning('We do not have a console handler.')
+
+
+
+def enable_file_logging(log_filename=tuf.settings.LOG_FILENAME):
+  """
+  <Purpose>
+    Log messages to a file (i.e., 'log_filename').  The log level for the file
+    handler can be set with set_filehandler_log_level().
+
+  <Arguments>
+    log_filename:
+      Logging messages are saved to this file.  If not provided, the log
+      filename specified in tuf.settings.LOG_FILENAME is used.
+
+  <Exceptions>
+    securesystemslib.exceptions.FormatError, if any of the arguments are
+    not the expected format.
+
+    tuf.exceptions.Error, if the file handler has already been set.
+
+  <Side Effects>
+    The global file handler is set.
+
+  <Returns>
+    None.
+  """
+
+  # Are the arguments properly formatted?
+  securesystemslib.formats.PATH_SCHEMA.check_match(log_filename)
+
+  global file_handler
+
+  # Add a file handler to the logger if not already set.
+  if not file_handler:
+    file_handler = logging.FileHandler(log_filename)
+    file_handler.setLevel(_DEFAULT_FILE_LOG_LEVEL)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+  else:
+    raise tuf.exceptions.Error(
+        'The file handler has already been been set.  A new file handler'
+        ' can be set by first calling disable_file_logging()')
+
+
+
+def disable_file_logging():
+  """
+  <Purpose>
+    Disable file logging by removing any previously set file handler.
+    A warning is logged if the file handler cannot be removed.
+
+    The file that was written to will not be deleted.
+
+  <Arguments>
+    None.
+
+  <Exceptions>
+    None.
+
+  <Side Effects>
+    The global file handler is unset.
+
+  <Returns>
+    None.
+  """
+
+  # Assign to the global 'file_handler' object.
+  global file_handler
+
+  if file_handler:
+    logger.removeHandler(file_handler)
+    file_handler = None
+    logger.debug('Removed the file handler.')
+
+  else:
+    logger.warning('A file handler has not been set.')

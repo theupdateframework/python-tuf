@@ -52,8 +52,9 @@ repositories_directory = None
 ssl_certificates = None
 
 # The 'log.py' module manages TUF's logging system.  Users have the option to
-# enable/disable logging to a file via 'ENABLE_FILE_LOGGING'
-ENABLE_FILE_LOGGING = True
+# enable/disable logging to a file via 'ENABLE_FILE_LOGGING', or
+# tuf.log.enable_file_logging() and tuf.log.disable_file_logging().
+ENABLE_FILE_LOGGING = False
 
 # If file logging is enabled via 'ENABLE_FILE_LOGGING', TUF log messages will
 # be saved to 'LOG_FILENAME'
@@ -82,7 +83,6 @@ DEFAULT_TARGETS_REQUIRED_LENGTH = 5000000 #bytes
 SOCKET_TIMEOUT = 4 #seconds
 
 # The maximum chunk of data, in bytes, we would download in every round.
-#CHUNK_SIZE = 8192 #bytes
 CHUNK_SIZE = 400000 #bytes
 
 # The minimum average download speed (bytes/second) that must be met to
