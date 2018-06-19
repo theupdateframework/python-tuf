@@ -1,6 +1,45 @@
 # Changelog
 
-## v.0.11.0
+## v0.11.1
+
+* Prevent persistent freeze attack (pr [#737](https://github.com/theupdateframework/tuf/pull/737)).
+
+* Add --no-release option to CLI.
+
+* Issue deprecation warning for all_targets() and targets_of_role().
+
+* Disable file logging, by default.
+
+* Tweak network settings (in settings.py) for production environments.
+
+* Add tuf.log.enable_file_logging() and tuf.log.disable_file_logging().
+
+* Replace %xx escapes in URLs.
+
+* Support Appveyor (for Windows) with Continuous Integration.
+
+* Run unit tests in Python 3.4 & 3.5 under Appveyor.
+
+* Edit contact text to encourage users to report issues with specification.
+
+* Generate (w/ CLI) Ed25519 keys, by default.
+
+* Upgrade dependencies to latest versions.
+
+* Add requirements.in, which is used to generate the other requirement files.
+
+* Update list of adopters.
+
+* Convert README to Markdown.
+
+* Update installation instructions to note SSLib's optional dependencies
+  that should be installed to support RSA, ECDSA, etc. keys.
+
+* Add unit test for persistent freeze attack.
+
+* Update list of tasks in ROADMAP.md.
+
+## v0.11.0
 
 Note: This is a backwards-incompatible pre-release.
 
