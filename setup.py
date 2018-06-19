@@ -80,7 +80,7 @@ with open('README.md') as file_object:
 
 setup(
   name = 'tuf',
-  version = '0.11.0',
+  version = '0.11.1',
   description = 'A secure updater framework for Python',
   long_description = long_description,
   author = 'https://www.updateframework.com',
