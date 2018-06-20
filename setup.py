@@ -83,6 +83,7 @@ setup(
   version = '0.11.1',
   description = 'A secure updater framework for Python',
   long_description = long_description,
+  long_description_content_type='text/markdown',
   author = 'https://www.updateframework.com',
   author_email = 'theupdateframework@googlegroups.com',
   url = 'https://www.updateframework.com',
