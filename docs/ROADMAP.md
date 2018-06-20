@@ -7,19 +7,19 @@ A new release of the project is expected every 3 months.  The release cycle,
 upcoming tasks, and any stated goals are subject to change.  The antipicated
 release dates are as follows:
 
-**January** 2018
+**January** 2018 ([0.10.2](https://github.com/theupdateframework/tuf/releases/tag/v0.10.2) released Jan. 31)
 
-**April** 2018
+**April** 2018 ([0.11.0](https://github.com/theupdateframework/tuf/releases/tag/v0.11.0) released Apr. 30)
 
-**July** 2018
+**July** 2018 ([0.11.1](https://github.com/theupdateframework/tuf/releases/tag/v0.11.1) released Jun. 19)
 
 **October** 2018
 
 
 ## Latest release
-Pre-release v0.11.0 shipped on April 30, 2018.
-* [Release notes](https://github.com/theupdateframework/tuf/releases/tag/v0.11.0)
-* [Download](https://github.com/theupdateframework/tuf/releases/tag/v0.11.0)
+Pre-release v0.11.1 shipped on June 19, 2018.
+* [Release notes and Download](https://github.com/theupdateframework/tuf/releases/tag/v0.11.1)
+* [PyPI release](https://pypi.org/project/tuf/)
 * Packaged by Vladimir Diaz <vladimir.v.diaz@gmail.com, @vladimir-v-diaz>
 * PGP fingerprint: 3E87 BB33 9378 BC7B 3DD0  E5B2 5DEE 9B97 B0E2 289A
 
