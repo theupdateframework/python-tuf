@@ -35,11 +35,11 @@ software repository is the focus of this tutorial.  There is also separate
 document that [demonstrates how TUF protects against malicious
 updates](../tuf/ATTACKS.md).
 
-The [repository tool](../tuf/repository_tool.py) contains functions to generate all of
-the files needed to populate and manage a TUF repository.  The tool may either
-be imported into a Python module, or used with the Python interpreter in
-interactive mode.  For instance, here is an example of loading a TUF repository
-in interactive mode:
+The [repository tool](../tuf/repository_tool.py) contains functions to generate
+all of the files needed to populate and manage a TUF repository.  The tool may
+either be imported into a Python module, or used with the Python interpreter in
+interactive mode.  For instance, here is an example of initializing a TUF
+repository in interactive mode:
 
 ```Bash
 $ python
@@ -47,7 +47,7 @@ Python 2.7.3 (default, Sep 26 2013, 20:08:41)
 [GCC 4.6.3] on linux2
 Type "help", "copyright", "credits" or "license" for more information.
 >>> from tuf.repository_tool import *
->>> repository = load_repository("path/to/repository")
+>>> repo = create_new_repository("my_repo")
 ```
 
 A repository object that encapsulates the metadata files of the repository can
