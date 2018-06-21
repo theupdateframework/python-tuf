@@ -112,7 +112,8 @@ text without prepended symbols is the output of a command.
 
 # If the key length is unspecified, it defaults to 3072 bits. A length of less
 # than 2048 bits raises an exception. A password may be supplied as an
-# argument, otherwise a user prompt is presented.
+# argument, otherwise a user prompt is presented.  If an empty password
+# is entered, the private key is saved unencrypted.
 >>> generate_and_write_rsa_keypair("keystore/root_key2")
 Enter a password for the RSA key (/path/to/keystore/root_key2):
 Confirm:
@@ -158,8 +159,10 @@ generated from the encrypted PEM string: Bad decrypt. Incorrect password?
 ```Python
 # Continuing from the previous section . . .
 
-# Generate and write an Ed25519 key pair.  The private key is saved encrypted.
-# A 'password' argument may be supplied, otherwise a prompt is presented.
+# Generate and write an Ed25519 key pair.  A 'password' argument may be
+# supplied, otherwise a prompt is presented.  The private key is saved
+# encrypted if a non-empty password is given, and unencrypted if the password
+# is empty.
 >>> generate_and_write_ed25519_keypair('keystore/ed25519_key')
 Enter a password for the Ed25519 key (/path/to/keystore/ed25519_key):
 Confirm:
