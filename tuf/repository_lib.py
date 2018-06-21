@@ -815,8 +815,18 @@ def import_rsa_privatekey_from_file(filepath, password=None):
     An RSA key object, conformant to 'securesystemslib.RSAKEY_SCHEMA'.
   """
 
+  # Note: securesystemslib.interface.import_rsa_privatekey_from_file() does not
+  # allow both 'password' and 'prompt' to be True.  We always prompt if
+  # 'password' is False since private keys are saved to disk encrypted, by
+  # default.
+  if password:
+    prompt=False
+
+  else:
+    prompt=True
+
   return securesystemslib.interface.import_rsa_privatekey_from_file(
-    filepath, password)
+    filepath, password, prompt=prompt)
 
 
 
@@ -966,8 +976,18 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
     An ed25519 key object of the form: 'securesystemslib.ED25519KEY_SCHEMA'.
   """
 
+  # Note: securesystemslib.interface.import_rsa_privatekey_from_file() does not
+  # allow both 'password' and 'prompt' to be True.  We always prompt if
+  # 'password' is False since private keys are saved to disk encrypted, by
+  # default.
+  if password:
+    prompt=False
+
+  else:
+    prompt=True
+
   return securesystemslib.interface.import_ed25519_privatekey_from_file(
-      filepath, password)
+      filepath, password, prompt=prompt)
 
 
 
