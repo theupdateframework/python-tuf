@@ -644,24 +644,23 @@ If running Python 3:
 $ cd "repository/"; python3 -m http.server 8001
 ```
 
-Retrieve targets from the TUF repository and save them to `client/`.  The
-`basic_client.py` script is available in the 'scripts' directory.  In the
-following example, it is copied to the 'client' directory and executed from
-there.  In a different command-line prompt . . .
+We next retrieve targets from the TUF repository and save them to `client/`.
+The `client.py` script is available to download metadata and files from a
+specified repository.  In a different command-line prompt . . .
 ```Bash
 $ cd "client/"
 $ ls
 metadata/
 
-# Copy tuf/scripts/basic_client.py to current directory.  Note: You should
-# activate another "tufenv" virtualenv if using a new windows/tab, otherwise
-# the local Python installation would be incorrectly used.
-$ python basic_client.py --repo http://localhost:8001
+# Note: You should activate another "tufenv" virtualenv if using a new
+# windows/tab, otherwise the local Python installation would be incorrectly
+# used.
+$ client.py --repo http://localhost:8001 file1.txt
 $ ls . targets/
 .:
-metadata  targets  tuf.log
+metadata  targets
 
 targets/:
-file1.txt  file2.txt  myproject
+file1.txt
 ```
 
