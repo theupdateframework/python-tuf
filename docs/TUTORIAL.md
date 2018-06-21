@@ -35,11 +35,11 @@ software repository is the focus of this tutorial.  There is also separate
 document that [demonstrates how TUF protects against malicious
 updates](../tuf/ATTACKS.md).
 
-The [repository tool](../tuf/repository_tool.py) contains functions to generate all of
-the files needed to populate and manage a TUF repository.  The tool may either
-be imported into a Python module, or used with the Python interpreter in
-interactive mode.  For instance, here is an example of loading a TUF repository
-in interactive mode:
+The [repository tool](../tuf/repository_tool.py) contains functions to generate
+all of the files needed to populate and manage a TUF repository.  The tool may
+either be imported into a Python module, or used with the Python interpreter in
+interactive mode.  For instance, here is an example of initializing a TUF
+repository in interactive mode:
 
 ```Bash
 $ python
@@ -47,7 +47,7 @@ Python 2.7.3 (default, Sep 26 2013, 20:08:41)
 [GCC 4.6.3] on linux2
 Type "help", "copyright", "credits" or "license" for more information.
 >>> from tuf.repository_tool import *
->>> repository = load_repository("path/to/repository")
+>>> repo = create_new_repository("my_repo")
 ```
 
 A repository object that encapsulates the metadata files of the repository can
@@ -112,7 +112,8 @@ text without prepended symbols is the output of a command.
 
 # If the key length is unspecified, it defaults to 3072 bits. A length of less
 # than 2048 bits raises an exception. A password may be supplied as an
-# argument, otherwise a user prompt is presented.
+# argument, otherwise a user prompt is presented.  If an empty password
+# is entered, the private key is saved unencrypted.
 >>> generate_and_write_rsa_keypair("keystore/root_key2")
 Enter a password for the RSA key (/path/to/keystore/root_key2):
 Confirm:
@@ -158,8 +159,10 @@ generated from the encrypted PEM string: Bad decrypt. Incorrect password?
 ```Python
 # Continuing from the previous section . . .
 
-# Generate and write an Ed25519 key pair.  The private key is saved encrypted.
-# A 'password' argument may be supplied, otherwise a prompt is presented.
+# Generate and write an Ed25519 key pair.  A 'password' argument may be
+# supplied, otherwise a prompt is presented.  The private key is saved
+# encrypted if a non-empty password is given, and unencrypted if the password
+# is empty.
 >>> generate_and_write_ed25519_keypair('keystore/ed25519_key')
 Enter a password for the Ed25519 key (/path/to/keystore/ed25519_key):
 Confirm:
@@ -644,24 +647,23 @@ If running Python 3:
 $ cd "repository/"; python3 -m http.server 8001
 ```
 
-Retrieve targets from the TUF repository and save them to `client/`.  The
-`basic_client.py` script is available in the 'scripts' directory.  In the
-following example, it is copied to the 'client' directory and executed from
-there.  In a different command-line prompt . . .
+We next retrieve targets from the TUF repository and save them to `client/`.
+The `client.py` script is available to download metadata and files from a
+specified repository.  In a different command-line prompt . . .
 ```Bash
 $ cd "client/"
 $ ls
 metadata/
 
-# Copy tuf/scripts/basic_client.py to current directory.  Note: You should
-# activate another "tufenv" virtualenv if using a new windows/tab, otherwise
-# the local Python installation would be incorrectly used.
-$ python basic_client.py --repo http://localhost:8001
+# Note: You should activate another "tufenv" virtualenv if using a new
+# windows/tab, otherwise the local Python installation would be incorrectly
+# used.
+$ client.py --repo http://localhost:8001 file1.txt
 $ ls . targets/
 .:
-metadata  targets  tuf.log
+metadata  targets
 
 targets/:
-file1.txt  file2.txt  myproject
+file1.txt
 ```
 

@@ -815,8 +815,25 @@ def import_rsa_privatekey_from_file(filepath, password=None):
     An RSA key object, conformant to 'securesystemslib.RSAKEY_SCHEMA'.
   """
 
-  return securesystemslib.interface.import_rsa_privatekey_from_file(
-    filepath, password)
+  # Note: securesystemslib.interface.import_rsa_privatekey_from_file() does not
+  # allow both 'password' and 'prompt' to be True, nor does it automatically
+  # prompt for a password if the key file is encrypted and a password isn't
+  # given.
+  try:
+    private_key = securesystemslib.interface.import_rsa_privatekey_from_file(
+        filepath, password)
+
+  # The user might not have given a password for an encrypted private key.
+  # Prompt for a password for convenience.
+  except securesystemslib.exceptions.CryptoError:
+    if password is None:
+      private_key = securesystemslib.interface.import_rsa_privatekey_from_file(
+          filepath, password, prompt=True)
+
+    else:
+      raise
+
+  return private_key
 
 
 
@@ -966,9 +983,25 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
     An ed25519 key object of the form: 'securesystemslib.ED25519KEY_SCHEMA'.
   """
 
-  return securesystemslib.interface.import_ed25519_privatekey_from_file(
-      filepath, password)
+  # Note: securesystemslib.interface.import_ed25519_privatekey_from_file() does
+  # not allow both 'password' and 'prompt' to be True, nor does it
+  # automatically prompt for a password if the key file is encrypted and a
+  # password isn't given.
+  try:
+    private_key = securesystemslib.interface.import_ed25519_privatekey_from_file(
+        filepath, password)
 
+  # The user might not have given a password for an encrypted private key.
+  # Prompt for a password for convenience.
+  except securesystemslib.exceptions.CryptoError:
+    if password is None:
+      private_key = securesystemslib.interface.import_ed25519_privatekey_from_file(
+          filepath, password, prompt=True)
+
+    else:
+      raise
+
+  return private_key
 
 
 def get_metadata_filenames(metadata_directory=None):
