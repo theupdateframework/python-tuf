@@ -1,4 +1,4 @@
-include README.rst
+include README.md
 include tox.ini
 include tests/repository_data/keystore/delegation_key
 include tests/repository_data/keystore/root_key
