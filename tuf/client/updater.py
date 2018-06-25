@@ -1361,7 +1361,7 @@ class Updater(object):
 
 
   def _verify_uncompressed_metadata_file(self, metadata_file_object,
-      metadata_role):
+      metadata_role, keyids=None, threshold=None):
     """
     <Purpose>
       Non-public method that verifies an uncompressed metadata file.  An
@@ -1377,6 +1377,16 @@ class Updater(object):
       metadata_role:
         The role name of the metadata (e.g., 'root', 'targets',
         'unclaimed').
+
+      keyids:
+        The trusted keyids of 'metadata_role,' as set by root or some
+        delegating role.
+
+      threshold:
+        An integer value that sets the role's threshold value, or the miminum
+        number of signatures needed for metadata to be considered fully signed.
+        Use the given 'threshold' to determine if 'metadata_file_object' is
+        properly signed, as set by root or some delegating role.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError:
@@ -1424,7 +1434,7 @@ class Updater(object):
 
     # Verify the signature on the downloaded metadata object.
     valid = tuf.sig.verify(metadata_signable, metadata_role,
-        self.repository_name)
+        self.repository_name, keyids=keyids, threshold=threshold)
 
     if not valid:
       raise securesystemslib.exceptions.BadSignatureError(metadata_role)
@@ -1434,7 +1444,7 @@ class Updater(object):
 
 
   def _get_metadata_file(self, metadata_role, remote_filename,
-    upperbound_filelength, expected_version):
+    upperbound_filelength, expected_version, keyids=None, threshold=None):
     """
     <Purpose>
       Non-public method that tries downloading, up to a certain length, a
@@ -1456,6 +1466,16 @@ class Updater(object):
       expected_version:
         The expected and required version number of the 'metadata_role' file
         downloaded.  'expected_version' is an integer.
+
+      keyids:
+        The trusted keyids of 'metadata_role,' as set by root or some
+        delegating role.
+
+      threshold:
+        An integer value that sets the role's threshold value, or the miminum
+        number of signatures needed for metadata to be considered fully signed.
+        Use the given 'threshold' to determine if 'metadata_role' is
+        properly signed, as set by root or some delegating role.
 
     <Exceptions>
       tuf.exceptions.NoWorkingMirrorError:
@@ -1672,7 +1692,8 @@ class Updater(object):
 
 
 
-  def _update_metadata(self, metadata_role, upperbound_filelength, version=None):
+  def _update_metadata(self, metadata_role, upperbound_filelength,
+      version=None, keyids=None, threshold=None):
     """
     <Purpose>
       Non-public method that downloads, verifies, and 'installs' the metadata
@@ -1695,6 +1716,16 @@ class Updater(object):
       version:
         The expected and required version number of the 'metadata_role' file
         downloaded.  'expected_version' is an integer.
+
+      keyids:
+        The trusted keyids of 'metadata_role,' as set by root or some
+        delegating role.
+
+      threshold:
+        An integer value that sets the role's threshold value, or the miminum
+        number of signatures needed for metadata to be considered fully signed.
+        Use the given 'threshold' to determine if 'metadata_role' is
+        properly signed, as set by root or some delegating role.
 
     <Exceptions>
       tuf.exceptions.NoWorkingMirrorError:
@@ -1832,10 +1863,14 @@ class Updater(object):
         is 'timestamp'.  See refresh().
 
       keyids:
-        TODO
+        The trusted keyids of 'metadata_role,' as set by root or some
+        delegating role.
 
-      treshold:
-        TODO
+      threshold:
+        An integer value that sets the role's threshold value, or the miminum
+        number of signatures needed for metadata to be considered fully signed.
+        Use the given 'threshold' to determine if 'metadata_role' is
+        properly signed, as set by root or some delegating role.
 
     <Exceptions>
       tuf.exceptions.NoWorkingMirrorError:
@@ -1916,7 +1951,7 @@ class Updater(object):
 
     try:
       self._update_metadata(metadata_role, upperbound_filelength,
-          expected_versioninfo['version'])
+          expected_versioninfo['version'], keyids=keyids, threshold=threshold)
 
     except Exception:
       # The current metadata we have is not current but we couldn't get new
@@ -2439,6 +2474,16 @@ class Updater(object):
          Note: This argument will not be used in the future once all_targets()
          and get_targets_of_role() are deprecated.
 
+      keyids:
+        The trusted keyids of 'metadata_role,' as set by root or some
+        delegating role.
+
+      threshold:
+        An integer value that sets the role's threshold value, or the miminum
+        number of signatures needed for metadata to be considered fully signed.
+        Use the given 'threshold' to determine if 'rolename' is properly
+        signed, as set by root or some delegating role.
+
     <Exceptions>
       tuf.exceptions.RepositoryError:
         If the metadata file for the 'targets' role is missing from the
@@ -2458,6 +2503,10 @@ class Updater(object):
     if rolename + '.json' in self.metadata['current']['snapshot']['meta']:
       roles_to_update.append(rolename)
 
+    # TODO: This argument shall be removed in the future, once all_targets()
+    # and targets_of_role() are deprecated.  The 'keyids' and 'threshold'
+    # should only be used when refresh_all_delegated_roles=False, and assumes
+    # so for now.
     if refresh_all_delegated_roles:
 
       for role in six.iterkeys(self.metadata['current']['snapshot']['meta']):
@@ -2485,7 +2534,8 @@ class Updater(object):
       self._load_metadata_from_file('previous', rolename)
       self._load_metadata_from_file('current', rolename)
 
-      self._update_metadata_if_changed(rolename)
+      self._update_metadata_if_changed(rolename, keyids=keyids,
+        threshold=threshold)
 
 
 
@@ -2729,10 +2779,11 @@ class Updater(object):
     self._update_metadata_if_changed('targets')
 
     # Preorder depth-first traversal of the graph of target delegations.
-    while target is None and number_of_delegations > 0 and len(role_names) > 0:
+    while target is None and number_of_delegations > 0 and len(roles_to_update) > 0:
 
       # Pop the role name from the top of the stack.
       role = roles_to_update.pop(-1)
+      rolename = role.keys()[0]
 
       # Skip any visited current role to prevent cycles.
       if rolename in visited_role_names:
@@ -2789,13 +2840,13 @@ class Updater(object):
         # 'role_names'.  Roles are popped from the end of the 'role_names'
         # list.
         child_roles_to_visit.reverse()
-        role_names.extend(child_roles_to_visit)
+        roles_to_update.extend(child_roles_to_visit)
 
       else:
-        logger.debug('Found target in current role ' + repr(role_name))
+        logger.debug('Found target in current role ' + repr(rolename))
 
-    if target is None and number_of_delegations == 0 and len(role_to_update) > 0:
-      logger.debug(repr(len(role_to_update)) + ' roles left to visit, ' +
+    if target is None and number_of_delegations == 0 and len(roles_to_update) > 0:
+      logger.debug(repr(len(roles_to_update)) + ' roles left to visit, ' +
           'but allowed to visit at most ' +
           repr(tuf.settings.MAX_NUMBER_OF_DELEGATIONS) + ' delegations.')
 
