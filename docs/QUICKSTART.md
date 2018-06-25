@@ -2,6 +2,10 @@
 
 Note: This is a work in progress and subject to change.
 
+To generate keys and sign metadata, the CLI requires a few dependencies and C
+extensions that can be installed with `pip install
+securesystemslib[crypto,pynacl]`.
+
 The following is a basic workflow in four steps:
 
 **Step (1)** - Initialize an empty repo
