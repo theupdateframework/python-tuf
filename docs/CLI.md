@@ -1,7 +1,13 @@
 # CLI #
 
-Note: This is a work in progress and subject to change.  See
-[CLI_EXAMPLES.md](CLI_EXAMPLES.md) for more complex examples.
+Note:
+This is a work in progress and subject to change.
+
+The CLI requires a few dependencies and C extensions that can be installed with
+`pip install securesystemslib[crypto,pynacl]`.
+
+[CLI_EXAMPLES.md](CLI_EXAMPLES.md) covers more complex examples.
+
 
 ## Create a repository ##
 

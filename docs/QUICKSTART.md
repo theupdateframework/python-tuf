@@ -1,6 +1,10 @@
 # Quickstart #
 
-Note: This is a work in progress and subject to change.
+Note:
+This is a work in progress and subject to change.
+
+The CLI requires a few dependencies and C extensions that can be installed with
+`pip install securesystemslib[crypto,pynacl]`.
 
 The following is a basic workflow in four steps:
 
