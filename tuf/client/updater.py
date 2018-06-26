@@ -2784,7 +2784,9 @@ class Updater(object):
 
       # Pop the role name from the top of the stack.
       role = roles_to_update.pop(-1)
-      rolename = role.keys()[0]
+
+      # Use list() for Python 3+2 compatibility.
+      rolename = list(role.keys())[0]
 
       # Skip any visited current role to prevent cycles.
       if rolename in visited_role_names:
