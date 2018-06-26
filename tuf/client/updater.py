@@ -1386,7 +1386,7 @@ class Updater(object):
         An integer value that sets the role's threshold value, or the miminum
         number of signatures needed for metadata to be considered fully signed.
         Use the given 'threshold' to determine if 'metadata_file_object' is
-        properly signed, as set by root or some delegating role.
+        properly signed, as set by root or a delegating role.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError:
@@ -1468,14 +1468,14 @@ class Updater(object):
         downloaded.  'expected_version' is an integer.
 
       keyids:
-        The trusted keyids of 'metadata_role,' as set by root or some
+        The trusted keyids of 'metadata_role,' as set by root or a
         delegating role.
 
       threshold:
         An integer value that sets the role's threshold value, or the miminum
         number of signatures needed for metadata to be considered fully signed.
         Use the given 'threshold' to determine if 'metadata_role' is
-        properly signed, as set by root or some delegating role.
+        properly signed, as set by root or a delegating role.
 
     <Exceptions>
       tuf.exceptions.NoWorkingMirrorError:
@@ -1725,7 +1725,7 @@ class Updater(object):
         An integer value that sets the role's threshold value, or the miminum
         number of signatures needed for metadata to be considered fully signed.
         Use the given 'threshold' to determine if 'metadata_role' is
-        properly signed, as set by root or some delegating role.
+        properly signed, as set by root or a delegating role.
 
     <Exceptions>
       tuf.exceptions.NoWorkingMirrorError:
@@ -1870,7 +1870,7 @@ class Updater(object):
         An integer value that sets the role's threshold value, or the miminum
         number of signatures needed for metadata to be considered fully signed.
         Use the given 'threshold' to determine if 'metadata_role' is
-        properly signed, as set by root or some delegating role.
+        properly signed, as set by root or a delegating role.
 
     <Exceptions>
       tuf.exceptions.NoWorkingMirrorError:
@@ -2482,7 +2482,7 @@ class Updater(object):
         An integer value that sets the role's threshold value, or the miminum
         number of signatures needed for metadata to be considered fully signed.
         Use the given 'threshold' to determine if 'rolename' is properly
-        signed, as set by root or some delegating role.
+        signed, as set by root or a delegating role.
 
     <Exceptions>
       tuf.exceptions.RepositoryError:
@@ -2823,7 +2823,7 @@ class Updater(object):
           if child_role['terminating'] and child_role_name is not None:
             logger.debug('Adding child role ' + repr(child_role_name))
             logger.debug('Not backtracking to other roles.')
-            role_names = []
+            roles_to_update = []
             child_roles_to_visit.append({child_role_name:
                 {'keyids': child_role['keyids'], 'threshold': child_role['threshold']}})
             break
@@ -2837,8 +2837,8 @@ class Updater(object):
                 {'keyids': child_role['keyids'], 'threshold': child_role['threshold']}})
 
         # Push 'child_roles_to_visit' in reverse order of appearance onto
-        # 'role_names'.  Roles are popped from the end of the 'role_names'
-        # list.
+        # 'role_to_update'.  Roles are popped from the end of the
+        # 'role_to_update' list.
         child_roles_to_visit.reverse()
         roles_to_update.extend(child_roles_to_visit)
 
