@@ -6,6 +6,7 @@ This is a work in progress and subject to change.
 The CLI requires a few dependencies and C extensions that can be installed with
 `pip install securesystemslib[crypto,pynacl]`.
 
+----
 The following is a basic workflow in four steps:
 
 **Step (1)** - Initialize a repo.  The `tufrepo`, `tufkeystore`, and
@@ -74,7 +75,7 @@ $ tree
 
     5 directories, 11 files
 ```
-
+----
 
 See [CLI.md](CLI.md) and [CLI_EXAMPLES.md](CLI_EXAMPLES.md) to learn about the
 other supported CLI options.  A [tutorial](TUTORIAL.md) is also available, and
