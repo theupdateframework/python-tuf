@@ -1560,7 +1560,8 @@ class Updater(object):
           except KeyError:
             logger.info(metadata_role + ' not available locally.')
 
-        self._verify_uncompressed_metadata_file(file_object, metadata_role)
+        self._verify_uncompressed_metadata_file(file_object, metadata_role,
+            keyids=keyids, threshold=threshold)
 
       except Exception as exception:
         # Remember the error from this mirror, and "reset" the target file.
@@ -1774,7 +1775,7 @@ class Updater(object):
 
     metadata_file_object = \
       self._get_metadata_file(metadata_role, remote_filename,
-        upperbound_filelength, version)
+        upperbound_filelength, version, keyids=keyids, threshold=threshold)
 
     # The metadata has been verified. Move the metadata file into place.
     # First, move the 'current' metadata file to the 'previous' directory
