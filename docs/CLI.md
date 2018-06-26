@@ -1,12 +1,12 @@
 # CLI #
 
-Note: This is a work in progress and subject to change.
+Note:
+This is a work in progress and subject to change.
 
-To generate keys and sign metadata, the CLI requires a few dependencies and C
-extensions that can be installed with `pip install
-securesystemslib[crypto,pynacl]`.
+The CLI requires a few dependencies and C extensions that can be installed with
+`pip install securesystemslib[crypto,pynacl]`.
 
-[CLI_EXAMPLES.md](CLI_EXAMPLES.md) covers for more complex examples.
+[CLI_EXAMPLES.md](CLI_EXAMPLES.md) covers more complex examples.
 
 
 ## Create a repository ##
