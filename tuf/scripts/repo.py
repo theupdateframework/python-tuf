@@ -265,7 +265,6 @@ def revoke(parsed_arguments):
 
     repository.targets.load_signing_key(targets_private)
 
-
   # A non-top-level role.
   else:
     repository.targets(parsed_arguments.role).revoke(parsed_arguments.delegatee)
@@ -321,7 +320,6 @@ def gen_key(parsed_arguments):
     tuf.exceptions.Error(
         'Invalid key type: ' + repr(parsed_arguments.key) + '.  Supported'
         ' key types: "ecdsa", "ed25519", "rsa."')
-
 
   # If a filename is not given, the generated keypair is saved to the current
   # working directory.  By default, the filenames are written to <KEYID>.pub
@@ -409,7 +407,8 @@ def import_publickey_from_file(keypath):
   # load_json_file() call above can fail for this reason.  Try to potentially
   # load the PEM string in keypath if an exception is raised.
   except securesystemslib.exceptions.Error:
-    key_metadata = securesystemslib.interface.import_rsa_publickey_from_file(keypath)
+    key_metadata = securesystemslib.interface.import_rsa_publickey_from_file(
+        keypath)
 
   key_object, junk = securesystemslib.keys.format_metadata_to_key(key_metadata)
 
@@ -458,8 +457,6 @@ def add_verification_key(parsed_arguments):
 
 
 
-
-
 def remove_verification_key(parsed_arguments):
   if not parsed_arguments.pubkeys:
     raise tuf.exceptions.Error('--pubkeys must be given with --distrust.')
@@ -499,8 +496,6 @@ def remove_verification_key(parsed_arguments):
 
 
 
-
-
 def sign_role(parsed_arguments):
 
   repository = repo_tool.load_repository(
@@ -536,6 +531,7 @@ def sign_role(parsed_arguments):
         tuf.keydb.add_key(
             role_privatekey, repository_name = repository._repository_name)
 
+        # Set the delegated metadata file to expire in 3 months.
         expiration = tuf.formats.unix_timestamp_to_datetime(
             int(time.time() + 7889230))
         expiration = expiration.isoformat() + 'Z'
@@ -607,7 +603,8 @@ def write_to_live_repo(parsed_arguments):
 
 
 
-def add_target_to_repo(parsed_arguments, target_path, repo_targets_path, repository, custom=None):
+def add_target_to_repo(parsed_arguments, target_path, repo_targets_path,
+    repository, custom=None):
   """
   (1) Copy 'target_path' to 'repo_targets_path'.
   (2) Add 'target_path' to Targets metadata of 'repository'.
@@ -640,7 +637,6 @@ def add_target_to_repo(parsed_arguments, target_path, repo_targets_path, reposit
 
     tuf.roledb.update_roleinfo(parsed_arguments.role, roleinfo,
         mark_role_as_dirty=True, repository_name=repository._repository_name)
-
 
 
 
@@ -686,10 +682,12 @@ def add_targets(parsed_arguments):
     if os.path.isdir(target_path):
       for sub_target_path in repository.get_filepaths_in_directory(
           target_path, parsed_arguments.recursive):
-        add_target_to_repo(parsed_arguments, sub_target_path, repo_targets_path, repository)
+        add_target_to_repo(parsed_arguments, sub_target_path,
+            repo_targets_path, repository)
 
     else:
-      add_target_to_repo(parsed_arguments, target_path, repo_targets_path, repository)
+      add_target_to_repo(parsed_arguments, target_path,
+          repo_targets_path, repository)
 
   consistent_snapshot = tuf.roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
@@ -932,7 +930,7 @@ def parse_arguments():
       '  Consistent snapshot is False by default.')
 
   parser.add_argument('-c', '--clean', type=str, nargs='?', const='.',
-      metavar='</path/to/repo_dir', help='Delete the repo files from the'
+      metavar='</path/to/repo_dir>', help='Delete the repo files from the'
       ' specified directory.  If a directory is not specified, the current'
       ' working directory is cleaned.')
 
