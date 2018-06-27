@@ -22,6 +22,10 @@
   repositories, which is the case with repository_tool.py and
   developer_tool.py.
 
+  Note:
+  'pip install securesystemslib[crypto,pynacl]' is required for the CLI,
+  which installs the cryptography, pynacl, and colorama dependencies.
+
 <Usage>
   Note: arguments within brackets are optional.
 
@@ -48,8 +52,8 @@
   $ repo.py --clean [--path]
 """
 
-# Help with Python 3 compatibility, where the print statement is a function, an
-# implicit relative import is invalid, and the '/' operator performs true
+# Help with Python 2+3 compatibility, where the print statement is a function,
+# an implicit relative import is invalid, and the '/' operator performs true
 # division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
 from __future__ import print_function
 from __future__ import absolute_import
@@ -69,6 +73,8 @@ import tuf.log
 import tuf.formats
 import tuf.repository_tool as repo_tool
 
+# 'pip install securesystemslib[crypto,pynacl]' is required for the CLI,
+# which installs the cryptography, pynacl, and colorama dependencies.
 import securesystemslib
 from colorama import Fore
 import six
@@ -93,13 +99,18 @@ TIMESTAMP_KEY_NAME = 'timestamp_key'
 STAGED_METADATA_DIR = 'metadata.staged'
 METADATA_DIR = 'metadata'
 
+# The supported key types of the CLI are listed here because they won't
+# necessarily match the key types supported by securesystemslib.
 SUPPORTED_KEY_TYPES = ['ed25519', 'ecdsa-sha2-nistp256', 'rsa']
 
-def process_arguments(parsed_arguments):
+
+def process_command_line_arguments(parsed_arguments):
   """
   <Purpose>
-    Create or modify the repository.  Which operation is executed depends
-    on 'parsed_arguments'.
+    Perform the relevant operations on the repo according to the chosen
+    command-line options.  Which functions are executed depends on
+    'parsed_arguments'.  For instance, the --init and --clean options will
+    cause the init_repo() and clean_repo() functions to be called.
 
   <Arguments>
     parsed_arguments:
@@ -123,8 +134,6 @@ def process_arguments(parsed_arguments):
   else:
     logger.debug('We have a valid argparse Namespace.')
 
-  # TODO: Process all of the supported command-line actions.  --init, --clean,
-  # --add, --sign, --key are currently implemented.
   if parsed_arguments.init:
     init_repo(parsed_arguments)
 
@@ -1047,7 +1056,7 @@ if __name__ == '__main__':
   # $ repo.py --add foo.bar.gz
 
   try:
-    process_arguments(arguments)
+    process_command_line_arguments(arguments)
 
   except (tuf.exceptions.Error) as e:
     sys.stderr.write('Error: ' + str(e) + '\n')
