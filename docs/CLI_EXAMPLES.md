@@ -110,13 +110,19 @@ Enter a password for the encrypted key (tufkeystore/targets_key):
 
 (3) and (4)
 ```Bash
+$ repo.py --key ed25519 --filename key_x
+$ repo.py --key ed25519 --filename key_x2
+
 $ repo.py --delegate "README.*" "LICENSE" --delegatee role_x --pubkeys
-  tufkeystore/xkey.pub tufkeystore/xkey2.pub --threshold 2 --terminating
-$ repo.py --sign tufkeystore/xkey tufkeystore/xkey2 --role role_x
-$ repo.py --key ed25519 --filename ykey
+  tufkeystore/key_x.pub tufkeystore/key_x2.pub --threshold 2 --terminating
+$ repo.py --sign tufkeystore/key_x tufkeystore/key_x2 --role role_x
+
+$ repo.py --key ed25519 --filename key_y
+
 $ repo.py --delegate "README.*" "LICENSE" --delegatee role_y --role role_x
-  --pubkeys tufkeystore/ykey.pub --sign tufkeystore/xkey tufkeystore/xkey2
-$ repo.py --sign tufkeystore/ykey --role role_y
+  --pubkeys tufkeystore/key_y.pub --sign tufkeystore/key_x tufkeystore/key_x2
+
+$ repo.py --sign tufkeystore/key_y --role role_y
 ```
 
 (5) and (6)
