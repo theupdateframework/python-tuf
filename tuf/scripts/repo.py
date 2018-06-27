@@ -103,9 +103,11 @@ METADATA_DIR = 'metadata'
 ED25519_KEYTYPE = 'ed25519'
 ECDSA_KEYTYPE = 'ecdsa'
 RSA_KEYTYPE = 'rsa'
+SUPPORTED_CLI_KEYTYPES = [ECDSA_KEYTYPE, ED25519_KEYTYPE, RSA_KEYTYPE]
 
-# The supported key types of the CLI are listed here because they won't
-# necessarily match the key types supported by securesystemslib.
+# The supported keytype strings (as they appear in metadata) are listed here
+# because they won't necessarily match the key types supported by
+# securesystemslib.
 SUPPORTED_KEY_TYPES = ['ed25519', 'ecdsa-sha2-nistp256', 'rsa']
 
 
@@ -304,7 +306,12 @@ def gen_key(parsed_arguments):
 
   keypath = None
 
-  if parsed_arguments.key == ECDSA_KEYTYPE:
+  if parsed_arguments.key not in SUPPORTED_CLI_KEYTYPES:
+    tuf.exceptions.Error(
+        'Invalid key type: ' + repr(parsed_arguments.key) + '.  Supported'
+        ' key types: ' + repr(SUPPORTED_CLI_KEYTYPES))
+
+  elif parsed_arguments.key == ECDSA_KEYTYPE:
     keypath = securesystemslib.interface.generate_and_write_ecdsa_keypair(
       parsed_arguments.filename, password=parsed_arguments.pw)
 
@@ -312,14 +319,10 @@ def gen_key(parsed_arguments):
     keypath = securesystemslib.interface.generate_and_write_ed25519_keypair(
         parsed_arguments.filename, password=parsed_arguments.pw)
 
-  elif parsed_arguments.key == RSA_KEYTYPE:
+  # RSA key..
+  else:
     keypath = securesystemslib.interface.generate_and_write_rsa_keypair(
         parsed_arguments.filename, password=parsed_arguments.pw)
-
-  else:
-    tuf.exceptions.Error(
-        'Invalid key type: ' + repr(parsed_arguments.key) + '.  Supported'
-        ' key types: "ecdsa", "ed25519", "rsa."')
 
   # If a filename is not given, the generated keypair is saved to the current
   # working directory.  By default, the filenames are written to <KEYID>.pub
