@@ -8,7 +8,7 @@ The CLI requires a few dependencies and C extensions that can be installed with
 
 [CLI_EXAMPLES.md](CLI_EXAMPLES.md) covers more complex examples.
 
-
+----
 ## Create a repository ##
 
 Create a TUF repository in the current working directory.  A cryptographic key
@@ -35,8 +35,8 @@ $ repo.py --init [--targets_pw, --root_pw, --snapshot_pw, --timestamp_pw]
 
 
 
-Create a TUF repository in the current working directory.  A cryptographic key
-is *not* created nor set for each top-level role.
+Create a bare TUF repository in the current working directory.  A cryptographic
+key is *not* created nor set for each top-level role.
 ```Bash
 $ repo.py --init --bare
 ```
@@ -51,7 +51,6 @@ prepended (e.g., `<hash>.snapshot.json`).
 ```Bash
 $ repo.py --init --consistent
 ```
-
 
 
 
@@ -72,9 +71,6 @@ Similar to the --init case, the repository location can be chosen.
 ```Bash
 $ repo.py --add <foo.tar.gz> --path </path/to/my_repo>
 ```
-
-
-
 
 
 
@@ -131,6 +127,24 @@ Confirm:
 
 
 
+## Sign metadata ##
+Sign, with the specified key(s), the metadata of the role indicated in --role.
+The Snapshot and Timestamp role are also automatically signed, if possible, but
+this behavior can be disabled with --no_release.
+```Bash
+$ repo.py --sign </path/to/key> ... [--role <rolename>, --path </path/to/repo>]
+```
+
+For example, to sign the delegated `foo` metadata:
+```Bash
+$ repo.py --sign /path/to/foo_key --role foo
+```
+
+Note: In the future, the user might have the option of disabling automatic
+signing of Snapshot and Timestamp metadata.
+
+
+
 ## Trust keys ##
 
 The Root role specifies the trusted keys of the top-level roles, including
@@ -148,6 +162,8 @@ $ repo.py --trust --pubkeys tufkeystore/my_key.pub tufkeystore/my_key_too.pub
   --role root
 ```
 
+
+
 ### Distrust keys ###
 
 Conversely, the Root role can discontinue trust of specified key(s).
@@ -156,24 +172,6 @@ Example of how to discontinue trust of a key:
 ```Bash
 $ repo.py --distrust --pubkeys tufkeystore/my_key_too.pub --role root
 ```
-
-
-
-## Sign metadata ##
-Sign, with the specified key(s), the metadata of the role indicated in --role.
-The Snapshot and Timestamp role are also automatically signed, if possible, but
-this behavior can be disabled with --no_release.
-```Bash
-$ repo.py --sign </path/to/key> ... [--role <rolename>, --path </path/to/repo>]
-```
-
-For example, to sign the delegated `foo` metadata:
-```Bash
-$ repo.py --sign /path/to/foo_key --role foo
-```
-
-Note: In the future, the user might have the option of disabling automatic
-signing of Snapshot and Timestamp metadata.
 
 
 
@@ -237,3 +235,4 @@ $ repo.py --clean
 $ repo.py --clean --path </path/to/dirty/repo>
 ```
 (--clean by itself removes TUF files from the current working directory.)
+----
