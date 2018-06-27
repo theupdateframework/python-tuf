@@ -24,7 +24,7 @@ Optionally, the repository can be written to a specified location.
 $ repo.py --init --path </path/to/repo_dir>
 ```
 
-Note:  The default top-level key files created with `--init` are saved to disk
+The default top-level key files created with `--init` are saved to disk
 encrypted, with a default password of 'pw'.  Instead of using the default
 password, the user can enter one on the command line for each top-level role.
 These optional command-line options also work with other CLI actions (e.g.,
@@ -102,10 +102,11 @@ $ repo.py --remove "*" --role my_role --sign tufkeystore/my_role_key
 Generate a cryptographic key.  The generated key can later be used to sign
 specific metadata with `--sign`.  The supported key types are: `ecdsa`,
 `ed25519`, and `rsa`.  If a keytype is not given, an Ed25519 key is generated.
-Note: If adding a top-level key to a bare repo (i.e., repo.py --init --bare),
-the top-level keys should be named "root_key," "targets_key," "snapshot_key,"
-"timestamp_key."  Additional top-level keys may be named anything, and must be
-used with --sign.
+
+If adding a top-level key to a bare repo (i.e., repo.py --init --bare),
+the filenames of the top-level keys must be "root_key," "targets_key,"
+"snapshot_key," "timestamp_key."  The filename can vary for any additional
+top-level key.
 ```Bash
 $ repo.py --key
 $ repo.py --key <keytype>
@@ -140,9 +141,6 @@ For example, to sign the delegated `foo` metadata:
 $ repo.py --sign /path/to/foo_key --role foo
 ```
 
-Note: In the future, the user might have the option of disabling automatic
-signing of Snapshot and Timestamp metadata.
-
 
 
 ## Trust keys ##
@@ -175,7 +173,7 @@ $ repo.py --distrust --pubkeys tufkeystore/my_key_too.pub --role root
 
 
 
-## Delegation ##
+## Delegations ##
 
 Delegate trust of target files from the Targets role (or the one specified in
 --role) to some other role (--delegatee).  --delegatee is trusted to sign for
@@ -199,7 +197,7 @@ $ repo.py --delegate "foo*.tgz" --delegatee foo --pubkeys tufkeystore/foo.pub
 
 
 
-## Revocation ##
+## Revocations ##
 
 Revoke trust of target files from a delegated role (--delegatee).  The
 "targets" role performs the revocation if --role is not specified.  The
@@ -230,9 +228,13 @@ $ repo.py --verbose <0-5>
 ## Clean ##
 
 Remove the files created via `repo.py --init`.
+
+Delete the repo in the current working directory, or the one specified with
+`--path`.  Specifically, the `tufrepo`, `tufclient`, and `tufkeystore`
+directories are deleted.
+
 ```Bash
 $ repo.py --clean
 $ repo.py --clean --path </path/to/dirty/repo>
 ```
-(--clean by itself removes TUF files from the current working directory.)
 ----
