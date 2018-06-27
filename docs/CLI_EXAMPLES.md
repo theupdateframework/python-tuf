@@ -70,13 +70,24 @@ The filename of the top-level keys must be "root_key," "targets_key,"
 "snapshot_key," and "root_key."  The filename can vary for any additional
 top-level key.
 
+Steps:
+(1) initialize a repo containing default keys for the top-level roles.
+(2) distrust the default key for the root role.
+(3) create a new key and trust its use with the root role.
+(4) sign the root metadata file.
+
 ```Bash
+Step (1)
 $ repo.py --init
+
+Step (2)
 $ repo.py --distrust --pubkeys tufkeystore/root_key.pub --role root
 
+Step (3)
 $ repo.py --key ed25519 --filename root_key
 $ repo.py --trust --pubkeys tufkeystore/root_key.pub --role root
 
+Step (4)
 $ repo.py --sign tufkeystore/root_key --role root
 Enter a password for the encrypted key (tufkeystore/root_key):
 ```
