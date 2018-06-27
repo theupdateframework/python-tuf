@@ -227,8 +227,6 @@ $ repo.py --verbose <0-5>
 
 ## Clean ##
 
-Remove the files created via `repo.py --init`.
-
 Delete the repo in the current working directory, or the one specified with
 `--path`.  Specifically, the `tufrepo`, `tufclient`, and `tufkeystore`
 directories are deleted.
