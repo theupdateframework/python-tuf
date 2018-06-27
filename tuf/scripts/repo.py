@@ -99,6 +99,11 @@ TIMESTAMP_KEY_NAME = 'timestamp_key'
 STAGED_METADATA_DIR = 'metadata.staged'
 METADATA_DIR = 'metadata'
 
+# The keytype strings, as expected on the command line.
+ED25519_KEYTYPE = 'ed25519'
+ECDSA_KEYTYPE = 'ecdsa'
+RSA_KEYTYPE = 'rsa'
+
 # The supported key types of the CLI are listed here because they won't
 # necessarily match the key types supported by securesystemslib.
 SUPPORTED_KEY_TYPES = ['ed25519', 'ecdsa-sha2-nistp256', 'rsa']
@@ -191,8 +196,7 @@ def delegate(parsed_arguments):
 
   public_keys = []
   for public_key in parsed_arguments.pubkeys:
-    imported_pubkey = import_publickey_from_file(
-        public_key)
+    imported_pubkey = import_publickey_from_file(public_key)
     public_keys.append(imported_pubkey)
 
   repository = repo_tool.load_repository(
@@ -301,15 +305,15 @@ def gen_key(parsed_arguments):
 
   keypath = None
 
-  if parsed_arguments.key == 'ecdsa':
+  if parsed_arguments.key == ECDSA_KEYTYPE:
     keypath = securesystemslib.interface.generate_and_write_ecdsa_keypair(
       parsed_arguments.filename, password=parsed_arguments.pw)
 
-  elif parsed_arguments.key == 'ed25519':
+  elif parsed_arguments.key == ED25519_KEYTYPE:
     keypath = securesystemslib.interface.generate_and_write_ed25519_keypair(
         parsed_arguments.filename, password=parsed_arguments.pw)
 
-  elif parsed_arguments.key == 'rsa':
+  elif parsed_arguments.key == RSA_KEYTYPE:
     keypath = securesystemslib.interface.generate_and_write_rsa_keypair(
         parsed_arguments.filename, password=parsed_arguments.pw)
 
@@ -950,8 +954,8 @@ def parse_arguments():
       ' recursively.  If unset, the default behavior is to not add target'
       ' files in subdirectories.')
 
-  parser.add_argument('-k', '--key', type=str, nargs='?', const='ed25519',
-      default=None, choices=['ecdsa', 'ed25519', 'rsa'],
+  parser.add_argument('-k', '--key', type=str, nargs='?', const=ED25519_KEYTYPE,
+      default=None, choices=[ECDSA_KEYTYPE, ED25519_KEYTYPE, RSA_KEYTYPE],
       help='Generate an ECDSA, Ed25519, or RSA key.  An Ed25519 key is'
       ' created if the key type is unspecified.')
 
