@@ -890,8 +890,9 @@ def parse_arguments():
       description='Create or modify a TUF repository.')
 
   parser.add_argument('-i', '--init', action='store_true',
-      help='Create a repository.  The repository is created in the current'
-      ' working directory unless --path is specified.')
+      help='Create a repository.  The "tufrepo", "tufkeystore", and'
+      ' "tufclient" directories are created in the current working'
+      ' directory, unless --path is specified.')
 
   parser.add_argument('-p', '--path', nargs='?', default='.',
       metavar='</path/to/repo_dir>', help='Specify a repository path.  If used'
