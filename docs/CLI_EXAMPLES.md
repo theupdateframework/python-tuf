@@ -1,6 +1,13 @@
-# CLI Examples #
+# CLI Usage Examples #
 
-## Basic example ##
+This document contains a few examples of creating repositories with the CLI.
+The sections below correspond with a different example, and each begins with an
+outline of the steps to be followed by the user.
+
+## A basic example ##
+
+Steps:
+
 (1) initialize a repo.
 
 (2) delegate trust of target files to another role.
@@ -10,12 +17,17 @@
 (4) fetch the trusted file from the delegated role.
 
 ```Bash
+Step (1)
 $ repo.py --init
+
+Step (2)
 $ repo.py --key ed25519 --filename mykey
 $ repo.py --delegate "README.*" --delegatee myrole --pubkeys tufkeystore/mykey.pub
 $ repo.py --sign tufkeystore/mykey --role myrole
 Enter a password for the encrypted key (tufkeystore/mykey):
 $ echo "my readme text" > README.txt
+
+Step (3)
 $ repo.py --add README.txt --role myrole --sign tufkeystore/mykey
 Enter a password for the encrypted key (tufkeystore/mykey):
 ```
@@ -26,8 +38,8 @@ $ cd tufrepo/
 $ python -m SimpleHTTPServer 8001
 ```
 
-Fetch the repo's README.txt
 ```Bash
+Step (4)
 $ client.py --repo http://localhost:8001 README.txt
 $ tree .
 .
@@ -54,28 +66,46 @@ $ tree .
 ```
 
 
-## Replace a top-level key ##
-Note: The top-level keys should be named "root_key," "targets_key," "snapshot_key,"
-and "root_key."  Additional top-level keys may be named anything, and must
-be used with --sign.
+## An example of replacing a top-level key ##
+The filename of the top-level keys must be "root_key," "targets_key,"
+"snapshot_key," and "root_key."  The filename can vary for any additional
+top-level key.
+
+Steps:
+
+(1) initialize a repo containing default keys for the top-level roles.
+(2) distrust the default key for the root role.
+(3) create a new key and trust its use with the root role.
+(4) sign the root metadata file.
 
 ```Bash
+Step (1)
 $ repo.py --init
+
+Step (2)
 $ repo.py --distrust --pubkeys tufkeystore/root_key.pub --role root
+
+Step (3)
 $ repo.py --key ed25519 --filename root_key
 $ repo.py --trust --pubkeys tufkeystore/root_key.pub --role root
+
+Step (4)
 $ repo.py --sign tufkeystore/root_key --role root
 Enter a password for the encrypted key (tufkeystore/root_key):
 ```
 
 
 ## A more complicated example ##
+
+Steps:
+
 (1) create a bare repo.
 
 (2) add keys to the top-level roles.
 
 (3) delegate trust of particular target files to another role X, where role X
-has a signature threshold 2 and is marked as a terminating delegation.
+has a signature threshold 2 and is marked as a terminating delegation.  The
+keys for role X and Y should be created prior to performing the delegation.
 
 (4) Delegate from role X to role Y.
 
@@ -87,11 +117,11 @@ the expected file that should be downloaded by the client.
 (7) halt the server, add README.txt to the Targets role, restart server, and
 fetch the Target's role README.txt.
 
-(8) Add LICENSE to 'yrole' and demonstate that the client must not fetch it
-because xrole is a terminating delegation (and hasn't signed for it).
+(8) Add LICENSE to 'role_y' and demonstate that the client must not fetch it
+because 'role_x' is a terminating delegation (and hasn't signed for it).
 
-(1) and (2)
 ```Bash
+Steps (1) and (2)
 $ repo.py --init --consistent --bare
 $ repo.py --key ed25519 --filename root_key
 $ repo.py --trust --pubkeys tufkeystore/root_key.pub --role root
@@ -107,21 +137,27 @@ $ repo.py --sign tufkeystore/targets_key --role targets
 Enter a password for the encrypted key (tufkeystore/targets_key):
 ```
 
-(3) and (4)
 ```Bash
-$ repo.py --delegate "README.*" "LICENSE" --delegatee xrole --pubkeys
-  tufkeystore/xkey.pub tufkeystore/xkey2.pub --threshold 2 --terminating
-$ repo.py --sign tufkeystore/xkey tufkeystore/xkey2 --role xrole
-$ repo.py --key ed25519 --filename ykey
-$ repo.py --delegate "README.*" "LICENSE" --delegatee yrole --role xrole
-  --pubkeys tufkeystore/ykey.pub --sign tufkeystore/xkey tufkeystore/xkey2
-$ repo.py --sign tufkeystore/ykey --role yrole
+Steps (3) and (4)
+$ repo.py --key ed25519 --filename key_x
+$ repo.py --key ed25519 --filename key_x2
+
+$ repo.py --delegate "README.*" "LICENSE" --delegatee role_x --pubkeys
+  tufkeystore/key_x.pub tufkeystore/key_x2.pub --threshold 2 --terminating
+$ repo.py --sign tufkeystore/key_x tufkeystore/key_x2 --role role_x
+
+$ repo.py --key ed25519 --filename key_y
+
+$ repo.py --delegate "README.*" "LICENSE" --delegatee role_y --role role_x
+  --pubkeys tufkeystore/key_y.pub --sign tufkeystore/key_x tufkeystore/key_x2
+
+$ repo.py --sign tufkeystore/key_y --role role_y
 ```
 
-(5) and (6)
 ```Bash
-$ echo "xrole's readme" > README.txt
-$ repo.py --add README.txt --role xrole --sign tufkeystore/xkey tufkeystore/xkey2
+Steps (5) and (6)
+$ echo "role_x's readme" > README.txt
+$ repo.py --add README.txt --role role_x --sign tufkeystore/key_x tufkeystore/key_x2
 ```
 
 Serve the repo
@@ -130,22 +166,22 @@ $ cd tufrepo/
 $ python -m SimpleHTTPServer 8001
 ```
 
-Fetch the xrole's README.txt
+Fetch the role x's README.txt
 ```Bash
 $ client.py --repo http://localhost:8001 README.txt
 $ cat tuftargets/README.txt
-xrole's readme
+role_x's readme
 ```
 
-(7)
 
 ```Bash
-halt server...
+Step (7)
+halt the server...
 
 $ echo "Target role's readme" > README.txt
 $ repo.py --add README.txt
 
-restart server...
+restart the server...
 ```
 
 ```Bash
@@ -155,10 +191,10 @@ $ cat tuftargets/README.txt
 Target role's readme
 ```
 
-(8)
 ```Bash
-$ echo "yrole's license" > LICENSE
-$ repo.py --add LICENSE --role yrole --sign tufkeystore/ykey
+Step (8)
+$ echo "role_y's license" > LICENSE
+$ repo.py --add LICENSE --role role_y --sign tufkeystore/key_y
 ```
 
 ```Bash
