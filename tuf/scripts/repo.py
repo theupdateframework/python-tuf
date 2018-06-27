@@ -111,6 +111,7 @@ def process_command_line_arguments(parsed_arguments):
     command-line options.  Which functions are executed depends on
     'parsed_arguments'.  For instance, the --init and --clean options will
     cause the init_repo() and clean_repo() functions to be called.
+    Multiple operations can be executed in one invocation of the CLI.
 
   <Arguments>
     parsed_arguments:
@@ -134,6 +135,12 @@ def process_command_line_arguments(parsed_arguments):
   else:
     logger.debug('We have a valid argparse Namespace.')
 
+  # TODO: Make sure the order that the arguments are processed allows for the
+  # most convenient use of multiple options in one invocation of the CLI.  For
+  # instance, it might be best for --clean to be processed first before --init
+  # so that a user can do the following: repo.py --clean --init (that is, first
+  # clear the repo in the current working directory, and then initialize a new
+  # one.
   if parsed_arguments.init:
     init_repo(parsed_arguments)
 
