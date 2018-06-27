@@ -1,6 +1,12 @@
-# CLI Examples #
+# CLI Usage Examples #
 
-## Basic example ##
+This document contains a few examples of creating repositories with the CLI.
+The sections below correspond with a different example.  Each section begins
+with an outline of the steps to be followed by the user.
+
+## A basic example ##
+
+Steps:
 (1) initialize a repo.
 
 (2) delegate trust of target files to another role.
@@ -59,7 +65,7 @@ $ tree .
 ```
 
 
-## Replace a top-level key ##
+## An example of replacing a top-level key ##
 The filename of the top-level keys must be "root_key," "targets_key,"
 "snapshot_key," and "root_key."  The filename can vary for any additional
 top-level key.
@@ -77,6 +83,8 @@ Enter a password for the encrypted key (tufkeystore/root_key):
 
 
 ## A more complicated example ##
+
+Steps:
 (1) create a bare repo.
 
 (2) add keys to the top-level roles.
