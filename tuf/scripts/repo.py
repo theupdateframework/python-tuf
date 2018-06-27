@@ -103,12 +103,12 @@ METADATA_DIR = 'metadata'
 ED25519_KEYTYPE = 'ed25519'
 ECDSA_KEYTYPE = 'ecdsa'
 RSA_KEYTYPE = 'rsa'
-SUPPORTED_CLI_KEYTYPES = [ECDSA_KEYTYPE, ED25519_KEYTYPE, RSA_KEYTYPE]
+SUPPORTED_CLI_KEYTYPES = (ECDSA_KEYTYPE, ED25519_KEYTYPE, RSA_KEYTYPE)
 
 # The supported keytype strings (as they appear in metadata) are listed here
 # because they won't necessarily match the key types supported by
 # securesystemslib.
-SUPPORTED_KEY_TYPES = ['ed25519', 'ecdsa-sha2-nistp256', 'rsa']
+SUPPORTED_KEY_TYPES = ('ed25519', 'ecdsa-sha2-nistp256', 'rsa')
 
 
 def process_command_line_arguments(parsed_arguments):
@@ -325,8 +325,8 @@ def gen_key(parsed_arguments):
         parsed_arguments.filename, password=parsed_arguments.pw)
 
   # If a filename is not given, the generated keypair is saved to the current
-  # working directory.  By default, the filenames are written to <KEYID>.pub
-  # and <KEYID> (private key).  Move them from the CWD to the repo's keystore.
+  # working directory.  By default, the keypair is written to <KEYID>.pub
+  # and <KEYID> (private key).
   if not parsed_arguments.filename:
     privkey_repo_path =  os.path.join(parsed_arguments.path,
         KEYSTORE_DIR, os.path.basename(keypath))
@@ -336,6 +336,7 @@ def gen_key(parsed_arguments):
     securesystemslib.util.ensure_parent_dir(privkey_repo_path)
     securesystemslib.util.ensure_parent_dir(pubkey_repo_path)
 
+    # Move them from the CWD to the repo's keystore.
     shutil.move(keypath, privkey_repo_path)
     shutil.move(keypath + '.pub', pubkey_repo_path)
 
@@ -645,7 +646,7 @@ def add_target_to_repo(parsed_arguments, target_path, repo_targets_path,
 
 def remove_target_files_from_metadata(parsed_arguments, repository):
 
-  if parsed_arguments.role in ['root', 'snapshot', 'timestamp']:
+  if parsed_arguments.role in ('root', 'snapshot', 'timestamp'):
     raise tuf.exceptions.Error(
         'Invalid rolename specified: ' + repr(parsed_arguments.role) + '.'
         '  It must be "targets" or a delegated rolename.')
