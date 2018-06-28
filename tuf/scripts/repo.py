@@ -1036,23 +1036,10 @@ def parse_arguments():
   parsed_args = parser.parse_args()
 
   # Set the logging level.
-  if parsed_args.verbose == 5:
-    tuf.log.set_log_level(logging.CRITICAL)
+  logging_levels = [logging.NOTSET, logging.DEBUG,
+      logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL]
 
-  elif parsed_args.verbose == 4:
-    tuf.log.set_log_level(logging.ERROR)
-
-  elif parsed_args.verbose == 3:
-    tuf.log.set_log_level(logging.WARNING)
-
-  elif parsed_args.verbose == 2:
-    tuf.log.set_log_level(logging.INFO)
-
-  elif parsed_args.verbose == 1:
-    tuf.log.set_log_level(logging.DEBUG)
-
-  else:
-    tuf.log.set_log_level(logging.NOTSET)
+  tuf.log.set_log_level(logging_levels[parsed_args.verbose])
 
   return parsed_args
 
