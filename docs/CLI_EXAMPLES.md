@@ -114,8 +114,8 @@ the expected file that should be downloaded by the client.
 
 (6) perform an update.
 
-(7) halt the server, add README.txt to the Targets role, restart server, and
-fetch the Target's role README.txt.
+(7) halt the server, add README.txt to the Targets role, restart the server,
+and fetch the Target's role README.txt.
 
 (8) Add LICENSE to 'role_y' and demonstate that the client must not fetch it
 because 'role_x' is a terminating delegation (and hasn't signed for it).
@@ -200,7 +200,5 @@ $ repo.py --add LICENSE --role role_y --sign tufkeystore/key_y
 ```Bash
 $ rm -rf tuftargets/ tuf.log
 $ client.py --repo http://localhost:8001 LICENSE
-Traceback (most recent call last):
-...
-tuf.exceptions.UnknownTargetError: 'LICENSE' not found.
+Error: 'LICENSE' not found.
 ```

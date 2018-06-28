@@ -22,6 +22,10 @@
   repositories, which is the case with repository_tool.py and
   developer_tool.py.
 
+  Note:
+  'pip install securesystemslib[crypto,pynacl]' is required by the CLI,
+  which installs the 3rd-party dependencies: cryptography, pynacl, and colorama.
+
 <Usage>
   Note: arguments within brackets are optional.
 
@@ -30,6 +34,7 @@
       --snapshot_pw, --timestamp_pw]
   $ repo.py --add <target> <dir> ... [--path, --recursive]
   $ repo.py --remove <glob pattern>
+  $ repo.py --distrust --pubkeys </path/to/pubkey> [--role]
   $ repo.py --trust --pubkeys </path/to/pubkey> [--role]
   $ repo.py --sign </path/to/key> [--role <targets>]
   $ repo.py --key <keytype>
@@ -44,12 +49,12 @@
   $ repo.py --revoke --delegatee <rolename>
       [--role <rolename> --sign </path/to/role_privkey>]
 
-  $ repo.py --verbose
+  $ repo.py --verbose <0-5>
   $ repo.py --clean [--path]
 """
 
-# Help with Python 3 compatibility, where the print statement is a function, an
-# implicit relative import is invalid, and the '/' operator performs true
+# Help with Python 2+3 compatibility, where the print statement is a function,
+# an implicit relative import is invalid, and the '/' operator performs true
 # division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
 from __future__ import print_function
 from __future__ import absolute_import
@@ -69,6 +74,8 @@ import tuf.log
 import tuf.formats
 import tuf.repository_tool as repo_tool
 
+# 'pip install securesystemslib[crypto,pynacl]' is required for the CLI,
+# which installs the cryptography, pynacl, and colorama dependencies.
 import securesystemslib
 from colorama import Fore
 import six
@@ -93,13 +100,26 @@ TIMESTAMP_KEY_NAME = 'timestamp_key'
 STAGED_METADATA_DIR = 'metadata.staged'
 METADATA_DIR = 'metadata'
 
-SUPPORTED_KEY_TYPES = ['ed25519', 'ecdsa-sha2-nistp256', 'rsa']
+# The keytype strings, as expected on the command line.
+ED25519_KEYTYPE = 'ed25519'
+ECDSA_KEYTYPE = 'ecdsa'
+RSA_KEYTYPE = 'rsa'
+SUPPORTED_CLI_KEYTYPES = (ECDSA_KEYTYPE, ED25519_KEYTYPE, RSA_KEYTYPE)
 
-def process_arguments(parsed_arguments):
+# The supported keytype strings (as they appear in metadata) are listed here
+# because they won't necessarily match the key types supported by
+# securesystemslib.
+SUPPORTED_KEY_TYPES = ('ed25519', 'ecdsa-sha2-nistp256', 'rsa')
+
+
+def process_command_line_arguments(parsed_arguments):
   """
   <Purpose>
-    Create or modify the repository.  Which operation is executed depends
-    on 'parsed_arguments'.
+    Perform the relevant operations on the repo according to the chosen
+    command-line options.  Which functions are executed depends on
+    'parsed_arguments'.  For instance, the --init and --clean options will
+    cause the init_repo() and clean_repo() functions to be called.
+    Multiple operations can be executed in one invocation of the CLI.
 
   <Arguments>
     parsed_arguments:
@@ -123,34 +143,38 @@ def process_arguments(parsed_arguments):
   else:
     logger.debug('We have a valid argparse Namespace.')
 
-  # TODO: Process all of the supported command-line actions.  --init, --clean,
-  # --add, --sign, --key are currently implemented.
-  if parsed_arguments.init:
-    init_repo(parsed_arguments)
-
+  # TODO: Make sure the order that the arguments are processed allows for the
+  # most convenient use of multiple options in one invocation of the CLI.  For
+  # instance, it might be best for --clean to be processed first before --init
+  # so that a user can do the following: repo.py --clean --init (that is, first
+  # clear the repo in the current working directory, and then initialize a new
+  # one.
   if parsed_arguments.clean:
     clean_repo(parsed_arguments)
 
-  if parsed_arguments.add:
-    add_targets(parsed_arguments)
+  if parsed_arguments.init:
+    init_repo(parsed_arguments)
 
   if parsed_arguments.remove:
     remove_targets(parsed_arguments)
 
-  if parsed_arguments.trust:
-    add_verification_key(parsed_arguments)
+  if parsed_arguments.add:
+    add_targets(parsed_arguments)
 
   if parsed_arguments.distrust:
     remove_verification_key(parsed_arguments)
 
+  if parsed_arguments.trust:
+    add_verification_key(parsed_arguments)
+
   if parsed_arguments.key:
     gen_key(parsed_arguments)
 
-  if parsed_arguments.delegate:
-    delegate(parsed_arguments)
-
   if parsed_arguments.revoke:
     revoke(parsed_arguments)
+
+  if parsed_arguments.delegate:
+    delegate(parsed_arguments)
 
   # --sign should be processed last, after the other options, so that metadata
   # is signed last after potentially being modified by the other options.
@@ -165,7 +189,7 @@ def delegate(parsed_arguments):
     raise tuf.exceptions.Error(
         '--delegatee must be set to perform the delegation.')
 
-  if parsed_arguments.delegatee in ['root', 'snapshot', 'timestamp', 'targets']:
+  if parsed_arguments.delegatee in ('root', 'snapshot', 'timestamp', 'targets'):
     raise tuf.exceptions.Error(
         'Cannot delegate to the top-level role: ' + repr(parsed_arguments.delegatee))
 
@@ -175,8 +199,7 @@ def delegate(parsed_arguments):
 
   public_keys = []
   for public_key in parsed_arguments.pubkeys:
-    imported_pubkey = import_publickey_from_file(
-        public_key)
+    imported_pubkey = import_publickey_from_file(public_key)
     public_keys.append(imported_pubkey)
 
   repository = repo_tool.load_repository(
@@ -194,19 +217,13 @@ def delegate(parsed_arguments):
 
     repository.targets.load_signing_key(targets_private)
 
-
-  # A delegated (non-Targets) role.
+  # A delegated (non-top-level-Targets) role.
   else:
     repository.targets(parsed_arguments.role).delegate(
         parsed_arguments.delegatee, public_keys,
         parsed_arguments.delegate, parsed_arguments.threshold,
         parsed_arguments.terminating, list_of_targets=None,
         path_hash_prefixes=None)
-
-    consistent_snapshot = tuf.roledb.get_roleinfo('root',
-        repository._repository_name)['consistent_snapshot']
-    repository.write('root', consistent_snapshot=consistent_snapshot,
-        increment_version_number=True)
 
   # Update the required top-level roles, Snapshot and Timestamp, to make a new
   # release.  Automatically making a new release can be disabled via
@@ -244,7 +261,6 @@ def revoke(parsed_arguments):
         parsed_arguments.targets_pw)
 
     repository.targets.load_signing_key(targets_private)
-
 
   # A non-top-level role.
   else:
@@ -285,27 +301,27 @@ def gen_key(parsed_arguments):
 
   keypath = None
 
-  if parsed_arguments.key == 'ecdsa':
+  if parsed_arguments.key not in SUPPORTED_CLI_KEYTYPES:
+    tuf.exceptions.Error(
+        'Invalid key type: ' + repr(parsed_arguments.key) + '.  Supported'
+        ' key types: ' + repr(SUPPORTED_CLI_KEYTYPES))
+
+  elif parsed_arguments.key == ECDSA_KEYTYPE:
     keypath = securesystemslib.interface.generate_and_write_ecdsa_keypair(
       parsed_arguments.filename, password=parsed_arguments.pw)
 
-  elif parsed_arguments.key == 'ed25519':
+  elif parsed_arguments.key == ED25519_KEYTYPE:
     keypath = securesystemslib.interface.generate_and_write_ed25519_keypair(
         parsed_arguments.filename, password=parsed_arguments.pw)
 
-  elif parsed_arguments.key == 'rsa':
+  # RSA key..
+  else:
     keypath = securesystemslib.interface.generate_and_write_rsa_keypair(
         parsed_arguments.filename, password=parsed_arguments.pw)
 
-  else:
-    tuf.exceptions.Error(
-        'Invalid key type: ' + repr(parsed_arguments.key) + '.  Supported'
-        ' key types: "ecdsa", "ed25519", "rsa."')
-
-
   # If a filename is not given, the generated keypair is saved to the current
-  # working directory.  By default, the filenames are written to <KEYID>.pub
-  # and <KEYID> (private key).  Move them from the CWD to the repo's keystore.
+  # working directory.  By default, the keypair is written to <KEYID>.pub
+  # and <KEYID> (private key).
   if not parsed_arguments.filename:
     privkey_repo_path =  os.path.join(parsed_arguments.path,
         KEYSTORE_DIR, os.path.basename(keypath))
@@ -315,6 +331,7 @@ def gen_key(parsed_arguments):
     securesystemslib.util.ensure_parent_dir(privkey_repo_path)
     securesystemslib.util.ensure_parent_dir(pubkey_repo_path)
 
+    # Move them from the CWD to the repo's keystore.
     shutil.move(keypath, privkey_repo_path)
     shutil.move(keypath + '.pub', pubkey_repo_path)
 
@@ -389,7 +406,8 @@ def import_publickey_from_file(keypath):
   # load_json_file() call above can fail for this reason.  Try to potentially
   # load the PEM string in keypath if an exception is raised.
   except securesystemslib.exceptions.Error:
-    key_metadata = securesystemslib.interface.import_rsa_publickey_from_file(keypath)
+    key_metadata = securesystemslib.interface.import_rsa_publickey_from_file(
+        keypath)
 
   key_object, junk = securesystemslib.keys.format_metadata_to_key(key_metadata)
 
@@ -413,7 +431,10 @@ def add_verification_key(parsed_arguments):
   for keypath in parsed_arguments.pubkeys:
     imported_pubkey = import_publickey_from_file(keypath)
 
-    if parsed_arguments.role == 'root':
+    if parsed_arguments.role not in ('root', 'targets', 'snapshot', 'timestamp'):
+      raise tuf.exceptions.Error('The given --role is not a top-level role.')
+
+    elif parsed_arguments.role == 'root':
       repository.root.add_verification_key(imported_pubkey)
 
     elif parsed_arguments.role == 'targets':
@@ -422,11 +443,9 @@ def add_verification_key(parsed_arguments):
     elif parsed_arguments.role == 'snapshot':
       repository.snapshot.add_verification_key(imported_pubkey)
 
-    elif parsed_arguments.role == 'timestamp':
-      repository.timestamp.add_verification_key(imported_pubkey)
-
+    # The timestamp role..
     else:
-      raise tuf.exceptions.Error('The given --role is not a top-level role.')
+      repository.timestamp.add_verification_key(imported_pubkey)
 
   consistent_snapshot = tuf.roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
@@ -435,8 +454,6 @@ def add_verification_key(parsed_arguments):
 
   # Move staged metadata directory to "live" metadata directory.
   write_to_live_repo(parsed_arguments)
-
-
 
 
 
@@ -451,7 +468,10 @@ def remove_verification_key(parsed_arguments):
     imported_pubkey = import_publickey_from_file(keypath)
 
     try:
-      if parsed_arguments.role == 'root':
+      if parsed_arguments.role not in ('root', 'targets', 'snapshot', 'timestamp'):
+        raise tuf.exceptions.Error('The given --role is not a top-level role.')
+
+      elif parsed_arguments.role == 'root':
         repository.root.remove_verification_key(imported_pubkey)
 
       elif parsed_arguments.role == 'targets':
@@ -460,12 +480,15 @@ def remove_verification_key(parsed_arguments):
       elif parsed_arguments.role == 'snapshot':
         repository.snapshot.remove_verification_key(imported_pubkey)
 
-      elif parsed_arguments.role == 'timestamp':
+      # The Timestamp key..
+      else:
         repository.timestamp.remove_verification_key(imported_pubkey)
 
-      else:
-        raise tuf.exceptions.Error('The given --role is not a top-level role.')
-
+    # It is assumed remove_verification_key() only raises
+    # securesystemslib.exceptions.Error and
+    # securesystemslib.exceptions.FormatError, and the latter is not raised
+    # bacause a valid key should have been returned by
+    # import_publickey_from_file().
     except securesystemslib.exceptions.Error:
       print(repr(keypath) + ' is not a trusted key.  Skipping.')
 
@@ -476,8 +499,6 @@ def remove_verification_key(parsed_arguments):
 
   # Move staged metadata directory to "live" metadata directory.
   write_to_live_repo(parsed_arguments)
-
-
 
 
 
@@ -492,16 +513,16 @@ def sign_role(parsed_arguments):
 
     role_privatekey = import_privatekey_from_file(keypath)
 
-    if parsed_arguments.role in ['targets']:
+    if parsed_arguments.role == 'targets':
       repository.targets.load_signing_key(role_privatekey)
 
-    elif parsed_arguments.role in ['root']:
+    elif parsed_arguments.role == 'root':
       repository.root.load_signing_key(role_privatekey)
 
-    elif parsed_arguments.role in ['snapshot']:
+    elif parsed_arguments.role == 'snapshot':
       repository.snapshot.load_signing_key(role_privatekey)
 
-    elif parsed_arguments.role in ['timestamp']:
+    elif parsed_arguments.role == 'timestamp':
       repository.timestamp.load_signing_key(role_privatekey)
 
     else:
@@ -516,6 +537,7 @@ def sign_role(parsed_arguments):
         tuf.keydb.add_key(
             role_privatekey, repository_name = repository._repository_name)
 
+        # Set the delegated metadata file to expire in 3 months.
         expiration = tuf.formats.unix_timestamp_to_datetime(
             int(time.time() + 7889230))
         expiration = expiration.isoformat() + 'Z'
@@ -540,7 +562,9 @@ def sign_role(parsed_arguments):
       else:
         repository.targets(parsed_arguments.role).load_signing_key(role_privatekey)
 
-  # Write the Targets metadata now that it's been modified.
+  # Write the Targets metadata now that it's been modified.  Once write() is
+  # called on a role, it is no longer considered "dirty" and the role will not
+  # be written again if another write() or writeall() were subsequently made.
   repository.write(parsed_arguments.role,
       consistent_snapshot=consistent_snapshot, increment_version_number=False)
 
@@ -587,7 +611,8 @@ def write_to_live_repo(parsed_arguments):
 
 
 
-def add_target_to_repo(parsed_arguments, target_path, repo_targets_path, repository, custom=None):
+def add_target_to_repo(parsed_arguments, target_path, repo_targets_path,
+    repository, custom=None):
   """
   (1) Copy 'target_path' to 'repo_targets_path'.
   (2) Add 'target_path' to Targets metadata of 'repository'.
@@ -623,10 +648,9 @@ def add_target_to_repo(parsed_arguments, target_path, repo_targets_path, reposit
 
 
 
-
 def remove_target_files_from_metadata(parsed_arguments, repository):
 
-  if parsed_arguments.role in ['root', 'snapshot', 'timestamp']:
+  if parsed_arguments.role in ('root', 'snapshot', 'timestamp'):
     raise tuf.exceptions.Error(
         'Invalid rolename specified: ' + repr(parsed_arguments.role) + '.'
         '  It must be "targets" or a delegated rolename.')
@@ -666,10 +690,12 @@ def add_targets(parsed_arguments):
     if os.path.isdir(target_path):
       for sub_target_path in repository.get_filepaths_in_directory(
           target_path, parsed_arguments.recursive):
-        add_target_to_repo(parsed_arguments, sub_target_path, repo_targets_path, repository)
+        add_target_to_repo(parsed_arguments, sub_target_path,
+            repo_targets_path, repository)
 
     else:
-      add_target_to_repo(parsed_arguments, target_path, repo_targets_path, repository)
+      add_target_to_repo(parsed_arguments, target_path,
+          repo_targets_path, repository)
 
   consistent_snapshot = tuf.roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
@@ -680,10 +706,8 @@ def add_targets(parsed_arguments):
         os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
         parsed_arguments.targets_pw)
     repository.targets.load_signing_key(targets_private)
-    repository.write('targets', consistent_snapshot=consistent_snapshot,
-        increment_version_number=True)
 
-  elif parsed_arguments.role not in ['root', 'snapshot', 'timestamp']:
+  elif parsed_arguments.role not in ('root', 'snapshot', 'timestamp'):
     repository.write(parsed_arguments.role,
         consistent_snapshot=consistent_snapshot, increment_version_number=True)
     return
@@ -912,7 +936,7 @@ def parse_arguments():
       '  Consistent snapshot is False by default.')
 
   parser.add_argument('-c', '--clean', type=str, nargs='?', const='.',
-      metavar='</path/to/repo_dir', help='Delete the repo files from the'
+      metavar='</path/to/repo_dir>', help='Delete the repo files from the'
       ' specified directory.  If a directory is not specified, the current'
       ' working directory is cleaned.')
 
@@ -934,8 +958,8 @@ def parse_arguments():
       ' recursively.  If unset, the default behavior is to not add target'
       ' files in subdirectories.')
 
-  parser.add_argument('-k', '--key', type=str, nargs='?', const='ed25519',
-      default=None, choices=['ecdsa', 'ed25519', 'rsa'],
+  parser.add_argument('-k', '--key', type=str, nargs='?', const=ED25519_KEYTYPE,
+      default=None, choices=[ECDSA_KEYTYPE, ED25519_KEYTYPE, RSA_KEYTYPE],
       help='Generate an ECDSA, Ed25519, or RSA key.  An Ed25519 key is'
       ' created if the key type is unspecified.')
 
@@ -1013,23 +1037,10 @@ def parse_arguments():
   parsed_args = parser.parse_args()
 
   # Set the logging level.
-  if parsed_args.verbose == 5:
-    tuf.log.set_log_level(logging.CRITICAL)
+  logging_levels = [logging.NOTSET, logging.DEBUG,
+      logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL]
 
-  elif parsed_args.verbose == 4:
-    tuf.log.set_log_level(logging.ERROR)
-
-  elif parsed_args.verbose == 3:
-    tuf.log.set_log_level(logging.WARNING)
-
-  elif parsed_args.verbose == 2:
-    tuf.log.set_log_level(logging.INFO)
-
-  elif parsed_args.verbose == 1:
-    tuf.log.set_log_level(logging.DEBUG)
-
-  else:
-    tuf.log.set_log_level(logging.NOTSET)
+  tuf.log.set_log_level(logging_levels[parsed_args.verbose])
 
   return parsed_args
 
@@ -1047,7 +1058,7 @@ if __name__ == '__main__':
   # $ repo.py --add foo.bar.gz
 
   try:
-    process_arguments(arguments)
+    process_command_line_arguments(arguments)
 
   except (tuf.exceptions.Error) as e:
     sys.stderr.write('Error: ' + str(e) + '\n')
