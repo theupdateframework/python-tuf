@@ -188,7 +188,7 @@ def delegate(parsed_arguments):
     raise tuf.exceptions.Error(
         '--delegatee must be set to perform the delegation.')
 
-  if parsed_arguments.delegatee in ['root', 'snapshot', 'timestamp', 'targets']:
+  if parsed_arguments.delegatee in ('root', 'snapshot', 'timestamp', 'targets'):
     raise tuf.exceptions.Error(
         'Cannot delegate to the top-level role: ' + repr(parsed_arguments.delegatee))
 
@@ -216,19 +216,13 @@ def delegate(parsed_arguments):
 
     repository.targets.load_signing_key(targets_private)
 
-
-  # A delegated (non-Targets) role.
+  # A delegated (non-top-level-Targets) role.
   else:
     repository.targets(parsed_arguments.role).delegate(
         parsed_arguments.delegatee, public_keys,
         parsed_arguments.delegate, parsed_arguments.threshold,
         parsed_arguments.terminating, list_of_targets=None,
         path_hash_prefixes=None)
-
-    consistent_snapshot = tuf.roledb.get_roleinfo('root',
-        repository._repository_name)['consistent_snapshot']
-    repository.write('root', consistent_snapshot=consistent_snapshot,
-        increment_version_number=True)
 
   # Update the required top-level roles, Snapshot and Timestamp, to make a new
   # release.  Automatically making a new release can be disabled via
@@ -511,16 +505,16 @@ def sign_role(parsed_arguments):
 
     role_privatekey = import_privatekey_from_file(keypath)
 
-    if parsed_arguments.role in ['targets']:
+    if parsed_arguments.role == 'targets':
       repository.targets.load_signing_key(role_privatekey)
 
-    elif parsed_arguments.role in ['root']:
+    elif parsed_arguments.role == 'root':
       repository.root.load_signing_key(role_privatekey)
 
-    elif parsed_arguments.role in ['snapshot']:
+    elif parsed_arguments.role == 'snapshot':
       repository.snapshot.load_signing_key(role_privatekey)
 
-    elif parsed_arguments.role in ['timestamp']:
+    elif parsed_arguments.role == 'timestamp':
       repository.timestamp.load_signing_key(role_privatekey)
 
     else:
@@ -560,7 +554,9 @@ def sign_role(parsed_arguments):
       else:
         repository.targets(parsed_arguments.role).load_signing_key(role_privatekey)
 
-  # Write the Targets metadata now that it's been modified.
+  # Write the Targets metadata now that it's been modified.  Once write() is
+  # called on a role, it is no longer considered "dirty" and the role will not
+  # be written again if another write() or writeall() were subsequently made.
   repository.write(parsed_arguments.role,
       consistent_snapshot=consistent_snapshot, increment_version_number=False)
 
@@ -702,10 +698,8 @@ def add_targets(parsed_arguments):
         os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
         parsed_arguments.targets_pw)
     repository.targets.load_signing_key(targets_private)
-    repository.write('targets', consistent_snapshot=consistent_snapshot,
-        increment_version_number=True)
 
-  elif parsed_arguments.role not in ['root', 'snapshot', 'timestamp']:
+  elif parsed_arguments.role not in ('root', 'snapshot', 'timestamp'):
     repository.write(parsed_arguments.role,
         consistent_snapshot=consistent_snapshot, increment_version_number=True)
     return
