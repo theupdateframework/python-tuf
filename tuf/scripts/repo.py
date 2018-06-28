@@ -430,7 +430,10 @@ def add_verification_key(parsed_arguments):
   for keypath in parsed_arguments.pubkeys:
     imported_pubkey = import_publickey_from_file(keypath)
 
-    if parsed_arguments.role == 'root':
+    if parsed_arguments.role not in ('root', 'targets', 'snapshot', 'timestamp'):
+      raise tuf.exceptions.Error('The given --role is not a top-level role.')
+
+    elif parsed_arguments.role == 'root':
       repository.root.add_verification_key(imported_pubkey)
 
     elif parsed_arguments.role == 'targets':
@@ -439,11 +442,9 @@ def add_verification_key(parsed_arguments):
     elif parsed_arguments.role == 'snapshot':
       repository.snapshot.add_verification_key(imported_pubkey)
 
-    elif parsed_arguments.role == 'timestamp':
-      repository.timestamp.add_verification_key(imported_pubkey)
-
+    # The timestamp role..
     else:
-      raise tuf.exceptions.Error('The given --role is not a top-level role.')
+      repository.timestamp.add_verification_key(imported_pubkey)
 
   consistent_snapshot = tuf.roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
@@ -466,7 +467,10 @@ def remove_verification_key(parsed_arguments):
     imported_pubkey = import_publickey_from_file(keypath)
 
     try:
-      if parsed_arguments.role == 'root':
+      if parsed_arguments.role not in ('root', 'targets', 'snapshot', 'timestamp'):
+        raise tuf.exceptions.Error('The given --role is not a top-level role.')
+
+      elif parsed_arguments.role == 'root':
         repository.root.remove_verification_key(imported_pubkey)
 
       elif parsed_arguments.role == 'targets':
@@ -475,12 +479,15 @@ def remove_verification_key(parsed_arguments):
       elif parsed_arguments.role == 'snapshot':
         repository.snapshot.remove_verification_key(imported_pubkey)
 
-      elif parsed_arguments.role == 'timestamp':
+      # The Timestamp key..
+      else:
         repository.timestamp.remove_verification_key(imported_pubkey)
 
-      else:
-        raise tuf.exceptions.Error('The given --role is not a top-level role.')
-
+    # It is assumed remove_verification_key() only raises
+    # securesystemslib.exceptions.Error and
+    # securesystemslib.exceptions.FormatError, and the latter is not raised
+    # bacause a valid key should have been returned by
+    # import_publickey_from_file().
     except securesystemslib.exceptions.Error:
       print(repr(keypath) + ' is not a trusted key.  Skipping.')
 
