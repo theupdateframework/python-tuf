@@ -138,7 +138,7 @@ $ repo.py --sign </path/to/key> ... [--role <rolename>, --path </path/to/repo>]
 
 For example, to sign the delegated `foo` metadata:
 ```Bash
-$ repo.py --sign /path/to/foo_key --role foo
+$ repo.py --sign </path/to/foo_key> --role foo
 ```
 
 
