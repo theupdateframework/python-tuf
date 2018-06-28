@@ -23,8 +23,8 @@
   developer_tool.py.
 
   Note:
-  'pip install securesystemslib[crypto,pynacl]' is required for the CLI,
-  which installs the cryptography, pynacl, and colorama dependencies.
+  'pip install securesystemslib[crypto,pynacl]' is required by the CLI,
+  which installs the 3rd-party dependencies: cryptography, pynacl, and colorama.
 
 <Usage>
   Note: arguments within brackets are optional.
@@ -34,6 +34,7 @@
       --snapshot_pw, --timestamp_pw]
   $ repo.py --add <target> <dir> ... [--path, --recursive]
   $ repo.py --remove <glob pattern>
+  $ repo.py --distrust --pubkeys </path/to/pubkey> [--role]
   $ repo.py --trust --pubkeys </path/to/pubkey> [--role]
   $ repo.py --sign </path/to/key> [--role <targets>]
   $ repo.py --key <keytype>
@@ -48,7 +49,7 @@
   $ repo.py --revoke --delegatee <rolename>
       [--role <rolename> --sign </path/to/role_privkey>]
 
-  $ repo.py --verbose
+  $ repo.py --verbose <0-5>
   $ repo.py --clean [--path]
 """
 
@@ -148,32 +149,32 @@ def process_command_line_arguments(parsed_arguments):
   # so that a user can do the following: repo.py --clean --init (that is, first
   # clear the repo in the current working directory, and then initialize a new
   # one.
-  if parsed_arguments.init:
-    init_repo(parsed_arguments)
-
   if parsed_arguments.clean:
     clean_repo(parsed_arguments)
 
-  if parsed_arguments.add:
-    add_targets(parsed_arguments)
+  if parsed_arguments.init:
+    init_repo(parsed_arguments)
 
   if parsed_arguments.remove:
     remove_targets(parsed_arguments)
 
-  if parsed_arguments.trust:
-    add_verification_key(parsed_arguments)
+  if parsed_arguments.add:
+    add_targets(parsed_arguments)
 
   if parsed_arguments.distrust:
     remove_verification_key(parsed_arguments)
 
+  if parsed_arguments.trust:
+    add_verification_key(parsed_arguments)
+
   if parsed_arguments.key:
     gen_key(parsed_arguments)
 
-  if parsed_arguments.delegate:
-    delegate(parsed_arguments)
-
   if parsed_arguments.revoke:
     revoke(parsed_arguments)
+
+  if parsed_arguments.delegate:
+    delegate(parsed_arguments)
 
   # --sign should be processed last, after the other options, so that metadata
   # is signed last after potentially being modified by the other options.
