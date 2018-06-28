@@ -200,7 +200,5 @@ $ repo.py --add LICENSE --role role_y --sign tufkeystore/key_y
 ```Bash
 $ rm -rf tuftargets/ tuf.log
 $ client.py --repo http://localhost:8001 LICENSE
-Traceback (most recent call last):
-...
-tuf.exceptions.UnknownTargetError: 'LICENSE' not found.
+Error: 'LICENSE' not found.
 ```
