@@ -6,7 +6,7 @@
 #
 -e .
 asn1crypto==0.24.0
-astroid==1.6.5
+astroid==2.0.2
 backports.functools-lru-cache==1.5
 bandit==1.4.0
 cffi==1.11.5
