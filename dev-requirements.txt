@@ -32,7 +32,7 @@ pyyaml==3.13
 securesystemslib[crypto,pynacl]==0.11.2
 singledispatch==3.4.0.3
 six==1.11.0
-smmap2==2.0.3
+smmap2==2.0.4
 stevedore==1.28.0
 tox==3.0.0
 virtualenv==16.0.0
