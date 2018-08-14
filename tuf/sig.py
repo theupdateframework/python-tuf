@@ -185,18 +185,15 @@ def get_signature_status(signable, role=None, repository_name='default',
     if valid_sig:
       if role is not None:
 
-        try:
-          # Is this an unauthorized key? (a keyid associated with 'role')
-          if keyids is None:
-            keyids = tuf.roledb.get_role_keyids(role, repository_name)
+        # Is this an unauthorized key? (a keyid associated with 'role')
+        # Note that if the role is not known, tuf.exceptions.UnknownRoleError
+        # is raised here.
+        if keyids is None:
+          keyids = tuf.roledb.get_role_keyids(role, repository_name)
 
-          if keyid not in keyids:
-            untrusted_sigs.append(keyid)
-            continue
-
-        # Unknown role, re-raise exception.
-        except tuf.exceptions.UnknownRoleError:
-          raise
+        if keyid not in keyids:
+          untrusted_sigs.append(keyid)
+          continue
 
       # This is an unset role, thus an unknown signature.
       else:
@@ -215,12 +212,10 @@ def get_signature_status(signable, role=None, repository_name='default',
   # role.
   if role is not None:
     if threshold is None:
-      try:
-        threshold = \
-          tuf.roledb.get_role_threshold(role, repository_name=repository_name)
-
-      except tuf.exceptions.UnknownRoleError:
-        raise
+      # Note that if the role is not known, tuf.exceptions.UnknownRoleError is
+      # raised here.
+      threshold = tuf.roledb.get_role_threshold(
+          role, repository_name=repository_name)
 
     else:
       logger.debug('Not using roledb.py\'s threshold for ' + repr(role))

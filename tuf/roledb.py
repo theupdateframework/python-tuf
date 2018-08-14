@@ -569,11 +569,10 @@ def role_exists(rolename, repository_name='default'):
 
   # Raise securesystemslib.exceptions.FormatError,
   # securesystemslib.exceptions.InvalidNameError if the arguments are invalid.
+  # We do not intercept securesystemslib.exceptions.FormatError
+  # or securesystemslib.exceptions.InvalidNameError exceptions.
   try:
     _check_rolename(rolename, repository_name)
-
-  except (securesystemslib.exceptions.FormatError, securesystemslib.exceptions.InvalidNameError):
-    raise
 
   except tuf.exceptions.UnknownRoleError:
     return False
