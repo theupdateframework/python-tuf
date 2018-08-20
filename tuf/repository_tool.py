@@ -521,7 +521,7 @@ class Repository(object):
     for dirpath, dirnames, filenames in os.walk(files_directory,
                                                 followlinks=followlinks):
       for filename in filenames:
-        full_target_path = os.path.join(dirpath, filename)
+        full_target_path = os.path.join(os.path.abspath(dirpath), filename)
         targets.append(full_target_path)
 
       # Prune the subdirectories to walk right now if we do not wish to
