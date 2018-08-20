@@ -300,9 +300,6 @@ class TestTutorial(unittest.TestCase):
     for delegation in repository.targets('unclaimed').delegations:
       delegation.load_signing_key(private_unclaimed_key)
 
-    repository.targets('unclaimed').add_restricted_paths(
-        'repository/targets/myproject/*', 'django')
-
 
 
     # ----- Tutorial Section: How to Perform an Update

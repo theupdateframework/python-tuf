@@ -617,8 +617,6 @@ to some role.
 >>> for delegation in repository.targets('unclaimed').delegations:
 ...   delegation.load_signing_key(private_unclaimed_key)
 
-# Delegated roles can be restricted to particular paths with add_restricted_paths().
->>> repository.targets('unclaimed').add_restricted_paths('repository/targets/myproject/*', 'django')
 ```
 
 ## How to Perform an Update ##
