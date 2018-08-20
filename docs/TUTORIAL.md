@@ -571,8 +571,12 @@ target file names specified in metadata do not contain digests in their names.)
 The repository maintainer is responsible for the duration of multiple versions
 of metadata and target files available on a repository.  Generating consistent
 metadata and target files on the repository is enabled by setting the
-`consistent_snapshot` argument of writeall() or write():
+`consistent_snapshot` argument of writeall() or write(). Note that changing the
+consistent_snapshot setting involves writing a new version of root.
 ```Python
+    # ----- Tutorial Section: Consistent Snapshots
+>>> repository.root.load_signing_key(private_root_key)
+>>> repository.root.load_signing_key(private_root_key2)
 >>> repository.writeall(consistent_snapshot=True)
 ```
 

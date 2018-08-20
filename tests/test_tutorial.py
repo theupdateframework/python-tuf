@@ -290,6 +290,8 @@ class TestTutorial(unittest.TestCase):
 
     # ----- Tutorial Section: Consistent Snapshots
 
+    repository.root.load_signing_key(private_root_key)
+    repository.root.load_signing_key(private_root_key2)
     repository.writeall(consistent_snapshot=True)
 
 
