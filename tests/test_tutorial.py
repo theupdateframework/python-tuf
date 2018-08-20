@@ -256,9 +256,11 @@ class TestTutorial(unittest.TestCase):
 
     repository.writeall()
 
-
-    signable_content = dump_signable_metadata('targets.json')
-    append_signature(signature, 'targets.json')
+    signable_content = dump_signable_metadata(
+        os.path.join('repository', 'metadata.staged', 'targets.json'))
+    append_signature(
+        {'keyid': '99aabb', 'sig': '000000'},
+        os.path.join('repository', 'metadata.staged', 'targets.json'))
 
 
 
