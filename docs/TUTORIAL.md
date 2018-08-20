@@ -201,7 +201,7 @@ top-level roles, including itself.
 # Metadata files are created when repository.writeall() or repository.write()
 # are called.  The repository directory is created if it does not exist.  You
 # may see log messages indicating any directories created.
->>> repository = create_new_repository("repository/")
+>>> repository = create_new_repository("repository")
 
 # The Repository instance, 'repository', initially contains top-level Metadata
 # objects.  Add one of the public keys, created in the previous section, to the
@@ -353,7 +353,7 @@ the target filepaths to metadata.
 # Load the repository created in the previous section.  This repository so far
 # contains metadata for the top-level roles, but no target paths are yet listed
 # in targets metadata.
->>> repository = load_repository("repository/")
+>>> repository = load_repository('repository')
 
 # get_filepaths_in_directory() returns a list of file paths in a directory.  It can also return
 # files in sub-directories if 'recursive_walk' is True.
@@ -488,11 +488,11 @@ targets and generate signed metadata.
 >>> generate_and_write_rsa_keypair('unclaimed_key', bits=2048, password='password')
 >>> public_unclaimed_key = import_rsa_publickey_from_file('unclaimed_key.pub')
 
-# Make a delegation (delegate trust of '/foo*.tgz' files) from "targets" to
+# Make a delegation (delegate trust of 'foo*.tgz' files) from "targets" to
 # "unclaimed", where 'unclaimed' initially contains zero targets.
 # delegate(rolename, list_of_public_keys, paths, threshold=1,
 #     list_of_targets=None, path_hash_prefixes=None)
->>> repository.targets.delegate("unclaimed", [public_unclaimed_key], ['/foo*.tgz'])
+>>> repository.targets.delegate('unclaimed', [public_unclaimed_key], ['foo*.tgz'])
 
 # Thereafter, we can access a delegated role this way:
 >>> repository.targets("<delegated rolename")
@@ -524,7 +524,7 @@ Dirty roles: ['timestamp', 'snapshot', 'targets', 'unclaimed']
 # Continuing from the previous section . . .
 
 # Create a delegated role that will be revoked in the next step...
->>> repository.targets('unclaimed').delegate("django", [public_unclaimed_key], ['/bar*.tgz'])
+>>> repository.targets('unclaimed').delegate("django", [public_unclaimed_key], ['bar*.tgz'])
 
 # Revoke "django" and write the metadata of all remaining roles.
 >>> repository.targets('unclaimed').revoke("django")

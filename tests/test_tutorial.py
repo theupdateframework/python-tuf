@@ -105,7 +105,7 @@ class TestTutorial(unittest.TestCase):
 
 
     # ----- Tutorial Section: Create Top-level Metadata
-    repository = create_new_repository("repository/")
+    repository = create_new_repository('repository')
     repository.root.add_verification_key(public_root_key)
     self.assertTrue(repository.root.keys)
 
@@ -193,7 +193,7 @@ class TestTutorial(unittest.TestCase):
       fobj.write('file4')
 
 
-    repository = load_repository("repository/")
+    repository = load_repository('repository')
     list_of_targets = repository.get_filepaths_in_directory(
         "repository/targets/", recursive_walk=False, followlinks=True)
 
@@ -255,7 +255,7 @@ class TestTutorial(unittest.TestCase):
         'unclaimed_key', bits=2048, password='password')
     public_unclaimed_key = import_rsa_publickey_from_file('unclaimed_key.pub')
     repository.targets.delegate(
-        "unclaimed", [public_unclaimed_key], ['/foo*.tgz'])
+        'unclaimed', [public_unclaimed_key], ['foo*.tgz'])
 
     # Skipping user entry of password
     ## private_unclaimed_key = import_rsa_privatekey_from_file('unclaimed_key')
@@ -275,8 +275,8 @@ class TestTutorial(unittest.TestCase):
 
     repository.writeall()
 
-    repository.targets('unclaimed').revoke("django")
-    repository.targets('unclaimed').delegate('django', [public_unclaimed_key], ['/bar*.tgz'])
+    repository.targets('unclaimed').delegate('django', [public_unclaimed_key], ['bar*.tgz'])
+    repository.targets('unclaimed').revoke('django')
     repository.writeall()
 
 
