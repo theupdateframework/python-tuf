@@ -181,21 +181,22 @@ class TestTutorial(unittest.TestCase):
     ## $ mkdir myproject; echo 'file4' > myproject/file4.txt
     ## $ cd ../../
 
-    with open('repository/targets/file1.txt', 'w') as fobj:
+    with open(os.path.join('repository', 'targets', 'file1.txt'), 'w') as fobj:
       fobj.write('file1')
-    with open('repository/targets/file2.txt', 'w') as fobj:
+    with open(os.path.join('repository', 'targets', 'file2.txt'), 'w') as fobj:
       fobj.write('file2')
-    with open('repository/targets/file3.txt', 'w') as fobj:
+    with open(os.path.join('repository', 'targets', 'file3.txt'), 'w') as fobj:
       fobj.write('file3')
 
-    os.mkdir('repository/targets/myproject')
-    with open('repository/targets/myproject/file4.txt', 'w') as fobj:
+    os.mkdir(os.path.join('repository', 'targets', 'myproject'))
+    with open(os.path.join('repository', 'targets', 'myproject', 'file4.txt'),
+        'w') as fobj:
       fobj.write('file4')
 
 
     repository = load_repository('repository')
     list_of_targets = repository.get_filepaths_in_directory(
-        "repository/targets/", recursive_walk=False, followlinks=True)
+        os.path.join('repository', 'targets'), recursive_walk=False, followlinks=True)
 
     self.assertEqual(sorted(list_of_targets),
         ['repository/targets/file1.txt', 'repository/targets/file2.txt',
@@ -204,7 +205,8 @@ class TestTutorial(unittest.TestCase):
 
     repository.targets.add_targets(list_of_targets)
 
-    target4_filepath = "repository/targets/myproject/file4.txt"
+    target4_filepath = os.path.abspath(os.path.join(
+        'repository', 'targets', 'myproject', 'file4.txt'))
     octal_file_permissions = oct(os.stat(target4_filepath).st_mode)[4:]
     custom_file_permissions = {'file_permissions': octal_file_permissions}
     repository.targets.add_target(target4_filepath, custom_file_permissions)
@@ -240,7 +242,8 @@ class TestTutorial(unittest.TestCase):
     repository.writeall()
 
     repository.targets.remove_target("repository/targets/file3.txt")
-    self.assertTrue(os.path.exists('repository/targets/file3.txt'))
+    self.assertTrue(os.path.exists(os.path.join(
+        'repository','targets', 'file3.txt')))
 
     repository.writeall()
 
@@ -299,7 +302,7 @@ class TestTutorial(unittest.TestCase):
     # ----- Tutorial Section: Delegate to Hashed Bins
 
     targets = repository.get_filepaths_in_directory(
-        'repository/targets/myproject', recursive_walk=True)
+        os.path.join('repository', 'targets', 'myproject'), recursive_walk=True)
 
     for delegation in repository.targets('unclaimed').delegations:
       delegation.load_signing_key(private_unclaimed_key)
