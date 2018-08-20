@@ -57,18 +57,15 @@ class TestTutorial(unittest.TestCase):
 
     # ----- Tutorial Section:  Keys
 
-    generate_and_write_rsa_keypair(
-        "keystore/root_key", bits=2048, password="password")
+    generate_and_write_rsa_keypair('root_key', bits=2048, password='password')
 
     # Skipping user entry of password
-    ## generate_and_write_rsa_keypair("keystore/root_key2")
-    generate_and_write_rsa_keypair("keystore/root_key2", password='password')
+    ## generate_and_write_rsa_keypair('root_key2')
+    generate_and_write_rsa_keypair('root_key2', password='password')
 
     # Tutorial tells users to expect these files to exist:
     # ['root_key', 'root_key.pub', 'root_key2', 'root_key2.pub']
-    for fname in [
-        'keystore/root_key', 'keystore/root_key.pub',
-        'keystore/root_key2', 'keystore/root_key2.pub']:
+    for fname in ['root_key', 'root_key.pub', 'root_key2', 'root_key2.pub']:
       self.assertTrue(os.path.exists(fname))
 
     # Note: Skipping the creation of an effectively-randomly named key file, as
@@ -79,35 +76,31 @@ class TestTutorial(unittest.TestCase):
 
     # ----- Tutorial Section:  Import RSA Keys
 
-
-    public_root_key = import_rsa_publickey_from_file("keystore/root_key.pub")
-
-    # Skipping user entry of password
-    ## private_root_key = import_rsa_privatekey_from_file("keystore/root_key")
-    private_root_key = import_rsa_privatekey_from_file(
-        "keystore/root_key", 'password')
+    public_root_key = import_rsa_publickey_from_file('root_key.pub')
 
     # Skipping user entry of password
-    ## import_rsa_privatekey_from_file('keystore/root_key')
+    ## private_root_key = import_rsa_privatekey_from_file('root_key')
+    private_root_key = import_rsa_privatekey_from_file('root_key', 'password')
+
+    # Skipping user entry of password
+    ## import_rsa_privatekey_from_file('root_key')
     with self.assertRaises(securesystemslib.exceptions.CryptoError):
-      import_rsa_privatekey_from_file('keystore/root_key', 'not_the_real_pw')
+      import_rsa_privatekey_from_file('root_key', 'not_the_real_pw')
 
 
 
     # ----- Tutorial Section: Create and Import Ed25519 Keys
 
     # Skipping user entry of password
-    ## generate_and_write_ed25519_keypair('keystore/ed25519_key')
-    generate_and_write_ed25519_keypair(
-        'keystore/ed25519_key', password='password')
+    ## generate_and_write_ed25519_keypair('ed25519_key')
+    generate_and_write_ed25519_keypair('ed25519_key', password='password')
 
-    public_ed25519_key = import_ed25519_publickey_from_file(
-        'keystore/ed25519_key.pub')
+    public_ed25519_key = import_ed25519_publickey_from_file('ed25519_key.pub')
 
     # Skipping user entry of password
-    ## private_ed25519_key = import_ed25519_privatekey_from_file('keystore/ed25519_key')
+    ## private_ed25519_key = import_ed25519_privatekey_from_file('ed25519_key')
     private_ed25519_key = import_ed25519_privatekey_from_file(
-        'keystore/ed25519_key', 'password')
+        'ed25519_key', 'password')
 
 
 
@@ -116,12 +109,12 @@ class TestTutorial(unittest.TestCase):
     repository.root.add_verification_key(public_root_key)
     self.assertTrue(repository.root.keys)
 
-    public_root_key2 = import_rsa_publickey_from_file("keystore/root_key2.pub")
+    public_root_key2 = import_rsa_publickey_from_file('root_key2.pub')
     repository.root.add_verification_key(public_root_key2)
 
     repository.root.threshold = 2
     private_root_key2 = import_rsa_privatekey_from_file(
-        "keystore/root_key2", password="password")
+        'root_key2', password='password')
 
     repository.root.load_signing_key(private_root_key)
     repository.root.load_signing_key(private_root_key2)
@@ -142,32 +135,31 @@ class TestTutorial(unittest.TestCase):
     repository.status()
 
 
-    generate_and_write_rsa_keypair("keystore/targets_key", password="password")
-    generate_and_write_rsa_keypair("keystore/snapshot_key", password="password")
-    generate_and_write_rsa_keypair(
-        "keystore/timestamp_key", password="password")
+    generate_and_write_rsa_keypair('targets_key', password='password')
+    generate_and_write_rsa_keypair('snapshot_key', password='password')
+    generate_and_write_rsa_keypair('timestamp_key', password='password')
 
     repository.targets.add_verification_key(import_rsa_publickey_from_file(
-        "keystore/targets_key.pub"))
+        'targets_key.pub'))
     repository.snapshot.add_verification_key(import_rsa_publickey_from_file(
-        "keystore/snapshot_key.pub"))
+        'snapshot_key.pub'))
     repository.timestamp.add_verification_key(import_rsa_publickey_from_file(
-        "keystore/timestamp_key.pub"))
+        'timestamp_key.pub'))
 
     # Skipping user entry of password
-    ## private_targets_key = import_rsa_privatekey_from_file("keystore/targets_key")
+    ## private_targets_key = import_rsa_privatekey_from_file('targets_key')
     private_targets_key = import_rsa_privatekey_from_file(
-        "keystore/targets_key", 'password')
+        'targets_key', 'password')
 
     # Skipping user entry of password
-    ## private_snapshot_key = import_rsa_privatekey_from_file("keystore/snapshot_key")
+    ## private_snapshot_key = import_rsa_privatekey_from_file('snapshot_key')
     private_snapshot_key = import_rsa_privatekey_from_file(
-        "keystore/snapshot_key", 'password')
+        'snapshot_key', 'password')
 
     # Skipping user entry of password
-    ## private_timestamp_key = import_rsa_privatekey_from_file("keystore/timestamp_key")
+    ## private_timestamp_key = import_rsa_privatekey_from_file('timestamp_key')
     private_timestamp_key = import_rsa_privatekey_from_file(
-        "keystore/timestamp_key", 'password')
+        'timestamp_key', 'password')
 
     repository.targets.load_signing_key(private_targets_key)
     repository.snapshot.load_signing_key(private_snapshot_key)
@@ -219,22 +211,22 @@ class TestTutorial(unittest.TestCase):
 
 
     # Skipping user entry of password
-    ## private_targets_key = import_rsa_privatekey_from_file("keystore/targets_key")
+    ## private_targets_key = import_rsa_privatekey_from_file('targets_key')
     private_targets_key = import_rsa_privatekey_from_file(
-        "keystore/targets_key", 'password')
+        'targets_key', 'password')
     repository.targets.load_signing_key(private_targets_key)
 
     # Skipping user entry of password
-    ## private_snapshot_key = import_rsa_privatekey_from_file("keystore/snapshot_key")
+    ## private_snapshot_key = import_rsa_privatekey_from_file('snapshot_key')
     private_snapshot_key = import_rsa_privatekey_from_file(
-        "keystore/snapshot_key", 'password')
+        'snapshot_key', 'password')
     repository.snapshot.load_signing_key(private_snapshot_key)
 
 
     # Skipping user entry of password
-    ## private_timestamp_key = import_rsa_privatekey_from_file("keystore/timestamp_key")
+    ## private_timestamp_key = import_rsa_privatekey_from_file('timestamp_key')
     private_timestamp_key = import_rsa_privatekey_from_file(
-        "keystore/timestamp_key", 'password')
+        'timestamp_key', 'password')
     repository.timestamp.load_signing_key(private_timestamp_key)
 
     # TODO: dirty_roles() doesn't return the list of dirty roles; it just
@@ -260,16 +252,15 @@ class TestTutorial(unittest.TestCase):
 
     # ----- Tutorial Section: Delegations
     generate_and_write_rsa_keypair(
-        "keystore/unclaimed_key", bits=2048, password="password")
-    public_unclaimed_key = import_rsa_publickey_from_file(
-        "keystore/unclaimed_key.pub")
+        'unclaimed_key', bits=2048, password='password')
+    public_unclaimed_key = import_rsa_publickey_from_file('unclaimed_key.pub')
     repository.targets.delegate(
         "unclaimed", [public_unclaimed_key], ['/foo*.tgz'])
 
     # Skipping user entry of password
-    ## private_unclaimed_key = import_rsa_privatekey_from_file("keystore/unclaimed_key")
+    ## private_unclaimed_key = import_rsa_privatekey_from_file('unclaimed_key')
     private_unclaimed_key = import_rsa_privatekey_from_file(
-        "keystore/unclaimed_key", 'password')
+        'unclaimed_key', 'password')
     repository.targets("unclaimed").load_signing_key(private_unclaimed_key)
 
     repository.targets("unclaimed").version = 2
@@ -284,8 +275,8 @@ class TestTutorial(unittest.TestCase):
 
     repository.writeall()
 
-    repository.targets('unclaimed').delegate("django", [public_unclaimed_key], ['/bar*.tgz'])
     repository.targets('unclaimed').revoke("django")
+    repository.targets('unclaimed').delegate('django', [public_unclaimed_key], ['/bar*.tgz'])
     repository.writeall()
 
 
@@ -349,17 +340,32 @@ class TestTutorial(unittest.TestCase):
 
 def clean_test_environment():
   """
-  Delete temporary files from this test and ensure expected starting state.
+  Delete temporary files and directories from this test (or with the same name
+  as those created by this test...).
   """
-  print('Warning: clean test environment not yet implemented.')
-
-  for directory in ['repository', 'my_repo', 'client', 'keystore',
+  for directory in ['repository', 'my_repo', 'client',
       'repository/targets/my_project']:
     if os.path.exists(directory):
       shutil.rmtree(directory)
 
-  for fname in ['repository/targets/file1.txt', 'repository/targets/file2.txt',
-      'repository/targets/file3.txt']:
+  for fname in [
+        os.path.join('repository', 'targets', 'file1.txt'),
+        os.path.join('repository', 'targets', 'file2.txt'),
+        os.path.join('repository', 'targets', 'file3.txt'),
+        'root_key',
+        'root_key.pub',
+        'root_key2',
+        'root_key2.pub',
+        'ed25519_key',
+        'ed25519_key.pub',
+        'targets_key',
+        'targets_key.pub',
+        'snapshot_key',
+        'snapshot_key.pub',
+        'timestamp_key',
+        'timestamp_key.pub',
+        'unclaimed_key',
+        'unclaimed_key.pub']:
     if os.path.exists(fname):
       os.remove(fname)
 

@@ -104,18 +104,16 @@ text without prepended symbols is the output of a command.
 
 # Generate and write the first of two root keys for the TUF repository.  The
 # following function creates an RSA key pair, where the private key is saved to
-# "keystore/root_key" and the public key to "keystore/root_key.pub" (both saved
-# to the current working directory).  The 'keystore' directory can be manually
-# created in the current directory to store the keys created in these examples.
-# If 'keystore' directory does not exist, it will be created.
->>> generate_and_write_rsa_keypair("keystore/root_key", bits=2048, password="password")
+# "root_key" and the public key to "root_key.pub" (both saved to the current
+# working directory).
+>>> generate_and_write_rsa_keypair("root_key", bits=2048, password="password")
 
 # If the key length is unspecified, it defaults to 3072 bits. A length of less
 # than 2048 bits raises an exception. A password may be supplied as an
 # argument, otherwise a user prompt is presented.  If an empty password
 # is entered, the private key is saved unencrypted.
->>> generate_and_write_rsa_keypair("keystore/root_key2")
-Enter a password for the RSA key (/path/to/keystore/root_key2):
+>>> generate_and_write_rsa_keypair("root_key2")
+Enter a password for the RSA key (/path/to/root_key2):
 Confirm:
 ```
 The following four key files should now exist:
@@ -129,7 +127,7 @@ If a filepath is not given, the KEYID of the generated key is used as the
 filename.  The key files are written to the current working directory.
 ```
 >>> generate_and_write_rsa_keypair()
-Enter a password for the encrypted RSA key (/path/to/keystore/b5b8de8aeda674bce948fbe82cab07e309d6775fc0ec299199d16746dc2bd54c):
+Enter a password for the encrypted RSA key (/path/to/b5b8de8aeda674bce948fbe82cab07e309d6775fc0ec299199d16746dc2bd54c):
 Confirm:
 ```
 
@@ -138,12 +136,12 @@ Confirm:
 # Continuing from the previous section . . .
 
 # Import an existing public key.
->>> public_root_key = import_rsa_publickey_from_file("keystore/root_key.pub")
+>>> public_root_key = import_rsa_publickey_from_file("root_key.pub")
 
 # Import an existing private key.  Importing a private key requires a password,
 # whereas importing a public key does not.
->>> private_root_key = import_rsa_privatekey_from_file("keystore/root_key")
-Enter a password for the encrypted RSA key (/path/to/keystore/root_key):
+>>> private_root_key = import_rsa_privatekey_from_file("root_key")
+Enter a password for the encrypted RSA key (/path/to/root_key):
 ```
 
 `import_rsa_privatekey_from_file()` raises a
@@ -163,16 +161,16 @@ generated from the encrypted PEM string: Bad decrypt. Incorrect password?
 # supplied, otherwise a prompt is presented.  The private key is saved
 # encrypted if a non-empty password is given, and unencrypted if the password
 # is empty.
->>> generate_and_write_ed25519_keypair('keystore/ed25519_key')
-Enter a password for the Ed25519 key (/path/to/keystore/ed25519_key):
+>>> generate_and_write_ed25519_keypair('ed25519_key')
+Enter a password for the Ed25519 key (/path/to/ed25519_key):
 Confirm:
 
 # Import the ed25519 public key just created . . .
->>> public_ed25519_key = import_ed25519_publickey_from_file('keystore/ed25519_key.pub')
+>>> public_ed25519_key = import_ed25519_publickey_from_file('ed25519_key.pub')
 
 # and its corresponding private key.
->>> private_ed25519_key = import_ed25519_privatekey_from_file('keystore/ed25519_key')
-Enter a password for the encrypted Ed25519 key (/path/to/keystore/ed25519_key):
+>>> private_ed25519_key = import_ed25519_privatekey_from_file('ed25519_key')
+Enter a password for the encrypted Ed25519 key (/path/to/ed25519_key):
 ```
 
 Note: Methods are also available to generate and write keys from memory.
@@ -221,7 +219,7 @@ top-level roles, including itself.
 # Add a second public key to the root role.  Although previously generated and
 # saved to a file, the second public key must be imported before it can added
 # to a role.
->>> public_root_key2 = import_rsa_publickey_from_file("keystore/root_key2.pub")
+>>> public_root_key2 = import_rsa_publickey_from_file("root_key2.pub")
 >>> repository.root.add_verification_key(public_root_key2)
 
 # The threshold of each role defaults to 1.   Maintainers may change the
@@ -230,7 +228,7 @@ top-level roles, including itself.
 # is considered valid if it's signed by at least two valid keys.  We also load
 # the second private key, which hasn't been imported yet.
 >>> repository.root.threshold = 2
->>> private_root_key2 = import_rsa_privatekey_from_file("keystore/root_key2", password="password")
+>>> private_root_key2 = import_rsa_privatekey_from_file("root_key2", password="password")
 
 # Load the root signing keys to the repository, which writeall() or write()
 # (write multiple roles, or a single role, to disk) use to sign the root
@@ -272,25 +270,25 @@ secure manner.
 
 # Generate keys for the remaining top-level roles.  The root keys have been set above.
 # The password argument may be omitted if a password prompt is needed.
->>> generate_and_write_rsa_keypair("keystore/targets_key", password="password")
->>> generate_and_write_rsa_keypair("keystore/snapshot_key", password="password")
->>> generate_and_write_rsa_keypair("keystore/timestamp_key", password="password")
+>>> generate_and_write_rsa_keypair('targets_key', password='password')
+>>> generate_and_write_rsa_keypair('snapshot_key', password='password')
+>>> generate_and_write_rsa_keypair('timestamp_key', password='password')
 
 # Add the verification keys of the remaining top-level roles.
 
->>> repository.targets.add_verification_key(import_rsa_publickey_from_file("keystore/targets_key.pub"))
->>> repository.snapshot.add_verification_key(import_rsa_publickey_from_file("keystore/snapshot_key.pub"))
->>> repository.timestamp.add_verification_key(import_rsa_publickey_from_file("keystore/timestamp_key.pub"))
+>>> repository.targets.add_verification_key(import_rsa_publickey_from_file('targets_key.pub'))
+>>> repository.snapshot.add_verification_key(import_rsa_publickey_from_file('snapshot_key.pub'))
+>>> repository.timestamp.add_verification_key(import_rsa_publickey_from_file('timestamp_key.pub'))
 
 # Import the signing keys of the remaining top-level roles.  Prompt for passwords.
->>> private_targets_key = import_rsa_privatekey_from_file("keystore/targets_key")
-Enter a password for the encrypted RSA key (/path/to/keystore/targets_key):
+>>> private_targets_key = import_rsa_privatekey_from_file('targets_key')
+Enter a password for the encrypted RSA key (/path/to/targets_key):
 
->>> private_snapshot_key = import_rsa_privatekey_from_file("keystore/snapshot_key")
-Enter a password for the encrypted RSA key (/path/to/keystore/snapshot_key):
+>>> private_snapshot_key = import_rsa_privatekey_from_file('snapshot_key')
+Enter a password for the encrypted RSA key (/path/to/snapshot_key):
 
->>> private_timestamp_key = import_rsa_privatekey_from_file("keystore/timestamp_key")
-Enter a password for the encrypted RSA key (/path/to/keystore/timestamp_key):
+>>> private_timestamp_key = import_rsa_privatekey_from_file('timestamp_key')
+Enter a password for the encrypted RSA key (/path/to/timestamp_key):
 
 # Load the signing keys of the remaining roles so that valid signatures are
 # generated when repository.writeall() is called.
@@ -401,19 +399,19 @@ metadata.  `snapshot.json` keys must be loaded and its metadata signed because
 ```Python
 # The private key of the updated targets metadata must be loaded before it can
 # be signed and written (Note the load_repository() call above).
->>> private_targets_key = import_rsa_privatekey_from_file("keystore/targets_key")
-Enter a password for the encrypted RSA key (/path/to/keystore/targets_key):
+>>> private_targets_key = import_rsa_privatekey_from_file('targets_key')
+Enter a password for the encrypted RSA key (/path/to/targets_key):
 
 >>> repository.targets.load_signing_key(private_targets_key)
 
 # Due to the load_repository() and new versions of metadata, we must also load
 # the private keys of Snapshot and Timestamp to generate a valid set of metadata.
->>> private_snapshot_key = import_rsa_privatekey_from_file("keystore/snapshot_key")
-Enter a password for the encrypted RSA key (/path/to/keystore/snapshot_key):
+>>> private_snapshot_key = import_rsa_privatekey_from_file('snapshot_key')
+Enter a password for the encrypted RSA key (/path/to/snapshot_key):
 >>> repository.snapshot.load_signing_key(private_snapshot_key)
 
->>> private_timestamp_key = import_rsa_privatekey_from_file("keystore/timestamp_key")
-Enter a password for the encrypted RSA key (/path/to/keystore/timestamp_key):
+>>> private_timestamp_key = import_rsa_privatekey_from_file('timestamp_key')
+Enter a password for the encrypted RSA key (/path/to/timestamp_key):
 >>> repository.timestamp.load_signing_key(private_timestamp_key)
 
 # Which roles are dirty?
@@ -487,8 +485,8 @@ targets and generate signed metadata.
 # Continuing from the previous section . . .
 
 # Generate a key for a new delegated role named "unclaimed".
->>> generate_and_write_rsa_keypair("keystore/unclaimed_key", bits=2048, password="password")
->>> public_unclaimed_key = import_rsa_publickey_from_file("keystore/unclaimed_key.pub")
+>>> generate_and_write_rsa_keypair('unclaimed_key', bits=2048, password='password')
+>>> public_unclaimed_key = import_rsa_publickey_from_file('unclaimed_key.pub')
 
 # Make a delegation (delegate trust of '/foo*.tgz' files) from "targets" to
 # "unclaimed", where 'unclaimed' initially contains zero targets.
@@ -502,8 +500,8 @@ targets and generate signed metadata.
 
 # Load the private key of "unclaimed" so that unclaimed's metadata can be
 # signed, and valid metadata created.
->>> private_unclaimed_key = import_rsa_privatekey_from_file("keystore/unclaimed_key")
-Enter a password for the encrypted RSA key (/path/to/keystore/unclaimed_key):
+>>> private_unclaimed_key = import_rsa_privatekey_from_file('unclaimed_key')
+Enter a password for the encrypted RSA key (/path/to/unclaimed_key):
 
 >>> repository.targets("unclaimed").load_signing_key(private_unclaimed_key)
 
