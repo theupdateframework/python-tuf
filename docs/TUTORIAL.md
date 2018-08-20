@@ -433,7 +433,7 @@ new metadata to disk.
 
 # Remove a target file listed in the "targets" metadata.  The target file is
 # not actually deleted from the file system.
->>> repository.targets.remove_target("repository/targets/file3.txt")
+>>> repository.targets.remove_target('file3.txt')
 
 # repository.writeall() writes any required metadata files (e.g., if
 # targets.json is updated, snapshot.json and timestamp.json are also written

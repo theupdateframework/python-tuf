@@ -9,7 +9,16 @@
 
 <Purpose>
   Regression test for the TUF tutorial as laid out in TUTORIAL.md.
-  This simply runs the tutorial and checks some results.
+  This essentially runs the tutorial and checks some results.
+
+  There are a few deviations from the TUTORIAL.md instructions:
+   - steps that involve user input (like passphrases) are modified slightly
+     to not require user input
+   - use of path separators '/' is replaced by join() calls. (We assume that
+     when following the tutorial, users will correctly deal with path
+     separators for their system if they happen to be using non-Linux systems.)
+   - shell instructions are mimicked using Python commands
+
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
@@ -241,7 +250,7 @@ class TestTutorial(unittest.TestCase):
 
     repository.writeall()
 
-    repository.targets.remove_target("repository/targets/file3.txt")
+    repository.targets.remove_target('file3.txt')
     self.assertTrue(os.path.exists(os.path.join(
         'repository','targets', 'file3.txt')))
 
