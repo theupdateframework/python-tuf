@@ -280,9 +280,11 @@ class TestTutorial(unittest.TestCase):
     repository.writeall()
 
 
-    # Copying metadata to live repository not done here, as it is not tested
-    # or worked with further in the tutorial (so we'd just copy and then
-    # delete.)
+    # Simulate the following shell command:
+    ## $ cp -r "repository/metadata.staged/" "repository/metadata/"
+    shutil.copytree(
+        os.path.join('repository', 'metadata.staged'),
+        os.path.join('repository', 'metadata'))
 
 
 
