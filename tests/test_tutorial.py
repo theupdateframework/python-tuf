@@ -237,8 +237,10 @@ class TestTutorial(unittest.TestCase):
     octal_file_permissions = oct(os.stat(target4_filepath).st_mode)[4:]
     custom_file_permissions = {'file_permissions': octal_file_permissions}
     repository.targets.add_target(target4_filepath, custom_file_permissions)
-    self.assertTrue(os.path.join(
-        'myproject', 'file4.txt') in repository.targets.target_files)
+    # Note that target filepaths specified in the repo use '/' even on Windows.
+    # (This is important to make metadata platform-independent.)
+    self.assertTrue(
+        os.path.join('myproject/file4.txt') in repository.targets.target_files)
 
 
     # Skipping user entry of password
