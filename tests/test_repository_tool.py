@@ -377,21 +377,50 @@ class TestRepository(unittest.TestCase):
     repo = repo_tool.Repository
     metadata_directory = os.path.join('repository_data',
                                       'repository', 'metadata')
+
     # Verify the expected filenames.  get_filepaths_in_directory() returns
     # a list of absolute paths.
     metadata_files = repo.get_filepaths_in_directory(metadata_directory)
-    expected_files = ['1.root.json', 'root.json',
-                      'targets.json', 'snapshot.json',
-                      'timestamp.json', 'role1.json', 'role2.json']
 
-    basenames = []
-    for filepath in metadata_files:
-      basenames.append(os.path.basename(filepath))
-    self.assertEqual(sorted(expected_files), sorted(basenames))
+    # Construct list of file paths expected, determining absolute paths.
+    expected_files = []
+    for filepath in ['1.root.json', 'root.json', 'targets.json',
+        'snapshot.json', 'timestamp.json', 'role1.json', 'role2.json']:
+      expected_files.append(os.path.abspath(os.path.join(
+          'repository_data', 'repository', 'metadata', filepath)))
+
+    self.assertEqual(sorted(expected_files), sorted(metadata_files))
+
 
     # Test when the 'recursive_walk' argument is True.
+    # In this case, recursive walk should yield the same results as the
+    # previous, non-recursive call.
     metadata_files = repo.get_filepaths_in_directory(metadata_directory,
                                                      recursive_walk=True)
+    self.assertEqual(sorted(expected_files), sorted(metadata_files))
+
+    # And this recursive call from the directory above should yield the same
+    # results as well, plus extra files.
+    metadata_files = repo.get_filepaths_in_directory(
+        os.path.join('repository_data', 'repository'), recursive_walk=True)
+    for expected_file in expected_files:
+        self.assertIn(expected_file, metadata_files)
+    # self.assertEqual(sorted(expected_files), sorted(metadata_files))
+
+    # Now let's check it against the full list of expected files for the parent
+    # directory.... We'll add to the existing list. Expect the same files in
+    # metadata.staged/ as in metadata/, and a few target files in targets/
+    # This is somewhat redundant with the previous test, but together they're
+    # probably more future-proof.
+    for filepath in ['file1.txt', 'file2.txt', 'file3.txt']:
+      expected_files.append(os.path.abspath(os.path.join(
+          'repository_data', 'repository', 'targets', filepath)))
+    for filepath in [ '1.root.json', 'root.json', 'targets.json',
+        'snapshot.json', 'timestamp.json', 'role1.json', 'role2.json']:
+      expected_files.append(os.path.abspath(os.path.join(
+          'repository_data', 'repository', 'metadata.staged', filepath)))
+
+    self.assertEqual(sorted(expected_files), sorted(metadata_files))
 
     # Test improperly formatted arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError, repo.get_filepaths_in_directory,
