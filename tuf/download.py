@@ -396,17 +396,12 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
         break
 
   except:
-    raise
-
-  else:
-    # This else block returns and skips closing the connection in the finally
-    # block, so close the connection here.
-    connection.close()
-    return number_of_bytes_received, average_download_speed
-
-  finally:
     # Whatever happens, make sure that we always close the connection.
     connection.close()
+    raise
+
+  connection.close()
+  return number_of_bytes_received, average_download_speed
 
 
 

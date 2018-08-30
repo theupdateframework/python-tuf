@@ -296,11 +296,7 @@ class Project(Targets):
     if len(self.keys) > 0:
       raise securesystemslib.exceptions.Error("This project already contains a key.")
 
-    try:
-      super(Project, self).add_verification_key(key, expires)
-
-    except securesystemslib.exceptions.FormatError:
-      raise
+    super(Project, self).add_verification_key(key, expires)
 
 
 
@@ -791,12 +787,8 @@ def load_project(project_directory, prefix='', new_targets_location=None,
   # Load the cfg file and the project.
   config_filename = os.path.join(project_directory, PROJECT_FILENAME)
 
-  try:
-    project_configuration = securesystemslib.util.load_json_file(config_filename)
-    tuf.formats.PROJECT_CFG_SCHEMA.check_match(project_configuration)
-
-  except (OSError, IOError, securesystemslib.exceptions.FormatError):
-    raise
+  project_configuration = securesystemslib.util.load_json_file(config_filename)
+  tuf.formats.PROJECT_CFG_SCHEMA.check_match(project_configuration)
 
   targets_directory = os.path.join(project_directory,
       project_configuration['targets_location'])
@@ -906,11 +898,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
         continue
 
       signable = None
-      try:
-        signable = securesystemslib.util.load_json_file(metadata_path)
-
-      except (ValueError, IOError, securesystemslib.exceptions.Error):
-        raise
+      signable = securesystemslib.util.load_json_file(metadata_path)
 
       # Strip the prefix from the local working copy, it will be added again
       # when the targets metadata is written to disk.
