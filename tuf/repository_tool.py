@@ -39,6 +39,7 @@ import logging
 import tempfile
 import shutil
 import json
+import hashlib
 
 import tuf
 import tuf.formats
@@ -683,6 +684,80 @@ class Metadata(object):
 
       tuf.roledb.update_roleinfo(self._rolename, roleinfo,
           repository_name=self._repository_name)
+
+
+
+#TODO remove private_key variable, get it from old_keyids
+  def add_rotate_file(self, old_keyids, old_threshold, new_keyids, new_threshold, repository_directory, private_keys):
+    #create rotate file
+    list.sort(old_keyids)
+
+    #filename is role.rotate.ID
+    relative_filename = self.rolename + ".rotate." + hashlib.sha256((".".join(old_keyids) + "." + str(old_threshold)).encode('utf-8')).hexdigest()
+
+    repositories_directory = tuf.settings.repositories_directory
+    #repository_directory = os.path.join(repositories_directory, self._repository_name)
+    repository_directory = repositories_directory
+
+    #TODO this should already be here...
+    if not os.path.exists(repository_directory):
+      os.makedirs(repository_directory)
+
+    filename = os.path.join(repository_directory, relative_filename)
+
+    #not sure if this field is needed in the rotate file
+    new_keys = []
+    for keyid in old_keyids:
+      key = tuf.keydb.get_key(keyid, repository_name=self._repository_name)
+      new_keys.append(key)
+
+    file_contents = {"_type" : "rotate"}
+    file_contents['role'] = self.rolename
+    file_contents['keys'] = new_keys
+    file_contents['keyids'] = new_keyids
+    file_contents['threshold'] = new_threshold
+
+    signable = tuf.formats.make_signable(file_contents)
+
+
+
+    #sign file with all old keys
+    for keyid in old_keyids:
+      key = tuf.keydb.get_key(keyid, repository_name=self._repository_name)
+
+
+    key = private_keys
+      # Load the signing key.
+      #key = tuf.keydb.get_key(keyid, repository_name=self._repository_name)
+      # Generate the signature using the appropriate signing method.
+    if key['keytype'] in tuf.repository_lib.SUPPORTED_KEY_TYPES:
+      if 'private' in key['keyval']:
+        signed = signable['signed']
+        try:
+          signature = securesystemslib.keys.create_signature(key, signed)
+          signable['signatures'].append(signature)
+
+        except Exception:
+          logger.warning('Unable to create signature for keyid: ' + repr(keyid))
+
+      else:
+        logger.debug('Private key unset.  Skipping: ' + repr(keyid))
+
+    else:
+      raise securesystemslib.exceptions.Error('The keydb contains a key with'
+        ' an invalid key type.' + repr(key['keytype']))
+
+
+    f = open(filename, 'w')
+    f.write (json.dumps(signable))
+
+    #file_object = securesystemslib.util.TempFile()
+    #file_object.write(json.dumps(signable))
+    #file_object.move(filename)
+
+    return signable
+
+
 
 
 

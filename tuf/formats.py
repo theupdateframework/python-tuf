@@ -207,6 +207,14 @@ PATH_HASH_PREFIX_SCHEMA = HEX_SCHEMA
 # A list of path hash prefixes.
 PATH_HASH_PREFIXES_SCHEMA = SCHEMA.ListOf(PATH_HASH_PREFIX_SCHEMA)
 
+# Rotate object
+ROTATE_SCHEMA = SCHEMA.Object(
+  object_name = 'ROTATE_SCHEMA',
+  role = ROLENAME_SCHEMA,
+  keys = SCHEMA.ListOf(SCHEMA.AnyString()),
+  keyids = KEYIDS_SCHEMA,
+  threshold = THRESHOLD_SCHEMA)
+
 # Role object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1,
 # 'paths':[filepaths..]} format.
 ROLE_SCHEMA = SCHEMA.Object(

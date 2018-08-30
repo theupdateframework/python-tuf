@@ -49,6 +49,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import logging
+import hashlib
+import os
 
 import tuf
 import tuf.keydb
@@ -241,6 +243,69 @@ def get_signature_status(signable, role=None, repository_name='default',
 
 
 
+def _check_rotation(role, repository_name, threshold, keyids, seen):
+  """ A helper function that checks for a rotate file for the given threshold and key ids and returns the up to date threshold and keyids. The function will continue looking for rotate files until there is not one or it detects a cycle."""
+
+  if keyids is None:
+    keyids = tuf.roledb.get_role_keyids(role, repository_name)
+  if threshold is None:
+    threshold = tuf.roledb.get_role_threshold(role, repository_name)
+
+  relative_filename = role + ".rotate." + hashlib.sha256((".".join(keyids) + "." + str(threshold)).encode('utf-8')).hexdigest()
+
+  repositories_directory = tuf.settings.repositories_directory
+  #repository_directory = os.path.join(repositories_directory, repository_name)
+  repository_directory = repositories_directory
+
+  filename = os.path.join(repository_directory, relative_filename)
+
+  if filename in seen:
+    raise RotateCycleError("Rotate file " + filename + " is part of a cycle.")
+  else:
+    seen.append(filename)
+
+  if os.path.exists(filename):
+    #read file, ensure properly signed, recurse to check for more rotations
+    signable = securesystemslib.util.load_json_file(filename)
+    #tuf.formats.check_signable_object_format(signable)
+
+    #verify signature, but can't call verify to avoid cycle
+    status = get_signature_status(signable, role, repository_name, threshold, keyids)
+
+    # Retrieve the role's threshold and the authorized keys of 'status'
+    file_threshold = status['threshold']
+    good_sigs = status['good_sigs']
+
+    # Does 'status' have the required threshold of signatures?
+    # First check for invalid threshold values before returning result.
+    # Note: get_signature_status() is expected to verify that 'threshold' is
+    # not None or <= 0.
+    if file_threshold is None or file_threshold <= 0: #pragma: no cover
+      #possibly return original values here as well
+      raise securesystemslib.exceptions.Error("Invalid threshold: " + repr(file_threshold))
+
+    if (len(good_sigs) < file_threshold):
+      #the rotate file is signed wrong, returning original values
+      return threshold, keyids
+
+    rotate_file = signable['signed']
+
+    #TODO fix schema
+    #tuf.formats.ROTATE_SCHEMA.check_match(rotate_file)
+
+    if (rotate_file['role'] != role):
+      raise InvalidRotateFileError("Role " + rotate_file['role'] + " does not match original role " + rolen)
+
+    #recursive call to check for further rotations
+    return _check_rotation(role, repository_name, rotate_file['threshold'], rotate_file['keyids'], seen)
+  else:
+    #no rotation file found, return original values
+    return threshold, keyids
+
+
+
+
+
 
 def verify(signable, role, repository_name='default', threshold=None,
     keyids=None):
@@ -291,6 +356,9 @@ def verify(signable, role, repository_name='default', threshold=None,
   tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
   tuf.formats.ROLENAME_SCHEMA.check_match(role)
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+
+  #check for rotate file
+  threshold, keyids = _check_rotation(role, repository_name, threshold, keyids, [])
 
   # Retrieve the signature status.  tuf.sig.get_signature_status() raises:
   # securesystemslib.exceptions.UnknownRoleError

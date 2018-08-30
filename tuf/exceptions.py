@@ -45,6 +45,14 @@ class FormatError(Error):
   """Indicate an error while validating an object's format."""
   pass
 
+class InvalidRotateFileError(Error):
+  """Indicate an invalid rotate file"""
+  pass
+
+class RotateCycleError(Error):
+  """Indicate a a cycle in rotate files, equivalent to a key revocation"""
+  pass
+
 
 class InvalidMetadataJSONError(FormatError):
   """Indicate that a metadata file is not valid JSON."""
