@@ -35,29 +35,36 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
-import socket
 import logging
 import time
 import timeit
-import ssl
 
-import tuf
+import requests
+import six
 
 import securesystemslib
 import securesystemslib.util
-import six
-
-# 'ssl.match_hostname' was added in Python 3.2.  The vendored version is needed
-# for Python 2.7.
-try:
-  from ssl import match_hostname
-
-except ImportError: # pragma: no cover
-  from securesystemslib._vendor.ssl_match_hostname import match_hostname
+import tuf
+import tuf.exceptions
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.download')
 
+# From http://docs.python-requests.org/en/master/user/advanced/#session-objects:
+#
+# "The Session object allows you to persist certain parameters across requests.
+# It also persists cookies across all requests made from the Session instance,
+# and will use urllib3's connection pooling. So if you're making several
+# requests to the same host, the underlying TCP connection will be reused,
+# which can result in a significant performance increase (see HTTP persistent
+# connection)."
+#
+# FIXME: There are very likely security implications to sharing the same
+# session. Ideally, tuf.client.updater would use a separate Session for every
+# mirror, and it would pass the Session to be used in this module, but that
+# requires a much more invasive change.
+#
+_session = requests.Session()
 
 
 def safe_download(url, required_length):
@@ -76,8 +83,7 @@ def safe_download(url, required_length):
 
   <Arguments>
     url:
-      A URL string that represents the location of the file.  The URI scheme
-      component must be one of 'tuf.settings.SUPPORTED_URI_SCHEMES'.
+      A URL string that represents the location of the file.
 
     required_length:
       An integer value representing the length of the file.  This is an exact
@@ -106,20 +112,6 @@ def safe_download(url, required_length):
   securesystemslib.formats.URL_SCHEMA.check_match(url)
   securesystemslib.formats.LENGTH_SCHEMA.check_match(required_length)
 
-  # Ensure 'url' specifies one of the URI schemes in
-  # 'tuf.settings.SUPPORTED_URI_SCHEMES'.  Be default, ['http', 'https'] is
-  # supported.  If the URI scheme of 'url' is empty or "file", files on the
-  # local system can be accessed.  Unexpected files may be accessed by
-  # compromised metadata (unlikely to happen if targets.json metadata is signed
-  # with offline keys).
-  parsed_url = six.moves.urllib.parse.urlparse(url)
-
-  if parsed_url.scheme not in tuf.settings.SUPPORTED_URI_SCHEMES:
-    message = \
-      repr(url) + ' specifies an unsupported URI scheme.  Supported ' + \
-      ' URI Schemes: ' + repr(tuf.settings.SUPPORTED_URI_SCHEMES)
-    raise securesystemslib.exceptions.FormatError(message)
-
   return _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True)
 
 
@@ -142,8 +134,7 @@ def unsafe_download(url, required_length):
 
   <Arguments>
     url:
-      A URL string that represents the location of the file.  The URI scheme
-      component must be one of 'tuf.settings.SUPPORTED_URI_SCHEMES'.
+      A URL string that represents the location of the file.
 
     required_length:
       An integer value representing the length of the file.  This is an upper
@@ -171,20 +162,6 @@ def unsafe_download(url, required_length):
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
   securesystemslib.formats.URL_SCHEMA.check_match(url)
   securesystemslib.formats.LENGTH_SCHEMA.check_match(required_length)
-
-  # Ensure 'url' specifies one of the URI schemes in
-  # 'tuf.settings.SUPPORTED_URI_SCHEMES'.  Be default, ['http', 'https'] is
-  # supported.  If the URI scheme of 'url' is empty or "file", files on the
-  # local system can be accessed.  Unexpected files may be accessed by
-  # compromised metadata (unlikely to happen if targets.json metadata is signed
-  # with offline keys).
-  parsed_url = six.moves.urllib.parse.urlparse(url)
-
-  if parsed_url.scheme not in tuf.settings.SUPPORTED_URI_SCHEMES:
-    message = \
-      repr(url) + ' specifies an unsupported URI scheme.  Supported ' + \
-      ' URI Schemes: ' + repr(tuf.settings.SUPPORTED_URI_SCHEMES)
-    raise securesystemslib.exceptions.FormatError(message)
 
   return _download_file(url, required_length, STRICT_REQUIRED_LENGTH=False)
 
@@ -229,9 +206,6 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
     securesystemslib.exceptions.FormatError, if any of the arguments are
     improperly formatted.
 
-    tuf.exceptions.Error, if the certificates pointed to by
-    tuf.settings.ssl_certificates cannot be loaded.
-
     Any other unforeseen runtime exception.
 
   <Returns>
@@ -257,14 +231,34 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
   temp_file = securesystemslib.util.TempFile()
 
   try:
-    # Open the connection to the remote file.  _open_connection() can raise
-    # socket connection exceptions (such as SSLError).  Connection errors of
-    # this kind can be minimized by adjusting the socket timeout in
-    # settings.py.
-    connection = _open_connection(url)
+    # Attach some default headers to every Session.
+    _session.headers.update({
+        # Tell the server not to compress or modify anything.
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Encoding#Directives
+        'Accept-Encoding': 'identity',
+        # The TUF user agent.
+        # TODO: Attach version number, which cannot be easily found right now.
+        'User-Agent': 'tuf'
+    })
+
+    # Get the requests.Response object for this URL.
+    #
+    # Always stream to control how requests are downloaded:
+    # http://docs.python-requests.org/en/master/user/advanced/#body-content-workflow
+    #
+    # We will always manually close Responses, so no need for a context
+    # manager.
+    #
+    # Always set the connect + read timeout:
+    # http://docs.python-requests.org/en/master/user/advanced/#timeouts
+    response = _session.get(url, stream=True,
+                            timeout=tuf.settings.SOCKET_TIMEOUT)
+
+    # Check response status.
+    response.raise_for_status()
 
     # We ask the server about how big it thinks this file should be.
-    reported_length = _get_content_length(connection)
+    reported_length = _get_content_length(response)
 
     # Then, we check whether the required length matches the reported length.
     _check_content_length(reported_length, required_length,
@@ -273,7 +267,7 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
     # Download the contents of the URL, up to the required length, to a
     # temporary file, and get the total number of downloaded bytes.
     total_downloaded, average_download_speed = \
-      _download_fixed_amount_of_data(connection, temp_file, required_length)
+      _download_fixed_amount_of_data(response, temp_file, required_length)
 
     # Does the total number of downloaded bytes match the required length?
     _check_downloaded_length(total_downloaded, required_length,
@@ -293,21 +287,20 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
 
 
 
-def _download_fixed_amount_of_data(connection, temp_file, required_length):
+def _download_fixed_amount_of_data(response, temp_file, required_length):
   """
   <Purpose>
     This is a helper function, where the download really happens. While-block
-    reads data from connection a fixed chunk of data at a time, or less, until
+    reads data from response a fixed chunk of data at a time, or less, until
     'required_length' is reached.
 
   <Arguments>
-    connection:
-      The object that the _open_connection returns for communicating with the
-      server about the contents of a URL.
+    response:
+      The object for communicating with the server about the contents of a URL.
 
     temp_file:
       A temporary file where the contents at the URL specified by the
-      'connection' object will be stored.
+      'response' object will be stored.
 
     required_length:
       The number of bytes that we must download for the file.  This is almost
@@ -328,12 +321,6 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
     attempt.
   """
 
-  # Tolerate servers with a slow start by ignoring their delivery speed for
-  # 'tuf.settings.SLOW_START_GRACE_PERIOD' seconds.  Set 'seconds_spent_receiving'
-  # to negative SLOW_START_GRACE_PERIOD seconds, and begin checking the average
-  # download speed once it is positive.
-  grace_period = -tuf.settings.SLOW_START_GRACE_PERIOD
-
   # Keep track of total bytes downloaded.
   number_of_bytes_received = 0
   average_download_speed = 0
@@ -350,20 +337,17 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
       if tuf.settings.SLEEP_BEFORE_ROUND:
         time.sleep(tuf.settings.SLEEP_BEFORE_ROUND)
 
-      data = b''
       read_amount = min(tuf.settings.CHUNK_SIZE,
-          required_length - number_of_bytes_received)
+                        required_length - number_of_bytes_received)
 
-      try:
-        data = connection.read(read_amount)
-
-      # Python 3.2 returns 'IOError' if the remote file object has timed out.
-      except (socket.error, IOError):
-        pass
+      # NOTE: This may not handle some servers adding a Content-Encoding
+      # header, which may cause urllib3 to misbehave:
+      # https://github.com/pypa/pip/blob/404838abcca467648180b358598c597b74d568c9/src/pip/_internal/download.py#L547-L582
+      data = response.raw.read(read_amount)
 
       number_of_bytes_received = number_of_bytes_received + len(data)
 
-      # Data successfully read from the connection.  Store it.
+      # Data successfully read from the response.  Store it.
       temp_file.write(data)
 
       if number_of_bytes_received == required_length:
@@ -371,9 +355,6 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
 
       stop_time = timeit.default_timer()
       seconds_spent_receiving = stop_time - start_time
-
-      if (seconds_spent_receiving + grace_period) < 0:
-        continue
 
       # Measure the average download speed.
       average_download_speed = number_of_bytes_received / seconds_spent_receiving
@@ -397,119 +378,24 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
 
   except:
     # Whatever happens, make sure that we always close the connection.
-    connection.close()
+    response.close()
     raise
 
-  connection.close()
+  response.close()
   return number_of_bytes_received, average_download_speed
 
 
 
 
 
-def _get_request(url):
-  """
-  Wraps the URL to retrieve to protects against "creative"
-  interpretation of the RFC: http://bugs.python.org/issue8732
-
-  https://github.com/pypa/pip/blob/d0fa66ecc03ab20b7411b35f7c7b423f31f77761/pip/download.py#L147
-  """
-
-  return six.moves.urllib.request.Request(url, headers={'Accept-encoding': 'identity'})
-
-
-
-
-
-def _get_opener(scheme=None):
-  """
-  Build a urllib2 opener based on whether the user now wants SSL.
-
-  https://github.com/pypa/pip/blob/d0fa66ecc03ab20b7411b35f7c7b423f31f77761/pip/download.py#L178
-  Raises tuf.exceptions.Error if tuf.settings.ssl_certificates is not a valid
-  file.
-  """
-
-  if scheme == "https":
-    if not os.path.isfile(tuf.settings.ssl_certificates):
-      raise tuf.exceptions.Error('The SSL certificate specified in'
-          ' tuf.settings.ssl_certificates is not a valid file.'
-          ' ssl_certificates set to: ' + repr(tuf.settings.ssl_certificates))
-
-    else:
-      # If we are going over https, use an opener which will provide SSL
-      # certificate verification.
-      https_handler = VerifiedHTTPSHandler()
-      opener = six.moves.urllib.request.build_opener(https_handler)
-
-      # Strip out HTTPHandler to prevent MITM spoof.
-      for handler in opener.handlers:
-        if isinstance(handler, six.moves.urllib.request.HTTPHandler):
-          opener.handlers.remove(handler)
-
-  else:
-    # Otherwise, use the default opener.
-    opener = six.moves.urllib.request.build_opener()
-
-  return opener
-
-
-
-
-
-def _open_connection(url):
-  """
-  <Purpose>
-    Helper function that opens a connection to the url. urllib2 supports http,
-    ftp, and file. In python (2.6+) where the ssl module is available, urllib2
-    also supports https.
-
-    TODO: Determine whether this follows http redirects and decide if we like
-    that. For example, would we not want to allow redirection from ssl to
-     non-ssl urls?
-
-  <Arguments>
-    url:
-      URL string (e.g., 'http://...' or 'ftp://...' or 'file://...')
-
-  <Exceptions>
-    tuf.exceptions.Error, if the certificates pointed by
-    tuf.settings.ssl_certificates cannot be loaded.
-
-  <Side Effects>
-    Opens a connection to a remote server.
-
-  <Returns>
-    File-like object.
-  """
-
-  # urllib2.Request produces a Request object that allows for a finer control
-  # of the requesting process. Request object allows to add headers or data to
-  # the HTTP request. For instance, request method add_header(key, val) can be
-  # used to change/spoof 'User-Agent' from default Python-urllib/x.y to
-  # 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)' this can be useful if
-  # servers do not recognize connections that originates from
-  # Python-urllib/x.y.
-
-  parsed_url = six.moves.urllib.parse.urlparse(url)
-  opener = _get_opener(scheme=parsed_url.scheme)
-  request = _get_request(url)
-
-  return opener.open(request, timeout = tuf.settings.SOCKET_TIMEOUT)
-
-
-
-
-
-def _get_content_length(connection):
+def _get_content_length(response):
   """
   <Purpose>
     A helper function that gets the purported file length from server.
 
   <Arguments>
-    connection:
-      The object that the _open_connection function returns for communicating
-      with the server about the contents of a URL.
+    response:
+      The object for communicating with the server about the contents of a URL.
 
   <Side Effects>
     No known side effects.
@@ -525,7 +411,7 @@ def _get_content_length(connection):
 
   try:
     # What is the length of this document according to the HTTP spec?
-    reported_length = connection.info().get('Content-Length')
+    reported_length = response.headers.get('Content-Length')
 
     # Try casting it as a decimal number.
     reported_length = int(reported_length, 10)
@@ -536,7 +422,7 @@ def _get_content_length(connection):
 
   except Exception as e:
     logger.exception('Could not get content length'
-        ' about ' + str(connection) + ' from server: ' + str(e))
+        ' about ' + str(response) + ' from server: ' + str(e))
     return None
 
   return reported_length
@@ -682,71 +568,3 @@ def _check_downloaded_length(total_downloaded, required_length,
 
       logger.info('Downloaded ' + str(total_downloaded) + ' bytes out of an'
         ' upper limit of ' + str(required_length) + ' bytes.')
-
-
-
-
-
-class VerifiedHTTPSConnection(six.moves.http_client.HTTPSConnection):
-  """
-  A connection that wraps connections with ssl certificate verification.
-
-  https://github.com/pypa/pip/blob/d0fa66ecc03ab20b7411b35f7c7b423f31f77761/pip/download.py#L72
-  Raise tuf.exeptions.Error if the certificates specified in
-  tuf.settings.ssl_certificates cannot be loaded.
-  """
-
-  def connect(self):
-
-    connection_kwargs = {}
-    connection_kwargs.update(timeout = self.timeout)
-
-    # for >= py2.7
-    if hasattr(self, 'source_address'):
-      connection_kwargs.update(source_address = self.source_address)
-
-    sock = socket.create_connection((self.host, self.port), **connection_kwargs)
-
-    # for >= py2.7
-    if getattr(self, '_tunnel_host', None):
-      self.sock = sock
-      self._tunnel()
-
-    # set location of certificate authorities
-    if not os.path.isfile(tuf.settings.ssl_certificates):
-      raise tuf.exceptions.Error('The SSL certificate specified in'
-          ' tuf.settings.ssl_certificates is not a valid file.'
-          ' ssl_certificates set to: ' + repr(tuf.settings.ssl_certificates))
-
-    else:
-      cert_path = tuf.settings.ssl_certificates
-
-    # TODO: Disallow SSLv2.
-    # http://docs.python.org/dev/library/ssl.html#protocol-versions
-    # TODO: Select the right ciphers.
-    # http://docs.python.org/dev/library/ssl.html#cipher-selection
-    # ssl.PROTOCOL_SSLv23, the default value for 'ssl_version', is deprecated in
-    # Python 2.7.13, but becomes an alias for ssl.PROTOCOL_TLS.
-    self.sock = ssl.wrap_socket(sock, self.key_file, self.cert_file,
-        cert_reqs=ssl.CERT_REQUIRED, ca_certs=cert_path,
-        ssl_version=ssl.PROTOCOL_SSLv23)
-
-    match_hostname(self.sock.getpeercert(), self.host)
-
-
-
-
-
-class VerifiedHTTPSHandler(six.moves.urllib.request.HTTPSHandler):
-  """
-  A HTTPSHandler that uses our own VerifiedHTTPSConnection.
-
-  https://github.com/pypa/pip/blob/d0fa66ecc03ab20b7411b35f7c7b423f31f77761/pip/download.py#L109
-  """
-
-  def __init__(self, connection_class = VerifiedHTTPSConnection):
-    self.specialized_conn_class = connection_class
-    six.moves.urllib.request.HTTPSHandler.__init__(self)
-
-  def https_open(self, req):
-    return self.do_open(self.specialized_conn_class, req)

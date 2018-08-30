@@ -157,10 +157,9 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     # The slow retrieval server, in mode 2 (1 byte per second), will only
     # sleep for a  total of (target file size) seconds.  Add a target file
     # that contains sufficient number of bytes to trigger a slow retrieval
-    # error.  "sufficient number of bytes" assumed to be
-    # >> 'tuf.settings.SLOW_START_GRACE_PERIOD' bytes.
+    # error.  "sufficient number of bytes" assumed to be 10x more.
     extra_bytes = 8
-    total_bytes = tuf.settings.SLOW_START_GRACE_PERIOD + extra_bytes
+    total_bytes = 100 * extra_bytes
 
     repository = repo_tool.load_repository(self.repository_directory)
     file1_filepath = os.path.join(self.repository_directory, 'targets',

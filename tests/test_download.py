@@ -45,6 +45,8 @@ import tuf.log
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.exceptions
 
+import requests.exceptions
+
 import securesystemslib
 import six
 
@@ -168,41 +170,26 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     self.assertRaises(securesystemslib.exceptions.FormatError,
                       download_file, None, self.target_data_length)
 
-    self.assertRaises(securesystemslib.exceptions.FormatError,
+    self.assertRaises(requests.exceptions.MissingSchema,
                       download_file,
                       self.random_string(), self.target_data_length)
 
-    self.assertRaises(six.moves.urllib.error.HTTPError,
+    self.assertRaises(requests.exceptions.HTTPError,
                       download_file,
                       'http://localhost:' + str(self.PORT) + '/' + self.random_string(),
                       self.target_data_length)
 
-    self.assertRaises(six.moves.urllib.error.URLError,
+    self.assertRaises(requests.exceptions.ConnectionError,
                       download_file,
                       'http://localhost:' + str(self.PORT+1) + '/' + self.random_string(),
                       self.target_data_length)
 
     # Specify an unsupported URI scheme.
     url_with_unsupported_uri = self.url.replace('http', 'file')
-    self.assertRaises(securesystemslib.exceptions.FormatError, download_file, url_with_unsupported_uri,
+    self.assertRaises(requests.exceptions.InvalidSchema, download_file, url_with_unsupported_uri,
                       self.target_data_length)
-    self.assertRaises(securesystemslib.exceptions.FormatError, unsafe_download_file,
+    self.assertRaises(requests.exceptions.InvalidSchema, unsafe_download_file,
                       url_with_unsupported_uri, self.target_data_length)
-
-
-
-  def test__get_opener(self):
-    # Test normal case.
-    # A simple https server should be used to test the rest of the optional
-    # ssl-related functions of 'tuf.download.py'.
-    fake_cacert = self.make_temp_data_file()
-
-    with open(fake_cacert, 'wt') as file_object:
-      file_object.write('fake cacert')
-
-    tuf.settings.ssl_certificates = fake_cacert
-    tuf.download._get_opener('https')
-    tuf.settings.ssl_certificates = None
 
 
 
@@ -230,7 +217,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     https_url = 'https://localhost:' + str(port) + '/' + relative_target_filepath
 
     # Download the target file using an https connection.
-    tuf.settings.ssl_certificates = 'ssl_cert.crt'
+    os.environ['REQUESTS_CA_BUNDLE'] = 'ssl_cert.crt'
     message = 'Downloading target file from https server: ' + https_url
     logger.info(message)
     try:
