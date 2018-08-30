@@ -1,0 +1,302 @@
+/*
+This file defines the ASN.1 format for TUF metadata in a language-neutral,
+platform-neutral manner.
+
+This is not the *internal* format used in this TUF implementation, but it is
+supported. Please see the TUF specification for the JSON format and more
+detailed explanation of TUF metadata.
+
+The TUF implementation in this repository uses modules in tuf.encoding and
+the Python library pyasn1 to construct, convert, encode, and decode metadata
+using ASN.1 and ASN.1/DER.
+
+
+NO: CURRENTLY SKIPPING THIS STEP:
+  We compile this abstract file into a slightly lower level version of this
+  file (with IMPLICIT markers and sequence positions) using asn1c and then
+
+We convert this file into a Python module, metadata_asn1_definitions.py, which
+pyasn1 and those modules can use. The instructions for doing this are included
+at the top of metadata_asn1_definitions.py
+
+
+This file is organized into five sections:
+   Common Definitions
+   Root Role Definitions
+   Timestamp Role Definitions
+   Snapshot Role Definitions
+   Targets Role Definitions
+
+
+A note for implementers of TUF-specification-conformant systems:
+There are constraints and optimizations that you can bake into your ASN.1
+definitions. They are not included here for readability and simplicity.
+
+Here are some example constraints and optimizations:
+  Length Constraints
+ Filename        ::= VisibleString (SIZE(1..256))
+
+  Character Type constraint example: disallow '/' and '\'.
+ StrictFilename  ::= VisibleString (SIZE(1..32))] (PATTERN "[^/\\]+")
+ URLs            ::= SEQUENCE (SIZE(0..256)) OF URL
+ URL             ::= VisibleString (SIZE(1..1024))
+
+  Enumerations (optimization)
+    You could swap in enums in place of some of the values that currently
+    use strings. For example:
+  RoleType        ::= ENUMERATED {root, targets, snapshot, timestamp}
+  HashFunction ::= ENUMERATED {sha224, sha256, sha384, sha512, sha512-224,
+                               sha512-256, ...}
+  SignatureMethod ::= ENUMERATED {rsassa-pss, ed25519, ...}
+
+
+A note for any future TUF/upTUF/Uptane repository maintainers:
+ I'm excluding character type constraints at this stage. These constraints
+ were always excluded in the  final .py module in any case (presumably due
+ to compilation issues), so the only change is the removal of
+ StrictFilename, which was functionally equivalent to Filename in any event.
+ I'm also removing length constraints and enumerations to keep this simple
+ for now. Implementers will impose their own length constraints in their
+ ASN.1 definitions (or, if they are able, at a higher level) and perform
+ their own optimizations.
+
+
+Questions:
+ - Would it be better to use fewer empty wrapped classes? e.g. is it better to
+   keep KeyID or just stick OCTET STRING into any keyid field?
+   Consider simplicity, readability, extensibility.
+
+ - Example enum candidates: KeyType, role in TopLevelDelegation
+
+ - Should we add a top-level constrained rolename field? RoleType. Possible
+   enum candidate, too.
+
+ - In Target, custom and num-custom are both optional, but they should either
+   both be here or both not be here. I could use a CustomSection object that's
+   optional but when provided always contains both, but the additional level
+   of abstraction doesn't match the internal TUF metadata format, and the cost
+   of deviating on that point is probably higher than the cost of this
+   ambiguity.
+
+ - TopLevelDelegation may be a confusing name, since we usually refer to
+   targets-level delegations when we talk about delegations; however, note that
+   the info in TopLevelDelegation is information about root's delegation to the
+   roles, not just role info. keys, threshold, etc. are pieces of a delegation,
+   and this specific confusion around roles vs delegations has been very
+   damaging in the past. (See TUF Issue #660)
+
+ - I've tried to minimize the differences between this ASN.1 definition set and
+   the TUF spec (which uses JSON). Consider each:
+    - No dictionary structures (not clear it's possible?); instead, former
+      dictionary elements are sequences, each with its former key being its
+      first element. Names are provided; they're not just called "key"s.
+    - Anywhere there was a list, a list length had to be added (e.g. roles is
+      preceded by num-roles).
+    - All underscores were necessarily removed, and replaced with dashes.
+
+ - Timestamp and Snapshot in the TUF spec have dictionaries unhelpfully named
+   'meta'. I've left that name here as well, but it's an awful name....
+   It should be 'role-infos' or something along those lines.
+
+*/
+
+TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+
+
+---------- Common ASN.1 definitions used by the various metadata types.
+
+  -- Strings
+  Filename          ::= VisibleString
+  Path              ::= VisibleString
+  SignatureMethod   ::= VisibleString
+  HashFunction      ::= VisibleString
+  RoleName          ::= VisibleString
+  KeyType           ::= VisibleString
+
+  -- Binary data
+  KeyID             ::= OCTET STRING   -- Usually, the hash of a public key
+
+  -- Integers
+  Length            ::= INTEGER (0..MAX)
+  Threshold         ::= INTEGER (0..MAX)
+  Version           ::= INTEGER (0..MAX)
+  UTCDateTime       ::= INTEGER (0..MAX) -- date&time, UTC, as a UNIX timestamp
+
+
+  Hash ::= SEQUENCE {
+    function            HashFunction,
+    digest              OCTET STRING
+  }
+
+
+  Signature ::= SEQUENCE {
+    keyid               KeyID,
+    method              SignatureMethod,
+    value               OCTET STRING      -- the signature itself
+  }
+
+  PublicKey ::= SEQUENCE {
+    publicKeyID         KeyID,
+    publicKeyType       KeyType,
+    publicKeyValue      OCTET STRING
+  }
+
+
+
+
+
+---------- Root Role Metadata Definitions
+
+  RootMetadata ::= SEQUENCE {
+    type                RoleName,     -- ("root"),
+    expires             UTCDateTime,
+    version             Version,
+    consistent-snapshot BOOLEAN,
+    num-keys            Length,
+    keys                SEQUENCE OF PublicKey,
+    num-roles           Length,
+    roles               SEQUENCE OF TopLevelDelegation
+  }
+
+  TopLevelDelegation ::= SEQUENCE {
+    role                RoleName,     -- ("root" | "timestamp" | "snapshot" | "targets"),
+    num-keyids          Length,
+    keyids              SEQUENCE OF KeyID,
+    threshold           Threshold
+  }
+
+
+
+
+
+---------- Timestamp Role Metadata Definitions
+
+  TimestampMetadata ::= SEQUENCE {
+    type                RoleName,     -- ("timestamp"),
+    expires             UTCDateTime,
+    version             Version,
+
+    num-meta            Length,     -- Spec expects there to be only 1, though.
+    meta                SEQUENCE OF RoleInfoLong
+    -- What these should probably be called instead:
+    -- num-role-infos      Length,
+    -- role-infos          SEQUENCE OF RoleInfoLong
+  }
+
+  RoleInfoLong ::= SEQUENCE {
+    filename            Filename,    -- filename of snapshot metadata role
+    num-hashes          Length,
+    version             Version,
+    hashes              SEQUENCE OF Hash
+  }
+
+
+
+
+
+---------- Snapshot Role Metadata Definitions
+
+  SnapshotMetadata ::= SEQUENCE {
+    type                RoleName,     -- ("snapshot"),
+    expires             UTCDateTime,
+    version             Version,
+
+    num-meta            Length,
+    meta                SEQUENCE OF RoleInfo
+    -- What these should probably be called instead:
+    -- num-role-infos      Length,
+    -- role-infos          SEQUENCE OF RoleInfo
+  }
+
+  RoleInfo ::= SEQUENCE {
+    filename            Filename,
+    version             Version
+    -- Older versions of TUF used a hash here instead of a version number.
+    -- Some intermediate versions used a hash for root and version numbers for
+    -- targets role files. Root is no longer listed by snapshot, and we will
+    -- always use version numbers now.
+  }
+
+
+
+
+
+---------- Targets Role Metadata Definitions
+-- Covers both the top-level Targets role and delegated targets roles.
+
+  TargetsMetadata ::= SEQUENCE {
+    type                RoleName,       -- allow delegated role names, too
+    expires             UTCDateTime,
+    version             Version,
+
+    num-targets         Length,
+    targets             SEQUENCE OF Target,
+
+    delegations         SEQUENCE {
+      -- "delegations" is a section containing two elements:
+      --   keys: a list of public key information for use in delegations
+      --   roles: a list of delegations
+      --
+      -- A delegation is an assignment, to another role, of the right to
+      -- provide trustworthy fileinfo for targets (like the fileinfo above in
+      -- Targets). A delegation specifies the role name, filename, public keys,
+      -- and threshold of a delegatee.
+
+      -- The full public keys available to use in delegations below, to be
+      -- referenced below via key ID.
+      num-keys              Length,
+      keys                  SEQUENCE OF PublicKey,
+
+      -- Each "role" listing below denotes one delegation. A delegation
+      -- includes the role name, role filename, public keys, and key threshold
+      -- of a delegatee.
+      num-roles             Length,
+      roles                 SEQUENCE OF Delegation
+    }
+  }
+
+
+  -- Metadata (fileinfo) about target files / images on a repository, used to
+  -- validate them, including hashes and lengths, and sometimes custom
+  -- metadata.
+  Target ::= SEQUENCE {
+    target-name         Filename,
+    length              Length,
+    num-hashes          Length,
+    hashes              SEQUENCE OF Hash,
+    num-custom          Length OPTIONAL, -- number of Custom metadata elements
+    custom              SEQUENCE OF Custom OPTIONAL -- Custom metadata elements
+   }
+
+  Custom ::= SEQUENCE OF SEQUENCE {
+    -- Each element in sequence Custom is a key-value pair. These specify
+    -- custom attributes, additional fileinfo information. You could use this
+    -- to provide the expected has of an encrypted image, for example, or
+    -- information about the clients for which this image is intended.
+    key                 VisibleString,
+    value               VisibleString
+  }
+
+
+  Delegation ::= SEQUENCE {
+
+    -- A delegation is fundamentally a mapping from a portion of the Targets
+    -- namespace to a set of signing constraints. In particular, it maps a
+    -- glob pattern of filenames (for example, if you are using filenames) to
+    -- a rolename, list of keys, and threshold of keys to expect for a role
+    -- that is allowed to specify target file info for the targets matching the
+    -- glob pattern. For more, see the TUF specification.
+
+    name                RoleName,
+    num-keyids          Length,
+    keyids              SEQUENCE OF KeyID,
+    num-paths           Length,
+    paths               SEQUENCE OF Path,
+    threshold           Threshold,
+    -- Whether or not this delegation is terminating.
+    terminating         BOOLEAN DEFAULT FALSE
+  }
+
+
+  END
