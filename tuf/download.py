@@ -59,12 +59,10 @@ logger = logging.getLogger('tuf.download')
 # which can result in a significant performance increase (see HTTP persistent
 # connection)."
 #
-# FIXME: There are very likely security implications to sharing the same
-# session. Ideally, tuf.client.updater would use a separate Session for every
-# mirror, and it would pass the Session to be used in this module, but that
-# requires a much more invasive change.
-#
-_session = requests.Session()
+# NOTE: We use a separate requests.Session per hostname in order to reuse
+# connections to the same hostname while avoiding sharing state between
+# different hosts, and minimizing into subtle security issues.
+_sessions = {} 
 
 
 def safe_download(url, required_length):
@@ -231,17 +229,35 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
   temp_file = securesystemslib.util.TempFile()
 
   try:
-    # Attach some default headers to every Session.
-    requests_user_agent = _session.headers['User-Agent']
-    # Follows the RFC: https://tools.ietf.org/html/rfc7231#section-5.5.3
-    tuf_user_agent = 'tuf/' + tuf.__version__ + ' ' + requests_user_agent
-    _session.headers.update({
-        # Tell the server not to compress or modify anything.
-        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Encoding#Directives
-        'Accept-Encoding': 'identity',
-        # The TUF user agent.
-        'User-Agent': tuf_user_agent
-    })
+    # Use a different requests.Session per hostname to reuse connections while
+    # minimizing subtle security issues.
+    hostname = six.moves.urllib.parse.urlparse(url).hostname
+
+    if not hostname:
+        raise securesystemslib.exceptions\
+                            .FormatError('Could not get hostname from: ' + url)
+
+    session = _sessions.get(hostname)
+
+    if not session:
+        session = requests.Session()
+        _sessions[hostname] = session
+
+        # Attach some default headers to every Session.
+        requests_user_agent = session.headers['User-Agent']
+        # Follows the RFC: https://tools.ietf.org/html/rfc7231#section-5.5.3
+        tuf_user_agent = 'tuf/' + tuf.__version__ + ' ' + requests_user_agent
+        session.headers.update({
+            # Tell the server not to compress or modify anything.
+            # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Encoding#Directives
+            'Accept-Encoding': 'identity',
+            # The TUF user agent.
+            'User-Agent': tuf_user_agent
+        })
+
+        logger.debug('Made new session for ' + hostname)
+    else:
+        logger.debug('Reusing session for ' + hostname)
 
     # Get the requests.Response object for this URL.
     #
@@ -253,8 +269,8 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
     #
     # Always set the connect + read timeout:
     # http://docs.python-requests.org/en/master/user/advanced/#timeouts
-    response = _session.get(url, stream=True,
-                            timeout=tuf.settings.SOCKET_TIMEOUT)
+    response = session.get(url, stream=True,
+                           timeout=tuf.settings.SOCKET_TIMEOUT)
 
     # Check response status.
     response.raise_for_status()
