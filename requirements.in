@@ -1,9 +1,9 @@
 # requirements.in for pip-compile.
 
+securesystemslib
 cryptography
 colorama
-iso8601
 pynacl
 requests
-securesystemslib
 six
+iso8601

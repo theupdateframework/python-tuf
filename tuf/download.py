@@ -39,12 +39,12 @@ import logging
 import time
 import timeit
 
+import tuf
 import requests
-import six
 
 import securesystemslib
 import securesystemslib.util
-import tuf
+import six
 import tuf.exceptions
 
 # See 'log.py' to learn how logging is handled in TUF.

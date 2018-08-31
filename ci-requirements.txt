@@ -1,7 +1,7 @@
-coverage
-coveralls
-iso8601
-pylint
-requests
 securesystemslib[crypto,pynacl]
 six
+iso8601
+coverage
+coveralls
+pylint
+requests
