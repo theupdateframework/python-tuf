@@ -232,13 +232,15 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
 
   try:
     # Attach some default headers to every Session.
+    requests_user_agent = _session.headers['User-Agent']
+    # Follows the RFC: https://tools.ietf.org/html/rfc7231#section-5.5.3
+    tuf_user_agent = 'tuf/' + tuf.__version__ + ' ' + requests_user_agent
     _session.headers.update({
         # Tell the server not to compress or modify anything.
         # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Encoding#Directives
         'Accept-Encoding': 'identity',
         # The TUF user agent.
-        # TODO: Attach version number, which cannot be easily found right now.
-        'User-Agent': 'tuf'
+        'User-Agent': tuf_user_agent
     })
 
     # Get the requests.Response object for this URL.

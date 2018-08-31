@@ -75,12 +75,26 @@ from setuptools import setup
 from setuptools import find_packages
 
 
+def find_version(*file_paths):
+    """
+    https://github.com/pypa/pip/blob/404838abcca467648180b358598c597b74d568c9/setup.py#L18-L28
+    """
+
+    version_file = read(*file_paths)
+    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
+                              version_file, re.M)
+    if version_match:
+        return version_match.group(1)
+    raise RuntimeError("Unable to find version string.")
+
+
 with open('README.md') as file_object:
   long_description = file_object.read()
 
+
 setup(
   name = 'tuf',
-  version = '0.11.1',
+  version = find_version("tuf", "__init__.py"),
   description = 'A secure updater framework for Python',
   long_description = long_description,
   long_description_content_type='text/markdown',
