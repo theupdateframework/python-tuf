@@ -236,6 +236,9 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
     if not hostname:
         raise securesystemslib.exceptions\
                             .FormatError('Could not get hostname from: ' + url)
+    else:
+        logger.debug('url: ' + url)
+        logger.debug('hostname: ' + hostname)
 
     session = _sessions.get(hostname)
 
