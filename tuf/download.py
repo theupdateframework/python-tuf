@@ -47,6 +47,8 @@ import securesystemslib.util
 import six
 import tuf.exceptions
 
+import urllib3.exceptions
+
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.download')
 
@@ -333,7 +335,11 @@ def _download_fixed_amount_of_data(response, temp_file, required_length):
     Data from the server will be written to 'temp_file'.
 
   <Exceptions>
-    Runtime or network exceptions will be raised without question.
+    tuf.exceptions.SlowRetrievalError
+      will be raised if urllib3.exceptions.ReadTimeoutError is caught (if the
+      download times out).
+
+    Otherwise, runtime or network exceptions will be raised without question.
 
   <Returns>
     A (total_downloaded, average_download_speed) tuple, where
@@ -396,6 +402,11 @@ def _download_fixed_amount_of_data(response, temp_file, required_length):
 
         # Finally, we signal that the download is complete.
         break
+
+  except urllib3.exceptions.ReadTimeoutError as e:
+    # Whatever happens, make sure that we always close the connection.
+    response.close()
+    raise tuf.exceptions.SlowRetrievalError(str(e))
 
   except:
     # Whatever happens, make sure that we always close the connection.
