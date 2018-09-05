@@ -250,6 +250,10 @@ def _check_rotation(role, repository_name, threshold, keyids, seen):
 
   relative_filename = role + ".rotate." + hashlib.sha256((".".join(keyids) + "." + str(threshold)).encode('utf-8')).hexdigest()
   repository_directory = tuf.settings.repositories_directory
+
+  #if no directory, there can't be a rotation file
+  if repository_directory is None:
+      return threshold, keyids
   filename = os.path.join(repository_directory, relative_filename)
 
   #check for cycles
