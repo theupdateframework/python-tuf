@@ -41,6 +41,7 @@ import hashlib
 
 import tuf
 import tuf.log
+import tuf.exceptions
 import tuf.roledb
 import tuf.keydb
 import tuf.repository_tool as repo_tool
@@ -201,6 +202,36 @@ class TestRotateFile(unittest_toolbox.Modified_TestCase):
 
     #this is signed with the old key, should no longer be valid
     self.assertFalse(tuf.sig.verify(rotate_file, 'targets', self.repository_name, targets_roleinfo['threshold'], targets_roleinfo['keyids']))
+
+
+
+  def test_rotation_cycle(self):
+    # First verify that the Targets role is properly signed.  Calling
+    # refresh() should not raise an exception.
+    self.repository_updater.refresh()
+
+    # There should only be one key for Targets.  Store the keyid to later
+    # verify that it has been revoked.
+    targets_roleinfo = tuf.roledb.get_roleinfo('targets', self.repository_name)
+    targets_keyid = targets_roleinfo['keyids']
+    self.assertEqual(len(targets_keyid), 1)
+
+    #add rotate files creating a cycle
+    repository = repo_tool.load_repository(self.repository_directory)
+    #make new key the timestamp key for testing and keep the threshold at 1
+    new_keyids = [self.role_keys['timestamp']['public']['keyid']]
+    new_threshold = 1
+    rotate_file = repository.targets.add_rotate_file(targets_roleinfo['keyids'], targets_roleinfo['threshold'], new_keyids, new_threshold, self.repository_directory, self.role_keys['targets']['private'])
+    rotate_file_2 = repository.targets.add_rotate_file(new_keyids, new_threshold, targets_roleinfo['keyids'], targets_roleinfo['threshold'], self.repository_directory, self.role_keys['timestamp']['private'])
+
+    #should not need to rewrite or update anything else
+
+    # The client performs a refresh of top-level metadata to get the latest
+    # changes.
+    self.repository_updater.refresh()
+
+    #ensure that is finds the cycle
+    self.assertRaises(tuf.exceptions.RotateCycleError, tuf.sig.verify, rotate_file, 'targets', self.repository_name, targets_roleinfo['threshold'], targets_roleinfo['keyids'])
 
 
 

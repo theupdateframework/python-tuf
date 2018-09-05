@@ -259,10 +259,10 @@ def _check_rotation(role, repository_name, threshold, keyids, seen):
 
   filename = os.path.join(repository_directory, relative_filename)
 
-  if filename in seen:
-    raise RotateCycleError("Rotate file " + filename + " is part of a cycle.")
+  if relative_filename in seen:
+    raise tuf.exceptions.RotateCycleError("Rotate file " + filename + " is part of a cycle.")
   else:
-    seen.append(filename)
+    seen.append(relative_filename)
 
   if os.path.exists(filename):
     #read file, ensure properly signed, recurse to check for more rotations
@@ -290,7 +290,6 @@ def _check_rotation(role, repository_name, threshold, keyids, seen):
 
     rotate_file = signable['signed']
 
-    #TODO fix schema
     tuf.formats.ROTATE_SCHEMA.check_match(rotate_file)
 
     if (rotate_file['role'] != role):
