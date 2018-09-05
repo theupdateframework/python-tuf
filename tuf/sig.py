@@ -291,10 +291,10 @@ def _check_rotation(role, repository_name, threshold, keyids, seen):
     rotate_file = signable['signed']
 
     #TODO fix schema
-    #tuf.formats.ROTATE_SCHEMA.check_match(rotate_file)
+    tuf.formats.ROTATE_SCHEMA.check_match(rotate_file)
 
     if (rotate_file['role'] != role):
-      raise InvalidRotateFileError("Role " + rotate_file['role'] + " does not match original role " + rolen)
+      raise InvalidRotateFileError("Role " + rotate_file['role'] + " does not match original role " + role)
 
     #recursive call to check for further rotations
     return _check_rotation(role, repository_name, rotate_file['threshold'], rotate_file['keyids'], seen)
