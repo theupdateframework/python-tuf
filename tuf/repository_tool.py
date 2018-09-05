@@ -767,10 +767,10 @@ class Metadata(object):
             signable['signatures'].append(signature)
 
           except Exception:
-            logger.warning('Unable to create signature for keyid: ' + repr(keyid))
+            logger.warning('Unable to create signature for keyid: ' + repr(key['keyid']))
 
         else:
-          logger.debug('Private key unset.  Skipping: ' + repr(keyid))
+          logger.debug('Private key unset.  Skipping: ' + repr(key['keyid']))
 
       else:
         raise securesystemslib.exceptions.Error('The keydb contains a key with'

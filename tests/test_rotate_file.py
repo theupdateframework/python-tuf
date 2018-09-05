@@ -30,14 +30,11 @@ from __future__ import unicode_literals
 import os
 import time
 import shutil
-import copy
 import tempfile
 import logging
 import random
 import subprocess
-import sys
 import unittest
-import hashlib
 
 import tuf
 import tuf.log
@@ -47,9 +44,6 @@ import tuf.keydb
 import tuf.repository_tool as repo_tool
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.client.updater as updater
-
-import securesystemslib
-import six
 
 logger = logging.getLogger('tuf.test_rotation_file')
 repo_tool.disable_console_log_messages()
@@ -221,7 +215,7 @@ class TestRotateFile(unittest_toolbox.Modified_TestCase):
     new_keyids = [self.role_keys['timestamp']['public']['keyid']]
     new_threshold = 1
     rotate_file = repository.targets.add_rotate_file(targets_roleinfo['keyids'], targets_roleinfo['threshold'], new_keyids, new_threshold, [self.role_keys['targets']['private']])
-    rotate_file_2 = repository.targets.add_rotate_file(new_keyids, new_threshold, targets_roleinfo['keyids'], targets_roleinfo['threshold'], [self.role_keys['timestamp']['private']])
+    repository.targets.add_rotate_file(new_keyids, new_threshold, targets_roleinfo['keyids'], targets_roleinfo['threshold'], [self.role_keys['timestamp']['private']])
 
     #should not need to rewrite or update anything else
 

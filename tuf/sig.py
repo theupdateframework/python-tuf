@@ -253,7 +253,7 @@ def _check_rotation(role, repository_name, threshold, keyids, seen):
 
   #if no directory, there can't be a rotation file
   if repository_directory is None:
-      return threshold, keyids
+    return threshold, keyids
   filename = os.path.join(repository_directory, relative_filename)
 
   #check for cycles
