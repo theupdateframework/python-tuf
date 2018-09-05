@@ -243,31 +243,30 @@ def get_signature_status(signable, role=None, repository_name='default',
 
 
 
+
 def _check_rotation(role, repository_name, threshold, keyids, seen):
   """ A helper function that checks for a rotate file for the given threshold and key ids and returns the up to date threshold and keyids. The function will continue looking for rotate files until there is not one or it detects a cycle."""
 
+  #use default values if none specified
   if keyids is None:
     keyids = tuf.roledb.get_role_keyids(role, repository_name)
   if threshold is None:
     threshold = tuf.roledb.get_role_threshold(role, repository_name)
 
   relative_filename = role + ".rotate." + hashlib.sha256((".".join(keyids) + "." + str(threshold)).encode('utf-8')).hexdigest()
-
-  repositories_directory = tuf.settings.repositories_directory
-  #repository_directory = os.path.join(repositories_directory, repository_name)
-  repository_directory = repositories_directory
-
+  repository_directory = tuf.settings.repositories_directory
   filename = os.path.join(repository_directory, relative_filename)
 
+  #check for cycles
   if relative_filename in seen:
     raise tuf.exceptions.RotateCycleError("Rotate file " + filename + " is part of a cycle.")
   else:
     seen.append(relative_filename)
 
   if os.path.exists(filename):
-    #read file, ensure properly signed, recurse to check for more rotations
+    #read file, ensure properly signed
     signable = securesystemslib.util.load_json_file(filename)
-    #tuf.formats.check_signable_object_format(signable)
+    tuf.formats.check_signable_object_format(signable)
 
     #verify signature, but can't call verify to avoid cycle
     status = get_signature_status(signable, role, repository_name, threshold, keyids)
@@ -289,7 +288,6 @@ def _check_rotation(role, repository_name, threshold, keyids, seen):
       return threshold, keyids
 
     rotate_file = signable['signed']
-
     tuf.formats.ROTATE_SCHEMA.check_match(rotate_file)
 
     if (rotate_file['role'] != role):
@@ -300,7 +298,6 @@ def _check_rotation(role, repository_name, threshold, keyids, seen):
   else:
     #no rotation file found, return original values
     return threshold, keyids
-
 
 
 

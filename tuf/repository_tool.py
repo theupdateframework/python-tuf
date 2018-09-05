@@ -687,26 +687,60 @@ class Metadata(object):
 
 
 
-#TODO remove private_key variable, get it from old_keyids
-  def add_rotate_file(self, old_keyids, old_threshold, new_keyids, new_threshold, repository_directory, private_keys, rolename="default"):
+  def add_rotate_file(self, old_keyids, old_threshold, new_keyids, new_threshold, private_keys, rolename="default"):
+    """
+    <Purpose>
+      Add rotate file to the metadata directory that rotates from 'old_keyids'
+      and 'old_threshold' to 'new_keyids' and 'new_threshold'.
+
+      >>>
+      >>>
+      >>>
+
+    <Arguments>
+      old_keyids:
+        The current keyids used for determining the rotate filename and signing
+        the rotate file
+
+      old_threshold:
+        The current threshold, used for determining the rotate filename and 
+        signing the rotate file
+
+      new_keyids:
+        The new keyids that will be put into the rotate file. May be the same 
+        as old_keyids as long as there is a different threshold
+
+      new_threshold:
+        The new threshold that will be put into the rotate file. May be the same 
+        as old_threshold as long as new_keyids is different
+
+      private_keys:
+        current private keys for signing the rotate file
+
+      rolename:
+        the role to go in the rotate file, if default will use self.rolename
+
+    <Exceptions>
+      securesystemslib.exceptions.Error, if the 'private_key' has an invalid
+      type
+
+    <Side Effects>
+      Rotate file is created
+
+    <Returns>
+      Contents of the rotate file
+    """
 
     if (rolename == "default"):
       rolename = self.rolename
 
-    #create rotate file
+    #ensure alphabetical order for making the filename
     list.sort(old_keyids)
 
     #filename is role.rotate.ID
     relative_filename = self.rolename + ".rotate." + hashlib.sha256((".".join(old_keyids) + "." + str(old_threshold)).encode('utf-8')).hexdigest()
 
-    repositories_directory = tuf.settings.repositories_directory
-    #repository_directory = os.path.join(repositories_directory, self._repository_name)
-    repository_directory = repositories_directory
-
-    #TODO this should already be here...
-    if not os.path.exists(repository_directory):
-      os.makedirs(repository_directory)
-
+    repository_directory = tuf.settings.repositories_directory
     filename = os.path.join(repository_directory, relative_filename)
 
     #not sure if this field is needed in the rotate file
@@ -723,45 +757,29 @@ class Metadata(object):
 
     signable = tuf.formats.make_signable(file_contents)
 
-
-
-    #sign file with all old keys
-    for keyid in old_keyids:
-      key = tuf.keydb.get_key(keyid, repository_name=self._repository_name)
-
-
-    key = private_keys
-      # Load the signing key.
-      #key = tuf.keydb.get_key(keyid, repository_name=self._repository_name)
+    for key in private_keys:
       # Generate the signature using the appropriate signing method.
-    if key['keytype'] in tuf.repository_lib.SUPPORTED_KEY_TYPES:
-      if 'private' in key['keyval']:
-        signed = signable['signed']
-        try:
-          signature = securesystemslib.keys.create_signature(key, signed)
-          signable['signatures'].append(signature)
+      if key['keytype'] in tuf.repository_lib.SUPPORTED_KEY_TYPES:
+        if 'private' in key['keyval']:
+          signed = signable['signed']
+          try:
+            signature = securesystemslib.keys.create_signature(key, signed)
+            signable['signatures'].append(signature)
 
-        except Exception:
-          logger.warning('Unable to create signature for keyid: ' + repr(keyid))
+          except Exception:
+            logger.warning('Unable to create signature for keyid: ' + repr(keyid))
+
+        else:
+          logger.debug('Private key unset.  Skipping: ' + repr(keyid))
 
       else:
-        logger.debug('Private key unset.  Skipping: ' + repr(keyid))
-
-    else:
-      raise securesystemslib.exceptions.Error('The keydb contains a key with'
-        ' an invalid key type.' + repr(key['keytype']))
-
+        raise securesystemslib.exceptions.Error('The keydb contains a key with'
+          ' an invalid key type.' + repr(key['keytype']))
 
     f = open(filename, 'w')
     f.write (json.dumps(signable))
 
-    #file_object = securesystemslib.util.TempFile()
-    #file_object.write(json.dumps(signable))
-    #file_object.move(filename)
-
     return signable
-
-
 
 
 

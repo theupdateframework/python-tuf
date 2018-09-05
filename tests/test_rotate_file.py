@@ -94,7 +94,7 @@ class TestRotateFile(unittest_toolbox.Modified_TestCase):
 
     # Remove the temporary repository directory, which should contain all the
     # metadata, targets, and key files generated for the test cases.
-    #shutil.rmtree(cls.temporary_directory)
+    shutil.rmtree(cls.temporary_directory)
 
     # Kill the SimpleHTTPServer process.
     if cls.server_process.returncode is None:
@@ -169,8 +169,8 @@ class TestRotateFile(unittest_toolbox.Modified_TestCase):
   def tearDown(self):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.tearDown(self)
-    #tuf.roledb.clear_roledb(clear_all=True)
-    #tuf.keydb.clear_keydb(clear_all=True)
+    tuf.roledb.clear_roledb(clear_all=True)
+    tuf.keydb.clear_keydb(clear_all=True)
 
 
 
@@ -191,8 +191,7 @@ class TestRotateFile(unittest_toolbox.Modified_TestCase):
     #make new key the timestamp key for testing and keep the threshold at 1
     new_keyids = [self.role_keys['timestamp']['public']['keyid']]
     new_threshold = 1
-    #TODO should be able to remove last parameter and get it from the keyid
-    rotate_file = repository.targets.add_rotate_file(targets_roleinfo['keyids'], targets_roleinfo['threshold'], new_keyids, new_threshold, self.repository_directory, self.role_keys['targets']['private'])
+    rotate_file = repository.targets.add_rotate_file(targets_roleinfo['keyids'], targets_roleinfo['threshold'], new_keyids, new_threshold, [self.role_keys['targets']['private']])
 
     #should not need to rewrite or update anything else
 
@@ -221,8 +220,8 @@ class TestRotateFile(unittest_toolbox.Modified_TestCase):
     #make new key the timestamp key for testing and keep the threshold at 1
     new_keyids = [self.role_keys['timestamp']['public']['keyid']]
     new_threshold = 1
-    rotate_file = repository.targets.add_rotate_file(targets_roleinfo['keyids'], targets_roleinfo['threshold'], new_keyids, new_threshold, self.repository_directory, self.role_keys['targets']['private'])
-    rotate_file_2 = repository.targets.add_rotate_file(new_keyids, new_threshold, targets_roleinfo['keyids'], targets_roleinfo['threshold'], self.repository_directory, self.role_keys['timestamp']['private'])
+    rotate_file = repository.targets.add_rotate_file(targets_roleinfo['keyids'], targets_roleinfo['threshold'], new_keyids, new_threshold, [self.role_keys['targets']['private']])
+    rotate_file_2 = repository.targets.add_rotate_file(new_keyids, new_threshold, targets_roleinfo['keyids'], targets_roleinfo['threshold'], [self.role_keys['timestamp']['private']])
 
     #should not need to rewrite or update anything else
 
@@ -251,7 +250,7 @@ class TestRotateFile(unittest_toolbox.Modified_TestCase):
     #make new key the timestamp key for testing and keep the threshold at 1
     new_keyids = [self.role_keys['timestamp']['public']['keyid']]
     new_threshold = 1
-    rotate_file = repository.targets.add_rotate_file(targets_roleinfo['keyids'], targets_roleinfo['threshold'], new_keyids, new_threshold, self.repository_directory, self.role_keys['targets']['private'], "invalid_rolename")
+    rotate_file = repository.targets.add_rotate_file(targets_roleinfo['keyids'], targets_roleinfo['threshold'], new_keyids, new_threshold, [self.role_keys['targets']['private']], "invalid_rolename")
 
     #should not need to rewrite or update anything else
 
