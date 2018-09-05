@@ -154,6 +154,12 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     shutil.copytree(original_client, self.client_directory)
     shutil.copytree(original_keystore, self.keystore_directory)
 
+
+    # Produce a longer target file than exists in the other test repository
+    # data, to provide for a long-duration slow attack. Then we'll write new
+    # top-level metadata that includes a hash over that file, and provide that
+    # metadata to the client as well.
+
     # The slow retrieval server, in mode 2 (1 byte per second), will only
     # sleep for a  total of (target file size) seconds.  Add a target file
     # that contains sufficient number of bytes to trigger a slow retrieval
@@ -188,6 +194,19 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
+
+    # Since we've changed the repository metadata in this setup (by lengthening
+    # a target file and then writing new metadata), we also have to update the
+    # client metadata to get to the expected initial state, where the client
+    # knows the right target info (and so expects the right, longer target
+    # length.
+    # We'll skip using updater.refresh since we don't have a server running,
+    # and we'll update the metadata locally, manually.
+    shutil.rmtree(os.path.join(
+        self.client_directory, self.repository_name, 'metadata', 'current'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata'),
+        os.path.join(self.client_directory, self.repository_name, 'metadata',
+        'current'))
 
     # Set the url prefix required by the 'tuf/client/updater.py' updater.
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
