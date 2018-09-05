@@ -157,9 +157,9 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     # The slow retrieval server, in mode 2 (1 byte per second), will only
     # sleep for a  total of (target file size) seconds.  Add a target file
     # that contains sufficient number of bytes to trigger a slow retrieval
-    # error.  "sufficient number of bytes" assumed to be 10x more.
-    extra_bytes = 8
-    total_bytes = 100 * extra_bytes
+    # error. A transfer of 400 bytes should not be permitted to take 400
+    # seconds.
+    total_bytes = 400
 
     repository = repo_tool.load_repository(self.repository_directory)
     file1_filepath = os.path.join(self.repository_directory, 'targets',
