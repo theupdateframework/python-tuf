@@ -716,6 +716,7 @@ SCHEMAS_BY_TYPE = {
   'targets' : TARGETS_SCHEMA,
   'snapshot' : SNAPSHOT_SCHEMA,
   'timestamp' : TIMESTAMP_SCHEMA,
+  'rotate' : ROTATE_SCHEMA,
   'mirrors' : MIRRORLIST_SCHEMA}
 
 # A dict holding the recognized class names for the top-level roles.
