@@ -961,14 +961,10 @@ def make_versioninfo(version_number):
 
   # Raise 'securesystemslib.exceptions.FormatError' if 'versioninfo' is
   # improperly formatted.
-  try:
-    securesystemslib.formats.VERSIONINFO_SCHEMA.check_match(versioninfo)
+  securesystemslib.formats.VERSIONINFO_SCHEMA.check_match(versioninfo)
 
-  except:
-    raise
+  return versioninfo
 
-  else:
-    return versioninfo
 
 
 
