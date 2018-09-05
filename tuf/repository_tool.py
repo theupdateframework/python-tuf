@@ -688,7 +688,11 @@ class Metadata(object):
 
 
 #TODO remove private_key variable, get it from old_keyids
-  def add_rotate_file(self, old_keyids, old_threshold, new_keyids, new_threshold, repository_directory, private_keys):
+  def add_rotate_file(self, old_keyids, old_threshold, new_keyids, new_threshold, repository_directory, private_keys, rolename="default"):
+
+    if (rolename == "default"):
+      rolename = self.rolename
+
     #create rotate file
     list.sort(old_keyids)
 
@@ -712,7 +716,7 @@ class Metadata(object):
       new_keys.append(key)
 
     file_contents = {"_type" : "rotate"}
-    file_contents['role'] = self.rolename
+    file_contents['role'] = rolename
     file_contents['keys'] = new_keys
     file_contents['keyids'] = new_keyids
     file_contents['threshold'] = new_threshold

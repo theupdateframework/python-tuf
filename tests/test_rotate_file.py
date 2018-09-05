@@ -235,6 +235,34 @@ class TestRotateFile(unittest_toolbox.Modified_TestCase):
 
 
 
+  def test_rotate_file_invalid_role(self):
+    # First verify that the Targets role is properly signed.  Calling
+    # refresh() should not raise an exception.
+    self.repository_updater.refresh()
+
+    # There should only be one key for Targets.  Store the keyid to later
+    # verify that it has been revoked.
+    targets_roleinfo = tuf.roledb.get_roleinfo('targets', self.repository_name)
+    targets_keyid = targets_roleinfo['keyids']
+    self.assertEqual(len(targets_keyid), 1)
+
+    #add rotate file
+    repository = repo_tool.load_repository(self.repository_directory)
+    #make new key the timestamp key for testing and keep the threshold at 1
+    new_keyids = [self.role_keys['timestamp']['public']['keyid']]
+    new_threshold = 1
+    rotate_file = repository.targets.add_rotate_file(targets_roleinfo['keyids'], targets_roleinfo['threshold'], new_keyids, new_threshold, self.repository_directory, self.role_keys['targets']['private'], "invalid_rolename")
+
+    #should not need to rewrite or update anything else
+
+    # The client performs a refresh of top-level metadata to get the latest
+    # changes.
+    self.repository_updater.refresh()
+
+    self.assertRaises(tuf.exceptions.InvalidRotateFileError, tuf.sig.verify, rotate_file, 'targets', self.repository_name, targets_roleinfo['threshold'], targets_roleinfo['keyids'])
+
+
+
 def _load_role_keys(keystore_directory):
 
   # Populating 'self.role_keys' by importing the required public and private
