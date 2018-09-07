@@ -224,7 +224,7 @@ class TestRotateFile(unittest_toolbox.Modified_TestCase):
     self.repository_updater.refresh()
 
     #ensure that is finds the cycle
-    self.assertRaises(tuf.exceptions.RotateCycleError, tuf.sig.verify, rotate_file, 'targets', self.repository_name, targets_roleinfo['threshold'], targets_roleinfo['keyids'])
+    self.assertRaises(tuf.exceptions.InvalidKeyError, tuf.sig.verify, rotate_file, 'targets', self.repository_name, targets_roleinfo['threshold'], targets_roleinfo['keyids'])
 
 
 

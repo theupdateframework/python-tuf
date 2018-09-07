@@ -49,7 +49,7 @@ class InvalidRotateFileError(Error):
   """Indicate an invalid rotate file"""
   pass
 
-class RotateCycleError(Error):
+class InvalidKeyError(Error):
   """Indicate a a cycle in rotate files, equivalent to a key revocation"""
   pass
 

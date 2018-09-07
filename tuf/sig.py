@@ -258,7 +258,7 @@ def _check_rotation(role, repository_name, threshold, keyids, seen):
 
   #check for cycles
   if relative_filename in seen:
-    raise tuf.exceptions.RotateCycleError("Rotate file " + filename + " is part of a cycle.")
+    raise tuf.exceptions.InvalidKeyError("The key was self revoked by a cycle in rotate file " + filename)
   else:
     seen.append(relative_filename)
 
