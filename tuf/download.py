@@ -60,9 +60,10 @@ logger = logging.getLogger('tuf.download')
 # which can result in a significant performance increase (see HTTP persistent
 # connection)."
 #
-# NOTE: We use a separate requests.Session per hostname in order to reuse
-# connections to the same hostname while avoiding sharing state between
-# different hosts, and minimizing subtle security issues.
+# NOTE: We use a separate requests.Session per scheme+hostname combination, in
+# order to reuse connections to the same hostname to improve efficiency, but
+# avoiding sharing state between different hosts-scheme combinations to
+# minimize subtle security issues. Some cookies may not be HTTP-safe.
 _sessions = {}
 
 
@@ -230,22 +231,24 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
   temp_file = securesystemslib.util.TempFile()
 
   try:
-    # Use a different requests.Session per hostname to reuse connections while
-    # minimizing subtle security issues.
-    hostname = six.moves.urllib.parse.urlparse(url).hostname
+    # Use a different requests.Session per schema+hostname combination, to
+    # reuse connections while minimizing subtle security issues.
+    parsed_url = six.moves.urllib.parse.urlparse(url)
 
-    if not hostname:
+    if not parsed_url.scheme or not parsed_url.hostname:
       raise tuf.exceptions.URLParsingError(
-          'Could not get hostname from: ' + url)
-    else:
-      logger.debug('url: ' + url)
-      logger.debug('hostname: ' + hostname)
+          'Could not get scheme and hostname from URL: ' + url)
 
-    session = _sessions.get(hostname)
+    session_index = parsed_url.scheme + '+' + parsed_url.hostname
+
+    logger.debug('url: ' + url)
+    logger.debug('session index: ' + session_index)
+
+    session = _sessions.get(session_index)
 
     if not session:
       session = requests.Session()
-      _sessions[hostname] = session
+      _sessions[session_index] = session
 
       # Attach some default headers to every Session.
       requests_user_agent = session.headers['User-Agent']
@@ -258,10 +261,10 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
           # The TUF user agent.
           'User-Agent': tuf_user_agent})
 
-      logger.debug('Made new session for ' + hostname)
+      logger.debug('Made new session for ' + session_index)
 
     else:
-      logger.debug('Reusing session for ' + hostname)
+      logger.debug('Reusing session for ' + session_index)
 
     # Get the requests.Response object for this URL.
     #
