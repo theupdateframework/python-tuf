@@ -31,6 +31,9 @@
   does not fall below a required rate (tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED).
 
   Note: There is no difference between 'updates' and 'target' files.
+
+  # TODO: Consider additional tests for slow metadata download. Tests here only
+  use slow target download.
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an

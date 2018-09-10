@@ -272,7 +272,10 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
     # We will always manually close Responses, so no need for a context
     # manager.
     #
-    # Always set the connect + read timeout:
+    # Always set the timeout. This timeout value is interpreted by requests as:
+    #  - connect timeout (max delay before first byte is received)
+    #  - read (gap) timeout (max delay between bytes received)
+    # These are NOT overall/total, wall-clock timeouts for any single read.
     # http://docs.python-requests.org/en/master/user/advanced/#timeouts
     response = session.get(
         url, stream=True, timeout=tuf.settings.SOCKET_TIMEOUT)
