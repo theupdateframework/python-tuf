@@ -270,6 +270,10 @@ class URLMatchesNoPatternError(Error):
   """If a URL does not match a user-specified regular expression."""
   pass
 
+class URLParsingError(Error):
+  """If we are unable to parse a URL -- for example, if a hostname element
+  cannot be isoalted."""
+  pass
 
 class InvalidConfigurationError(Error):
   """If a configuration object does not match the expected format."""

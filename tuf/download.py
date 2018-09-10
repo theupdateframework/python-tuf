@@ -236,7 +236,7 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
     hostname = six.moves.urllib.parse.urlparse(url).hostname
 
     if not hostname:
-      raise securesystemslib.exceptions.FormatError(
+      raise tuf.exceptions.URLParsingError(
           'Could not get hostname from: ' + url)
     else:
       logger.debug('url: ' + url)

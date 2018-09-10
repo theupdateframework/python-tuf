@@ -170,7 +170,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     self.assertRaises(securesystemslib.exceptions.FormatError,
                       download_file, None, self.target_data_length)
 
-    self.assertRaises(requests.exceptions.MissingSchema,
+    self.assertRaises(tuf.exceptions.URLParsingError,
                       download_file,
                       self.random_string(), self.target_data_length)
 
