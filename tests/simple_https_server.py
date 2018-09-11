@@ -40,10 +40,13 @@ from __future__ import unicode_literals
 import sys
 import random
 import ssl
-
+import os
 import six
 
 PORT = 0
+
+keyfile = 'ssl_cert.key'
+certfile = 'ssl_cert.crt'
 
 def _generate_random_port():
   return random.randint(30000, 45000)
@@ -60,12 +63,19 @@ if len(sys.argv) > 1:
 else:
   PORT = _generate_random_port()
 
+if len(sys.argv) > 2:
+
+  if os.path.exists(sys.argv[2]):
+    certfile = sys.argv[2]
+  else:
+    print('simple_https_server: cert file not found: ' + sys.argv[2] +
+        '; using default: ' + certfile)
+
 httpd = six.moves.BaseHTTPServer.HTTPServer(('localhost', PORT),
                             six.moves.SimpleHTTPServer.SimpleHTTPRequestHandler)
 
-httpd.socket = ssl.wrap_socket(httpd.socket, keyfile='ssl_cert.key',
-                               certfile='ssl_cert.crt',
-                               server_side=True)
+httpd.socket = ssl.wrap_socket(
+    httpd.socket, keyfile=keyfile, certfile=certfile, server_side=True)
 
 #print('Starting https server on port: ' + str(PORT))
 httpd.serve_forever()

@@ -193,43 +193,125 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
 
 
+
+
+  # This test uses sites on the internet, requiring a net connection to succeed.
+  # Since this is the only such test in TUF, I'm not going to enable it... but
+  # it's here in case it's useful for diagnosis.
+  # def test_https_validation(self):
+  #   """
+  #   Use some known URLs on the net to ensure that TUF download checks SSL
+  #   certificates appropriately.
+  #   """
+  #   # We should never get as far as the target file download itself, so the
+  #   # length we pass to safe_download and unsafe_download shouldn't matter.
+  #   irrelevant_length = 10
+  #
+  #   for bad_url in [
+  #       'https://expired.badssl.com/', # expired certificate
+  #       'https://wrong.host.badssl.com/', ]: # hostname verification fail
+  #
+  #     with self.assertRaises(requests.exceptions.SSLError):
+  #       download.safe_download(bad_url, irrelevant_length)
+  #
+  #     with self.assertRaises(requests.exceptions.SSLError):
+  #       download.unsafe_download(bad_url, irrelevant_length)
+
+
+
+
+
   def test_https_connection(self):
+    """
+    Try various HTTPS downloads using trusted and untrusted certificates with
+    and without the correct hostname listed in the SSL certificate.
+    """
     # Make a temporary file to be served to the client.
     current_directory = os.getcwd()
     target_filepath = self.make_temp_data_file(directory=current_directory)
-    target_data = None
-    target_data_length = 0
 
     with open(target_filepath, 'r') as target_file_object:
-      target_data = target_file_object.read()
-      target_data_length = len(target_data)
+      target_data_length = len(target_file_object.read())
 
-    # Launch an https server (serves files in the current dir).
-    port = random.randint(30000, 45000)
-    command = ['python', 'simple_https_server.py', str(port)]
-    https_server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
+    # These cert files should both be valid, but "good" lists localhost and
+    # "bad" lists another hostname. We'll be trying to download from localhost,
+    # so we expect
+    good_cert_fname = 'ssl_cert.crt'
+    bad_cert_fname = 'ssl_cert_wronghost.crt'
+
+    # Launch two https servers (serves files in the current dir).
+    # The first we expect to operate correctly, and the second we run with an
+    # HTTPS certificate with an unexpected hostname.
+    port1 = str(random.randint(30000, 45000))
+    port2 = str(int(port1) + 1)
+    command1 = ['python', 'simple_https_server.py', port1, good_cert_fname]
+    command2 = ['python', 'simple_https_server.py', port2, bad_cert_fname]
+    good_https_server_proc = subprocess.Popen(command1, stderr=subprocess.PIPE)
+    bad_https_server_proc = subprocess.Popen(command2, stderr=subprocess.PIPE)
 
     # NOTE: Following error is raised if delay is not applied:
     #    <urlopen error [Errno 111] Connection refused>
-    time.sleep(1)
+    time.sleep(0.2)
 
-    junk, relative_target_filepath = os.path.split(target_filepath)
-    https_url = 'https://localhost:' + str(port) + '/' + relative_target_filepath
+    relative_target_fpath = os.path.basename(target_filepath)
+    good_https_url = 'https://localhost:' + port1 + '/' + relative_target_fpath
+    bad_https_url = good_https_url.replace(':' + port1, ':' + port2)
+
 
     # Download the target file using an https connection.
-    os.environ['REQUESTS_CA_BUNDLE'] = 'ssl_cert.crt'
-    message = 'Downloading target file from https server: ' + https_url
-    logger.info(message)
+
+    # Use try-finally solely to ensure that the server processes are killed.
     try:
-      download.safe_download(https_url, target_data_length)
-      download.unsafe_download(https_url, target_data_length)
+      # Trust the certfile that happens to use a different hostname than we
+      # will expect.
+      os.environ['REQUESTS_CA_BUNDLE'] = bad_cert_fname
+
+      # Try connecting to the server process with the bad cert while trusting
+      # the bad cert. Expect failure because even though we trust it, the
+      # hostname we're connecting to does not match the hostname in the cert.
+      logger.info('Trying https download of target file: ' + bad_https_url)
+      with self.assertRaises(requests.exceptions.SSLError):
+        download.safe_download(bad_https_url, target_data_length)
+      with self.assertRaises(requests.exceptions.SSLError):
+        download.unsafe_download(bad_https_url, target_data_length)
+
+      # Try connecting to the server process with the good cert while not
+      # trusting the good cert (trusting the bad cert instead). Expect failure
+      # because even though the server's cert file is otherwise OK, we don't
+      # trust it.
+      print('Trying https download of target file: ' + good_https_url)
+      with self.assertRaises(requests.exceptions.SSLError):
+        download.safe_download(good_https_url, target_data_length)
+      with self.assertRaises(requests.exceptions.SSLError):
+        download.unsafe_download(good_https_url, target_data_length)
+
+      # Configure environment to trust the good cert file now instead.
+      os.environ['REQUESTS_CA_BUNDLE'] = good_cert_fname
+
+      # Try connecting to the server process with the good cert while trusting
+      # that cert. Expect success.
+      # Note: running these OK downloads at the top of this try section causes
+      #       a failure in a previous assertion: retrieving the same good URL
+      #       again after no longer "trusting" the good certfile still succeeds
+      #       if we had previously succeeded in retrieving that same URL while
+      #       still trusting the good cert. Perhaps it's a caching issue....?
+      #       I'm not especially concerned yet, but take note for later....
+      logger.info('Trying https download of target file: ' + good_https_url)
+      download.safe_download(good_https_url, target_data_length)
+      download.unsafe_download(good_https_url, target_data_length)
 
     finally:
-      if https_server_process.returncode is None:
-        message = \
-          'Server process ' + str(https_server_process.pid) + ' terminated.'
-        logger.info(message)
-        https_server_process.kill()
+      if good_https_server_proc.returncode is None:
+        logger.info(
+            'Terminating server process ' + str(good_https_server_proc.pid))
+        good_https_server_proc.kill()
+
+      if bad_https_server_proc.returncode is None:
+        logger.info(
+            'Terminating server process ' + str(bad_https_server_proc.pid))
+        bad_https_server_proc.kill()
+
+
 
 
 
