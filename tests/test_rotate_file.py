@@ -36,6 +36,7 @@ import random
 import subprocess
 import unittest
 
+import securesystemslib
 import tuf
 import tuf.log
 import tuf.exceptions
@@ -195,6 +196,45 @@ class TestRotateFile(unittest_toolbox.Modified_TestCase):
 
     #this is signed with the old key, should no longer be valid
     self.assertFalse(tuf.sig.verify(rotate_file, 'targets', self.repository_name, targets_roleinfo['threshold'], targets_roleinfo['keyids']))
+
+
+
+  def test_root_key_rotation(self):
+    # First verify that the Targets role is properly signed.  Calling
+    # refresh() should not raise an exception.
+    self.repository_updater.refresh()
+
+    # There should only be one key for Root.  Store the keyid to later
+    # verify that it has been revoked.
+    root_roleinfo = tuf.roledb.get_roleinfo('root', self.repository_name)
+    root_keyid = root_roleinfo['keyids']
+    self.assertEqual(len(root_keyid), 1)
+
+    #add rotate files
+    repository = repo_tool.load_repository(self.repository_directory)
+    #make new key the timestamp key for testing and keep the threshold at 1
+    new_keyids = [self.role_keys['timestamp']['public']['keyid']]
+    new_threshold = 1
+    rotate_file = repository.targets.add_rotate_file(root_roleinfo['keyids'], root_roleinfo['threshold'], new_keyids, new_threshold, [self.role_keys['root']['private']], "root")
+
+    # This will fail because the root file is not signed with the new key
+    try:
+      self.repository_updater.refresh()
+    except tuf.exceptions.NoWorkingMirrorError as exception:
+      for mirror_exception in exception.mirror_errors.values():
+        self.assertTrue(isinstance(mirror_exception,
+            securesystemslib.exceptions.BadSignatureError))
+
+    # Sign the root file with the new key
+    repository.root.add_verification_key(self.role_keys['timestamp']['public'])
+    repository.root.load_signing_key(self.role_keys['timestamp']['private'])
+    repository.writeall()
+
+    # The client performs a refresh of top-level metadata to get the latest
+    # changes.
+
+    #this is signed with the old key, should no longer be valid
+    self.assertFalse(tuf.sig.verify(rotate_file, 'root', self.repository_name, root_roleinfo['threshold'], root_roleinfo['keyids']))
 
 
 

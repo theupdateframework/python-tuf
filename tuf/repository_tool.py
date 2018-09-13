@@ -738,7 +738,7 @@ class Metadata(object):
     list.sort(old_keyids)
 
     #filename is role.rotate.ID
-    relative_filename = self.rolename + ".rotate." + hashlib.sha256((".".join(old_keyids) + "." + str(old_threshold)).encode('utf-8')).hexdigest()
+    relative_filename = rolename + ".rotate." + hashlib.sha256((".".join(old_keyids) + "." + str(old_threshold)).encode('utf-8')).hexdigest()
 
     repository_directory = tuf.settings.repositories_directory
     filename = os.path.join(repository_directory, relative_filename)
