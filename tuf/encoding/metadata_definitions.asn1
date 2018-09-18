@@ -164,6 +164,9 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     num-keyids          Length,
     keyids              SEQUENCE OF KeyID,
     threshold           Threshold
+    -- Pending TAP 5 approval and implementation:
+    -- num-urls            Length OPTIONAL,
+    -- urls                SEQUENCE OF VisibleString OPTIONAL
   }
 
 
