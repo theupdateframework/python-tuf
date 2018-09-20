@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 
 # This code is taken from: https://github.com/inaz2/proxy2
-# Credit goes to the author. It has been very slightly modified here solely to
-# switch from IPv6 use to IPv4 use. (Modified lines are marked '# MODIFIED'.)
+# Credit goes to the author. It has been very slightly modified here to use
+# IPv4 instead of IPv6, and to only attempt interception of HTTPS traffic
+# (instead of relaying via HTTP CONNECT) if new global variable INTERCEPT is
+# set to True. (Modified sections are marked '# MODIFIED'.)
 #
 # Because this is a helper module for a test, the style is less important, and
 # so to minimize changes from the source, it has NOT been changed to match the
-# TUF project's code style.
+# TUF project's code style outside of rewritten sections.
 
 """
 <Program>
@@ -42,6 +44,12 @@ from cStringIO import StringIO
 from subprocess import Popen, PIPE
 from HTMLParser import HTMLParser
 
+# MODIFIED: (added) A boolean:
+#  False: normal HTTP proxy. Support HTTP & HTTPS connections to target server
+#  True:  intercepting MITM transparent HTTPS proxy. Makes own TLS connections
+#         and has its own cert; must be trusted by the client and is able to
+#         modify requests.
+INTERCEPT = False
 
 def with_color(c, s):
     return "\x1b[%dm%s\x1b[0m" % (c, s)
@@ -85,10 +93,20 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         self.log_message(format, *args)
 
     def do_CONNECT(self):
-        if os.path.isfile(self.cakey) and os.path.isfile(self.cacert) and os.path.isfile(self.certkey) and os.path.isdir(self.certdir):
-            self.connect_intercept()
-        else:
-            self.connect_relay()
+      # MODIFIED: This function has been modified to use new global INTERCEPT
+      # and to issue an error if the necessary certificate/key files are
+      # missing for interception attempts.
+      if not INTERCEPT:
+        print('\n\nRELAYING\n\n')
+        self.connect_relay()
+
+      else:
+        assert os.path.isfile(self.cakey) and os.path.isfile(self.cacert) \
+            and os.path.isfile(self.certkey) and os.path.isdir(self.certdir), \
+            '\nMissing key or certificate files; unable to perform TLS ' \
+            'handshake with client to intercept traffic.\n'
+        print('\n\nINTERCEPTING\n\n')
+        self.connect_intercept()
 
     def connect_intercept(self):
         hostname = self.path.split(':')[0]
@@ -396,7 +414,14 @@ def test(HandlerClass=ProxyRequestHandler, ServerClass=ThreadingHTTPServer, prot
         port = int(sys.argv[1])
     else:
         port = 8080
-    server_address = ('127.0.0.1', port) # <~> changed from '::1'
+    server_address = ('127.0.0.1', port) # MODIFIED: changed from '::1'
+
+    # MODIFIED: Conditional below added to control INTERCEPT setting.
+    if len(sys.argv > 2):
+      if sys.argv[2].lower() == 'intercept':
+        global INTERCEPT
+        INTERCEPT = True
+
 
     HandlerClass.protocol_version = protocol
     httpd = ServerClass(server_address, HandlerClass)

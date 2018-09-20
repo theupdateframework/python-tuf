@@ -74,18 +74,12 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     cls.http_server_proc = subprocess.Popen(
         ['python', 'simple_server.py', str(cls.http_port)],
         stderr=subprocess.PIPE)
-    # logger.info('\n\tHTTP server process started.')
-    # logger.info('\tHTTP server process id: ' + str(cls.http_server_proc.pid))
-    # logger.info('\tServing HTTP on port: ' + str(cls.http_port))
 
     # Launch an HTTPS server (serves files in the current dir).
     cls.https_port = cls.http_port + 1
     cls.https_server_proc = subprocess.Popen(
         ['python', 'simple_https_server.py', str(cls.https_port)],
         stderr=subprocess.PIPE)
-    # logger.info('\n\tHTTPS server process started.')
-    # logger.info('\tHTTPS server process id: ' + str(cls.https_server_proc.pid))
-    # logger.info('\tServing HTTPS on port: ' + str(cls.https_port))
 
     # Launch a very basic HTTP proxy server. I think this one won't even handle
     # HTTP CONNECT (and so can't pass HTTPS requests on)
@@ -93,57 +87,37 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     cls.http_proxy_proc = subprocess.Popen(
         ['python', 'simple_proxy.py', 'http_dumb', str(cls.http_proxy_port)],
         stderr=subprocess.PIPE)
-    # logger.info('\n\tProxy server process started.')
-    # logger.info('\tHTTP Proxy process id: ' + str(cls.http_proxy_proc.pid))
-    # logger.info('\tHTTP Proxy listening on port: ' + str(cls.http_proxy_proc))
 
     # Launch a less basic HTTP proxy server. This one should be able to handle
     # HTTP CONNECT requests, and so should be able to pass HTTPS requests on to
     # the target server.
 
-    cls.http_proxy_port2 = cls.http_port + 4
+    cls.http_proxy_port2 = cls.http_port + 3
 
-    # Try proxy.py:
-    #   Nope, proxy.py doesn't support HTTP CONNECT.
-    # cls.http_proxy_proc2 = subprocess.Popen(
-    #     ['proxy.py', '--port', str(cls.http_proxy_port2)],
-    #     stderr=subprocess.PIPE)
+    # proxy.py doesn't support HTTP CONNECT.
+    # mitm_proxy doesn't support HTTP CONNECT either, because it expects to
+    #   tinker with things and isn't interested in being blind to the data.
+    #   mitm_proxy also can't be started this way; it expects a console.
 
     # Once a working proxy is chosen, it should probably be run this way instead:
     # cls.http_proxy_proc2 = subprocess.Popen(
     #     ['python', 'simple_proxy.py', 'http_smart', str(cls.http_proxy_port2)],
     #     stderr=subprocess.PIPE)
 
-    # So, mitm_proxy doesn't support HTTP CONNECT, either, because it expects to
-    # tinker with things and isn't interested in being blind to the data.
-    # mitm_proxy can't be started this way; it expects a console.
-    # NOTE: Start it manually outside of this tester for now, using:
-    #   >>> mitmproxy --listen-host 127.0.0.1 --listen-port 8899
-    # cls.http_proxy_proc2 = subprocess.Popen(
-    #     ['mitmproxy', '--listen-host', '127.0.0.1',
-    #     '--listen-port', str(cls.http_proxy_port2)],
-    #     stderr=subprocess.PIPE)
-    # logger.info('\n\tProxy server process started.')
-    # logger.info('\tHTTP Proxy process id: ' + str(cls.http_proxy_proc2.pid))
-    # logger.info('\tHTTP Proxy listening on port: ' + str(cls.http_proxy_proc2))
 
-    # Let's try inaz2/proxy2....
+    # inaz2/proxy2 provides HTTP CONNECT
     #   This seems to work, once modified to use IPv4.
     cls.http_proxy_proc2 = subprocess.Popen(
         ['python', 'proxy2.py', str(cls.http_proxy_port2)],
         stderr=subprocess.PIPE)
 
 
-
-    # TODO: Launch a basic HTTPS proxy server.
-    # # Launch a basic HTTPS proxy server.
-    # cls.https_proxy_port = cls.http_port + 11
-    # cls.https_proxy_proc = subprocess.Popen(
-    #     ['python', 'simple_proxy.py', 'https', str(cls.https_proxy_port)],
-    #     stderr=subprocess.PIPE)
-    # logger.info('\n\tProxy server process started.')
-    # logger.info('\tHTTPS Proxy process id: '+str(cls.http_proxy_proc.pid))
-    # logger.info('\tHTTPS Proxy listening on port: '+str(cls.http_proxy_proc))
+    # Launch a basic HTTPS proxy server. (This performs its own TLS connection
+    # with the client and must be trusted by it, and is capable of tampering.)
+    cls.https_proxy_port = cls.http_port + 4
+    cls.https_proxy_proc = subprocess.Popen(
+        ['python', 'proxy2.py', str(cls.https_proxy_port), 'intercept'],
+        stderr=subprocess.PIPE)
 
 
     # The first here is for an http proxy that cannot support HTTP CONNECT, and
@@ -156,13 +130,13 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     # HTTP or HTTPS.
     cls.http_proxy_addr2 = 'http://127.0.0.1:' + str(cls.http_proxy_port2)
 
-    # # This is to the HTTPS proxy server.
-    # cls.https_proxy_addr = 'https://localhost:' + str(cls.https_proxy_port)
+    # This is to the HTTPS proxy server.
+    cls.https_proxy_addr = 'https://127.0.0.1:' + str(cls.https_proxy_port)
 
     # Give the HTTP server and proxy server processes a little bit of time to
     # start listening before allowing tests to begin, lest we get "Connection
     # refused" errors.
-    time.sleep(1.5)
+    time.sleep(2)
 
 
 
@@ -182,7 +156,7 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
         cls.https_server_proc,
         cls.http_proxy_proc,
         cls.http_proxy_proc2,
-        #cls.https_proxy_proc,
+        cls.https_proxy_proc,
       ]:
       if proc.returncode is None:
         logger.info('\tTerminating process ' + str(proc.pid) + ' in cleanup.')
