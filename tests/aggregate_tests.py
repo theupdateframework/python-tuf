@@ -45,11 +45,29 @@ import random
 # and run in a test suite.
 tests_list = glob.glob('test_*.py')
 
+# A dictionary of test modules that should only run in certain python versions.
+# Carefully consider the impact of only testing these in a given version.
+# test_proxy_use.py: uses a proxy that only runs in Python2.7. TUF's
+# compatibility with proxies is not likely to vary based on the Python version
+# in use, so this is OK for now. See comments in that module.
+# The format here is: if major is included, limit version to that listed here.
+# If minor is included, limit version to that listed here. Skip the test if any
+# such listed constraints don't match the python version currently running.
+VERSION_SPECIFIC_TESTS = {
+    'test_proxy_use': {'major': 2, 'minor': 7}} # Run test only if Python2.7
+
 # Remove '.py' from each filename to allow loadTestsFromNames() (called below)
 # to properly load the file as a module.
 tests_without_extension = []
 for test in tests_list:
   test = test[:-3]
+  if test in VERSION_SPECIFIC_TESTS:
+    if 'major' in VERSION_SPECIFIC_TESTS[test] \
+        and sys.version_info.major != VERSION_SPECIFIC_TESTS[test]['major']:
+      continue
+    elif 'minor' in VERSION_SPECIFIC_TESTS[test] \
+        and sys.version_info.minor != VERSION_SPECIFIC_TESTS[test]['minor']:
+      continue
   tests_without_extension.append(test)
 
 # Randomize the order in which the tests run.  Randomization might catch errors
