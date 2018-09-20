@@ -45,11 +45,18 @@ import random
 # and run in a test suite.
 tests_list = glob.glob('test_*.py')
 
+# Skip the following test modules:
+# test_proxy_use.py: need only run in Python3.6+, so this is run separately.
+# See comments in that module.
+SKIP_LIST = ['test_proxy_use']
+
 # Remove '.py' from each filename to allow loadTestsFromNames() (called below)
 # to properly load the file as a module.
 tests_without_extension = []
 for test in tests_list:
   test = test[:-3]
+  if test in SKIP_LIST:
+    continue
   tests_without_extension.append(test)
 
 # Randomize the order in which the tests run.  Randomization might catch errors
