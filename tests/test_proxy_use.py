@@ -114,9 +114,19 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
 
     # Launch a basic HTTPS proxy server. (This performs its own TLS connection
     # with the client and must be trusted by it, and is capable of tampering.)
+    # We instruct the proxy server to expect certain certificates from the
+    # target server.
+    # 1st arg: port
+    # 2nd arg: whether to intercept (HTTPS proxy) or relay (TCP tunnel using
+    #   HTTP CONNECT verb, to facilitate an HTTPS connection between the client
+    #   and server which the proxy cannot inspect)
+    # 3rd arg: (optional) certificate file for telling the proxy what target
+    #   server certs to accept in its HTTPS connection to the target server.
+    #   This is only relevant if the proxy is in intercept mode.
     cls.https_proxy_port = cls.http_port + 4
     cls.https_proxy_proc = subprocess.Popen(
-        ['python', 'proxy2.py', str(cls.https_proxy_port), 'intercept'],
+        ['python', 'proxy2.py', str(cls.https_proxy_port), 'intercept',
+        os.path.join('ssl_certs', 'ssl_cert.crt')],
         stderr=subprocess.PIPE)
 
 
@@ -297,23 +307,45 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
 
 
 
-  # def test_http_dl_via_httpS_proxy(self):
-  #   """
-  #   Test a length-validating TUF download of a file through a proxy. Use an
-  #   HTTP proxy, and perform an HTTPS connection with the final server.
+  def test_http_dl_via_httpS_proxy(self):
+    """
+    Test a length-validating TUF download of a file through a proxy. Use an
+    HTTPS proxy, and perform an HTTP connection with the final server.
+    """
+    self.set_env_value('HTTP_PROXY', self.https_proxy_addr)
+    self.set_env_value('HTTPS_PROXY', self.https_proxy_addr) # unnecessary
 
-  #   Note that the proxy address is still http://... even though the connection
-  #   with the target server is an HTTPS connection. The proxy itself is reached
-  #   in an HTTP connection.
-  #   """
-  #   pass
+    # We're making an HTTPS connection with the proxy. The proxy will make a
+    # plain HTTP connection to the target server.
+    self.set_env_value('REQUESTS_CA_BUNDLE',
+        os.path.join('ssl_certs', 'proxy_ca.crt'))
+
+    logger.info('Trying http download via httpS proxy: ' + self.url_https)
+    download.safe_download(self.url, self.target_data_length)
+    download.unsafe_download(self.url, self.target_data_length)
 
 
 
 
 
-  # def test_httpS_dl_via_httpS_proxy(self):
-  #   pass
+  def test_httpS_dl_via_httpS_proxy(self):
+    """
+    Test a length-validating TUF download of a file through a proxy. Use an
+    HTTPS proxy, and perform an HTTPS connection with the final server.
+    """
+    self.set_env_value('HTTP_PROXY', self.https_proxy_addr) # unnecessary
+    self.set_env_value('HTTPS_PROXY', self.https_proxy_addr)
+
+    # We're making an HTTPS connection with the proxy. The proxy will make its
+    # own HTTPS connection with the target server, and will have to know what
+    # certificate to trust. It was told what certs to trust when it was
+    # started in setUpClass().
+    self.set_env_value('REQUESTS_CA_BUNDLE',
+        os.path.join('ssl_certs', 'proxy_ca.crt'))
+
+    logger.info('Trying httpS download via httpS proxy: ' + self.url_https)
+    download.safe_download(self.url_https, self.target_data_length)
+    download.unsafe_download(self.url_https, self.target_data_length)
 
 
 

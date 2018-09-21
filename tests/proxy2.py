@@ -50,6 +50,7 @@ from HTMLParser import HTMLParser
 #         and has its own cert; must be trusted by the client and is able to
 #         modify requests.
 INTERCEPT = False
+CA_FPATH_FOR_TARGET_SERVER = None
 
 def with_color(c, s):
     return "\x1b[%dm%s\x1b[0m" % (c, s)
@@ -195,7 +196,12 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             origin = (scheme, netloc)
             if not origin in self.tls.conns:
                 if scheme == 'https':
-                    self.tls.conns[origin] = httplib.HTTPSConnection(netloc, timeout=self.timeout)
+                    # MODIFIED: Added CA override in line below, fed from
+                    # global variable set by command line argument.
+                    self.tls.conns[origin] = httplib.HTTPSConnection(
+                        netloc, timeout=self.timeout,
+                        context=ssl.create_default_context(
+                        cafile=CA_FPATH_FOR_TARGET_SERVER))
                 else:
                     self.tls.conns[origin] = httplib.HTTPConnection(netloc, timeout=self.timeout)
             conn = self.tls.conns[origin]
@@ -414,17 +420,30 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
 
 def test(HandlerClass=ProxyRequestHandler, ServerClass=ThreadingHTTPServer, protocol="HTTP/1.1"):
+    # MODIFIED: Added these globals.
+    global INTERCEPT
+    global CA_FPATH_FOR_TARGET_SERVER
+
     if sys.argv[1:]:
         port = int(sys.argv[1])
     else:
         port = 8080
     server_address = ('127.0.0.1', port) # MODIFIED: changed from '::1'
 
-    # MODIFIED: Conditional below added to control INTERCEPT setting.
+    # MODIFIED: Argument added, conditional below added to control INTERCEPT
+    # setting.
     if len(sys.argv) > 2:
       if sys.argv[2].lower() == 'intercept':
-        global INTERCEPT
         INTERCEPT = True
+
+    # MODIFIED: Argument added to control certificate(s) the proxy expects of
+    # the target server(s), and added default value.
+    CA_FPATH_FOR_TARGET_SERVER = get_cert_filepath('ssl_cert.crt')
+    if len(sys.argv) > 3:
+      if not os.path.isabs(sys.argv[3]):
+        print('Path for target server cert is not absolute. Ignoring.')
+      elif os.path.exists(sys.argv[3]):
+        CA_FPATH_FOR_TARGET_SERVER = sys.argv[3]
 
 
     HandlerClass.protocol_version = protocol
