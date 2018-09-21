@@ -236,8 +236,8 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     # These cert files should both be valid, but "good" lists localhost and
     # "bad" lists another hostname. We'll be trying to download from localhost,
     # so we expect
-    good_cert_fname = 'ssl_cert.crt'
-    bad_cert_fname = 'ssl_cert_wronghost.crt'
+    good_cert_fname = os.path.join('ssl_certs', 'ssl_cert.crt')
+    bad_cert_fname = os.path.join('ssl_certs', 'ssl_cert_wronghost.crt')
 
     # Launch two https servers (serves files in the current dir).
     # The first we expect to operate correctly, and the second we run with an

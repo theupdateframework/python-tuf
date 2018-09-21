@@ -54,8 +54,10 @@ INTERCEPT = False
 def with_color(c, s):
     return "\x1b[%dm%s\x1b[0m" % (c, s)
 
-def join_with_script_dir(path):
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
+# MODIFIED: from join_with_script_dir to include ssl_certs directory
+def get_cert_filepath(path):
+  return os.path.join(
+      os.path.dirname(os.path.abspath(__file__)), 'ssl_certs', path)
 
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
@@ -72,10 +74,12 @@ class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
 
 
 class ProxyRequestHandler(BaseHTTPRequestHandler):
-    cakey = join_with_script_dir('ca.key')
-    cacert = join_with_script_dir('ca.crt')
-    certkey = join_with_script_dir('cert.key')
-    certdir = join_with_script_dir('certs/')
+    # MODIFIED: Calls below modified: filenames changed, function changed to
+    # include ssl_certs directory.
+    cakey = get_cert_filepath('proxy_ca.key')
+    cacert = get_cert_filepath('proxy_ca.crt')
+    certkey = get_cert_filepath('proxy_cert.key')
+    certdir = get_cert_filepath('proxy_certs')
     timeout = 5
     lock = threading.Lock()
 

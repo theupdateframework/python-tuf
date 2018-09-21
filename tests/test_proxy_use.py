@@ -290,7 +290,8 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     self.set_env_value('HTTP_PROXY', self.http_proxy_addr2) # http as intended
     self.set_env_value('HTTPS_PROXY', self.http_proxy_addr2) # http as intended
 
-    self.set_env_value('REQUESTS_CA_BUNDLE', 'ssl_cert.crt')
+    self.set_env_value('REQUESTS_CA_BUNDLE',
+        os.path.join('ssl_certs', 'ssl_cert.crt'))
 
     logger.info('Trying httpS download via http proxy: ' + self.url_https)
     download.safe_download(self.url_https, self.target_data_length)

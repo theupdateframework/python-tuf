@@ -45,8 +45,8 @@ import six
 
 PORT = 0
 
-keyfile = 'ssl_cert.key'
-certfile = 'ssl_cert.crt'
+keyfile = os.path.join('ssl_certs', 'ssl_cert.key')
+certfile = os.path.join('ssl_certs', 'ssl_cert.crt')
 
 def _generate_random_port():
   return random.randint(30000, 45000)
