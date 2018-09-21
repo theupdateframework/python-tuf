@@ -61,7 +61,7 @@ def get_cert_filepath(path):
 
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
-    address_family = socket.AF_INET # MODIFIED
+    address_family = socket.AF_INET # MODIFIED to use IPv4 instead of IPv6
     daemon_threads = True
 
     def handle_error(self, request, client_address):
@@ -421,7 +421,7 @@ def test(HandlerClass=ProxyRequestHandler, ServerClass=ThreadingHTTPServer, prot
     server_address = ('127.0.0.1', port) # MODIFIED: changed from '::1'
 
     # MODIFIED: Conditional below added to control INTERCEPT setting.
-    if len(sys.argv > 2):
+    if len(sys.argv) > 2:
       if sys.argv[2].lower() == 'intercept':
         global INTERCEPT
         INTERCEPT = True

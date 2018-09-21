@@ -282,10 +282,6 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     Note that the proxy address is still http://... even though the connection
     with the target server is an HTTPS connection. The proxy itself will act as
     a TCP proxy via HTTP CONNECT.
-
-    TEMPORARY NOTE: It turns out that mitmproxy doesn't support HTTP CONNECT,
-    so I need a new proxy option for this....
-
     """
     self.set_env_value('HTTP_PROXY', self.http_proxy_addr2) # http as intended
     self.set_env_value('HTTPS_PROXY', self.http_proxy_addr2) # http as intended
