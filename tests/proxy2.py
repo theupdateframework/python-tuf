@@ -23,6 +23,8 @@
   This is used by test_proxy_use.py.
 
   This module requires Python2.7 and does not support Python3.
+
+  Note that this is not thread-safe, in part due to its use of globals.
 """
 
 import sys
@@ -44,21 +46,34 @@ from cStringIO import StringIO
 from subprocess import Popen, PIPE
 from HTMLParser import HTMLParser
 
-# MODIFIED: (added) A boolean:
+# MODIFIED: (added) three globals
+# INTERCEPT: A boolean:
 #  False: normal HTTP proxy. Support HTTP & HTTPS connections to target server
 #  True:  intercepting MITM transparent HTTPS proxy. Makes own TLS connections
 #         and has its own cert; must be trusted by the client and is able to
 #         modify requests.
+# TARGET_SERVER_CA_FILEPATH: location of certificate to use as CA for
+#   connections to target servers (to constrain certs to trust from target
+#   servers).
+# The remaining globals define the certs and keys to be used in communications
+# with the client, with the proxy's CA signing new certs for individual hosts
+# the client wishes to connect to, and placing them in dir PROXY_CERTS_DIR.
 INTERCEPT = False
-CA_FPATH_FOR_TARGET_SERVER = None
+CERTS_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'ssl_certs')
+TARGET_SERVER_CA_FILEPATH = os.path.join(CERTS_DIR, 'ssl_cert.crt')
+PROXY_CA_KEY = os.path.join(CERTS_DIR, 'proxy_ca.key') # was cakey
+PROXY_CA_CERT = os.path.join(CERTS_DIR, 'proxy_ca.crt') # was cacert
+PROXY_CERTS_KEY = os.path.join(CERTS_DIR, 'proxy_cert.key') # was certkey
+PROXY_CERTS_DIR = os.path.join(CERTS_DIR, 'proxy_certs') # was certdir
+
 
 def with_color(c, s):
     return "\x1b[%dm%s\x1b[0m" % (c, s)
 
-# MODIFIED: from join_with_script_dir to include ssl_certs directory
-def get_cert_filepath(path):
-  return os.path.join(
-      os.path.dirname(os.path.abspath(__file__)), 'ssl_certs', path)
+# MODIFIED: removed join_with_script_dir
+# def get_cert_filepath(path):
+#   return os.path.join(CERTS_DIR, path)
 
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
@@ -75,12 +90,9 @@ class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
 
 
 class ProxyRequestHandler(BaseHTTPRequestHandler):
-    # MODIFIED: Calls below modified: filenames changed, function changed to
+    # MODIFIED: Variables here made into globals.
+    #Calls below modified: filenames changed, function changed to
     # include ssl_certs directory.
-    cakey = get_cert_filepath('proxy_ca.key')
-    cacert = get_cert_filepath('proxy_ca.crt')
-    certkey = get_cert_filepath('proxy_cert.key')
-    certdir = get_cert_filepath('proxy_certs')
     timeout = 5
     lock = threading.Lock()
 
@@ -106,8 +118,10 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         self.connect_relay()
 
       else:
-        assert os.path.isfile(self.cakey) and os.path.isfile(self.cacert) \
-            and os.path.isfile(self.certkey) and os.path.isdir(self.certdir), \
+        assert os.path.isfile(PROXY_CA_KEY) \
+            and os.path.isfile(PROXY_CA_CERT) \
+            and os.path.isfile(PROXY_CERTS_KEY) \
+            and os.path.isdir(PROXY_CERTS_DIR), \
             '\nMissing key or certificate files; unable to perform TLS ' \
             'handshake with client to intercept traffic.\n'
         print('\n\nINTERCEPTING\n\n')
@@ -115,19 +129,19 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
     def connect_intercept(self):
         hostname = self.path.split(':')[0]
-        certpath = "%s/%s.crt" % (self.certdir.rstrip('/'), hostname)
+        certpath = os.path.join(PROXY_CERTS_DIR, hostname + '.crt') # MODIFIED for Windows compatibility and to use new globals
 
         with self.lock:
             if not os.path.isfile(certpath):
                 epoch = "%d" % (time.time() * 1000)
-                p1 = Popen(["openssl", "req", "-new", "-key", self.certkey, "-subj", "/CN=%s" % hostname], stdout=PIPE)
-                p2 = Popen(["openssl", "x509", "-req", "-days", "3650", "-CA", self.cacert, "-CAkey", self.cakey, "-set_serial", epoch, "-out", certpath], stdin=p1.stdout, stderr=PIPE)
+                p1 = Popen(["openssl", "req", "-new", "-key", PROXY_CERTS_KEY, "-subj", "/CN=%s" % hostname], stdout=PIPE)
+                p2 = Popen(["openssl", "x509", "-req", "-days", "3650", "-CA", PROXY_CA_CERT, "-CAkey", PROXY_CA_KEY, "-set_serial", epoch, "-out", certpath], stdin=p1.stdout, stderr=PIPE) # MODIFIED to use the new globals
                 p2.communicate()
 
         self.wfile.write("%s %d %s\r\n" % (self.protocol_version, 200, 'Connection Established'))
         self.end_headers()
 
-        self.connection = ssl.wrap_socket(self.connection, keyfile=self.certkey, certfile=certpath, server_side=True)
+        self.connection = ssl.wrap_socket(self.connection, keyfile=PROXY_CERTS_KEY, certfile=certpath, server_side=True) # MODIFIED: Updated to use new globals
         self.rfile = self.connection.makefile("rb", self.rbufsize)
         self.wfile = self.connection.makefile("wb", self.wbufsize)
 
@@ -201,7 +215,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                     self.tls.conns[origin] = httplib.HTTPSConnection(
                         netloc, timeout=self.timeout,
                         context=ssl.create_default_context(
-                        cafile=CA_FPATH_FOR_TARGET_SERVER))
+                        cafile=TARGET_SERVER_CA_FILEPATH))
                 else:
                     self.tls.conns[origin] = httplib.HTTPConnection(netloc, timeout=self.timeout)
             conn = self.tls.conns[origin]
@@ -319,7 +333,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         return text
 
     def send_cacert(self):
-        with open(self.cacert, 'rb') as f:
+        with open(PROXY_CA_CERT, 'rb') as f: # MODIFIED to use new globals
             data = f.read()
 
         self.wfile.write("%s %d %s\r\n" % (self.protocol_version, 200, 'OK'))
@@ -422,7 +436,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 def test(HandlerClass=ProxyRequestHandler, ServerClass=ThreadingHTTPServer, protocol="HTTP/1.1"):
     # MODIFIED: Added these globals.
     global INTERCEPT
-    global CA_FPATH_FOR_TARGET_SERVER
+    global TARGET_SERVER_CA_FILEPATH
 
     if sys.argv[1:]:
         port = int(sys.argv[1])
@@ -438,12 +452,18 @@ def test(HandlerClass=ProxyRequestHandler, ServerClass=ThreadingHTTPServer, prot
 
     # MODIFIED: Argument added to control certificate(s) the proxy expects of
     # the target server(s), and added default value.
-    CA_FPATH_FOR_TARGET_SERVER = get_cert_filepath('ssl_cert.crt')
     if len(sys.argv) > 3:
       if not os.path.isabs(sys.argv[3]):
         print('Path for target server cert is not absolute. Ignoring.')
       elif os.path.exists(sys.argv[3]):
-        CA_FPATH_FOR_TARGET_SERVER = sys.argv[3]
+        TARGET_SERVER_CA_FILEPATH = sys.argv[3]
+      else:
+        print('Target server cert not found. Ignoring.')
+
+    # MODIFIED: Create the target-host-specific proxy certificates directory if
+    # it doesn't already exist.
+    if not os.path.exists(PROXY_CERTS_DIR):
+      os.mkdir(PROXY_CERTS_DIR)
 
 
     HandlerClass.protocol_version = protocol
