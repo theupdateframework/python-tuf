@@ -94,7 +94,7 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     # requests on to the target server.
     cls.http_proxy_port = cls.http_port + 2
     cls.http_proxy_proc = subprocess.Popen(
-        ['python', 'proxy2.py', str(cls.http_proxy_port)],
+        ['python', 'proxy_server.py', str(cls.http_proxy_port)],
         stderr=subprocess.PIPE)
     # Note that the http proxy server's address uses http://, regardless of the
     # type of connection used with the target server.
@@ -115,7 +115,7 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     #   This is only relevant if the proxy is in intercept mode.
     cls.https_proxy_port = cls.http_port + 3
     cls.https_proxy_proc = subprocess.Popen(
-        ['python', 'proxy2.py', str(cls.https_proxy_port), 'intercept',
+        ['python', 'proxy_server.py', str(cls.https_proxy_port), 'intercept',
         os.path.join('ssl_certs', 'ssl_cert.crt')],
         stderr=subprocess.PIPE)
     # Note that the https proxy server's address uses https://, regardless of
