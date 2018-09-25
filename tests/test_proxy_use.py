@@ -65,6 +65,13 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     Setup performed before the first test function (TestWithProxies class
     method) runs.
     Launch http, https, and proxy servers in the current working directory.
+    We'll set up four servers:
+     - HTTP server (simple_server.py)
+     - HTTPS server (simple_https_server.py)
+     - HTTP proxy server (proxy_server.py)
+         (that supports HTTP CONNECT to funnel HTTPS connections)
+     - HTTPS proxy server (proxy_server.py)
+         (trusted by the client to intercept and resign connections)
     """
 
     unittest_toolbox.Modified_TestCase.setUpClass()
@@ -81,39 +88,22 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
         ['python', 'simple_https_server.py', str(cls.https_port)],
         stderr=subprocess.PIPE)
 
-    # Launch a very basic HTTP proxy server. I think this one won't even handle
-    # HTTP CONNECT (and so can't pass HTTPS requests on)
+
+    # Launch an HTTP proxy server derived from inaz2/proxy2.
+    # This one is able to handle HTTP CONNECT requests, and so can pass HTTPS
+    # requests on to the target server.
     cls.http_proxy_port = cls.http_port + 2
     cls.http_proxy_proc = subprocess.Popen(
-        ['python', 'simple_proxy.py', 'http_dumb', str(cls.http_proxy_port)],
+        ['python', 'proxy2.py', str(cls.http_proxy_port)],
         stderr=subprocess.PIPE)
-
-    # Launch a less basic HTTP proxy server. This one should be able to handle
-    # HTTP CONNECT requests, and so should be able to pass HTTPS requests on to
-    # the target server.
-
-    cls.http_proxy_port2 = cls.http_port + 3
-
-    # proxy.py doesn't support HTTP CONNECT.
-    # mitm_proxy doesn't support HTTP CONNECT either, because it expects to
-    #   tinker with things and isn't interested in being blind to the data.
-    #   mitm_proxy also can't be started this way; it expects a console.
-
-    # Once a working proxy is chosen, it should probably be run this way instead:
-    # cls.http_proxy_proc2 = subprocess.Popen(
-    #     ['python', 'simple_proxy.py', 'http_smart', str(cls.http_proxy_port2)],
-    #     stderr=subprocess.PIPE)
+    # Note that the http proxy server's address uses http://, regardless of the
+    # type of connection used with the target server.
+    cls.http_proxy_addr = 'http://127.0.0.1:' + str(cls.http_proxy_port)
 
 
-    # inaz2/proxy2 provides HTTP CONNECT
-    #   This seems to work, once modified to use IPv4.
-    cls.http_proxy_proc2 = subprocess.Popen(
-        ['python', 'proxy2.py', str(cls.http_proxy_port2)],
-        stderr=subprocess.PIPE)
-
-
-    # Launch a basic HTTPS proxy server. (This performs its own TLS connection
-    # with the client and must be trusted by it, and is capable of tampering.)
+    # Launch an HTTPS proxy server, also derived from inaz2/proxy2.
+    # (An HTTPS proxy performs its own TLS connection with the client and must
+    # be trusted by it, and is capable of tampering.)
     # We instruct the proxy server to expect certain certificates from the
     # target server.
     # 1st arg: port
@@ -123,30 +113,20 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     # 3rd arg: (optional) certificate file for telling the proxy what target
     #   server certs to accept in its HTTPS connection to the target server.
     #   This is only relevant if the proxy is in intercept mode.
-    cls.https_proxy_port = cls.http_port + 4
+    cls.https_proxy_port = cls.http_port + 3
     cls.https_proxy_proc = subprocess.Popen(
         ['python', 'proxy2.py', str(cls.https_proxy_port), 'intercept',
         os.path.join('ssl_certs', 'ssl_cert.crt')],
         stderr=subprocess.PIPE)
-
-
-    # The first here is for an http proxy that cannot support HTTP CONNECT, and
-    # so cannot pass on HTTPS connections.
-    cls.http_proxy_addr = 'http://127.0.0.1:' + str(cls.http_proxy_port)
-
-    # The second is for an http proxy that can support HTTP CONNECT, and so can
-    # pass on HTTPS connections. Because it is an http proxy, the address will
-    # begin with http:// whether the connection to the final target server is
-    # HTTP or HTTPS.
-    cls.http_proxy_addr2 = 'http://127.0.0.1:' + str(cls.http_proxy_port2)
-
-    # This is to the HTTPS proxy server.
+    # Note that the https proxy server's address uses https://, regardless of
+    # the type of connection used with the target server.
     cls.https_proxy_addr = 'https://127.0.0.1:' + str(cls.https_proxy_port)
 
     # Give the HTTP server and proxy server processes a little bit of time to
     # start listening before allowing tests to begin, lest we get "Connection
-    # refused" errors.
-    time.sleep(2)
+    # refused" errors. On the first test system. 0.1s was too short and 0.15s
+    # was long enough. Use 0.5s to be safe, and if issues arise, increase it.
+    time.sleep(0.5)
 
 
 
@@ -165,7 +145,6 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
         cls.http_server_proc,
         cls.https_server_proc,
         cls.http_proxy_proc,
-        cls.http_proxy_proc2,
         cls.https_proxy_proc,
       ]:
       if proc.returncode is None:
@@ -230,49 +209,13 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_http_dl_via_dumb_http_proxy(self):
-    """
-    Test a length-validating TUF download of a file through a proxy. Use an
-    HTTP proxy, and make an HTTP connection with the final server.
-    """
-
-    self.set_env_value('HTTP_PROXY', self.http_proxy_addr)
-
-    logger.info('Trying http download via http proxy: ' + self.url)
-    download.safe_download(self.url, self.target_data_length)
-    download.unsafe_download(self.url, self.target_data_length)
-
-
-
-
-
-  @unittest.expectedFailure
-  def test_httpS_dl_via_dumb_http_proxy(self):
-    """
-    Test a length-validating TUF download of a file through a proxy. Use an
-    HTTP proxy, and try to use HTTP CONNECT, even though this HTTP proxy does
-    not happen to support HTTP CONNECT. (Consequently, this test fails.)
-
-    Note that the proxy address is still http://... even though the connection
-    with the target server is an HTTPS connection.
-    """
-    self.set_env_value('HTTPS_PROXY', self.http_proxy_addr) # http as intended
-
-    logger.info('Trying httpS download via http proxy: ' + self.url_https)
-    download.safe_download(self.url_https, self.target_data_length)
-    download.unsafe_download(self.url_https, self.target_data_length)
-
-
-
-
-
   def test_http_dl_via_smart_http_proxy(self):
     """
     Test a length-validating TUF download of a file through a proxy. Use an
     HTTP proxy normally, and make an HTTP connection with the final server.
     """
 
-    self.set_env_value('HTTP_PROXY', self.http_proxy_addr2)
+    self.set_env_value('HTTP_PROXY', self.http_proxy_addr)
 
     logger.info('Trying http download via http proxy: ' + self.url)
     download.safe_download(self.url, self.target_data_length)
@@ -293,8 +236,8 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     with the target server is an HTTPS connection. The proxy itself will act as
     a TCP proxy via HTTP CONNECT.
     """
-    self.set_env_value('HTTP_PROXY', self.http_proxy_addr2) # http as intended
-    self.set_env_value('HTTPS_PROXY', self.http_proxy_addr2) # http as intended
+    self.set_env_value('HTTP_PROXY', self.http_proxy_addr) # http as intended
+    self.set_env_value('HTTPS_PROXY', self.http_proxy_addr) # http as intended
 
     self.set_env_value('REQUESTS_CA_BUNDLE',
         os.path.join('ssl_certs', 'ssl_cert.crt'))
@@ -346,14 +289,6 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     logger.info('Trying httpS download via httpS proxy: ' + self.url_https)
     download.safe_download(self.url_https, self.target_data_length)
     download.unsafe_download(self.url_https, self.target_data_length)
-
-
-
-
-
-  # def test_transparent_https_proxy(self):
-  #   pass
-
 
 
 

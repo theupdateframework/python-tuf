@@ -12,7 +12,7 @@
 
 """
 <Program>
-  proxy2.py
+  proxy_server.py
 
 <Copyright>
   Taken from a repository set to BSD 3-Clause "New" or "Revised" License. See:
