@@ -22,6 +22,18 @@
   Serves as an HTTP, HTTP CONNECT (TCP), and HTTPS proxy, for testing purposes.
   This is used by test_proxy_use.py.
 
+  In Python versions < 2.7.9, this proxy does not perform certificate
+  validation of the target server. As that is not part of what the current
+  tests using this script require, that is currently OK. In Python
+  versions > 2.7.9 (SSLContext was added in 2.7.9), the same code actually does
+  check the certificate, using the system's trusted CAs. As a result, since we
+  are using custom certificates, we need to either disable certificate
+  checking in 2.7.9 or load the specific CA for target test server, using the
+  SSLContext and create_default_context functionality also added in 2.7.9. It
+  is easier to do the latter, so the behavior in 2.7.9+ is to check the cert
+  and below 2.7.9 is not to. Note that we do not support Python < 2.7.
+  SSLContext is also available in all Python3 versions that we support.
+
   This module requires Python2.7 and does not support Python3.
 
   Note that this is not thread-safe, in part due to its use of globals.
@@ -210,11 +222,23 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             origin = (scheme, netloc)
             if not origin in self.tls.conns:
                 if scheme == 'https':
-                    # MODIFIED: Added CA override in line below, fed from
-                    # global variable set by command line argument.
+                  # MODIFIED: Added Python version checking and changed behavior
+                  # in Python2.7.9+ to use custom certificate for target server
+                  # inherited from command line argument.
+                  # In Python versions < 2.7.9, there is no certificate
+                  # validation through this method of the target server.
+                  # In supported Python versions > 2.7.9, we check the target
+                  # server's certificate against our expected custom cert.
+                  # See this script's docstring.
+                  if sys.version_info.major == 2 \
+                      and sys.version_info.minor == 7 \
+                      and sys.version_info.micro < 9:
+                    self.tls.conns[origin] = httplib.HTTPSConnection(
+                        netloc, timeout=self.timeout)
+                  else:
                     self.tls.conns[origin] = httplib.HTTPSConnection(
                         netloc, timeout=self.timeout,
-                        context=ssl.create_default_context(
+                        context=ssl.create_default_context( # reqs Python2.7.9+
                         cafile=TARGET_SERVER_CA_FILEPATH))
                 else:
                     self.tls.conns[origin] = httplib.HTTPConnection(netloc, timeout=self.timeout)
