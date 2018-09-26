@@ -477,12 +477,10 @@ def test(HandlerClass=ProxyRequestHandler, ServerClass=ThreadingHTTPServer, prot
     # MODIFIED: Argument added to control certificate(s) the proxy expects of
     # the target server(s), and added default value.
     if len(sys.argv) > 3:
-      if not os.path.isabs(sys.argv[3]):
-        print('Path for target server cert is not absolute. Ignoring.')
-      elif os.path.exists(sys.argv[3]):
+      if os.path.exists(sys.argv[3]):
         TARGET_SERVER_CA_FILEPATH = sys.argv[3]
       else:
-        print('Target server cert not found. Ignoring.')
+        raise Exception('Target server cert file not found: ' + sys.argv[3])
 
     # MODIFIED: Create the target-host-specific proxy certificates directory if
     # it doesn't already exist.
