@@ -21,6 +21,8 @@
 
   NOTE: Make sure test_download.py is ran in 'tuf/tests/' directory.
   Otherwise, module that launches simple server would not be found.
+
+  TODO: Adopt the environment variable management from test_proxy_use.py here.
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
@@ -233,30 +235,50 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     with open(target_filepath, 'r') as target_file_object:
       target_data_length = len(target_file_object.read())
 
-    # These cert files should both be valid, but "good" lists localhost and
-    # "bad" lists another hostname. We'll be trying to download from localhost,
-    # so we expect
+    # These cert files provide various test cases:
+    # good:    A valid cert from an older generation of test_download.py tests.
+    # good2:   A valid cert made simultaneous to the bad certs below, with the
+    #          same settings otherwise, tested here in case the difference
+    #          between the way the new bad certs and the old good cert were
+    #          generated turns out to matter at some point.
+    # bad:     An otherwise-valid cert with the wrong hostname. The good certs
+    #          list "localhost", but this lists "notmyhostname".
+    # expired: An otherwise-valid cert but which is expired (no valid dates
+    #          exist, fwiw: startdate > enddate).
     good_cert_fname = os.path.join('ssl_certs', 'ssl_cert.crt')
+    good2_cert_fname = os.path.join('ssl_certs', 'ssl_cert_2.crt')
     bad_cert_fname = os.path.join('ssl_certs', 'ssl_cert_wronghost.crt')
+    expired_cert_fname = os.path.join('ssl_certs', 'ssl_cert_expired.crt')
 
-    # Launch two https servers (serves files in the current dir).
-    # The first we expect to operate correctly, and the second we run with an
-    # HTTPS certificate with an unexpected hostname.
+    # Launch three https servers (serve files in the current dir).
+    # The first we expect to operate correctly.
+    # The second we run with an HTTPS certificate with an unexpected hostname.
+    # The third we run with an HTTPS certificate that is expired.
     port1 = str(random.randint(30000, 45000))
     port2 = str(int(port1) + 1)
+    port3 = str(int(port1) + 2)
+    port4 = str(int(port1) + 3)
     command1 = ['python', 'simple_https_server.py', port1, good_cert_fname]
-    command2 = ['python', 'simple_https_server.py', port2, bad_cert_fname]
+    command2 = ['python', 'simple_https_server.py', port2, good2_cert_fname]
+    command3 = ['python', 'simple_https_server.py', port3, bad_cert_fname]
+    command4 = ['python', 'simple_https_server.py', port4, expired_cert_fname]
     good_https_server_proc = subprocess.Popen(command1, stderr=subprocess.PIPE)
-    bad_https_server_proc = subprocess.Popen(command2, stderr=subprocess.PIPE)
+    good2_https_server_proc = subprocess.Popen(command2, stderr=subprocess.PIPE)
+    bad_https_server_proc = subprocess.Popen(command3, stderr=subprocess.PIPE)
+    expd_https_server_proc = subprocess.Popen(command4, stderr=subprocess.PIPE)
 
-    # NOTE: Following error is raised if delay is not applied:
-    #    <urlopen error [Errno 111] Connection refused>
-    time.sleep(0.2)
+    # Provide a delay long enough to allow the https servers to start.
+    # Encountered an error on one test system at delay value of 0.2s, so
+    # increasing to 0.5s.
+    # Expect to see "Connection refused" if this delay is not long enough
+    # (though other issues could cause that).
+    time.sleep(0.5)
 
     relative_target_fpath = os.path.basename(target_filepath)
     good_https_url = 'https://localhost:' + port1 + '/' + relative_target_fpath
-    bad_https_url = good_https_url.replace(':' + port1, ':' + port2)
-
+    good2_https_url = good_https_url.replace(':' + port1, ':' + port2)
+    bad_https_url = good_https_url.replace(':' + port1, ':' + port3)
+    expired_https_url = good_https_url.replace(':' + port1, ':' + port4)
 
     # Download the target file using an https connection.
 
@@ -275,8 +297,8 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
       with self.assertRaises(requests.exceptions.SSLError):
         download.unsafe_download(bad_https_url, target_data_length)
 
-      # Try connecting to the server process with the good cert while not
-      # trusting the good cert (trusting the bad cert instead). Expect failure
+      # Try connecting to the server processes with the good certs while not
+      # trusting the good certs (trusting the bad cert instead). Expect failure
       # because even though the server's cert file is otherwise OK, we don't
       # trust it.
       print('Trying https download of target file: ' + good_https_url)
@@ -285,31 +307,51 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
       with self.assertRaises(requests.exceptions.SSLError):
         download.unsafe_download(good_https_url, target_data_length)
 
-      # Configure environment to trust the good cert file now instead.
-      os.environ['REQUESTS_CA_BUNDLE'] = good_cert_fname
+      print('Trying https download of target file: ' + good2_https_url)
+      with self.assertRaises(requests.exceptions.SSLError):
+        download.safe_download(good2_https_url, target_data_length)
+      with self.assertRaises(requests.exceptions.SSLError):
+        download.unsafe_download(good2_https_url, target_data_length)
 
-      # Try connecting to the server process with the good cert while trusting
-      # that cert. Expect success.
+      # Configure environment to now trust the certfile that is expired.
+      os.environ['REQUESTS_CA_BUNDLE'] = expired_cert_fname
+
+      # Try connecting to the server process with the expired cert while
+      # trusting the expired cert. Expect failure because even though we trust
+      # it, it is expired.
+      logger.info('Trying https download of target file: ' + expired_https_url)
+      with self.assertRaises(requests.exceptions.SSLError):
+        download.safe_download(expired_https_url, target_data_length)
+      with self.assertRaises(requests.exceptions.SSLError):
+        download.unsafe_download(expired_https_url, target_data_length)
+
+      # Try connecting to the server processes with the good certs while
+      # trusting the appropriate good certs. Expect success.
       # Note: running these OK downloads at the top of this try section causes
       #       a failure in a previous assertion: retrieving the same good URL
       #       again after no longer "trusting" the good certfile still succeeds
       #       if we had previously succeeded in retrieving that same URL while
       #       still trusting the good cert. Perhaps it's a caching issue....?
       #       I'm not especially concerned yet, but take note for later....
+      os.environ['REQUESTS_CA_BUNDLE'] = good_cert_fname
       logger.info('Trying https download of target file: ' + good_https_url)
       download.safe_download(good_https_url, target_data_length)
       download.unsafe_download(good_https_url, target_data_length)
 
-    finally:
-      if good_https_server_proc.returncode is None:
-        logger.info(
-            'Terminating server process ' + str(good_https_server_proc.pid))
-        good_https_server_proc.kill()
+      os.environ['REQUESTS_CA_BUNDLE'] = good2_cert_fname
+      logger.info('Trying https download of target file: ' + good2_https_url)
+      download.safe_download(good2_https_url, target_data_length)
+      download.unsafe_download(good2_https_url, target_data_length)
 
-      if bad_https_server_proc.returncode is None:
-        logger.info(
-            'Terminating server process ' + str(bad_https_server_proc.pid))
-        bad_https_server_proc.kill()
+    finally:
+      for proc in [
+          good_https_server_proc,
+          good2_https_server_proc,
+          bad_https_server_proc,
+          expd_https_server_proc]:
+        if proc.returncode is None:
+          logger.info('Terminating server process ' + str(proc.pid))
+          proc.kill()
 
 
 
