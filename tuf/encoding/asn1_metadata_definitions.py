@@ -175,10 +175,10 @@ class Delegation(univ.Sequence):
       NamedType('threshold', Threshold()),
       DefaultedNamedType('terminating', univ.Boolean(0)))
 
-class Custom(univ.SequenceOf):
-  componentType = univ.Sequence(componentType=NamedTypes(
+class Custom(univ.Sequence):
+  componentType = NamedTypes(
       NamedType('key', char.VisibleString()),
-      NamedType('value', char.VisibleString())))
+      NamedType('value', char.VisibleString()))
 
 class Target(univ.Sequence):
   componentType = NamedTypes(
