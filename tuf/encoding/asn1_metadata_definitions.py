@@ -58,49 +58,24 @@ MAX = 2**32-1
 
 ## Common types, for use in the various metadata types
 
-# String types
-class SignatureMethod(char.VisibleString): pass
-class RoleName(char.VisibleString): pass
-class Filename(char.VisibleString): pass
-class HashFunction(char.VisibleString): pass
-class KeyType(char.VisibleString): pass
-
-
-# Binary data types
-class KeyID(univ.OctetString): pass
-class Path(char.VisibleString): pass
-
-
-# Integer types
-class Length(univ.Integer):
+class IntegerNatural(univ.Integer):
   subtypeSpec = constraint.ValueRangeConstraint(0, MAX)
 
-class Threshold(univ.Integer):
-  subtypeSpec = constraint.ValueRangeConstraint(0, MAX)
-
-class Version(univ.Integer):
-    subtypeSpec = constraint.ValueRangeConstraint(0, MAX)
-
-class UTCDateTime(univ.Integer):
-  subtypeSpec = constraint.ValueRangeConstraint(0, MAX)
-
-
-# More complex common types follow.
 class Signature(univ.Sequence):
   componentType = NamedTypes(
-      NamedType('keyid', KeyID()),
-      NamedType('method', SignatureMethod()),
+      NamedType('keyid', univ.OctetString()),
+      NamedType('method', char.VisibleString()),
       NamedType('value', univ.OctetString()))
 
 class Hash(univ.Sequence):
   componentType = NamedTypes(
-      NamedType('function', HashFunction()),
+      NamedType('function', char.VisibleString()),
       NamedType('digest', univ.OctetString()))
 
 class PublicKey(univ.Sequence):
   componentType = NamedTypes(
-      NamedType('publicKeyID', KeyID()),
-      NamedType('publicKeyType', KeyType()),
+      NamedType('publicKeyID', univ.OctetString()),
+      NamedType('publicKeyType', char.VisibleString()),
       NamedType('publicKeyValue', univ.OctetString()))
 
 
@@ -109,22 +84,21 @@ class PublicKey(univ.Sequence):
 ## Types used only in Root metadata
 class TopLevelDelegation(univ.Sequence):
   componentType = NamedTypes(
-      NamedType('role', RoleName()),
-      NamedType('num-keyids', Length()),
-      NamedType('keyids', univ.SequenceOf(componentType=KeyID())),
-      NamedType('threshold', Threshold()))
+      NamedType('role', char.VisibleString()),
+      NamedType('num-keyids', IntegerNatural()),
+      NamedType('keyids', univ.SequenceOf(componentType=univ.OctetString())),
+      NamedType('threshold', IntegerNatural()))
 
 class RootMetadata(univ.Sequence):
   componentType = NamedTypes(
-      NamedType('type', RoleName()),
-      NamedType('expires', UTCDateTime()),
-      NamedType('version', Version()),
+      NamedType('type', char.VisibleString()),
+      NamedType('expires', IntegerNatural()),
+      NamedType('version', IntegerNatural()),
       NamedType('consistent-snapshot', univ.Boolean()),
-      NamedType('num-keys', Length()),
+      NamedType('num-keys', IntegerNatural()),
       NamedType('keys', univ.SequenceOf(componentType=PublicKey())),
-      NamedType('num-roles', Length()),
+      NamedType('num-roles', IntegerNatural()),
       NamedType('roles', univ.SequenceOf(componentType=TopLevelDelegation())))
-
 
 
 
@@ -132,16 +106,16 @@ class RootMetadata(univ.Sequence):
 ## Types used only in Timestamp metadata
 class HashOfSnapshot(univ.Sequence):
   componentType = NamedTypes(
-      NamedType('filename', FileName()),
-      NamedType('num-hashes', Length()),
+      NamedType('filename', char.VisibleString()),
+      NamedType('num-hashes', IntegerNatural()),
       NamedType('hashes', univ.SequenceOf(componentType=Hash())))
 
 class TimestampMetadata(univ.Sequence):
   componentType = NamedTypes(
-      NamedType('type', RoleName()),
-      NamedType('expires', UTCDateTime()),
-      NamedType('version', Version()),
-      NamedType('num-role-hashes', Length()),
+      NamedType('type', char.VisibleString()),
+      NamedType('expires', IntegerNatural()),
+      NamedType('version', IntegerNatural()),
+      NamedType('num-meta', IntegerNatural()),
       NamedType('meta', univ.SequenceOf(componentType=HashOfSnapshot()))
   )
 
@@ -151,15 +125,15 @@ class TimestampMetadata(univ.Sequence):
 ## Types used only in Snapshot metadata
 class RoleInfo(univ.Sequence):
   componentType = NamedTypes(
-      NamedType('filename', Filename()),
-      NamedType('version', Version()))
+      NamedType('filename', char.VisibleString()),
+      NamedType('version', IntegerNatural()))
 
 class SnapshotMetadata(univ.Sequence):
   componentType = NamedTypes(
-      NamedType('type', RoleName()),
-      NamedType('expires', UTCDateTime()),
-      NamedType('version', Version()),
-      NamedType('num-meta', Length()),
+      NamedType('type', char.VisibleString()),
+      NamedType('expires', IntegerNatural()),
+      NamedType('version', IntegerNatural()),
+      NamedType('num-meta', IntegerNatural()),
       NamedType('role-infos', univ.SequenceOf(componentType=RoleInfo())))
 
 
@@ -168,12 +142,12 @@ class SnapshotMetadata(univ.Sequence):
 ## Types used only in Targets (and delegated targets) metadata
 class Delegation(univ.Sequence):
   componentType = NamedTypes(
-      NamedType('name', RoleName()),
-      NamedType('num-keyids', Length()),
-      NamedType('keyids', univ.SequenceOf(componentType=KeyID())),
-      NamedType('num-paths', Length()),
-      NamedType('paths', univ.SequenceOf(componentType=Path())),
-      NamedType('threshold', Threshold()),
+      NamedType('name', char.VisibleString()),
+      NamedType('num-keyids', IntegerNatural()),
+      NamedType('keyids', univ.SequenceOf(componentType=univ.OctetString())),
+      NamedType('num-paths', IntegerNatural()),
+      NamedType('paths', univ.SequenceOf(componentType=char.VisibleString())),
+      NamedType('threshold', IntegerNatural()),
       DefaultedNamedType('terminating', univ.Boolean(0)))
 
 class Custom(univ.Sequence):
@@ -183,24 +157,24 @@ class Custom(univ.Sequence):
 
 class Target(univ.Sequence):
   componentType = NamedTypes(
-      NamedType('target-name', Filename()),
-      NamedType('length', Length()),
-      NamedType('num-hashes', Length()),
+      NamedType('target-name', char.VisibleString()),
+      NamedType('length', IntegerNatural()),
+      NamedType('num-hashes', IntegerNatural()),
       NamedType('hashes', univ.SequenceOf(componentType=Hash())),
-      OptionalNamedType('num-custom', Length()),
+      OptionalNamedType('num-custom', IntegerNatural()),
       OptionalNamedType('custom', univ.SequenceOf(componentType=Custom())))
 
 class TargetsMetadata(univ.Sequence):
   componentType = NamedTypes(
-      NamedType('type', RoleName()),
-      NamedType('expires', UTCDateTime()),
-      NamedType('version', Version()),
-      NamedType('num-targets', Length()),
+      NamedType('type', char.VisibleString()),
+      NamedType('expires', IntegerNatural()),
+      NamedType('version', IntegerNatural()),
+      NamedType('num-targets', IntegerNatural()),
       NamedType('targets', univ.SequenceOf(componentType=Target())),
       NamedType('delegations', univ.Sequence(componentType=NamedTypes(
-          NamedType('num-keys', Length()),
+          NamedType('num-keys', IntegerNatural()),
           NamedType('keys', univ.SequenceOf(componentType=PublicKey())),
-          NamedType('num-roles', Length()),
+          NamedType('num-roles', IntegerNatural()),
           NamedType('roles', univ.SequenceOf(componentType=Delegation()))
       ))) # tagFormatConstructed
   )
