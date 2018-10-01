@@ -107,6 +107,13 @@ class PublicKey(univ.Sequence):
 
 
 ## Types used only in Root metadata
+class TopLevelDelegation(univ.Sequence):
+  componentType = NamedTypes(
+      NamedType('role', RoleName()),
+      NamedType('num-keyids', Length()),
+      NamedType('keyids', univ.SequenceOf(componentType=KeyID())),
+      NamedType('threshold', Threshold()))
+
 class RootMetadata(univ.Sequence):
   componentType = NamedTypes(
       NamedType('type', RoleName()),
@@ -118,12 +125,6 @@ class RootMetadata(univ.Sequence):
       NamedType('num-roles', Length()),
       NamedType('roles', univ.SequenceOf(componentType=TopLevelDelegation())))
 
-class TopLevelDelegation(univ.Sequence):
-  componentType = NamedTypes(
-      NamedType('role', RoleName()),
-      NamedType('num-keyids', Length()),
-      NamedType('keyids', univ.SequenceOf(componentType=KeyID())),
-      NamedType('threshold', Threshold()))
 
 
 
