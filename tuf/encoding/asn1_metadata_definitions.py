@@ -97,9 +97,9 @@ class RootMetadata(univ.Sequence):
       NamedType('version', IntegerNatural()),
       NamedType('consistent-snapshot', univ.Boolean()),
       NamedType('num-keys', IntegerNatural()),
-      NamedType('keys', univ.SequenceOf(componentType=PublicKey())),
+      NamedType('keys', univ.SetOf(componentType=PublicKey())), # unordered
       NamedType('num-roles', IntegerNatural()),
-      NamedType('roles', univ.SequenceOf(componentType=TopLevelDelegation())))
+      NamedType('roles', univ.SetOf(componentType=TopLevelDelegation()))) # unordered
 
 
 
@@ -109,7 +109,7 @@ class HashOfSnapshot(univ.Sequence):
   componentType = NamedTypes(
       NamedType('filename', char.VisibleString()),
       NamedType('num-hashes', IntegerNatural()),
-      NamedType('hashes', univ.SequenceOf(componentType=Hash())))
+      NamedType('hashes', univ.SetOf(componentType=Hash()))) # unordered
 
 class TimestampMetadata(univ.Sequence):
   componentType = NamedTypes(
@@ -117,7 +117,7 @@ class TimestampMetadata(univ.Sequence):
       NamedType('expires', IntegerNatural()),
       NamedType('version', IntegerNatural()),
       NamedType('num-meta', IntegerNatural()),
-      NamedType('meta', univ.SequenceOf(componentType=HashOfSnapshot()))
+      NamedType('meta', univ.SetOf(componentType=HashOfSnapshot())) # unordered
   )
 
 
@@ -135,7 +135,7 @@ class SnapshotMetadata(univ.Sequence):
       NamedType('expires', IntegerNatural()),
       NamedType('version', IntegerNatural()),
       NamedType('num-meta', IntegerNatural()),
-      NamedType('role-infos', univ.SequenceOf(componentType=RoleInfo())))
+      NamedType('meta', univ.SetOf(componentType=RoleInfo())))
 
 
 
@@ -161,9 +161,9 @@ class Target(univ.Sequence):
       NamedType('target-name', char.VisibleString()),
       NamedType('length', IntegerNatural()),
       NamedType('num-hashes', IntegerNatural()),
-      NamedType('hashes', univ.SequenceOf(componentType=Hash())),
+      NamedType('hashes', univ.SetOf(componentType=Hash())),
       OptionalNamedType('num-custom', IntegerNatural()),
-      OptionalNamedType('custom', univ.SequenceOf(componentType=Custom())))
+      OptionalNamedType('custom', univ.SetOf(componentType=Custom())))
 
 class TargetsMetadata(univ.Sequence):
   componentType = NamedTypes(
@@ -171,10 +171,10 @@ class TargetsMetadata(univ.Sequence):
       NamedType('expires', IntegerNatural()),
       NamedType('version', IntegerNatural()),
       NamedType('num-targets', IntegerNatural()),
-      NamedType('targets', univ.SequenceOf(componentType=Target())),
+      NamedType('targets', univ.SetOf(componentType=Target())),
       NamedType('delegations', univ.Sequence(componentType=NamedTypes(
           NamedType('num-keys', IntegerNatural()),
-          NamedType('keys', univ.SequenceOf(componentType=PublicKey())),
+          NamedType('keys', univ.SetOf(componentType=PublicKey())),
           NamedType('num-roles', IntegerNatural()),
           NamedType('roles', univ.SequenceOf(componentType=Delegation()))
       ))) # tagFormatConstructed

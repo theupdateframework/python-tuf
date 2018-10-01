@@ -60,6 +60,24 @@ A note for any future TUF/upTUF/Uptane repository maintainers:
  ASN.1 definitions (or, if they are able, at a higher level) and perform
  their own optimizations.
 
+A note on ordered/unordered translations of dictionaries:
+ Note that the natural translation of a Python dictionary (which has no implicit
+ order of elements) into ASN.1 is to a Set (unordered) of objects, and not a
+ Sequence (ordered). For example, you can think of {'key_a': ..., 'key_b': ...}
+ as (key_a_obj, key_b_obj), where the order is irrelevant.
+ Despite this natural interpretation, there are some cases where we impose an
+ order here in the translation to ASN.1. We do this when the dictionary is
+ essentially a translation of an object/struct that contains disparate
+ conceptual types. For example: {'keyid': ..., 'sig': ...} is translated as
+ [keyid_object, sig_object], not (keyid_object, sig_object). This is to make the
+ structure of objects in the wire format predictable. RootMetadata below is a
+ good example: in the ASN.1/DER wire format, root metadata will always begin
+ with a 'type' element, followed by 'expires', then 'version', etc.
+
+ Already-ordered components like lists are, of course, always retained as
+ ordered lists (Sequence). (e.g. the 'signatures' element of metadata is always
+ ordered in both ASN.1 and the JSON-compatible metadata format.)
+
 
 Questions:
  - Would it be better to use fewer empty wrapped classes? e.g. is it better to
@@ -138,19 +156,19 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     version             IntegerNatural,
     consistent-snapshot BOOLEAN,
     num-keys            IntegerNatural,
-    keys                SEQUENCE OF PublicKey,
+    keys                SET OF PublicKey,                      -- unordered set
     num-roles           IntegerNatural,
-    roles               SEQUENCE OF TopLevelDelegation
+    roles               SET OF TopLevelDelegation              -- unordered set
   }
 
   TopLevelDelegation ::= SEQUENCE {
     role                VisibleString,     -- ("root" | "timestamp" | "snapshot" | "targets"),
     num-keyids          IntegerNatural,
-    keyids              SEQUENCE OF OCTET STRING,
+    keyids              SEQUENCE OF OCTET STRING,               -- ordered list
     threshold           IntegerNatural
     -- Pending TAP 5 approval and implementation:
     -- num-urls            IntegerNatural OPTIONAL,
-    -- urls                SEQUENCE OF VisibleString OPTIONAL
+    -- urls                SEQUENCE OF VisibleString OPTIONAL   -- ordered list
   }
 
 
@@ -165,17 +183,17 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     version             IntegerNatural,
 
     num-meta            IntegerNatural,     -- Spec expects there to be only 1, though.
-    meta                SEQUENCE OF RoleInfoLong
+    meta                SET OF RoleInfoLong                    -- unordered set
     -- What these should probably be called instead:
     -- num-role-infos   IntegerNatural,
-    -- role-infos          SEQUENCE OF RoleInfoLong
+    -- role-infos       SET OF RoleInfoLong                    -- unordered set
   }
 
   RoleInfoLong ::= SEQUENCE {
     filename            VisibleString,    -- filename of snapshot metadata role
     num-hashes          IntegerNatural,
     version             IntegerNatural,
-    hashes              SEQUENCE OF Hash
+    hashes              SET OF Hash                            -- unordered set
   }
 
 
@@ -190,10 +208,10 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     version             IntegerNatural,
 
     num-meta            IntegerNatural,
-    meta                SEQUENCE OF RoleInfo
+    meta                SET OF RoleInfo                 -- unordered set
     -- What these should probably be called instead:
     -- num-role-infos      IntegerNatural,
-    -- role-infos          SEQUENCE OF RoleInfo
+    -- role-infos          SET OF RoleInfo              -- unordered set
   }
 
   RoleInfo ::= SEQUENCE {
@@ -218,7 +236,7 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     version             IntegerNatural,
 
     num-targets         IntegerNatural,
-    targets             SEQUENCE OF Target,
+    targets             SET OF Target,                -- unordered set
 
     delegations         SEQUENCE {
       -- "delegations" is a section containing two elements:
@@ -233,13 +251,13 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
       -- The full public keys available to use in delegations below, to be
       -- referenced below via key ID.
       num-keys              IntegerNatural,
-      keys                  SEQUENCE OF PublicKey,
+      keys                  SET OF PublicKey,         -- unordered set
 
       -- Each "role" listing below denotes one delegation. A delegation
       -- includes the role name, role filename, public keys, and key threshold
       -- of a delegatee.
       num-roles             IntegerNatural,
-      roles                 SEQUENCE OF Delegation
+      roles                 SEQUENCE OF Delegation    -- ordered list
     }
   }
 
@@ -251,9 +269,9 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     target-name         VisibleString,
     length              IntegerNatural,
     num-hashes          IntegerNatural,
-    hashes              SEQUENCE OF Hash,
+    hashes              SET OF Hash,                          -- unordered list
     num-custom          IntegerNatural OPTIONAL, -- number of Custom metadata elements
-    custom              SEQUENCE OF Custom OPTIONAL -- Custom metadata elements
+    custom              SET OF Custom OPTIONAL -- Custom metadata elements
    }
 
   Custom ::= SEQUENCE {
@@ -277,9 +295,9 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
     name                VisibleString,
     num-keyids          IntegerNatural,
-    keyids              SEQUENCE OF OCTET STRING,
+    keyids              SEQUENCE OF OCTET STRING,         -- ordered list
     num-paths           IntegerNatural,
-    paths               SEQUENCE OF VisibleString,
+    paths               SEQUENCE OF VisibleString,        -- ordered list
     threshold           IntegerNatural,
     -- Whether or not this delegation is terminating.
     terminating         BOOLEAN DEFAULT FALSE
