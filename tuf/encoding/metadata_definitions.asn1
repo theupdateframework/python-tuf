@@ -106,39 +106,23 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
 ---------- Common ASN.1 definitions used by the various metadata types.
 
-  -- Strings
-  Filename          ::= VisibleString
-  Path              ::= VisibleString
-  SignatureMethod   ::= VisibleString
-  HashFunction      ::= VisibleString
-  RoleName          ::= VisibleString
-  KeyType           ::= VisibleString
-
-  -- Binary data
-  KeyID             ::= OCTET STRING   -- Usually, the hash of a public key
-
-  -- Integers
-  Length            ::= INTEGER (0..MAX)
-  Threshold         ::= INTEGER (0..MAX)
-  Version           ::= INTEGER (0..MAX)
-  UTCDateTime       ::= INTEGER (0..MAX) -- date&time, UTC, as a UNIX timestamp
-
+  IntegerNatural    ::= INTEGER (0..MAX)
 
   Hash ::= SEQUENCE {
-    function            HashFunction,
+    function            VisibleString,
     digest              OCTET STRING
   }
 
 
   Signature ::= SEQUENCE {
-    keyid               KeyID,
-    method              SignatureMethod,
+    keyid               OCTET STRING,
+    method              VisibleString,
     value               OCTET STRING      -- the signature itself
   }
 
   PublicKey ::= SEQUENCE {
-    publicKeyID         KeyID,
-    publicKeyType       KeyType,
+    publicKeyID         OCTET STRING,
+    publicKeyType       VisibleString,
     publicKeyValue      OCTET STRING
   }
 
@@ -149,23 +133,23 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 ---------- Root Role Metadata Definitions
 
   RootMetadata ::= SEQUENCE {
-    type                RoleName,     -- ("root"),
-    expires             UTCDateTime,
-    version             Version,
+    type                VisibleString,     -- ("root"),
+    expires             IntegerNatural, -- date&time, UTC, as a UNIX timestamp
+    version             IntegerNatural,
     consistent-snapshot BOOLEAN,
-    num-keys            Length,
+    num-keys            IntegerNatural,
     keys                SEQUENCE OF PublicKey,
-    num-roles           Length,
+    num-roles           IntegerNatural,
     roles               SEQUENCE OF TopLevelDelegation
   }
 
   TopLevelDelegation ::= SEQUENCE {
-    role                RoleName,     -- ("root" | "timestamp" | "snapshot" | "targets"),
-    num-keyids          Length,
-    keyids              SEQUENCE OF KeyID,
-    threshold           Threshold
+    role                VisibleString,     -- ("root" | "timestamp" | "snapshot" | "targets"),
+    num-keyids          IntegerNatural,
+    keyids              SEQUENCE OF OCTET STRING,
+    threshold           IntegerNatural
     -- Pending TAP 5 approval and implementation:
-    -- num-urls            Length OPTIONAL,
+    -- num-urls            IntegerNatural OPTIONAL,
     -- urls                SEQUENCE OF VisibleString OPTIONAL
   }
 
@@ -176,21 +160,21 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 ---------- Timestamp Role Metadata Definitions
 
   TimestampMetadata ::= SEQUENCE {
-    type                RoleName,     -- ("timestamp"),
-    expires             UTCDateTime,
-    version             Version,
+    type                VisibleString,     -- ("timestamp"),
+    expires             IntegerNatural,  -- date&time, UTC, as a UNIX timestamp
+    version             IntegerNatural,
 
-    num-meta            Length,     -- Spec expects there to be only 1, though.
+    num-meta            IntegerNatural,     -- Spec expects there to be only 1, though.
     meta                SEQUENCE OF RoleInfoLong
     -- What these should probably be called instead:
-    -- num-role-infos      Length,
+    -- num-role-infos   IntegerNatural,
     -- role-infos          SEQUENCE OF RoleInfoLong
   }
 
   RoleInfoLong ::= SEQUENCE {
-    filename            Filename,    -- filename of snapshot metadata role
-    num-hashes          Length,
-    version             Version,
+    filename            VisibleString,    -- filename of snapshot metadata role
+    num-hashes          IntegerNatural,
+    version             IntegerNatural,
     hashes              SEQUENCE OF Hash
   }
 
@@ -201,20 +185,20 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 ---------- Snapshot Role Metadata Definitions
 
   SnapshotMetadata ::= SEQUENCE {
-    type                RoleName,     -- ("snapshot"),
-    expires             UTCDateTime,
-    version             Version,
+    type                VisibleString,     -- ("snapshot"),
+    expires             IntegerNatural,  -- date&time, UTC, as a UNIX timestamp
+    version             IntegerNatural,
 
-    num-meta            Length,
+    num-meta            IntegerNatural,
     meta                SEQUENCE OF RoleInfo
     -- What these should probably be called instead:
-    -- num-role-infos      Length,
+    -- num-role-infos      IntegerNatural,
     -- role-infos          SEQUENCE OF RoleInfo
   }
 
   RoleInfo ::= SEQUENCE {
-    filename            Filename,
-    version             Version
+    filename            VisibleString,
+    version             IntegerNatural
     -- Older versions of TUF used a hash here instead of a version number.
     -- Some intermediate versions used a hash for root and version numbers for
     -- targets role files. Root is no longer listed by snapshot, and we will
@@ -229,11 +213,11 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 -- Covers both the top-level Targets role and delegated targets roles.
 
   TargetsMetadata ::= SEQUENCE {
-    type                RoleName,       -- allow delegated role names, too
-    expires             UTCDateTime,
-    version             Version,
+    type                VisibleString,       -- allow delegated role names, too
+    expires             IntegerNatural,  -- date&time, UTC, as a UNIX timestamp
+    version             IntegerNatural,
 
-    num-targets         Length,
+    num-targets         IntegerNatural,
     targets             SEQUENCE OF Target,
 
     delegations         SEQUENCE {
@@ -248,13 +232,13 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
       -- The full public keys available to use in delegations below, to be
       -- referenced below via key ID.
-      num-keys              Length,
+      num-keys              IntegerNatural,
       keys                  SEQUENCE OF PublicKey,
 
       -- Each "role" listing below denotes one delegation. A delegation
       -- includes the role name, role filename, public keys, and key threshold
       -- of a delegatee.
-      num-roles             Length,
+      num-roles             IntegerNatural,
       roles                 SEQUENCE OF Delegation
     }
   }
@@ -264,11 +248,11 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   -- validate them, including hashes and lengths, and sometimes custom
   -- metadata.
   Target ::= SEQUENCE {
-    target-name         Filename,
-    length              Length,
-    num-hashes          Length,
+    target-name         VisibleString,
+    length              IntegerNatural,
+    num-hashes          IntegerNatural,
     hashes              SEQUENCE OF Hash,
-    num-custom          Length OPTIONAL, -- number of Custom metadata elements
+    num-custom          IntegerNatural OPTIONAL, -- number of Custom metadata elements
     custom              SEQUENCE OF Custom OPTIONAL -- Custom metadata elements
    }
 
@@ -291,12 +275,12 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- that is allowed to specify target file info for the targets matching the
     -- glob pattern. For more, see the TUF specification.
 
-    name                RoleName,
-    num-keyids          Length,
-    keyids              SEQUENCE OF KeyID,
-    num-paths           Length,
-    paths               SEQUENCE OF Path,
-    threshold           Threshold,
+    name                VisibleString,
+    num-keyids          IntegerNatural,
+    keyids              SEQUENCE OF OCTET STRING,
+    num-paths           IntegerNatural,
+    paths               SEQUENCE OF VisibleString,
+    threshold           IntegerNatural,
     -- Whether or not this delegation is terminating.
     terminating         BOOLEAN DEFAULT FALSE
   }
