@@ -116,6 +116,12 @@ Questions:
    'meta'. I've left that name here as well, but it's an awful name....
    It should be 'role-infos' or something along those lines.
 
+ - The custom target fields are optional, but if the list appears, the length
+   of that list should be required, ideally (custom needs num-custom). I can
+   capture these in a single object,
+   e.g. CustomSection optional: num-custom, customs
+   It's a little longer and possibly less readable.
+
 */
 
 TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
