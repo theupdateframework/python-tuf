@@ -46,7 +46,8 @@ import pyasn1.type.namedtype as namedtype
 # Likely imports for later:
 # import pyasn1.type.namedval as namedval
 # import pyasn1.type.tag as tag
-from pyasn1.type.namedtype import NamedType, NamedTypes, DefaultedNamedType
+from pyasn1.type.namedtype import NamedType, NamedTypes, \
+    DefaultedNamedType, OptionalNamedType
 
 # Maximum integer value when bounding integer values below.
 # It does not seem possible to place a minimum without placing a maximum.
