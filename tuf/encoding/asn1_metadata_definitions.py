@@ -141,7 +141,7 @@ class TimestampMetadata(univ.Sequence):
       NamedType('expires', UTCDateTime()),
       NamedType('version', Version()),
       NamedType('num-role-hashes', Length()),
-      NamedType('role-hashes', univ.SequenceOf(componentType=RoleHash()))
+      NamedType('role-hashes', univ.SequenceOf(componentType=HashOfSnapshot()))
   )
 
 
