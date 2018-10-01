@@ -272,11 +272,11 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     custom              SEQUENCE OF Custom OPTIONAL -- Custom metadata elements
    }
 
-  Custom ::= SEQUENCE OF SEQUENCE {
-    -- Each element in sequence Custom is a key-value pair. These specify
-    -- custom attributes, additional fileinfo information. You could use this
-    -- to provide the expected has of an encrypted image, for example, or
-    -- information about the clients for which this image is intended.
+  Custom ::= SEQUENCE {
+    -- Each Custom object is a key-value pair. These specify custom attributes,
+    -- additional fileinfo information. You could use this to provide the
+    -- expected hash of an encrypted image, for example, or information about
+    -- the clients for which this image is intended.
     key                 VisibleString,
     value               VisibleString
   }
