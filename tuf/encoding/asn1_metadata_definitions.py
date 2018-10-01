@@ -141,7 +141,7 @@ class TimestampMetadata(univ.Sequence):
       NamedType('expires', UTCDateTime()),
       NamedType('version', Version()),
       NamedType('num-role-hashes', Length()),
-      NamedType('role-hashes', univ.SequenceOf(componentType=HashOfSnapshot()))
+      NamedType('meta', univ.SequenceOf(componentType=HashOfSnapshot()))
   )
 
 
@@ -158,7 +158,7 @@ class SnapshotMetadata(univ.Sequence):
       NamedType('type', RoleName()),
       NamedType('expires', UTCDateTime()),
       NamedType('version', Version()),
-      NamedType('num-role-infos', Length()),
+      NamedType('num-meta', Length()),
       NamedType('role-infos', univ.SequenceOf(componentType=RoleInfo())))
 
 
