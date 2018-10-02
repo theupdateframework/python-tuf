@@ -75,7 +75,7 @@ DEFAULT_SNAPSHOT_REQUIRED_LENGTH = 2000000 #bytes
 DEFAULT_TARGETS_REQUIRED_LENGTH = 5000000 #bytes
 
 # Set a timeout value in seconds (float) for non-blocking socket operations.
-SOCKET_TIMEOUT = 5 #seconds
+SOCKET_TIMEOUT = 4 #seconds
 
 # The maximum chunk of data, in bytes, we would download in every round.
 CHUNK_SIZE = 400000 #bytes

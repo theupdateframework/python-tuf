@@ -197,28 +197,29 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
 
 
+  '''
   # This test uses sites on the internet, requiring a net connection to succeed.
   # Since this is the only such test in TUF, I'm not going to enable it... but
   # it's here in case it's useful for diagnosis.
-  # def test_https_validation(self):
-  #   """
-  #   Use some known URLs on the net to ensure that TUF download checks SSL
-  #   certificates appropriately.
-  #   """
-  #   # We should never get as far as the target file download itself, so the
-  #   # length we pass to safe_download and unsafe_download shouldn't matter.
-  #   irrelevant_length = 10
-  #
-  #   for bad_url in [
-  #       'https://expired.badssl.com/', # expired certificate
-  #       'https://wrong.host.badssl.com/', ]: # hostname verification fail
-  #
-  #     with self.assertRaises(requests.exceptions.SSLError):
-  #       download.safe_download(bad_url, irrelevant_length)
-  #
-  #     with self.assertRaises(requests.exceptions.SSLError):
-  #       download.unsafe_download(bad_url, irrelevant_length)
+  def test_https_validation(self):
+    """
+    Use some known URLs on the net to ensure that TUF download checks SSL
+    certificates appropriately.
+    """
+    # We should never get as far as the target file download itself, so the
+    # length we pass to safe_download and unsafe_download shouldn't matter.
+    irrelevant_length = 10
 
+    for bad_url in [
+        'https://expired.badssl.com/', # expired certificate
+        'https://wrong.host.badssl.com/', ]: # hostname verification fail
+
+      with self.assertRaises(requests.exceptions.SSLError):
+        download.safe_download(bad_url, irrelevant_length)
+
+      with self.assertRaises(requests.exceptions.SSLError):
+        download.unsafe_download(bad_url, irrelevant_length)
+  '''
 
 
 
@@ -250,10 +251,12 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     bad_cert_fname = os.path.join('ssl_certs', 'ssl_cert_wronghost.crt')
     expired_cert_fname = os.path.join('ssl_certs', 'ssl_cert_expired.crt')
 
-    # Launch three https servers (serve files in the current dir).
-    # The first we expect to operate correctly.
-    # The second we run with an HTTPS certificate with an unexpected hostname.
-    # The third we run with an HTTPS certificate that is expired.
+    # Launch four HTTPS servers (serve files in the current dir).
+    # 1: we expect to operate correctly
+    # 2: also good; uses a slightly different cert (controls for the cert
+    #    generation method used for the next two, in case it comes to matter)
+    # 3: run with an HTTPS certificate with an unexpected hostname
+    # 4: run with an HTTPS certificate that is expired
     port1 = str(random.randint(30000, 45000))
     port2 = str(int(port1) + 1)
     port3 = str(int(port1) + 2)
@@ -267,7 +270,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     bad_https_server_proc = subprocess.Popen(command3, stderr=subprocess.PIPE)
     expd_https_server_proc = subprocess.Popen(command4, stderr=subprocess.PIPE)
 
-    # Provide a delay long enough to allow the https servers to start.
+    # Provide a delay long enough to allow the HTTPS servers to start.
     # Encountered an error on one test system at delay value of 0.2s, so
     # increasing to 0.5s.
     # Expect to see "Connection refused" if this delay is not long enough
@@ -280,7 +283,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     bad_https_url = good_https_url.replace(':' + port1, ':' + port3)
     expired_https_url = good_https_url.replace(':' + port1, ':' + port4)
 
-    # Download the target file using an https connection.
+    # Download the target file using an HTTPS connection.
 
     # Use try-finally solely to ensure that the server processes are killed.
     try:
@@ -291,7 +294,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
       # Try connecting to the server process with the bad cert while trusting
       # the bad cert. Expect failure because even though we trust it, the
       # hostname we're connecting to does not match the hostname in the cert.
-      logger.info('Trying https download of target file: ' + bad_https_url)
+      logger.info('Trying HTTPS download of target file: ' + bad_https_url)
       with self.assertRaises(requests.exceptions.SSLError):
         download.safe_download(bad_https_url, target_data_length)
       with self.assertRaises(requests.exceptions.SSLError):
@@ -301,13 +304,13 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
       # trusting the good certs (trusting the bad cert instead). Expect failure
       # because even though the server's cert file is otherwise OK, we don't
       # trust it.
-      print('Trying https download of target file: ' + good_https_url)
+      print('Trying HTTPS download of target file: ' + good_https_url)
       with self.assertRaises(requests.exceptions.SSLError):
         download.safe_download(good_https_url, target_data_length)
       with self.assertRaises(requests.exceptions.SSLError):
         download.unsafe_download(good_https_url, target_data_length)
 
-      print('Trying https download of target file: ' + good2_https_url)
+      print('Trying HTTPS download of target file: ' + good2_https_url)
       with self.assertRaises(requests.exceptions.SSLError):
         download.safe_download(good2_https_url, target_data_length)
       with self.assertRaises(requests.exceptions.SSLError):
@@ -319,7 +322,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
       # Try connecting to the server process with the expired cert while
       # trusting the expired cert. Expect failure because even though we trust
       # it, it is expired.
-      logger.info('Trying https download of target file: ' + expired_https_url)
+      logger.info('Trying HTTPS download of target file: ' + expired_https_url)
       with self.assertRaises(requests.exceptions.SSLError):
         download.safe_download(expired_https_url, target_data_length)
       with self.assertRaises(requests.exceptions.SSLError):
@@ -334,12 +337,12 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
       #       still trusting the good cert. Perhaps it's a caching issue....?
       #       I'm not especially concerned yet, but take note for later....
       os.environ['REQUESTS_CA_BUNDLE'] = good_cert_fname
-      logger.info('Trying https download of target file: ' + good_https_url)
+      logger.info('Trying HTTPS download of target file: ' + good_https_url)
       download.safe_download(good_https_url, target_data_length)
       download.unsafe_download(good_https_url, target_data_length)
 
       os.environ['REQUESTS_CA_BUNDLE'] = good2_cert_fname
-      logger.info('Trying https download of target file: ' + good2_https_url)
+      logger.info('Trying HTTPS download of target file: ' + good2_https_url)
       download.safe_download(good2_https_url, target_data_length)
       download.unsafe_download(good2_https_url, target_data_length)
 

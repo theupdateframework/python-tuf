@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# This code is taken from: https://github.com/inaz2/proxy2
+# This code is taken from: github.com/inaz2/proxy2
 # Credit goes to the author. It has been very slightly modified here to use
 # IPv4 instead of IPv6, and to only attempt interception of HTTPS traffic
 # (instead of relaying via HTTP CONNECT) if new global variable INTERCEPT is

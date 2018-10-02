@@ -64,7 +64,7 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     """
     Setup performed before the first test function (TestWithProxies class
     method) runs.
-    Launch http, https, and proxy servers in the current working directory.
+    Launch HTTP, HTTPS, and proxy servers in the current working directory.
     We'll set up four servers:
      - HTTP server (simple_server.py)
      - HTTPS server (simple_https_server.py)
@@ -95,8 +95,7 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     cls.http_proxy_port = cls.http_port + 2
     cls.http_proxy_proc = subprocess.Popen(
         ['python', 'proxy_server.py', str(cls.http_proxy_port)],
-        stderr=subprocess.PIPE)
-    # Note that the http proxy server's address uses http://, regardless of the
+    # Note that the HTTP proxy server's address uses http://, regardless of the
     # type of connection used with the target server.
     cls.http_proxy_addr = 'http://127.0.0.1:' + str(cls.http_proxy_port)
 
@@ -117,8 +116,7 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     cls.https_proxy_proc = subprocess.Popen(
         ['python', 'proxy_server.py', str(cls.https_proxy_port), 'intercept',
         os.path.join('ssl_certs', 'ssl_cert.crt')],
-        stderr=subprocess.PIPE)
-    # Note that the https proxy server's address uses https://, regardless of
+    # Note that the HTTPS proxy server's address uses https://, regardless of
     # the type of connection used with the target server.
     cls.https_proxy_addr = 'https://127.0.0.1:' + str(cls.https_proxy_port)
 
@@ -201,7 +199,7 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     HTTP proxy, and perform an HTTP connection with the final server.
     """
 
-    logger.info('Trying http download with no proxy: ' + self.url)
+    logger.info('Trying HTTP download with no proxy: ' + self.url)
     download.safe_download(self.url, self.target_data_length)
     download.unsafe_download(self.url, self.target_data_length)
 
@@ -217,7 +215,7 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
 
     self.set_env_value('HTTP_PROXY', self.http_proxy_addr)
 
-    logger.info('Trying http download via http proxy: ' + self.url)
+    logger.info('Trying HTTP download via HTTP proxy: ' + self.url)
     download.safe_download(self.url, self.target_data_length)
     download.unsafe_download(self.url, self.target_data_length)
 
@@ -225,7 +223,7 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_httpS_dl_via_smart_http_proxy(self):
+  def test_https_dl_via_smart_http_proxy(self):
     """
     Test a length-validating TUF download of a file through a proxy. Use an
     HTTP proxy that supports HTTP CONNECT (which essentially causes it to act
@@ -242,7 +240,7 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     self.set_env_value('REQUESTS_CA_BUNDLE',
         os.path.join('ssl_certs', 'ssl_cert.crt'))
 
-    logger.info('Trying httpS download via http proxy: ' + self.url_https)
+    logger.info('Trying HTTPS download via HTTP proxy: ' + self.url_https)
     download.safe_download(self.url_https, self.target_data_length)
     download.unsafe_download(self.url_https, self.target_data_length)
 
@@ -250,7 +248,7 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_http_dl_via_httpS_proxy(self):
+  def test_http_dl_via_https_proxy(self):
     """
     Test a length-validating TUF download of a file through a proxy. Use an
     HTTPS proxy, and perform an HTTP connection with the final server.
@@ -263,7 +261,7 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     self.set_env_value('REQUESTS_CA_BUNDLE',
         os.path.join('ssl_certs', 'proxy_ca.crt'))
 
-    logger.info('Trying http download via httpS proxy: ' + self.url_https)
+    logger.info('Trying HTTP download via HTTPS proxy: ' + self.url_https)
     download.safe_download(self.url, self.target_data_length)
     download.unsafe_download(self.url, self.target_data_length)
 
@@ -271,7 +269,7 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_httpS_dl_via_httpS_proxy(self):
+  def test_https_dl_via_https_proxy(self):
     """
     Test a length-validating TUF download of a file through a proxy. Use an
     HTTPS proxy, and perform an HTTPS connection with the final server.
@@ -286,7 +284,7 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     self.set_env_value('REQUESTS_CA_BUNDLE',
         os.path.join('ssl_certs', 'proxy_ca.crt'))
 
-    logger.info('Trying httpS download via httpS proxy: ' + self.url_https)
+    logger.info('Trying HTTPS download via HTTPS proxy: ' + self.url_https)
     download.safe_download(self.url_https, self.target_data_length)
     download.unsafe_download(self.url_https, self.target_data_length)
 
@@ -340,7 +338,7 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
       # del os.environ[key] should unset the variable. Otherwise, we'll just
       # have to settle for setting it to an empty string.
       # See os.environ in:
-      #    https://docs.python.org/2/library/os.html#process-parameters)
+      #    https://docs.python.org/2/library/os.html#process-parameters
       os.environ[key] = ''
       del os.environ[key]
 

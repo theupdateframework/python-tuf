@@ -172,8 +172,8 @@ class DownloadLengthMismatchError(DownloadError):
     self.observed_length = observed_length #bytes
 
   def __str__(self):
-    return 'Observed length (' + repr(self.observed_length)+\
-           ') != expected length (' + repr(self.expected_length) + ').'
+    return 'Observed length (' + repr(self.observed_length) + \
+        ') < expected length (' + repr(self.expected_length) + ').'
 
 
 class SlowRetrievalError(DownloadError):
