@@ -78,9 +78,10 @@ from setuptools import find_packages
 with open('README.md') as file_object:
   long_description = file_object.read()
 
+
 setup(
   name = 'tuf',
-  version = '0.11.1',
+  version = '0.11.1', # If updating version, also update it in tuf/__init__.py
   description = 'A secure updater framework for Python',
   long_description = long_description,
   long_description_content_type='text/markdown',
@@ -109,7 +110,12 @@ setup(
     'Topic :: Security',
     'Topic :: Software Development'
   ],
-  install_requires = ['iso8601>=0.1.12', 'six>=1.11.0', 'securesystemslib>=0.11.2'],
+  install_requires = [
+    'iso8601>=0.1.12',
+    'requests>=2.19.1',
+    'six>=1.11.0',
+    'securesystemslib>=0.11.2'
+  ],
   packages = find_packages(exclude=['tests']),
   scripts = [
     'tuf/scripts/repo.py',

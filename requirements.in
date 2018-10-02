@@ -4,5 +4,6 @@ securesystemslib
 cryptography
 colorama
 pynacl
+requests
 six
 iso8601
