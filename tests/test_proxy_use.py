@@ -123,7 +123,8 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     # start listening before allowing tests to begin, lest we get "Connection
     # refused" errors. On the first test system. 0.1s was too short and 0.15s
     # was long enough. Use 0.5s to be safe, and if issues arise, increase it.
-    time.sleep(0.5)
+    # Observed some occasional AppVeyor failures, so increasing this to 1s.
+    time.sleep(1)
 
 
 
