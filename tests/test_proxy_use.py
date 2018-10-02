@@ -41,6 +41,7 @@ import logging
 import os
 import random
 import subprocess
+import sys
 import time
 import unittest
 
@@ -78,23 +79,21 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
 
     # Launch a simple HTTP server (serves files in the current dir).
     cls.http_port = random.randint(30000, 45000)
-    cls.http_server_proc = subprocess.Popen(
-        ['python', 'simple_server.py', str(cls.http_port)],
-        stderr=subprocess.PIPE)
+    cls.http_server_proc = popen_python(
+        ['simple_server.py', str(cls.http_port)])
 
     # Launch an HTTPS server (serves files in the current dir).
     cls.https_port = cls.http_port + 1
-    cls.https_server_proc = subprocess.Popen(
-        ['python', 'simple_https_server.py', str(cls.https_port)],
-        stderr=subprocess.PIPE)
+    cls.https_server_proc = popen_python(
+        ['simple_https_server.py', str(cls.https_port)])
 
 
     # Launch an HTTP proxy server derived from inaz2/proxy2.
     # This one is able to handle HTTP CONNECT requests, and so can pass HTTPS
     # requests on to the target server.
     cls.http_proxy_port = cls.http_port + 2
-    cls.http_proxy_proc = subprocess.Popen(
-        ['python', 'proxy_server.py', str(cls.http_proxy_port)],
+    cls.http_proxy_proc = popen_python(
+        ['proxy_server.py', str(cls.http_proxy_port)])
     # Note that the HTTP proxy server's address uses http://, regardless of the
     # type of connection used with the target server.
     cls.http_proxy_addr = 'http://127.0.0.1:' + str(cls.http_proxy_port)
@@ -113,9 +112,9 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     #   server certs to accept in its HTTPS connection to the target server.
     #   This is only relevant if the proxy is in intercept mode.
     cls.https_proxy_port = cls.http_port + 3
-    cls.https_proxy_proc = subprocess.Popen(
-        ['python', 'proxy_server.py', str(cls.https_proxy_port), 'intercept',
-        os.path.join('ssl_certs', 'ssl_cert.crt')],
+    cls.https_proxy_proc = popen_python(
+        ['proxy_server.py', str(cls.https_proxy_port), 'intercept',
+        os.path.join('ssl_certs', 'ssl_cert.crt')])
     # Note that the HTTPS proxy server's address uses https://, regardless of
     # the type of connection used with the target server.
     cls.https_proxy_addr = 'https://127.0.0.1:' + str(cls.https_proxy_port)
@@ -356,6 +355,22 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
       self.restore_env_value(key)
 
 
+
+
+
+# TODO: Move this to a common test module (tests/common.py?)
+#       and strip it test_proxy_use.py and test_download.py.
+def popen_python(command_arg_list):
+  """
+  Run subprocess.Popen() to produce a process running a Python interpreter.
+  Uses the same Python interpreter that the current process is using, via
+  sys.executable.
+  """
+  assert sys.executable, 'Test cannot function: unable to determine ' \
+      'current Python interpreter via sys.executable.'
+
+  return subprocess.Popen(
+      [sys.executable] + command_arg_list, stderr=subprocess.PIPE)
 
 
 

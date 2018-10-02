@@ -38,6 +38,7 @@ import logging
 import os
 import random
 import subprocess
+import sys
 import time
 import unittest
 
@@ -73,8 +74,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
     # Launch a SimpleHTTPServer (serves files in the current dir).
     self.PORT = random.randint(30000, 45000)
-    command = ['python', 'simple_server.py', str(self.PORT)]
-    self.server_proc = subprocess.Popen(command, stderr=subprocess.PIPE)
+    self.server_proc = popen_python(['simple_server.py', str(self.PORT)])
     logger.info('\n\tServer process started.')
     logger.info('\tServer process id: '+str(self.server_proc.pid))
     logger.info('\tServing on port: '+str(self.PORT))
@@ -261,14 +261,14 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     port2 = str(int(port1) + 1)
     port3 = str(int(port1) + 2)
     port4 = str(int(port1) + 3)
-    command1 = ['python', 'simple_https_server.py', port1, good_cert_fname]
-    command2 = ['python', 'simple_https_server.py', port2, good2_cert_fname]
-    command3 = ['python', 'simple_https_server.py', port3, bad_cert_fname]
-    command4 = ['python', 'simple_https_server.py', port4, expired_cert_fname]
-    good_https_server_proc = subprocess.Popen(command1, stderr=subprocess.PIPE)
-    good2_https_server_proc = subprocess.Popen(command2, stderr=subprocess.PIPE)
-    bad_https_server_proc = subprocess.Popen(command3, stderr=subprocess.PIPE)
-    expd_https_server_proc = subprocess.Popen(command4, stderr=subprocess.PIPE)
+    good_https_server_proc = popen_python(
+        ['simple_https_server.py', port1, good_cert_fname])
+    good2_https_server_proc = popen_python(
+        ['simple_https_server.py', port2, good2_cert_fname])
+    bad_https_server_proc = popen_python(
+        ['simple_https_server.py', port3, bad_cert_fname])
+    expd_https_server_proc = popen_python(
+        ['simple_https_server.py', port4, expired_cert_fname])
 
     # Provide a delay long enough to allow the HTTPS servers to start.
     # Encountered an error on one test system at delay value of 0.2s, so
@@ -364,6 +364,27 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     content_length = \
       tuf.download._get_content_length({'bad_connection_object': 8})
     self.assertEqual(content_length, None)
+
+
+
+
+
+# TODO: Move this to a common test module (tests/common.py?)
+#       and strip it test_proxy_use.py and test_download.py.
+def popen_python(command_arg_list):
+  """
+  Run subprocess.Popen() to produce a process running a Python interpreter.
+  Uses the same Python interpreter that the current process is using, via
+  sys.executable.
+  """
+  assert sys.executable, 'Test cannot function: unable to determine ' \
+      'current Python interpreter via sys.executable.'
+
+  return subprocess.Popen(
+      [sys.executable] + command_arg_list, stderr=subprocess.PIPE)
+
+
+
 
 
 # Run unit test.
