@@ -301,17 +301,13 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     with new saved values.
     """
 
-    if key in self.old_env_values:
-      # Do not save the current value. We already saved an older value, and
-      # the original one is the one we'll restore to, not whatever we most
-      # recently overwrote it with.
-      pass
-
-    elif key in os.environ:
-      self.old_env_values[key] = os.environ[key]
-
-    else:
-      self.old_env_values[key] = None # Note that it was previously unset.
+    # Only save the current value if we have not previously saved an older
+    # value. The original one is the one we'll restore to, not whatever we
+    # most recently overwrote.
+    if key not in self.old_env_values:
+      # If the value was previously unset in os.environ, save the old value
+      # as None so that we know to unset it.
+      self.old_env_values[key] = os.environ.get(key, None)
 
     # Actually set the new value.
     os.environ[key] = value
