@@ -238,6 +238,9 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
 
     self.set_env_value('REQUESTS_CA_BUNDLE',
         os.path.join('ssl_certs', 'ssl_cert.crt'))
+    # Clear sessions to ensure that the certificate we just specified is used.
+    # TODO: Confirm necessity of this session clearing and lay out mechanics.
+    tuf.download._sessions = {}
 
     logger.info('Trying HTTPS download via HTTP proxy: ' + self.url_https)
     download.safe_download(self.url_https, self.target_data_length)
@@ -259,6 +262,9 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     # plain HTTP connection to the target server.
     self.set_env_value('REQUESTS_CA_BUNDLE',
         os.path.join('ssl_certs', 'proxy_ca.crt'))
+    # Clear sessions to ensure that the certificate we just specified is used.
+    # TODO: Confirm necessity of this session clearing and lay out mechanics.
+    tuf.download._sessions = {}
 
     logger.info('Trying HTTP download via HTTPS proxy: ' + self.url_https)
     download.safe_download(self.url, self.target_data_length)
@@ -282,6 +288,9 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     # started in setUpClass().
     self.set_env_value('REQUESTS_CA_BUNDLE',
         os.path.join('ssl_certs', 'proxy_ca.crt'))
+    # Clear sessions to ensure that the certificate we just specified is used.
+    # TODO: Confirm necessity of this session clearing and lay out mechanics.
+    tuf.download._sessions = {}
 
     logger.info('Trying HTTPS download via HTTPS proxy: ' + self.url_https)
     download.safe_download(self.url_https, self.target_data_length)
@@ -325,7 +334,7 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     assert key in self.old_env_values, 'Test coding mistake: something is ' \
         'trying to restore environment variable ' + key + ', but that ' \
         'variable does not appear in the list of values to restore. ' \
-        'Please make sure to use _set_env_value().'
+        'Please make sure to use set_env_value().'
 
     if self.old_env_values[key] is None:
       # If it was not previously set, try to unset it.
