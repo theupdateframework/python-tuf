@@ -81,7 +81,7 @@ with open('README.md') as file_object:
 
 setup(
   name = 'tuf',
-  version = '0.11.1', # If updating version, also update it in tuf/__init__.py
+  version = '0.11.2-alpha', # If updating version, also update it in tuf/__init__.py
   description = 'A secure updater framework for Python',
   long_description = long_description,
   long_description_content_type='text/markdown',
@@ -114,7 +114,7 @@ setup(
     'iso8601>=0.1.12',
     'requests>=2.19.1',
     'six>=1.11.0',
-    'securesystemslib>=0.11.2'
+    'securesystemslib>=0.11.3'
   ],
   packages = find_packages(exclude=['tests']),
   scripts = [
