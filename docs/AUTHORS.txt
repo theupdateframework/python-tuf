@@ -1,4 +1,4 @@
-The TUF project is managed by Justin Cappos at NYU (jcappos@nyu.edu).
+The TUF project is managed by Justin Cappos at NYU (jcappos@nyu.edu).  See GOVERNANCE.md for more information.
 
 Contributors:
 
