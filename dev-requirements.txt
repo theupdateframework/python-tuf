@@ -35,7 +35,7 @@ requests==2.19.1
 securesystemslib[crypto,pynacl]==0.11.3
 singledispatch==3.4.0.3
 six==1.11.0
-smmap2==2.0.4
+smmap2==2.0.5
 stevedore==1.29.0
 tox==3.4.0
 virtualenv==16.0.0
