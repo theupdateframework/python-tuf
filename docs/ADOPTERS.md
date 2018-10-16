@@ -8,6 +8,7 @@
 * [Flynn](https://flynn.io/docs/development#the-update-framework-%28tuf%29)
 * [Kolide](https://github.com/kolide/updater)
 * [LEAP](https://leap.se/en/2014/darkest-night)
+* [Microsoft Azure](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-content-trust)
 * [Notary](https://github.com/theupdateframework/notary)
 * [Quay by CoreOS](https://www.youtube.com/watch?v=ofXHmfOTLyA)
 * [VMWare](https://www.youtube.com/watch?v=2ZIu9XTvsC0)
