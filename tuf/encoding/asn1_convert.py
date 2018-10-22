@@ -183,6 +183,11 @@ def public_key_to_pyasn1(public_key_dict):
     raise tuf.exceptions.FormatError('Expected public key, received key dict '
         'containing a private key entry!')
 
+  # TODO: Intelligently handle PEM-style RSA keys, which have value set to an
+  # ASCII-prefixed Base64 string like:
+  #    '-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQE...'
+  # while also handling ed25519 keys, which have hexstring values. For now,
+  # we're using VisibleString inefficiently, for easy compatibility with both.
   key_pyasn1 = asn1_definitions.PublicKey()
   key_pyasn1['keytype'] = public_key_dict['keytype']
   key_pyasn1['scheme'] = public_key_dict['scheme']
@@ -202,8 +207,10 @@ def public_key_to_pyasn1(public_key_dict):
   i = 0
   for valtype in public_key_dict['keyval']:
     keyval_pyasn1 = asn1_definitions.KeyValue()
-    keyval_pyasn1['public'] = pyasn1_univ.OctetString(
-        hexValue=public_key_dict['keyval'][valtype])
+    # OctetString handling for ed25519 keys, if definitions use OCTET STRING
+    # keyval_pyasn1['public'] = pyasn1_univ.OctetString(
+    #     hexValue=public_key_dict['keyval'][valtype])
+    keyval_pyasn1['public'] = public_key_dict['keyval'][valtype]
     keyvals_pyasn1[i] = keyval_pyasn1
     i += 1
 

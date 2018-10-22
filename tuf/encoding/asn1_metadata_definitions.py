@@ -89,7 +89,7 @@ class KeyIDHashAlgorithms(univ.SequenceOf):
 # non-ASN.1 metadata definitions.
 class KeyValue(univ.Sequence):
   componentType = NamedTypes(
-      NamedType('public', univ.OctetString()))
+      NamedType('public', char.VisibleString())) #univ.OctetString()))
 
 class PublicKey(univ.Sequence):
   componentType = NamedTypes(
