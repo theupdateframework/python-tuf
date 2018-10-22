@@ -536,6 +536,8 @@ def _list_to_pyasn1(data, datatype):
     pyasn1_datum = to_pyasn1(datum, type(datatype.componentType)) # Not sure why componentType is an instance, not a class....
     pyasn1_obj[i] = pyasn1_datum
 
+  return pyasn1_obj
+
 
 
 
