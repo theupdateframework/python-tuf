@@ -598,8 +598,19 @@ def _listlike_dict_to_pyasn1(data, datatype):
   # TODO: FINISH THIS EXPLANATION OF WHY WE EXPECT 2 ELEMENTS!
   # We are assuming that we can convert in={k1: v1, k2: v2, ...} to
   # out[i][0] = k1, out[0][1] = v1,
-  if len(names_in_component) != 2:
+
+  # Account for the possibility that the "value" in the dict is a list and thus
+  # needs a list length argument ('num-'-prefixed) to precede it in ASN.1 for
+  # the convenience of ASN.1 decoders / parsers. In this specific scenario,
+  # we'll have 3 elements instead of 2.
+  if len(names_in_component) == 3 and 'num-' not in names_in_component[1]:
+    if 'num-' not in 
+
+  elif len(names_in_components) != 2:
+    # TODO: more useful error message and conversion-specific exception class
     raise tuf.exceptions.Error()
+
+
 
   i = 0
   for key in data:
