@@ -147,9 +147,13 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   PublicKey ::= SEQUENCE {
     keytype             VisibleString,
     scheme              VisibleString,
-    keyval              SEQUENCE {
-      type              VisibleString,            -- expect 'public'
-      value             OCTET STRING
+    keyval              SEQUENCE OF SEQUENCE {  -- even though we only expect 1
+      type              VisibleString,          -- expect 'public'
+      -- value here would ideally be an OCTET STRING, but for now, for
+      -- compatibility with both ed25519 (hexstring that translates naturally to
+      -- an OCTET STRING) and RSA (ASCII-prefixed Base64 that requires some
+      -- translation), we'll just use an inefficient unicode string....
+      value             VisibleString
     },
     keyid-hash-algorithms SEQUENCE OF VisibleString
   }
