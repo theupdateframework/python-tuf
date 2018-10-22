@@ -310,6 +310,7 @@ def to_pyasn1(data, datatype):
   # are the base cases of the recursion.
   if isinstance(pyasn1_obj, pyasn1_univ.Integer) \
       or isinstance(pyasn1_obj, pyasn1_char.VisibleString):
+    print('\nConverting a (hopefully-)primitive value to: ' + str(datatype)) # DEBUG
     return datatype(data)
 
   elif isinstance(pyasn1_obj, pyasn1_univ.OctetString):
@@ -330,6 +331,7 @@ def to_pyasn1(data, datatype):
     # here, that pyasn1 WILL NOT COMPLAIN and will save the given value as a
     # sort of custom field in a NULL OctetString object, leading to odd errors
     # down the line. Be SURE that this line is correct if you change it.
+    print('\nConverting a (hopefully-)primitive value to: ' + str(datatype)) # DEBUG
     return datatype(hexValue=data)
 
 
@@ -369,15 +371,20 @@ def to_pyasn1(data, datatype):
   #   print('debugging...')
 
   elif isinstance(datatype.componentType, pyasn1_namedtype.NamedTypes):
-    print('\nConverting a struct-like dict to ' + str(datatype))
+    assert isinstance(pyasn1_obj, pyasn1_univ.Sequence) or isinstance(pyasn1_obj, pyasn1_univ.Set), 'Expectation broken during drafting' # TEMPORARY, DO NOT MERGE
+    print('\nConverting a struct-like dict to ' + str(datatype)) # DEBUG
     return _structlike_dict_to_pyasn1(data, datatype)
 
   elif isinstance(data, list):
+    assert isinstance(pyasn1_obj, pyasn1_univ.SequenceOf) or isinstance(pyasn1_obj, pyasn1_univ.SetOf), 'Expectation broken during drafting' # TEMPORARY, DO NOT MERGE
     # Converting from a list to a datatype similar to a list of
     # conceptually-similar objects, without distinct named fields.
+    print('\nConverting a list to ' + str(datatype)) # DEBUG
     return _list_to_pyasn1(data, datatype)
 
   elif isinstance(data, dict):
+    assert isinstance(pyasn1_obj, pyasn1_univ.SequenceOf) or isinstance(pyasn1_obj, pyasn1_univ.SetOf), 'Expectation broken during drafting' # TEMPORARY, DO NOT MERGE
+    print('\nConverting a list-like dict to ' + str(datatype)) # DEBUG
     # Converting from a dict to a datatype similar to a list of
     # conceptually-similar objects, without distinct named fields.
     return _listlike_dict_to_pyasn1(data, datatype)
