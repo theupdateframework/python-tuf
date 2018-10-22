@@ -145,27 +145,26 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   }
 
   PublicKey ::= SEQUENCE {
-    publicKeyID         OCTET STRING,
-    publicKeyType       VisibleString,
-    publicKeyValue      OCTET STRING
+    keytype             VisibleString,
+    scheme              VisibleString,
+    keyval              SEQUENCE {
+      type              VisibleString,            -- expect 'public'
+      value             OCTET STRING
+    },
+    keyid-hash-algorithms SEQUENCE OF VisibleString
   }
+  -- A more streamlined definition of PublicKey would probably look like:
+  --  {  keyid             OCTET STRING,
+  --     public-key-value  OCTET STRING
+  --  }
 
 
 
+    -- This is a slghtly odd construction, but it models exactly what is used
+    -- in the standard, JSON-compatible TUF metadata format.
 
 
 ---------- Root Role Metadata Definitions
-
-  RootMetadata ::= SEQUENCE {
-    type                VisibleString,     -- ("root"),
-    expires             IntegerNatural, -- date&time, UTC, as a UNIX timestamp
-    version             IntegerNatural,
-    consistent-snapshot BOOLEAN,
-    num-keys            IntegerNatural,
-    keys                SET OF PublicKey,                      -- unordered set
-    num-roles           IntegerNatural,
-    roles               SET OF TopLevelDelegation              -- unordered set
-  }
 
   TopLevelDelegation ::= SEQUENCE {
     role                VisibleString,     -- ("root" | "timestamp" | "snapshot" | "targets"),
@@ -174,8 +173,20 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     threshold           IntegerNatural
     -- Pending TAP 5 approval and implementation:
     -- num-urls            IntegerNatural OPTIONAL,
-    -- urls                SEQUENCE OF VisibleString OPTIONAL   -- ordered list
+    -- urls                SEQUENCE OF VisibleString OPTIONAL
   }
+
+  RootMetadata ::= SEQUENCE {
+    type                VisibleString,     -- ("root"),
+    expires             IntegerNatural, --date&time, UTC, as a UNIX timestamp
+    version             IntegerNatural,
+    consistent-snapshot BOOLEAN,
+    num-keys            IntegerNatural,
+    keys                SET OF PublicKey,                      -- unordered set
+    num-roles           IntegerNatural,
+    roles               SET OF TopLevelDelegation}              -- unordered set
+--  }
+
 
 
 
@@ -192,7 +203,7 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     meta                SET OF RoleInfoLong                    -- unordered set
     -- What these should probably be called instead:
     -- num-role-infos   IntegerNatural,
-    -- role-infos       SET OF RoleInfoLong                    -- unordered set
+    -- role-infos       SET OF RoleInfoLong
   }
 
   RoleInfoLong ::= SEQUENCE {
@@ -217,7 +228,7 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     meta                SET OF RoleInfo                 -- unordered set
     -- What these should probably be called instead:
     -- num-role-infos      IntegerNatural,
-    -- role-infos          SET OF RoleInfo              -- unordered set
+    -- role-infos          SET OF RoleInfo
   }
 
   RoleInfo ::= SEQUENCE {

@@ -54,13 +54,14 @@ from pyasn1.type.namedtype import NamedType, NamedTypes, \
 # For thresholds, versions, timestamps, etc., we want only non-negative
 # integers, so we're stuck setting a maximum (or not placing any constraints
 # at all in the ASN.1 metadata definition itself, would would also be fine).
+# Note that the way this MAX value is used (ValueRangeConstraint) is inclusive.
 MAX = 2**32-1
 
 
 ## Common types, for use in the various metadata types
 
 class IntegerNatural(univ.Integer):
-  subtypeSpec = constraint.ValueRangeConstraint(0, MAX)
+  subtypeSpec = constraint.ValueRangeConstraint(0, MAX) # 0 <= value <= MAX
 
 class Signature(univ.Sequence):
   componentType = NamedTypes(
@@ -73,12 +74,35 @@ class Hash(univ.Sequence):
       NamedType('function', char.VisibleString()),
       NamedType('digest', univ.OctetString()))
 
+# TEMPORARY, FOR DEBUGGING ONLY; DO NOT MERGE
+class Hashes(univ.Set):
+  componentType = Hash()
+
+
+# TEMPORARY: swap in content itself in class PublicKey
+class KeyIDHashAlgorithms(univ.SequenceOf):
+  componentType = char.VisibleString()
+
+# TEMPORARY: swap in content itself in class PublicKey
+# Structurally bizarre, since I'm limiting this to 'public', but still
+# allowing keyval to have multiple of these in it......... to match the
+# non-ASN.1 metadata definitions.
+class KeyValue(univ.Sequence):
+  componentType = NamedTypes(
+      NamedType('public', univ.OctetString()))
+
 class PublicKey(univ.Sequence):
   componentType = NamedTypes(
-      NamedType('publicKeyID', univ.OctetString()),
-      NamedType('publicKeyType', char.VisibleString()),
-      NamedType('publicKeyValue', univ.OctetString()))
+      NamedType('keytype', char.VisibleString()),
+      NamedType('scheme', char.VisibleString()),
+      NamedType('keyval', univ.Set(componentType=KeyValue())),
+      NamedType('keyid-hash-algorithms', KeyIDHashAlgorithms()))
 
+  # Old style:
+  # componentType = NamedTypes(
+  #     NamedType('publicKeyID', univ.OctetString()),
+  #     NamedType('publicKeyType', char.VisibleString()),
+  #     NamedType('publicKeyValue', univ.OctetString()))
 
 
 
