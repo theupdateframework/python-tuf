@@ -75,7 +75,7 @@ class Hash(univ.Sequence):
       NamedType('digest', univ.OctetString()))
 
 # TEMPORARY, FOR DEBUGGING ONLY; DO NOT MERGE
-class Hashes(univ.Set):
+class Hashes(univ.SetOf):
   componentType = Hash()
 
 
@@ -135,13 +135,16 @@ class HashOfSnapshot(univ.Sequence):
       NamedType('num-hashes', IntegerNatural()),
       NamedType('hashes', univ.SetOf(componentType=Hash()))) # unordered
 
+class HashesOfSnapshot(univ.SetOf):
+  componentType = HashOfSnapshot()
+
 class TimestampMetadata(univ.Sequence):
   componentType = NamedTypes(
       NamedType('type', char.VisibleString()),
       NamedType('expires', IntegerNatural()),
       NamedType('version', IntegerNatural()),
       NamedType('num-meta', IntegerNatural()),
-      NamedType('meta', univ.SetOf(componentType=HashOfSnapshot())) # unordered
+      NamedType('meta', HashesOfSnapshot()) #univ.SetOf(componentType=HashOfSnapshot())) # unordered
   )
 
 
