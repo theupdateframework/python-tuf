@@ -410,13 +410,20 @@ def _structlike_dict_to_pyasn1(data, datatype):
     - data is a dict
     - and objects of type datatype are:
         "struct-like", meaning that they may contain a specific number of
-        elements of disparate elements of potentially variable type. (This is
-        as opposed to a "list-like" dict, where the number of elements is
-        variable -- beyond just having specific optional elements --, and the
-        elements have a conceptual type in common.)
+        named elements of potentially variable type.
+        This is as opposed to a "list-like" dict, where the elements may not be
+        named, will have a conceptual type in common, and the number of elements
+        is variable -- beyond just specifying optional elements.
+        It is assumed that:
+         - datatype is pyasn1_univ.Sequence or Set, or a subclass thereof.
+         - datatype.componentType is a NamedTypes object
 
   The mapping from data to the new object, pyasn1_obj, will try to use the same
-  keys in both.
+  keys in both. '-' and '_' will be swapped as necessary (ASN.1 uses dashes in
+  variable names and does not permit underscores in them, while Python uses
+  underscores in variable names and does not permit dashes in them.).
+  Additional 'num-'-prefixed elements in ASN.1 that provide the length of lists
+  will be handled (length calculated and element added).
   """
 
   pyasn1_obj = datatype()
@@ -509,16 +516,20 @@ def _list_to_pyasn1(data, datatype):
   pyasn1_obj = datatype() # DEBUG
 
   for i in range(0,len(data)):
-      datum = data[i]
+    datum = data[i]
 
-      if None is getattr(datatype, 'componentType', None):
-        import pdb; pdb.set_trace()
-        print('debugging...')
+    if None is getattr(datatype, 'componentType', None):
+      # TODO: Use a better exception class, if you decide to keep this.
+      # It's useful in debugging because the error we get if we don't
+      # specifically detect this may be misleading.
+      raise tuf.exceptions.Error('Unable to determine type of component in a '
+          'list. datatype of list: ' + str(datatype) + '; componentType '
+          'appears to be None')
 
-      print('\nIn conversion of a list, recursing to convert subcomponent of type ' + str(type(datatype.componentType)))
+    print('\nIn conversion of a list, recursing to convert subcomponent of type ' + str(type(datatype.componentType)))
 
-      pyasn1_datum = to_pyasn1(datum, type(datatype.componentType)) # Not sure why componentType is an instance, not a class....
-      pyasn1_obj[i] = pyasn1_datum
+    pyasn1_datum = to_pyasn1(datum, type(datatype.componentType)) # Not sure why componentType is an instance, not a class....
+    pyasn1_obj[i] = pyasn1_datum
 
 
 
