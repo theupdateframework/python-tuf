@@ -428,34 +428,39 @@ def _structlike_dict_to_pyasn1(data, datatype):
 
   pyasn1_obj = datatype()
 
-  # Discern the named values and the classes of the component objects.
-  # TODO: Later, switch from using list comprehension to standard loop.
-  names_in_datatype = [i for i in pyasn1_obj]
-  types_in_datatype = [type(pyasn1_obj[i]) for i in pyasn1_obj]
+  # For a datatype that is a Sequence (or Set) with named types, the
+  # componentType object should be a NamedTypes object that will tell us the
+  # names and types that datatype contains.
+  named_types_obj = datatype.componentType
+  assert isinstance(named_types_obj, pyasn1_namedtype.NamedTypes) # TEMPORARY, DO NOT MERGE; generate error instead
 
+  # Determine how many elements objects of type datatype have.
+  num_elements = len(named_types_obj)
 
-  # We'll use the names extracted to determine which fields in data to assign
-  # to each element of pyasn1_obj, and use the types to instantiate individual
-  # pyasn1 objects for each.
-  #
   # Iterate over the fields in an object of type datatype.  Check to see if
   # each is in data, and feed them in if so, by recursing.
-  for i in range(0,len(names_in_datatype)):
-    element_name = names_in_datatype[i]
-    element_type = types_in_datatype[i]
+  for i in range(0, num_elements):
 
-    # In ASN.1, '_' is invalid in variables names and '-' is valid.
-    element_name_underscores = element_name.replace('-', '_')
+    # Discern the named values and the classes of the component objects.
+    # We'll use the names extracted to determine which fields in data to assign
+    # to each element of pyasn1_obj, and use the types to instantiate individual
+    # pyasn1 objects for each.
+    element_name = named_types_obj.getNameByPosition(i)
+    element_type = type(named_types_obj.getTypeByPosition(i)) # not clear why this isn't already a type...
+
+    # In ASN.1, '_' is invalid in variable names and '-' is valid. The opposite
+    # is true of Python, so we swap.
+    element_name_python = element_name.replace('-', '_')
 
     # Is there an entry in data that corresponds to this?
-
-    if element_name_underscores in data:
+    if element_name_python in data:
       # If there are matching names in the source and destination structures,
       # transfer the data, recursing to instantiate a pyasn1 object of the
       # expected type.
-      print('\nIn conversion of a struct-like dict, recursing to convert subcomponent of type ' + str(element_type)) # DEBUG
-      element = to_pyasn1(data[element_name_underscores], element_type)
+      print('\nIn conversion of a struct-like dict, recursing to convert subcomponent of type ' + repr(element_type)) # DEBUG
+      element = to_pyasn1(data[element_name_python], element_type)
       pyasn1_obj[element_name] = element
+
 
       # Note that this includes the edge case where both have an element that
       # LOOKS like a length-of-list element beginning with 'num-'. I don't
@@ -469,10 +474,10 @@ def _structlike_dict_to_pyasn1(data, datatype):
       # we expect the rest of their names to match another element in data.
       # We'll populate the value using the length of the associated element
       relevant_element_name = element_name[4:] # whatever is after 'num-'.
-      relevant_element_name_underscores = relevant_element_name.replace('-','_')
+      relevant_element_name_python = relevant_element_name.replace('-','_')
 
-      if relevant_element_name_underscores in data:
-        pyasn1_obj[element_name] = len(data[relevant_element_name_underscores])
+      if relevant_element_name_python in data:
+        pyasn1_obj[element_name] = len(data[relevant_element_name_python])
 
       else:
         # TODO: Use a better exception class, relevant to ASN1 conversion.
