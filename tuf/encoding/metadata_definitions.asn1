@@ -137,6 +137,8 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     digest              OCTET STRING
   }
 
+  Hashes ::= SET OF Hash
+
 
   Signature ::= SEQUENCE {
     keyid               OCTET STRING,
