@@ -218,6 +218,74 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
 
 
 
+  def test_to_pyasn1_timestamp_hash_of_snapshot(self):
+    # First, try the HashOfSnapshot piece of the Timestamp data.
+
+    # First, let's build the JSON-compatible metadata dict.
+    snapshot_fname = 'snapshot.json'
+    snapshot_hash_func = 'sha256'
+    snapshot_hash_digest = \
+        '6990b6586ed545387c6a51db62173b903a5dff46b17b1bc3fe1e6ca0d0844f2f'
+
+    snapshot_hash = {
+        snapshot_fname: {'hashes': {snapshot_hash_func: snapshot_hash_digest}}}
+
+
+    # Next, let's manually construct the HashOfSnapshot object, to see if the
+    # converter gets it right.
+    expected_pyasn1 = asn1_defs.HashOfSnapshot()
+    expected_pyasn1['filename'] = snapshot_fname
+    expected_pyasn1['num-hashes'] = len(snapshot_hash[snapshot_fname]['hashes'])
+    expected_pyasn1['hashes'] = pyasn1_univ.SetOf(componentType=asn1_defs.Hash())
+
+    h = asn1_defs.Hash()
+    h['function'] = snapshot_hash_func
+    h['digest'] = pyasn1_univ.OctetString(hexValue=snapshot_hash_digest)
+
+    expected_pyasn1['hashes'][0] = h
+
+
+    snapshot_hash_pyasn1 = asn1_convert.to_pyasn1(
+        snapshot_hash, asn1_defs.HashesOfSnapshot)
+
+    self.assertEqual(expected_pyasn1, snapshot_hash_pyasn1)
+
+    expected_der = asn1_convert.pyasn1_to_der(expected_pyasn1)
+    snapshot_hash_der = asn1_convert.pyasn1_to_der(snapshot_hash_pyasn1)
+    self.assertEqual(expected_der, snapshot_hash_der)
+
+
+
+  # def test_to_pyasn1_timestamp(self):
+
+  #   sample_timestamp = {
+  #       "signatures": [
+  #         {
+  #           "keyid": "8a1c4a3ac2d515dec982ba9910c5fd79b91ae57f625b9cff25d06bf0a61c1758",
+  #           "sig": "7dddbfe94d6d80253433551700ea6dfe4171a33f1227a07830e951900b8325d67c3dce6410b9cf55abefa3dfca0b57814a4965c2d6ee60bb0336755cd0557e03"
+  #         }
+  #       ],
+  #       "signed": {
+  #         "_type": "timestamp",
+  #         "expires": "2030-01-01T00:00:00Z",
+  #         "meta": {
+  #           "snapshot.json": {
+  #             "hashes": {
+  #               "sha256": "6990b6586ed545387c6a51db62173b903a5dff46b17b1bc3fe1e6ca0d0844f2f"
+  #             },
+  #             "length": 554,
+  #             "version": 1
+  #           }
+  #         },
+  #         "spec_version": "1.0",
+  #         "version": 1
+  #       }}
+
+  #   TimestampMetadata
+
+
+
+
 
 
 
