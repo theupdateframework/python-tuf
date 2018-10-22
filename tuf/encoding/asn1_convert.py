@@ -180,8 +180,16 @@ def public_key_to_pyasn1(public_key_dict):
   # whether it replaces the previous one or is a second check_match on the same
   # arg.
   if 'private' in public_key_dict['keyval']:
-    raise tuf.exceptions.FormatError('Expected public key, received key dict '
-        'containing a private key entry!')
+
+    # TODO: Clean this conditional up! Removing an empty 'private' value is
+    # not ideal, and might change the keyid based on how we currently calculate
+    # keyids.... Empty strings don't seem to be OK as OctetStrings, though, so
+    # for now, we're doing this....
+    if not public_key_dict['keyval']['private']:
+      del public_key_dict['keyval']['private']
+    else:
+      raise tuf.exceptions.FormatError('Expected public key, received key dict '
+          'containing a private key entry!')
 
   # TODO: Intelligently handle PEM-style RSA keys, which have value set to an
   # ASCII-prefixed Base64 string like:
