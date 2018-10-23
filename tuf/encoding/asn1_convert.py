@@ -37,6 +37,14 @@ import tuf.encoding
 import tuf.encoding.asn1_metadata_definitions as asn1_definitions
 
 
+# DEBUG ONLY; remove.
+DEBUG_MODE = True
+recursion_level = -1
+def debug(msg):
+  if DEBUG_MODE:
+    print('R' + str(recursion_level) + ': ' + msg)
+
+
 
 def pyasn1_to_der(pyasn1_object):
   """
@@ -299,10 +307,14 @@ def to_pyasn1(data, datatype):
   # function and a recursing private helper function. Consider tying the max
   # depth to some dynamic analysis of asn1_metadata_definitions.py...? Nah?
   """
+  global recursion_level
+  recursion_level += 1
 
   # Instantiate an object of class datatype.  This is used for introspection
   # and then replaced.
   pyasn1_obj = datatype()
+
+  debug('to_pyasn1() called to convert to ' + str(datatype) + '. Data: ' + str(data))
 
   # Check to see if it's a basic data type from among the list of basic data
   # types we expect (Integer or VisibleString in one camp; OctetString in the
@@ -310,8 +322,11 @@ def to_pyasn1(data, datatype):
   # are the base cases of the recursion.
   if isinstance(pyasn1_obj, pyasn1_univ.Integer) \
       or isinstance(pyasn1_obj, pyasn1_char.VisibleString):
-    print('\nConverting a (hopefully-)primitive value to: ' + str(datatype)) # DEBUG
-    return datatype(data)
+    debug('Converting a (hopefully-)primitive value to: ' + str(datatype)) # DEBUG
+    pyasn1_obj = datatype(data)
+    debug('Completed conversion of primitive to ' + str(datatype)) # DEBUG
+    recursion_level -= 1
+    return pyasn1_obj
 
   elif isinstance(pyasn1_obj, pyasn1_univ.OctetString):
     # If datatype is a subclass of OctetString, then, also, we discard
@@ -331,8 +346,12 @@ def to_pyasn1(data, datatype):
     # here, that pyasn1 WILL NOT COMPLAIN and will save the given value as a
     # sort of custom field in a NULL OctetString object, leading to odd errors
     # down the line. Be SURE that this line is correct if you change it.
-    print('\nConverting a (hopefully-)primitive value to: ' + str(datatype)) # DEBUG
-    return datatype(hexValue=data)
+    debug('Converting a (hopefully-)primitive value to ' + str(datatype)) # DEBUG
+    tuf.formats.HEX_SCHEMA.check_match(data)
+    pyasn1_obj = datatype(hexValue=data)
+    debug('Completed conversion of primitive to ' + str(datatype)) # DEBUG
+    recursion_level -= 1
+    return pyasn1_obj
 
 
   # Else, datatype is not a basic data type of any of the list of expected
@@ -368,29 +387,39 @@ def to_pyasn1(data, datatype):
   # Handling a struct-like datatype, with distinct named fields:
   # elif None is getattr(datatype, 'componentType', None):
   #   import pdb; pdb.set_trace()
-  #   print('debugging...')
+  #   debug('debugging...')
 
   elif isinstance(datatype.componentType, pyasn1_namedtype.NamedTypes):
     assert isinstance(pyasn1_obj, pyasn1_univ.Sequence) or isinstance(pyasn1_obj, pyasn1_univ.Set), 'Expectation broken during drafting' # TEMPORARY, DO NOT MERGE
-    print('\nConverting a struct-like dict to ' + str(datatype)) # DEBUG
-    return _structlike_dict_to_pyasn1(data, datatype)
+    debug('Converting a struct-like dict to ' + str(datatype)) # DEBUG
+    pyasn1_obj = _structlike_dict_to_pyasn1(data, datatype)
+    debug('Completed conversion of struct-like dict to ' + str(datatype)) # DEBUG
+    recursion_level -= 1
+    return pyasn1_obj
 
   elif isinstance(data, list):
     assert isinstance(pyasn1_obj, pyasn1_univ.SequenceOf) or isinstance(pyasn1_obj, pyasn1_univ.SetOf), 'Expectation broken during drafting' # TEMPORARY, DO NOT MERGE
     # Converting from a list to a datatype similar to a list of
     # conceptually-similar objects, without distinct named fields.
-    print('\nConverting a list to ' + str(datatype)) # DEBUG
-    return _list_to_pyasn1(data, datatype)
+    debug('Converting a list to ' + str(datatype)) # DEBUG
+    pyasn1_obj = _list_to_pyasn1(data, datatype)
+    debug('Completed conversion of list to ' + str(datatype)) # DEBUG
+    recursion_level -= 1
+    return pyasn1_obj
 
   elif isinstance(data, dict):
     assert isinstance(pyasn1_obj, pyasn1_univ.SequenceOf) or isinstance(pyasn1_obj, pyasn1_univ.SetOf), 'Expectation broken during drafting' # TEMPORARY, DO NOT MERGE
-    print('\nConverting a list-like dict to ' + str(datatype)) # DEBUG
+    debug('Converting a list-like dict to ' + str(datatype)) # DEBUG
     # Converting from a dict to a datatype similar to a list of
     # conceptually-similar objects, without distinct named fields.
-    return _listlike_dict_to_pyasn1(data, datatype)
+    pyasn1_obj = _listlike_dict_to_pyasn1(data, datatype)
+    debug('Completed conversion of list-like dict to ' + str(datatype)) # DEBUG
+    recursion_level -= 1
+    return pyasn1_obj
 
   else:
     # TODO: Use a better error class for ASN.1 conversion errors.
+    recursion_level -= 1
     raise tuf.exceptions.Error('Unable to determine how to automatically '
         'convert data into pyasn1 data.  Can only handle primitives to Integer/'
         'VisibleString/OctetString, or list to list-like pyasn1, or list-like '
@@ -422,8 +451,10 @@ def _structlike_dict_to_pyasn1(data, datatype):
   keys in both. '-' and '_' will be swapped as necessary (ASN.1 uses dashes in
   variable names and does not permit underscores in them, while Python uses
   underscores in variable names and does not permit dashes in them.).
-  Additional 'num-'-prefixed elements in ASN.1 that provide the length of lists
-  will be handled (length calculated and element added).
+
+  Now moot, as num- fields have been removed.
+    #Additional 'num-'-prefixed elements in ASN.1 that provide the length of lists
+    #will be handled (length calculated and element added).
   """
 
   pyasn1_obj = datatype()
@@ -457,40 +488,42 @@ def _structlike_dict_to_pyasn1(data, datatype):
       # If there are matching names in the source and destination structures,
       # transfer the data, recursing to instantiate a pyasn1 object of the
       # expected type.
-      print('\nIn conversion of a struct-like dict, recursing to convert subcomponent of type ' + repr(element_type)) # DEBUG
+      debug('In conversion of struct-like dict to ' + str(datatype) + ', '
+          'recursing to convert subcomponent of type ' + str(element_type)) # DEBUG
       element = to_pyasn1(data[element_name_python], element_type)
       pyasn1_obj[element_name] = element
 
 
-      # Note that this includes the edge case where both have an element that
-      # LOOKS like a length-of-list element beginning with 'num-'. I don't
-      # see any issues with this, though; that seems like the right behavior.
+      # Moot, as num- fields have been removed from the definitions.
+      # # Note that this includes the edge case where both have an element that
+      # # LOOKS like a length-of-list element beginning with 'num-'. I don't
+      # # see any issues with this, though; that seems like the right behavior.
 
-    elif element_name.startswith('num-'):
-      # It is okay for this element name not to appear in the source,
-      # JSON-compatible metadata if and only if it is a length-of-list
-      # element that is useful in the ASN.1 metadata but not in the
-      # JSON-compatible metadata. We expect these to start with 'num-', and
-      # we expect the rest of their names to match another element in data.
-      # We'll populate the value using the length of the associated element
-      relevant_element_name = element_name[4:] # whatever is after 'num-'.
-      relevant_element_name_python = relevant_element_name.replace('-','_')
+    # elif element_name.startswith('num-'):
+    #   # It is okay for this element name not to appear in the source,
+    #   # JSON-compatible metadata if and only if it is a length-of-list
+    #   # element that is useful in the ASN.1 metadata but not in the
+    #   # JSON-compatible metadata. We expect these to start with 'num-', and
+    #   # we expect the rest of their names to match another element in data.
+    #   # We'll populate the value using the length of the associated element
+    #   relevant_element_name = element_name[4:] # whatever is after 'num-'.
+    #   relevant_element_name_python = relevant_element_name.replace('-','_')
 
-      if relevant_element_name_python in data:
-        pyasn1_obj[element_name] = len(data[relevant_element_name_python])
+    #   if relevant_element_name_python in data:
+    #     pyasn1_obj[element_name] = len(data[relevant_element_name_python])
 
-      else:
-        # TODO: Use a better exception class, relevant to ASN1 conversion.
-        raise tuf.exceptions.Error('When converting dict into pyasn1, '
-            'found an element that appeared to be a "num-"-prefixed '
-            'length-of-list for another element; however, did not find '
-            'corresponding element to calculate length of. Element name: ' +
-            element_name + '; did not find element name: ' +
-            relevant_element_name)
+    #   else:
+    #     # TODO: Use a better exception class, relevant to ASN1 conversion.
+    #     raise tuf.exceptions.Error('When converting dict into pyasn1, '
+    #         'found an element that appeared to be a "num-"-prefixed '
+    #         'length-of-list for another element; however, did not find '
+    #         'corresponding element to calculate length of. Element name: ' +
+    #         element_name + '; did not find element name: ' +
+    #         relevant_element_name)
 
     else:
       # Found an element name in datatype that does not match anything in
-      # data and does not begin with 'num-'.
+      # data (MOOT: and does not begin with 'num-').
       # TODO: Use a better exception class, relevant to ASN1 conversion.
       raise tuf.exceptions.Error('Unable to convert dict into pyasn1: it '
           'seems to be missing elements.  dict does not contain "' +
@@ -531,7 +564,8 @@ def _list_to_pyasn1(data, datatype):
           'list. datatype of list: ' + str(datatype) + '; componentType '
           'appears to be None')
 
-    print('\nIn conversion of a list, recursing to convert subcomponent of type ' + str(type(datatype.componentType)))
+    debug('In conversion of list to type ' + str(datatype) + ', recursing '
+        'to convert subcomponent of type ' + str(type(datatype.componentType)))
 
     pyasn1_datum = to_pyasn1(datum, type(datatype.componentType)) # Not sure why componentType is an instance, not a class....
     pyasn1_obj[i] = pyasn1_datum
@@ -585,39 +619,39 @@ def _listlike_dict_to_pyasn1(data, datatype):
   # to the second field in the element.
   #  Map key to the first element and value to the second element of
   # TODO: Replace use of list comprehensions.
-  print('\n\nBeginning listlike dict to pyasn1 conversion.')
-  print('datatype: ' + str(datatype))
-  print('type of subcomponent of datatype: ' + str(type(sample_component_obj)))
-  print('sample subcomponent of datatype: ' + str(sample_component_obj))
-  print('full data: ' + str(data))
+  # debug('datatype: ' + str(datatype))
+  debug('type of subcomponent of datatype: ' + str(type(sample_component_obj)))
+  # debug('sample subcomponent of datatype: ' + repr(sample_component_obj))
+  debug('full data: ' + str(data))
 
   names_in_component = [i for i in sample_component_obj]
   types_in_component = [type(sample_component_obj[i]) for i in sample_component_obj]
 
-  # TODO: FINISH THIS EXPLANATION OF WHY WE EXPECT 2 ELEMENTS!
-  # TODO: FINISH THIS EXPLANATION OF WHY WE EXPECT 2 ELEMENTS!
-  # We are assuming that we can convert in={k1: v1, k2: v2, ...} to
-  # out[i][0] = k1, out[0][1] = v1,
+  # Moot: removing 'num-'-prefixed fields for now, until they are explicitly
+  # necessary.
+  # # Account for the possibility that the "value" in the dict is a list and thus
+  # # needs a list length argument ('num-'-prefixed) to precede it in ASN.1 for
+  # # the convenience of ASN.1 decoders / parsers. In this specific scenario,
+  # # we'll have 3 elements instead of 2.
+  # if len(names_in_component) == 3 and 'num-' not in names_in_component[1]:
+  #   if 'num-' not in 
 
-  # Account for the possibility that the "value" in the dict is a list and thus
-  # needs a list length argument ('num-'-prefixed) to precede it in ASN.1 for
-  # the convenience of ASN.1 decoders / parsers. In this specific scenario,
-  # we'll have 3 elements instead of 2.
-  if len(names_in_component) == 3 and 'num-' not in names_in_component[1]:
-    if 'num-' not in 
-
-  elif len(names_in_components) != 2:
+  if len(names_in_component) != 2:
+    # TODO: FINISH THIS EXPLANATION OF WHY WE EXPECT 2 ELEMENTS!
+    # TODO: FINISH THIS EXPLANATION OF WHY WE EXPECT 2 ELEMENTS!
+    # We are assuming that we can convert in={k1: v1, k2: v2, ...} to
+    # out[i][0] = k1, out[0][1] = v1,
     # TODO: more useful error message and conversion-specific exception class
     raise tuf.exceptions.Error()
-
-
 
   i = 0
   for key in data:
     key = key.replace('_', '-') # ASN.1 uses - instead of _ in var names.
     datum = {names_in_component[0]: key, names_in_component[1]: data[key]}
 
-    print('\nIn conversion of a struct-like dict, recursing to convert subcomponent of type ' + str(datatype.componentType))
+    debug('In conversion of list-like dict to type ' + str(datatype) + ', '
+        'recursing to convert subcomponent of type ' +
+        str(datatype.componentType))
 
     pyasn1_datum = to_pyasn1(datum, type(datatype.componentType)) # Not sure why componentType is an instance, not a class....
     pyasn1_obj[i] = pyasn1_datum
