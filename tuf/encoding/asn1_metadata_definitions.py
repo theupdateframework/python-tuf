@@ -70,12 +70,26 @@ class Signature(univ.Sequence):
       NamedType('value', univ.OctetString()))
 
 class Hash(univ.Sequence):
+  """
+  Conceptual ASN.1 structure (Python pseudocode):
+      {'function': 'sha256', 'digest': '...'}
+  Equivalent TUF-internal JSON-compatible metadata:
+      {'sha256': '...'}
+  """
   componentType = NamedTypes(
       NamedType('function', char.VisibleString()),
       NamedType('digest', univ.OctetString()))
 
 # TEMPORARY, FOR DEBUGGING ONLY; DO NOT MERGE
 class Hashes(univ.SetOf):
+  """
+  List of Hash objects.
+  Conceptual ASN.1 structure (Python pseudocode):
+      [ {'function': 'sha256', 'digest': '...'},
+        {'function': 'sha512', 'digest': '...'} ]
+  Equivalent TUF-internal JSON-compatible metadata:
+      {'sha256': '...', 'sha512': '...'}
+  """
   componentType = Hash()
 
 
@@ -110,7 +124,6 @@ class PublicKey(univ.Sequence):
 class TopLevelDelegation(univ.Sequence):
   componentType = NamedTypes(
       NamedType('role', char.VisibleString()),
-      NamedType('num-keyids', IntegerNatural()),
       NamedType('keyids', univ.SequenceOf(componentType=univ.OctetString())),
       NamedType('threshold', IntegerNatural()))
 
@@ -120,20 +133,38 @@ class RootMetadata(univ.Sequence):
       NamedType('expires', IntegerNatural()),
       NamedType('version', IntegerNatural()),
       NamedType('consistent-snapshot', univ.Boolean()),
-      NamedType('num-keys', IntegerNatural()),
       NamedType('keys', univ.SetOf(componentType=PublicKey())), # unordered
-      NamedType('num-roles', IntegerNatural()),
       NamedType('roles', univ.SetOf(componentType=TopLevelDelegation()))) # unordered
 
 
 
 
 ## Types used only in Timestamp metadata
+class HashesContainer(univ.Sequence):
+  """
+  Single-element, vapid wrapper for Hashes, solely to match structure of the
+  TUF-internal metadata. (This layer could be removed from both metadata
+  formats without loss of semantics or clarity, but would break backward
+  compatibility.)
+  Conceptual ASN.1 structure (Python pseudocode):
+      {'hashes': [
+        {'function': 'sha256', 'digest': '...'},
+        {'function': 'sha512', 'digest': '...'}
+      ]}
+  Equivalent TUF-internal JSON-compatible metadata:
+      {'hashes': {'sha256': '...', 'sha512': '...'}}
+  """
+
+
+
+  """{'hashes': {'sha256': '...', 'sha512': '...'}}"""
+  componentType = 
+  }
+
 class HashOfSnapshot(univ.Sequence):
   componentType = NamedTypes(
       NamedType('filename', char.VisibleString()),
-      NamedType('num-hashes', IntegerNatural()),
-      NamedType('hashes', univ.SetOf(componentType=Hash()))) # unordered
+      NamedType('hashes', HashesContainer())) # unordered
 
 class HashesOfSnapshot(univ.SetOf):
   componentType = HashOfSnapshot()
@@ -143,7 +174,6 @@ class TimestampMetadata(univ.Sequence):
       NamedType('type', char.VisibleString()),
       NamedType('expires', IntegerNatural()),
       NamedType('version', IntegerNatural()),
-      NamedType('num-meta', IntegerNatural()),
       NamedType('meta', HashesOfSnapshot()) #univ.SetOf(componentType=HashOfSnapshot())) # unordered
   )
 
@@ -161,7 +191,6 @@ class SnapshotMetadata(univ.Sequence):
       NamedType('type', char.VisibleString()),
       NamedType('expires', IntegerNatural()),
       NamedType('version', IntegerNatural()),
-      NamedType('num-meta', IntegerNatural()),
       NamedType('meta', univ.SetOf(componentType=RoleInfo())))
 
 
@@ -171,9 +200,7 @@ class SnapshotMetadata(univ.Sequence):
 class Delegation(univ.Sequence):
   componentType = NamedTypes(
       NamedType('name', char.VisibleString()),
-      NamedType('num-keyids', IntegerNatural()),
       NamedType('keyids', univ.SequenceOf(componentType=univ.OctetString())),
-      NamedType('num-paths', IntegerNatural()),
       NamedType('paths', univ.SequenceOf(componentType=char.VisibleString())),
       NamedType('threshold', IntegerNatural()),
       DefaultedNamedType('terminating', univ.Boolean(0)))
@@ -187,9 +214,7 @@ class Target(univ.Sequence):
   componentType = NamedTypes(
       NamedType('target-name', char.VisibleString()),
       NamedType('length', IntegerNatural()),
-      NamedType('num-hashes', IntegerNatural()),
       NamedType('hashes', univ.SetOf(componentType=Hash())),
-      OptionalNamedType('num-custom', IntegerNatural()),
       OptionalNamedType('custom', univ.SetOf(componentType=Custom())))
 
 class TargetsMetadata(univ.Sequence):
@@ -197,12 +222,9 @@ class TargetsMetadata(univ.Sequence):
       NamedType('type', char.VisibleString()),
       NamedType('expires', IntegerNatural()),
       NamedType('version', IntegerNatural()),
-      NamedType('num-targets', IntegerNatural()),
       NamedType('targets', univ.SetOf(componentType=Target())),
       NamedType('delegations', univ.Sequence(componentType=NamedTypes(
-          NamedType('num-keys', IntegerNatural()),
           NamedType('keys', univ.SetOf(componentType=PublicKey())),
-          NamedType('num-roles', IntegerNatural()),
           NamedType('roles', univ.SequenceOf(componentType=Delegation()))
       ))) # tagFormatConstructed
   )

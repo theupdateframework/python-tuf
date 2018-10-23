@@ -94,7 +94,7 @@ Questions:
    optional but when provided always contains both, but the additional level
    of abstraction doesn't match the internal TUF metadata format, and the cost
    of deviating on that point is probably higher than the cost of this
-   ambiguity.
+   ambiguity. EDIT: This is moot, as num- fields have been removed.
 
  - TopLevelDelegation may be a confusing name, since we usually refer to
    targets-level delegations when we talk about delegations; however, note that
@@ -109,7 +109,7 @@ Questions:
       dictionary elements are sequences, each with its former key being its
       first element. Names are provided; they're not just called "key"s.
     - Anywhere there was a list, a list length had to be added (e.g. roles is
-      preceded by num-roles).
+      preceded by num-roles). EDIT: Removed this for now.
     - All underscores were necessarily removed, and replaced with dashes.
 
  - Timestamp and Snapshot in the TUF spec have dictionaries unhelpfully named
@@ -121,6 +121,7 @@ Questions:
    capture these in a single object,
    e.g. CustomSection optional: num-custom, customs
    It's a little longer and possibly less readable.
+   EDIT: This concern is mooted by the removal of num- elements.
 
 */
 
@@ -174,11 +175,9 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   TopLevelDelegation ::= SEQUENCE {
     role                VisibleString,     -- ("root" | "timestamp" | "snapshot" | "targets"),
-    num-keyids          IntegerNatural,
     keyids              SEQUENCE OF OCTET STRING,               -- ordered list
     threshold           IntegerNatural
     -- Pending TAP 5 approval and implementation:
-    -- num-urls            IntegerNatural OPTIONAL,
     -- urls                SEQUENCE OF VisibleString OPTIONAL
   }
 
@@ -187,9 +186,7 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     expires             IntegerNatural, --date&time, UTC, as a UNIX timestamp
     version             IntegerNatural,
     consistent-snapshot BOOLEAN,
-    num-keys            IntegerNatural,
     keys                SET OF PublicKey,                      -- unordered set
-    num-roles           IntegerNatural,
     roles               SET OF TopLevelDelegation}              -- unordered set
 --  }
 
@@ -205,16 +202,13 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     expires             IntegerNatural,  -- date&time, UTC, as a UNIX timestamp
     version             IntegerNatural,
 
-    num-meta            IntegerNatural,     -- Spec expects there to be only 1, though.
     meta                SET OF RoleInfoLong                    -- unordered set
     -- What these should probably be called instead:
-    -- num-role-infos   IntegerNatural,
     -- role-infos       SET OF RoleInfoLong
   }
 
   RoleInfoLong ::= SEQUENCE {
     filename            VisibleString,    -- filename of snapshot metadata role
-    num-hashes          IntegerNatural,
     version             IntegerNatural,
     hashes              SET OF Hash                            -- unordered set
   }
@@ -230,10 +224,8 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     expires             IntegerNatural,  -- date&time, UTC, as a UNIX timestamp
     version             IntegerNatural,
 
-    num-meta            IntegerNatural,
     meta                SET OF RoleInfo                 -- unordered set
     -- What these should probably be called instead:
-    -- num-role-infos      IntegerNatural,
     -- role-infos          SET OF RoleInfo
   }
 
@@ -258,7 +250,6 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     expires             IntegerNatural,  -- date&time, UTC, as a UNIX timestamp
     version             IntegerNatural,
 
-    num-targets         IntegerNatural,
     targets             SET OF Target,                -- unordered set
 
     delegations         SEQUENCE {
@@ -273,13 +264,11 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
       -- The full public keys available to use in delegations below, to be
       -- referenced below via key ID.
-      num-keys              IntegerNatural,
       keys                  SET OF PublicKey,         -- unordered set
 
       -- Each "role" listing below denotes one delegation. A delegation
       -- includes the role name, role filename, public keys, and key threshold
       -- of a delegatee.
-      num-roles             IntegerNatural,
       roles                 SEQUENCE OF Delegation    -- ordered list
     }
   }
@@ -291,9 +280,7 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   Target ::= SEQUENCE {
     target-name         VisibleString,
     length              IntegerNatural,
-    num-hashes          IntegerNatural,
     hashes              SET OF Hash,                          -- unordered list
-    num-custom          IntegerNatural OPTIONAL, -- number of Custom metadata elements
     custom              SET OF Custom OPTIONAL -- Custom metadata elements
    }
 
@@ -317,9 +304,7 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- glob pattern. For more, see the TUF specification.
 
     name                VisibleString,
-    num-keyids          IntegerNatural,
     keyids              SEQUENCE OF OCTET STRING,         -- ordered list
-    num-paths           IntegerNatural,
     paths               SEQUENCE OF VisibleString,        -- ordered list
     threshold           IntegerNatural,
     -- Whether or not this delegation is terminating.
