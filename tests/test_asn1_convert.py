@@ -63,7 +63,6 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
 
 
 
-  '''
   def baseline_convert_and_encode(self):
     """
     Fail if basic pyasn1 functionality is broken.
@@ -213,7 +212,7 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     # Convert them.
     ed_pub_pyasn1 = asn1_convert.to_pyasn1(ed_pub, asn1_defs.PublicKey)
     rsa_pub_pyasn1 = asn1_convert.to_pyasn1(rsa_pub, asn1_defs.PublicKey)
-  '''
+
 
 
 
@@ -289,7 +288,6 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
 
 
 
-  """
   def test_hash_to_pyasn1(self):
     # This doesn't use conversion_check because the hash_to_pyasn1 function
     # takes two arguments.
@@ -353,7 +351,7 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
 
 
 
-  """
+  def conversion_check(self, data, to_asn1_func,
   def conversion_check(self, data, func_to_asn1,
       func_from_asn1=None, expected_der=None):
     """
