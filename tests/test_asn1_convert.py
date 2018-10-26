@@ -308,32 +308,50 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     snapshot_hash_digest = \
         '6990b6586ed545387c6a51db62173b903a5dff46b17b1bc3fe1e6ca0d0844f2f'
 
-    snapshot_hash = {
+    # Construct the JSON-compatible, TUF-internal piece of hash metadata, as it
+    # would exist inside timestamp.json.
+    hashes_of_snapshot = {
         snapshot_fname: {'hashes': {snapshot_hash_func: snapshot_hash_digest}}}
 
 
     # Next, let's manually construct the HashOfSnapshot object, to see if the
     # converter gets it right.
-    expected_pyasn1 = asn1_defs.HashOfSnapshot()
-    expected_pyasn1['filename'] = snapshot_fname
-    # expected_pyasn1['num-hashes'] = len(snapshot_hash[snapshot_fname]['hashes'])
-    expected_pyasn1['hashes'] = asn1_defs.Hashes()
+
+    # First, construct the hashes. We'll just use one in this test.
 
     h = asn1_defs.Hash()
     h['function'] = snapshot_hash_func
     h['digest'] = pyasn1_univ.OctetString(hexValue=snapshot_hash_digest)
 
-    expected_pyasn1['hashes'][0] = h
+    hashes = asn1_defs.Hashes()
+    hashes[0] = h
+
+    # Note: HashesContainer is a vapid layer of the ASN.1 metadata which
+    # exists to map to a similarly vapid layer of the JSON-compatible metadata.
+    hashes_container = asn1_defs.HashesContainer()
+    hashes_container['hashes'] = hashes
 
 
-    snapshot_hash_pyasn1 = asn1_convert.to_pyasn1(
-        snapshot_hash, asn1_defs.HashesOfSnapshot)
-
-    self.assertEqual(expected_pyasn1, snapshot_hash_pyasn1)
+    expected_pyasn1 = asn1_defs.HashOfSnapshot()
+    expected_pyasn1['filename'] = snapshot_fname
+    # expected_pyasn1['num-hashes'] = len(snapshot_hash[snapshot_fname]['hashes'])
+    expected_pyasn1['hashes'] = hashes_container
 
     expected_der = asn1_convert.pyasn1_to_der(expected_pyasn1)
-    snapshot_hash_der = asn1_convert.pyasn1_to_der(snapshot_hash_pyasn1)
-    self.assertEqual(expected_der, snapshot_hash_der)
+
+
+    hashes_of_snapshot_pyasn1, hashes_of_snapshot_der = self.conversion_check(
+        hashes_of_snapshot,
+        asn1_convert.to_pyasn1,
+        # from_asn1_func=asn1_convert.from_pyasn1,   # TODO: DO NOT SKIP CONVERTING BACK
+        expected_der=expected_der,
+        second_arg=asn1_defs.HashOfSnapshot)
+
+    # In addition to testing the conversion and the expected DER, let's test
+    # the expected ASN.1:
+    self.assertEqual(expected_pyasn1, hashes_of_snapshot_pyasn1)
+
+
 
 
 
