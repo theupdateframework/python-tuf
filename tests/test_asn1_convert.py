@@ -352,21 +352,33 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
 
 
   def conversion_check(self, data, to_asn1_func,
-  def conversion_check(self, data, func_to_asn1,
-      func_from_asn1=None, expected_der=None):
+      from_asn1_func=None, expected_der=None, second_arg=None):
     """
     By default:
-     - Convert data to ASN.1 using func_to_asn1 argument.
+     - Convert data to ASN.1 using "to_asn1_func" argument.
      - Encode ASN.1 to DER.
      - Decode DER to ASN.1 again.
+     - Test equality with originally-generated ASN.1. (Note that this uses
+       pyasn1 equality checks, which don't necessarily compare data labels,
+       just data.)
      - Return the ASN.1 and DER values produced in case the caller wants to use
        them to perform additional tests.
 
     Optionally:
      - Compare the provided expected DER data to what was produced.
-     - Convert ASN.1 back to original using optional func_from_asn1 argument.
+     - Using optional from_asn1_func:
+         - Convert [original -> ASN.1 -> original] and test.
+         - Convert [original -> ASN.1 -> DER -> ASN.1 -> original] and test.
+     - Passes the given "second_arg" to "func_to_asn1" and (if provided)
+       "from_asn1_func" when calling. This is of use for general conversion
+       functions that must be told which datatype to convert to/from (like
+       "to_asn1" and "from_asn1").
     """
-    data_asn1 = func_to_asn1(data)
+    if second_arg is not None:
+      data_asn1 = to_asn1_func(data, second_arg)
+    else:
+      data_asn1 = to_asn1_func(data)
+
     data_der = asn1_convert.pyasn1_to_der(data_asn1)
 
     if expected_der is not None:
@@ -380,13 +392,19 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     data_asn1_again = asn1_convert.pyasn1_from_der(data_der)
     self.assertEqual(data_asn1, data_asn1_again)
 
-    if func_from_asn1 is not None:
+    if from_asn1_func is not None:
       # Convert original->pyasn1 data back and test it.
-      data_again = func_from_asn1(data_asn1)
+      if second_arg is not None:
+        data_again = from_asn1_func(data_asn1, second_arg)
+      else:
+        data_again = from_asn1_func(data_asn1)
       self.assertEqual(data, data_again)
 
       # Convert original->pyasn1->der data back and test it.
-      data_again_again = func_from_asn1(data_asn1_again)
+      if second_arg is not None:
+        data_again_again = from_asn1_func(data_asn1_again, second_arg)
+      else:
+        data_again_again = from_asn1_func(data_asn1_again)
       self.assertEqual(data, data_again_again)
 
     # Also return the values produced in case there is additional testing that
