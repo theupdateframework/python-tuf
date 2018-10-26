@@ -246,6 +246,13 @@ def hex_str_to_pyasn1_octets(hex_string):
 
   """
   # TODO: Verify hex_string type.
+
+  if len(hex_string) % 2:
+    raise tuf.exceptions.Error(
+        'Expecting hex strings with an even number of digits, since hex '
+        'strings provide 2 characters per byte.  We prefer not to pad values '
+        'implicitly.')
+
   # Should be a string containing only hexadecimal characters, e.g. 'd3aa591c')
   octets_pyasn1 = pyasn1_univ.OctetString(hexValue=hex_string)
 
@@ -255,8 +262,9 @@ def hex_str_to_pyasn1_octets(hex_string):
     # delayed and confusing debugging, so it's better to check this here.
 
     # TODO: Create an appropriate error type for pyasn1 conversions.
-    raise tuf.Error('Conversion of hex string to pyasn1 octet string failed: '
-        'noValue returned when converting ' + hex_string)
+    raise tuf.Error(
+        'Conversion of hex string to pyasn1 octet string failed: noValue '
+        'returned when converting ' + hex_string)
 
   return octets_pyasn1
 
@@ -275,8 +283,9 @@ def hex_str_from_pyasn1_octets(octets_pyasn1):
 
   for x in octets:
     if x < 0 or x > 255:
-      raise tuf.Error('Unable to generate hex string from OctetString: integer '
-          'value of octet provided is not in range: ' + str(x))
+      raise tuf.exceptions.Error(
+          'Unable to generate hex string from OctetString: integer value of '
+          'octet provided is not in range: ' + str(x))
     hex_string += '%.2x' % x
 
   # Make sure that the resulting value is a valid hex string.
@@ -314,7 +323,8 @@ def to_pyasn1(data, datatype):
   # and then replaced.
   pyasn1_obj = datatype()
 
-  debug('to_pyasn1() called to convert to ' + str(datatype) + '. Data: ' + str(data))
+  debug('to_pyasn1() called to convert to ' + str(datatype) + '. Data: '
+      + str(data))
 
   # Check to see if it's a basic data type from among the list of basic data
   # types we expect (Integer or VisibleString in one camp; OctetString in the
@@ -348,6 +358,14 @@ def to_pyasn1(data, datatype):
     # down the line. Be SURE that this line is correct if you change it.
     debug('Converting a (hopefully-)primitive value to ' + str(datatype)) # DEBUG
     tuf.formats.HEX_SCHEMA.check_match(data)
+    if len(data) % 2:
+      raise tuf.exceptions.Error(
+          'Expecting hex strings with an even number of digits, since hex '
+          'strings provide 2 characters per byte.  We prefer not to pad values '
+          'implicitly.')
+    # Don't be tempted to use hex_string_to_pyasn1_octets() here; we should
+    # convert to the datatype provided, which might be some subclass of
+    # pyasn1.type.univ.OctetString.
     pyasn1_obj = datatype(hexValue=data)
     debug('Completed conversion of primitive to ' + str(datatype)) # DEBUG
     recursion_level -= 1
