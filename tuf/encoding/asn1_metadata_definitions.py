@@ -154,19 +154,42 @@ class HashesContainer(univ.Sequence):
   Equivalent TUF-internal JSON-compatible metadata:
       {'hashes': {'sha256': '...', 'sha512': '...'}}
   """
+  componentType = NamedTypes(
+      NamedType('hashes', Hashes()))
 
 
-
-  """{'hashes': {'sha256': '...', 'sha512': '...'}}"""
-  componentType = 
-  }
 
 class HashOfSnapshot(univ.Sequence):
+  """
+  Conceptual ASN.1 structure (Python pseudocode): {
+      'filename': 'snapshot.json',
+      'hashes': [
+          {'function': 'sha256', 'digest': '...'},
+          {'function': 'sha512', 'digest': '...'}
+      ]
+  }
+  Equivalent TUF-internal JSON-compatible metadata: {
+      'snapshot.json': { "hashes": {'sha256': '...', 'sha512': '...'}}
+  """
   componentType = NamedTypes(
       NamedType('filename', char.VisibleString()),
       NamedType('hashes', HashesContainer())) # unordered
 
 class HashesOfSnapshot(univ.SetOf):
+  """
+  Conceptual ASN.1 structure (Python pseudocode):
+      [ {'filename': 'snapshot.json',
+         'hashes': [
+           {'function': 'sha256', 'digest': '...'},
+           {'function': 'sha512', 'digest': '...'}
+         ]},
+        <no other values expected>
+      ]
+  Equivalent TUF-internal JSON-compatible metadata:
+      {'snapshot.json': { "hashes": {'sha256': '...', 'sha512': '...'}},
+        <no other values expected>
+      }
+  """
   componentType = HashOfSnapshot()
 
 class TimestampMetadata(univ.Sequence):
