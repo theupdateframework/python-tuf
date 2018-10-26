@@ -664,7 +664,7 @@ def _listlike_dict_to_pyasn1(data, datatype):
 
   i = 0
   for key in data:
-    key = key.replace('_', '-') # ASN.1 uses - instead of _ in var names.
+    # key = key.replace('_', '-') # ASN.1 uses - instead of _ in var names.
     datum = {names_in_component[0]: key, names_in_component[1]: data[key]}
 
     debug('In conversion of list-like dict to type ' + str(datatype) + ', '
