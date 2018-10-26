@@ -129,9 +129,39 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
   def test_to_pyasn1_sig(self):
 
     # Try a Signature object, more complex.
-    sig = {'keyid': '12345', 'method': 'magical', 'value': 'abcdef1234567890'}
-    sig_asn1 = asn1_convert.to_pyasn1(sig, asn1_defs.Signature)
+    sig = {'keyid': '123456', 'method': 'magical', 'value': 'abcdef1234567890'}
+
+    expected_der = \
+        b'0\x18\x04\x03\x124V\x1a\x07magical\x04\x08\xab\xcd\xef\x124Vx\x90'
+
+    """sig_asn1, sig_der = self.conversion_check("""
+    self.conversion_check(
+        sig,
+        asn1_convert.to_pyasn1,
+        from_asn1_func=asn1_convert.from_pyasn1,
+        expected_der=expected_der,
+        second_arg=asn1_defs.Signature)
+
+    # Manual, without using conversion_check:
+
+    # sig_asn1 = asn1_convert.to_pyasn1(sig, asn1_defs.Signature)
     # TODO: Test the result of the signature conversion.
+
+    # sig_der = asn1_convert.pyasn1_to_der(sig_asn1)
+
+    # print(sig_der)
+
+    # sig_asn1_again = asn1_convert.pyasn1_from_der(sig_der)
+
+    # self.assertEqual(sig_asn1, sig_asn1_again)
+    # print('sig_asn1: ' + str(sig_asn1))
+    # print('sig_asn1_again: ' + str(sig_asn1_again))
+
+    # sig_again = asn1_convert.from_pyasn1(sig_asn1, asn1_defs.Signature)
+    # sig_again_from_der = asn1_convert.from_pyasn1(sig_asn1_again, asn1_defs.Signature)
+
+    # self.assertEqual(sig, sig_again)
+
 
 
 
@@ -149,14 +179,27 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     hash_pyasn1_again_alt = asn1_convert.pyasn1_from_der(hash_der_alt)
 
     h = {'function': hash_type, 'digest': hash_value}
-    hash_pyasn1 = asn1_convert.to_pyasn1(h, asn1_defs.Hash)
-    hash_der = asn1_convert.pyasn1_to_der(hash_pyasn1)
-    hash_pyasn1_again = asn1_convert.pyasn1_from_der(hash_der)
 
-    self.assertEqual(hash_pyasn1_alt, hash_pyasn1)
-    self.assertEqual(hash_der_alt, hash_der)
-    self.assertEqual(hash_pyasn1_again_alt, hash_pyasn1_again)
-    self.assertEqual(hash_pyasn1, hash_pyasn1_again)
+    h_expected_der = \
+        b'0*\x1a\x06sha256\x04 i\x90\xb6Xn\xd5E8|jQ\xdbb\x17;\x90:]\xffF\xb1{\x1b\xc3\xfe\x1el\xa0\xd0\x84O/'
+
+    self.conversion_check(
+        h,
+        asn1_convert.to_pyasn1,
+        #from_asn1_func=asn1_convert.from_pyasn1,   # TODO: DO NOT SKIP CONVERTING BACK
+        expected_der=h_expected_der,
+        second_arg=asn1_defs.Hash)
+
+
+    # # Manual, without conversion_check:
+    # hash_pyasn1 = asn1_convert.to_pyasn1(h, asn1_defs.Hash)
+    # hash_der = asn1_convert.pyasn1_to_der(hash_pyasn1)
+    # hash_pyasn1_again = asn1_convert.pyasn1_from_der(hash_der)
+
+    # self.assertEqual(hash_pyasn1_alt, hash_pyasn1)
+    # self.assertEqual(hash_der_alt, hash_der)
+    # self.assertEqual(hash_pyasn1_again_alt, hash_pyasn1_again)
+    # self.assertEqual(hash_pyasn1, hash_pyasn1_again)
 
 
     # Try a Hashes object, more complex yet.
@@ -171,34 +214,55 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     expected_der = b'1x0*\x1a\x06sha256\x04 i\x90\xb6Xn\xd5E8|jQ\xdbb\x17;\x90:]\xffF\xb1{\x1b\xc3\xfe\x1el\xa0\xd0\x84O/0J\x1a\x06sha512\x04@\x124Vx\x90\xab\xcd\xef\x00\x00\x00\x00\x02\x17;\x90:]\xffF\xb1{\x1b\xc3\xfe\x1el\xa0\xd0\x84O/i\x90\xb6Xn\xd5E8|jQ\xdbb\x17;\x90:]\xffF\xb1{\x1b\xc3\xfe\x1el\xa0\xd0\x84O/'
 
 
-    hashes_pyasn1_alt = asn1_convert.hashes_to_pyasn1(hashes_dict)
+    # Test using the custom converter for hashes, hashes_to_pyasn1.
+    hashes_asn1_alt, junk = self.conversion_check(
+        hashes_dict,
+        asn1_convert.hashes_to_pyasn1,
+        #from_asn1_func=asn1_convert.hashes_from_pyasn1,   # TODO: DO NOT SKIP CONVERTING BACK; func not yet written?
+        expected_der=expected_der)
 
-    hashes_pyasn1 = asn1_convert.to_pyasn1(
-        hashes_dict, asn1_defs.Hashes)
+    # Test using the generic converter, to_pyasn1.
+    hashes_asn1, junk = self.conversion_check(
+        hashes_dict,
+        asn1_convert.to_pyasn1,
+        #from_asn1_func=asn1_convert.from_pyasn1,   # TODO: DO NOT SKIP CONVERTING BACK
+        expected_der=expected_der,
+        second_arg=asn1_defs.Hashes)
 
-    # Repeat the same conversion. This catches some odd errors that I won't
-    # explain here -- see the comments in asn1_convert.py pertaining to the
-    # line that reads:
-    #          sample_component_obj = type(datatype.componentType)()
-    hashes_pyasn1 = asn1_convert.to_pyasn1(
-        hashes_dict, asn1_defs.Hashes)
+    # Compare the two ASN.1 results (from specific and generic converters) to
+    # each other.
+    self.assertEqual(hashes_asn1_alt, hashes_asn1)
 
-    # Both methods of generating Hashes objects should yield the same result.
-    self.assertEqual(hashes_pyasn1_alt, hashes_pyasn1)
 
-    hashes_der_alt = asn1_convert.pyasn1_to_der(hashes_pyasn1_alt)
-    hashes_der = asn1_convert.pyasn1_to_der(hashes_pyasn1)
 
-    self.assertEqual(expected_der, hashes_der_alt)
-    self.assertEqual(expected_der, hashes_der)
+    # Test manually, without conversion_check
+
+    # hashes_pyasn1_alt = asn1_convert.hashes_to_pyasn1(hashes_dict)
+
+    # hashes_pyasn1 = asn1_convert.to_pyasn1(
+    #     hashes_dict, asn1_defs.Hashes)
+
+    # # Repeat the same conversion. This catches some odd errors that I won't
+    # # explain here -- see the comments in asn1_convert.py pertaining to the
+    # # line that reads:
+    # #          sample_component_obj = type(datatype.componentType)()
+    # hashes_pyasn1 = asn1_convert.to_pyasn1(
+    #     hashes_dict, asn1_defs.Hashes)
+
+    # # Both methods of generating Hashes objects should yield the same result.
+    # self.assertEqual(hashes_pyasn1_alt, hashes_pyasn1)
+
+    # hashes_der_alt = asn1_convert.pyasn1_to_der(hashes_pyasn1_alt)
+    # hashes_der = asn1_convert.pyasn1_to_der(hashes_pyasn1)
+
+    # self.assertEqual(expected_der, hashes_der_alt)
+    # self.assertEqual(expected_der, hashes_der)
 
 
 
 
 
   def test_to_pyasn1_keys(self):
-
-    # Try key objects.
 
     # Import some public keys.
     ed_pub_fname = os.path.join(
@@ -209,9 +273,27 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     ed_pub = repo_tool.import_ed25519_publickey_from_file(ed_pub_fname)
     rsa_pub = repo_tool.import_rsa_publickey_from_file(rsa_pub_fname)
 
-    # Convert them.
-    ed_pub_pyasn1 = asn1_convert.to_pyasn1(ed_pub, asn1_defs.PublicKey)
-    rsa_pub_pyasn1 = asn1_convert.to_pyasn1(rsa_pub, asn1_defs.PublicKey)
+    # Expected DER results from converting the keys:
+    ed_key_expected_der = \
+        b'0&\x1a\x07ed25519\x1a\x07ed255191\x000\x10\x1a\x06sha256\x1a\x06sha512'
+    rsa_key_expected_der = \
+        b'0,\x1a\x03rsa\x1a\x11rsassa-pss-sha2561\x000\x10\x1a\x06sha256\x1a\x06sha512'
+
+
+    # Convert them and test along the way.
+    self.conversion_check(
+        ed_pub,
+        asn1_convert.to_pyasn1,
+        # from_asn1_func=asn1_convert.from_pyasn1,   # TODO: DO NOT SKIP CONVERTING BACK
+        expected_der=ed_key_expected_der,
+        second_arg=asn1_defs.PublicKey)
+
+    self.conversion_check(
+        rsa_pub,
+        asn1_convert.to_pyasn1,
+        # from_asn1_func=asn1_convert.from_pyasn1,   # TODO: DO NOT SKIP CONVERTING BACK
+        expected_der=rsa_key_expected_der,
+        second_arg=asn1_defs.PublicKey)
 
 
 
