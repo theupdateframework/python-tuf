@@ -7,17 +7,18 @@ supported. Please see the TUF specification for the JSON format and more
 detailed explanation of TUF metadata.
 
 The TUF implementation in this repository uses modules in tuf.encoding and
-the Python library pyasn1 to construct, convert, encode, and decode metadata
+the Python library asn1crypto to construct, convert, encode, and decode metadata
 using ASN.1 and ASN.1/DER.
 
+This file is likely to be of use for those trying to ensure compatibility with
+the reference implementation but not using Python or using a different ASN.1
+implementation.
 
-NO: CURRENTLY SKIPPING THIS STEP:
-  We compile this abstract file into a slightly lower level version of this
-  file (with IMPLICIT markers and sequence positions) using asn1c and then
+The reference implementation uses module asn1_metadata_definitions.py to define
+the Python- and asn1crypto-compatible form of these metadata definitions.
 
-We convert this file into a Python module, metadata_asn1_definitions.py, which
-pyasn1 and those modules can use. The instructions for doing this are included
-at the top of metadata_asn1_definitions.py
+As a result, this file and asn1_metadata_definitions.py MUST remain consistent
+with each other!
 
 
 This file is organized into five sections:
