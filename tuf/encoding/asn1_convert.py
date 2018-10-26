@@ -571,16 +571,16 @@ def _list_to_pyasn1(data, datatype):
 
   pyasn1_obj = datatype() # DEBUG
 
-  for i in range(0,len(data)):
-    datum = data[i]
+  if None is getattr(datatype, 'componentType', None):
+    # TODO: Use a better exception class, if you decide to keep this.
+    # It's useful in debugging because the error we get if we don't
+    # specifically detect this may be misleading.
+    raise tuf.exceptions.Error('Unable to determine type of component in a '
+        'list. datatype of list: ' + str(datatype) + '; componentType '
+        'appears to be None')
 
-    if None is getattr(datatype, 'componentType', None):
-      # TODO: Use a better exception class, if you decide to keep this.
-      # It's useful in debugging because the error we get if we don't
-      # specifically detect this may be misleading.
-      raise tuf.exceptions.Error('Unable to determine type of component in a '
-          'list. datatype of list: ' + str(datatype) + '; componentType '
-          'appears to be None')
+  for i in range(0, len(data)):
+    datum = data[i]
 
     debug('In conversion of list to type ' + str(datatype) + ', recursing '
         'to convert subcomponent of type ' + str(type(datatype.componentType)))
