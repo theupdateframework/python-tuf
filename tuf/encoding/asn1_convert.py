@@ -676,3 +676,180 @@ def _listlike_dict_to_pyasn1(data, datatype):
     i += 1
 
   return pyasn1_obj
+
+
+
+
+
+
+
+def from_pyasn1(data, datatype):
+  """
+  # TODO: DOCSTRING and clean the below up to match to_pyasn1 style
+  """
+  global recursion_level
+  recursion_level += 1
+
+  debug('from_pyasn1() called to convert from ' + str(datatype) + '. pyasn1 '
+      'Data: ' + str(data))
+
+  if isinstance(data, pyasn1_univ.Integer):
+    d = int(data)
+    debug('Completed conversion to int from ' + str(datatype)) # DEBUG
+    recursion_level -= 1
+    return d
+
+  elif isinstance(data, pyasn1_char.VisibleString):
+    d = str(data)
+    debug('Completed conversion to string from ' + str(datatype)) # DEBUG
+    recursion_level -= 1
+    return d
+
+  elif isinstance(data, pyasn1_univ.OctetString):
+    d = hex_str_from_pyasn1_octets(data)
+    debug('Completed conversion to hex string from ' + str(datatype)) # DEBUG
+    recursion_level -= 1
+    return d
+
+  elif isinstance(data.componentType, pyasn1_namedtype.NamedTypes):
+    assert isinstance(data, pyasn1_univ.Sequence) or isinstance(data, pyasn1_univ.Set), 'Expectation broken during drafting' # TEMPORARY, DO NOT MERGE
+    debug('Converting to struct-like dict from ' + str(datatype)) # DEBUG
+    d = _structlike_dict_from_pyasn1(data, datatype)
+    debug('Completed conversion to struct-like dict from ' + str(datatype)) # DEBUG
+    recursion_level -= 1
+    return d
+
+
+  elif isinstance(data, pyasn1_univ.SequenceOf) \
+      or isinstance(data, pyasn1_univ.SetOf):
+
+    # Have to decide how to decide if we're converting to a list or a list-like
+    # dict..... This is tricky....
+    # if isinstance(data, list):
+
+      # Converting to a list from a datatype similar to a list of
+      # conceptually-similar objects, without distinct named fields.
+      debug('Converting to a list from ' + str(datatype)) # DEBUG
+      d = _list_from_pyasn1(data, datatype)
+      debug('Completed conversion to list from ' + str(datatype)) # DEBUG
+      recursion_level -= 1
+      return d
+
+    # elif isinstance(data, dict):
+    #   debug('Converting to list-like dict from ' + str(datatype)) # DEBUG
+    #   # Converting from a dict to a datatype similar to a list of
+    #   # conceptually-similar objects, without distinct named fields.
+    #   d = _listlike_dict_from_pyasn1(data, datatype)
+    #   debug('Completed conversion to list-like dict from ' + str(datatype)) # DEBUG
+    #   recursion_level -= 1
+    #   return d
+
+
+  else:
+    # TODO: Use a better error class for ASN.1 conversion errors.
+    recursion_level -= 1
+    raise tuf.exceptions.Error('Unable to determine how to automatically '
+        'convert data from pyasn1 data.  Can only handle primitives to Integer/'
+        'VisibleString/OctetString, or list-like dict from list-like pyasn1, '
+        'or struct-like dict to struct-like pyasn1.  '
+        'Source data type: ' + str(datatype))
+
+
+
+
+
+
+
+
+
+
+def _listlike_dict_from_pyasn1(data, datatype):
+  """
+  TODO: Docstring, modeled off _listlike_dict_to_pyasn1
+  Also adjust style of function below and clean up.
+  """
+
+  raise NotImplementedError()
+
+
+
+
+
+def _structlike_dict_from_pyasn1(data, datatype):
+  """
+  TODO: Docstring, modeled off _structlike_dict_to_pyasn1
+  Also adjust style of function below and clean up.
+  """
+  d = {}
+
+  # For a datatype that is a Sequence (or Set) with named types, the
+  # componentType object should be a NamedTypes object that will tell us the
+  # names and types that datatype contains.
+  named_types_obj = datatype.componentType
+  assert isinstance(named_types_obj, pyasn1_namedtype.NamedTypes) # TEMPORARY, DO NOT MERGE; generate error instead
+
+  # Determine how many elements objects of type datatype have.
+  num_elements = len(named_types_obj)
+
+  # Iterate over the fields in an object of type datatype.  Check to see if
+  # each is in data, and feed them in if so, by recursing.
+  for i in range(0, num_elements):
+
+    # Discern the named values and the classes of the component objects.
+    # We'll use the names extracted to determine which fields in data to assign
+    # to each element of pyasn1_obj, and use the types to instantiate individual
+    # pyasn1 objects for each.
+    element_name = named_types_obj.getNameByPosition(i)
+    element_type = type(named_types_obj.getTypeByPosition(i)) # not clear why this isn't already a type...
+
+    # In ASN.1, '_' is invalid in variable names and '-' is valid. The opposite
+    # is true of Python, so we swap.
+    element_name_python = element_name.replace('-', '_')
+
+    # # Is there an entry in data that corresponds to this?
+    # if element_name_python in data:
+    #   # If there are matching names in the source and destination structures,
+    #   # transfer the data, recursing to instantiate a pyasn1 object of the
+    #   # expected type.
+    debug('In conversion to struct-like dict from ' + str(datatype) + ', '
+        'recursing to convert subcomponent of type ' + str(element_type)) # DEBUG
+    element = from_pyasn1(data[element_name], element_type)
+    d[element_name_python] = element
+
+  return d
+
+
+
+
+
+def _list_from_pyasn1(data, datatype):
+  """
+  TODO: Docstring, modeled off _list_to_pyasn1
+  Also adjust style of function below and clean up.
+  """
+
+  list_python = []
+
+  if None is getattr(datatype, 'componentType', None):
+    # TODO: Use a better exception class, if you decide to keep this.
+    # It's useful in debugging because the error we get if we don't
+    # specifically detect this may be misleading.
+    raise tuf.exceptions.Error('Unable to determine type of component in a '
+        'list. datatype of list: ' + str(datatype) + '; componentType '
+        'appears to be None')
+
+  for i in range(0, len(data)):
+    datum = data[i]
+
+
+    debug('In conversion to list from type ' + str(datatype) + ', recursing '
+        'to convert subcomponent of type ' + str(type(datatype.componentType)))
+
+    datum_python = from_pyasn1(datum, type(datatype.componentType)) # Not sure why componentType is an instance, not a class....
+    list_python.append(datum_python)
+
+  return list_python
+
+
+
+  raise NotImplementedError()
