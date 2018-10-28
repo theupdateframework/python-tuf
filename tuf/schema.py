@@ -514,7 +514,7 @@ class ListOf(Schema):
   
   def check_match(self, object):
     if not isinstance(object, (list, tuple)):
-      message = 'Expected '+repr(self._list_name)+' but got '+repr(object)
+      message = 'Expected '+repr(self._list_name)+' but got '+type(object)
       raise tuf.FormatError(message)
 
     # Check if all the items in the 'object' list
