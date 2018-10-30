@@ -29,10 +29,14 @@ import unittest
 import os
 import logging
 # Dependency Imports
+import asn1crypto as asn1
+import asn1crypto.core as asn1_core
+'''
 import pyasn1
 import pyasn1.type.univ as pyasn1_univ
 import pyasn1.type.char as pyasn1_char
 import pyasn1.codec.der.encoder as pyasn1_der_encoder
+'''
 # TUF Imports
 import tuf
 import tuf.log
@@ -63,6 +67,43 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
 
 
 
+  def test_baseline(self):
+    """
+    Fail if basic asn1crypto functionality is broken.
+    Use Integer and VisibleString.
+    """
+
+    i = asn1_core.Integer(5)
+    self.assertEqual(5, i.native)
+
+    i_der = i.dump()
+    self.assertEqual(b'\x02\x01\x05', i_der)
+
+    # Convert back and test.
+    self.assertEqual(5, asn1_core.load(i_der).native)
+    self.assertEqual(5, asn1_core.Integer.load(i_der).native)
+
+
+    s = 'testword'
+    expected_der_of_string = b'\x1a\x08testword'
+
+    s_asn1 = asn1_core.VisibleString(s)
+    self.assertEqual(s, s_asn1.native)
+
+    s_der = s_asn1.dump()
+    self.assertEqual(expected_der_of_string, s_der)
+
+    self.assertEqual(s_asn1, asn1_core.load(s_der))
+    self.assertEqual(s_asn1, asn1_core.VisibleString.load(s_der))
+
+    self.assertEqual(s, asn1_core.load(s_der).native)
+    self.assertEqual(s, asn1_core.VisibleString.load(s_der).native)
+
+
+
+
+  '''
+
   def baseline_convert_and_encode(self):
     """
     Fail if basic pyasn1 functionality is broken.
@@ -80,7 +121,7 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_hex_string_octets_conversions(self):
+  def test_hex_string_octets_conversions_pyasn1(self):
     hex_string = '01234567890abcdef0'
     expected_der_of_octet_string = b'\x04\t\x01#Eg\x89\n\xbc\xde\xf0'
 
@@ -134,8 +175,8 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     expected_der = \
         b'0\x18\x04\x03\x124V\x1a\x07magical\x04\x08\xab\xcd\xef\x124Vx\x90'
 
-    """sig_asn1, sig_der = self.conversion_check("""
-    self.conversion_check(
+    """sig_asn1, sig_der = self.conversion_check_pyasn1("""
+    self.conversion_check_pyasn1(
         sig,
         asn1_convert.to_pyasn1,
         from_asn1_func=asn1_convert.from_pyasn1,
@@ -183,7 +224,7 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     h_expected_der = \
         b'0*\x1a\x06sha256\x04 i\x90\xb6Xn\xd5E8|jQ\xdbb\x17;\x90:]\xffF\xb1{\x1b\xc3\xfe\x1el\xa0\xd0\x84O/'
 
-    self.conversion_check(
+    self.conversion_check_pyasn1(
         h,
         asn1_convert.to_pyasn1,
         #from_asn1_func=asn1_convert.from_pyasn1,   # TODO: DO NOT SKIP CONVERTING BACK
@@ -215,14 +256,14 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
 
 
     # Test using the custom converter for hashes, hashes_to_pyasn1.
-    hashes_asn1_alt, junk = self.conversion_check(
+    hashes_asn1_alt, junk = self.conversion_check_pyasn1(
         hashes_dict,
         asn1_convert.hashes_to_pyasn1,
         #from_asn1_func=asn1_convert.hashes_from_pyasn1,   # TODO: DO NOT SKIP CONVERTING BACK; func not yet written?
         expected_der=expected_der)
 
     # Test using the generic converter, to_pyasn1.
-    hashes_asn1, junk = self.conversion_check(
+    hashes_asn1, junk = self.conversion_check_pyasn1(
         hashes_dict,
         asn1_convert.to_pyasn1,
         #from_asn1_func=asn1_convert.from_pyasn1,   # TODO: DO NOT SKIP CONVERTING BACK
@@ -281,14 +322,14 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
 
 
     # Convert them and test along the way.
-    self.conversion_check(
+    self.conversion_check_pyasn1(
         ed_pub,
         asn1_convert.to_pyasn1,
         # from_asn1_func=asn1_convert.from_pyasn1,   # TODO: DO NOT SKIP CONVERTING BACK
         expected_der=ed_key_expected_der,
         second_arg=asn1_defs.PublicKey)
 
-    self.conversion_check(
+    self.conversion_check_pyasn1(
         rsa_pub,
         asn1_convert.to_pyasn1,
         # from_asn1_func=asn1_convert.from_pyasn1,   # TODO: DO NOT SKIP CONVERTING BACK
@@ -340,7 +381,7 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     expected_der = asn1_convert.pyasn1_to_der(expected_pyasn1)
 
 
-    hashes_of_snapshot_pyasn1, hashes_of_snapshot_der = self.conversion_check(
+    hashes_of_snapshot_pyasn1, hashes_of_snapshot_der = self.conversion_check_pyasn1(
         hashes_of_snapshot,
         asn1_convert.to_pyasn1,
         # from_asn1_func=asn1_convert.from_pyasn1,   # TODO: DO NOT SKIP CONVERTING BACK
@@ -413,7 +454,7 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     hashes_dict = {hash_type1: hash_value1, hash_type2: hash_value2}
     expected_der = b'1x0*\x1a\x06sha256\x04 i\x90\xb6Xn\xd5E8|jQ\xdbb\x17;\x90:]\xffF\xb1{\x1b\xc3\xfe\x1el\xa0\xd0\x84O/0J\x1a\x06sha512\x04@\x124Vx\x90\xab\xcd\xef\x00\x00\x00\x00\x02\x17;\x90:]\xffF\xb1{\x1b\xc3\xfe\x1el\xa0\xd0\x84O/i\x90\xb6Xn\xd5E8|jQ\xdbb\x17;\x90:]\xffF\xb1{\x1b\xc3\xfe\x1el\xa0\xd0\x84O/'
 
-    hashes_pyasn1, hashes_der = self.conversion_check(
+    hashes_pyasn1, hashes_der = self.conversion_check_pyasn1(
         hashes_dict, asn1_convert.hashes_to_pyasn1, expected_der=expected_der)
 
     self.assertEqual(len(hashes_dict), len(hashes_pyasn1))
@@ -451,7 +492,7 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
 
 
 
-  def conversion_check(self, data, to_asn1_func,
+  def conversion_check_pyasn1(self, data, to_asn1_func,
       from_asn1_func=None, expected_der=None, second_arg=None):
     """
     By default:
@@ -511,6 +552,11 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     # is to be done, specific to the particular data.
     return data_asn1, data_der
 
+
+  '''
+
+  def conversion_check(self, data      ):
+    raise NotImplementedError()
 
 
 # Run unit test.
