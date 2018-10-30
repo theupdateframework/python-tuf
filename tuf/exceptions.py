@@ -279,3 +279,11 @@ class InvalidConfigurationError(Error):
   """If a configuration object does not match the expected format."""
   pass
 
+
+class ASN1ConversionError(Error):
+  """
+  If an object cannot be converted from TUF's internal metadata format (as
+  defined in the specification) to the ASN.1 format this implementation allows,
+  or vice versa.
+  """
+  pass

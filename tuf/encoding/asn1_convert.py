@@ -248,7 +248,7 @@ def hex_str_to_pyasn1_octets(hex_string):
   # TODO: Verify hex_string type.
 
   if len(hex_string) % 2:
-    raise tuf.exceptions.Error(
+    raise tuf.exceptions.ASN1ConversionError(
         'Expecting hex strings with an even number of digits, since hex '
         'strings provide 2 characters per byte.  We prefer not to pad values '
         'implicitly.')
@@ -283,7 +283,7 @@ def hex_str_from_pyasn1_octets(octets_pyasn1):
 
   for x in octets:
     if x < 0 or x > 255:
-      raise tuf.exceptions.Error(
+      raise tuf.exceptions.ASN1ConversionError(
           'Unable to generate hex string from OctetString: integer value of '
           'octet provided is not in range: ' + str(x))
     hex_string += '%.2x' % x
@@ -359,7 +359,7 @@ def to_pyasn1(data, datatype):
     debug('Converting a (hopefully-)primitive value to ' + str(datatype)) # DEBUG
     tuf.formats.HEX_SCHEMA.check_match(data)
     if len(data) % 2:
-      raise tuf.exceptions.Error(
+      raise tuf.exceptions.ASN1ConversionError(
           'Expecting hex strings with an even number of digits, since hex '
           'strings provide 2 characters per byte.  We prefer not to pad values '
           'implicitly.')
@@ -436,9 +436,9 @@ def to_pyasn1(data, datatype):
     return pyasn1_obj
 
   else:
-    # TODO: Use a better error class for ASN.1 conversion errors.
     recursion_level -= 1
-    raise tuf.exceptions.Error('Unable to determine how to automatically '
+    raise tuf.exceptions.ASN1ConversionError(
+        'Unable to determine how to automatically '
         'convert data into pyasn1 data.  Can only handle primitives to Integer/'
         'VisibleString/OctetString, or list to list-like pyasn1, or list-like '
         'dict to list-like pyasn1, or struct-like dict to struct-like pyasn1.  '
@@ -531,8 +531,8 @@ def _structlike_dict_to_pyasn1(data, datatype):
     #     pyasn1_obj[element_name] = len(data[relevant_element_name_python])
 
     #   else:
-    #     # TODO: Use a better exception class, relevant to ASN1 conversion.
-    #     raise tuf.exceptions.Error('When converting dict into pyasn1, '
+    #     raise tuf.exceptions.ASN1ConversionError(
+    #         'When converting dict into pyasn1, '
     #         'found an element that appeared to be a "num-"-prefixed '
     #         'length-of-list for another element; however, did not find '
     #         'corresponding element to calculate length of. Element name: ' +
@@ -542,8 +542,8 @@ def _structlike_dict_to_pyasn1(data, datatype):
     else:
       # Found an element name in datatype that does not match anything in
       # data (MOOT: and does not begin with 'num-').
-      # TODO: Use a better exception class, relevant to ASN1 conversion.
-      raise tuf.exceptions.Error('Unable to convert dict into pyasn1: it '
+      raise tuf.exceptions.ASN1ConversionError(
+          'Unable to convert dict into pyasn1: it '
           'seems to be missing elements.  dict does not contain "' +
           element_name + '". Datatype for conversion: ' + str(datatype) +
           '; dict contents: ' + str(data))
@@ -572,10 +572,11 @@ def _list_to_pyasn1(data, datatype):
   pyasn1_obj = datatype() # DEBUG
 
   if None is getattr(datatype, 'componentType', None):
-    # TODO: Use a better exception class, if you decide to keep this.
+    # TODO: Determine whether or not to keep this error.
     # It's useful in debugging because the error we get if we don't
     # specifically detect this may be misleading.
-    raise tuf.exceptions.Error('Unable to determine type of component in a '
+    raise tuf.exceptions.ASN1ConversionError(
+        'Unable to determine type of component in a '
         'list. datatype of list: ' + str(datatype) + '; componentType '
         'appears to be None')
 
@@ -660,7 +661,7 @@ def _listlike_dict_to_pyasn1(data, datatype):
     # We are assuming that we can convert in={k1: v1, k2: v2, ...} to
     # out[i][0] = k1, out[0][1] = v1,
     # TODO: more useful error message and conversion-specific exception class
-    raise tuf.exceptions.Error()
+    raise tuf.exceptions.ASN1ConversionError()
 
   i = 0
   for key in data:
@@ -746,9 +747,9 @@ def from_pyasn1(data, datatype):
 
 
   else:
-    # TODO: Use a better error class for ASN.1 conversion errors.
     recursion_level -= 1
-    raise tuf.exceptions.Error('Unable to determine how to automatically '
+    raise tuf.exceptions.ASN1ConversionError(
+        'Unable to determine how to automatically '
         'convert data from pyasn1 data.  Can only handle primitives to Integer/'
         'VisibleString/OctetString, or list-like dict from list-like pyasn1, '
         'or struct-like dict to struct-like pyasn1.  '
@@ -831,10 +832,11 @@ def _list_from_pyasn1(data, datatype):
   list_python = []
 
   if None is getattr(datatype, 'componentType', None):
-    # TODO: Use a better exception class, if you decide to keep this.
+    # TODO: Determine whether or not to keep this error.
     # It's useful in debugging because the error we get if we don't
     # specifically detect this may be misleading.
-    raise tuf.exceptions.Error('Unable to determine type of component in a '
+    raise tuf.exceptions.ASN1ConversionError(
+        'Unable to determine type of component in a '
         'list. datatype of list: ' + str(datatype) + '; componentType '
         'appears to be None')
 
