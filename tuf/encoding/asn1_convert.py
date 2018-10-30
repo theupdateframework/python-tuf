@@ -432,8 +432,8 @@ def to_pyasn1(data, datatype):
   # function and a recursing private helper function. Consider tying the max
   # depth to some dynamic analysis of asn1_metadata_definitions.py...? Nah?
   """
-  global recursion_level
-  recursion_level += 1
+  global recursion_level # DEBUG
+  recursion_level += 1 # DEBUG
 
   # Instantiate an object of class datatype.  This is used for introspection
   # and then replaced.
@@ -451,7 +451,7 @@ def to_pyasn1(data, datatype):
     debug('Converting a (hopefully-)primitive value to: ' + str(datatype)) # DEBUG
     pyasn1_obj = datatype(data)
     debug('Completed conversion of primitive to ' + str(datatype)) # DEBUG
-    recursion_level -= 1
+    recursion_level -= 1 # DEBUG
     return pyasn1_obj
 
   elif isinstance(pyasn1_obj, pyasn1_univ.OctetString):
@@ -484,7 +484,7 @@ def to_pyasn1(data, datatype):
     # pyasn1.type.univ.OctetString.
     pyasn1_obj = datatype(hexValue=data)
     debug('Completed conversion of primitive to ' + str(datatype)) # DEBUG
-    recursion_level -= 1
+    recursion_level -= 1 # DEBUG
     return pyasn1_obj
 
 
@@ -528,7 +528,7 @@ def to_pyasn1(data, datatype):
     debug('Converting a struct-like dict to ' + str(datatype)) # DEBUG
     pyasn1_obj = _structlike_dict_to_pyasn1(data, datatype)
     debug('Completed conversion of struct-like dict to ' + str(datatype)) # DEBUG
-    recursion_level -= 1
+    recursion_level -= 1 # DEBUG
     return pyasn1_obj
 
   elif isinstance(data, list):
@@ -538,7 +538,7 @@ def to_pyasn1(data, datatype):
     debug('Converting a list to ' + str(datatype)) # DEBUG
     pyasn1_obj = _list_to_pyasn1(data, datatype)
     debug('Completed conversion of list to ' + str(datatype)) # DEBUG
-    recursion_level -= 1
+    recursion_level -= 1 # DEBUG
     return pyasn1_obj
 
   elif isinstance(data, dict):
@@ -548,11 +548,11 @@ def to_pyasn1(data, datatype):
     # conceptually-similar objects, without distinct named fields.
     pyasn1_obj = _listlike_dict_to_pyasn1(data, datatype)
     debug('Completed conversion of list-like dict to ' + str(datatype)) # DEBUG
-    recursion_level -= 1
+    recursion_level -= 1 # DEBUG
     return pyasn1_obj
 
   else:
-    recursion_level -= 1
+    recursion_level -= 1 # DEBUG
     raise tuf.exceptions.ASN1ConversionError(
         'Unable to determine how to automatically '
         'convert data into pyasn1 data.  Can only handle primitives to Integer/'
@@ -866,15 +866,8 @@ def to_asn1(data, datatype):
   debug('to_asn1() called to convert to ' + str(datatype) + '. Data: ' +
       str(data))
 
-
-  # return datatype.load(data)
-
-
-  # TODO: Add max recursion depth, and possibly split this into a high-level
-  # function and a recursing private helper function. Consider tying the max
-  # depth to some dynamic analysis of asn1_metadata_definitions.py...? Nah?
-  global recursion_level
-  recursion_level += 1
+  global recursion_level # DEBUG
+  recursion_level += 1 # DEBUG
 
 
 
@@ -887,7 +880,7 @@ def to_asn1(data, datatype):
     debug('Converting a (hopefully-)primitive value to: ' + str(datatype)) # DEBUG
     asn1_obj = datatype(data)
     debug('Completed conversion of primitive to ' + str(datatype)) # DEBUG
-    recursion_level -= 1
+    recursion_level -= 1 # DEBUG
     return asn1_obj
 
   elif issubclass(datatype, asn1_core.OctetString):
@@ -908,7 +901,7 @@ def to_asn1(data, datatype):
     # asn1crypto.core.OctetString.
     asn1_obj = datatype(bytes.fromhex(data))
     debug('Completed conversion of primitive to ' + str(datatype)) # DEBUG
-    recursion_level -= 1
+    recursion_level -= 1 # DEBUG
     return asn1_obj
 
 
@@ -964,7 +957,7 @@ def to_asn1(data, datatype):
       debug('Converting a list-like dict to ' + str(datatype)) # DEBUG
       asn1_obj = _listlike_dict_to_asn1(data, datatype)
       debug('Completed conversion of list-like dict to ' + str(datatype)) # DEBUG
-      recursion_level -= 1
+      recursion_level -= 1 # DEBUG
       return asn1_obj
 
     else:
@@ -984,7 +977,7 @@ def to_asn1(data, datatype):
 
 
   else:
-    recursion_level -= 1
+    recursion_level -= 1 # DEBUG
     raise tuf.exceptions.ASN1ConversionError(
         'Unable to determine how to automatically '
         'convert data into ASN.1 data.  Can only handle primitives to Integer/'
@@ -1032,8 +1025,8 @@ def from_pyasn1(data, datatype):
   """
   # TODO: DOCSTRING and clean the below up to match to_pyasn1 style
   """
-  global recursion_level
-  recursion_level += 1
+  global recursion_level # DEBUG
+  recursion_level += 1 # DEBUG
 
   debug('from_pyasn1() called to convert from ' + str(datatype) + '. pyasn1 '
       'Data: ' + str(data))
@@ -1041,19 +1034,19 @@ def from_pyasn1(data, datatype):
   if isinstance(data, pyasn1_univ.Integer):
     d = int(data)
     debug('Completed conversion to int from ' + str(datatype)) # DEBUG
-    recursion_level -= 1
+    recursion_level -= 1 # DEBUG
     return d
 
   elif isinstance(data, pyasn1_char.VisibleString):
     d = str(data)
     debug('Completed conversion to string from ' + str(datatype)) # DEBUG
-    recursion_level -= 1
+    recursion_level -= 1 # DEBUG
     return d
 
   elif isinstance(data, pyasn1_univ.OctetString):
     d = hex_str_from_pyasn1_octets(data)
     debug('Completed conversion to hex string from ' + str(datatype)) # DEBUG
-    recursion_level -= 1
+    recursion_level -= 1 # DEBUG
     return d
 
   elif isinstance(data.componentType, pyasn1_namedtype.NamedTypes):
@@ -1061,7 +1054,7 @@ def from_pyasn1(data, datatype):
     debug('Converting to struct-like dict from ' + str(datatype)) # DEBUG
     d = _structlike_dict_from_pyasn1(data, datatype)
     debug('Completed conversion to struct-like dict from ' + str(datatype)) # DEBUG
-    recursion_level -= 1
+    recursion_level -= 1 # DEBUG
     return d
 
 
@@ -1077,7 +1070,7 @@ def from_pyasn1(data, datatype):
       debug('Converting to a list from ' + str(datatype)) # DEBUG
       d = _list_from_pyasn1(data, datatype)
       debug('Completed conversion to list from ' + str(datatype)) # DEBUG
-      recursion_level -= 1
+      recursion_level -= 1 # DEBUG
       return d
 
     # elif isinstance(data, dict):
@@ -1086,12 +1079,12 @@ def from_pyasn1(data, datatype):
     #   # conceptually-similar objects, without distinct named fields.
     #   d = _listlike_dict_from_pyasn1(data, datatype)
     #   debug('Completed conversion to list-like dict from ' + str(datatype)) # DEBUG
-    #   recursion_level -= 1
+    #   recursion_level -= 1 # DEBUG
     #   return d
 
 
   else:
-    recursion_level -= 1
+    recursion_level -= 1 # DEBUG
     raise tuf.exceptions.ASN1ConversionError(
         'Unable to determine how to automatically '
         'convert data from pyasn1 data.  Can only handle primitives to Integer/'
