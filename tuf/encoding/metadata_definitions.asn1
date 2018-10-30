@@ -184,7 +184,7 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   RootMetadata ::= SEQUENCE {
     type                VisibleString,     -- ("root"),
-    expires             IntegerNatural, --date&time, UTC, as a UNIX timestamp
+    expires             VisibleString, --date&time, UTC, as a UNIX timestamp
     version             IntegerNatural,
     consistent-snapshot BOOLEAN,
     keys                SET OF PublicKey,                      -- unordered set
@@ -200,7 +200,7 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   TimestampMetadata ::= SEQUENCE {
     type                VisibleString,     -- ("timestamp"),
-    expires             IntegerNatural,  -- date&time, UTC, as a UNIX timestamp
+    expires             VisibleString,  -- date&time, UTC, as a UNIX timestamp
     version             IntegerNatural,
 
     meta                SET OF RoleInfoLong                    -- unordered set
@@ -222,7 +222,7 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   SnapshotMetadata ::= SEQUENCE {
     type                VisibleString,     -- ("snapshot"),
-    expires             IntegerNatural,  -- date&time, UTC, as a UNIX timestamp
+    expires             VisibleString,  -- date&time, UTC, as a UNIX timestamp
     version             IntegerNatural,
 
     meta                SET OF RoleInfo                 -- unordered set
@@ -248,7 +248,7 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   TargetsMetadata ::= SEQUENCE {
     type                VisibleString,       -- allow delegated role names, too
-    expires             IntegerNatural,  -- date&time, UTC, as a UNIX timestamp
+    expires             VisibleString,  -- date&time, UTC, as a UNIX timestamp
     version             IntegerNatural,
 
     targets             SET OF Target,                -- unordered set
