@@ -23,7 +23,10 @@ from __future__ import division
 from __future__ import unicode_literals
 
 # Standard Library Imports
+import binascii # for bytes -> hex string conversions
 # Dependency Imports
+import asn1crypto as asn1
+import asn1crypto.core as asn1_core
 import pyasn1
 import pyasn1.type.univ as pyasn1_univ
 import pyasn1.type.char as pyasn1_char
@@ -43,6 +46,69 @@ recursion_level = -1
 def debug(msg):
   if DEBUG_MODE:
     print('R' + str(recursion_level) + ': ' + msg)
+
+
+def asn1_to_der(asn1_obj):
+  """
+  Encode any ASN.1 (in the form of a pyasn1 object) as DER (Distinguished
+  Encoding Rules), suitable for transport.
+
+  Note that this will raise pyasn1 errors if the encoding fails.
+  """
+  # TODO: Perform some minimal validation of the incoming object.
+  # TODO: Investigate the scenarios in which this could potentially result in
+  # BER-encoded data. (Looks pretty edge case.) See:
+  # https://github.com/wbond/asn1crypto/blob/master/docs/universal_types.md#basic-usage
+  return asn1_obj.dump()
+
+
+
+
+
+def asn1_from_der(der_obj, datatype=None):
+  """
+  Decode ASN.1 in the form of DER-encoded binary data (Distinguished Encoding
+  Rules), into a pyasn1 object representing abstract ASN.1 data.
+
+  Reverses asn1_to_der.
+
+  Arguments:
+
+    der_obj:
+      bytes.  A DER encoding of asn1 data.  (BER-encoded data may be
+      successfully decoded but should not be used in TUF.)
+
+    datatype:  (optional)
+      the class of asn1 data expected.  This should be compatible with
+      asn1crypto asn1 object classes (e.g. from asn1_metadata_definitions.py).
+
+      If datatype is not provided, the data will be decoded but might fail to
+      match the structure expected: e.g.:
+        - Instances of custom subclasses of Sequence will just be read as
+          instances of Sequence.
+        - Field names won't be captured. e.g. a Signature object will look like
+          an asn1 representation of this:
+            {'0':     b'1234...', '1':      'rsa...', '2':     'abcd...'}
+          instead of an asn1 representation of this:
+            {'keyid': b'1234...', 'method': 'rsa...', 'value': 'abcd...'}
+
+  """
+  # Make sure der_obj is bytes or bytes-like:
+  if not hasattr(der_obj, 'decode'):
+    raise TypeError(
+        'asn1_from_der expects argument der_obj to be a bytes or bytes-like '
+        'object, providing method "decode".  Provided object has no "decode" '
+        'method.  der_obj is of type: ' + str(type(der_obj)))
+
+  if datatype is None:
+    # Generic load DER as asn1
+    return asn1_core.load(der_obj)
+
+  else:
+    # Load DER as asn1, interpreting it as a particular structure.
+    return datatype.load(der_obj)
+
+
 
 
 
@@ -291,6 +357,51 @@ def hex_str_from_pyasn1_octets(octets_pyasn1):
     hex_string += '%.2x' % x
 
   # Make sure that the resulting value is a valid hex string.
+  tuf.formats.HEX_SCHEMA.check_match(hex_string)
+
+  return hex_string
+
+
+
+
+
+def hex_str_to_asn1_octets(hex_string):
+  """
+  Convert a hex string into an asn1 OctetString object.
+  Example arg: '12345abcd'  (string / unicode)
+  Returns an asn1crypto.core.OctetString object.
+  """
+  # TODO: Verify hex_string type.
+  tuf.formats.HEX_SCHEMA.check_match(hex_string)
+
+  if len(hex_string) % 2:
+    raise tuf.exceptions.ASN1ConversionError(
+        'Expecting hex strings with an even number of digits, since hex '
+        'strings provide 2 characters per byte.  We prefer not to pad values '
+        'implicitly.')
+
+  # Should be a string containing only hexadecimal characters, e.g. 'd3aa591c')
+  octets_asn1 = asn1_core.OctetString(bytes.fromhex(hex_string))
+
+  return octets_asn1
+
+
+
+
+
+def hex_str_from_asn1_octets(octets_asn1):
+  """
+  Convert an asn1 OctetString object into a hex string.
+  Example return:   '4b394ae2'
+  Raises Error() if an individual octet's supposed integer value is out of
+  range (0 <= x <= 255).
+  """
+  octets = octets_asn1.native
+
+  # Can't just use octets.hex() because that's Python3-only, so:
+  hex_string = binascii.hexlify(octets).decode('utf-8')
+
+  # Paranoia: make sure that the resulting value is a valid hex string.
   tuf.formats.HEX_SCHEMA.check_match(hex_string)
 
   return hex_string
@@ -679,6 +790,234 @@ def _listlike_dict_to_pyasn1(data, datatype):
     i += 1
 
   return pyasn1_obj
+
+
+
+
+
+
+
+
+
+
+
+def to_asn1(data, datatype):
+  """
+  Recursive (base case: datatype is ASN.1 version of int, str, or bytes)
+
+  Converts an object into an asn1crypto-compatible ASN.1 representation of that
+  object, using asn1crypto functionality.  In the process, we might have to do
+  some data surgery, in part because ASN.1 does not support dictionaries.
+
+  The scenarios we handle are these:
+    1- datatype is primitive
+    2- datatype is "list-like" (subclass of SequenceOf/SetOf) and:
+      2a- data is a list
+      2b- data is a "list-like" dict
+    3- datatype is "struct-like" (subclass of Sequence/Set) and data is a dict
+
+  Scenario 1: primitive
+    No recursion is necessary.  We can just convert to one of these classes
+    from asn1crypto.core: Integer, VisibleString, or OctetString, based on what
+    datatype is / is a subclass of.  (Note that issubclass() also returns True
+    if the classes given are the same; i.e. a class is its own subclass.)
+
+
+  Scenario 2: "list-like" (datatype is/subclasses SequenceOf/SetOf)
+    The resulting object will be integer-indexed and may be converted from
+    either a list or a dict.  Length might be variable See below.
+
+    Scenario 2a: "list-like" from list
+      Each element in data will map directly into an element of the returned
+      object, with the same integer indices.
+          e.g. data = ['some info about Robert', 'some info about Layla']
+        mapping such that:
+          asn1_obj[0] = some conversion of 'some info about Robert'
+          asn1_obj[1] = some conversion of 'some info about Layla'
+
+    Scenario 2b: "list-like" from dict
+      Each key-value pair in data will become a 2-tuple element in the returned
+      object.
+          e.g. data = {'Robert': '...', 'Layla': '...'}
+        mapping such that:
+          asn1_obj[0] = ('Robert', '...')
+          asn1_obj[1] = ('Layla', '...')
+
+
+  <Returns>
+    an instance of a class specified by the datatype argument, from module
+    tuf.encoding.asn1_metadata_definitions.
+
+  <Arguments>
+    data:
+      dict; a dictionary representing data to convert into ASN.1
+    datatype
+      type; the type (class) of the pyasn1-compatible class corresponding to
+      this type of object, generally from tuf.encoding.asn1_metadata_definitions
+
+  # TODO: Add max recursion depth, and possibly split this into a high-level
+  # function and a recursing private helper function. Consider tying the max
+  # depth to some dynamic analysis of asn1_metadata_definitions.py...? Nah?
+  """
+
+  debug('to_asn1() called to convert to ' + str(datatype) + '. Data: ' +
+      str(data))
+
+
+  # return datatype.load(data)
+
+
+  # TODO: Add max recursion depth, and possibly split this into a high-level
+  # function and a recursing private helper function. Consider tying the max
+  # depth to some dynamic analysis of asn1_metadata_definitions.py...? Nah?
+  global recursion_level
+  recursion_level += 1
+
+
+
+  # Check to see if it's a basic data type from among the list of basic data
+  # types we expect (Integer or VisibleString in one camp; OctetString in the
+  # other).  If so, re-initialize as such and return that new object.  These
+  # are the base cases of the recursion.
+  if issubclass(datatype, asn1_core.Integer) \
+      or issubclass(datatype, asn1_core.VisibleString):
+    debug('Converting a (hopefully-)primitive value to: ' + str(datatype)) # DEBUG
+    asn1_obj = datatype(data)
+    debug('Completed conversion of primitive to ' + str(datatype)) # DEBUG
+    recursion_level -= 1
+    return asn1_obj
+
+  elif issubclass(datatype, asn1_core.OctetString):
+    # If datatype is a subclass of OctetString, then we assume we have a hex
+    # string as input (only because that's the only thing in TUF metadata we'd
+    # want to store as an OctetString), so we'll make sure data is a hex string
+    # and then convert it into bytes, then turn it into an asn1crypto
+    # OctetString.
+    debug('Converting a (hopefully-)primitive value to ' + str(datatype)) # DEBUG
+    tuf.formats.HEX_SCHEMA.check_match(data)
+    if len(data) % 2:
+      raise tuf.exceptions.ASN1ConversionError(
+          'Expecting hex strings with an even number of digits, since hex '
+          'strings provide 2 characters per byte.  We prefer not to pad values '
+          'implicitly.')
+    # Don't be tempted to use hex_string_to_asn1_octets() here; we should
+    # convert to the datatype provided, which might be some subclass of
+    # asn1crypto.core.OctetString.
+    asn1_obj = datatype(bytes.fromhex(data))
+    debug('Completed conversion of primitive to ' + str(datatype)) # DEBUG
+    recursion_level -= 1
+    return asn1_obj
+
+
+  # Else, datatype is not a basic data type of any of the list of expected
+  # basic data types.  Assume we're converting to a Sequence, SequenceOf, Set,
+  # or SetOf.  The input should therefore be a list or a dictionary.
+
+  elif not (issubclass(datatype, asn1_core.Sequence)
+      or issubclass(datatype, asn1_core.Set)
+      or issubclass(datatype, asn1_core.SequenceOf)
+      or issubclass(datatype, asn1_core.SetOf)):
+    raise tuf.exceptions.ASN1ConversionError(
+        'to_asn1 is only able to convert into ASN.1 to produce the following '
+        'or any subclass of the following: VisibleString, OctetString, '
+        'Integer, Sequence, SequenceOf, Set, SetOf. The provided datatype "' +
+        str(datatype) + '" is neither one of those nor a subclass of one.')
+
+  elif not isinstance(data, list) and not isinstance(data, dict):
+    raise tuf.exceptions.ASN1ConversionError(
+      'to_asn1 is only able to convert into ASN.1 to produce the following or '
+      'any subclass of the following: VisibleString, OctetString, Integer, '
+      'Sequence, SequenceOf, Set, SetOf. The provided datatype "' +
+      str(datatype) + '" was not a subclass of VisibleString, OctetString, or '
+      'Integer, and the input data was of type "' + str(type(data)) + '", not '
+      'dict or list.')
+
+
+  elif (issubclass(datatype, asn1_core.SequenceOf)
+      or issubclass(datatype, asn1_core.SetOf)):
+    # In the case of converting to a SequenceOf/SetOf, we expect to be dealing
+    # with either input that is either a list or a list-like dictionary -- in
+    # either case, objects of the same conceptual type, of potentially variable
+    # number.
+    #
+    # - Lists being converted to lists in ASN.1 are straightforward.
+    #   Convert list to SequenceOf/SetOf.
+    #   Each element of the list will be a datatype._child_spec instance.
+    #
+    # - List-like dictionaries will become lists of pairs in ASN.1
+    #   dict -> SequenceOf/SetOf
+    #   Each element will be an instance of datatype._child_spec, which should
+    #   be a key-value 2-tuple.
+    # TODO: Confirm the last sentence. Could potentially want 3-tuples....
+
+    if isinstance(data, list):
+      debug('Converting a list to ' + str(datatype)) # DEBUG
+      asn1_obj = _list_to_asn1(data, datatype)
+      debug('Completed conversion of list to ' + str(datatype)) # DEBUG
+      recursion_level -= 1 # DEBUG
+      return asn1_obj
+
+    elif isinstance(data, dict):
+      debug('Converting a list-like dict to ' + str(datatype)) # DEBUG
+      asn1_obj = _listlike_dict_to_asn1(data, datatype)
+      debug('Completed conversion of list-like dict to ' + str(datatype)) # DEBUG
+      recursion_level -= 1
+      return asn1_obj
+
+    else:
+      assert False, 'Coding error. This should be impossible. Previously checked that data was a list or dict, but now it is neither. Check conditions.' # DEBUG
+
+
+  elif (issubclass(datatype, asn1_core.Sequence)
+      or issubclass(datatype, asn1_core.Set)):
+    # In the case of converting to Sequence/Set, we expect to be dealing with a
+    # struct-like dictionary -- elements with potentially different types
+    # associated with different keys.
+    # - Struct-like dictionaries will become Sequences/Sets with field names
+    #   in the input dictionary mapping directly to field names in the output
+    #   object.
+    pass; # WORKING HERE.
+
+
+
+  else:
+    recursion_level -= 1
+    raise tuf.exceptions.ASN1ConversionError(
+        'Unable to determine how to automatically '
+        'convert data into ASN.1 data.  Can only handle primitives to Integer/'
+        'VisibleString/OctetString, or list to list-like ASN.1, or list-like '
+        'dict to list-like ASN.1, or struct-like dict to struct-like ASN.1.  '
+        'Source data type: ' + str(type(data)) + '; output type is: ' +
+        str(datatype))
+
+
+
+
+
+
+
+def _list_to_asn1(data, datatype):
+  raise NotImplementedError()
+
+def _listlike_dict_to_asn1(data, datatype):
+  raise NotImplementedError()
+
+
+
+
+
+
+
+
+
+
+def from_asn1(data):
+  # TODO: Elaborate.  This is wrong.  We have to do some more translation to
+  # get something resembling TUF metadata.
+  return asn1.native
+
+
+
 
 
 
