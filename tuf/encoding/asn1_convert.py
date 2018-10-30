@@ -134,9 +134,11 @@ def pyasn1_from_der(der_object):
 
   Reverses pyasn1_to_der.
 
-  This requires that the types and structure defined in the DER be known to
-  pyasn1.  They're imported here from module
-  tuf.encoding.asn1_metadata_definitions.
+  # TODO: The following note is not quite accurate....  There are multiple
+  # ways to do this.  This will probably not be here in the end, in any event.
+  # This requires that the types and structure defined in the DER be known to
+  # pyasn1.  They're imported here from module
+  # tuf.encoding.asn1_metadata_definitions.
 
   Note that this will raise pyasn1 errors if the decoding fails.
   """
@@ -314,6 +316,7 @@ def hex_str_to_pyasn1_octets(hex_string):
   Returns a pyasn1.type.univ.OctetString object.
   """
   # TODO: Verify hex_string type.
+  tuf.formats.HEX_SCHEMA.check_match(hex_string)
 
   if len(hex_string) % 2:
     raise tuf.exceptions.ASN1ConversionError(
