@@ -110,8 +110,8 @@ class HashesContainer(ac.Sequence):
   """
   Single-element, vapid wrapper for Hashes, solely to match structure of the
   TUF-internal metadata. (This layer could be removed from both metadata
-  formats without loss of semantics or clarity, but would break backward
-  compatibility.)
+  formats to result in a clearer definition without change to the implicit
+  semantics, but would break backward compatibility.)
   Conceptual ASN.1 structure (Python pseudocode):
       {'hashes': [
         {'function': 'sha256', 'digest': '...'},

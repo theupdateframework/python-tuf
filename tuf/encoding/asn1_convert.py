@@ -243,7 +243,9 @@ def public_key_to_pyasn1(public_key_dict):
 
 def hex_str_to_pyasn1_octets(hex_string):
   """
-
+  Convert a hex string into a pyasn1 OctetString object.
+  Example arg: '12345abcd'  (string / unicode)
+  Returns a pyasn1.type.univ.OctetString object.
   """
   # TODO: Verify hex_string type.
 
@@ -273,8 +275,8 @@ def hex_str_to_pyasn1_octets(hex_string):
 
 def hex_str_from_pyasn1_octets(octets_pyasn1):
   """
-  Convert a pyasn1 OctetString object into a hex string.
-  Example return:   '4b394ae2'
+  Convert a pyasn1.type.univ.OctetString object into a hex string.
+  Example return:   '4b394ae2' (string / unicode)
   Raises Error() if an individual octet's supposed integer value is out of
   range (0 <= x <= 255).
   """
