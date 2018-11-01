@@ -26,8 +26,10 @@ from __future__ import unicode_literals
 
 # Standard Library Imports
 import unittest
+unittest.util._MAX_LENGTH=2000  # DEBUG
 import os
 import logging
+import binascii # for bytes to hex
 # Dependency Imports
 import asn1crypto as asn1
 import asn1crypto.core as asn1_core
@@ -102,109 +104,218 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
 
 
 
-  '''
 
-  def baseline_convert_and_encode(self):
-    """
-    Fail if basic pyasn1 functionality is broken.
-    """
-    i = pyasn1_univ.Integer(5)
-    self.assertEqual(5, i)
-
-    i_der = pyasn1_der_encoder.encode(i)
-    self.assertEqual(b'\x02\x01\x05', i_der)
-
-    i_again = pyasn1_der_decoder.decode(i_der)
-    self.assertEqual(i, i_again)
-
-
-
-
-
-  def test_hex_string_octets_conversions_pyasn1(self):
-    hex_string = '01234567890abcdef0'
-    expected_der_of_octet_string = b'\x04\t\x01#Eg\x89\n\xbc\xde\xf0'
-
-    octets_pyasn1 = asn1_convert.hex_str_to_pyasn1_octets(hex_string)
-    self.assertEqual(
-        hex_string, asn1_convert.hex_str_from_pyasn1_octets(octets_pyasn1))
-
-    octets_der = asn1_convert.pyasn1_to_der(octets_pyasn1)
-    self.assertEqual(expected_der_of_octet_string, octets_der)
-
-    octets_pyasn1_again = asn1_convert.pyasn1_from_der(octets_der)
-    self.assertEqual(octets_pyasn1.asNumbers(), octets_pyasn1_again.asNumbers())
-    self.assertEqual(octets_pyasn1._value, octets_pyasn1_again._value)
-    self.assertEqual(hex_string, asn1_convert.hex_str_from_pyasn1_octets(
-        octets_pyasn1_again))
-
-
-
-
-
-  def test_to_pyasn1_primitives(self):
+  def test_to_asn1_primitives(self):
 
     # Begin with basic objects: integers, strings, and octet strings.
 
-    integer_pyasn1 = asn1_convert.to_pyasn1(
-        123, pyasn1_univ.Integer)
-    self.assertEqual(123, integer_pyasn1) # TODO: make sure this works enough like == for this purpose. If not, use assertTrue and ==
-    self.assertIsInstance(integer_pyasn1, pyasn1_univ.Integer)
+    integer_asn1 = asn1_convert.to_asn1(123, asn1_core.Integer)
+    self.assertEqual(123, integer_asn1.native)
+    self.assertIsInstance(integer_asn1, asn1_core.Integer)
 
-    string_pyasn1 = asn1_convert.to_pyasn1(
-        'alphabeta', pyasn1_char.VisibleString)
-    self.assertEqual('alphabeta', string_pyasn1)
-    self.assertIsInstance(string_pyasn1, pyasn1_char.VisibleString)
+    # Repeat the check using conversion_check.
+    self.conversion_check(
+        data=123,
+        datatype=asn1_core.Integer,
+        expected_der=b'\x02\x01{')
 
-    octets_pyasn1 = asn1_convert.to_pyasn1(
-        '01234567890abcdef0', pyasn1_univ.OctetString)
+
+    string_asn1 = asn1_convert.to_asn1(
+        'alphabeta', asn1_core.VisibleString)
+    self.assertEqual('alphabeta', string_asn1.native)
+    self.assertIsInstance(string_asn1, asn1_core.VisibleString)
+
+    # Repeat the check using conversion_check.
+    self.conversion_check(
+        data='alphabeta',
+        datatype=asn1_core.VisibleString,
+        expected_der=None) # TODO: Fill in expected_der.
+
+
+
+    octets_asn1 = asn1_convert.to_asn1(
+        '01234567890abcdef0', asn1_core.OctetString)
     self.assertEqual(
         '01234567890abcdef0',
-        asn1_convert.hex_str_from_pyasn1_octets(octets_pyasn1))
-    self.assertIsInstance(octets_pyasn1, pyasn1_univ.OctetString)
+        asn1_convert.hex_str_from_asn1_octets(octets_asn1))
+    self.assertIsInstance(octets_asn1, asn1_core.OctetString)
+
+    # Repeat the check using conversion_check.
+    self.conversion_check(
+        data='01234567890abcdef0',
+        datatype=asn1_core.OctetString,
+        expected_der=None) # TODO: Fill in expected_der.
 
 
 
 
 
-  def test_to_pyasn1_sig(self):
+  def test_hex_str_to_asn1_octets(self):
+    hex_str = '3132333b3435361f373839'
+    octets_asn1 = asn1_convert.hex_str_to_asn1_octets(hex_str)
 
-    # Try a Signature object, more complex.
+    self.assertEqual(b'\x04\x0b123;456\x1f789', octets_asn1.dump())
+
+    # Redundant checks in case test code changes.
+    octets = bytes.fromhex(hex_str)
+    self.assertEqual(octets, octets_asn1.native)
+
+
+
+
+
+  def test_hex_str_from_asn1_octets(self):
+
+    octets = b'123\x3b456\x1f789'
+    octets_asn1 = asn1_core.OctetString(octets)
+
+    hex_str = asn1_convert.hex_str_from_asn1_octets(octets_asn1)
+
+    self.assertEqual(hex_str, '3132333b3435361f373839')
+
+    # Redundant checks in case the test code changes.
+    tuf.formats.HEX_SCHEMA.check_match(hex_str)
+    self.assertEqual(octets, octets_asn1.native)
+    self.assertEqual(len(hex_str), 2 * len(octets))
+
+
+
+
+
+  def test_structlike_dict_conversions(self):
+    """
+    Tests _structlike_dict_to_asn1 and _structlike_dict_from_asn1
+    """
+
+    # Try a Signature object, which is a good example of a "struct-like" dict
+    # and happens to contain only primitives.
     sig = {'keyid': '123456', 'method': 'magical', 'value': 'abcdef1234567890'}
 
     expected_der = \
         b'0\x18\x04\x03\x124V\x1a\x07magical\x04\x08\xab\xcd\xef\x124Vx\x90'
 
-    """sig_asn1, sig_der = self.conversion_check_pyasn1("""
-    self.conversion_check_pyasn1(
-        sig,
-        asn1_convert.to_pyasn1,
-        from_asn1_func=asn1_convert.from_pyasn1,
-        expected_der=expected_der,
-        second_arg=asn1_defs.Signature)
+    # Test by calling the helper functions directly.
+    self.conversion_check(
+      data=sig,
+      datatype=asn1_defs.Signature,
+      expected_der=expected_der,
+      to_asn1_func=asn1_convert._structlike_dict_to_asn1,
+      from_asn1_func=asn1_convert._structlike_dict_from_asn1)
+
+    # Test by calling the general to_asn1 and from_asn1 calls that will call
+    # the helper functions.
+    self.conversion_check(
+        data=sig,
+        datatype=asn1_defs.Signature,
+        expected_der=expected_der)
+
+
+    # TODO: Consider testing more complex objects here that would recurse
+    # further through to_asn1 (further than just base cases).  Those'll be
+    # tested in to_asn1 tests, though.
+
 
     # Manual, without using conversion_check:
 
-    # sig_asn1 = asn1_convert.to_pyasn1(sig, asn1_defs.Signature)
-    # TODO: Test the result of the signature conversion.
+    # Go to the helper function directly.
+    sig_asn1_direct = asn1_convert._structlike_dict_to_asn1(
+        sig, asn1_defs.Signature)
 
-    # sig_der = asn1_convert.pyasn1_to_der(sig_asn1)
+    # Call the function expected to call the helper function.
+    sig_asn1 = asn1_convert.to_asn1(sig, asn1_defs.Signature)
 
-    # print(sig_der)
+    # Make sure the two calls yield comparable results.
+    self.assert_asn1_obj_equivalent(sig_asn1_direct, sig_asn1)
 
-    # sig_asn1_again = asn1_convert.pyasn1_from_der(sig_der)
+    # The signature example is almost simple enough to convert back using purely
+    # asn1crypto code, so try that to make sure the conversion worked:
+    sig_again = dict(sig_asn1.native)
+    sig_again['keyid'] = binascii.hexlify(sig_again['keyid']).decode('utf-8')
+    sig_again['value'] = binascii.hexlify(sig_again['value']).decode('utf-8')
+    self.assertEqual(sig, sig_again)
 
-    # self.assertEqual(sig_asn1, sig_asn1_again)
-    # print('sig_asn1: ' + str(sig_asn1))
-    # print('sig_asn1_again: ' + str(sig_asn1_again))
-
-    # sig_again = asn1_convert.from_pyasn1(sig_asn1, asn1_defs.Signature)
-    # sig_again_from_der = asn1_convert.from_pyasn1(sig_asn1_again, asn1_defs.Signature)
-
-    # self.assertEqual(sig, sig_again)
+    # Convert to DER and test the result.
+    sig_der = asn1_convert.asn1_to_der(sig_asn1)
+    self.assertEqual(expected_der, sig_der)
 
 
+    # Convert from DER to ASN.1 and make sure the result is the same.
+    # Do this two ways:
+    #   - use the ASN.1 definitions in tuf.encoding.asn1_metadata_definitions
+    #     to know the exact expected structure of the data, including key names
+    #   - skip using the ASN.1 definitions -- convert as if you don't know what
+    #     the data will look like, or you don't know what kind of data it is
+    #     before decoding. ("sig_asn1_again_rough")
+    sig_asn1_again = asn1_convert.asn1_from_der(sig_der, asn1_defs.Signature)
+    sig_asn1_again_rough = asn1_convert.asn1_from_der(sig_der) # without specifying class; loses info
 
+    self.assert_asn1_obj_equivalent(sig_asn1, sig_asn1_again)
+
+    # The rough conversion won't look the same to human eyes, but it should
+    # still encode as the same DER.
+    # i.e. test:   original --> ASN.1 --> DER -*-> ASN.1 --> DER)
+    #   where -*-> is a conversion back without definitions (see comment above)
+    self.assertNotEqual(sig_asn1, sig_asn1_again_rough)
+    self.assertEqual(expected_der, sig_asn1_again_rough.dump())
+
+
+    # Now convert back from ASN.1 to original format:
+    #   original --> ASN.1 --> original
+    #   original --> ASN.1 --> DER --> ASN.1 --> original
+    self.assertEqual(sig, asn1_convert.from_asn1(sig_asn1))
+    self.assertEqual(sig, asn1_convert.from_asn1(sig_asn1_again))
+
+
+
+
+
+
+  def test_list_conversions(self):
+    """
+    Tests _list_to_asn1 and _list_from_asn1
+    """
+
+    # Try a KeyIDHashAlgorithms object, which is a good example of a list in
+    # TUF-internal metadata that is converted to a SequenceOf containing only
+    # primitives in ASN.1
+    keyid_hash_algos = ["sha256", "sha512"]
+
+    expected_der = b'0\x10\x1a\x06sha256\x1a\x06sha512'
+
+    # Test by calling the helper functions directly.
+    self.conversion_check(
+      data=keyid_hash_algos,
+      datatype=asn1_defs.KeyIDHashAlgorithms,
+      expected_der=expected_der,
+      to_asn1_func=asn1_convert._list_to_asn1,
+      from_asn1_func=asn1_convert._list_from_asn1)
+
+    # Test by calling the general to_asn1 and from_asn1 calls that will call
+    # the helper functions.
+    self.conversion_check(
+        data=keyid_hash_algos,
+        datatype=asn1_defs.KeyIDHashAlgorithms,
+        expected_der=expected_der)
+
+
+
+
+
+  def test_listlike_dict_to_asn1(self):
+
+    # # Try a Signature object, more complex.
+    # sig = {'keyid': '123456', 'method': 'magical', 'value': 'abcdef1234567890'}
+
+    # expected_der = \
+    #     b'0\x18\x04\x03\x124V\x1a\x07magical\x04\x08\xab\xcd\xef\x124Vx\x90'
+
+    # self.conversion_check(
+    #     data=sig,
+    #     datatype=asn1_defs.Signature,
+    #     expected_der=expected_der)
+    raise NotImplementedError()
+
+  '''
 
 
 
@@ -490,18 +601,38 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     rsa_pub_pyasn1 = asn1_convert.public_key_to_pyasn1(rsa_pub)
 
 
+  '''
 
 
-  def conversion_check_pyasn1(self, data, to_asn1_func,
-      from_asn1_func=None, expected_der=None, second_arg=None):
+  # def _call_func(func, one, two):
+  #   """
+  #   Painfully specific function that calls provided function 'func' and passes
+  #   it the 'one' argument, but only passes the 'two' argument if 'two' is not
+  #   None.  This is used to generalize conversion_check so that it can deal both
+  #   with datatype-specific converters (that expect only one argument, the data),
+  #   and generic converters (which also expect a second argument "datatype")
+  #   """
+  #   if two is None:
+  #     return func(one)
+  #   else:
+  #     return func(one, two)
+
+
+
+  def conversion_check(self,
+      data,
+      datatype,
+      expected_der=None,                            # if None, will not check
+      to_asn1_func=asn1_convert.to_asn1,            # cannot be None
+      to_der_func=asn1_convert.asn1_to_der,         # cannot be None
+      from_asn1_func=asn1_convert.from_asn1,        # if None, will skip revert
+      from_der_func=asn1_convert.asn1_from_der):    # cannot be None
     """
     By default:
      - Convert data to ASN.1 using "to_asn1_func" argument.
      - Encode ASN.1 to DER.
      - Decode DER to ASN.1 again.
-     - Test equality with originally-generated ASN.1. (Note that this uses
-       pyasn1 equality checks, which don't necessarily compare data labels,
-       just data.)
+     - Test equality with originally-generated ASN.1
      - Return the ASN.1 and DER values produced in case the caller wants to use
        them to perform additional tests.
 
@@ -510,17 +641,15 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
      - Using optional from_asn1_func:
          - Convert [original -> ASN.1 -> original] and test.
          - Convert [original -> ASN.1 -> DER -> ASN.1 -> original] and test.
-     - Passes the given "second_arg" to "func_to_asn1" and (if provided)
+     - Passes the given datatype to "func_to_asn1" and (if provided)
        "from_asn1_func" when calling. This is of use for general conversion
        functions that must be told which datatype to convert to/from (like
        "to_asn1" and "from_asn1").
     """
-    if second_arg is not None:
-      data_asn1 = to_asn1_func(data, second_arg)
-    else:
-      data_asn1 = to_asn1_func(data)
 
-    data_der = asn1_convert.pyasn1_to_der(data_asn1)
+    data_asn1 = to_asn1_func(data, datatype)
+
+    data_der = to_der_func(data_asn1)
 
     if expected_der is not None:
       self.assertEqual(expected_der, data_der)
@@ -530,30 +659,66 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
       print('DER data: ' + str(data_der))
 
 
-    data_asn1_again = asn1_convert.pyasn1_from_der(data_der)
-    self.assertEqual(data_asn1, data_asn1_again)
+    # Whether or not we have the definitions (arg "datatype"), we can decode
+    # the DER, kinda.  It may end up as the wrong type, a Sequence instead of
+    # a SequenceOf or Set or SetOf.  It will also be missing things like field
+    # names.  The ASN.1 will be much more bare-bones, but it should still
+    # encode to the same DER, so we'll test that.
+    data_asn1_again_blind = from_der_func(data_der)
+
+    # Even if we decode with limited info, we should be able to turn around and
+    # encode the data the same way. (Distinguished Encoding Rules emphasizes
+    # this.)
+    if expected_der is not None:
+      self.assertEqual(expected_der, data_asn1_again_blind.dump())
+
+    # Now decode the DER using the datatype (the ASN.1 definition).
+    # Definitions-aided decoding, knowing structure.
+    data_asn1_again = from_der_func(data_der, datatype)
+
+    # We can expect the decoded ASN.1 to be identical to the originally
+    # generated ASN.1 this way.
+    # We can't test strict equality of the two objects, because asn1crypto
+    # objects contain various cached values, have some things lazily loaded,
+    # etc.  So we'll test everything we care about:
+    self.assert_asn1_obj_equivalent(data_asn1, data_asn1_again)
+
+
+    # And we can expect that even if it's not identical to the blind decoding,
+    # it will still encode as the same DER.
+    self.assertEqual(data_asn1_again_blind.dump(), data_asn1_again.dump())
+
 
     if from_asn1_func is not None:
+
       # Convert original->pyasn1 data back and test it.
-      if second_arg is not None:
-        data_again = from_asn1_func(data_asn1, second_arg)
-      else:
-        data_again = from_asn1_func(data_asn1)
-      self.assertEqual(data, data_again)
+      self.assertEqual(data, from_asn1_func(data_asn1))
 
       # Convert original->pyasn1->der data back and test it.
-      if second_arg is not None:
-        data_again_again = from_asn1_func(data_asn1_again, second_arg)
-      else:
-        data_again_again = from_asn1_func(data_asn1_again)
-      self.assertEqual(data, data_again_again)
+      # If when we decoded the DER into ASN.1, we knew the exact ASN.1
+      # definition, then we can expect the result to be identical to the
+      # original data.
+      self.assertEqual(data, from_asn1_func(data_asn1_again))
+
+      # # If we DIDN'T know the exact ASN.1 definition when we decoded the DER,
+      # # the result will share important properties with the original, but
+      # # things may be missing, like field names.  Equality will fail.  Have to
+      # # tune this test....
+      # # TODO: <~> Improve this test to deal with the preceding comment.
+      # # NOTE THAT this does NOT use from_asn1_func, but always uses
+      # # asn1_convert.from_asn1.  This is because the given function can't be
+      # # expected to run with something that may no longer have the right type,
+      # # and the blindly parsed DER might use Sequence instead of SequenceOf and
+      # # won't know about custom subclasses, etc.  It's not clear this is a
+      # # useful test, but here we go....
+      # self.assertEqual(data, asn1_convert.from_asn1(data_asn1_again_blind))
 
     # Also return the values produced in case there is additional testing that
     # is to be done, specific to the particular data.
     return data_asn1, data_der
 
 
-  '''
+
 
   def assert_asn1_obj_equivalent(self, obj1, obj2):
     """
