@@ -555,8 +555,33 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
 
   '''
 
-  def conversion_check(self, data      ):
-    raise NotImplementedError()
+  def assert_asn1_obj_equivalent(self, obj1, obj2):
+    """
+    Fail the test that called this function if asn1crypto objects obj1 and obj2
+    are not identical in all relevant respects:
+      - .dump()      (DER encoding)
+      - .native      (native Python values when converted back)
+      - ._children   (child info)
+      - ._contents   (similar to _children)
+      - ._fields     (Sequence/Set member type)
+      - ._child_spec (SequenceOf/SetOf member type)
+    """
+    self.assertEqual(obj1.dump(), obj2.dump())
+
+    # Note that it's good to touch .native on both of these before conducting
+    # the next tests so that lazily-updated fields like _children will be
+    # populated.
+    self.assertEqual(obj1.native, obj2.native)
+
+    for field in ['_contents', '_children', '_child_spec', '_fields']:
+
+      # Do not replace these checks with getattr(, , None) -- not the same.
+
+      self.assertEqual(hasattr(obj1, field), hasattr(obj2, field))
+
+      if hasattr(obj1, field):
+        self.assertEqual(getattr(obj1, field), getattr(obj2, field))
+
 
 
 # Run unit test.
