@@ -368,14 +368,33 @@ def hex_str_from_pyasn1_octets(octets_pyasn1):
 
 
 
-def hex_str_to_asn1_octets(hex_string):
+def hex_str_to_asn1_octets(hex_string, datatype=asn1_core.OctetString):
   """
-  Convert a hex string into an asn1 OctetString object.
-  Example arg: '12345abcd'  (string / unicode)
-  Returns an asn1crypto.core.OctetString object.
+  Convert a hex string into an asn1 OctetString object, or, optionally, a
+  subclass of OctetString passed in as argument 'datatype'.
+
+  <Arguments>
+    hex_string
+      string/unicode; the string to interpret as bytes and convert, e.g.
+      '12345abcd'
+
+    datatype    (optional)
+      type/class; must be a subclass of asn1_core.OctetString; if provided, an
+      instance of this class will be created and returned instead of an
+      OctetString.
+
+  <Returns>
+    An object of type 'datatype', an ASN.1 representation of the hex_string
+    provided.  The returned object will be an instance of asn1_core.OctetString
+    or of a subclass of asn1_core.OctetString.
   """
   # TODO: Verify hex_string type.
   tuf.formats.HEX_SCHEMA.check_match(hex_string)
+  if not issubclass(datatype, asn1_core.OctetString):
+    raise tuf.exceptions.ASN1ConversionError(
+        'hex_str_to_asn1_octets is only able to convert to '
+        'asn1_core.OctetString or a subclass thereof.  The provided datatype '
+        '"' + str(datatype) + '" is not a subclass of asn1_core.OctetString.')
 
   if len(hex_string) % 2:
     raise tuf.exceptions.ASN1ConversionError(
@@ -384,7 +403,7 @@ def hex_str_to_asn1_octets(hex_string):
         'implicitly.')
 
   # Should be a string containing only hexadecimal characters, e.g. 'd3aa591c')
-  octets_asn1 = asn1_core.OctetString(bytes.fromhex(hex_string))
+  octets_asn1 = datatype(bytes.fromhex(hex_string))
 
   return octets_asn1
 
@@ -396,16 +415,16 @@ def hex_str_from_asn1_octets(octets_asn1):
   """
   Convert an asn1 OctetString object into a hex string.
   Example return:   '4b394ae2'
-  Raises Error() if an individual octet's supposed integer value is out of
-  range (0 <= x <= 255).
   """
+  if not isinstance(octets_asn1, asn1_core.OctetString):
+    raise ValueError(
+        'hex_str_from_asn1_octets expects an instance of '
+        'asn1crypto.core.OctetString.  arg is a ' + str(type(octets_asn1)))
+
   octets = octets_asn1.native
 
   # Can't just use octets.hex() because that's Python3-only, so:
   hex_string = binascii.hexlify(octets).decode('utf-8')
-
-  # Paranoia: make sure that the resulting value is a valid hex string.
-  tuf.formats.HEX_SCHEMA.check_match(hex_string)
 
   return hex_string
 
@@ -890,16 +909,7 @@ def to_asn1(data, datatype):
     # and then convert it into bytes, then turn it into an asn1crypto
     # OctetString.
     debug('Converting a (hopefully-)primitive value to ' + str(datatype)) # DEBUG
-    tuf.formats.HEX_SCHEMA.check_match(data)
-    if len(data) % 2:
-      raise tuf.exceptions.ASN1ConversionError(
-          'Expecting hex strings with an even number of digits, since hex '
-          'strings provide 2 characters per byte.  We prefer not to pad values '
-          'implicitly.')
-    # Don't be tempted to use hex_string_to_asn1_octets() here; we should
-    # convert to the datatype provided, which might be some subclass of
-    # asn1crypto.core.OctetString.
-    asn1_obj = datatype(bytes.fromhex(data))
+    asn1_obj = hex_str_to_asn1_octets(data, datatype)
     debug('Completed conversion of primitive to ' + str(datatype)) # DEBUG
     recursion_level -= 1 # DEBUG
     return asn1_obj
