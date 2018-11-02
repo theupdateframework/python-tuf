@@ -183,7 +183,8 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   }
 
   RootMetadata ::= SEQUENCE {
-    type                VisibleString,     -- ("root"),
+    -type               VisibleString,     -- ("root"),
+    spec-version        VisibleString,
     expires             VisibleString, --date&time, UTC, as a UNIX timestamp
     version             IntegerNatural,
     consistent-snapshot BOOLEAN,
@@ -199,7 +200,8 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 ---------- Timestamp Role Metadata Definitions
 
   TimestampMetadata ::= SEQUENCE {
-    type                VisibleString,     -- ("timestamp"),
+    -type               VisibleString,     -- ("timestamp"),
+    spec-version        VisibleString,
     expires             VisibleString,  -- date&time, UTC, as a UNIX timestamp
     version             IntegerNatural,
 
@@ -221,7 +223,8 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 ---------- Snapshot Role Metadata Definitions
 
   SnapshotMetadata ::= SEQUENCE {
-    type                VisibleString,     -- ("snapshot"),
+    -type               VisibleString,     -- ("snapshot"),
+    spec-version        VisibleString,
     expires             VisibleString,  -- date&time, UTC, as a UNIX timestamp
     version             IntegerNatural,
 
@@ -247,7 +250,8 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 -- Covers both the top-level Targets role and delegated targets roles.
 
   TargetsMetadata ::= SEQUENCE {
-    type                VisibleString,       -- allow delegated role names, too
+    -type               VisibleString,       -- allow delegated role names, too
+    spec-version        VisibleString,
     expires             VisibleString,  -- date&time, UTC, as a UNIX timestamp
     version             IntegerNatural,
 

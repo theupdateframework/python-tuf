@@ -96,7 +96,8 @@ class TopLevelDelegation(ac.Sequence):
 
 class RootMetadata(ac.Sequence):
   _fields = [
-      ('type', ac.VisibleString),
+      ('_type', ac.VisibleString),
+      ('spec_version', ac.VisibleString),
       ('expires', ac.VisibleString),
       ('version', ac.Integer),
       ('consistent-snapshot', ac.Boolean),
@@ -160,7 +161,8 @@ class HashesOfSnapshot(ac.SetOf):
 
 class TimestampMetadata(ac.Sequence):
   _fields = [
-      ('type', ac.VisibleString),
+      ('_type', ac.VisibleString),
+      ('spec_version', ac.VisibleString),
       ('expires', ac.VisibleString),
       ('version', ac.Integer),
       ('meta', ac.SetOf, {'_child_spec': HashOfSnapshot})]
@@ -174,7 +176,8 @@ class RoleInfo(ac.Sequence):
 
 class SnapshotMetadata(ac.Sequence):
   _fields = [
-      ('type', ac.VisibleString),
+      ('_type', ac.VisibleString),
+      ('spec_version', ac.VisibleString),
       ('expires', ac.VisibleString),
       ('version', ac.Integer),
       ('meta', ac.SetOf, {'_child_spec': RoleInfo})]
@@ -205,7 +208,8 @@ class Target(ac.Sequence):
 
 class TargetsMetadata(ac.Sequence):
   _fields = [
-      ('type', ac.VisibleString),
+      ('_type', ac.VisibleString),
+      ('spec_version', ac.VisibleString),
       ('expires', ac.VisibleString),
       ('version', ac.Integer),
       ('targets', ac.SetOf, {'_child_spec': Target}),
