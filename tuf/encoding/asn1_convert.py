@@ -38,6 +38,7 @@ import tuf
 import tuf.formats
 import tuf.encoding
 import tuf.encoding.asn1_metadata_definitions as asn1_definitions
+import tuf.exceptions
 
 
 # DEBUG ONLY; remove.
@@ -467,9 +468,9 @@ def to_pyasn1(data, datatype):
   # are the base cases of the recursion.
   if isinstance(pyasn1_obj, pyasn1_univ.Integer) \
       or isinstance(pyasn1_obj, pyasn1_char.VisibleString):
-    debug('Converting a (hopefully-)primitive value to: ' + str(datatype)) # DEBUG
+    debug('Converting a (hopefully-)primitive value to: ' + str(datatype))
     pyasn1_obj = datatype(data)
-    debug('Completed conversion of primitive to ' + str(datatype)) # DEBUG
+    debug('Completed conversion of primitive to ' + str(datatype))
     recursion_level -= 1 # DEBUG
     return pyasn1_obj
 
@@ -491,7 +492,7 @@ def to_pyasn1(data, datatype):
     # here, that pyasn1 WILL NOT COMPLAIN and will save the given value as a
     # sort of custom field in a NULL OctetString object, leading to odd errors
     # down the line. Be SURE that this line is correct if you change it.
-    debug('Converting a (hopefully-)primitive value to ' + str(datatype)) # DEBUG
+    debug('Converting a (hopefully-)primitive value to ' + str(datatype))
     tuf.formats.HEX_SCHEMA.check_match(data)
     if len(data) % 2:
       raise tuf.exceptions.ASN1ConversionError(
@@ -502,7 +503,7 @@ def to_pyasn1(data, datatype):
     # convert to the datatype provided, which might be some subclass of
     # pyasn1.type.univ.OctetString.
     pyasn1_obj = datatype(hexValue=data)
-    debug('Completed conversion of primitive to ' + str(datatype)) # DEBUG
+    debug('Completed conversion of primitive to ' + str(datatype))
     recursion_level -= 1 # DEBUG
     return pyasn1_obj
 
@@ -544,9 +545,9 @@ def to_pyasn1(data, datatype):
 
   elif isinstance(datatype.componentType, pyasn1_namedtype.NamedTypes):
     assert isinstance(pyasn1_obj, pyasn1_univ.Sequence) or isinstance(pyasn1_obj, pyasn1_univ.Set), 'Expectation broken during drafting' # TEMPORARY, DO NOT MERGE
-    debug('Converting a struct-like dict to ' + str(datatype)) # DEBUG
+    debug('Converting a struct-like dict to ' + str(datatype))
     pyasn1_obj = _structlike_dict_to_pyasn1(data, datatype)
-    debug('Completed conversion of struct-like dict to ' + str(datatype)) # DEBUG
+    debug('Completed conversion of struct-like dict to ' + str(datatype))
     recursion_level -= 1 # DEBUG
     return pyasn1_obj
 
@@ -554,19 +555,19 @@ def to_pyasn1(data, datatype):
     assert isinstance(pyasn1_obj, pyasn1_univ.SequenceOf) or isinstance(pyasn1_obj, pyasn1_univ.SetOf), 'Expectation broken during drafting' # TEMPORARY, DO NOT MERGE
     # Converting from a list to a datatype similar to a list of
     # conceptually-similar objects, without distinct named fields.
-    debug('Converting a list to ' + str(datatype)) # DEBUG
+    debug('Converting a list to ' + str(datatype))
     pyasn1_obj = _list_to_pyasn1(data, datatype)
-    debug('Completed conversion of list to ' + str(datatype)) # DEBUG
+    debug('Completed conversion of list to ' + str(datatype))
     recursion_level -= 1 # DEBUG
     return pyasn1_obj
 
   elif isinstance(data, dict):
     assert isinstance(pyasn1_obj, pyasn1_univ.SequenceOf) or isinstance(pyasn1_obj, pyasn1_univ.SetOf), 'Expectation broken during drafting' # TEMPORARY, DO NOT MERGE
-    debug('Converting a list-like dict to ' + str(datatype)) # DEBUG
+    debug('Converting a list-like dict to ' + str(datatype))
     # Converting from a dict to a datatype similar to a list of
     # conceptually-similar objects, without distinct named fields.
     pyasn1_obj = _listlike_dict_to_pyasn1(data, datatype)
-    debug('Completed conversion of list-like dict to ' + str(datatype)) # DEBUG
+    debug('Completed conversion of list-like dict to ' + str(datatype))
     recursion_level -= 1 # DEBUG
     return pyasn1_obj
 
@@ -642,7 +643,7 @@ def _structlike_dict_to_pyasn1(data, datatype):
       # transfer the data, recursing to instantiate a pyasn1 object of the
       # expected type.
       debug('In conversion of struct-like dict to ' + str(datatype) + ', '
-          'recursing to convert subcomponent of type ' + str(element_type)) # DEBUG
+          'recursing to convert subcomponent of type ' + str(element_type))
       element = to_pyasn1(data[element_name_python], element_type)
       pyasn1_obj[element_name] = element
 
@@ -982,9 +983,9 @@ def to_asn1(data, datatype):
     # - Struct-like dictionaries will become Sequences/Sets with field names
     #   in the input dictionary mapping directly to field names in the output
     #   object.xw
-    debug('Converting a struct-like dict to ' + str(datatype)) # DEBUG
+    debug('Converting a struct-like dict to ' + str(datatype))
     asn1_obj = _structlike_dict_to_asn1(data, datatype)
-    debug('Completed conversion of struct-like dict to ' + str(datatype)) # DEBUG
+    debug('Completed conversion of struct-like dict to ' + str(datatype))
     recursion_level -= 1 # DEBUG
     return asn1_obj
 
@@ -1270,7 +1271,7 @@ def _structlike_dict_from_asn1(asn1_obj):
   # TODO: DOCSTRING and clean the below up to match to_asn1 style.
 
   # Note: This will never yield non-string indices in dictionaries, so if you
-          had integer indexes in your TUF metadata dictionaries for some reason,
+          had integer indices in your TUF metadata dictionaries for some reason,
           and convert to ASN.1 and back, you will get a dict back that uses
           strings for those indices instead.  There are probably a few quirky
           edge cases like this to keep in mind.
