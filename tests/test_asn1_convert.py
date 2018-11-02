@@ -301,19 +301,163 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_listlike_dict_to_asn1(self):
+  def test_listlike_conversions(self):
 
-    # # Try a Signature object, more complex.
-    # sig = {'keyid': '123456', 'method': 'magical', 'value': 'abcdef1234567890'}
+    # # Try a Hashes object
+    hashes = {
+      'sha256':
+        '65b8c67f51c993d898250f40aa57a317d854900b3a04895464313e48785440da',
+      'sha512':
+        '467430a68afae8e9f9c0771ea5d78bf0b3a0d79a2d3d3b40c69fde4dd42c4614'
+        '48aef76fcef4f5284931a1ffd0ac096d138ba3a0d6ca83fa8d7285a47a296f77'
+    }
 
-    # expected_der = \
-    #     b'0\x18\x04\x03\x124V\x1a\x07magical\x04\x08\xab\xcd\xef\x124Vx\x90'
+    expected_der = (
+        b'1x0*\x1a\x06sha256\x04 e\xb8\xc6\x7fQ\xc9\x93\xd8\x98%\x0f@\xaaW\xa3'
+        b'\x17\xd8T\x90\x0b:\x04\x89Td1>HxT@\xda0J\x1a\x06sha512\x04@Ft0\xa6'
+        b'\x8a\xfa\xe8\xe9\xf9\xc0w\x1e\xa5\xd7\x8b\xf0\xb3\xa0\xd7\x9a-=;@'
+        b'\xc6\x9f\xdeM\xd4,F\x14H\xae\xf7o\xce\xf4\xf5(I1\xa1\xff\xd0\xac\tm'
+        b'\x13\x8b\xa3\xa0\xd6\xca\x83\xfa\x8dr\x85\xa4z)ow')
 
-    # self.conversion_check(
-    #     data=sig,
-    #     datatype=asn1_defs.Signature,
-    #     expected_der=expected_der)
-    raise NotImplementedError()
+
+    # Test by calling the helper functions directly.
+    self.conversion_check(
+      data=hashes,
+      datatype=asn1_defs.Hashes,
+      expected_der=expected_der,
+      to_asn1_func=asn1_convert._listlike_dict_to_asn1,
+      from_asn1_func=asn1_convert._listlike_dict_from_asn1)
+
+    # Test by calling the general to_asn1 and from_asn1 calls that will call
+    # the helper functions.
+    self.conversion_check(
+        data=hashes,
+        datatype=asn1_defs.Hashes,
+        expected_der=expected_der)
+
+
+
+
+
+  def test_key_conversion(self):
+
+    # Import some public keys.
+    ed_pub_fname = os.path.join(
+        os.getcwd(), 'repository_data', 'keystore', 'timestamp_key.pub')
+    rsa_pub_fname = os.path.join(
+        os.getcwd(), 'repository_data', 'keystore', 'root_key.pub')
+
+    ed_pub = repo_tool.import_ed25519_publickey_from_file(ed_pub_fname)
+    rsa_pub = repo_tool.import_rsa_publickey_from_file(rsa_pub_fname)
+
+    # Expected DER results from converting the keys:
+    ed_key_expected_der = (
+        b'0\x81\x94\x04 \x8a\x1cJ:\xc2\xd5\x15\xde\xc9\x82\xba\x99\x10\xc5'
+        b'\xfdy\xb9\x1a\xe5\x7fb[\x9c\xff%\xd0k\xf0\xa6\x1c\x17X\x1a\x07'
+        b'ed25519\x1a\x07ed255190L0J\x1a\x06public\x1a@82ccf6ac47298ff43bf'
+        b'a0cd639868894e305a99c723ff0515ae2e9856eb5bbf40\x10\x1a\x06sha256'
+        b'\x1a\x06sha512')
+    rsa_key_expected_der = (
+        b'0\x82\x02\xdd\x04 Nw}\xe0\xd2u\xf9\xd2\x85\x88\xdd\x9a\x16\x06\xcct'
+        b'\x8eT\x8f\x9e"\xb6y[|\xb3\xf6?\x98\x03_\xcb\x1a\x03rsa\x1a\x11'
+        b'rsassa-pss-sha2560\x82\x02\x8d0\x82\x02|\x1a\x06public\x1a\x82\x02'
+        b'p-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBig'
+        b'KCAYEA0GjPoVrjS9eCqzoQ8VRe\nPkC0cI6ktiEgqPfHESFzyxyjC490Cuy19nuxPcJ'
+        b'uZfN64MC48oOkR+W2mq4pM51i\nxmdG5xjvNOBRkJ5wUCc8fDCltMUTBlqt9y5eLsf/'
+        b'4/EoBU+zC4SW1iPU++mCsity\nfQQ7U6LOn3EYCyrkH51hZ/dvKC4o9TPYMVxNecJ3C'
+        b'L1q02Q145JlyjBTuM3Xdqsa\nndTHoXSRPmmzgB/1dL/c4QjMnCowrKW06mFLq9RAYG'
+        b'IaJWfM/0CbrOJpVDkATmEc\nMdpGJYDfW/sRQvRdlHNPo24ZW7vkQUCqdRxvnTWkK5U'
+        b'81y7RtjLt1yskbWXBIbOV\nz94GXsgyzANyCT9qRjHXDDz2mkLq+9I2iKtEqaEePcWR'
+        b'u3H6RLahpM/TxFzw684Y\nR47weXdDecPNxWyiWiyMGStRFP4Cg9trcwAGnEm1w8R2g'
+        b'gmWphznCd5dXGhPNjfA\na82yNFY8ubnOUVJOf0nXGg3Edw9iY3xyjJb2+nrsk5f3Ag'
+        b'MBAAE=\n-----END PUBLIC KEY-----0\x0b\x1a\x07private\x1a\x000\x10'
+        b'\x1a\x06sha256\x1a\x06sha512')
+
+    # Test by calling the helper functions directly.
+    self.conversion_check(
+      data=ed_pub,
+      datatype=asn1_defs.PublicKey,
+      expected_der=ed_key_expected_der,
+      to_asn1_func=asn1_convert._structlike_dict_to_asn1,
+      from_asn1_func=asn1_convert._structlike_dict_from_asn1)
+    self.conversion_check(
+      data=rsa_pub,
+      datatype=asn1_defs.PublicKey,
+      expected_der=rsa_key_expected_der,
+      to_asn1_func=asn1_convert._structlike_dict_to_asn1,
+      from_asn1_func=asn1_convert._structlike_dict_from_asn1)
+
+    # Test by calling the general to_asn1 and from_asn1 calls that will call
+    # the helper functions.
+    self.conversion_check(
+        data=ed_pub,
+        datatype=asn1_defs.PublicKey,
+        expected_der=ed_key_expected_der
+        )
+    self.conversion_check(
+        data=rsa_pub,
+        datatype=asn1_defs.PublicKey,
+        expected_der=rsa_key_expected_der
+        )
+
+
+  def test_signed_portion_of_root_conversion(self):
+    r = {
+        '_type': 'root',
+        'consistent_snapshot': False,
+        'expires': '2030-01-01T00:00:00Z',
+        'keys': {
+          '4e777de0d275f9d28588dd9a1606cc748e548f9e22b6795b7cb3f63f98035fcb': {
+            'keyid_hash_algorithms': ['sha256', 'sha512'],
+            'keytype': 'rsa',
+            'keyval': {'public': '-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA0GjPoVrjS9eCqzoQ8VRe\nPkC0cI6ktiEgqPfHESFzyxyjC490Cuy19nuxPcJuZfN64MC48oOkR+W2mq4pM51i\nxmdG5xjvNOBRkJ5wUCc8fDCltMUTBlqt9y5eLsf/4/EoBU+zC4SW1iPU++mCsity\nfQQ7U6LOn3EYCyrkH51hZ/dvKC4o9TPYMVxNecJ3CL1q02Q145JlyjBTuM3Xdqsa\nndTHoXSRPmmzgB/1dL/c4QjMnCowrKW06mFLq9RAYGIaJWfM/0CbrOJpVDkATmEc\nMdpGJYDfW/sRQvRdlHNPo24ZW7vkQUCqdRxvnTWkK5U81y7RtjLt1yskbWXBIbOV\nz94GXsgyzANyCT9qRjHXDDz2mkLq+9I2iKtEqaEePcWRu3H6RLahpM/TxFzw684Y\nR47weXdDecPNxWyiWiyMGStRFP4Cg9trcwAGnEm1w8R2ggmWphznCd5dXGhPNjfA\na82yNFY8ubnOUVJOf0nXGg3Edw9iY3xyjJb2+nrsk5f3AgMBAAE=\n-----END PUBLIC KEY-----'},
+            'scheme': 'rsassa-pss-sha256'},
+          '59a4df8af818e9ed7abe0764c0b47b4240952aa0d179b5b78346c470ac30278d': {
+            'keyid_hash_algorithms': ['sha256', 'sha512'],
+            'keytype': 'ed25519',
+            'keyval': {'public': 'edcd0a32a07dce33f7c7873aaffbff36d20ea30787574ead335eefd337e4dacd'},
+            'scheme': 'ed25519'},
+          '65171251a9aff5a8b3143a813481cb07f6e0de4eb197c767837fe4491b739093': {
+            'keyid_hash_algorithms': ['sha256', 'sha512'],
+            'keytype': 'ed25519',
+            'keyval': {'public': '89f28bd4ede5ec3786ab923fd154f39588d20881903e69c7b08fb504c6750815'},
+            'scheme': 'ed25519'},
+          '8a1c4a3ac2d515dec982ba9910c5fd79b91ae57f625b9cff25d06bf0a61c1758': {
+            'keyid_hash_algorithms': ['sha256', 'sha512'],
+            'keytype': 'ed25519',
+            'keyval': {'public': '82ccf6ac47298ff43bfa0cd639868894e305a99c723ff0515ae2e9856eb5bbf4'},
+            'scheme': 'ed25519'}},
+        'roles': {
+          'root': {
+            'keyids': ['4e777de0d275f9d28588dd9a1606cc748e548f9e22b6795b7cb3f63f98035fcb'],
+            'threshold': 1},
+          'snapshot': {
+            'keyids': ['59a4df8af818e9ed7abe0764c0b47b4240952aa0d179b5b78346c470ac30278d'],
+            'threshold': 1},
+          'targets': {
+            'keyids': ['65171251a9aff5a8b3143a813481cb07f6e0de4eb197c767837fe4491b739093'],
+            'threshold': 1},
+          'timestamp': {
+            'keyids': ['8a1c4a3ac2d515dec982ba9910c5fd79b91ae57f625b9cff25d06bf0a61c1758'],
+            'threshold': 1}},
+        'spec_version': '1.0',
+        'version': 1}
+
+    root_expected_der = (
+      b'0\x82\x05\xa1\x1a\x04root\x1a\x031.0\x1a\x142030-01-01T00:00:00Z\x02\x01\x01\x01\x01\x000\x82\x04\xa30\x82\x02\xd4\x04 Nw}\xe0\xd2u\xf9\xd2\x85\x88\xdd\x9a\x16\x06\xcct\x8eT\x8f\x9e"\xb6y[|\xb3\xf6?\x98\x03_\xcb0\x82\x02\xae\x1a\x03rsa\x1a\x11rsassa-pss-sha2560\x82\x02\x800\x82\x02|\x1a\x06public\x1a\x82\x02p-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA0GjPoVrjS9eCqzoQ8VRe\nPkC0cI6ktiEgqPfHESFzyxyjC490Cuy19nuxPcJuZfN64MC48oOkR+W2mq4pM51i\nxmdG5xjvNOBRkJ5wUCc8fDCltMUTBlqt9y5eLsf/4/EoBU+zC4SW1iPU++mCsity\nfQQ7U6LOn3EYCyrkH51hZ/dvKC4o9TPYMVxNecJ3CL1q02Q145JlyjBTuM3Xdqsa\nndTHoXSRPmmzgB/1dL/c4QjMnCowrKW06mFLq9RAYGIaJWfM/0CbrOJpVDkATmEc\nMdpGJYDfW/sRQvRdlHNPo24ZW7vkQUCqdRxvnTWkK5U81y7RtjLt1yskbWXBIbOV\nz94GXsgyzANyCT9qRjHXDDz2mkLq+9I2iKtEqaEePcWRu3H6RLahpM/TxFzw684Y\nR47weXdDecPNxWyiWiyMGStRFP4Cg9trcwAGnEm1w8R2ggmWphznCd5dXGhPNjfA\na82yNFY8ubnOUVJOf0nXGg3Edw9iY3xyjJb2+nrsk5f3AgMBAAE=\n-----END PUBLIC KEY-----0\x10\x1a\x06sha256\x1a\x06sha5120\x81\x96\x04 Y\xa4\xdf\x8a\xf8\x18\xe9\xedz\xbe\x07d\xc0\xb4{B@\x95*\xa0\xd1y\xb5\xb7\x83F\xc4p\xac0\'\x8d0r\x1a\x07ed25519\x1a\x07ed255190L0J\x1a\x06public\x1a@edcd0a32a07dce33f7c7873aaffbff36d20ea30787574ead335eefd337e4dacd0\x10\x1a\x06sha256\x1a\x06sha5120\x81\x96\x04 e\x17\x12Q\xa9\xaf\xf5\xa8\xb3\x14:\x814\x81\xcb\x07\xf6\xe0\xdeN\xb1\x97\xc7g\x83\x7f\xe4I\x1bs\x90\x930r\x1a\x07ed25519\x1a\x07ed255190L0J\x1a\x06public\x1a@89f28bd4ede5ec3786ab923fd154f39588d20881903e69c7b08fb504c67508150\x10\x1a\x06sha256\x1a\x06sha5120\x81\x96\x04 \x8a\x1cJ:\xc2\xd5\x15\xde\xc9\x82\xba\x99\x10\xc5\xfdy\xb9\x1a\xe5\x7fb[\x9c\xff%\xd0k\xf0\xa6\x1c\x17X0r\x1a\x07ed25519\x1a\x07ed255190L0J\x1a\x06public\x1a@82ccf6ac47298ff43bfa0cd639868894e305a99c723ff0515ae2e9856eb5bbf40\x10\x1a\x06sha256\x1a\x06sha5120\x81\xd00/\x1a\x04root0\'0"\x04 Nw}\xe0\xd2u\xf9\xd2\x85\x88\xdd\x9a\x16\x06\xcct\x8eT\x8f\x9e"\xb6y[|\xb3\xf6?\x98\x03_\xcb\x02\x01\x0103\x1a\x08snapshot0\'0"\x04 Y\xa4\xdf\x8a\xf8\x18\xe9\xedz\xbe\x07d\xc0\xb4{B@\x95*\xa0\xd1y\xb5\xb7\x83F\xc4p\xac0\'\x8d\x02\x01\x0102\x1a\x07targets0\'0"\x04 e\x17\x12Q\xa9\xaf\xf5\xa8\xb3\x14:\x814\x81\xcb\x07\xf6\xe0\xdeN\xb1\x97\xc7g\x83\x7f\xe4I\x1bs\x90\x93\x02\x01\x0104\x1a\ttimestamp0\'0"\x04 \x8a\x1cJ:\xc2\xd5\x15\xde\xc9\x82\xba\x99\x10\xc5\xfdy\xb9\x1a\xe5\x7fb[\x9c\xff%\xd0k\xf0\xa6\x1c\x17X\x02\x01\x01')
+
+
+
+    # Test by calling the general to_asn1 and from_asn1 calls that will call
+    # the helper functions.
+    self.conversion_check(
+        data=r,
+        datatype=asn1_defs.RootMetadata,
+        expected_der=root_expected_der
+        )
+
+
+
 
   '''
 
