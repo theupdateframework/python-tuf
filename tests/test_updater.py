@@ -105,9 +105,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     logger.info('\tServing on port: '+str(cls.SERVER_PORT))
     cls.url = 'http://localhost:'+str(cls.SERVER_PORT) + os.path.sep
 
-    # NOTE: Following error is raised if a delay is not applied:
-    # <urlopen error [Errno 111] Connection refused>
-    time.sleep(1)
+    # NOTE: Following error is raised if a delay is not long enough to allow
+    # the server process to set up and start listening:
+    #     <urlopen error [Errno 111] Connection refused>
+    # or, on Windows:
+    #     Failed to establish a new connection: [Errno 111] Connection refused'
+    # While 0.3s has consistently worked on Travis and local builds, it led to
+    # occasional failures in AppVeyor builds, so increasing this to 2s, sadly.
+    time.sleep(2)
 
 
 
@@ -1036,9 +1041,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     command = ['python', '-m', 'tuf.scripts.simple_server', str(SERVER_PORT)]
     server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
 
-    # NOTE: Following error is raised if a delay is not applied:
+    # NOTE: Following error is raised if a delay is not long enough:
     # <urlopen error [Errno 111] Connection refused>
-    time.sleep(.3)
+    # or, on Windows:
+    # Failed to establish a new connection: [Errno 111] Connection refused'
+    # While 0.3s has consistently worked on Travis and local builds, it led to
+    # occasional failures in AppVeyor builds, so increasing this to 2s, sadly.
+    time.sleep(2)
 
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
     repository_basepath = self.repository_directory[len(os.getcwd()):]
@@ -1289,9 +1298,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     command = ['python', '-m', 'tuf.scripts.simple_server', str(SERVER_PORT)]
     server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
 
-    # NOTE: Following error is raised if a delay is not applied:
-    # <urlopen error [Errno 111] Connection refused>
-    time.sleep(.3)
+    # NOTE: Following error is raised if a delay is not long enough to allow
+    # the server process to set up and start listening:
+    #     <urlopen error [Errno 111] Connection refused>
+    # or, on Windows:
+    #     Failed to establish a new connection: [Errno 111] Connection refused'
+    # While 0.3s has consistently worked on Travis and local builds, it led to
+    # occasional failures in AppVeyor builds, so increasing this to 2s, sadly.
+    time.sleep(2)
 
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
     repository_basepath = self.repository_directory[len(os.getcwd()):]
@@ -1416,9 +1430,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     command = ['python', '-m', 'tuf.scripts.simple_server', str(SERVER_PORT)]
     server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
 
-    # NOTE: Following error is raised if a delay is not applied:
-    # <urlopen error [Errno 111] Connection refused>
-    time.sleep(.3)
+    # NOTE: Following error is raised if a delay is not long enough to allow
+    # the server process to set up and start listening:
+    #     <urlopen error [Errno 111] Connection refused>
+    # or, on Windows:
+    #     Failed to establish a new connection: [Errno 111] Connection refused'
+    # While 0.3s has consistently worked on Travis and local builds, it led to
+    # occasional failures in AppVeyor builds, so increasing this to 2s, sadly.
+    time.sleep(2)
 
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
     repository_basepath = self.repository_directory[len(os.getcwd()):]
@@ -1811,9 +1830,14 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     self.url = 'http://localhost:' + str(self.SERVER_PORT) + os.path.sep
     self.url2 = 'http://localhost:' + str(self.SERVER_PORT2) + os.path.sep
 
-    # NOTE: Following error is raised if a delay is not applied:
-    # <urlopen error [Errno 111] Connection refused>
-    time.sleep(.3)
+    # NOTE: Following error is raised if a delay is not long enough to allow
+    # the server process to set up and start listening:
+    #     <urlopen error [Errno 111] Connection refused>
+    # or, on Windows:
+    #     Failed to establish a new connection: [Errno 111] Connection refused'
+    # While 0.3s has consistently worked on Travis and local builds, it led to
+    # occasional failures in AppVeyor builds, so increasing this to 2s, sadly.
+    time.sleep(2)
 
     url_prefix = 'http://localhost:' + str(self.SERVER_PORT)
     url_prefix2 = 'http://localhost:' + str(self.SERVER_PORT2)
