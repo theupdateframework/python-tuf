@@ -145,7 +145,7 @@ import securesystemslib.keys
 import securesystemslib.util
 import six
 import iso8601
-from .handlers import MetadataHandler, TargetsHandler
+from .handlers import FileSystemMetadataHandler, FileTargetsHandler
 
 # The Timestamp role does not have signed metadata about it; otherwise we
 # would need an infinite regress of metadata. Therefore, we use some
@@ -630,7 +630,9 @@ class Updater(object):
     http://www.python.org/dev/peps/pep-0008/#method-names-and-instance-variables
   """
 
-  def __init__(self, repository_name, repository_mirrors):
+  def __init__(self, repository_name, repository_mirrors,
+               metadata_handler_cls=FileSystemMetadataHandler,
+               targets_handler_cls=FileTargetsHandler):
     """
     <Purpose>
       Constructor.  Instantiating an updater object causes all the metadata
@@ -738,11 +740,11 @@ class Updater(object):
     repository_directory = os.path.join(repositories_directory, self.repository_name)
    
 
-    self.metadata_handler = MetadataHandler(repository_mirrors,
+    self.metadata_handler = metadata_handler_cls(repository_mirrors,
                                             repository_directory,
                                             self.repository_name)
 
-    self.targets_handler = TargetsHandler(repository_mirrors,
+    self.targets_handler = targets_handler_cls(repository_mirrors,
                                           self.consistent_snapshot)
 
 
@@ -2276,6 +2278,8 @@ class Updater(object):
 
 
 
+
+
   def _get_target_hash(self, target_filepath, hash_function='sha256'):
     """
     <Purpose>
@@ -2319,13 +2323,17 @@ class Updater(object):
 
 
 
+
   def remove_obsolete_targets(self, destination_directory):
     self.targets_handler._remove_obsolete_targets(destination_directory)
 
 
 
+
+
   def updated_targets(self, targets, destination_directory):
     self.targets_handler._get_updated_targets(targets, destination_directory)
+
 
 
 

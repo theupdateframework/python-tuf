@@ -17,26 +17,13 @@ SUPPORTED_MAJOR_VERSION = 1
 class MetadataHandler(object):
 
 
-  def __init__(self, repository_mirrors, repository_directory, repository_name=None):
-    self.mirrors = repository_mirrors
+  def __init__(self, mirrors, repository_directory, repository_name=None):
     self.repository_directory = repository_directory
     self.repository_name = repository_name
-    # Store the location of the client's metadata directory.
-    self.metadata_directory = {}
-    current_path = os.path.join(repository_directory, 'metadata', 'current')
-     # Ensure the current path is valid/exists before saving it.
-    if not os.path.exists(current_path):
-      raise tuf.exceptions.RepositoryError('Missing'
-            ' ' + repr(current_path) + '.  This path must exist and, at a minimum,'
-            ' contain the Root metadata file.')
-    self.metadata_directory['current'] = current_path
-     # Set the path for the previous set of metadata files.
-    previous_path = os.path.join(repository_directory, 'metadata', 'previous')
-     # Ensure the previous path is valid/exists.
-    if not os.path.exists(previous_path):
-      raise tuf.exceptions.RepositoryError('Missing ' + repr(previous_path) + '.'
-                                             '  This path MUST exist.')
-    self.metadata_directory['previous'] = previous_path
+    self.mirrors = mirrors
+
+
+
 
 
   def _ensure_not_expired(self, metadata_object, metadata_rolename):
@@ -89,6 +76,9 @@ class MetadataHandler(object):
       raise tuf.exceptions.ExpiredMetadataError(message)
 
 
+
+
+
   def _verify_root_chain_link(self, rolename, current_root_metadata,
     next_root_metadata):
 
@@ -104,6 +94,9 @@ class MetadataHandler(object):
     if not valid:
       raise securesystemslib.exceptions.BadSignatureError('Root is not signed'
           ' by previous threshold of keys.')
+
+
+
 
 
   def _verify_uncompressed_metadata_file(self, metadata_file_object,
@@ -160,6 +153,39 @@ class MetadataHandler(object):
 
 
 
+
+
+class FileSystemMetadataHandler(MetadataHandler):
+
+
+
+
+
+  def __init__(self, repository_mirrors, repository_directory, repository_name=None):
+    self.mirrors = repository_mirrors
+    self.repository_directory = repository_directory
+    self.repository_name = repository_name
+    # Store the location of the client's metadata directory.
+    self.metadata_directory = {}
+    current_path = os.path.join(repository_directory, 'metadata', 'current')
+     # Ensure the current path is valid/exists before saving it.
+    if not os.path.exists(current_path):
+      raise tuf.exceptions.RepositoryError('Missing'
+            ' ' + repr(current_path) + '.  This path must exist and, at a minimum,'
+            ' contain the Root metadata file.')
+    self.metadata_directory['current'] = current_path
+     # Set the path for the previous set of metadata files.
+    previous_path = os.path.join(repository_directory, 'metadata', 'previous')
+     # Ensure the previous path is valid/exists.
+    if not os.path.exists(previous_path):
+      raise tuf.exceptions.RepositoryError('Missing ' + repr(previous_path) + '.'
+                                             '  This path MUST exist.')
+    self.metadata_directory['previous'] = previous_path
+
+
+
+
+
   def load_metadata_object(self, metadata_set, metadata_role):
     """
     Reads the metadata file from the disk, converts it to
@@ -188,6 +214,8 @@ class MetadataHandler(object):
       metadata_object = metadata_signable['signed']
       return metadata_object
     return None
+
+
 
 
 
@@ -331,6 +359,9 @@ class MetadataHandler(object):
       raise tuf.exceptions.NoWorkingMirrorError(file_mirror_errors)
 
 
+
+
+
   def _get_metadata_file_content(self, metadata_role, remote_filename,
                           expected_version, current_version,
                           upperbound_filelength):
@@ -345,6 +376,9 @@ class MetadataHandler(object):
     if not file_object:
       return None
     return securesystemslib.util.load_json_string(file_object.read().decode('utf-8'))
+
+
+
 
 
   def get_updated_metadata(self, metadata_role, current_version,
@@ -388,6 +422,9 @@ class MetadataHandler(object):
       return self._move_metadata(metadata_filename, metadata_file_object)
 
 
+
+
+
   def _move_metadata(self, metadata_filename, metadata_file_object):
       """
       Moves the metadata file into place. The new metadata into the current
@@ -416,6 +453,9 @@ class MetadataHandler(object):
       return metadata_signable
 
 
+
+
+
   def metadata_file_exists(self, metadata_set, metadata_filename):
     """
     Checks if the metadata exists. In this case it is just
@@ -424,6 +464,8 @@ class MetadataHandler(object):
     path = os.path.join(self.metadata_directory[metadata_set],
                         metadata_filename)
     return os.path.exists(path)
+
+
 
 
 
@@ -465,18 +507,135 @@ class MetadataHandler(object):
       securesystemslib.util.ensure_parent_dir(previous_filepath)
       os.rename(current_filepath, previous_filepath)
 
+
+
+
   def delete_metadata(self, metadata_role):
     """
     Gets rid of the current metadata file.
     """
     self.move_current_to_previous(metadata_role)
 
-class TargetsHandler(object):
+
+
+
+class GitMetadataHandler(MetadataHandler):
+  """
+  The main idea is here is that in our case metadata is hosted
+  by a git repository. A user will have a local copy of this
+  repository and updating metadata means that a user updates their
+  local metadata repository. We do not want to download files from
+  a remote server.
+  """
+
+
+  def __init__(self, repository_directory, repository_name, mirrors):
+    """
+    In our case, the metadata is contained by a git repository.
+    mirrors should contain url of that repository. The repository
+    is cloned as a bare git repository. repository_directory is the user's
+    local repository containing metadata.
+    """
+    pass
+
+
+
+
+
+  def load_metadata_object(self, metadata_set, metadata_role):
+    """
+    In this case metadata should not be loaded from disk
+    It is read from a bare git repository by calling git show
+    """
+    pass
+
+
+
+
+
+  def metadata_file_exists(self, metadata_set, metadata_filename):
+    """
+    Check if the git repository contains the metadata file
+    """
+    pass
+
+
+
+
+
+  def get_metadata_file_details(self, metadata_set, metadata_filename):
+    """
+    Calculation of the file details preferably without writing to a file
+    just so that it ca be read later
+    """
+    pass
+
+
+
+
+
+  def get_metadata_file_content(self, metadata_role, file_name,
+                                expected_version, current_version,
+                                upperbound_filelength=None, move_metadata=False):
+    """
+    We dont have the physical files in our case. So we just read the content
+    of the file from git. This also searches for a while that has the expected
+    version. This is done by checking out commits of the cloned repository.
+    """
+    pass
+
+
+
+
+
+
+  def _move_current_to_previous(self, metadata_role):
+    """
+    This method should mark the current metadata as
+    previous. Also, this should remove the current
+    metadata.
+    """
+    pass
+
+
+
+
+
+
+  def delete_metadata(self, metadata_role):
+    "No need to do anything here"
+    pass
+
+
+
+
+
+  def get_updated_metadata(self, metadata_role, current_version,
+                        version=None, consistent_snapshot=False,
+                        upperbound_filelength=None):
+    """
+    Getting newer version of the metadata files in this case
+    means checking out commits of the cloned bare git repository
+    So, we traverse through the commits until we find the first one
+    where the metadata file's version is equal to the needed one
+    """
+    pass
+
+
+
+
+
+class FileTargetsHandler(object):
+
+
+
 
 
   def __init__(self, mirrors, consistent_snapshot):
     self.mirrors = mirrors
     self.consistent_snapshot = consistent_snapshot
+
+
 
 
 
@@ -531,6 +690,7 @@ class TargetsHandler(object):
 
     return self._get_file(target_filepath, verify_target_file,
         'target', file_length, download_safely=True)
+
 
 
 
@@ -625,6 +785,7 @@ class TargetsHandler(object):
 
 
 
+
   def _hard_check_file_length(self, file_object, trusted_file_length):
     """
     <Purpose>
@@ -669,6 +830,7 @@ class TargetsHandler(object):
     else:
       logger.debug('Observed length (' + str(observed_length) +\
           ') == trusted length (' + str(trusted_file_length) + ')')
+
 
 
 
@@ -718,6 +880,9 @@ class TargetsHandler(object):
     else:
       logger.debug('Observed length (' + str(observed_length) +\
           ') <= trusted length (' + str(trusted_file_length) + ')')
+
+
+
 
 
   def download_target(self, target, destination_directory):
@@ -798,6 +963,8 @@ class TargetsHandler(object):
         raise
 
     target_file_object.move(destination)
+
+
 
 
 
@@ -997,3 +1164,30 @@ class TargetsHandler(object):
           break
 
     return updated_targets
+
+
+
+
+
+class RepositoryTargetsHandler(object):
+  """
+  Targets in this case are git repositories. We don't want to download files
+  We want to update the repositories by calling git fetch/merge
+  But we firstly want to ensure that the fetched commits are in
+  accordance with the metadata
+  """
+
+  def __init__(self, mirrors, consistent_snapshot):
+    self.mirrors = mirrors
+    self.consistent_snapshot = consistent_snapshot
+
+
+
+
+
+  def download_target(self, target, destination_directory):
+    """
+    This fetches the changes and merges them into the
+    currently checked out branch
+    """
+    pass
