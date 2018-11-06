@@ -109,9 +109,13 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     logger.info('Serving on port: '+str(self.SERVER_PORT))
     url = 'http://localhost:'+str(self.SERVER_PORT) + os.path.sep
 
-    # NOTE: Following error is raised if a delay is not applied:
+    # NOTE: Following error is raised if a delay is not long enough:
     # <urlopen error [Errno 111] Connection refused>
-    time.sleep(1)
+    # or, on Windows:
+    # Failed to establish a new connection: [Errno 111] Connection refused'
+    # 1s led to occasional failures in automated builds on AppVeyor, so
+    # increasing this to 3s, sadly.
+    time.sleep(3)
 
     return server_process
 

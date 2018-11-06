@@ -81,9 +81,13 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     junk, rel_target_filepath = os.path.split(target_filepath)
     self.url = 'http://localhost:'+str(self.PORT)+'/'+rel_target_filepath
 
-    # NOTE: Following error is raised if delay is not applied:
-    #    <urlopen error [Errno 111] Connection refused>
-    time.sleep(1)
+    # Provide a delay long enough to allow the HTTPS servers to start.
+    # Encountered an error on one test system at delay value of 0.2s, so
+    # increasing to 0.5s.  Further increasing to 2s due to occasional failures
+    # in other tests in similar circumstances on AppVeyor.
+    # Expect to see "Connection refused" if this delay is not long enough
+    # (though other issues could cause that).
+    time.sleep(2)
 
     # Computing hash of target file data.
     m = hashlib.md5()
@@ -272,10 +276,11 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
     # Provide a delay long enough to allow the HTTPS servers to start.
     # Encountered an error on one test system at delay value of 0.2s, so
-    # increasing to 0.5s.
+    # increasing to 0.5s.  Further increasing to 2s due to occasional failures
+    # in other tests in similar circumstances on AppVeyor.
     # Expect to see "Connection refused" if this delay is not long enough
     # (though other issues could cause that).
-    time.sleep(0.5)
+    time.sleep(2)
 
     relative_target_fpath = os.path.basename(target_filepath)
     good_https_url = 'https://localhost:' + port1 + '/' + relative_target_fpath
