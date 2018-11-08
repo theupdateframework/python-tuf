@@ -731,4 +731,201 @@ def _structlike_dict_from_asn1(asn1_obj):
         'Source data type: ' + str(type(data)) + '; output type is: ' +
         str(datatype))
 
+def _is_optional_field_in(field_name, asn1_obj):
+  """
+  Assuming that field_name is a field in asn1_obj's definition, determines if
+  field_name is optional.
+
+  Returns True:
+    - if field_name is an optional field for asn1crypto object
+    asn1_obj.
+
+  Returns False:
+    - if field_name is a non-optional field in asn1_obj.
+
+  Raises ValueError if:
+    - asn1_obj doesn't seem to be a Sequence or Set, as it does not have a
+      _fields attribute; or
+    - field_name is not an attribute of asn1_obj
+
+  # TODO: Do those seem like ValueErrors, or does another class make more sense?
+  """
+  check_structlike_datatype(type(asn1_obj))
+
+  relevant_row = None
+
+  # Find field_name in the asn1_obj object's element definitions.
+  for row in asn1_obj._fields:
+    if row[0] == field_name:
+      relevant_row = row
+
+  if relevant_row is None:
+    raise ValueError(
+        'Provided asn1crypto object does not seem to permit a field named ' +
+        field_name)
+
+  # The field is listed.  Find out if the field is marked optional.
+  if (len(relevant_row) > 2
+      and 'optional' in relevant_row[2]
+      and relevant_row[2]['optional']):
+    return True
+
+  else:
+    return False
+
+
+
+
+
+def check_datatype(datatype):
+  """
+  Raises ValueError if provided datatype is not a type.
+  """
+  if not isinstance(datatype, type):
+    raise ValueError(
+        'datatype must be a type.  It is, instead, ' + str(type(datatype)))
+
+
+
+
+def is_listlike_datatype(datatype):
+  """
+  True if provided datatype has attribute _child_spec and is either a subclass
+  of SequenceOf or SetOf.
+
+  Raises ValueError if datatype is not a type.
+
+  See module docstring and to_asn1 docstring for discussions of list-like and
+  struct-like ASN.1 objects.
+  """
+  check_datatype(datatype)
+
+  if hasattr(datatype, '_child_spec') and (
+      issubclass(datatype, asn1_core.SequenceOf)
+      or issubclass(datatype, asn1_core.SetOf)):
+    return True
+
+  else:
+    return False
+
+
+
+def check_listlike_datatype(datatype):
+  """
+  Raises ValueError if provided datatype is not an asn1crypto type that
+  subclasses either SequenceOf or SetOf or does not have attribute _child_spec.
+
+  See other docstrings for discussions of list-like and struct-like ASN.1
+  objects.
+  """
+  if not is_listlike_datatype(datatype):
+    raise tuf.exceptions.ASN1ConversionError(
+        'Expected list-like datatype: subclass of SequenceOf or SetOf, with '
+        'attribute "_child_type" that specifies the type of its components.  '
+        'Datatype ' + str(datatype) + ' did not.')
+
+
+
+
+
+def is_listlike_derived_from_dict(datatype):
+  """
+  Returns True if datatype is a list-like asn1crypto class that is populated
+  through conversion from a JSON-compatible dictionary (instead of from a list).
+
+  Raises ValueError if datatype is not a type.
+  """
+  if (is_listlike_datatype(datatype)
+      and hasattr(datatype, '_from_listlike_dict')
+      and datatype._from_listlike_dict):
+    return True
+
+  else:
+    return False
+
+
+
+
+
+def check_listlike_derived_from_dict(datatype):
+  """
+  Raises ValueError if provided datatype:
+   - is not an asn1crypto type that subclasses either SequenceOf or SetOf,
+   - or does not have attribute _child_spec,
+   - or does not have attribute _from_listlike_dict set to True.
+
+  See other docstrings for discussions of list-like and struct-like ASN.1
+  objects.
+  """
+  if not is_listlike_derived_from_dict:
+    raise ValueError(
+        'Provided datatype ' + str(datatype) + ' expected to be a list-like '
+        'asn1crypto class derived from a dictionary, but is not.')
+
+
+
+
+
+def is_listlike_derived_from_dict(datatype):
+  """
+  Returns True if datatype is a list-like asn1crypto class that is populated
+  through conversion from a JSON-compatible dictionary (instead of from a list).
+
+  Raises ValueError if datatype is not a type.
+  """
+  if (is_listlike_datatype(datatype)
+      and hasattr(datatype, '_from_listlike_dict')
+      and datatype._from_listlike_dict):
+    return True
+
+  else:
+    return False
+
+
+def is_structlike_datatype(datatype):
+  """
+  True if provided datatype has attribute _fields and is either a subclass of
+  Sequence or Set.
+
+  Raises ValueError if datatype is not a type.
+
+  See module docstring and to_asn1 docstring for discussions of list-like and
+  struct-like ASN.1 objects.
+  """
+  check_datatype(datatype)
+
+  if hasattr(datatype, '_fields') and (
+      issubclass(datatype, asn1_core.Sequence)
+      or issubclass(datatype, asn1_core.Set)):
+
+    # Sanity check to make sure definition for a structlike dict doesn't set
+    # _from_listlike_dict.
+    if (hasattr(datatype, '_from_listlike_dict')
+        and datatype._from_listlike_dict):
+      # TODO: Decide on an appropriate exception class.
+      raise Exception('Definition for class ' + str(datatype) + ' appears to '
+          'incorrectly set _from_listlike_dict, even though it is a '
+          'struct-like asn1crypto object.')
+
+    return True
+
+  else:
+    return False
+
+
+
+def check_structlike_datatype(datatype):
+  """
+  Raises ValueError if provided datatype is not an asn1crypto type that
+  subclasses either Sequence or Set or does not have attribute _fields.
+
+  See other docstrings for discussions of list-like and struct-like ASN.1
+  objects.
+  """
+  if not is_structlike_datatype(datatype):
+    raise tuf.exceptions.ASN1ConversionError(
+        'Expected struct-like datatype: subclass of SequenceOf or SetOf, '
+        'with attribute "_fields" that specifies elements.  Datatype ' +
+        str(datatype) + ' did not.')
+
 
