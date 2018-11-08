@@ -51,10 +51,10 @@ def debug(msg):
 
 def asn1_to_der(asn1_obj):
   """
-  Encode any ASN.1 (in the form of a pyasn1 object) as DER (Distinguished
+  Encode any ASN.1 (in the form of an asn1crypto object) as DER (Distinguished
   Encoding Rules), suitable for transport.
 
-  Note that this will raise pyasn1 errors if the encoding fails.
+  Note that this will raise asn1crypto errors if the encoding fails.
   """
   # TODO: Perform some minimal validation of the incoming object.
   # TODO: Investigate the scenarios in which this could potentially result in
@@ -69,7 +69,7 @@ def asn1_to_der(asn1_obj):
 def asn1_from_der(der_obj, datatype=None):
   """
   Decode ASN.1 in the form of DER-encoded binary data (Distinguished Encoding
-  Rules), into a pyasn1 object representing abstract ASN.1 data.
+  Rules), into an asn1crypto object representing abstract ASN.1 data.
 
   Reverses asn1_to_der.
 
@@ -875,7 +875,7 @@ def to_asn1(data, datatype):
     data:
       dict; a dictionary representing data to convert into ASN.1
     datatype
-      type; the type (class) of the pyasn1-compatible class corresponding to
+      type; the type (class) of the asn1crypto-compatible class corresponding to
       this type of object, generally from tuf.encoding.asn1_metadata_definitions
 
   # TODO: Add max recursion depth, and possibly split this into a high-level

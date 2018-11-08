@@ -18,14 +18,24 @@
   but tuf_metadata_definitions.asn1 is the more abstract file that implementers
   using other languages may use for compatibility.
 
-  It is not yet clear to me how to bound values in asn1crypto in the way that
+  It is not yet clear to me how to limit values in asn1crypto in the way that
   you can in pyasn1 using ValueRangeConstraint. For thresholds, versions,
   timestamps, etc., we want only non-negative integers.
+
+  On list-like dictionaries:
+    A systematic modification to the structure of the data was necessary to
+    translate list-like dictionaries from the TUF-internal format to ASN.1.  A
+    list-like dictionary is a dictionary in which the keys are unpredictable.
+    This is as opposed to a struct-like dictionary, where the structure is
+    knowable in advance.  Note that because ASN.1 does not support
+    dictionaries, definitions introduce additional layers where the TUF spec
+    uses a list-like dictionary, with the additional layer being a list
+    containing key-value pairs. For example, see RoleLongInfoContainers in
+    Timestamp metadata, or Hashes. Look for _from_listlike_dict below for more
+    examples.
 """
 
 import asn1crypto.core as ac
-# from asn1crypto.core import \
-#     Sequence, SequenceOf, Set, SetOf, Integer, OctetString, IA5String
 
 
 # Common types, for use in the various metadata types
@@ -38,9 +48,7 @@ class OctetStrings(ac.SequenceOf):  # Hopefully temporary
   _child_spec = ac.OctetString
 class VisibleStrings(ac.SequenceOf): # Hopefully temporary
 
-# Not supported?
-# class IntegerNatural(ac.Integer):
-#   subtypeSpec = constraint.ValueRangeConstraint(0, MAX) # 0 <= value <= MAX
+
 
 class Signature(ac.Sequence):
   _fields = [
@@ -48,26 +56,29 @@ class Signature(ac.Sequence):
       ('method', ac.VisibleString),
       ('value', ac.OctetString)]
 
+
+
 class Hash(ac.Sequence):
   """
   Conceptual ASN.1 structure (Python pseudocode):
-      {'function': 'sha256', 'digest': '...'}
+      {'function': 'sha256', 'digest': '...'}      # additional layer (was list-like dict)
   Equivalent TUF-internal JSON-compatible metadata:
-      {'sha256': '...'}
+      'sha256': '...'                              # entry in a list-like dict
   """
   _fields = [
       ('function', ac.VisibleString),
       ('digest', ac.OctetString)]
 
-# TEMPORARY, FOR DEBUGGING ONLY; DO NOT MERGE
+
+
 class Hashes(ac.SetOf):
   """
   List of Hash objects.
   Conceptual ASN.1 structure (Python pseudocode):
-      [ {'function': 'sha256', 'digest': '...'},
-        {'function': 'sha512', 'digest': '...'} ]
+      [ {'function': 'sha256', 'digest': '...'},    # additional layer (was list-like dict)
+        {'function': 'sha512', 'digest': '...'} ]   # additional layer (was list-like dict)
   Equivalent TUF-internal JSON-compatible metadata:
-      {'sha256': '...', 'sha512': '...'}
+      {'sha256': '...', 'sha512': '...'}            # list-like dict
   """
   _child_spec = Hash
 
