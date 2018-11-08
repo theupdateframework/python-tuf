@@ -28,8 +28,15 @@ import asn1crypto.core as ac
 #     Sequence, SequenceOf, Set, SetOf, Integer, OctetString, IA5String
 
 
+# Common types, for use in the various metadata types
 
-## Common types, for use in the various metadata types
+# Normally, one would use SequenceOf in place, rather than define a class
+# for each type of SequenceOf that we want to use, but, for now, the way we
+# parse these definitions chokes on those sorts of definitions, so we'll just
+# create a class for each type of SequenceOf we need.
+class OctetStrings(ac.SequenceOf):  # Hopefully temporary
+  _child_spec = ac.OctetString
+class VisibleStrings(ac.SequenceOf): # Hopefully temporary
 
 # Not supported?
 # class IntegerNatural(ac.Integer):
@@ -70,11 +77,10 @@ class KeyIDHashAlgorithms(ac.SequenceOf):
   _child_spec = ac.VisibleString
 
 
-# TEMPORARY: swap in content itself in class PublicKey
-# Structurally bizarre, since I'm limiting this to 'public', but still
-# allowing keyval to have multiple of these in it......... to match the
-# non-ASN.1 metadata definitions.
-class KeyValue(ac.Sequence):
+# Hopefully temporary: swap in content itself in class Key?
+class KeyValues(ac.Sequence):
+  # Note that if this subclasses Set instead Sequence and 'private' is optional,
+  # strange issues arise.  There might be a bug in asn1crypto related to this.
   _fields = [
       ('public', ac.VisibleString)] #ac.OctetString)]
 
@@ -82,8 +88,15 @@ class PublicKey(ac.Sequence):
   _fields = [
       ('keytype', ac.VisibleString),
       ('scheme', ac.VisibleString),
-      ('keyval', ac.SetOf, {'_child_spec': KeyValue}),
-      ('keyid-hash-algorithms', KeyIDHashAlgorithms)]
+      # Currently, we don't dynamically create types (using the type()
+      # function with three arguments), and in the recursion, we need every
+      # level to have established properties.  So instead of using the
+      # third parameter here like this:
+      #  ('keyval', ac.SetOf, {'_child_spec': KeyValue}),
+      # we're going to instead define a class for lists of KeyValue objects
+      # and another for lists of VisibleString objects.
+      ('keyval', KeyValues),
+      ('keyid-hash-algorithms', VisibleStrings)]
 
 
 
@@ -101,8 +114,14 @@ class RootMetadata(ac.Sequence):
       ('expires', ac.VisibleString),
       ('version', ac.Integer),
       ('consistent-snapshot', ac.Boolean),
-      ('keys', ac.SetOf, {'_child_spec': PublicKey}),
-      ('roles', ac.SetOf, {'_child_spec': TopLevelDelegation})]
+      ('keys', HashIndexedKeys),
+      # Currently, we don't dynamically create types (using the type()
+      # function with three arguments), and in the recursion, we need every
+      # level to have established properties.  So instead of using the
+      # third parameter here like this:
+      #  ('roles', ac.SetOf, {'_child_spec': TopLevelDelegation})]
+      # we're going to instead define a class for these things:
+      ('roles', TopLevelDelegations)]
 
 
 
@@ -212,7 +231,17 @@ class TargetsMetadata(ac.Sequence):
       ('spec_version', ac.VisibleString),
       ('expires', ac.VisibleString),
       ('version', ac.Integer),
-      ('targets', ac.SetOf, {'_child_spec': Target}),
-      ('delegations', ac.Sequence, {'_fields': [
-          ('keys', ac.SetOf, {'_child_spec': PublicKey}),
-          ('roles', ac.SequenceOf, {'_child_spec': Delegation})]})]
+      # Currently, we don't dynamically create types (using the type()
+      # function with three arguments), and in the recursion, we need every
+      # level to have established properties.  So instead of using the using
+      # the optional third parameter for each component like this:
+      # ('targets', ac.SetOf, {'_child_spec': Target}),
+      # ('delegations', ac.Sequence, {'_fields': [
+      #     ('keys', ac.SetOf, {'_child_spec': Key}),
+      #     ('roles', ac.SequenceOf, {'_child_spec': Delegation})]})]
+      # we instead defined separate classes for lists of Target objects and the
+      # Delegation section.
+
+      # we're going to instead define a class for these things:
+      ('targets', Targets),
+      ('delegations', DelegationSection)]
