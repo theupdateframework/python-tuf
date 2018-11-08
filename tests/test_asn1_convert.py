@@ -313,11 +313,7 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     }
 
     expected_der = (
-        b'1x0*\x1a\x06sha256\x04 e\xb8\xc6\x7fQ\xc9\x93\xd8\x98%\x0f@\xaaW\xa3'
-        b'\x17\xd8T\x90\x0b:\x04\x89Td1>HxT@\xda0J\x1a\x06sha512\x04@Ft0\xa6'
-        b'\x8a\xfa\xe8\xe9\xf9\xc0w\x1e\xa5\xd7\x8b\xf0\xb3\xa0\xd7\x9a-=;@'
-        b'\xc6\x9f\xdeM\xd4,F\x14H\xae\xf7o\xce\xf4\xf5(I1\xa1\xff\xd0\xac\tm'
-        b'\x13\x8b\xa3\xa0\xd6\xca\x83\xfa\x8dr\x85\xa4z)ow')
+        b'1x0*\x1a\x06sha256\x04 e\xb8\xc6\x7fQ\xc9\x93\xd8\x98%\x0f@\xaaW\xa3\x17\xd8T\x90\x0b:\x04\x89Td1>HxT@\xda0J\x1a\x06sha512\x04@Ft0\xa6\x8a\xfa\xe8\xe9\xf9\xc0w\x1e\xa5\xd7\x8b\xf0\xb3\xa0\xd7\x9a-=;@\xc6\x9f\xdeM\xd4,F\x14H\xae\xf7o\xce\xf4\xf5(I1\xa1\xff\xd0\xac\tm\x13\x8b\xa3\xa0\xd6\xca\x83\xfa\x8dr\x85\xa4z)ow')
 
 
     # Test by calling the helper functions directly.
@@ -352,26 +348,9 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
 
     # Expected DER results from converting the keys:
     ed_key_expected_der = (
-        b'0\x81\x94\x04 \x8a\x1cJ:\xc2\xd5\x15\xde\xc9\x82\xba\x99\x10\xc5'
-        b'\xfdy\xb9\x1a\xe5\x7fb[\x9c\xff%\xd0k\xf0\xa6\x1c\x17X\x1a\x07'
-        b'ed25519\x1a\x07ed255190L0J\x1a\x06public\x1a@82ccf6ac47298ff43bf'
-        b'a0cd639868894e305a99c723ff0515ae2e9856eb5bbf40\x10\x1a\x06sha256'
-        b'\x1a\x06sha512')
+        b'0\x81\x94\x04 \x8a\x1cJ:\xc2\xd5\x15\xde\xc9\x82\xba\x99\x10\xc5\xfdy\xb9\x1a\xe5\x7fb[\x9c\xff%\xd0k\xf0\xa6\x1c\x17X\x1a\x07ed25519\x1a\x07ed255190L0J\x1a\x06public\x1a@82ccf6ac47298ff43bfa0cd639868894e305a99c723ff0515ae2e9856eb5bbf40\x10\x1a\x06sha256\x1a\x06sha512')
     rsa_key_expected_der = (
-        b'0\x82\x02\xdd\x04 Nw}\xe0\xd2u\xf9\xd2\x85\x88\xdd\x9a\x16\x06\xcct'
-        b'\x8eT\x8f\x9e"\xb6y[|\xb3\xf6?\x98\x03_\xcb\x1a\x03rsa\x1a\x11'
-        b'rsassa-pss-sha2560\x82\x02\x8d0\x82\x02|\x1a\x06public\x1a\x82\x02'
-        b'p-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBig'
-        b'KCAYEA0GjPoVrjS9eCqzoQ8VRe\nPkC0cI6ktiEgqPfHESFzyxyjC490Cuy19nuxPcJ'
-        b'uZfN64MC48oOkR+W2mq4pM51i\nxmdG5xjvNOBRkJ5wUCc8fDCltMUTBlqt9y5eLsf/'
-        b'4/EoBU+zC4SW1iPU++mCsity\nfQQ7U6LOn3EYCyrkH51hZ/dvKC4o9TPYMVxNecJ3C'
-        b'L1q02Q145JlyjBTuM3Xdqsa\nndTHoXSRPmmzgB/1dL/c4QjMnCowrKW06mFLq9RAYG'
-        b'IaJWfM/0CbrOJpVDkATmEc\nMdpGJYDfW/sRQvRdlHNPo24ZW7vkQUCqdRxvnTWkK5U'
-        b'81y7RtjLt1yskbWXBIbOV\nz94GXsgyzANyCT9qRjHXDDz2mkLq+9I2iKtEqaEePcWR'
-        b'u3H6RLahpM/TxFzw684Y\nR47weXdDecPNxWyiWiyMGStRFP4Cg9trcwAGnEm1w8R2g'
-        b'gmWphznCd5dXGhPNjfA\na82yNFY8ubnOUVJOf0nXGg3Edw9iY3xyjJb2+nrsk5f3Ag'
-        b'MBAAE=\n-----END PUBLIC KEY-----0\x0b\x1a\x07private\x1a\x000\x10'
-        b'\x1a\x06sha256\x1a\x06sha512')
+        b'0\x82\x02\xdd\x04 Nw}\xe0\xd2u\xf9\xd2\x85\x88\xdd\x9a\x16\x06\xcct\x8eT\x8f\x9e"\xb6y[|\xb3\xf6?\x98\x03_\xcb\x1a\x03rsa\x1a\x11rsassa-pss-sha2560\x82\x02\x8d0\x82\x02|\x1a\x06public\x1a\x82\x02p-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA0GjPoVrjS9eCqzoQ8VRe\nPkC0cI6ktiEgqPfHESFzyxyjC490Cuy19nuxPcJuZfN64MC48oOkR+W2mq4pM51i\nxmdG5xjvNOBRkJ5wUCc8fDCltMUTBlqt9y5eLsf/4/EoBU+zC4SW1iPU++mCsity\nfQQ7U6LOn3EYCyrkH51hZ/dvKC4o9TPYMVxNecJ3CL1q02Q145JlyjBTuM3Xdqsa\nndTHoXSRPmmzgB/1dL/c4QjMnCowrKW06mFLq9RAYGIaJWfM/0CbrOJpVDkATmEc\nMdpGJYDfW/sRQvRdlHNPo24ZW7vkQUCqdRxvnTWkK5U81y7RtjLt1yskbWXBIbOV\nz94GXsgyzANyCT9qRjHXDDz2mkLq+9I2iKtEqaEePcWRu3H6RLahpM/TxFzw684Y\nR47weXdDecPNxWyiWiyMGStRFP4Cg9trcwAGnEm1w8R2ggmWphznCd5dXGhPNjfA\na82yNFY8ubnOUVJOf0nXGg3Edw9iY3xyjJb2+nrsk5f3AgMBAAE=\n-----END PUBLIC KEY-----0\x0b\x1a\x07private\x1a\x000\x10\x1a\x06sha256\x1a\x06sha512')
 
     # Test by calling the helper functions directly.
     self.conversion_check(
@@ -405,7 +384,14 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
 
 
   def test_signed_portion_of_root_conversion(self):
-    r = {
+    root = {
+      'signatures': [
+        {
+         'keyid': '4e777de0d275f9d28588dd9a1606cc748e548f9e22b6795b7cb3f63f98035fcb',
+         'sig': '2dd47f039360e64bd8c6365809507d9316b8615deb8b56d7e50cfdbd9fb59798dd4025922662b30bbd19c2c12ddce768f04489ded70b0ec987a732dcb36d03d3eea3f4bf99a12a4e21381335279cb813d32b024ae666dd851b4a41e1023eb6a138f80e95e39f98b114945e790c4654eed9954ca0a081c16880a72665c06c3f8fadf05e4088fae522ff03b050fcd9b4f4f168739c8e10d42ff647770527186a7f5b7e131b8fc591016d178ce9829f12759c866e4663b4c2e8d9c5b519cdfd4ae877c66a9a630127fcb63575e7f22c20d29f955c42818a864780472fa976ab571813a24913d5b800f6de1cca485c02378d4a2c032e61893d321f7ef17f84a3792ba694d3c01ec0f500fbc2442bd235515b27ade79bcebfd13a8e68d8336829337e38e6a69614455b7550de522d6a74abaefa19ba2e26b5d0854a2187738b900d7b8c30c8d5b75a07ea461856828142356a9de4f329dfbd399b2534b50b103fc10c67444dfa576005f1852beda0bf07401ac5d9d54b0e51dc143261c48bde3169c4'
+        }
+      ],
+      'signed': {
         '_type': 'root',
         'consistent_snapshot': False,
         'expires': '2030-01-01T00:00:00Z',
@@ -444,51 +430,29 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
             'keyids': ['8a1c4a3ac2d515dec982ba9910c5fd79b91ae57f625b9cff25d06bf0a61c1758'],
             'threshold': 1}},
         'spec_version': '1.0',
-        'version': 1}
+        'version': 1
+      }
+    }
 
-    # root_expected_der_old = (
-    #   b'0\x82\x05\xa1\x1a\x04root\x1a\x031.0\x1a\x142030-01-01T00:00:00Z\x02\x01\x01\x01\x01\x000\x82\x04\xa30\x82\x02\xd4\x04 Nw}\xe0\xd2u\xf9\xd2\x85\x88\xdd\x9a\x16\x06\xcct\x8eT\x8f\x9e"\xb6y[|\xb3\xf6?\x98\x03_\xcb0\x82\x02\xae\x1a\x03rsa\x1a\x11rsassa-pss-sha2560\x82\x02\x800\x82\x02|\x1a\x06public\x1a\x82\x02p-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA0GjPoVrjS9eCqzoQ8VRe\nPkC0cI6ktiEgqPfHESFzyxyjC490Cuy19nuxPcJuZfN64MC48oOkR+W2mq4pM51i\nxmdG5xjvNOBRkJ5wUCc8fDCltMUTBlqt9y5eLsf/4/EoBU+zC4SW1iPU++mCsity\nfQQ7U6LOn3EYCyrkH51hZ/dvKC4o9TPYMVxNecJ3CL1q02Q145JlyjBTuM3Xdqsa\nndTHoXSRPmmzgB/1dL/c4QjMnCowrKW06mFLq9RAYGIaJWfM/0CbrOJpVDkATmEc\nMdpGJYDfW/sRQvRdlHNPo24ZW7vkQUCqdRxvnTWkK5U81y7RtjLt1yskbWXBIbOV\nz94GXsgyzANyCT9qRjHXDDz2mkLq+9I2iKtEqaEePcWRu3H6RLahpM/TxFzw684Y\nR47weXdDecPNxWyiWiyMGStRFP4Cg9trcwAGnEm1w8R2ggmWphznCd5dXGhPNjfA\na82yNFY8ubnOUVJOf0nXGg3Edw9iY3xyjJb2+nrsk5f3AgMBAAE=\n-----END PUBLIC KEY-----0\x10\x1a\x06sha256\x1a\x06sha5120\x81\x96\x04 Y\xa4\xdf\x8a\xf8\x18\xe9\xedz\xbe\x07d\xc0\xb4{B@\x95*\xa0\xd1y\xb5\xb7\x83F\xc4p\xac0\'\x8d0r\x1a\x07ed25519\x1a\x07ed255190L0J\x1a\x06public\x1a@edcd0a32a07dce33f7c7873aaffbff36d20ea30787574ead335eefd337e4dacd0\x10\x1a\x06sha256\x1a\x06sha5120\x81\x96\x04 e\x17\x12Q\xa9\xaf\xf5\xa8\xb3\x14:\x814\x81\xcb\x07\xf6\xe0\xdeN\xb1\x97\xc7g\x83\x7f\xe4I\x1bs\x90\x930r\x1a\x07ed25519\x1a\x07ed255190L0J\x1a\x06public\x1a@89f28bd4ede5ec3786ab923fd154f39588d20881903e69c7b08fb504c67508150\x10\x1a\x06sha256\x1a\x06sha5120\x81\x96\x04 \x8a\x1cJ:\xc2\xd5\x15\xde\xc9\x82\xba\x99\x10\xc5\xfdy\xb9\x1a\xe5\x7fb[\x9c\xff%\xd0k\xf0\xa6\x1c\x17X0r\x1a\x07ed25519\x1a\x07ed255190L0J\x1a\x06public\x1a@82ccf6ac47298ff43bfa0cd639868894e305a99c723ff0515ae2e9856eb5bbf40\x10\x1a\x06sha256\x1a\x06sha5120\x81\xd00/\x1a\x04root0\'0"\x04 Nw}\xe0\xd2u\xf9\xd2\x85\x88\xdd\x9a\x16\x06\xcct\x8eT\x8f\x9e"\xb6y[|\xb3\xf6?\x98\x03_\xcb\x02\x01\x0103\x1a\x08snapshot0\'0"\x04 Y\xa4\xdf\x8a\xf8\x18\xe9\xedz\xbe\x07d\xc0\xb4{B@\x95*\xa0\xd1y\xb5\xb7\x83F\xc4p\xac0\'\x8d\x02\x01\x0102\x1a\x07targets0\'0"\x04 e\x17\x12Q\xa9\xaf\xf5\xa8\xb3\x14:\x814\x81\xcb\x07\xf6\xe0\xdeN\xb1\x97\xc7g\x83\x7f\xe4I\x1bs\x90\x93\x02\x01\x0104\x1a\ttimestamp0\'0"\x04 \x8a\x1cJ:\xc2\xd5\x15\xde\xc9\x82\xba\x99\x10\xc5\xfdy\xb9\x1a\xe5\x7fb[\x9c\xff%\xd0k\xf0\xa6\x1c\x17X\x02\x01\x01')
+    root_data_expected_der = (
+        b'0\x82\x05K\x1a\x04root\x1a\x031.0\x1a\x142030-01-01T00:00:00Z\x02\x01\x01\x01\x01\x000\x82\x04y0\x82\x02\xc8\x04 Nw}\xe0\xd2u\xf9\xd2\x85\x88\xdd\x9a\x16\x06\xcct\x8eT\x8f\x9e"\xb6y[|\xb3\xf6?\x98\x03_\xcb0\x82\x02\xa2\x1a\x03rsa\x1a\x11rsassa-pss-sha2560\x82\x02t\x1a\x82\x02p-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA0GjPoVrjS9eCqzoQ8VRe\nPkC0cI6ktiEgqPfHESFzyxyjC490Cuy19nuxPcJuZfN64MC48oOkR+W2mq4pM51i\nxmdG5xjvNOBRkJ5wUCc8fDCltMUTBlqt9y5eLsf/4/EoBU+zC4SW1iPU++mCsity\nfQQ7U6LOn3EYCyrkH51hZ/dvKC4o9TPYMVxNecJ3CL1q02Q145JlyjBTuM3Xdqsa\nndTHoXSRPmmzgB/1dL/c4QjMnCowrKW06mFLq9RAYGIaJWfM/0CbrOJpVDkATmEc\nMdpGJYDfW/sRQvRdlHNPo24ZW7vkQUCqdRxvnTWkK5U81y7RtjLt1yskbWXBIbOV\nz94GXsgyzANyCT9qRjHXDDz2mkLq+9I2iKtEqaEePcWRu3H6RLahpM/TxFzw684Y\nR47weXdDecPNxWyiWiyMGStRFP4Cg9trcwAGnEm1w8R2ggmWphznCd5dXGhPNjfA\na82yNFY8ubnOUVJOf0nXGg3Edw9iY3xyjJb2+nrsk5f3AgMBAAE=\n-----END PUBLIC KEY-----0\x10\x1a\x06sha256\x1a\x06sha5120\x81\x8c\x04 Y\xa4\xdf\x8a\xf8\x18\xe9\xedz\xbe\x07d\xc0\xb4{B@\x95*\xa0\xd1y\xb5\xb7\x83F\xc4p\xac0\'\x8d0h\x1a\x07ed25519\x1a\x07ed255190B\x1a@edcd0a32a07dce33f7c7873aaffbff36d20ea30787574ead335eefd337e4dacd0\x10\x1a\x06sha256\x1a\x06sha5120\x81\x8c\x04 e\x17\x12Q\xa9\xaf\xf5\xa8\xb3\x14:\x814\x81\xcb\x07\xf6\xe0\xdeN\xb1\x97\xc7g\x83\x7f\xe4I\x1bs\x90\x930h\x1a\x07ed25519\x1a\x07ed255190B\x1a@89f28bd4ede5ec3786ab923fd154f39588d20881903e69c7b08fb504c67508150\x10\x1a\x06sha256\x1a\x06sha5120\x81\x8c\x04 \x8a\x1cJ:\xc2\xd5\x15\xde\xc9\x82\xba\x99\x10\xc5\xfdy\xb9\x1a\xe5\x7fb[\x9c\xff%\xd0k\xf0\xa6\x1c\x17X0h\x1a\x07ed25519\x1a\x07ed255190B\x1a@82ccf6ac47298ff43bfa0cd639868894e305a99c723ff0515ae2e9856eb5bbf40\x10\x1a\x06sha256\x1a\x06sha5120\x81\xa40\'0"\x04 Nw}\xe0\xd2u\xf9\xd2\x85\x88\xdd\x9a\x16\x06\xcct\x8eT\x8f\x9e"\xb6y[|\xb3\xf6?\x98\x03_\xcb\x02\x01\x010\'0"\x04 \x8a\x1cJ:\xc2\xd5\x15\xde\xc9\x82\xba\x99\x10\xc5\xfdy\xb9\x1a\xe5\x7fb[\x9c\xff%\xd0k\xf0\xa6\x1c\x17X\x02\x01\x010\'0"\x04 Y\xa4\xdf\x8a\xf8\x18\xe9\xedz\xbe\x07d\xc0\xb4{B@\x95*\xa0\xd1y\xb5\xb7\x83F\xc4p\xac0\'\x8d\x02\x01\x010\'0"\x04 e\x17\x12Q\xa9\xaf\xf5\xa8\xb3\x14:\x814\x81\xcb\x07\xf6\xe0\xdeN\xb1\x97\xc7g\x83\x7f\xe4I\x1bs\x90\x93\x02\x01\x01')
 
-    root_expected_der = (
-      b'0\x82\x05K\x1a\x04root\x1a\x031.0\x1a\x142030-01-01T00:00:00Z\x02\x01'
-      b'\x01\x01\x01\x000\x82\x04y0\x82\x02\xc8\x04 Nw}\xe0\xd2u\xf9\xd2\x85'
-      b'\x88\xdd\x9a\x16\x06\xcct\x8eT\x8f\x9e"\xb6y[|\xb3\xf6?\x98\x03_\xcb0'
-      b'\x82\x02\xa2\x1a\x03rsa\x1a\x11rsassa-pss-sha2560\x82\x02t\x1a\x82\x02'
-      b'p-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCA'
-      b'YEA0GjPoVrjS9eCqzoQ8VRe\nPkC0cI6ktiEgqPfHESFzyxyjC490Cuy19nuxPcJuZfN64'
-      b'MC48oOkR+W2mq4pM51i\nxmdG5xjvNOBRkJ5wUCc8fDCltMUTBlqt9y5eLsf/4/EoBU+zC'
-      b'4SW1iPU++mCsity\nfQQ7U6LOn3EYCyrkH51hZ/dvKC4o9TPYMVxNecJ3CL1q02Q145Jly'
-      b'jBTuM3Xdqsa\nndTHoXSRPmmzgB/1dL/c4QjMnCowrKW06mFLq9RAYGIaJWfM/0CbrOJpV'
-      b'DkATmEc\nMdpGJYDfW/sRQvRdlHNPo24ZW7vkQUCqdRxvnTWkK5U81y7RtjLt1yskbWXBI'
-      b'bOV\nz94GXsgyzANyCT9qRjHXDDz2mkLq+9I2iKtEqaEePcWRu3H6RLahpM/TxFzw684Y'
-      b'\nR47weXdDecPNxWyiWiyMGStRFP4Cg9trcwAGnEm1w8R2ggmWphznCd5dXGhPNjfA\na8'
-      b'2yNFY8ubnOUVJOf0nXGg3Edw9iY3xyjJb2+nrsk5f3AgMBAAE=\n-----END PUBLIC KE'
-      b'Y-----0\x10\x1a\x06sha256\x1a\x06sha5120\x81\x8c\x04 Y\xa4\xdf\x8a\xf8'
-      b'\x18\xe9\xedz\xbe\x07d\xc0\xb4{B@\x95*\xa0\xd1y\xb5\xb7\x83F\xc4p\xac0'
-      b'\'\x8d0h\x1a\x07ed25519\x1a\x07ed255190B\x1a@edcd0a32a07dce33f7c7873aa'
-      b'ffbff36d20ea30787574ead335eefd337e4dacd0\x10\x1a\x06sha256\x1a\x06'
-      b'sha5120\x81\x8c\x04 e\x17\x12Q\xa9\xaf\xf5\xa8\xb3\x14:\x814\x81\xcb'
-      b'\x07\xf6\xe0\xdeN\xb1\x97\xc7g\x83\x7f\xe4I\x1bs\x90\x930h\x1a\x07'
-      b'ed25519\x1a\x07ed255190B\x1a@89f28bd4ede5ec3786ab923fd154f39588d208819'
-      b'03e69c7b08fb504c67508150\x10\x1a\x06sha256\x1a\x06sha5120\x81\x8c\x04 '
-      b'\x8a\x1cJ:\xc2\xd5\x15\xde\xc9\x82\xba\x99\x10\xc5\xfdy\xb9\x1a\xe5'
-      b'\x7fb[\x9c\xff%\xd0k\xf0\xa6\x1c\x17X0h\x1a\x07ed25519\x1a\x07ed255190'
-      b'B\x1a@82ccf6ac47298ff43bfa0cd639868894e305a99c723ff0515ae2e9856eb5bbf4'
-      b'0\x10\x1a\x06sha256\x1a\x06sha5120\x81\xa40\'0"\x04 Nw}\xe0\xd2u\xf9'
-      b'\xd2\x85\x88\xdd\x9a\x16\x06\xcct\x8eT\x8f\x9e"\xb6y[|\xb3\xf6?\x98'
-      b'\x03_\xcb\x02\x01\x010\'0"\x04 \x8a\x1cJ:\xc2\xd5\x15\xde\xc9\x82\xba'
-      b'\x99\x10\xc5\xfdy\xb9\x1a\xe5\x7fb[\x9c\xff%\xd0k\xf0\xa6\x1c\x17X\x02'
-      b'\x01\x010\'0"\x04 Y\xa4\xdf\x8a\xf8\x18\xe9\xedz\xbe\x07d\xc0\xb4{B@'
-      b'\x95*\xa0\xd1y\xb5\xb7\x83F\xc4p\xac0\'\x8d\x02\x01\x010\'0"\x04 e\x17'
-      b'\x12Q\xa9\xaf\xf5\xa8\xb3\x14:\x814\x81\xcb\x07\xf6\xe0\xdeN\xb1\x97'
-      b'\xc7g\x83\x7f\xe4I\x1bs\x90\x93\x02\x01\x01')
+    root_signable_expected_der = (
+        b'0\x82\x06\xfd0\x82\x01\xaa0\x82\x01\xa6\x04 Nw}\xe0\xd2u\xf9\xd2\x85\x88\xdd\x9a\x16\x06\xcct\x8eT\x8f\x9e"\xb6y[|\xb3\xf6?\x98\x03_\xcb\x04\x82\x01\x80-\xd4\x7f\x03\x93`\xe6K\xd8\xc66X\tP}\x93\x16\xb8a]\xeb\x8bV\xd7\xe5\x0c\xfd\xbd\x9f\xb5\x97\x98\xdd@%\x92&b\xb3\x0b\xbd\x19\xc2\xc1-\xdc\xe7h\xf0D\x89\xde\xd7\x0b\x0e\xc9\x87\xa72\xdc\xb3m\x03\xd3\xee\xa3\xf4\xbf\x99\xa1*N!8\x135\'\x9c\xb8\x13\xd3+\x02J\xe6f\xdd\x85\x1bJA\xe1\x02>\xb6\xa18\xf8\x0e\x95\xe3\x9f\x98\xb1\x14\x94^y\x0cFT\xee\xd9\x95L\xa0\xa0\x81\xc1h\x80\xa7&e\xc0l?\x8f\xad\xf0^@\x88\xfa\xe5"\xff\x03\xb0P\xfc\xd9\xb4\xf4\xf1hs\x9c\x8e\x10\xd4/\xf6Gw\x05\'\x18j\x7f[~\x13\x1b\x8f\xc5\x91\x01m\x17\x8c\xe9\x82\x9f\x12u\x9c\x86nFc\xb4\xc2\xe8\xd9\xc5\xb5\x19\xcd\xfdJ\xe8w\xc6j\x9ac\x01\'\xfc\xb65u\xe7\xf2, \xd2\x9f\x95\\B\x81\x8a\x86G\x80G/\xa9v\xabW\x18\x13\xa2I\x13\xd5\xb8\x00\xf6\xde\x1c\xcaH\\\x027\x8dJ,\x03.a\x89=2\x1f~\xf1\x7f\x84\xa3y+\xa6\x94\xd3\xc0\x1e\xc0\xf5\x00\xfb\xc2D+\xd25Q[\'\xad\xe7\x9b\xce\xbf\xd1:\x8eh\xd83h)3~8\xe6\xa6\x96\x14E[uP\xdeR-jt\xab\xae\xfa\x19\xba.&\xb5\xd0\x85J!\x87s\x8b\x90\r{\x8c0\xc8\xd5\xb7Z\x07\xeaF\x18V\x82\x81B5j\x9d\xe4\xf3)\xdf\xbd9\x9b%4\xb5\x0b\x10?\xc1\x0cgDM\xfaW`\x05\xf1\x85+\xed\xa0\xbf\x07@\x1a\xc5\xd9\xd5K\x0eQ\xdc\x142a\xc4\x8b\xde1i\xc40\x82\x05K\x1a\x04root\x1a\x031.0\x1a\x142030-01-01T00:00:00Z\x02\x01\x01\x01\x01\x000\x82\x04y0\x82\x02\xc8\x04 Nw}\xe0\xd2u\xf9\xd2\x85\x88\xdd\x9a\x16\x06\xcct\x8eT\x8f\x9e"\xb6y[|\xb3\xf6?\x98\x03_\xcb0\x82\x02\xa2\x1a\x03rsa\x1a\x11rsassa-pss-sha2560\x82\x02t\x1a\x82\x02p-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA0GjPoVrjS9eCqzoQ8VRe\nPkC0cI6ktiEgqPfHESFzyxyjC490Cuy19nuxPcJuZfN64MC48oOkR+W2mq4pM51i\nxmdG5xjvNOBRkJ5wUCc8fDCltMUTBlqt9y5eLsf/4/EoBU+zC4SW1iPU++mCsity\nfQQ7U6LOn3EYCyrkH51hZ/dvKC4o9TPYMVxNecJ3CL1q02Q145JlyjBTuM3Xdqsa\nndTHoXSRPmmzgB/1dL/c4QjMnCowrKW06mFLq9RAYGIaJWfM/0CbrOJpVDkATmEc\nMdpGJYDfW/sRQvRdlHNPo24ZW7vkQUCqdRxvnTWkK5U81y7RtjLt1yskbWXBIbOV\nz94GXsgyzANyCT9qRjHXDDz2mkLq+9I2iKtEqaEePcWRu3H6RLahpM/TxFzw684Y\nR47weXdDecPNxWyiWiyMGStRFP4Cg9trcwAGnEm1w8R2ggmWphznCd5dXGhPNjfA\na82yNFY8ubnOUVJOf0nXGg3Edw9iY3xyjJb2+nrsk5f3AgMBAAE=\n-----END PUBLIC KEY-----0\x10\x1a\x06sha256\x1a\x06sha5120\x81\x8c\x04 Y\xa4\xdf\x8a\xf8\x18\xe9\xedz\xbe\x07d\xc0\xb4{B@\x95*\xa0\xd1y\xb5\xb7\x83F\xc4p\xac0\'\x8d0h\x1a\x07ed25519\x1a\x07ed255190B\x1a@edcd0a32a07dce33f7c7873aaffbff36d20ea30787574ead335eefd337e4dacd0\x10\x1a\x06sha256\x1a\x06sha5120\x81\x8c\x04 e\x17\x12Q\xa9\xaf\xf5\xa8\xb3\x14:\x814\x81\xcb\x07\xf6\xe0\xdeN\xb1\x97\xc7g\x83\x7f\xe4I\x1bs\x90\x930h\x1a\x07ed25519\x1a\x07ed255190B\x1a@89f28bd4ede5ec3786ab923fd154f39588d20881903e69c7b08fb504c67508150\x10\x1a\x06sha256\x1a\x06sha5120\x81\x8c\x04 \x8a\x1cJ:\xc2\xd5\x15\xde\xc9\x82\xba\x99\x10\xc5\xfdy\xb9\x1a\xe5\x7fb[\x9c\xff%\xd0k\xf0\xa6\x1c\x17X0h\x1a\x07ed25519\x1a\x07ed255190B\x1a@82ccf6ac47298ff43bfa0cd639868894e305a99c723ff0515ae2e9856eb5bbf40\x10\x1a\x06sha256\x1a\x06sha5120\x81\xa40\'0"\x04 Nw}\xe0\xd2u\xf9\xd2\x85\x88\xdd\x9a\x16\x06\xcct\x8eT\x8f\x9e"\xb6y[|\xb3\xf6?\x98\x03_\xcb\x02\x01\x010\'0"\x04 \x8a\x1cJ:\xc2\xd5\x15\xde\xc9\x82\xba\x99\x10\xc5\xfdy\xb9\x1a\xe5\x7fb[\x9c\xff%\xd0k\xf0\xa6\x1c\x17X\x02\x01\x010\'0"\x04 Y\xa4\xdf\x8a\xf8\x18\xe9\xedz\xbe\x07d\xc0\xb4{B@\x95*\xa0\xd1y\xb5\xb7\x83F\xc4p\xac0\'\x8d\x02\x01\x010\'0"\x04 e\x17\x12Q\xa9\xaf\xf5\xa8\xb3\x14:\x814\x81\xcb\x07\xf6\xe0\xdeN\xb1\x97\xc7g\x83\x7f\xe4I\x1bs\x90\x93\x02\x01\x01')
 
     # Test by calling the general to_asn1 and from_asn1 calls that will call
     # the helper functions.
+    # 'signed' subsection first.
     self.conversion_check(
-        data=r,
+        data=root['signed'],
         datatype=asn1_defs.RootMetadata,
-        expected_der=root_expected_der)
+        expected_der=root_data_expected_der)
+
+    # Then the whole thing.
+    self.conversion_check(
+        data=root,
+        datatype=asn1_defs.RootEnvelope,
+        expected_der=root_signable_expected_der)
 
 
 
@@ -496,32 +460,48 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
 
   def test_signed_portion_of_timestamp_conversion(self):
     timestamp = {
-      "_type": "timestamp",
-      "expires": "2030-01-01T00:00:00Z",
-      "meta": {
-       "snapshot.json": {
-        "hashes": {
-         "sha256": "6990b6586ed545387c6a51db62173b903a5dff46b17b1bc3fe1e6ca0d0844f2f"
+      'signatures': [
+        {
+         'keyid': '8a1c4a3ac2d515dec982ba9910c5fd79b91ae57f625b9cff25d06bf0a61c1758',
+         'sig': '7dddbfe94d6d80253433551700ea6dfe4171a33f1227a07830e951900b8325d67c3dce6410b9cf55abefa3dfca0b57814a4965c2d6ee60bb0336755cd0557e03'
+        }
+      ],
+      'signed': {
+        "_type": "timestamp",
+        "expires": "2030-01-01T00:00:00Z",
+        "meta": {
+         "snapshot.json": {
+          "hashes": {
+           "sha256": "6990b6586ed545387c6a51db62173b903a5dff46b17b1bc3fe1e6ca0d0844f2f"
+          },
+          "length": 554,
+          "version": 1
+         }
         },
-        "length": 554,
+        "spec_version": "1.0",
         "version": 1
-       }
-      },
-      "spec_version": "1.0",
-      "version": 1}
+      }
+    }
 
-    timestamp_expected_der = (
-        b'0s\x1a\ttimestamp\x1a\x031.0\x1a\x142030-01-01T00:00:00Z\x02\x01\x01'
-        b'1H0F\x1a\rsnapshot.json051,0*\x1a\x06sha256\x04 i\x90\xb6Xn\xd5E8|jQ'
-        b'\xdbb\x17;\x90:]\xffF\xb1{\x1b\xc3\xfe\x1el\xa0\xd0\x84O/\x02\x02'
-        b'\x02*\x02\x01\x01')
+    timestamp_data_expected_der = (
+        b"0s\x1a\ttimestamp\x1a\x031.0\x1a\x142030-01-01T00:00:00Z\x02\x01\x011H0F\x1a\rsnapshot.json051,0*\x1a\x06sha256\x04 i\x90\xb6Xn\xd5E8|jQ\xdbb\x17;\x90:]\xffF\xb1{\x1b\xc3\xfe\x1el\xa0\xd0\x84O/\x02\x02\x02*\x02\x01\x01")
+
+    timestamp_signable_expected_der = (
+        b"0\x81\xdd0f0d\x04 \x8a\x1cJ:\xc2\xd5\x15\xde\xc9\x82\xba\x99\x10\xc5\xfdy\xb9\x1a\xe5\x7fb[\x9c\xff%\xd0k\xf0\xa6\x1c\x17X\x04@}\xdd\xbf\xe9Mm\x80%43U\x17\x00\xeam\xfeAq\xa3?\x12'\xa0x0\xe9Q\x90\x0b\x83%\xd6|=\xced\x10\xb9\xcfU\xab\xef\xa3\xdf\xca\x0bW\x81JIe\xc2\xd6\xee`\xbb\x036u\\\xd0U~\x030s\x1a\ttimestamp\x1a\x031.0\x1a\x142030-01-01T00:00:00Z\x02\x01\x011H0F\x1a\rsnapshot.json051,0*\x1a\x06sha256\x04 i\x90\xb6Xn\xd5E8|jQ\xdbb\x17;\x90:]\xffF\xb1{\x1b\xc3\xfe\x1el\xa0\xd0\x84O/\x02\x02\x02*\x02\x01\x01")
 
     # Test by calling the general to_asn1 and from_asn1 calls that will call
     # the helper functions.
+    # 'signed' subsection first.
+    self.conversion_check(
+        data=timestamp['signed'],
+        datatype=asn1_defs.TimestampMetadata,
+        expected_der=timestamp_data_expected_der)
+
+    # Then the whole thing.
     self.conversion_check(
         data=timestamp,
-        datatype=asn1_defs.TimestampMetadata,
-        expected_der=timestamp_expected_der)
+        datatype=asn1_defs.TimestampEnvelope,
+        expected_der=timestamp_signable_expected_der)
 
 
 
@@ -529,6 +509,13 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
 
   def test_signed_portion_of_snapshot_conversion(self):
     snapshot = {
+      'signatures': [
+        {
+         'keyid': '59a4df8af818e9ed7abe0764c0b47b4240952aa0d179b5b78346c470ac30278d',
+         'sig': 'd78e9013bab1da2a8425caa48143cd79a21632dce021ad7e1b883d83775035df333a8b26c9c952d832edaf9dc7be2ef612bdb21326fcc9849346d7e3a162050e'
+        }
+      ],
+      'signed': {
         "_type": "snapshot",
         "expires": "2030-01-01T00:00:00Z",
         "spec_version": "1.0",
@@ -543,87 +530,115 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
           "targets.json": {
             "version": 1}
         }
+      }
     }
 
-    snapshot_expected_der = (
-        b'0w\x1a\x08snapshot\x1a\x031.0\x1a\x142030-01-01T00:00:00Z\x02\x01'
-        b'\x010M0\x11\x1a\nrole1.json0\x03\x02\x01\x010\x11\x1a\nrole2.json0'
-        b'\x03\x02\x01\x010\x10\x1a\troot.json0\x03\x02\x01\x010\x13\x1a\x0c'
-        b'targets.json0\x03\x02\x01\x01')
+    snapshot_data_expected_der = (
+        b"0w\x1a\x08snapshot\x1a\x031.0\x1a\x142030-01-01T00:00:00Z\x02\x01\x010M0\x11\x1a\nrole1.json0\x03\x02\x01\x010\x11\x1a\nrole2.json0\x03\x02\x01\x010\x10\x1a\troot.json0\x03\x02\x01\x010\x13\x1a\x0ctargets.json0\x03\x02\x01\x01")
+
+    snapshot_signable_expected_der = (
+        b"0\x81\xe10f0d\x04 Y\xa4\xdf\x8a\xf8\x18\xe9\xedz\xbe\x07d\xc0\xb4{B@\x95*\xa0\xd1y\xb5\xb7\x83F\xc4p\xac0'\x8d\x04@\xd7\x8e\x90\x13\xba\xb1\xda*\x84%\xca\xa4\x81C\xcdy\xa2\x162\xdc\xe0!\xad~\x1b\x88=\x83wP5\xdf3:\x8b&\xc9\xc9R\xd82\xed\xaf\x9d\xc7\xbe.\xf6\x12\xbd\xb2\x13&\xfc\xc9\x84\x93F\xd7\xe3\xa1b\x05\x0e0w\x1a\x08snapshot\x1a\x031.0\x1a\x142030-01-01T00:00:00Z\x02\x01\x010M0\x11\x1a\nrole1.json0\x03\x02\x01\x010\x11\x1a\nrole2.json0\x03\x02\x01\x010\x10\x1a\troot.json0\x03\x02\x01\x010\x13\x1a\x0ctargets.json0\x03\x02\x01\x01")
 
     # Test by calling the general to_asn1 and from_asn1 calls that will call
     # the helper functions.
+    # 'signed' subsection first.
+    self.conversion_check(
+        data=snapshot['signed'],
+        datatype=asn1_defs.SnapshotMetadata,
+        expected_der=snapshot_data_expected_der)
+
+    # Then the whole thing.
     self.conversion_check(
         data=snapshot,
-        datatype=asn1_defs.SnapshotMetadata,
-        expected_der=snapshot_expected_der)
+        datatype=asn1_defs.SnapshotEnvelope,
+        expected_der=snapshot_signable_expected_der)
 
 
 
-  def test_signed_portion_of_targets_conversion(self):
+
+
+  def test_targets_conversion(self):
     targets = {
-        "_type": "targets",
-        "delegations": {
-         "keys": {
-          "c8022fa1e9b9cb239a6b362bbdffa9649e61ad2cb699d2e4bc4fdf7930a0e64a": {
-           "keyid_hash_algorithms": [
-            "sha256",
-            "sha512"
-           ],
-           "keytype": "ed25519",
-           "keyval": {
-            "public": "fcf224e55fa226056adf113ef1eb3d55e308b75b321c8c8316999d8c4fd9e0d9"
-           },
-           "scheme": "ed25519"
-          }
-         },
-         "roles": [
+        "signatures": [
           {
-           "keyids": [
-            "c8022fa1e9b9cb239a6b362bbdffa9649e61ad2cb699d2e4bc4fdf7930a0e64a"
-           ],
-           "name": "role1",
-           "paths": [
-            "file3.txt"
-           ],
-           "terminating": False,
-           "threshold": 1
+            "keyid": "65171251a9aff5a8b3143a813481cb07f6e0de4eb197c767837fe4491b739093",
+            "sig": "52ca8ecf32ead7030e8ee2c2a28e52bd0e6d03fc3c07821bbec0f3ba42a7d92a8eb0ff931ed581db3b6782bb53f8daa645dabecaa06c66bf8861669d7157d002"
           }
-         ]
-        },
-        "expires": "2030-01-01T00:00:00Z",
-        "spec_version": "1.0",
-        "targets": {
-         "file1.txt": {
-          "custom": {
-           "file_permissions": "644"
+        ],
+        "signed": {
+          "_type": "targets",
+          "delegations": {
+           "keys": {
+            "c8022fa1e9b9cb239a6b362bbdffa9649e61ad2cb699d2e4bc4fdf7930a0e64a": {
+             "keyid_hash_algorithms": [
+              "sha256",
+              "sha512"
+             ],
+             "keytype": "ed25519",
+             "keyval": {
+              "public": "fcf224e55fa226056adf113ef1eb3d55e308b75b321c8c8316999d8c4fd9e0d9"
+             },
+             "scheme": "ed25519"
+            }
+           },
+           "roles": [
+            {
+             "keyids": [
+              "c8022fa1e9b9cb239a6b362bbdffa9649e61ad2cb699d2e4bc4fdf7930a0e64a"
+             ],
+             "name": "role1",
+             "paths": [
+              "file3.txt"
+             ],
+             "terminating": False,
+             "threshold": 1
+            }
+           ]
           },
-          "hashes": {
-           "sha256": "65b8c67f51c993d898250f40aa57a317d854900b3a04895464313e48785440da",
-           "sha512": "467430a68afae8e9f9c0771ea5d78bf0b3a0d79a2d3d3b40c69fde4dd42c461448aef76fcef4f5284931a1ffd0ac096d138ba3a0d6ca83fa8d7285a47a296f77"
+          "expires": "2030-01-01T00:00:00Z",
+          "spec_version": "1.0",
+          "targets": {
+           "file1.txt": {
+            "custom": {
+             "file_permissions": "644"
+            },
+            "hashes": {
+             "sha256": "65b8c67f51c993d898250f40aa57a317d854900b3a04895464313e48785440da",
+             "sha512": "467430a68afae8e9f9c0771ea5d78bf0b3a0d79a2d3d3b40c69fde4dd42c461448aef76fcef4f5284931a1ffd0ac096d138ba3a0d6ca83fa8d7285a47a296f77"
+            },
+            "length": 31
+           },
+           "file2.txt": {
+            "hashes": {
+             "sha256": "452ce8308500d83ef44248d8e6062359211992fd837ea9e370e561efb1a4ca99",
+             "sha512": "052b49a21e03606b28942db69aa597530fe52d47ee3d748ba65afcd14b857738e36bc1714c4f4adde46c3e683548552fe5c96722e0e0da3acd9050c2524902d8"
+            },
+            "length": 39
+           }
           },
-          "length": 31
-         },
-         "file2.txt": {
-          "hashes": {
-           "sha256": "452ce8308500d83ef44248d8e6062359211992fd837ea9e370e561efb1a4ca99",
-           "sha512": "052b49a21e03606b28942db69aa597530fe52d47ee3d748ba65afcd14b857738e36bc1714c4f4adde46c3e683548552fe5c96722e0e0da3acd9050c2524902d8"
-          },
-          "length": 39
-         }
-        },
-        "version": 1
+          "version": 1
+        }
     }
 
-    targets_expected_der = (
+    targets_data_expected_der = (
         b'0\x82\x025\x1a\x07targets\x1a\x031.0\x1a\x142030-01-01T00:00:00Z\x02\x01\x010\x82\x0160\x81\xa6\x1a\tfile1.txt0\x81\x98\x02\x01\x1f1x0*\x1a\x06sha256\x04 e\xb8\xc6\x7fQ\xc9\x93\xd8\x98%\x0f@\xaaW\xa3\x17\xd8T\x90\x0b:\x04\x89Td1>HxT@\xda0J\x1a\x06sha512\x04@Ft0\xa6\x8a\xfa\xe8\xe9\xf9\xc0w\x1e\xa5\xd7\x8b\xf0\xb3\xa0\xd7\x9a-=;@\xc6\x9f\xdeM\xd4,F\x14H\xae\xf7o\xce\xf4\xf5(I1\xa1\xff\xd0\xac\tm\x13\x8b\xa3\xa0\xd6\xca\x83\xfa\x8dr\x85\xa4z)ow0\x190\x17\x1a\x10file_permissions\x1a\x036440\x81\x8a\x1a\tfile2.txt0}\x02\x01\'1x0*\x1a\x06sha256\x04 E,\xe80\x85\x00\xd8>\xf4BH\xd8\xe6\x06#Y!\x19\x92\xfd\x83~\xa9\xe3p\xe5a\xef\xb1\xa4\xca\x990J\x1a\x06sha512\x04@\x05+I\xa2\x1e\x03`k(\x94-\xb6\x9a\xa5\x97S\x0f\xe5-G\xee=t\x8b\xa6Z\xfc\xd1K\x85w8\xe3k\xc1qLOJ\xdd\xe4l>h5HU/\xe5\xc9g"\xe0\xe0\xda:\xcd\x90P\xc2RI\x02\xd80\x81\xd10\x81\x8f0\x81\x8c\x04 \xc8\x02/\xa1\xe9\xb9\xcb#\x9ak6+\xbd\xff\xa9d\x9ea\xad,\xb6\x99\xd2\xe4\xbcO\xdfy0\xa0\xe6J0h\x1a\x07ed25519\x1a\x07ed255190B\x1a@fcf224e55fa226056adf113ef1eb3d55e308b75b321c8c8316999d8c4fd9e0d90\x10\x1a\x06sha256\x1a\x06sha5120=0;\x1a\x05role10"\x04 \xc8\x02/\xa1\xe9\xb9\xcb#\x9ak6+\xbd\xff\xa9d\x9ea\xad,\xb6\x99\xd2\xe4\xbcO\xdfy0\xa0\xe6J0\x0b\x1a\tfile3.txt\x02\x01\x01')
+
+    targets_signable_expected_der = (
+        b'0\x82\x02\xa10f0d\x04 e\x17\x12Q\xa9\xaf\xf5\xa8\xb3\x14:\x814\x81\xcb\x07\xf6\xe0\xdeN\xb1\x97\xc7g\x83\x7f\xe4I\x1bs\x90\x93\x04@R\xca\x8e\xcf2\xea\xd7\x03\x0e\x8e\xe2\xc2\xa2\x8eR\xbd\x0em\x03\xfc<\x07\x82\x1b\xbe\xc0\xf3\xbaB\xa7\xd9*\x8e\xb0\xff\x93\x1e\xd5\x81\xdb;g\x82\xbbS\xf8\xda\xa6E\xda\xbe\xca\xa0lf\xbf\x88af\x9dqW\xd0\x020\x82\x025\x1a\x07targets\x1a\x031.0\x1a\x142030-01-01T00:00:00Z\x02\x01\x010\x82\x0160\x81\xa6\x1a\tfile1.txt0\x81\x98\x02\x01\x1f1x0*\x1a\x06sha256\x04 e\xb8\xc6\x7fQ\xc9\x93\xd8\x98%\x0f@\xaaW\xa3\x17\xd8T\x90\x0b:\x04\x89Td1>HxT@\xda0J\x1a\x06sha512\x04@Ft0\xa6\x8a\xfa\xe8\xe9\xf9\xc0w\x1e\xa5\xd7\x8b\xf0\xb3\xa0\xd7\x9a-=;@\xc6\x9f\xdeM\xd4,F\x14H\xae\xf7o\xce\xf4\xf5(I1\xa1\xff\xd0\xac\tm\x13\x8b\xa3\xa0\xd6\xca\x83\xfa\x8dr\x85\xa4z)ow0\x190\x17\x1a\x10file_permissions\x1a\x036440\x81\x8a\x1a\tfile2.txt0}\x02\x01\'1x0*\x1a\x06sha256\x04 E,\xe80\x85\x00\xd8>\xf4BH\xd8\xe6\x06#Y!\x19\x92\xfd\x83~\xa9\xe3p\xe5a\xef\xb1\xa4\xca\x990J\x1a\x06sha512\x04@\x05+I\xa2\x1e\x03`k(\x94-\xb6\x9a\xa5\x97S\x0f\xe5-G\xee=t\x8b\xa6Z\xfc\xd1K\x85w8\xe3k\xc1qLOJ\xdd\xe4l>h5HU/\xe5\xc9g"\xe0\xe0\xda:\xcd\x90P\xc2RI\x02\xd80\x81\xd10\x81\x8f0\x81\x8c\x04 \xc8\x02/\xa1\xe9\xb9\xcb#\x9ak6+\xbd\xff\xa9d\x9ea\xad,\xb6\x99\xd2\xe4\xbcO\xdfy0\xa0\xe6J0h\x1a\x07ed25519\x1a\x07ed255190B\x1a@fcf224e55fa226056adf113ef1eb3d55e308b75b321c8c8316999d8c4fd9e0d90\x10\x1a\x06sha256\x1a\x06sha5120=0;\x1a\x05role10"\x04 \xc8\x02/\xa1\xe9\xb9\xcb#\x9ak6+\xbd\xff\xa9d\x9ea\xad,\xb6\x99\xd2\xe4\xbcO\xdfy0\xa0\xe6J0\x0b\x1a\tfile3.txt\x02\x01\x01')
 
     # Test by calling the general to_asn1 and from_asn1 calls that will call
     # the helper functions.
+    # 'signed' subsection first.
+    self.conversion_check(
+        data=targets['signed'],
+        datatype=asn1_defs.TargetsMetadata,
+        expected_der=targets_data_expected_der)
+
+    # Then the whole thing.
     self.conversion_check(
         data=targets,
-        datatype=asn1_defs.TargetsMetadata,
-        expected_der=targets_expected_der)
+        datatype=asn1_defs.TargetsEnvelope,
+        expected_der=targets_signable_expected_der)
 
 
 

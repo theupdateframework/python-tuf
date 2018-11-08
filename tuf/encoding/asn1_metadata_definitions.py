@@ -522,3 +522,48 @@ class TargetsMetadata(ac.Sequence):
       # we're going to instead define a class for these things:
       ('targets', Targets),
       ('delegations', DelegationSection)]
+
+
+
+
+# Keeping these four class definitions together for the moment while I
+# contemplate this paradigm, but will later distribute them to their
+# corresponding sections above.
+class RootEnvelope(ac.Sequence):
+  _fields = [
+      ('signatures', Signatures),
+      ('signed', RootMetadata)]
+
+class TimestampEnvelope(ac.Sequence):
+  _fields = [
+      ('signatures', Signatures),
+      ('signed', TimestampMetadata)]
+
+class SnapshotEnvelope(ac.Sequence):
+  _fields = [
+      ('signatures', Signatures),
+      ('signed', SnapshotMetadata)]
+
+class TargetsEnvelope(ac.Sequence):
+  _fields = [
+      ('signatures', Signatures),
+      ('signed', TargetsMetadata)]
+
+
+
+
+
+
+# # Or we could define the following, instead of the above four Envelope classes.
+#
+# class AnyMetadata(ac.Choice):
+#   _alternatives = [
+#       ('root', RootMetadata),
+#       ('timestamp', TimestampMetadata),
+#       ('snapshot', SnapshotMetadata),
+#       ('targets', TargetsMetadata)]
+#
+# class SignableEnvelope(ac.Sequence):
+#   _fields = [
+#       ('signatures', Signatures),
+#       ('signed', AnyMetadata)]
