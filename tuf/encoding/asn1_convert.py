@@ -433,8 +433,27 @@ def _list_from_asn1(asn1_obj):
 
 def _listlike_dict_to_asn1(data, datatype):
   """
+  Private helper function for to_asn1.
+  See to_asn1 for full docstring.
+  This function handles the case wherein:
 
+    - data is a dictionary and
+    - datatype is or is a subclass of SetOf or SequenceOf; that is, objects of
+        type datatype are "list-like", meaning that they may contain a variable
+        number of elements of the same conceptual type. This is as opposed to a
+        "struct-like" datatype (subclass of Sequence or Set) where each field
+        likely specifies a distinct kind of thing about data. The to_asn1
+        docstring and comments contain more explanation and examples.
 
+  Iterate over the key-value pairs in dict data. We split the single dict with
+  many keys into many dicts with one key each, then convert them by recursing
+  and plug them into the asn1 object we're constructing. We assume that each
+  key-value pair in the dict is expected to be a distinct list element, with
+  the key and value from the dict mapped to a first and second element in the
+  resulting tuple in the outputted asn1crypto Sequence.
+
+  As a result, we re-interpret dictionary data as list elements, where each
+  list element will be a 2-tuple of key, then value.
 
   These classes from tuf.encoding.asn1_metadata_definitions are good EXAMPLES
   of the types of metadata this helper function handles:
@@ -442,7 +461,118 @@ def _listlike_dict_to_asn1(data, datatype):
       hash dicts in Timestamp metadata
     -
   """
-  raise NotImplementedError()
+
+  check_listlike_datatype(datatype)
+
+  # Figure out the structure of the individual elements in datatype.
+  element_type = datatype._child_spec
+
+  check_datatype(element_type)
+
+  # The element is expected to be struct-like so that it can store a key-value
+  # pair, and it is expected to have two fields, one to store the key and one
+  # to store the value.  This is because we are assuming that we can convert:
+  #      in = {k1: v1, k2: v2, ...}
+  #   to out[0][0] = k1, out[0][1] = v1, out[1][0] = k2, ...
+  if (not is_structlike_datatype(element_type)
+      or len(element_type._fields) != 2):
+    import pdb; pdb.set_trace()
+    raise tuf.exceptions.ASN1ConversionError(
+        'Unable to convert list-like dict to datatype "' + str(datatype) + '"; '
+        'that type has a child type "' + str(element_type) + '". Child type '
+        'must be a subclass of Set or Sequence and must have two fields, so '
+        'that each instance can store one key-value pair from the input dict.')
+
+  # element_type._fields looks something like, e.g.:
+  #     [('function', <class 'asn1crypto.core.VisibleString'>),
+  #      ('digest', <class 'asn1crypto.core.OctetString'>)]
+  # For each key-value pair in data (and so for each element in the Sequence
+  # we're constructing), map key to the first field in the element, and value
+  # to the second field in the element.
+  # Since we're recursing and will be treating this as input data, it will be
+  # expected to use underscores in field names instead of dashes, so swap.
+  key_field_name = element_type._fields[0][0].replace('-', '_')
+  value_field_name = element_type._fields[1][0].replace('-', '_')
+
+  # Create object we'll return.
+  asn1_obj = datatype([])
+
+  for key in data:
+    key_value_pair = {key_field_name: key, value_field_name: data[key]}
+
+    debug('In conversion of list-like dict to type ' + str(datatype) + ', '
+        'recursing to convert subcomponent of type ' + str(element_type))
+
+    element_asn1 = to_asn1(key_value_pair, element_type)
+
+    asn1_obj.append(element_asn1)
+
+
+  return asn1_obj
+
+
+
+
+
+def _listlike_dict_from_asn1(asn1_obj):
+  """
+  Converts an ASN.1 object back to a list-like dictionary in the native,
+  JSON-compatible TUF format.
+
+  When converting an ASN.1 SequenceOf/SetOf instance to native metadata, we are
+  either converting back directly to a list (in which case things are
+  straightforward) or to a list-like dictionary -- e.g. converting back an
+  instance of class asn1_metadata_definitions.Hashes.
+
+  See the docstrings of listlike_dict_to_asn1 and from_asn1 for more details
+  and examples.
+
+  <Arguments>
+    asn1_obj
+      an instance of a subclass of asn1crypto.core.SequenceOf or
+      asn1crypto.core.SetOf.  The class must include _from_listlike_dict as
+      a field and it must be set to True.
+      Example: an instance of asn1_metadata_definitions.Hashes
+  """
+
+  if not is_listlike_derived_from_dict(type(asn1_obj)):
+    raise tuf.exceptions.ASN1ConversionError(
+        'Cannot convert instance of "' + str(type(asn1_obj)) + '"" to '
+        'list-like dictionary unless that class subclasses SequenceOf or SetOf '
+        'and has attribute "_from_listlike_dict" set to True.')
+
+  # We have an object with structure resembling:
+  #   [ {key_field_name: k1,  value_field_name: v1},
+  #     {key_field_name: k2,  value_field_name: v2},
+  #     ...
+  #   ]
+  # And we need to convert it to a structure resembling:
+  #   {k1: v1,
+  #    k2: v2,
+  #    ...
+  #   }
+  # Note that this throws away key_field_name and value_field_name, which were
+  # created in the conversion to ASN.1 based on
+  # tuf.encoding.asn1_metadata_definitions.
+
+  data = {}
+
+  for element_asn1 in asn1_obj:
+    debug(
+        'In conversion of asn1 object of type "' + str(type(asn1_obj)) + '" to '
+        'a list-like dictionary, recursing to convert key field of a '
+        'subcomponent, of type "' + str(type(element_asn1)) + '"')
+    key = from_asn1(element_asn1[0])
+    debug(
+        'In conversion of asn1 object of type "' + str(type(asn1_obj)) + '" to '
+        'a list-like dictionary, recursing to convert value field of a '
+        'subcomponent, of type "' + str(type(element_asn1)) + '"')
+    value = from_asn1(element_asn1[1])
+    data[key] = value
+
+  return data
+
+
 
 
 
