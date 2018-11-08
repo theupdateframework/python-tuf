@@ -243,17 +243,21 @@ def to_asn1(data, datatype):
 
   # Translate None to asn1crypto's null value, which looks like:
   #     <asn1crypto.core.Void 4497329624 b''>
+  if data is None:
+    debug('Converting None to an asn1crypto.core.Void object')
+    asn1_obj = asn1_core.Void()
+    debug('Completed conversion of None to Void.')
+
   # Check to see if it's a basic data type from among the list of basic data
   # types we expect (Integer or VisibleString in one camp; OctetString in the
   # other).  If so, re-initialize as such and return that new object.  These
   # are the base cases of the recursion.
-  if issubclass(datatype, asn1_core.Integer) \
-      or issubclass(datatype, asn1_core.VisibleString):
-    debug('Converting a (hopefully-)primitive value to: ' + str(datatype)) # DEBUG
+  elif (issubclass(datatype, asn1_core.Integer)
+      or issubclass(datatype, asn1_core.VisibleString)
+      or issubclass(datatype, asn1_core.Boolean)):
+    debug('Converting a (hopefully-)primitive value to: ' + str(datatype))
     asn1_obj = datatype(data)
-    debug('Completed conversion of primitive to ' + str(datatype)) # DEBUG
-    recursion_level -= 1 # DEBUG
-    return asn1_obj
+    debug('Completed conversion of primitive to ' + str(datatype))
 
   elif issubclass(datatype, asn1_core.OctetString):
     # If datatype is a subclass of OctetString, then we assume we have a hex
@@ -261,39 +265,17 @@ def to_asn1(data, datatype):
     # want to store as an OctetString), so we'll make sure data is a hex string
     # and then convert it into bytes, then turn it into an asn1crypto
     # OctetString.
-    debug('Converting a (hopefully-)primitive value to ' + str(datatype)) # DEBUG
+    debug('Converting a (hopefully-)primitive value to ' + str(datatype))
     asn1_obj = hex_str_to_asn1_octets(data, datatype)
-    debug('Completed conversion of primitive to ' + str(datatype)) # DEBUG
-    recursion_level -= 1 # DEBUG
-    return asn1_obj
+    debug('Completed conversion of primitive to ' + str(datatype))
 
 
   # Else, datatype is not a basic data type of any of the list of expected
   # basic data types.  Assume we're converting to a Sequence, SequenceOf, Set,
   # or SetOf.  The input should therefore be a list or a dictionary.
 
-  elif not (issubclass(datatype, asn1_core.Sequence)
-      or issubclass(datatype, asn1_core.Set)
-      or issubclass(datatype, asn1_core.SequenceOf)
-      or issubclass(datatype, asn1_core.SetOf)):
-    raise tuf.exceptions.ASN1ConversionError(
-        'to_asn1 is only able to convert into ASN.1 to produce the following '
-        'or any subclass of the following: VisibleString, OctetString, '
-        'Integer, Sequence, SequenceOf, Set, SetOf. The provided datatype "' +
-        str(datatype) + '" is neither one of those nor a subclass of one.')
 
-  elif not isinstance(data, list) and not isinstance(data, dict):
-    raise tuf.exceptions.ASN1ConversionError(
-      'to_asn1 is only able to convert into ASN.1 to produce the following or '
-      'any subclass of the following: VisibleString, OctetString, Integer, '
-      'Sequence, SequenceOf, Set, SetOf. The provided datatype "' +
-      str(datatype) + '" was not a subclass of VisibleString, OctetString, or '
-      'Integer, and the input data was of type "' + str(type(data)) + '", not '
-      'dict or list.')
-
-
-  elif (issubclass(datatype, asn1_core.SequenceOf)
-      or issubclass(datatype, asn1_core.SetOf)):
+  elif is_listlike_datatype(datatype):
     # In the case of converting to a SequenceOf/SetOf, we expect to be dealing
     # with either input that is either a list or a list-like dictionary -- in
     # either case, objects of the same conceptual type, of potentially variable
@@ -309,50 +291,55 @@ def to_asn1(data, datatype):
     #   be a key-value 2-tuple.
     # TODO: Confirm the last sentence. Could potentially want 3-tuples....
 
-    if isinstance(data, list):
-      debug('Converting a list to ' + str(datatype)) # DEBUG
-      asn1_obj = _list_to_asn1(data, datatype)
-      debug('Completed conversion of list to ' + str(datatype)) # DEBUG
-      recursion_level -= 1 # DEBUG
-      return asn1_obj
+    if isinstance(data, dict):
+      check_listlike_derived_from_dict(datatype)
 
-    elif isinstance(data, dict):
-      debug('Converting a list-like dict to ' + str(datatype)) # DEBUG
+      debug('Converting a list-like dict to ' + str(datatype))
       asn1_obj = _listlike_dict_to_asn1(data, datatype)
-      debug('Completed conversion of list-like dict to ' + str(datatype)) # DEBUG
-      recursion_level -= 1 # DEBUG
-      return asn1_obj
-
-    else:
-      assert False, 'Coding error. This should be impossible. Previously checked that data was a list or dict, but now it is neither. Check conditions.' # DEBUG
+      debug('Completed conversion of list-like dict to ' + str(datatype))
 
 
-  elif (issubclass(datatype, asn1_core.Sequence)
-      or issubclass(datatype, asn1_core.Set)):
+    elif isinstance(data, list):
+
+      if is_listlike_derived_from_dict(datatype):
+        raise tuf.exceptions.ASN1ConversionError(
+            'Datatype ' + str(datatype) + ' is expected to be converted from '
+            'a dictionary, but the provided data is of type ' + str(type(data)))
+
+      debug('Converting a list to ' + str(datatype))
+      asn1_obj = _list_to_asn1(data, datatype)
+      debug('Completed conversion of list to ' + str(datatype))
+
+
+  elif is_structlike_datatype(datatype):
     # In the case of converting to Sequence/Set, we expect to be dealing with a
     # struct-like dictionary -- elements with potentially different types
     # associated with different keys.
     # - Struct-like dictionaries will become Sequences/Sets with field names
     #   in the input dictionary mapping directly to field names in the output
-    #   object.xw
+    #   object.
+    if not isinstance(data, dict):
+      raise tuf.exceptions.ASN1ConversionError(
+          'Expected to convert from dict to ' + str(datatype) + ', but data '
+          'provided is not a dict but a ' + str(type(data)))
+
     debug('Converting a struct-like dict to ' + str(datatype))
     asn1_obj = _structlike_dict_to_asn1(data, datatype)
     debug('Completed conversion of struct-like dict to ' + str(datatype))
-    recursion_level -= 1 # DEBUG
-    return asn1_obj
 
 
   else:
-    recursion_level -= 1 # DEBUG
     raise tuf.exceptions.ASN1ConversionError(
-        'Unable to determine how to automatically '
-        'convert data into ASN.1 data.  Can only handle primitives to Integer/'
-        'VisibleString/OctetString, or list to list-like ASN.1, or list-like '
-        'dict to list-like ASN.1, or struct-like dict to struct-like ASN.1.  '
-        'Source data type: ' + str(type(data)) + '; output type is: ' +
-        str(datatype))
+        'Unable to determine how to automatically convert provided data into '
+        'ASN.1 data.  to_asn1 is only able to produce the following or any '
+        'subclass of the following: VisibleString, OctetString, Boolean, '
+        'Integer, Sequence, SequenceOf, Set, SetOf.  It can only convert from '
+        'corresponding primitives, lists, or dicts, and the types must match.  '
+        'The target datatype was ' + str(datatype) + ' and the source was of '
+        'type ' + str(type(data)) + '.')
 
-
+  recursion_level -= 1 # DEBUG
+  return asn1_obj
 
 
 
@@ -387,11 +374,7 @@ def _list_to_asn1(data, datatype):
   """
 
   # Input testing
-  if not issubclass(datatype, asn1_core.SequenceOf) \
-      and not issubclass(datatype, asn1_core.SetOf):
-    raise tuf.exceptions.ASN1ConversionError(
-        '_list_to_asn1 called to convert to datatype "' + str(datatype) + '", '
-        'which is not a subclass of SequenceOf or SetOf')
+  check_listlike_datatype(datatype)
 
   if not isinstance(data, list):    # TODO: Consider allowing duck typing.
     raise tuf.exceptions.ASN1ConversionError(
@@ -428,13 +411,7 @@ def _list_from_asn1(asn1_obj):
   """
 
   # Input testing
-  if not isinstance(asn1_obj, asn1_core.SequenceOf) \
-      and not isinstance(asn1_obj, asn1_core.SetOf):
-    import pdb; pdb.set_trace()
-    raise tuf.exceptions.ASN1ConversionError(
-        '_list_from_asn1 called to convert from datatype "' +
-        str(type(asn1_obj)) + '", which is neither SequenceOf, nor SetOf, nor '
-        'a subclass thereof.')
+  check_listlike_datatype(type(asn1_obj))
 
   # Create object to be populated and returned.
   data = []
@@ -501,11 +478,7 @@ def _structlike_dict_to_asn1(data, datatype):
   """
 
   # Input testing
-  if not issubclass(datatype, asn1_core.Sequence) \
-      and not issubclass(datatype, asn1_core.Set):
-    raise tuf.exceptions.ASN1ConversionError(
-        '_structlike_dict_to_asn1 called to convert to datatype "' +
-        str(datatype) + '", which is not a subclass of Sequence or Set.')
+  check_structlike_datatype(datatype)
 
   if not isinstance(data, dict):    # TODO: Consider allowing duck typing.
     raise tuf.exceptions.ASN1ConversionError(
@@ -591,12 +564,7 @@ def _structlike_dict_from_asn1(asn1_obj):
   """
 
   # Input testing
-  if not isinstance(asn1_obj, asn1_core.Sequence) \
-      and not isinstance(asn1_obj, asn1_core.Set):
-    raise tuf.exceptions.ASN1ConversionError(
-        '_structlike_dict_from_asn1 called to convert from datatype "' +
-        str(type(asn1_obj)) + '", which is not a subclass of Sequence or Set.')
-
+  check_structlike_datatype(type(asn1_obj))
 
   # Create object to be populated and returned.
   data = {}
@@ -604,21 +572,38 @@ def _structlike_dict_from_asn1(asn1_obj):
   # Parse asn1_obj.
   for element_name_asn1 in asn1_obj:
 
+    element_asn1 = asn1_obj[element_name_asn1]
+
     # In ASN.1, '_' is invalid in variable names and '-' is valid. The opposite
     # is true of Python, so we swap.
     element_name_py = str(element_name_asn1).replace('-', '_')
+
+    # TODO: Review the following and add it to a list of edge cases somewhere.
+    # AFAIK, it is not possible using asn1crypto to distinguish between an
+    # absent optional field in a Sequence and an optional field in a sequence
+    # intended to contain a value equivalent to None.
+    # We choose here to interpret an optional field assigned the equivalent of
+    # None as an optional field that is not in the data.
+    # This means that if we take JSON-compatible metadata that has a None
+    # somewhere in an optional field, and then we convert it to ASN.1 and back,
+    # we'll end up with JSON-compatible metadata that doesn't list that field.
+    if (isinstance(element_asn1, asn1_core.Void)
+        and _is_optional_field_in(element_name_asn1, asn1_obj)):
+      continue
 
     debug('In conversion to dict from type "' + str(type(asn1_obj)) + '", '
         'recursing to convert subcomponent named "' + element_name_asn1 + '", '
         'of type ' + str(type(asn1_obj[element_name_asn1])))
 
-    data[element_name_py] = from_asn1(asn1_obj[element_name_asn1])
+    data[element_name_py] = from_asn1(element_asn1)
 
   return data
 
 
 
 
+
+def from_asn1(asn1_obj):
   """
   # TODO: DOCSTRING and clean the below up to match to_asn1 style.
 
@@ -643,28 +628,35 @@ def _structlike_dict_from_asn1(asn1_obj):
   recursion_level += 1 # DEBUG
 
 
-  if isinstance(asn1_obj, asn1_core.Integer):
-    data = int(asn1_obj)
-    debug('Completed conversion to int from ' + str(type(asn1_obj))) # DEBUG
-    recursion_level -= 1 # DEBUG
-    return data
+  # Account for asn1crypto's null values, which take the form of objects like:
+  #     <asn1crypto.core.Void 4497329624 b''>
+  if isinstance(asn1_obj, asn1_core.Void):
+    data = None
+    # Assume that the JSON serialization we use knows what to do with None.
 
-  elif isinstance(asn1_obj, asn1_core.VisibleString):
-    data = str(asn1_obj)
-    debug('Completed conversion to string from ' + str(type(asn1_obj))) # DEBUG
-    recursion_level -= 1 # DEBUG
-    return data
+
+  elif (isinstance(asn1_obj, asn1_core.Integer)
+      or isinstance(asn1_obj, asn1_core.VisibleString)
+      or isinstance(asn1_obj, asn1_core.Boolean)):
+    data = asn1_obj.native
+    debug('Completed conversion to primitive from ' + str(type(asn1_obj)))
+
+  # if isinstance(asn1_obj, asn1_core.Integer):
+  #   data = int(asn1_obj)
+  #   debug('Completed conversion to int from ' + str(type(asn1_obj)))
+
+  # elif isinstance(asn1_obj, asn1_core.VisibleString):
+  #   data = str(asn1_obj)
+  #   debug('Completed conversion to string from ' + str(type(asn1_obj)))
 
   elif isinstance(asn1_obj, asn1_core.OctetString):
     # If datatype is a subclass of OctetString, then we assume we have to
     # produce a hex string as output (only because that's the only thing in TUF
     # metadata we'd want to store as an OctetString), so we'll convert the
     # contents into a hex string.
-    hex_string = hex_str_from_asn1_octets(asn1_obj)
-    tuf.formats.HEX_SCHEMA.check_match(hex_string)
-    debug('Completed conversion of primitive to ' + str(type(asn1_obj))) # DEBUG
-    recursion_level -= 1 # DEBUG
-    return hex_string
+    data = hex_str_from_asn1_octets(asn1_obj)
+    tuf.formats.HEX_SCHEMA.check_match(data)
+    debug('Completed conversion of primitive to ' + str(type(asn1_obj)))
 
 
   # Else, asn1_obj is not an instance of a basic data type of any of the list
@@ -672,57 +664,36 @@ def _structlike_dict_from_asn1(asn1_obj):
   # Sequence, SequenceOf, Set, or SetOf.  The output should therefore be a list
   # or a dictionary.
 
-  # Get the type checking out of the way sooner rather than later, even though
-  # the elifs below will be somewhat redundant as a result.
-  elif not (isinstance(asn1_obj, asn1_core.Sequence)
-      or isinstance(asn1_obj, asn1_core.Set)
-      or isinstance(asn1_obj, asn1_core.SequenceOf)
-      or isinstance(asn1_obj, asn1_core.SetOf)):
-    raise tuf.exceptions.ASN1ConversionError(
-        'from_asn1 is only able to convert instances of the following classes '
-        'or of any subclasses of the following classes: VisibleString, '
-        'OctetString, Integer, Sequence, SequenceOf, Set, SetOf. The provided '
-        'asn1crypto object is of type "' + str(type(asn1_obj)) + '", which is '
-        'is neither one of those classes nor a subclass of them.')
 
-
-  elif (isinstance(asn1_obj, asn1_core.SequenceOf)
-      or isinstance(asn1_obj, asn1_core.SetOf)):
+  elif is_listlike_datatype(type(asn1_obj)):
     # In the case of converting from a SequenceOf/SetOf, we expect to be dealing
-    # with either output that is either a list or a list-like dictionary -- in
-    # either case, objects of the same conceptual type, of potentially variable
-    # number.
-    #
-    # The trouble is how to know which to produce (list or list-like dict).
-    # For now, we won't do any clever translation yet, and always convert to a
-    # list....
-    #
-    debug('Converting to a list from ' + str(type(asn1_obj))) # DEBUG
-    data = _list_from_asn1(asn1_obj)
-    debug('Completed conversion to list from ' + str(type(asn1_obj))) # DEBUG
-    recursion_level -= 1 # DEBUG
-    return data
+    # with output that is either a list or a list-like dictionary -- in either
+    # case, objects of the same conceptual type, of potentially variable number.
+
+    # If this type is converted from a list-like dict, we'll convert it back
+    # into such, undoing some of what we did to make the structure
+    # ASN.1-friendly.
+    if is_listlike_derived_from_dict(type(asn1_obj)):
+      debug('Converting to a list-like dict from ' + str(type(asn1_obj)))
+      data = _listlike_dict_from_asn1(asn1_obj)
+      debug('Completed conversion to list-like dict from ' + str(type(asn1_obj)))
+
+    # Otherwise, both the ASN.1 and non-ASN.1 data are basically lists, and
+    # the conversion back is straightforward.
+    else:
+      debug('Converting to a list from ' + str(type(asn1_obj)))
+      data = _list_from_asn1(asn1_obj)
+      debug('Completed conversion to list from ' + str(type(asn1_obj)))
 
 
-  elif (isinstance(asn1_obj, asn1_core.Sequence)
-      or isinstance(data, asn1_core.Set)):
-    # In the case of converting to Sequence/Set, we expect to be dealing with a
-    # struct-like dictionary -- elements with potentially different types
-    # associated with different keys.
-    # - Struct-like dictionaries will become Sequences/Sets with field names
-    #   in the input dictionary mapping directly to field names in the output
-    #   object.
-    debug('Converting to struct-like dict from ' + str(type(asn1_obj))) # DEBUG
+  elif is_structlike_datatype(type(asn1_obj)):
+    debug('Converting to struct-like dict from ' + str(type(asn1_obj)))
     data = _structlike_dict_from_asn1(asn1_obj)
-    debug('Completed conversion to struct-like dict from ' + str(type(asn1_obj))) # DEBUG
-    recursion_level -= 1 # DEBUG
-    return data
+    debug(
+        'Completed conversion to struct-like dict from ' + str(type(asn1_obj)))
 
 
   else:
-    recursion_level -= 1 # DEBUG
-    assert False, 'Coding error: should be impossible to reach this point ' + \
-        'given earlier checks.' # DEBUG; # TODO: adjust structure / remove this.
     raise tuf.exceptions.ASN1ConversionError(
         'Unable to determine how to automatically '
         'convert data into ASN.1 data.  Can only handle primitives to Integer/'
@@ -730,6 +701,12 @@ def _structlike_dict_from_asn1(asn1_obj):
         'dict to list-like ASN.1, or struct-like dict to struct-like ASN.1.  '
         'Source data type: ' + str(type(data)) + '; output type is: ' +
         str(datatype))
+
+  recursion_level -= 1 # DEBUG
+  return data
+
+
+
 
 def _is_optional_field_in(field_name, asn1_obj):
   """
