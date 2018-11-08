@@ -26,7 +26,7 @@ from __future__ import unicode_literals
 
 # Standard Library Imports
 import unittest
-unittest.util._MAX_LENGTH=2000  # DEBUG
+unittest.util._MAX_LENGTH=20000  # DEBUG
 import os
 import logging
 import binascii # for bytes to hex
@@ -275,7 +275,7 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     Tests _list_to_asn1 and _list_from_asn1
     """
 
-    # Try a KeyIDHashAlgorithms object, which is a good example of a list in
+    # Try key ID hash algorithms, which is a good example of a list in
     # TUF-internal metadata that is converted to a SequenceOf containing only
     # primitives in ASN.1
     keyid_hash_algos = ["sha256", "sha512"]
@@ -285,7 +285,7 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     # Test by calling the helper functions directly.
     self.conversion_check(
       data=keyid_hash_algos,
-      datatype=asn1_defs.KeyIDHashAlgorithms,
+      datatype=asn1_defs.VisibleStrings,
       expected_der=expected_der,
       to_asn1_func=asn1_convert._list_to_asn1,
       from_asn1_func=asn1_convert._list_from_asn1)
@@ -294,7 +294,7 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     # the helper functions.
     self.conversion_check(
         data=keyid_hash_algos,
-        datatype=asn1_defs.KeyIDHashAlgorithms,
+        datatype=asn1_defs.VisibleStrings,
         expected_der=expected_der)
 
 
@@ -376,14 +376,14 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     # Test by calling the helper functions directly.
     self.conversion_check(
       data=ed_pub,
-      datatype=asn1_defs.PublicKey,
-      expected_der=ed_key_expected_der,
+      datatype=asn1_defs.Key,
+      #expected_der=ed_key_expected_der,
       to_asn1_func=asn1_convert._structlike_dict_to_asn1,
       from_asn1_func=asn1_convert._structlike_dict_from_asn1)
     self.conversion_check(
       data=rsa_pub,
-      datatype=asn1_defs.PublicKey,
-      expected_der=rsa_key_expected_der,
+      datatype=asn1_defs.Key,
+      #expected_der=rsa_key_expected_der,
       to_asn1_func=asn1_convert._structlike_dict_to_asn1,
       from_asn1_func=asn1_convert._structlike_dict_from_asn1)
 
@@ -391,14 +391,17 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     # the helper functions.
     self.conversion_check(
         data=ed_pub,
-        datatype=asn1_defs.PublicKey,
-        expected_der=ed_key_expected_der
+        datatype=asn1_defs.Key,
+        #expected_der=ed_key_expected_der
         )
     self.conversion_check(
         data=rsa_pub,
-        datatype=asn1_defs.PublicKey,
-        expected_der=rsa_key_expected_der
+        datatype=asn1_defs.Key,
+        #expected_der=rsa_key_expected_der
         )
+
+
+
 
 
   def test_signed_portion_of_root_conversion(self):
@@ -443,309 +446,187 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
         'spec_version': '1.0',
         'version': 1}
 
+    # root_expected_der_old = (
+    #   b'0\x82\x05\xa1\x1a\x04root\x1a\x031.0\x1a\x142030-01-01T00:00:00Z\x02\x01\x01\x01\x01\x000\x82\x04\xa30\x82\x02\xd4\x04 Nw}\xe0\xd2u\xf9\xd2\x85\x88\xdd\x9a\x16\x06\xcct\x8eT\x8f\x9e"\xb6y[|\xb3\xf6?\x98\x03_\xcb0\x82\x02\xae\x1a\x03rsa\x1a\x11rsassa-pss-sha2560\x82\x02\x800\x82\x02|\x1a\x06public\x1a\x82\x02p-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA0GjPoVrjS9eCqzoQ8VRe\nPkC0cI6ktiEgqPfHESFzyxyjC490Cuy19nuxPcJuZfN64MC48oOkR+W2mq4pM51i\nxmdG5xjvNOBRkJ5wUCc8fDCltMUTBlqt9y5eLsf/4/EoBU+zC4SW1iPU++mCsity\nfQQ7U6LOn3EYCyrkH51hZ/dvKC4o9TPYMVxNecJ3CL1q02Q145JlyjBTuM3Xdqsa\nndTHoXSRPmmzgB/1dL/c4QjMnCowrKW06mFLq9RAYGIaJWfM/0CbrOJpVDkATmEc\nMdpGJYDfW/sRQvRdlHNPo24ZW7vkQUCqdRxvnTWkK5U81y7RtjLt1yskbWXBIbOV\nz94GXsgyzANyCT9qRjHXDDz2mkLq+9I2iKtEqaEePcWRu3H6RLahpM/TxFzw684Y\nR47weXdDecPNxWyiWiyMGStRFP4Cg9trcwAGnEm1w8R2ggmWphznCd5dXGhPNjfA\na82yNFY8ubnOUVJOf0nXGg3Edw9iY3xyjJb2+nrsk5f3AgMBAAE=\n-----END PUBLIC KEY-----0\x10\x1a\x06sha256\x1a\x06sha5120\x81\x96\x04 Y\xa4\xdf\x8a\xf8\x18\xe9\xedz\xbe\x07d\xc0\xb4{B@\x95*\xa0\xd1y\xb5\xb7\x83F\xc4p\xac0\'\x8d0r\x1a\x07ed25519\x1a\x07ed255190L0J\x1a\x06public\x1a@edcd0a32a07dce33f7c7873aaffbff36d20ea30787574ead335eefd337e4dacd0\x10\x1a\x06sha256\x1a\x06sha5120\x81\x96\x04 e\x17\x12Q\xa9\xaf\xf5\xa8\xb3\x14:\x814\x81\xcb\x07\xf6\xe0\xdeN\xb1\x97\xc7g\x83\x7f\xe4I\x1bs\x90\x930r\x1a\x07ed25519\x1a\x07ed255190L0J\x1a\x06public\x1a@89f28bd4ede5ec3786ab923fd154f39588d20881903e69c7b08fb504c67508150\x10\x1a\x06sha256\x1a\x06sha5120\x81\x96\x04 \x8a\x1cJ:\xc2\xd5\x15\xde\xc9\x82\xba\x99\x10\xc5\xfdy\xb9\x1a\xe5\x7fb[\x9c\xff%\xd0k\xf0\xa6\x1c\x17X0r\x1a\x07ed25519\x1a\x07ed255190L0J\x1a\x06public\x1a@82ccf6ac47298ff43bfa0cd639868894e305a99c723ff0515ae2e9856eb5bbf40\x10\x1a\x06sha256\x1a\x06sha5120\x81\xd00/\x1a\x04root0\'0"\x04 Nw}\xe0\xd2u\xf9\xd2\x85\x88\xdd\x9a\x16\x06\xcct\x8eT\x8f\x9e"\xb6y[|\xb3\xf6?\x98\x03_\xcb\x02\x01\x0103\x1a\x08snapshot0\'0"\x04 Y\xa4\xdf\x8a\xf8\x18\xe9\xedz\xbe\x07d\xc0\xb4{B@\x95*\xa0\xd1y\xb5\xb7\x83F\xc4p\xac0\'\x8d\x02\x01\x0102\x1a\x07targets0\'0"\x04 e\x17\x12Q\xa9\xaf\xf5\xa8\xb3\x14:\x814\x81\xcb\x07\xf6\xe0\xdeN\xb1\x97\xc7g\x83\x7f\xe4I\x1bs\x90\x93\x02\x01\x0104\x1a\ttimestamp0\'0"\x04 \x8a\x1cJ:\xc2\xd5\x15\xde\xc9\x82\xba\x99\x10\xc5\xfdy\xb9\x1a\xe5\x7fb[\x9c\xff%\xd0k\xf0\xa6\x1c\x17X\x02\x01\x01')
+
     root_expected_der = (
-      b'0\x82\x05\xa1\x1a\x04root\x1a\x031.0\x1a\x142030-01-01T00:00:00Z\x02\x01\x01\x01\x01\x000\x82\x04\xa30\x82\x02\xd4\x04 Nw}\xe0\xd2u\xf9\xd2\x85\x88\xdd\x9a\x16\x06\xcct\x8eT\x8f\x9e"\xb6y[|\xb3\xf6?\x98\x03_\xcb0\x82\x02\xae\x1a\x03rsa\x1a\x11rsassa-pss-sha2560\x82\x02\x800\x82\x02|\x1a\x06public\x1a\x82\x02p-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA0GjPoVrjS9eCqzoQ8VRe\nPkC0cI6ktiEgqPfHESFzyxyjC490Cuy19nuxPcJuZfN64MC48oOkR+W2mq4pM51i\nxmdG5xjvNOBRkJ5wUCc8fDCltMUTBlqt9y5eLsf/4/EoBU+zC4SW1iPU++mCsity\nfQQ7U6LOn3EYCyrkH51hZ/dvKC4o9TPYMVxNecJ3CL1q02Q145JlyjBTuM3Xdqsa\nndTHoXSRPmmzgB/1dL/c4QjMnCowrKW06mFLq9RAYGIaJWfM/0CbrOJpVDkATmEc\nMdpGJYDfW/sRQvRdlHNPo24ZW7vkQUCqdRxvnTWkK5U81y7RtjLt1yskbWXBIbOV\nz94GXsgyzANyCT9qRjHXDDz2mkLq+9I2iKtEqaEePcWRu3H6RLahpM/TxFzw684Y\nR47weXdDecPNxWyiWiyMGStRFP4Cg9trcwAGnEm1w8R2ggmWphznCd5dXGhPNjfA\na82yNFY8ubnOUVJOf0nXGg3Edw9iY3xyjJb2+nrsk5f3AgMBAAE=\n-----END PUBLIC KEY-----0\x10\x1a\x06sha256\x1a\x06sha5120\x81\x96\x04 Y\xa4\xdf\x8a\xf8\x18\xe9\xedz\xbe\x07d\xc0\xb4{B@\x95*\xa0\xd1y\xb5\xb7\x83F\xc4p\xac0\'\x8d0r\x1a\x07ed25519\x1a\x07ed255190L0J\x1a\x06public\x1a@edcd0a32a07dce33f7c7873aaffbff36d20ea30787574ead335eefd337e4dacd0\x10\x1a\x06sha256\x1a\x06sha5120\x81\x96\x04 e\x17\x12Q\xa9\xaf\xf5\xa8\xb3\x14:\x814\x81\xcb\x07\xf6\xe0\xdeN\xb1\x97\xc7g\x83\x7f\xe4I\x1bs\x90\x930r\x1a\x07ed25519\x1a\x07ed255190L0J\x1a\x06public\x1a@89f28bd4ede5ec3786ab923fd154f39588d20881903e69c7b08fb504c67508150\x10\x1a\x06sha256\x1a\x06sha5120\x81\x96\x04 \x8a\x1cJ:\xc2\xd5\x15\xde\xc9\x82\xba\x99\x10\xc5\xfdy\xb9\x1a\xe5\x7fb[\x9c\xff%\xd0k\xf0\xa6\x1c\x17X0r\x1a\x07ed25519\x1a\x07ed255190L0J\x1a\x06public\x1a@82ccf6ac47298ff43bfa0cd639868894e305a99c723ff0515ae2e9856eb5bbf40\x10\x1a\x06sha256\x1a\x06sha5120\x81\xd00/\x1a\x04root0\'0"\x04 Nw}\xe0\xd2u\xf9\xd2\x85\x88\xdd\x9a\x16\x06\xcct\x8eT\x8f\x9e"\xb6y[|\xb3\xf6?\x98\x03_\xcb\x02\x01\x0103\x1a\x08snapshot0\'0"\x04 Y\xa4\xdf\x8a\xf8\x18\xe9\xedz\xbe\x07d\xc0\xb4{B@\x95*\xa0\xd1y\xb5\xb7\x83F\xc4p\xac0\'\x8d\x02\x01\x0102\x1a\x07targets0\'0"\x04 e\x17\x12Q\xa9\xaf\xf5\xa8\xb3\x14:\x814\x81\xcb\x07\xf6\xe0\xdeN\xb1\x97\xc7g\x83\x7f\xe4I\x1bs\x90\x93\x02\x01\x0104\x1a\ttimestamp0\'0"\x04 \x8a\x1cJ:\xc2\xd5\x15\xde\xc9\x82\xba\x99\x10\xc5\xfdy\xb9\x1a\xe5\x7fb[\x9c\xff%\xd0k\xf0\xa6\x1c\x17X\x02\x01\x01')
-
-
+      b'0\x82\x05K\x1a\x04root\x1a\x031.0\x1a\x142030-01-01T00:00:00Z\x02\x01'
+      b'\x01\x01\x01\x000\x82\x04y0\x82\x02\xc8\x04 Nw}\xe0\xd2u\xf9\xd2\x85'
+      b'\x88\xdd\x9a\x16\x06\xcct\x8eT\x8f\x9e"\xb6y[|\xb3\xf6?\x98\x03_\xcb0'
+      b'\x82\x02\xa2\x1a\x03rsa\x1a\x11rsassa-pss-sha2560\x82\x02t\x1a\x82\x02'
+      b'p-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCA'
+      b'YEA0GjPoVrjS9eCqzoQ8VRe\nPkC0cI6ktiEgqPfHESFzyxyjC490Cuy19nuxPcJuZfN64'
+      b'MC48oOkR+W2mq4pM51i\nxmdG5xjvNOBRkJ5wUCc8fDCltMUTBlqt9y5eLsf/4/EoBU+zC'
+      b'4SW1iPU++mCsity\nfQQ7U6LOn3EYCyrkH51hZ/dvKC4o9TPYMVxNecJ3CL1q02Q145Jly'
+      b'jBTuM3Xdqsa\nndTHoXSRPmmzgB/1dL/c4QjMnCowrKW06mFLq9RAYGIaJWfM/0CbrOJpV'
+      b'DkATmEc\nMdpGJYDfW/sRQvRdlHNPo24ZW7vkQUCqdRxvnTWkK5U81y7RtjLt1yskbWXBI'
+      b'bOV\nz94GXsgyzANyCT9qRjHXDDz2mkLq+9I2iKtEqaEePcWRu3H6RLahpM/TxFzw684Y'
+      b'\nR47weXdDecPNxWyiWiyMGStRFP4Cg9trcwAGnEm1w8R2ggmWphznCd5dXGhPNjfA\na8'
+      b'2yNFY8ubnOUVJOf0nXGg3Edw9iY3xyjJb2+nrsk5f3AgMBAAE=\n-----END PUBLIC KE'
+      b'Y-----0\x10\x1a\x06sha256\x1a\x06sha5120\x81\x8c\x04 Y\xa4\xdf\x8a\xf8'
+      b'\x18\xe9\xedz\xbe\x07d\xc0\xb4{B@\x95*\xa0\xd1y\xb5\xb7\x83F\xc4p\xac0'
+      b'\'\x8d0h\x1a\x07ed25519\x1a\x07ed255190B\x1a@edcd0a32a07dce33f7c7873aa'
+      b'ffbff36d20ea30787574ead335eefd337e4dacd0\x10\x1a\x06sha256\x1a\x06'
+      b'sha5120\x81\x8c\x04 e\x17\x12Q\xa9\xaf\xf5\xa8\xb3\x14:\x814\x81\xcb'
+      b'\x07\xf6\xe0\xdeN\xb1\x97\xc7g\x83\x7f\xe4I\x1bs\x90\x930h\x1a\x07'
+      b'ed25519\x1a\x07ed255190B\x1a@89f28bd4ede5ec3786ab923fd154f39588d208819'
+      b'03e69c7b08fb504c67508150\x10\x1a\x06sha256\x1a\x06sha5120\x81\x8c\x04 '
+      b'\x8a\x1cJ:\xc2\xd5\x15\xde\xc9\x82\xba\x99\x10\xc5\xfdy\xb9\x1a\xe5'
+      b'\x7fb[\x9c\xff%\xd0k\xf0\xa6\x1c\x17X0h\x1a\x07ed25519\x1a\x07ed255190'
+      b'B\x1a@82ccf6ac47298ff43bfa0cd639868894e305a99c723ff0515ae2e9856eb5bbf4'
+      b'0\x10\x1a\x06sha256\x1a\x06sha5120\x81\xa40\'0"\x04 Nw}\xe0\xd2u\xf9'
+      b'\xd2\x85\x88\xdd\x9a\x16\x06\xcct\x8eT\x8f\x9e"\xb6y[|\xb3\xf6?\x98'
+      b'\x03_\xcb\x02\x01\x010\'0"\x04 \x8a\x1cJ:\xc2\xd5\x15\xde\xc9\x82\xba'
+      b'\x99\x10\xc5\xfdy\xb9\x1a\xe5\x7fb[\x9c\xff%\xd0k\xf0\xa6\x1c\x17X\x02'
+      b'\x01\x010\'0"\x04 Y\xa4\xdf\x8a\xf8\x18\xe9\xedz\xbe\x07d\xc0\xb4{B@'
+      b'\x95*\xa0\xd1y\xb5\xb7\x83F\xc4p\xac0\'\x8d\x02\x01\x010\'0"\x04 e\x17'
+      b'\x12Q\xa9\xaf\xf5\xa8\xb3\x14:\x814\x81\xcb\x07\xf6\xe0\xdeN\xb1\x97'
+      b'\xc7g\x83\x7f\xe4I\x1bs\x90\x93\x02\x01\x01')
 
     # Test by calling the general to_asn1 and from_asn1 calls that will call
     # the helper functions.
     self.conversion_check(
         data=r,
         datatype=asn1_defs.RootMetadata,
-        expected_der=root_expected_der
-        )
+        expected_der=root_expected_der)
+
+
+
+
+
+  def test_signed_portion_of_timestamp_conversion(self):
+    timestamp = {
+      "_type": "timestamp",
+      "expires": "2030-01-01T00:00:00Z",
+      "meta": {
+       "snapshot.json": {
+        "hashes": {
+         "sha256": "6990b6586ed545387c6a51db62173b903a5dff46b17b1bc3fe1e6ca0d0844f2f"
+        },
+        "length": 554,
+        "version": 1
+       }
+      },
+      "spec_version": "1.0",
+      "version": 1}
+
+    timestamp_expected_der = (
+        b'0s\x1a\ttimestamp\x1a\x031.0\x1a\x142030-01-01T00:00:00Z\x02\x01\x01'
+        b'1H0F\x1a\rsnapshot.json051,0*\x1a\x06sha256\x04 i\x90\xb6Xn\xd5E8|jQ'
+        b'\xdbb\x17;\x90:]\xffF\xb1{\x1b\xc3\xfe\x1el\xa0\xd0\x84O/\x02\x02'
+        b'\x02*\x02\x01\x01')
+
+    # Test by calling the general to_asn1 and from_asn1 calls that will call
+    # the helper functions.
+    self.conversion_check(
+        data=timestamp,
+        datatype=asn1_defs.TimestampMetadata,
+        expected_der=timestamp_expected_der)
+
+
+
+
+
+  def test_signed_portion_of_snapshot_conversion(self):
+    snapshot = {
+        "_type": "snapshot",
+        "expires": "2030-01-01T00:00:00Z",
+        "spec_version": "1.0",
+        "version": 1,
+        "meta": {
+          "role1.json": {
+            "version": 1},
+          "role2.json": {
+            "version": 1},
+          "root.json": {
+            "version": 1},
+          "targets.json": {
+            "version": 1}
+        }
+    }
+
+    snapshot_expected_der = (
+        b'0w\x1a\x08snapshot\x1a\x031.0\x1a\x142030-01-01T00:00:00Z\x02\x01'
+        b'\x010M0\x11\x1a\nrole1.json0\x03\x02\x01\x010\x11\x1a\nrole2.json0'
+        b'\x03\x02\x01\x010\x10\x1a\troot.json0\x03\x02\x01\x010\x13\x1a\x0c'
+        b'targets.json0\x03\x02\x01\x01')
+
+    # Test by calling the general to_asn1 and from_asn1 calls that will call
+    # the helper functions.
+    self.conversion_check(
+        data=snapshot,
+        datatype=asn1_defs.SnapshotMetadata,
+        expected_der=snapshot_expected_der)
+
+
+
+  def test_signed_portion_of_targets_conversion(self):
+    targets = {
+        "_type": "targets",
+        "delegations": {
+         "keys": {
+          "c8022fa1e9b9cb239a6b362bbdffa9649e61ad2cb699d2e4bc4fdf7930a0e64a": {
+           "keyid_hash_algorithms": [
+            "sha256",
+            "sha512"
+           ],
+           "keytype": "ed25519",
+           "keyval": {
+            "public": "fcf224e55fa226056adf113ef1eb3d55e308b75b321c8c8316999d8c4fd9e0d9"
+           },
+           "scheme": "ed25519"
+          }
+         },
+         "roles": [
+          {
+           "keyids": [
+            "c8022fa1e9b9cb239a6b362bbdffa9649e61ad2cb699d2e4bc4fdf7930a0e64a"
+           ],
+           "name": "role1",
+           "paths": [
+            "file3.txt"
+           ],
+           "terminating": False,
+           "threshold": 1
+          }
+         ]
+        },
+        "expires": "2030-01-01T00:00:00Z",
+        "spec_version": "1.0",
+        "targets": {
+         "file1.txt": {
+          "custom": {
+           "file_permissions": "644"
+          },
+          "hashes": {
+           "sha256": "65b8c67f51c993d898250f40aa57a317d854900b3a04895464313e48785440da",
+           "sha512": "467430a68afae8e9f9c0771ea5d78bf0b3a0d79a2d3d3b40c69fde4dd42c461448aef76fcef4f5284931a1ffd0ac096d138ba3a0d6ca83fa8d7285a47a296f77"
+          },
+          "length": 31
+         },
+         "file2.txt": {
+          "hashes": {
+           "sha256": "452ce8308500d83ef44248d8e6062359211992fd837ea9e370e561efb1a4ca99",
+           "sha512": "052b49a21e03606b28942db69aa597530fe52d47ee3d748ba65afcd14b857738e36bc1714c4f4adde46c3e683548552fe5c96722e0e0da3acd9050c2524902d8"
+          },
+          "length": 39
+         }
+        },
+        "version": 1
+    }
+
+    targets_expected_der = (
+        b'0\x82\x025\x1a\x07targets\x1a\x031.0\x1a\x142030-01-01T00:00:00Z\x02\x01\x010\x82\x0160\x81\xa6\x1a\tfile1.txt0\x81\x98\x02\x01\x1f1x0*\x1a\x06sha256\x04 e\xb8\xc6\x7fQ\xc9\x93\xd8\x98%\x0f@\xaaW\xa3\x17\xd8T\x90\x0b:\x04\x89Td1>HxT@\xda0J\x1a\x06sha512\x04@Ft0\xa6\x8a\xfa\xe8\xe9\xf9\xc0w\x1e\xa5\xd7\x8b\xf0\xb3\xa0\xd7\x9a-=;@\xc6\x9f\xdeM\xd4,F\x14H\xae\xf7o\xce\xf4\xf5(I1\xa1\xff\xd0\xac\tm\x13\x8b\xa3\xa0\xd6\xca\x83\xfa\x8dr\x85\xa4z)ow0\x190\x17\x1a\x10file_permissions\x1a\x036440\x81\x8a\x1a\tfile2.txt0}\x02\x01\'1x0*\x1a\x06sha256\x04 E,\xe80\x85\x00\xd8>\xf4BH\xd8\xe6\x06#Y!\x19\x92\xfd\x83~\xa9\xe3p\xe5a\xef\xb1\xa4\xca\x990J\x1a\x06sha512\x04@\x05+I\xa2\x1e\x03`k(\x94-\xb6\x9a\xa5\x97S\x0f\xe5-G\xee=t\x8b\xa6Z\xfc\xd1K\x85w8\xe3k\xc1qLOJ\xdd\xe4l>h5HU/\xe5\xc9g"\xe0\xe0\xda:\xcd\x90P\xc2RI\x02\xd80\x81\xd10\x81\x8f0\x81\x8c\x04 \xc8\x02/\xa1\xe9\xb9\xcb#\x9ak6+\xbd\xff\xa9d\x9ea\xad,\xb6\x99\xd2\xe4\xbcO\xdfy0\xa0\xe6J0h\x1a\x07ed25519\x1a\x07ed255190B\x1a@fcf224e55fa226056adf113ef1eb3d55e308b75b321c8c8316999d8c4fd9e0d90\x10\x1a\x06sha256\x1a\x06sha5120=0;\x1a\x05role10"\x04 \xc8\x02/\xa1\xe9\xb9\xcb#\x9ak6+\xbd\xff\xa9d\x9ea\xad,\xb6\x99\xd2\xe4\xbcO\xdfy0\xa0\xe6J0\x0b\x1a\tfile3.txt\x02\x01\x01')
+
+    # Test by calling the general to_asn1 and from_asn1 calls that will call
+    # the helper functions.
+    self.conversion_check(
+        data=targets,
+        datatype=asn1_defs.TargetsMetadata,
+        expected_der=targets_expected_der)
 
 
 
-
-  '''
-
-
-
-  def test_to_pyasn1_hashes(self):
-
-    # Try a Hash object, of similar complexity as Signature.
-    # First, produce it using the other functions, and compare it to the result
-    # when produced by to_pyasn1.
-    hash_type = 'sha256'
-    hash_value = '6990b6586ed545387c6a51db62173b903a5dff46b17b1bc3fe1e6ca0d0844f2f'
-    hash_pyasn1_alt = asn1_convert.hash_to_pyasn1(hash_type, hash_value)
-    hash_der_alt = asn1_convert.pyasn1_to_der(hash_pyasn1_alt)
-    hash_pyasn1_again_alt = asn1_convert.pyasn1_from_der(hash_der_alt)
-
-    h = {'function': hash_type, 'digest': hash_value}
-
-    h_expected_der = \
-        b'0*\x1a\x06sha256\x04 i\x90\xb6Xn\xd5E8|jQ\xdbb\x17;\x90:]\xffF\xb1{\x1b\xc3\xfe\x1el\xa0\xd0\x84O/'
-
-    self.conversion_check_pyasn1(
-        h,
-        asn1_convert.to_pyasn1,
-        #from_asn1_func=asn1_convert.from_pyasn1,   # TODO: DO NOT SKIP CONVERTING BACK
-        expected_der=h_expected_der,
-        second_arg=asn1_defs.Hash)
-
-
-    # # Manual, without conversion_check:
-    # hash_pyasn1 = asn1_convert.to_pyasn1(h, asn1_defs.Hash)
-    # hash_der = asn1_convert.pyasn1_to_der(hash_pyasn1)
-    # hash_pyasn1_again = asn1_convert.pyasn1_from_der(hash_der)
-
-    # self.assertEqual(hash_pyasn1_alt, hash_pyasn1)
-    # self.assertEqual(hash_der_alt, hash_der)
-    # self.assertEqual(hash_pyasn1_again_alt, hash_pyasn1_again)
-    # self.assertEqual(hash_pyasn1, hash_pyasn1_again)
-
-
-    # Try a Hashes object, more complex yet.
-    # First, produce it using the other functions, and compare it to the result
-    # when produced by to_pyasn1.
-    hash_type1 = 'sha256'
-    hash_value1 = '6990b6586ed545387c6a51db62173b903a5dff46b17b1bc3fe1e6ca0d0844f2f'
-    hash_type2 = 'sha512'
-    hash_value2 = '1234567890abcdef0000000002173b903a5dff46b17b1bc3fe1e6ca0d0844f2f6990b6586ed545387c6a51db62173b903a5dff46b17b1bc3fe1e6ca0d0844f2f'
-
-    hashes_dict = {hash_type1: hash_value1, hash_type2: hash_value2}
-    expected_der = b'1x0*\x1a\x06sha256\x04 i\x90\xb6Xn\xd5E8|jQ\xdbb\x17;\x90:]\xffF\xb1{\x1b\xc3\xfe\x1el\xa0\xd0\x84O/0J\x1a\x06sha512\x04@\x124Vx\x90\xab\xcd\xef\x00\x00\x00\x00\x02\x17;\x90:]\xffF\xb1{\x1b\xc3\xfe\x1el\xa0\xd0\x84O/i\x90\xb6Xn\xd5E8|jQ\xdbb\x17;\x90:]\xffF\xb1{\x1b\xc3\xfe\x1el\xa0\xd0\x84O/'
-
-
-    # Test using the custom converter for hashes, hashes_to_pyasn1.
-    hashes_asn1_alt, junk = self.conversion_check_pyasn1(
-        hashes_dict,
-        asn1_convert.hashes_to_pyasn1,
-        #from_asn1_func=asn1_convert.hashes_from_pyasn1,   # TODO: DO NOT SKIP CONVERTING BACK; func not yet written?
-        expected_der=expected_der)
-
-    # Test using the generic converter, to_pyasn1.
-    hashes_asn1, junk = self.conversion_check_pyasn1(
-        hashes_dict,
-        asn1_convert.to_pyasn1,
-        #from_asn1_func=asn1_convert.from_pyasn1,   # TODO: DO NOT SKIP CONVERTING BACK
-        expected_der=expected_der,
-        second_arg=asn1_defs.Hashes)
-
-    # Compare the two ASN.1 results (from specific and generic converters) to
-    # each other.
-    self.assertEqual(hashes_asn1_alt, hashes_asn1)
-
-
-
-    # Test manually, without conversion_check
-
-    # hashes_pyasn1_alt = asn1_convert.hashes_to_pyasn1(hashes_dict)
-
-    # hashes_pyasn1 = asn1_convert.to_pyasn1(
-    #     hashes_dict, asn1_defs.Hashes)
-
-    # # Repeat the same conversion. This catches some odd errors that I won't
-    # # explain here -- see the comments in asn1_convert.py pertaining to the
-    # # line that reads:
-    # #          sample_component_obj = type(datatype.componentType)()
-    # hashes_pyasn1 = asn1_convert.to_pyasn1(
-    #     hashes_dict, asn1_defs.Hashes)
-
-    # # Both methods of generating Hashes objects should yield the same result.
-    # self.assertEqual(hashes_pyasn1_alt, hashes_pyasn1)
-
-    # hashes_der_alt = asn1_convert.pyasn1_to_der(hashes_pyasn1_alt)
-    # hashes_der = asn1_convert.pyasn1_to_der(hashes_pyasn1)
-
-    # self.assertEqual(expected_der, hashes_der_alt)
-    # self.assertEqual(expected_der, hashes_der)
-
-
-
-
-
-  def test_to_pyasn1_keys(self):
-
-    # Import some public keys.
-    ed_pub_fname = os.path.join(
-        os.getcwd(), 'repository_data', 'keystore', 'timestamp_key.pub')
-    rsa_pub_fname = os.path.join(
-        os.getcwd(), 'repository_data', 'keystore', 'root_key.pub')
-
-    ed_pub = repo_tool.import_ed25519_publickey_from_file(ed_pub_fname)
-    rsa_pub = repo_tool.import_rsa_publickey_from_file(rsa_pub_fname)
-
-    # Expected DER results from converting the keys:
-    ed_key_expected_der = \
-        b'0&\x1a\x07ed25519\x1a\x07ed255191\x000\x10\x1a\x06sha256\x1a\x06sha512'
-    rsa_key_expected_der = \
-        b'0,\x1a\x03rsa\x1a\x11rsassa-pss-sha2561\x000\x10\x1a\x06sha256\x1a\x06sha512'
-
-
-    # Convert them and test along the way.
-    self.conversion_check_pyasn1(
-        ed_pub,
-        asn1_convert.to_pyasn1,
-        # from_asn1_func=asn1_convert.from_pyasn1,   # TODO: DO NOT SKIP CONVERTING BACK
-        expected_der=ed_key_expected_der,
-        second_arg=asn1_defs.PublicKey)
-
-    self.conversion_check_pyasn1(
-        rsa_pub,
-        asn1_convert.to_pyasn1,
-        # from_asn1_func=asn1_convert.from_pyasn1,   # TODO: DO NOT SKIP CONVERTING BACK
-        expected_der=rsa_key_expected_der,
-        second_arg=asn1_defs.PublicKey)
-
-
-
-
-
-  def test_to_pyasn1_timestamp_hash_of_snapshot(self):
-    # First, try the HashOfSnapshot piece of the Timestamp data.
-
-    # First, let's build the JSON-compatible metadata dict.
-    snapshot_fname = 'snapshot.json'
-    snapshot_hash_func = 'sha256'
-    snapshot_hash_digest = \
-        '6990b6586ed545387c6a51db62173b903a5dff46b17b1bc3fe1e6ca0d0844f2f'
-
-    # Construct the JSON-compatible, TUF-internal piece of hash metadata, as it
-    # would exist inside timestamp.json.
-    hashes_of_snapshot = {
-        snapshot_fname: {'hashes': {snapshot_hash_func: snapshot_hash_digest}}}
-
-
-    # Next, let's manually construct the HashOfSnapshot object, to see if the
-    # converter gets it right.
-
-    # First, construct the hashes. We'll just use one in this test.
-
-    h = asn1_defs.Hash()
-    h['function'] = snapshot_hash_func
-    h['digest'] = pyasn1_univ.OctetString(hexValue=snapshot_hash_digest)
-
-    hashes = asn1_defs.Hashes()
-    hashes[0] = h
-
-    # Note: HashesContainer is a vapid layer of the ASN.1 metadata which
-    # exists to map to a similarly vapid layer of the JSON-compatible metadata.
-    hashes_container = asn1_defs.HashesContainer()
-    hashes_container['hashes'] = hashes
-
-
-    expected_pyasn1 = asn1_defs.HashOfSnapshot()
-    expected_pyasn1['filename'] = snapshot_fname
-    # expected_pyasn1['num-hashes'] = len(snapshot_hash[snapshot_fname]['hashes'])
-    expected_pyasn1['hashes'] = hashes_container
-
-    expected_der = asn1_convert.pyasn1_to_der(expected_pyasn1)
-
-
-    hashes_of_snapshot_pyasn1, hashes_of_snapshot_der = self.conversion_check_pyasn1(
-        hashes_of_snapshot,
-        asn1_convert.to_pyasn1,
-        # from_asn1_func=asn1_convert.from_pyasn1,   # TODO: DO NOT SKIP CONVERTING BACK
-        expected_der=expected_der,
-        second_arg=asn1_defs.HashOfSnapshot)
-
-    # In addition to testing the conversion and the expected DER, let's test
-    # the expected ASN.1:
-    self.assertEqual(expected_pyasn1, hashes_of_snapshot_pyasn1)
-
-
-
-
-
-  # def test_to_pyasn1_timestamp(self):
-
-  #   sample_timestamp = {
-  #       "signatures": [
-  #         {
-  #           "keyid": "8a1c4a3ac2d515dec982ba9910c5fd79b91ae57f625b9cff25d06bf0a61c1758",
-  #           "sig": "7dddbfe94d6d80253433551700ea6dfe4171a33f1227a07830e951900b8325d67c3dce6410b9cf55abefa3dfca0b57814a4965c2d6ee60bb0336755cd0557e03"
-  #         }
-  #       ],
-  #       "signed": {
-  #         "_type": "timestamp",
-  #         "expires": "2030-01-01T00:00:00Z",
-  #         "meta": {
-  #           "snapshot.json": {
-  #             "hashes": {
-  #               "sha256": "6990b6586ed545387c6a51db62173b903a5dff46b17b1bc3fe1e6ca0d0844f2f"
-  #             },
-  #             "length": 554,
-  #             "version": 1
-  #           }
-  #         },
-  #         "spec_version": "1.0",
-  #         "version": 1
-  #       }}
-
-  #   TimestampMetadata
-
-
-
-
-
-
-
-  def test_hash_to_pyasn1(self):
-    # This doesn't use conversion_check because the hash_to_pyasn1 function
-    # takes two arguments.
-    hash_type = 'sha256'
-    hash_value = '6990b6586ed545387c6a51db62173b903a5dff46b17b1bc3fe1e6ca0d0844f2f'
-
-    hash_pyasn1 = asn1_convert.hash_to_pyasn1(hash_type, hash_value)
-
-    asn1_convert.pyasn1_to_der(hash_pyasn1)
-
-
-
-
-
-
-  def test_hashes_to_pyasn1(self):
-
-    hash_type1 = 'sha256'
-    hash_value1 = '6990b6586ed545387c6a51db62173b903a5dff46b17b1bc3fe1e6ca0d0844f2f'
-    hash_type2 = 'sha512'
-    hash_value2 = '1234567890abcdef0000000002173b903a5dff46b17b1bc3fe1e6ca0d0844f2f6990b6586ed545387c6a51db62173b903a5dff46b17b1bc3fe1e6ca0d0844f2f'
-
-    hashes_dict = {hash_type1: hash_value1, hash_type2: hash_value2}
-    expected_der = b'1x0*\x1a\x06sha256\x04 i\x90\xb6Xn\xd5E8|jQ\xdbb\x17;\x90:]\xffF\xb1{\x1b\xc3\xfe\x1el\xa0\xd0\x84O/0J\x1a\x06sha512\x04@\x124Vx\x90\xab\xcd\xef\x00\x00\x00\x00\x02\x17;\x90:]\xffF\xb1{\x1b\xc3\xfe\x1el\xa0\xd0\x84O/i\x90\xb6Xn\xd5E8|jQ\xdbb\x17;\x90:]\xffF\xb1{\x1b\xc3\xfe\x1el\xa0\xd0\x84O/'
-
-    hashes_pyasn1, hashes_der = self.conversion_check_pyasn1(
-        hashes_dict, asn1_convert.hashes_to_pyasn1, expected_der=expected_der)
-
-    self.assertEqual(len(hashes_dict), len(hashes_pyasn1))
-    self.assertEqual(hash_type1, str(hashes_pyasn1[0]['function']))
-    self.assertEqual(hash_type2, str(hashes_pyasn1[1]['function']))
-
-    # These two are probably redundant, given conversion_check call above,
-    # but they do test hex_str_from_pyasn1_octets.
-    self.assertEqual(hash_value1,
-        asn1_convert.hex_str_from_pyasn1_octets(hashes_pyasn1[0]['digest']))
-    self.assertEqual(hash_value2,
-        asn1_convert.hex_str_from_pyasn1_octets(hashes_pyasn1[1]['digest']))
-
-
-
-
-
-  def test_public_key_to_pyasn1(self):
-
-    # Import some keys.
-
-    ed_pub_fname = os.path.join(
-        os.getcwd(), 'repository_data', 'keystore', 'timestamp_key.pub')
-    rsa_pub_fname = os.path.join(
-        os.getcwd(), 'repository_data', 'keystore', 'root_key.pub')
-
-    ed_pub = repo_tool.import_ed25519_publickey_from_file(ed_pub_fname)
-    rsa_pub = repo_tool.import_rsa_publickey_from_file(rsa_pub_fname)
-
-    # Convert them.
-
-    ed_pub_pyasn1 = asn1_convert.public_key_to_pyasn1(ed_pub)
-    rsa_pub_pyasn1 = asn1_convert.public_key_to_pyasn1(rsa_pub)
-
-
-  '''
 
 
   # def _call_func(func, one, two):
@@ -820,6 +701,10 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     # Definitions-aided decoding, knowing structure.
     data_asn1_again = from_der_func(data_der, datatype)
 
+    if expected_der is not None:
+      self.assertEqual(expected_der, data_asn1_again.dump())
+
+
     # We can expect the decoded ASN.1 to be identical to the originally
     # generated ASN.1 this way.
     # We can't test strict equality of the two objects, because asn1crypto
@@ -864,6 +749,7 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
 
 
 
+
   def assert_asn1_obj_equivalent(self, obj1, obj2):
     """
     Fail the test that called this function if asn1crypto objects obj1 and obj2
@@ -881,6 +767,7 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     # the next tests so that lazily-updated fields like _children will be
     # populated.
     self.assertEqual(obj1.native, obj2.native)
+
 
     for field in ['_contents', '_children', '_child_spec', '_fields']:
 
