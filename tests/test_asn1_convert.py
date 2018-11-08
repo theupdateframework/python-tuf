@@ -189,10 +189,10 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
 
     # Try a Signature object, which is a good example of a "struct-like" dict
     # and happens to contain only primitives.
-    sig = {'keyid': '123456', 'method': 'magical', 'value': 'abcdef1234567890'}
+    sig = {'keyid': '123456', 'sig': 'abcdef1234567890'}
 
-    expected_der = \
-        b'0\x18\x04\x03\x124V\x1a\x07magical\x04\x08\xab\xcd\xef\x124Vx\x90'
+    expected_der = (
+        b'0\x0f\x04\x03\x124V\x04\x08\xab\xcd\xef\x124Vx\x90')
 
     # Test by calling the helper functions directly.
     self.conversion_check(
@@ -231,7 +231,7 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     # asn1crypto code, so try that to make sure the conversion worked:
     sig_again = dict(sig_asn1.native)
     sig_again['keyid'] = binascii.hexlify(sig_again['keyid']).decode('utf-8')
-    sig_again['value'] = binascii.hexlify(sig_again['value']).decode('utf-8')
+    sig_again['sig'] = binascii.hexlify(sig_again['sig']).decode('utf-8')
     self.assertEqual(sig, sig_again)
 
     # Convert to DER and test the result.

@@ -54,9 +54,11 @@ class VisibleStrings(ac.SequenceOf): # Hopefully temporary
 class Signature(ac.Sequence):
   _fields = [
       ('keyid', ac.OctetString),
-      ('method', ac.VisibleString),
-      ('value', ac.OctetString)]
+      ('sig', ac.OctetString)]
 
+
+class Signatures(ac.SequenceOf):
+  _child_spec = Signature
 
 
 class Hash(ac.Sequence):
