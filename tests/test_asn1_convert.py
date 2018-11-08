@@ -33,12 +33,6 @@ import binascii # for bytes to hex
 # Dependency Imports
 import asn1crypto as asn1
 import asn1crypto.core as asn1_core
-'''
-import pyasn1
-import pyasn1.type.univ as pyasn1_univ
-import pyasn1.type.char as pyasn1_char
-import pyasn1.codec.der.encoder as pyasn1_der_encoder
-'''
 # TUF Imports
 import tuf
 import tuf.log

@@ -656,8 +656,8 @@ def _structlike_dict_to_asn1(data, datatype):
         continue
       else:
         raise tuf.exceptions.ASN1ConversionError(
-            'In conversion to "' + str(datatype) + '", expected to find key ' +
-            element_name_py + ' in input data, but did not.  Keys in input '
+            'In conversion to "' + str(datatype) + '", expected to find key "' +
+            element_name_py + '" in input data, but did not.  Keys in input '
             'data: ' + str(data.keys()))
 
     debug('In conversion of dict to type ' + str(datatype) + ', recursing '
