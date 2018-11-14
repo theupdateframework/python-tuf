@@ -261,10 +261,11 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     #    generation method used for the next two, in case it comes to matter)
     # 3: run with an HTTPS certificate with an unexpected hostname
     # 4: run with an HTTPS certificate that is expired
-    port1 = str(random.randint(30000, 45000))
-    port2 = str(int(port1) + 1)
-    port3 = str(int(port1) + 2)
-    port4 = str(int(port1) + 3)
+    # Be sure to offset from the port used in setUp to avoid collision.
+    port1 = str(self.PORT + 1)
+    port2 = str(self.PORT + 2)
+    port3 = str(self.PORT + 3)
+    port4 = str(self.PORT + 4)
     good_https_server_proc = popen_python(
         ['simple_https_server.py', port1, good_cert_fname])
     good2_https_server_proc = popen_python(
@@ -274,13 +275,12 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     expd_https_server_proc = popen_python(
         ['simple_https_server.py', port4, expired_cert_fname])
 
-    # Provide a delay long enough to allow the HTTPS servers to start.
-    # Encountered an error on one test system at delay value of 0.2s, so
-    # increasing to 0.5s.  Further increasing to 2s due to occasional failures
-    # in other tests in similar circumstances on AppVeyor.
+    # Provide a delay long enough to allow the four HTTPS servers to start.
+    # Have encountered errors at 0.2s, 0.5s, and 2s, primarily on AppVeyor.
+    # Increasing to 4s for this test.
     # Expect to see "Connection refused" if this delay is not long enough
     # (though other issues could cause that).
-    time.sleep(2)
+    time.sleep(3)
 
     relative_target_fpath = os.path.basename(target_filepath)
     good_https_url = 'https://localhost:' + port1 + '/' + relative_target_fpath
