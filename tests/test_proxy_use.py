@@ -16,16 +16,15 @@
   NOTE: Make sure test_proxy_use.py is run in 'tuf/tests/' directory.
   Otherwise, test data or scripts may not be found.
 
-  THIS module requires Python3.6+, as it uses mitmproxy, which only supports
-  Python3.6+.
+  THIS module requires Python2.7 (not 2.8.x, not 3.x, just 2.7.x) as the test
+  proxy it uses only supports Python2.7.
 
-  So long as the tests succeed in Python 3.6+, it is unlikely that TUF
+  So long as the tests succeed in Python 2.7, it is unlikely that TUF
   behaves differently with respect to proxies when it runs in other Python
   versions.
 
-  As a result of this dependency on a modern Python version, this test does
-  not run with the other unit tests, being specifically excluded from
-  aggregate_tests.py.
+  As a result of this dependency, this test is only run by aggregate_tests.py
+  when the Python version is 2.7.x.
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
