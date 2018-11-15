@@ -484,7 +484,7 @@ def _load_role_keys(keystore_directory):
 
   # Import the top-level and delegated role public keys.
   role_keys['root']['public'] = \
-    repo_tool.import_rsa_publickey_from_file(root_key_file+'.pub')
+    securesystemslib.interface.import_rsa_publickey_from_file(root_key_file+'.pub')
   role_keys['targets']['public'] = \
     repo_tool.import_ed25519_publickey_from_file(targets_key_file + '.pub')
   role_keys['snapshot']['public'] = \

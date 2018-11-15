@@ -121,13 +121,13 @@ class TestRepository(unittest.TestCase):
     timestamp_pubkey_path = os.path.join(keystore_directory, 'timestamp_key.pub')
     role1_pubkey_path = os.path.join(keystore_directory, 'delegation_key.pub')
 
-    root_pubkey = repo_tool.import_rsa_publickey_from_file(root_pubkey_path)
-    targets_pubkey = repo_tool.import_ed25519_publickey_from_file(targets_pubkey_path)
+    root_pubkey = securesystemslib.interface.import_rsa_publickey_from_file(root_pubkey_path)
+    targets_pubkey = securesystemslib.interface.import_ed25519_publickey_from_file(targets_pubkey_path)
     snapshot_pubkey = \
-      repo_tool.import_ed25519_publickey_from_file(snapshot_pubkey_path)
+      securesystemslib.interface.import_ed25519_publickey_from_file(snapshot_pubkey_path)
     timestamp_pubkey = \
-      repo_tool.import_ed25519_publickey_from_file(timestamp_pubkey_path)
-    role1_pubkey = repo_tool.import_ed25519_publickey_from_file(role1_pubkey_path)
+      securesystemslib.interface.import_ed25519_publickey_from_file(timestamp_pubkey_path)
+    role1_pubkey = securesystemslib.interface.import_ed25519_publickey_from_file(role1_pubkey_path)
 
     # Load the private keys.
     root_privkey_path = os.path.join(keystore_directory, 'root_key')

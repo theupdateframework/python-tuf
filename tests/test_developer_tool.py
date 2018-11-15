@@ -141,7 +141,7 @@ class TestProject(unittest.TestCase):
     # I will use the same key as the one provided in the repository
     # tool tests for the root role, but this is not a root role...
     root_key_path = os.path.join(keystore_path,'root_key.pub')
-    project_key = developer_tool.import_rsa_publickey_from_file(root_key_path)
+    project_key = securesystemslib.interface.import_rsa_publickey_from_file(root_key_path)
 
     # Test create new project with a key added by default.
     project = developer_tool.create_new_project(project_name, metadata_directory,
@@ -230,7 +230,7 @@ class TestProject(unittest.TestCase):
     keystore_path = os.path.join('repository_data', 'keystore')
     first_verification_key_path = os.path.join(keystore_path,'root_key.pub')
     first_verification_key = \
-      developer_tool.import_rsa_publickey_from_file(first_verification_key_path)
+      securesystemslib.interface.import_rsa_publickey_from_file(first_verification_key_path)
 
     project.add_verification_key(first_verification_key)
 
@@ -238,7 +238,7 @@ class TestProject(unittest.TestCase):
     # Add another verification key (should expect exception.)
     second_verification_key_path = os.path.join(keystore_path, 'snapshot_key.pub')
     second_verification_key = \
-      developer_tool.import_ed25519_publickey_from_file(second_verification_key_path)
+      securesystemslib.interface.import_ed25519_publickey_from_file(second_verification_key_path)
 
     self.assertRaises(securesystemslib.exceptions.Error,
         project.add_verification_key,(second_verification_key))
@@ -279,7 +279,7 @@ class TestProject(unittest.TestCase):
     keystore_path = os.path.join('repository_data', 'keystore')
     project_key_path = os.path.join(keystore_path, 'root_key.pub')
     project_key = \
-      developer_tool.import_rsa_publickey_from_file(project_key_path)
+      securesystemslib.interface.import_rsa_publickey_from_file(project_key_path)
 
 
     # Call status (for the sake of doing it and to improve test coverage by
@@ -292,12 +292,12 @@ class TestProject(unittest.TestCase):
     # Add another verification key (should expect exception.)
     delegation_key_path = os.path.join(keystore_path, 'snapshot_key.pub')
     delegation_key = \
-      developer_tool.import_ed25519_publickey_from_file(delegation_key_path)
+      securesystemslib.interface.import_ed25519_publickey_from_file(delegation_key_path)
 
     # Add a subdelegation.
     subdelegation_key_path = os.path.join(keystore_path, 'timestamp_key.pub')
     subdelegation_key = \
-        developer_tool.import_ed25519_publickey_from_file(subdelegation_key_path)
+        securesystemslib.interface.import_ed25519_publickey_from_file(subdelegation_key_path)
 
     # Add a delegation.
     project.delegate('delegation', [delegation_key], [])

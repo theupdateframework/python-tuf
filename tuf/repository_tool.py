@@ -3164,7 +3164,7 @@ def generate_ed25519_key(scheme='ed25519'):
   return securesystemslib.keys.generate_ed25519_key(scheme)
 
 def import_ed25519_publickey_from_file(filepath):
-  return repo_lib.import_ed25519_publickey_from_file(filepath)
+  return securesystemslib.interface.import_ed25519_publickey_from_file(filepath)
 
 def import_ed25519_privatekey_from_file(filepath, password=None):
   return repo_lib.import_ed25519_privatekey_from_file(filepath, password)
@@ -3179,7 +3179,7 @@ def generate_rsa_key(bits=DEFAULT_RSA_KEY_BITS, scheme='rsassa-pss-sha256'):
   return securesystemslib.keys.generate_rsa_key(bits, scheme)
 
 def import_rsa_publickey_from_file(filepath):
-  return repo_lib.import_rsa_publickey_from_file(filepath)
+  return securesystemslib.interface.import_rsa_publickey_from_file(filepath)
 
 def import_rsa_privatekey_from_file(filepath, password=None):
   return repo_lib.import_rsa_privatekey_from_file(filepath, password)

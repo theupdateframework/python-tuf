@@ -152,7 +152,7 @@ class TestRepository(unittest.TestCase):
     timestamp_pubkey_path = os.path.join(keystore_directory, 'timestamp_key.pub')
     role1_pubkey_path = os.path.join(keystore_directory, 'delegation_key.pub')
 
-    root_pubkey = repo_tool.import_rsa_publickey_from_file(root_pubkey_path)
+    root_pubkey = securesystemslib.interface.import_rsa_publickey_from_file(root_pubkey_path)
     targets_pubkey = \
       repo_tool.import_ed25519_publickey_from_file(targets_pubkey_path)
     snapshot_pubkey = \
@@ -568,7 +568,7 @@ class TestMetadata(unittest.TestCase):
     # Test keys() getter after a verification key has been loaded.
     key_path = os.path.join('repository_data',
                             'keystore', 'snapshot_key.pub')
-    key_object = repo_tool.import_ed25519_publickey_from_file(key_path)
+    key_object = securesystemslib.interface.import_ed25519_publickey_from_file(key_path)
     self.metadata.add_verification_key(key_object)
 
     keyid = key_object['keyid']
@@ -597,7 +597,7 @@ class TestMetadata(unittest.TestCase):
   def test_add_verification_key(self):
     # Add verification key and verify that it was added via (role).keys.
     key_path = os.path.join('repository_data', 'keystore', 'snapshot_key.pub')
-    key_object = repo_tool.import_ed25519_publickey_from_file(key_path)
+    key_object = securesystemslib.interface.import_ed25519_publickey_from_file(key_path)
     self.metadata.add_verification_key(key_object)
 
     keyid = key_object['keyid']
@@ -644,7 +644,7 @@ class TestMetadata(unittest.TestCase):
     # Add verification key so that remove_verifiation_key() can be tested.
     key_path = os.path.join('repository_data',
                             'keystore', 'snapshot_key.pub')
-    key_object = repo_tool.import_ed25519_publickey_from_file(key_path)
+    key_object = securesystemslib.interface.import_ed25519_publickey_from_file(key_path)
     self.metadata.add_verification_key(key_object)
 
     keyid = key_object['keyid']
@@ -688,7 +688,7 @@ class TestMetadata(unittest.TestCase):
     # Test non-private key.
     key_path = os.path.join('repository_data',
                             'keystore', 'snapshot_key.pub')
-    key_object = repo_tool.import_ed25519_publickey_from_file(key_path)
+    key_object = securesystemslib.interface.import_ed25519_publickey_from_file(key_path)
     self.assertRaises(securesystemslib.exceptions.Error, self.metadata.load_signing_key, key_object)
 
 
@@ -961,7 +961,7 @@ class TestTargets(unittest.TestCase):
     # through __call__().  Example: {targets_object}('role1').
     keystore_directory = os.path.join('repository_data', 'keystore')
     public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
-    public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
+    public_key = securesystemslib.interface.import_ed25519_publickey_from_file(public_keypath)
     target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
 
     # Create Targets() object to be tested.
@@ -984,7 +984,7 @@ class TestTargets(unittest.TestCase):
     # return.
     keystore_directory = os.path.join('repository_data', 'keystore')
     public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
-    public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
+    public_key = securesystemslib.interface.import_ed25519_publickey_from_file(public_keypath)
     target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
     target2_filepath = os.path.join(self.targets_directory, 'file2.txt')
 
@@ -1024,7 +1024,7 @@ class TestTargets(unittest.TestCase):
     # return.
     keystore_directory = os.path.join('repository_data', 'keystore')
     public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
-    public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
+    public_key = securesystemslib.interface.import_ed25519_publickey_from_file(public_keypath)
     target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
 
     # Set needed arguments by delegate().
@@ -1200,7 +1200,7 @@ class TestTargets(unittest.TestCase):
     # delegate().
     keystore_directory = os.path.join('repository_data', 'keystore')
     public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
-    public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
+    public_key = securesystemslib.interface.import_ed25519_publickey_from_file(public_keypath)
     target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
     target2_filepath = os.path.join(self.targets_directory, 'file2.txt')
 
@@ -1281,7 +1281,7 @@ class TestTargets(unittest.TestCase):
     # Test normal case.
     keystore_directory = os.path.join('repository_data', 'keystore')
     public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
-    public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
+    public_key = securesystemslib.interface.import_ed25519_publickey_from_file(public_keypath)
     target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
 
     # Set needed arguments by delegate_hashed_bins().
@@ -1336,7 +1336,7 @@ class TestTargets(unittest.TestCase):
     repository_name = 'test_repository'
     keystore_directory = os.path.join('repository_data', 'keystore')
     public_keypath = os.path.join(keystore_directory, 'targets_key.pub')
-    public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
+    public_key = securesystemslib.interface.import_ed25519_publickey_from_file(public_keypath)
     target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
 
     # Set needed arguments by delegate_hashed_bins().
@@ -1421,7 +1421,7 @@ class TestTargets(unittest.TestCase):
     # Delegate the hashed bins so that add_target_to_bin() can be tested.
     keystore_directory = os.path.join('repository_data', 'keystore')
     public_keypath = os.path.join(keystore_directory, 'targets_key.pub')
-    public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
+    public_key = securesystemslib.interface.import_ed25519_publickey_from_file(public_keypath)
     target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
 
     # Set needed arguments by delegate_hashed_bins().
@@ -1477,7 +1477,7 @@ class TestTargets(unittest.TestCase):
     # path to.
     keystore_directory = os.path.join('repository_data', 'keystore')
     public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
-    public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
+    public_key = securesystemslib.interface.import_ed25519_publickey_from_file(public_keypath)
 
     # Set needed arguments by delegate().
     public_keys = [public_key]
@@ -1534,7 +1534,7 @@ class TestTargets(unittest.TestCase):
     # Perform a delegation so that revoke() has a delegation to revoke.
     keystore_directory = os.path.join('repository_data', 'keystore')
     public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
-    public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
+    public_key = securesystemslib.interface.import_ed25519_publickey_from_file(public_keypath)
     target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
 
     # Set needed arguments by delegate().

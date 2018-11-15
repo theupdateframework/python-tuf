@@ -106,13 +106,13 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     test_keypath = os.path.join(temporary_directory, 'rsa_key')
 
-    repo_lib.generate_and_write_rsa_keypair(test_keypath, password='pw')
+    securesystemslib.interface.generate_and_write_rsa_keypair(test_keypath, password='pw')
     self.assertTrue(os.path.exists(test_keypath))
     self.assertTrue(os.path.exists(test_keypath + '.pub'))
 
     # Ensure the generated key files are importable.
     imported_pubkey = \
-      repo_lib.import_rsa_publickey_from_file(test_keypath + '.pub')
+      securesystemslib.interface.import_rsa_publickey_from_file(test_keypath + '.pub')
     self.assertTrue(securesystemslib.formats.RSAKEY_SCHEMA.matches(imported_pubkey))
 
     imported_privkey = \
@@ -122,23 +122,23 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Custom 'bits' argument.
     os.remove(test_keypath)
     os.remove(test_keypath + '.pub')
-    repo_lib.generate_and_write_rsa_keypair(test_keypath, bits=2048,
+    securesystemslib.interface.generate_and_write_rsa_keypair(test_keypath, bits=2048,
                                              password='pw')
     self.assertTrue(os.path.exists(test_keypath))
     self.assertTrue(os.path.exists(test_keypath + '.pub'))
 
 
     # Test improperly formatted arguments.
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_and_write_rsa_keypair,
+    self.assertRaises(securesystemslib.exceptions.FormatError, securesystemslib.interface.generate_and_write_rsa_keypair,
                       3, bits=2048, password='pw')
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_and_write_rsa_keypair,
+    self.assertRaises(securesystemslib.exceptions.FormatError, securesystemslib.interface.generate_and_write_rsa_keypair,
                       test_keypath, bits='bad', password='pw')
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_and_write_rsa_keypair,
+    self.assertRaises(securesystemslib.exceptions.FormatError, securesystemslib.interface.generate_and_write_rsa_keypair,
                       test_keypath, bits=2048, password=3)
 
 
     # Test invalid 'bits' argument.
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_and_write_rsa_keypair,
+    self.assertRaises(securesystemslib.exceptions.FormatError, securesystemslib.interface.generate_and_write_rsa_keypair,
                       test_keypath, bits=1024, password='pw')
 
 
@@ -188,7 +188,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                 'root_key.pub')
     self.assertTrue(os.path.exists(key_filepath))
 
-    imported_rsa_key = repo_lib.import_rsa_publickey_from_file(key_filepath)
+    imported_rsa_key = securesystemslib.interface.import_rsa_publickey_from_file(key_filepath)
     self.assertTrue(securesystemslib.formats.RSAKEY_SCHEMA.matches(imported_rsa_key))
 
 
@@ -201,14 +201,14 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Non-existent key file.
     nonexistent_keypath = os.path.join(temporary_directory,
                                        'nonexistent_keypath')
-    self.assertRaises(IOError, repo_lib.import_rsa_publickey_from_file,
+    self.assertRaises(IOError, securesystemslib.interface.import_rsa_publickey_from_file,
                       nonexistent_keypath)
 
     # Invalid key file argument.
     invalid_keyfile = os.path.join(temporary_directory, 'invalid_keyfile')
     with open(invalid_keyfile, 'wb') as file_object:
       file_object.write(b'bad keyfile')
-    self.assertRaises(securesystemslib.exceptions.Error, repo_lib.import_rsa_publickey_from_file,
+    self.assertRaises(securesystemslib.exceptions.Error, securesystemslib.interface.import_rsa_publickey_from_file,
                       invalid_keyfile)
 
 
@@ -219,25 +219,25 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     test_keypath = os.path.join(temporary_directory, 'ed25519_key')
 
-    repo_lib.generate_and_write_ed25519_keypair(test_keypath, password='pw')
+    securesystemslib.interface.generate_and_write_ed25519_keypair(test_keypath, password='pw')
     self.assertTrue(os.path.exists(test_keypath))
     self.assertTrue(os.path.exists(test_keypath + '.pub'))
 
     # Ensure the generated key files are importable.
     imported_pubkey = \
-      repo_lib.import_ed25519_publickey_from_file(test_keypath + '.pub')
+      securesystemslib.interface.import_ed25519_publickey_from_file(test_keypath + '.pub')
     self.assertTrue(securesystemslib.formats.ED25519KEY_SCHEMA.matches(imported_pubkey))
 
     imported_privkey = \
-      repo_lib.import_ed25519_privatekey_from_file(test_keypath, 'pw')
+      securesystemslib.interface.import_ed25519_privatekey_from_file(test_keypath, 'pw')
     self.assertTrue(securesystemslib.formats.ED25519KEY_SCHEMA.matches(imported_privkey))
 
 
     # Test improperly formatted arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError,
-                      repo_lib.generate_and_write_ed25519_keypair,
+                      securesystemslib.interface.generate_and_write_ed25519_keypair,
                       3, password='pw')
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_and_write_rsa_keypair,
+    self.assertRaises(securesystemslib.exceptions.FormatError, securesystemslib.interface.generate_and_write_rsa_keypair,
                       test_keypath, password=3)
 
 
@@ -247,23 +247,23 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Generate ed25519 keys that can be imported.
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     ed25519_keypath = os.path.join(temporary_directory, 'ed25519_key')
-    repo_lib.generate_and_write_ed25519_keypair(ed25519_keypath, password='pw')
+    securesystemslib.interface.generate_and_write_ed25519_keypair(ed25519_keypath, password='pw')
 
     imported_ed25519_key = \
-      repo_lib.import_ed25519_publickey_from_file(ed25519_keypath + '.pub')
+      securesystemslib.interface.import_ed25519_publickey_from_file(ed25519_keypath + '.pub')
     self.assertTrue(securesystemslib.formats.ED25519KEY_SCHEMA.matches(imported_ed25519_key))
 
 
     # Test improperly formatted argument.
     self.assertRaises(securesystemslib.exceptions.FormatError,
-                      repo_lib.import_ed25519_publickey_from_file, 3)
+                      securesystemslib.interface.import_ed25519_publickey_from_file, 3)
 
 
     # Test invalid argument.
     # Non-existent key file.
     nonexistent_keypath = os.path.join(temporary_directory,
                                        'nonexistent_keypath')
-    self.assertRaises(IOError, repo_lib.import_ed25519_publickey_from_file,
+    self.assertRaises(IOError, securesystemslib.interface.import_ed25519_publickey_from_file,
                       nonexistent_keypath)
 
     # Invalid key file argument.
@@ -271,7 +271,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     with open(invalid_keyfile, 'wb') as file_object:
       file_object.write(b'bad keyfile')
 
-    self.assertRaises(securesystemslib.exceptions.Error, repo_lib.import_ed25519_publickey_from_file,
+    self.assertRaises(securesystemslib.exceptions.Error, securesystemslib.interface.import_ed25519_publickey_from_file,
                       invalid_keyfile)
 
     # Invalid public key imported (contains unexpected keytype.)
@@ -287,7 +287,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       file_object.write(json.dumps(ed25519key_metadata_format).encode('utf-8'))
 
     self.assertRaises(securesystemslib.exceptions.FormatError,
-                      repo_lib.import_ed25519_publickey_from_file,
+                      securesystemslib.interface.import_ed25519_publickey_from_file,
                       ed25519_keypath + '.pub')
 
 
@@ -297,7 +297,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Generate ed25519 keys that can be imported.
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     ed25519_keypath = os.path.join(temporary_directory, 'ed25519_key')
-    repo_lib.generate_and_write_ed25519_keypair(ed25519_keypath, password='pw')
+    securesystemslib.interface.generate_and_write_ed25519_keypair(ed25519_keypath, password='pw')
 
     imported_ed25519_key = \
       repo_lib.import_ed25519_privatekey_from_file(ed25519_keypath, 'pw')
@@ -419,10 +419,10 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     for filepath, target_hash in six.iteritems(expected_target_hashes):
       self.assertTrue(securesystemslib.formats.RELPATH_SCHEMA.matches(filepath))
       self.assertTrue(securesystemslib.formats.HASH_SCHEMA.matches(target_hash))
-      self.assertEqual(repo_lib.get_target_hash(filepath), target_hash)
+      self.assertEqual(securesystemslib.util.get_target_hash(filepath), target_hash)
 
     # Test for improperly formatted argument.
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.get_target_hash, 8)
+    self.assertRaises(securesystemslib.exceptions.FormatError, securesystemslib.util.get_target_hash, 8)
 
 
 
@@ -710,7 +710,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Sign with a valid, but not a threshold, key.
     targets_public_keypath = os.path.join(keystore_path, 'targets_key.pub')
     targets_public_key = \
-      repo_lib.import_ed25519_publickey_from_file(targets_public_keypath)
+      securesystemslib.interface.import_ed25519_publickey_from_file(targets_public_keypath)
 
     # sign_metadata() expects the private key 'root_metadata' to be in
     # 'tuf.keydb'.  Remove any public keys that may be loaded before
