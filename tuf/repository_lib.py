@@ -750,43 +750,6 @@ def _log_warning_if_expires_soon(rolename, expires_iso8601_timestamp,
 
 
 
-
-def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
-    password=None):
-  """
-  <Purpose>
-    Generate an RSA key file, create an encrypted PEM string (using 'password'
-    as the pass phrase), and store it in 'filepath'.  The public key portion of
-    the generated RSA key is stored in <'filepath'>.pub.
-
-  <Arguments>
-    filepath:
-      The public and private key files are saved to <filepath>.pub, <filepath>,
-      respectively.
-
-    bits:
-      The number of bits of the generated RSA key.
-
-    password:
-      The password used to encrypt 'filepath'.
-
-  <Exceptions>
-    securesystemslib.exceptions.FormatError, if the arguments are improperly
-    formatted.
-
-  <Side Effects>
-    Writes key files to '<filepath>' and '<filepath>.pub'.
-
-  <Returns>
-    None.
-  """
-
-  securesystemslib.interface.generate_and_write_rsa_keypair(
-      filepath, bits, password)
-
-
-
-
 def import_rsa_privatekey_from_file(filepath, password=None):
   """
   <Purpose>
@@ -834,114 +797,6 @@ def import_rsa_privatekey_from_file(filepath, password=None):
       raise
 
   return private_key
-
-
-
-
-
-def import_rsa_publickey_from_file(filepath):
-  """
-  <Purpose>
-    Import the RSA key stored in 'filepath'.  The key object returned is a TUF
-    key, specifically 'securesystemslib.RSAKEY_SCHEMA'.  If the RSA PEM
-    in 'filepath' contains a private key, it is discarded.
-
-  <Arguments>
-    filepath:
-      <filepath>.pub file, an RSA PEM file.
-
-  <Exceptions>
-    securesystemslib.exceptions.FormatError, if 'filepath' is improperly formatted.
-
-    securesystemslib.exceptions.Error, if a valid RSA key object cannot be
-    generated.  This may be caused by an improperly formatted PEM file.
-
-  <Side Effects>
-    'filepath' is read and its contents extracted.
-
-  <Returns>
-    An RSA key object conformant to 'securesystemslib.RSAKEY_SCHEMA'.
-  """
-
-  return securesystemslib.interface.import_rsa_publickey_from_file(filepath)
-
-
-
-
-
-def generate_and_write_ed25519_keypair(filepath, password=None):
-  """
-  <Purpose>
-    Generate an Ed25519 key file, create an encrypted TUF key (using 'password'
-    as the pass phrase), and store it in 'filepath'.  The public key portion of
-    the generated ED25519 key is stored in <'filepath'>.pub.  Which cryptography
-    library performs the cryptographic decryption is determined by the string
-    set in 'settings.ED25519_CRYPTO_LIBRARY'.
-
-    The Ed25519 private key is encrypted with AES-256 and CTR the mode of
-    operation.  The password is strengthened with PBKDF2-HMAC-SHA256.
-
-  <Arguments>
-    filepath:
-      The public and private key files are saved to <filepath>.pub and
-      <filepath>, respectively.
-
-    password:
-      The password, or passphrase, to encrypt the private portion of the
-      generated ed25519 key.  A symmetric encryption key is derived from
-      'password', so it is not directly used.
-
-  <Exceptions>
-    securesystemslib.exceptions.FormatError, if the arguments are improperly
-    formatted.
-
-    securesystemslib.exceptions.CryptoError, if 'filepath' cannot be encrypted.
-
-    securesystemslib.exceptions.UnsupportedLibraryError, if 'filepath' cannot be
-    encrypted due to an invalid configuration setting (i.e., invalid
-    'tuf.settings.py' setting).
-
-  <Side Effects>
-    Writes key files to '<filepath>' and '<filepath>.pub'.
-
-  <Returns>
-    None.
-  """
-
-  securesystemslib.interface.generate_and_write_ed25519_keypair(
-      filepath, password)
-
-
-
-
-
-def import_ed25519_publickey_from_file(filepath):
-  """
-  <Purpose>
-    Load the ED25519 public key object (conformant to
-    'securesystemslib.KEY_SCHEMA') stored in 'filepath'.  Return
-    'filepath' in securesystemslib.ED25519KEY_SCHEMA format.
-
-    If the TUF key object in 'filepath' contains a private key, it is discarded.
-
-  <Arguments>
-    filepath:
-      <filepath>.pub file, a TUF public key file.
-
-  <Exceptions>
-    securesystemslib.exceptions.FormatError, if 'filepath' is improperly
-    formatted or is an unexpected key type.
-
-  <Side Effects>
-    The contents of 'filepath' is read and saved.
-
-  <Returns>
-    An ED25519 key object conformant to
-    'securesystemslib.ED25519KEY_SCHEMA'.
-  """
-
-  return securesystemslib.interface.import_ed25519_publickey_from_file(filepath)
-
 
 
 
@@ -1169,39 +1024,6 @@ def get_metadata_versioninfo(rolename, repository_name):
   versioninfo = {'version': roleinfo['version']}
 
   return versioninfo
-
-
-
-
-
-def get_target_hash(target_filepath):
-  """
-  <Purpose>
-    Compute the hash of 'target_filepath'. This is useful in conjunction with
-    the "path_hash_prefixes" attribute in a delegated targets role, which
-    tells us which paths it is implicitly responsible for.
-
-    The repository may optionally organize targets into hashed bins to ease
-    target delegations and role metadata management.  The use of consistent
-    hashing allows for a uniform distribution of targets into bins.
-
-  <Arguments>
-    target_filepath:
-      The path to the target file on the repository. This will be relative to
-      the 'targets' (or equivalent) directory on a given mirror.
-
-  <Exceptions>
-    None.
-
-  <Side Effects>
-    None.
-
-  <Returns>
-    The hash of 'target_filepath'.
-  """
-
-  return securesystemslib.util.get_target_hash(target_filepath)
-
 
 
 
