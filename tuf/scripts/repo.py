@@ -40,17 +40,95 @@
   $ repo.py --key <keytype>
       [--filename <filename>
       --path </path/to/repo>, --pw [my_password]]
-
   $ repo.py --delegate <glob pattern> --delegatee <rolename>
       --pubkeys </path/to/pubkey>
-      [role <rolename> --terminating --threshold <X>
+      [--role <rolename> --terminating --threshold <X>
       --sign </path/to/role_privkey>]
-
   $ repo.py --revoke --delegatee <rolename>
       [--role <rolename> --sign </path/to/role_privkey>]
-
   $ repo.py --verbose <0-5>
   $ repo.py --clean [--path]
+    
+<Options>
+  --init:
+    Create new TUF repository in current working or specified directory.
+    
+  --consistent:
+    Enable consistent snapshots for newly created TUF repository.
+    
+  --bare:
+    Specify creation of bare TUF repository with no key created or set.
+    
+  --path:
+    Choose specified path location of a TUF repository or key(s).
+    
+  --role:
+    Specify top-level role(s) affected by the main command-line option.
+    
+  --pubkeys:
+    Indicate location of key(s) affected by the main command-line option.
+    
+  --root_pw:
+    Set password for encrypting top-level key file of root role.
+    
+  --targets_pw:
+    Set password for encrypting top-level key file of targets role.
+    
+  --snapshot_pw:
+    Set password for encrypting top-level key file of snapshot role.
+    
+  --timestamp_pw:
+    Set password for encrypting top-level key file of timestamp role.
+    
+  --add:
+    Add file specified by <target> to the Targets metadata.
+    
+  --recursive:
+    Include files in subdirectories of specified directory <dir>.
+    
+  --remove:
+    Remove target files from Targets metadata matching <glob pattern>.
+    
+  --distrust:
+    Discontinue trust of keys located in </path/to/pubkey> directory of a role.
+    
+  --trust:
+    Indicate trusted keys located in </path/to/pubkey> directory of a role.
+    
+  --sign: 
+    Sign metadata of target role(s) with keys in specified directory.
+    
+  --key:
+    Generate cryptographic key of specified type <keytype> (default: Ed25519).
+    
+  --filename:
+    Specify filename associated with generated top-level key.
+    
+  --pw:
+    Set password for the generated key of specified type <keytype>.
+    
+  --delegate:
+    Delegate trust of target files from Targets role (or <rolename> specified
+    in --role) to --delegatee role with specified <rolename>.
+    
+  --delegatee:
+    Specify role that is targetted by delegator in --role to sign for
+    target files matching delegated <glob pattern> or in revocation of trust.
+    
+  --terminating:
+    Mark delegation to --delegatee role from delegator as a terminating one.
+  
+  --threshold:
+    Specify signature threshold of --delegatee role as the value <X>.
+    
+  --revoke:
+    Revoke trust of target files from delegated role (--delegatee)
+    
+  --verbose:
+    Set the verbosity level of logging messages. Accepts values 1-5.
+    
+  --clean:
+    Delete repo in current working or specified directory.
 """
 
 # Help with Python 2+3 compatibility, where the print statement is a function,
