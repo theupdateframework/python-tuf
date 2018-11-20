@@ -204,8 +204,8 @@ def process_command_line_arguments(parsed_arguments):
       The parsed arguments returned by argparse.parse_args().
 
   <Exceptions>
-    securesystemslib.exceptions.Error, if any of the arguments are
-    improperly formatted or if any of the argument could not be processed.
+    tuf.exceptions.Error, if any of the arguments are improperly
+    formatted or if any of the argument could not be processed.
 
   <Side Effects>
     None.
@@ -262,6 +262,30 @@ def process_command_line_arguments(parsed_arguments):
 
 
 def delegate(parsed_arguments):
+  """
+  <Purpose>
+    Delegate trust of target files from the Targets role to some other role
+    (delegatee) as specified in the arguments after --delegate command-line
+    option designator. Delegatee is trusted to sign for target files that match
+    delegated glob pattern(s). The --delegate option does not create metadata
+    for delegated role, but updates delegator's metadata to list delegation to
+    --delegatee. Snapshot and Timestamp metadata are also updated and signed
+    automatically, but this can be toggled off with --no_release.
+
+  <Arguments>
+    parsed_arguments:
+      The parsed arguments returned by argparse.parse_args().
+
+  <Exceptions>
+    tuf.exceptions.Error, if --delegatee command-line option not set, the
+    delegatee role is a top-level one, or if --pubkeys option is not set.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
+  """
 
   if not parsed_arguments.delegatee:
     raise tuf.exceptions.Error(
@@ -327,6 +351,28 @@ def delegate(parsed_arguments):
 
 
 def revoke(parsed_arguments):
+  """
+  <Purpose>
+    Revoke trust of target files from a delegated role (--delegatee). The
+    "targets" role performs revocation if --role not specified. The --revoke
+    option does not delete metadata belonging to --delegatee, but instead
+    removes the delegation to it from the delegator's (or --role) metadata.
+    Snapshot and Timestamp metadata are also updated and signed automatically,
+    but this behavior can be toggled off with --no_release.
+
+  <Arguments>
+    parsed_arguments:
+      The parsed arguments returned by argparse.parse_args().
+
+  <Exceptions>
+    None.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
+  """
 
   repository = repo_tool.load_repository(
       os.path.join(parsed_arguments.path, REPO_DIR))
@@ -372,6 +418,25 @@ def revoke(parsed_arguments):
 
 
 def gen_key(parsed_arguments):
+  """
+  <Purpose>
+    Generate a cryptographic key. The generated key can later be used to sign
+    specific metadata with --sign. Supported key types are: ecdsa, ed25519,
+    and rsa. If a keytype is not given, an Ed25519 key is generated.
+
+  <Arguments>
+    parsed_arguments:
+      The parsed arguments returned by argparse.parse_args().
+
+  <Exceptions>
+    tuf.exceptions.Error, if parsed argument key is not of a valid key type.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
+  """
 
   if parsed_arguments.filename:
     parsed_arguments.filename = os.path.join(parsed_arguments.path,
@@ -416,6 +481,31 @@ def gen_key(parsed_arguments):
 
 
 def import_privatekey_from_file(keypath, password=None):
+  """
+  <Purpose>
+    Import any private key type. If the caller does not specify a password
+    in the arguments, prompt for one. Disables password confirmation as part
+    of creating encrypted key files, which involves storing the encrypted
+    contents of the private key. Decrypts the loaded key file, calling the
+    'cryptography' library to generate derived encryption key from 'password'.
+
+  <Arguments>
+    keypath:
+      The full filepath specifying the location of the key to be imported.
+
+    password:
+      Password specified by user through command-line interface.
+
+  <Exceptions>
+    securesystemslib.exceptions.CryptoError, if the decryption fails or if
+    key cannot be imported due to invalid key file or wrong password.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
+  """
   # Note: should securesystemslib support this functionality (import any
   # privatekey type)?
   # If the caller does not provide a password argument, prompt for one.
@@ -476,6 +566,24 @@ def import_privatekey_from_file(keypath, password=None):
 
 
 def import_publickey_from_file(keypath):
+  """
+  <Purpose>
+    Import any public key type and stores the encrypted contents of the
+    public key provided in the loaded key file found at the specified path.
+
+  <Arguments>
+    keypath:
+      The full filepath specifying the location of the key to be imported.
+
+  <Exceptions>
+    tuf.exceptions.Error, if public key does not have a supported key type.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    Formatted key object derived from imported key metadata.
+  """
 
   try:
     key_metadata = securesystemslib.util.load_json_file(keypath)
@@ -500,6 +608,25 @@ def import_publickey_from_file(keypath):
 
 
 def add_verification_key(parsed_arguments):
+  """
+  <Purpose>
+    Add verification key to the list of trusted keys for a top-level role.
+    Implements the --trust command-line option, which together with
+    --pubkeys and --role, can be used to indicate trusted keys of a role.
+
+  <Arguments>
+    parsed_arguments:
+      The parsed arguments returned by argparse.parse_args().
+
+  <Exceptions>
+    tuf.exceptions.Error, if specified role is not a top-level role.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
+  """
   if not parsed_arguments.pubkeys:
     raise tuf.exceptions.Error('--pubkeys must be given with --trust.')
 
@@ -536,6 +663,28 @@ def add_verification_key(parsed_arguments):
 
 
 def remove_verification_key(parsed_arguments):
+  """
+  <Purpose>
+    Remove verification key from list of trusted keys for a top-level role.
+    Implements the --distrust command-line option, which together with
+    --pubkeys and --role, indicates from what role trust for key is removed.
+
+  <Arguments>
+    parsed_arguments:
+      The parsed arguments returned by argparse.parse_args().
+
+  <Exceptions>
+    tuf.exceptions.Error, if specified role is not a top-level role or if
+    --pubkeys option not included with --distrust.
+
+    securesystemslib.exceptions.Error, if specified key is not a trusted key.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
+  """
   if not parsed_arguments.pubkeys:
     raise tuf.exceptions.Error('--pubkeys must be given with --distrust.')
 
@@ -565,7 +714,7 @@ def remove_verification_key(parsed_arguments):
     # It is assumed remove_verification_key() only raises
     # securesystemslib.exceptions.Error and
     # securesystemslib.exceptions.FormatError, and the latter is not raised
-    # bacause a valid key should have been returned by
+    # because a valid key should have been returned by
     # import_publickey_from_file().
     except securesystemslib.exceptions.Error:
       print(repr(keypath) + ' is not a trusted key.  Skipping.')
@@ -581,6 +730,25 @@ def remove_verification_key(parsed_arguments):
 
 
 def sign_role(parsed_arguments):
+  """
+  <Purpose>
+    Sign, with the specified key(s), the metadata of the role indicated in
+    --role. The Snapshot and Timestamp role are also automatically signed,
+    if possible, but this behavior can be disabled with --no_release.
+
+  <Arguments>
+    parsed_arguments:
+      The parsed arguments returned by argparse.parse_args().
+
+  <Exceptions>
+    None.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
+  """
 
   repository = repo_tool.load_repository(
       os.path.join(parsed_arguments.path, REPO_DIR))
@@ -668,6 +836,24 @@ def sign_role(parsed_arguments):
 
 
 def clean_repo(parsed_arguments):
+  """
+  <Purpose>
+    Delete repo in current working directory, or the one specified with --path.
+    Specifically, tufrepo, tufclient, and tufkeystore directories are deleted.
+
+  <Arguments>
+    parsed_arguments:
+      The parsed arguments returned by argparse.parse_args().
+
+  <Exceptions>
+    None.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
+  """
   repo_dir = os.path.join(parsed_arguments.path, REPO_DIR)
   client_dir = os.path.join(parsed_arguments.path, CLIENT_DIR)
   keystore_dir = os.path.join(parsed_arguments.path, KEYSTORE_DIR)
@@ -679,6 +865,23 @@ def clean_repo(parsed_arguments):
 
 
 def write_to_live_repo(parsed_arguments):
+  """
+  <Purpose>
+    Move staged metadata directory to "live" metadata directory.
+
+  <Arguments>
+    parsed_arguments:
+      The parsed arguments returned by argparse.parse_args().
+
+  <Exceptions>
+    None.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
+  """
   staged_meta_directory = os.path.join(
       parsed_arguments.path, REPO_DIR, STAGED_METADATA_DIR)
   live_meta_directory = os.path.join(
@@ -692,8 +895,34 @@ def write_to_live_repo(parsed_arguments):
 def add_target_to_repo(parsed_arguments, target_path, repo_targets_path,
     repository, custom=None):
   """
-  (1) Copy 'target_path' to 'repo_targets_path'.
-  (2) Add 'target_path' to Targets metadata of 'repository'.
+  <Purpose>
+    Add a target file to the Targets metadata of a repository. Copies the
+    target filepath to the repository targets path for file addition.
+
+  <Arguments>
+    parsed_arguments:
+      The parsed arguments returned by argparse.parse_args().
+
+    target_path:
+      Full filepath of target file to be added to repository.
+
+    repo_targets_path:
+      Destination filepath in repo into which target file is to be added.
+
+    repository:
+      Filepath for repository into which target file is added.
+
+    custom:
+      Custom command-line options and parameters (optional).
+
+  <Exceptions>
+    None.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
   """
 
   if custom is None:
@@ -727,6 +956,27 @@ def add_target_to_repo(parsed_arguments, target_path, repo_targets_path,
 
 
 def remove_target_files_from_metadata(parsed_arguments, repository):
+  """
+  <Purpose>
+    Remove a target file from the Targets metadata of a repository.
+
+  <Arguments>
+    parsed_arguments:
+      The parsed arguments returned by argparse.parse_args().
+
+    repository:
+      Filepath for repository from which target file is removed.
+
+  <Exceptions>
+    tuf.exceptions.Error, if specified role is neither "targets" or a
+    delegated rolename (i.e. is a top-level role instead).
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
+  """
 
   if parsed_arguments.role in ('root', 'snapshot', 'timestamp'):
     raise tuf.exceptions.Error(
@@ -757,6 +1007,28 @@ def remove_target_files_from_metadata(parsed_arguments, repository):
 
 
 def add_targets(parsed_arguments):
+  """
+  <Purpose>
+    Copy target file(s) to the repo and add it to the Targets metadata
+    (or the Targets role specified in --role). More than one target file,
+    or directory, may be specified in --add. The --recursive option may be
+    toggled to also include files in subdirectories of a specified directory.
+    Snapshot and Timestamp metadata are updated and signed automatically,
+    but this behavior can be toggled off with --no_release.
+
+  <Arguments>
+    parsed_arguments:
+      The parsed arguments returned by argparse.parse_args().
+
+  <Exceptions>
+    None.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
+  """
   repo_targets_path = os.path.join(parsed_arguments.path, REPO_DIR, 'targets')
   repository = repo_tool.load_repository(
       os.path.join(parsed_arguments.path, REPO_DIR))
@@ -812,6 +1084,26 @@ def add_targets(parsed_arguments):
 
 
 def remove_targets(parsed_arguments):
+  """
+  <Purpose>
+    Remove target file(s) from Targets metadata (or Targets role specified
+    in --role). More than one target file or glob pattern may be specified
+    in --remove. Snapshot and Timestamp metadata are also updated and signed
+    automatically, but this behavior can be toggled off with --no_release.
+
+  <Arguments>
+    parsed_arguments:
+      The parsed arguments returned by argparse.parse_args().
+
+  <Exceptions>
+    None.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
+  """
   repository = repo_tool.load_repository(
       os.path.join(parsed_arguments.path, REPO_DIR))
 
@@ -856,9 +1148,30 @@ def remove_targets(parsed_arguments):
 
 def init_repo(parsed_arguments):
   """
-  Create a repo at the specified location in --path (the current working
-  directory, by default).  Each top-level role has one key, if --bare' is False
-  (default).
+  <Purpose>
+    Create a TUF repository in the current working directory. Each top-level 
+    role has one key, if --bare' is False (default). Written Targets metadata
+    does not sign for any targets, nor does it delegate trust to any roles.
+    Alternatively, repository can be written to a specified location. Default
+    top-level key files created with --init are saved to disk encrypted, with
+    a default password of 'pw' (instead of using the default password, user
+    can enter one on the command line for each top-level role). Can choose to
+    create bare repository (no cryptographic key created or set) or one with
+    consistent snapshots enabled (target filenames have their hash prepended
+    and metadata filenames have their version numbers prepended).
+
+  <Arguments>
+    parsed_arguments:
+      The parsed arguments returned by argparse.parse_args().
+
+  <Exceptions>
+    None.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
   """
 
   repo_path = os.path.join(parsed_arguments.path, REPO_DIR)
@@ -888,7 +1201,25 @@ def init_repo(parsed_arguments):
 
 def set_top_level_keys(repository, parsed_arguments):
   """
-  Generate, write, and set the top-level keys.  'repository' is modified.
+  <Purpose>
+    Generates, writes, and sets the keys for the top-level roles if repository
+    is not set to bare. Modifies specified repository's keys.
+
+  <Arguments>
+    parsed_arguments:
+      The parsed arguments returned by argparse.parse_args().
+
+    repository:
+      Repository to be modified with addition of generated top-level keys.
+
+  <Exceptions>
+    None.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
   """
 
   # Examples of how the --pw command-line option is interpreted:
