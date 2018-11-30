@@ -48,85 +48,85 @@
       [--role <rolename> --sign </path/to/role_privkey>]
   $ repo.py --verbose <0-5>
   $ repo.py --clean [--path]
-    
+
 <Options>
   --init:
     Create new TUF repository in current working or specified directory.
-    
+
   --consistent:
     Enable consistent snapshots for newly created TUF repository.
-    
+
   --bare:
     Specify creation of bare TUF repository with no key created or set.
-    
+
   --path:
     Choose specified path location of a TUF repository or key(s).
-    
+
   --role:
     Specify top-level role(s) affected by the main command-line option.
-    
+
   --pubkeys:
     Indicate location of key(s) affected by the main command-line option.
-    
+
   --root_pw:
     Set password for encrypting top-level key file of root role.
-    
+
   --targets_pw:
     Set password for encrypting top-level key file of targets role.
-    
+
   --snapshot_pw:
     Set password for encrypting top-level key file of snapshot role.
-    
+
   --timestamp_pw:
     Set password for encrypting top-level key file of timestamp role.
-    
+
   --add:
     Add file specified by <target> to the Targets metadata.
-    
+
   --recursive:
     Include files in subdirectories of specified directory <dir>.
-    
+
   --remove:
     Remove target files from Targets metadata matching <glob pattern>.
-    
+
   --distrust:
     Discontinue trust of keys located in </path/to/pubkey> directory of a role.
-    
+
   --trust:
     Indicate trusted keys located in </path/to/pubkey> directory of a role.
-    
-  --sign: 
+
+  --sign:
     Sign metadata of target role(s) with keys in specified directory.
-    
+
   --key:
     Generate cryptographic key of specified type <keytype> (default: Ed25519).
-    
+
   --filename:
     Specify filename associated with generated top-level key.
-    
+
   --pw:
     Set password for the generated key of specified type <keytype>.
-    
+
   --delegate:
     Delegate trust of target files from Targets role (or <rolename> specified
     in --role) to --delegatee role with specified <rolename>.
-    
+
   --delegatee:
     Specify role that is targetted by delegator in --role to sign for
     target files matching delegated <glob pattern> or in revocation of trust.
-    
+
   --terminating:
     Mark delegation to --delegatee role from delegator as a terminating one.
-  
+
   --threshold:
     Specify signature threshold of --delegatee role as the value <X>.
-    
+
   --revoke:
     Revoke trust of target files from delegated role (--delegatee)
-    
+
   --verbose:
     Set the verbosity level of logging messages. Accepts values 1-5.
-    
+
   --clean:
     Delete repo in current working or specified directory.
 """
@@ -899,16 +899,16 @@ def set_top_level_keys(repository, parsed_arguments):
     parsed_arguments.pw = securesystemslib.interface.get_password(
         prompt='Enter a password for the top-level role keys: ', confirm=True)
 
-  repo_tool.generate_and_write_ed25519_keypair(
+  securesystemslib.interface.generate_and_write_ed25519_keypair(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       ROOT_KEY_NAME), password=parsed_arguments.root_pw)
-  repo_tool.generate_and_write_ed25519_keypair(
+  securesystemslib.interface.generate_and_write_ed25519_keypair(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       TARGETS_KEY_NAME), password=parsed_arguments.targets_pw)
-  repo_tool.generate_and_write_ed25519_keypair(
+  securesystemslib.interface.generate_and_write_ed25519_keypair(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       SNAPSHOT_KEY_NAME), password=parsed_arguments.snapshot_pw)
-  repo_tool.generate_and_write_ed25519_keypair(
+  securesystemslib.interface.generate_and_write_ed25519_keypair(
       os.path.join(parsed_arguments.path, KEYSTORE_DIR,
       TIMESTAMP_KEY_NAME), password=parsed_arguments.timestamp_pw)
 
