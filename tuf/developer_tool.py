@@ -989,18 +989,6 @@ def _strip_prefix_from_targets_metadata(targets_metadata, prefix):
 # Users are expected to call functions provided by repository_tool.py.  We opt
 # for this approach, as opposed to using import statements to achieve the
 # equivalent, to avoid linter warnings for unused imports.
-def generate_and_write_rsa_keypair(filepath, bits, password):
-  return repo_lib.generate_and_write_rsa_keypair(filepath, bits, password)
-
-def generate_and_write_ed25519_keypair(filepath, password):
-  return repo_lib.generate_and_write_ed25519_keypair(filepath, password)
-
-def import_rsa_publickey_from_file(filepath):
-  return repo_lib.import_rsa_publickey_from_file(filepath)
-
-def import_ed25519_publickey_from_file(filepath):
-  return repo_lib.import_ed25519_publickey_from_file(filepath)
-
 def import_rsa_privatekey_from_file(filepath, password):
   return repo_lib.import_rsa_privatekey_from_file(filepath, password)
 
