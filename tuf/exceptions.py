@@ -38,12 +38,10 @@ logger = logging.getLogger('tuf.exceptions')
 
 class Error(Exception):
   """Indicate a generic error."""
-  pass
 
 
 class FormatError(Error):
   """Indicate an error while validating an object's format."""
-  pass
 
 class InvalidRotateFileError(Error):
   """Indicate an invalid rotate file"""
@@ -70,7 +68,6 @@ class InvalidMetadataJSONError(FormatError):
 
 class UnsupportedAlgorithmError(Error):
   """Indicate an error while trying to identify a user-specified algorithm."""
-  pass
 
 
 class BadHashError(Error):
@@ -93,32 +90,26 @@ class BadVersionNumberError(Error):
 
 class BadPasswordError(Error):
   """Indicate an error after encountering an invalid password."""
-  pass
 
 
 class UnknownKeyError(Error):
   """Indicate an error while verifying key-like objects (e.g., keyids)."""
-  pass
 
 
 class RepositoryError(Error):
   """Indicate an error with a repository's state, such as a missing file."""
-  pass
 
 
 class InsufficientKeysError(Error):
   """Indicate that metadata role lacks a threshold of pubic or private keys."""
-  pass
 
 
 class ForbiddenTargetError(RepositoryError):
   """Indicate that a role signed for a target that it was not delegated to."""
-  pass
 
 
 class ExpiredMetadataError(Error):
   """Indicate that a TUF Metadata file has expired."""
-  pass
 
 
 class ReplayedMetadataError(RepositoryError):
@@ -140,7 +131,6 @@ class ReplayedMetadataError(RepositoryError):
 
 class CryptoError(Error):
   """Indicate any cryptography-related errors."""
-  pass
 
 
 class BadSignatureError(CryptoError):
@@ -157,17 +147,14 @@ class BadSignatureError(CryptoError):
 
 class UnknownMethodError(CryptoError):
   """Indicate that a user-specified cryptograpthic method is unknown."""
-  pass
 
 
 class UnsupportedLibraryError(Error):
   """Indicate that a supported library could not be located or imported."""
-  pass
 
 
 class DownloadError(Error):
   """Indicate an error occurred while attempting to download a file."""
-  pass
 
 
 class DownloadLengthMismatchError(DownloadError):
@@ -180,8 +167,8 @@ class DownloadLengthMismatchError(DownloadError):
     self.observed_length = observed_length #bytes
 
   def __str__(self):
-    return 'Observed length (' + repr(self.observed_length)+\
-           ') <= expected length (' + repr(self.expected_length) + ').'
+    return 'Observed length (' + repr(self.observed_length) + \
+        ') < expected length (' + repr(self.expected_length) + ').'
 
 
 class SlowRetrievalError(DownloadError):
@@ -199,27 +186,22 @@ class SlowRetrievalError(DownloadError):
 
 class KeyAlreadyExistsError(Error):
   """Indicate that a key already exists and cannot be added."""
-  pass
 
 
 class RoleAlreadyExistsError(Error):
   """Indicate that a role already exists and cannot be added."""
-  pass
 
 
 class UnknownRoleError(Error):
   """Indicate an error trying to locate or identify a specified TUF role."""
-  pass
 
 
 class UnknownTargetError(Error):
   """Indicate an error trying to locate or identify a specified target."""
-  pass
 
 
 class InvalidNameError(Error):
   """Indicate an error while trying to validate any type of named object."""
-  pass
 
 
 class UnsignedMetadataError(Error):
@@ -271,15 +253,15 @@ class NoWorkingMirrorError(Error):
 
 class NotFoundError(Error):
   """If a required configuration or resource is not found."""
-  pass
 
 
 class URLMatchesNoPatternError(Error):
   """If a URL does not match a user-specified regular expression."""
-  pass
 
+class URLParsingError(Error):
+  """If we are unable to parse a URL -- for example, if a hostname element
+  cannot be isoalted."""
 
 class InvalidConfigurationError(Error):
   """If a configuration object does not match the expected format."""
-  pass
 

@@ -46,11 +46,6 @@ temporary_directory = None
 # /tmp/repositories/django_repo/metadata/current/root.METADATA_EXTENSION
 repositories_directory = None
 
-# A PEM (RFC 1422) file where you may find SSL certificate authorities
-# https://en.wikipedia.org/wiki/Certificate_authority
-# http://docs.python.org/2/library/ssl.html#certificates
-ssl_certificates = None
-
 # The 'log.py' module manages TUF's logging system.  Users have the option to
 # enable/disable logging to a file via 'ENABLE_FILE_LOGGING', or
 # tuf.log.enable_file_logging() and tuf.log.disable_file_logging().
@@ -88,16 +83,6 @@ CHUNK_SIZE = 400000 #bytes
 # The minimum average download speed (bytes/second) that must be met to
 # avoid being considered as a slow retrieval attack.
 MIN_AVERAGE_DOWNLOAD_SPEED = 50 #bytes/second
-
-# The time (in seconds) we ignore a server with a slow initial retrieval speed.
-SLOW_START_GRACE_PERIOD = 0.1 #seconds
-
-# Software updaters that integrate the framework are required to specify
-# the URL prefix for the mirrors that clients can contact to download updates.
-# The following URI schemes are those that download.py support.  By default,
-# the ['http', 'https'] URI schemes are supported, but may be modified by
-# integrators to schemes that they wish to support for their integration.
-SUPPORTED_URI_SCHEMES = ['http', 'https']
 
 # By default, limit number of delegatees we visit for any target.
 MAX_NUMBER_OF_DELEGATIONS = 2**5

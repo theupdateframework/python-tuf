@@ -47,10 +47,16 @@
 <Options>
   --verbose:
     Set the verbosity level of logging messages.  Accepts values 1-5.
+    
+  Example:
+    $ client.py --repo http://localhost:8001 --verbose 3 README.txt
 
   --repo:
     Set the repository mirror that will be responding to client requests.
-    E.g., 'http://locahost:8001'.
+    E.g., 'http://localhost:8001'.
+    
+  Example:
+    $ client.py --repo http://localhost:8001 README.txt
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
@@ -156,8 +162,8 @@ def parse_arguments():
     as specified by the user through the --verbose option.
     'client' expects the '--repo' to be set by the user.
 
-    Exampl:
-      $ client.py --repo http://localhost:8001 <target>
+    Example:
+      $ client.py --repo http://localhost:8001 LICENSE
 
     If the required option is unset, a parser error is printed
     and the scripts exits.

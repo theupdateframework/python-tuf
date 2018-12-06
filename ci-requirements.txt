@@ -4,3 +4,4 @@ iso8601
 coverage
 coveralls
 pylint
+requests

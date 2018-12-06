@@ -73,11 +73,7 @@ class Handler(six.moves.BaseHTTPServer.BaseHTTPRequestHandler):
       # 'mode_2'
       else:
         DELAY = 1
-        # Throttle the file by sending a character every few seconds.
-        # NOTE: The for-loop below completes early if the download file
-        # (len(data)) is small.  'download.py' waits at least
-        # 'settings.SLOW_START_GRACE_PERIOD' seconds before triggering a
-        # potential slow retrieval error.
+        # Throttle the file by sending a character every DELAY seconds.
         for i in range(len(data)):
           self.wfile.write(data[i].encode('utf-8'))
           time.sleep(DELAY)

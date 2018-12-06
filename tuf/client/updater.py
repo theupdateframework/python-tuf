@@ -3031,9 +3031,20 @@ class Updater(object):
   def updated_targets(self, targets, destination_directory):
     """
     <Purpose>
-      Return the targets in 'targets' that have changed.  Targets are considered
-      changed if they do not exist at 'destination_directory' or the target
-      located there has mismatched file properties.
+      Checks files in the provided directory against the provided file metadata.
+
+      Filters the provided target info, returning a subset: only the metadata
+      for targets for which the target file either does not exist in the
+      provided directory, or for which the target file in the provided directory
+      does not match the provided metadata.
+
+      A principle use of this function is to determine which target files need
+      to be downloaded.  If the caller first uses get_one_valid_target_info()
+      calls to obtain up-to-date, valid metadata for targets, the caller can
+      then call updated_targets() to determine if that metadata does not match
+      what exists already on disk (in the provided directory).  The returned
+      values can then be used in download_file() calls to update the files that
+      didn't exist or didn't match.
 
       The returned information is a list conformant to
       'tuf.formats.TARGETINFOS_SCHEMA' and has the form:
@@ -3045,8 +3056,10 @@ class Updater(object):
 
     <Arguments>
       targets:
-        A list of target files.  Targets that come earlier in the list are
-        chosen over duplicates that may occur later.
+        Metadata about the expected state of target files, against which local
+        files will be checked. This should be a list of target info
+        dictionaries; i.e. 'targets' must be conformant to
+        tuf.formats.TARGETINFOS_SCHEMA.
 
       destination_directory:
         The directory containing the target files.
@@ -3059,8 +3072,9 @@ class Updater(object):
       The files in 'targets' are read and their hashes computed.
 
     <Returns>
-      A list of targets, conformant to
+      A list of target info dictionaries. The list conforms to
       'tuf.formats.TARGETINFOS_SCHEMA'.
+      This is a strict subset of the argument 'targets'.
     """
 
     # Do the arguments have the correct format?
