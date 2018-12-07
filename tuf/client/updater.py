@@ -2631,7 +2631,8 @@ class Updater(object):
     #     validating determines the expected keyids and threshold of the role
     #     you are currently validating.  That is NOT GOOD.  Again, please switch
     #     to get_one_valid_targetinfo, which is well-defined and secure.
-    self._refresh_targets_metadata(refresh_all_delegated_roles=True)
+    if rolename != 'targets':
+      self._refresh_targets_metadata(refresh_all_delegated_roles=True)
 
 
     if not tuf.roledb.role_exists(rolename, self.repository_name):
