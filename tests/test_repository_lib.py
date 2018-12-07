@@ -587,6 +587,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     metadata_directory = os.path.join(repository_directory,
                                       repo_lib.METADATA_STAGED_DIRECTORY_NAME)
     targets_directory = os.path.join(repository_directory, repo_lib.TARGETS_DIRECTORY_NAME)
+    rotate_directory = os.path.join(repository_directory, repo_lib.ROTATE_DIRECTORY_NAME)
     root_filename = os.path.join(metadata_directory, repo_lib.ROOT_FILENAME)
     targets_filename = os.path.join(metadata_directory,
                                     repo_lib.TARGETS_FILENAME)
@@ -596,7 +597,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Load a valid repository so that top-level roles exist in roledb and
     # generate_snapshot_metadata() has roles to specify in snapshot metadata.
     repository = repo_tool.Repository(repository_directory, metadata_directory,
-                                      targets_directory)
+                                      rotate_directory, targets_directory)
 
     repository_junk = repo_tool.load_repository(repository_directory)
 
@@ -651,6 +652,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     metadata_directory = os.path.join(repository_directory,
                                       repo_lib.METADATA_STAGED_DIRECTORY_NAME)
     targets_directory = os.path.join(repository_directory, repo_lib.TARGETS_DIRECTORY_NAME)
+    rotate_directory = os.path.join(repository_directory, repo_lib.ROTATE_DIRECTORY_NAME)
 
     snapshot_filename = os.path.join(metadata_directory,
                                      repo_lib.SNAPSHOT_FILENAME)
@@ -662,7 +664,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Load a valid repository so that top-level roles exist in roledb and
     # generate_snapshot_metadata() has roles to specify in snapshot metadata.
     repository = repo_tool.Repository(repository_directory, metadata_directory,
-        targets_directory, repository_name)
+        targets_directory, rotate_directory, repository_name)
 
     repository_junk = repo_tool.load_repository(repository_directory,
         repository_name)

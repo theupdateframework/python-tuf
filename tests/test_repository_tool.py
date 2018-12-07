@@ -97,7 +97,8 @@ class TestRepository(unittest.TestCase):
     # Test normal case.
     repository_name = 'test_repository'
     repository = repo_tool.Repository('repository_directory/',
-        'metadata_directory/', 'targets_directory/', repository_name)
+        'metadata_directory/', 'targets_directory/', 'rotate_directory/', 
+        repository_name)
     self.assertTrue(isinstance(repository.root, repo_tool.Root))
     self.assertTrue(isinstance(repository.snapshot, repo_tool.Snapshot))
     self.assertTrue(isinstance(repository.timestamp, repo_tool.Timestamp))

@@ -66,6 +66,7 @@ class TestRepository(unittest.TestCase):
     repository = repo_tool.Repository('repository_directory/',
                                       'metadata_directory/',
                                       'targets_directory/')
+                                      'rotate_directory/')
     self.assertTrue(isinstance(repository.root, repo_tool.Root))
     self.assertTrue(isinstance(repository.snapshot, repo_tool.Snapshot))
     self.assertTrue(isinstance(repository.timestamp, repo_tool.Timestamp))
