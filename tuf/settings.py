@@ -74,8 +74,13 @@ DEFAULT_SNAPSHOT_REQUIRED_LENGTH = 2000000 #bytes
 # download Targets metadata.
 DEFAULT_TARGETS_REQUIRED_LENGTH = 5000000 #bytes
 
-# Set a timeout value in seconds (float) for non-blocking socket operations.
-SOCKET_TIMEOUT = 4 #seconds
+# Set timeout values in seconds (float) for socket operations.
+# Requests will time out if the initial server response takes longer than
+# SOCKET_CONNECT_TIMEOUT seconds to be received, or if, while we are waiting
+# for the server to finish sending the requested data, there is a delay since
+# the last packet was received greater than SOCKET_INTERBYTE_TIMEOUT.
+SOCKET_CONNECT_TIMEOUT = 10
+SOCKET_INTERBYTE_TIMEOUT = 4
 
 # The maximum chunk of data, in bytes, we would download in every round.
 CHUNK_SIZE = 400000 #bytes
