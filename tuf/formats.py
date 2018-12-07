@@ -210,9 +210,9 @@ PATH_HASH_PREFIXES_SCHEMA = SCHEMA.ListOf(PATH_HASH_PREFIX_SCHEMA)
 # Rotate object
 ROTATE_SCHEMA = SCHEMA.Object(
   object_name = 'ROTATE_SCHEMA',
+  previous = SCHEMA.AnyString()
   role = ROLENAME_SCHEMA,
   keys = SCHEMA.ListOf(KEY_SCHEMA),
-  keyids = KEYIDS_SCHEMA,
   threshold = THRESHOLD_SCHEMA)
 
 # Role object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1,

@@ -78,6 +78,7 @@ HASH_FUNCTION = tuf.settings.DEFAULT_HASH_ALGORITHM
 METADATA_STAGED_DIRECTORY_NAME = 'metadata.staged'
 METADATA_DIRECTORY_NAME = 'metadata'
 TARGETS_DIRECTORY_NAME = 'targets'
+ROTATE_DIRECTORY_NAME = 'rotate'
 
 # The extension of TUF metadata.
 METADATA_EXTENSION = '.json'
@@ -136,6 +137,10 @@ class Repository(object):
       downloaded.  Metadata files are similarly referenced in the top-level
       metadata.
 
+    rotate_directory:
+      The rotate sub-directory contains all rotate files that are in use for
+      the repository.
+
     repository_name:
       The name of the repository.  If not supplied, 'rolename' is added to the
       'default' repository.
@@ -153,7 +158,7 @@ class Repository(object):
   """
 
   def __init__(self, repository_directory, metadata_directory,
-      targets_directory, repository_name='default'):
+      targets_directory, rotate_directory, repository_name='default'):
 
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
@@ -162,11 +167,13 @@ class Repository(object):
     securesystemslib.formats.PATH_SCHEMA.check_match(repository_directory)
     securesystemslib.formats.PATH_SCHEMA.check_match(metadata_directory)
     securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
+    securesystemslib.formats.PATH_SCHEMA.check_match(rotate_directory)
     securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
     self._repository_directory = repository_directory
     self._metadata_directory = metadata_directory
     self._targets_directory = targets_directory
+    self._rotate_directory = rotate_directory
     self._repository_name = repository_name
 
     try:
@@ -183,6 +190,9 @@ class Repository(object):
     self.timestamp = Timestamp(self._repository_name)
     self.targets = Targets(self._targets_directory, 'targets',
         repository_name=self._repository_name)
+
+    global _new_rotate_files
+    _new_rotate_files = []
 
 
 
@@ -268,6 +278,13 @@ class Repository(object):
           consistent_snapshot,
           repository_name=self._repository_name)
 
+    #Generate any new rotate files.
+    global _new_rotate_files
+
+    for rotate in _new_rotate_files:
+      #TODO: ensure not overwriting rotate file
+      self.write_rotate_file(rotate, consistent_snapshot)
+
     # Generate the 'snapshot.json' metadata file.
     if 'snapshot' in dirty_rolenames:
       snapshot_signable, junk = repo_lib._generate_and_write_metadata('snapshot',
@@ -340,6 +357,18 @@ class Repository(object):
 
     # Ensure 'rolename' is no longer marked as dirty after the successful write().
     tuf.roledb.unmark_dirty([rolename], self._repository_name)
+
+
+
+
+
+  def write_rotate_file(self, rotate, consistent_snapshot):
+    relative_filename = rotate.get_filename()
+    rotate_filename = os.path.join(self._metadata_directory, self._rotate_directory, relateive_filename)
+
+    #set version number to 1 as should be immutable
+    repo_lib.write_metadata_file(rotate.file_contents(), rotate_filename, 
+        1, consistent_snapshot)
 
 
 
@@ -534,6 +563,8 @@ class Repository(object):
         logger.debug('Not pruning subdirectories ' + repr(dirnames))
 
     return targets
+
+
 
 
 
@@ -734,52 +765,26 @@ class Metadata(object):
     if (rolename == "default"):
       rolename = self.rolename
 
-    #ensure alphabetical order for making the filename
-    list.sort(old_keyids)
-
-    #filename is role.rotate.ID
-    relative_filename = rolename + ".rotate." + hashlib.sha256((".".join(old_keyids) + "." + str(old_threshold)).encode('utf-8')).hexdigest()
-
-    repository_directory = tuf.settings.repositories_directory
-    filename = os.path.join(repository_directory, relative_filename)
-
-    #not sure if this field is needed in the rotate file
     new_keys = []
-    for keyid in old_keyids:
+    for keyid in new_keyids:
       key = tuf.keydb.get_key(keyid, repository_name=self._repository_name)
       new_keys.append(key)
 
-    file_contents = {"_type" : "rotate"}
-    file_contents['role'] = rolename
-    file_contents['keys'] = new_keys
-    file_contents['keyids'] = new_keyids
-    file_contents['threshold'] = new_threshold
+    rotate_file = Rotate(ROTATE_REPOSITORY, self._repository_name, "", rolename,
+                         new_keys, new_threshold)
 
-    signable = tuf.formats.make_signable(file_contents)
+    relative_filename = rotate_file.get_filename()
+    rotate_file.make_json()
 
     for key in private_keys:
-      # Generate the signature using the appropriate signing method.
-      if key['keytype'] in tuf.repository_lib.SUPPORTED_KEY_TYPES:
-        if 'private' in key['keyval']:
-          signed = signable['signed']
-          try:
-            signature = securesystemslib.keys.create_signature(key, signed)
-            signable['signatures'].append(signature)
+      rotate_file.add_signature(key)
 
-          except Exception:
-            logger.warning('Unable to create signature for keyid: ' + repr(key['keyid']))
+    global _new_rotate_files
 
-        else:
-          logger.debug('Private key unset.  Skipping: ' + repr(key['keyid']))
+    #_new_rotate_files.append([filename, signable])
+    _new_rotate_files.append(rotate_file)
 
-      else:
-        raise securesystemslib.exceptions.Error('The keydb contains a key with'
-          ' an invalid key type.' + repr(key['keytype']))
-
-    f = open(filename, 'w')
-    f.write (json.dumps(signable))
-
-    return signable
+    return rotate_file.file_contents()
 
 
 
@@ -1412,6 +1417,171 @@ class Metadata(object):
     return signing_keyids
 
 
+
+
+
+class Rotate(Metadata):
+  """
+  <Purpose>
+    Provide a class to represent a rotate file. The rotate file contains
+    the previous rotate file (or an empty string), the role that is being 
+    rotated, the new keys, and the new threshold for the fole.
+
+  <Arguments>
+    rotate_directory:
+      The name of the rotate directory. This is where the rotate file will 
+      be stored.
+
+    repository_name:
+      The name of the repository.  If not supplied, 'rolename' is added to the
+      'default' repository.
+
+    previous:
+      The name of the previous rotate file. If not supplied it is the empty string
+
+    role:
+      The role that the rotate file is associated with.
+
+    new_keys:
+      The new keys to be associated with the role.
+
+    new_threshold
+      The new threshold to be associated with the role.
+
+  <Excpetions>
+    None.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
+  """
+
+  def __init__(self, rotate_directory, repository_name='default',
+               role, new_keys, new_threshold):
+
+    # Do the arguments have the correct format?
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.  Raise
+    # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
+    securesystemslib.formats.PATH_SCHEMA.check_match(rotate_directory)
+    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+    securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+
+    super(Rotate, self).__init__()
+    self._rotate_directory = rotate_directory
+    self._rolename = 'rotate'
+    self._repository_name = repository_name
+    self._role = role
+    self._new_keys = new_keys
+    self._new_threshold = new_threshold
+    self._previous = self.find_previous()
+    
+    self._signable = ""
+
+  def get_filename(self):
+    #get previous keys and threshold
+    if self._previous == "":
+      roleinfo = tuf.roledb.get_roleinfo(self._role, self._repository_name)
+      old_keyids = roleinfo['keyids']
+      old_threshold = roleinfo['threshold']
+    else:
+      signable = securesystemslib.util.load_json_file(self._previous)
+      tuf.formats.check_signable_object_format(signable)
+
+      rotate_file = signable['signed']
+      old_keys = rotate_file['keys']
+      old_threshold = rotate_file['threshold']
+      
+      old_keyids = []
+      for key in old_keys:
+        old_keyids.append(key['keyid'])
+
+    old_keyids.sort()
+
+    filename_id = hashlib.sha256(".".join(old_keyids) + "." + str(old_threshold))
+    filename_prev = hashlib.sha256(previous)
+
+    filename = self._role + ".rotate." + filename_id + "." + filename_prev
+
+    return filename
+
+  def find_previous(self):
+# this will return "" if this is the first rotate file, raise RotateRevocationError if there is a previous revocation
+    prev = ""
+    roleinfo = tuf.roledb.get_roleinfo(self._role, self._repository_name)
+    old_keyids = roleinfo['keyids']
+    old_threshold = roleinfo['threshold']
+    
+#keep looking until no rotate file is found
+    while True:
+      old_keyids.sort()
+      filename_id = hashlib.sha256(".".join(old_keyids) + "." + str(old_threshold))
+      filename_prev = hashlib.sha256(prev)
+
+      new_prev = self._role + ".rotate." + filename_id + "." + filename_prev
+      if os.path.exists(new_prev):
+        prev = new_prev
+        signable = securesystemslib.util.load_json_file(prev)
+        tuf.formats.check_signable_object_format(signable)
+
+        rotate_file = signable['signed']
+        old_keys = rotate_file['keys']
+        old_threshold = rotate_file['threshold']
+
+        #check if this is a revocation, if so abort
+        if old_keys == NULL_KEY:
+          raise tuf.exceptions.RotateRevocationError("Role " + self._role + " has been revoked by a rotate file")
+
+        old_keyids = []
+        for key in old_keys:
+          old_keyids.append(key['keyid'])
+
+      else:
+        self._previous = prev
+        return prev
+
+
+  def make_json(self):
+    file_contents = {"_type" : "rotate"}
+    file_contents['previous'] = this._previous
+    file_contents['role'] = self._role
+    file_contents['keys'] = self._new_keys
+    file_contents['threshold'] = self._new_threshold
+
+    self._signable = tuf.formats.make_signable(file_contents)
+    return self._signable
+
+  def add_signature(self, key):
+    # Generate the signature using the appropriate signing method.
+    if key['keytype'] in tuf.repository_lib.SUPPORTED_KEY_TYPES:
+      if 'private' in key['keyval']:
+        signed = self._signable['signed']
+        try:
+          signature = securesystemslib.keys.create_signature(key, signed)
+          self._signable['signatures'].append(signature)
+
+        except Exception:
+          logger.warning('Unable to create signature for keyid: ' + repr(key['keyid']))
+
+      else:
+        logger.debug('Private key unset.  Skipping: ' + repr(key['keyid']))
+
+    else:
+      raise securesystemslib.exceptions.Error('The keydb contains a key with'
+        ' an invalid key type.' + repr(key['keytype']))
+
+  @property
+  def file_contents(self):
+    #TODO check signatures here (?)
+    if self._signable != "":
+      return self._signable
+    else:
+      return ""
+
+
+    
 
 
 
@@ -2905,11 +3075,12 @@ def create_new_repository(repository_directory, repository_name='default'):
   securesystemslib.formats.PATH_SCHEMA.check_match(repository_directory)
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
-  # Set the repository, metadata, and targets directories.  These directories
-  # are created if they do not exist.
+  # Set the repository, metadata, targets, and rotate  directories.  These 
+  # directories are created if they do not exist.
   repository_directory = os.path.abspath(repository_directory)
   metadata_directory = None
   targets_directory = None
+  rotate_directory = None
 
   # Try to create 'repository_directory' if it does not exist.
   try:
@@ -2925,13 +3096,14 @@ def create_new_repository(repository_directory, repository_name='default'):
     else:
       raise
 
-  # Set the metadata and targets directories.  The metadata directory is a
+  # Set the metadata, targets, and rotate directories.  The metadata directory is a
   # staged one so that the "live" repository is not affected.  The
   # staged metadata changes may be moved over to "live" after all updated
   # have been completed.
   metadata_directory = os.path.join(repository_directory,
       METADATA_STAGED_DIRECTORY_NAME)
   targets_directory = os.path.join(repository_directory, TARGETS_DIRECTORY_NAME)
+  rotate_directory = os.path.join(repository_directory, ROTATE_DIRECTORY_NAME)
 
   # Try to create the metadata directory that will hold all of the metadata
   # files, such as 'root.json' and 'snapshot.json'.
@@ -2959,11 +3131,23 @@ def create_new_repository(repository_directory, repository_name='default'):
     else:
       raise
 
+  # Try to create the rotate directory that will hold all of the rotate files.
+  try:
+    logger.info('Creating ' + repr(rotate_directory))
+    os.mkdir(rotate_directory)
+
+  except OSError as e:
+    if e.errno == errno.EEXIST:
+      pass
+
+    else:
+      raise
+
   # Create the bare bones repository object, where only the top-level roles
   # have been set and contain default values (e.g., Root roles has a threshold
   # of 1, expires 1 year into the future, etc.)
   repository = Repository(repository_directory, metadata_directory,
-      targets_directory, repository_name)
+      targets_directory, rotate_directory, repository_name)
 
   return repository
 
@@ -3010,11 +3194,12 @@ def load_repository(repository_directory, repository_name='default'):
   metadata_directory = os.path.join(repository_directory,
       METADATA_STAGED_DIRECTORY_NAME)
   targets_directory = os.path.join(repository_directory, TARGETS_DIRECTORY_NAME)
+  rotate_directory = os.path.join(repository_directory, ROTATE_DIRECTORY_NAME)
 
   # The Repository() object loaded (i.e., containing all the metadata roles
   # found) and returned.
   repository = Repository(repository_directory, metadata_directory,
-      targets_directory, repository_name)
+      targets_directory, rotate_directory, repository_name)
 
   filenames = repo_lib.get_metadata_filenames(metadata_directory)
 
