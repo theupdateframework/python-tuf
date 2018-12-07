@@ -43,6 +43,9 @@ class Error(Exception):
 class FormatError(Error):
   """Indicate an error while validating an object's format."""
 
+class RotateRevocationError(Error):
+  """Indicate a rotate to null in the rotate file chain"""
+
 class InvalidRotateFileError(Error):
   """Indicate an invalid rotate file"""
   pass
