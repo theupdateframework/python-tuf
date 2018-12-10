@@ -99,6 +99,9 @@ SNAPSHOT_EXPIRATION = 604800
 # Initial 'timestamp.json' expiration time of 1 day.
 TIMESTAMP_EXPIRATION = 86400
 
+_new_rotate_files = []
+
+
 
 class Repository(object):
   """
@@ -191,7 +194,6 @@ class Repository(object):
     self.targets = Targets(self._targets_directory, 'targets',
         repository_name=self._repository_name)
 
-    global _new_rotate_files
     _new_rotate_files = []
 
 
@@ -279,11 +281,11 @@ class Repository(object):
           repository_name=self._repository_name)
 
     #Generate any new rotate files.
-    global _new_rotate_files
 
     for rotate in _new_rotate_files:
       #TODO: ensure not overwriting rotate file
       self.write_rotate_file(rotate, consistent_snapshot)
+      _new_rotate_files.remove(rotate)
 
     # Generate the 'snapshot.json' metadata file.
     if 'snapshot' in dirty_rolenames:
@@ -788,17 +790,14 @@ class Metadata(object):
       new_keys.append(key)
 
     rotate_file = Rotate(ROTATE_DIRECTORY_NAME, self._repository_name, rolename,
-                         new_keys, new_threshold)
+                         new_keys, new_threshold, old_keyids, old_threshold)
 
-    relative_filename = rotate_file.get_filename()
     rotate_file.make_json()
 
     for key in private_keys:
-      rotate_file.add_signature(key)
+      rotate_file.add_rotate_signature(key)
 
-    global _new_rotate_files
 
-    #_new_rotate_files.append([filename, signable])
     _new_rotate_files.append(rotate_file)
 
     return rotate_file.get_file_contents()
@@ -1475,8 +1474,8 @@ class Rotate(Metadata):
     None.
   """
 
-  def __init__(self, rotate_directory, repository_name,
-               role, new_keys, new_threshold):
+  def __init__(self, rotate_directory, repository_name, role, new_keys, 
+               new_threshold, old_keyids, old_threshold):
 
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
@@ -1494,26 +1493,15 @@ class Rotate(Metadata):
     self._new_keys = new_keys
     self._new_threshold = new_threshold
     self._previous = self.find_previous()
+    self._old_keyids = old_keyids
+    self._old_threshold = old_threshold
     
     self._signable = ""
 
   def get_filename(self):
     #get previous keys and threshold
-    if self._previous == "":
-      roleinfo = tuf.roledb.get_roleinfo(self._role, self._repository_name)
-      old_keyids = roleinfo['keyids']
-      old_threshold = roleinfo['threshold']
-    else:
-      signable = securesystemslib.util.load_json_file(self._previous)
-      tuf.formats.check_signable_object_format(signable)
-
-      rotate_file = signable['signed']
-      old_keys = rotate_file['keys']
-      old_threshold = rotate_file['threshold']
-      
-      old_keyids = []
-      for key in old_keys:
-        old_keyids.append(key['keyid'])
+    old_keyids = self._old_keyids
+    old_threshold = self._old_threshold
 
     old_keyids.sort()
 
@@ -1548,7 +1536,7 @@ class Rotate(Metadata):
         old_threshold = rotate_file['threshold']
 
         #check if this is a revocation, if so abort
-        if old_keys.contains(NULL_KEY):
+        if repo_lib.NULL_KEY in old_keys:
           raise tuf.exceptions.RotateRevocationError("Role " + self._role + " has been revoked by a rotate file")
 
         old_keyids = []
@@ -1570,7 +1558,7 @@ class Rotate(Metadata):
     self._signable = tuf.formats.make_signable(file_contents)
     return self._signable
 
-  def add_signature(self, key):
+  def add_rotate_signature(self, key):
     # Generate the signature using the appropriate signing method.
     if key['keytype'] in tuf.repository_lib.SUPPORTED_KEY_TYPES:
       if 'private' in key['keyval']:
