@@ -185,11 +185,12 @@ KEYVAL_SCHEMA = SCHEMA.Object(
 
 # A generic TUF key.  All TUF keys should be saved to metadata files in this
 # format.
-KEY_SCHEMA = SCHEMA.Object(
+KEY_SCHEMA = SCHEMA.OneOf([SCHEMA.Object(
   object_name = 'KEY_SCHEMA',
   keytype = SCHEMA.AnyString(),
   keyval = KEYVAL_SCHEMA,
-  expires = SCHEMA.Optional(ISO8601_DATETIME_SCHEMA))
+  expires = SCHEMA.Optional(ISO8601_DATETIME_SCHEMA)),
+  SCHEMA.RegularExpression(r'0')])
 
 # A dict where the dict keys hold a keyid and the dict values a key object.
 KEYDICT_SCHEMA = SCHEMA.DictOf(
@@ -210,7 +211,7 @@ PATH_HASH_PREFIXES_SCHEMA = SCHEMA.ListOf(PATH_HASH_PREFIX_SCHEMA)
 # Rotate object
 ROTATE_SCHEMA = SCHEMA.Object(
   object_name = 'ROTATE_SCHEMA',
-  previous = SCHEMA.AnyString()
+  previous = SCHEMA.AnyString(),
   role = ROLENAME_SCHEMA,
   keys = SCHEMA.ListOf(KEY_SCHEMA),
   threshold = THRESHOLD_SCHEMA)

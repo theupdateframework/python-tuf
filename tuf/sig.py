@@ -57,6 +57,8 @@ import tuf.keydb
 import tuf.roledb
 import tuf.formats
 
+import tuf.repository_lib as repo_lib
+
 import securesystemslib
 
 # See 'log.py' to learn how logging is handled in TUF.
@@ -66,6 +68,8 @@ logger = logging.getLogger('tuf.sig')
 # log file.
 iso8601_logger = logging.getLogger('iso8601')
 iso8601_logger.disabled = True
+
+from tuf.repository_lib import NULL_KEY
 
 
 def get_signature_status(signable, role=None, repository_name='default',
@@ -248,18 +252,23 @@ def _check_rotation(role, repository_name, threshold, keyids, previous_filename)
   if threshold is None:
     threshold = tuf.roledb.get_role_threshold(role, repository_name)
 
+  keyids.sort()
+
   #role.rotate.ID.PREV
-  relative_filename = role + ".rotate." + hashlib.sha256((".".join(keyids) + "." + str(threshold)).encode('utf-8')).hexdigest() + "." + hashlib.sha256(previous_filename)
+  relative_filename = role + ".rotate." + hashlib.sha256((".".join(keyids) + "." + str(threshold)).encode('utf-8')).hexdigest() + "." + hashlib.sha256(previous_filename).hexdigest()
   repository_directory = tuf.settings.repositories_directory
 
   #if no directory, there can't be a rotation file
   if repository_directory is None:
     return threshold, keyids
-  filename = os.path.join(repository_directory, ROTATE_REPOSIROTY_NAME, relative_filename)
+  repository_directory = os.path.join(os.path.dirname(tuf.settings.repositories_directory), 'repository')
+  filename = os.path.join(repository_directory, repo_lib.ROTATE_DIRECTORY_NAME, relative_filename)
 
   if os.path.exists(filename):
+    print("found rotate file")
     #read file, ensure properly signed
     signable = securesystemslib.util.load_json_file(filename)
+    print(signable)
     tuf.formats.check_signable_object_format(signable)
 
     #verify signature, but can't call verify to avoid cycle
@@ -284,14 +293,18 @@ def _check_rotation(role, repository_name, threshold, keyids, previous_filename)
     rotate_file = signable['signed']
     tuf.formats.ROTATE_SCHEMA.check_match(rotate_file)
 
-    if rotate_file['keys'] == NULL_KEY:
-      raise tuf.exceptions.RotateRevocationError("Role " + rolename + " has been revoked by a rotate file to null")
+    if NULL_KEY in rotate_file['keys']:
+      raise tuf.exceptions.RotateRevocationError("Role " + role + " has been revoked by a rotate file to null")
 
     if rotate_file['role'] != role: #pragma: no cover
       raise tuf.exceptions.InvalidRotateFileError("Role " + rotate_file['role'] + " does not match original role " + role)
 
     #recursive call to check for further rotations
-    return _check_rotation(role, repository_name, rotate_file['threshold'], rotate_file['keyids'], filename)
+    keyids = []
+    for key in rotate_file['keys']:
+      keyids.append(key['keyid'])
+
+    return _check_rotation(role, repository_name, rotate_file['threshold'], keyids, filename)
   else:
     #no rotation file found, return original values
     return threshold, keyids

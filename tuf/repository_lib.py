@@ -77,6 +77,7 @@ METADATA_EXTENSION = '.json'
 METADATA_STAGED_DIRECTORY_NAME = 'metadata.staged'
 METADATA_DIRECTORY_NAME = 'metadata'
 TARGETS_DIRECTORY_NAME = 'targets'
+ROTATE_DIRECTORY_NAME = 'rotate'
 
 # The metadata filenames of the top-level roles.
 ROOT_FILENAME = 'root' + METADATA_EXTENSION
@@ -93,6 +94,8 @@ TIMESTAMP_EXPIRES_WARN_SECONDS = 86400
 
 # Supported key types.
 SUPPORTED_KEY_TYPES = ['rsa', 'ed25519', 'ecdsa-sha2-nistp256']
+
+NULL_KEY = "0"
 
 
 def _generate_and_write_metadata(rolename, metadata_filename,

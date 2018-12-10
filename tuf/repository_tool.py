@@ -364,10 +364,24 @@ class Repository(object):
 
   def write_rotate_file(self, rotate, consistent_snapshot):
     relative_filename = rotate.get_filename()
-    rotate_filename = os.path.join(self._metadata_directory, self._rotate_directory, relateive_filename)
+    rotate_directory = os.path.join(self._metadata_directory, self._rotate_directory)
+    rotate_filename = os.path.join(rotate_directory, relative_filename)
+    if not os.path.exists(rotate_directory):
+      try:
+        logger.info('Creating ' + repr(rotate_directory))
+        os.mkdir(rotate_directory)
+
+      # 'OSError' raised if the leaf directory already exists or cannot be created.
+      except OSError as e:
+        if e.errno == errno.EEXIST:
+          pass
+
+        else:
+          raise
+
 
     #set version number to 1 as should be immutable
-    repo_lib.write_metadata_file(rotate.file_contents(), rotate_filename, 
+    repo_lib.write_metadata_file(rotate.get_file_contents(), rotate_filename, 
         1, consistent_snapshot)
 
 
@@ -767,10 +781,13 @@ class Metadata(object):
 
     new_keys = []
     for keyid in new_keyids:
-      key = tuf.keydb.get_key(keyid, repository_name=self._repository_name)
+      if keyid is repo_lib.NULL_KEY:
+        key = repo_lib.NULL_KEY
+      else:
+        key = tuf.keydb.get_key(keyid, repository_name=self._repository_name)
       new_keys.append(key)
 
-    rotate_file = Rotate(ROTATE_REPOSITORY, self._repository_name, "", rolename,
+    rotate_file = Rotate(ROTATE_DIRECTORY_NAME, self._repository_name, rolename,
                          new_keys, new_threshold)
 
     relative_filename = rotate_file.get_filename()
@@ -784,7 +801,7 @@ class Metadata(object):
     #_new_rotate_files.append([filename, signable])
     _new_rotate_files.append(rotate_file)
 
-    return rotate_file.file_contents()
+    return rotate_file.get_file_contents()
 
 
 
@@ -1458,7 +1475,7 @@ class Rotate(Metadata):
     None.
   """
 
-  def __init__(self, rotate_directory, repository_name='default',
+  def __init__(self, rotate_directory, repository_name,
                role, new_keys, new_threshold):
 
     # Do the arguments have the correct format?
@@ -1466,7 +1483,7 @@ class Rotate(Metadata):
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
     securesystemslib.formats.PATH_SCHEMA.check_match(rotate_directory)
-    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+    tuf.formats.ROLENAME_SCHEMA.check_match(role)
     securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
     super(Rotate, self).__init__()
@@ -1500,8 +1517,8 @@ class Rotate(Metadata):
 
     old_keyids.sort()
 
-    filename_id = hashlib.sha256(".".join(old_keyids) + "." + str(old_threshold))
-    filename_prev = hashlib.sha256(previous)
+    filename_id = hashlib.sha256((".".join(old_keyids) + "." + str(old_threshold)).encode('utf-8')).hexdigest()
+    filename_prev = hashlib.sha256(self._previous).hexdigest()
 
     filename = self._role + ".rotate." + filename_id + "." + filename_prev
 
@@ -1517,8 +1534,8 @@ class Rotate(Metadata):
 #keep looking until no rotate file is found
     while True:
       old_keyids.sort()
-      filename_id = hashlib.sha256(".".join(old_keyids) + "." + str(old_threshold))
-      filename_prev = hashlib.sha256(prev)
+      filename_id = hashlib.sha256(".".join(old_keyids) + "." + str(old_threshold)).hexdigest()
+      filename_prev = hashlib.sha256(prev).hexdigest()
 
       new_prev = self._role + ".rotate." + filename_id + "." + filename_prev
       if os.path.exists(new_prev):
@@ -1531,7 +1548,7 @@ class Rotate(Metadata):
         old_threshold = rotate_file['threshold']
 
         #check if this is a revocation, if so abort
-        if old_keys == NULL_KEY:
+        if old_keys.contains(NULL_KEY):
           raise tuf.exceptions.RotateRevocationError("Role " + self._role + " has been revoked by a rotate file")
 
         old_keyids = []
@@ -1545,7 +1562,7 @@ class Rotate(Metadata):
 
   def make_json(self):
     file_contents = {"_type" : "rotate"}
-    file_contents['previous'] = this._previous
+    file_contents['previous'] = self._previous
     file_contents['role'] = self._role
     file_contents['keys'] = self._new_keys
     file_contents['threshold'] = self._new_threshold
@@ -1572,8 +1589,7 @@ class Rotate(Metadata):
       raise securesystemslib.exceptions.Error('The keydb contains a key with'
         ' an invalid key type.' + repr(key['keytype']))
 
-  @property
-  def file_contents(self):
+  def get_file_contents(self):
     #TODO check signatures here (?)
     if self._signable != "":
       return self._signable

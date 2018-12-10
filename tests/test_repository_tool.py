@@ -106,11 +106,11 @@ class TestRepository(unittest.TestCase):
 
     # Test improperly formatted arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.Repository, 3,
-                      'metadata_directory/', 'targets_directory')
+                      'metadata_directory/', 'targets_directory', 'rotate_directory')
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.Repository,
-                      'repository_directory', 3, 'targets_directory')
+                      'repository_directory', 3, 'targets_directory', 'rotate_directory')
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.Repository,
-                      'repository_directory', 'metadata_directory', 3)
+                      'repository_directory', 'metadata_directory', 3, 'rotate_directory')
 
 
 

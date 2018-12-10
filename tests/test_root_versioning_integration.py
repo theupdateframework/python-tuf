@@ -65,7 +65,7 @@ class TestRepository(unittest.TestCase):
     # Test normal case.
     repository = repo_tool.Repository('repository_directory/',
                                       'metadata_directory/',
-                                      'targets_directory/')
+                                      'targets_directory/',
                                       'rotate_directory/')
     self.assertTrue(isinstance(repository.root, repo_tool.Root))
     self.assertTrue(isinstance(repository.snapshot, repo_tool.Snapshot))
@@ -74,11 +74,11 @@ class TestRepository(unittest.TestCase):
 
     # Test improperly formatted arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.Repository, 3,
-                      'metadata_directory/', 'targets_directory')
+                      'metadata_directory/', 'targets_directory', 'rotate_directory/')
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.Repository,
-                      'repository_directory', 3, 'targets_directory')
+                      'repository_directory', 3, 'targets_directory', 'rotate_directory/')
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.Repository,
-                      'repository_directory', 'metadata_directory', 3)
+                      'repository_directory', 'metadata_directory', 3, 'rotate_directory/')
 
 
 

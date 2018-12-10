@@ -43,6 +43,7 @@ import tuf.exceptions
 import tuf.roledb
 import tuf.keydb
 import tuf.repository_tool as repo_tool
+import tuf.repository_lib as repo_lib
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.client.updater as updater
 
@@ -187,6 +188,7 @@ class TestRotateFile(unittest_toolbox.Modified_TestCase):
     new_keyids = [self.role_keys['timestamp']['public']['keyid']]
     new_threshold = 1
     rotate_file = repository.targets.add_rotate_file(targets_roleinfo['keyids'], targets_roleinfo['threshold'], new_keyids, new_threshold, [self.role_keys['targets']['private']])
+    repository.writeall()
 
     #should not need to rewrite or update anything else
 
@@ -216,6 +218,7 @@ class TestRotateFile(unittest_toolbox.Modified_TestCase):
     new_keyids = [self.role_keys['timestamp']['public']['keyid']]
     new_threshold = 1
     rotate_file = repository.targets.add_rotate_file(root_roleinfo['keyids'], root_roleinfo['threshold'], new_keyids, new_threshold, [self.role_keys['root']['private']], "root")
+    repository.writeall()
 
     # This will fail because the root file is not signed with the new key
     try:
@@ -238,7 +241,7 @@ class TestRotateFile(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_rotation_cycle(self):
+  def test_rotation_revocation(self):
     # First verify that the Targets role is properly signed.  Calling
     # refresh() should not raise an exception.
     self.repository_updater.refresh()
@@ -249,13 +252,13 @@ class TestRotateFile(unittest_toolbox.Modified_TestCase):
     targets_keyid = targets_roleinfo['keyids']
     self.assertEqual(len(targets_keyid), 1)
 
-    #add rotate files creating a cycle
+    #add rotate file to null key
     repository = repo_tool.load_repository(self.repository_directory)
     #make new key the timestamp key for testing and keep the threshold at 1
-    new_keyids = [self.role_keys['timestamp']['public']['keyid']]
+    new_keyids = [repo_lib.NULL_KEY]
     new_threshold = 1
     rotate_file = repository.targets.add_rotate_file(targets_roleinfo['keyids'], targets_roleinfo['threshold'], new_keyids, new_threshold, [self.role_keys['targets']['private']])
-    repository.targets.add_rotate_file(new_keyids, new_threshold, targets_roleinfo['keyids'], targets_roleinfo['threshold'], [self.role_keys['timestamp']['private']])
+    repository.writeall()
 
     #should not need to rewrite or update anything else
 
@@ -264,7 +267,7 @@ class TestRotateFile(unittest_toolbox.Modified_TestCase):
     self.repository_updater.refresh()
 
     #ensure that is finds the cycle
-    self.assertRaises(tuf.exceptions.InvalidKeyError, tuf.sig.verify, rotate_file, 'targets', self.repository_name, targets_roleinfo['threshold'], targets_roleinfo['keyids'])
+    self.assertRaises(tuf.exceptions.RotateRevocationError, tuf.sig.verify, rotate_file, 'targets', self.repository_name, targets_roleinfo['threshold'], targets_roleinfo['keyids'])
 
 
 

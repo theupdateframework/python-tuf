@@ -104,6 +104,7 @@ PROJECT_FILENAME = 'project.cfg'
 # to the staged metadata directory instead of the "live" one.
 from tuf.repository_tool import METADATA_DIRECTORY_NAME
 from tuf.repository_tool import TARGETS_DIRECTORY_NAME
+from tuf.repository_tool import ROTATE_DIRECTORY_NAME
 
 
 class Project(Targets):
@@ -494,8 +495,8 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
 
 
 def create_new_project(project_name, metadata_directory,
-    location_in_repository = '', targets_directory=None, key=None,
-    repository_name='default'):
+    location_in_repository = '', targets_directory=None, key=None, 
+    repository_name='default', rotate_directory=None):
   """
   <Purpose>
     Create a new project object, instantiate barebones metadata for the
@@ -581,6 +582,12 @@ def create_new_project(project_name, metadata_directory,
   if targets_directory is not None:
     securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
 
+  if rotate_directory is None:
+    rotate_directory = os.path.join(metadata_directory, ROTATE_DIRECTORY_NAME)
+
+  if targets_directory is not None:
+    securesystemslib.formats.PATH_SCHEMA.check_match(rotate_directory)
+
   if key is not None:
     securesystemslib.formats.KEY_SCHEMA.check_match(key)
 
@@ -588,6 +595,7 @@ def create_new_project(project_name, metadata_directory,
   # are created if they do not exist.
   metadata_directory = os.path.abspath(metadata_directory)
   targets_directory = os.path.abspath(targets_directory)
+  rotate_directory = os.path.abspath(rotate_directory)
 
   # Try to create the metadata directory that will hold all of the metadata
   # files, such as 'root.txt' and 'release.txt'.
@@ -615,6 +623,19 @@ def create_new_project(project_name, metadata_directory,
     message = 'Creating ' + repr(targets_directory)
     logger.info(message)
     os.mkdir(targets_directory)
+
+  except OSError as e:
+    if e.errno == errno.EEXIST:
+      pass
+
+    else:
+      raise
+
+  # Try to create the rotate directory that will hold all of the rotate files.
+  try:
+    message = 'Creating ' + repr(rotate_directory)
+    logger.info(message)
+    os.mkdir(rotate_directory)
 
   except OSError as e:
     if e.errno == errno.EEXIST:
