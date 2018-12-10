@@ -75,10 +75,9 @@ enum34==1.1.6 \
     --hash=sha256:6bd0f6ad48ec2aa117d3d141940d484deccda84d4fcd884f5c3d93c23ecd8c79 \
     --hash=sha256:8ad8c4783bf61ded74527bffb48ed9b54166685e4230386a9ed9b1279e2df5b1 \
     # via cryptography
-idna==2.7 \
-    --hash=sha256:156a6814fb5ac1fc6850fb002e0852d56c0c8d2531923a51032d1b70760e186e \
-    --hash=sha256:684a38a6f903c1d71d6d5fac066b58d7768af4de2b832e426ec79c30daa94a16 \
-    # via cryptography, requests
+idna==2.8 \
+    --hash=sha256:ea8b7f6188e6fa117537c3df7da9fc686d485087abf6ac197f9c46432f7e4a3c \
+    --hash=sha256:c357b3f628cf53ae2c4c05627ecc484553142ca23264e593d327bcde5e9c3407    # via cryptography, requests
 ipaddress==1.0.22 \
     --hash=sha256:64b28eec5e78e7510698f6d4da08800a5c575caa4a286c93d651c5d3ff7b6794 \
     --hash=sha256:b146c751ea45cad6188dd6cf2d9b757f6f4f8d6ffb96a023e6f2e26eea02a72c \
