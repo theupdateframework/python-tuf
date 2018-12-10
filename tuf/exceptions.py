@@ -48,12 +48,9 @@ class RotateRevocationError(Error):
 
 class InvalidRotateFileError(Error):
   """Indicate an invalid rotate file"""
-  pass
 
 class InvalidKeyError(Error):
   """Indicate a a cycle in rotate files, equivalent to a key revocation"""
-  pass
-
 
 class InvalidMetadataJSONError(FormatError):
   """Indicate that a metadata file is not valid JSON."""
