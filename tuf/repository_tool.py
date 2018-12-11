@@ -1506,7 +1506,7 @@ class Rotate(Metadata):
     old_keyids.sort()
 
     filename_id = hashlib.sha256((".".join(old_keyids) + "." + str(old_threshold)).encode('utf-8')).hexdigest()
-    filename_prev = hashlib.sha256(self._previous).hexdigest()
+    filename_prev = hashlib.sha256(self._previous.encode('utf-8')).hexdigest()
 
     filename = self._role + ".rotate." + filename_id + "." + filename_prev
 

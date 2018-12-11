@@ -255,7 +255,7 @@ def _check_rotation(role, repository_name, threshold, keyids, previous_filename)
   keyids.sort()
 
   #role.rotate.ID.PREV
-  relative_filename = role + ".rotate." + hashlib.sha256((".".join(keyids) + "." + str(threshold)).encode('utf-8')).hexdigest() + "." + hashlib.sha256(previous_filename).hexdigest()
+  relative_filename = role + ".rotate." + hashlib.sha256((".".join(keyids) + "." + str(threshold)).encode('utf-8')).hexdigest() + "." + hashlib.sha256(previous_filename.encode('utf-8')).hexdigest()
   repository_directory = tuf.settings.repositories_directory
 
   #if no directory, there can't be a rotation file
@@ -265,10 +265,8 @@ def _check_rotation(role, repository_name, threshold, keyids, previous_filename)
   filename = os.path.join(repository_directory, repo_lib.ROTATE_DIRECTORY_NAME, relative_filename)
 
   if os.path.exists(filename):
-    print("found rotate file")
     #read file, ensure properly signed
     signable = securesystemslib.util.load_json_file(filename)
-    print(signable)
     tuf.formats.check_signable_object_format(signable)
 
     #verify signature, but can't call verify to avoid cycle
