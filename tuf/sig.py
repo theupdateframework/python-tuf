@@ -244,7 +244,7 @@ def get_signature_status(signable, role=None, repository_name='default',
 
 
 def _check_rotation(role, repository_name, threshold, keyids, previous_filename):
-  """ A helper function that checks for a rotate file for the given threshold and key ids and returns the up to date threshold and keyids. The function will continue looking for rotate files until there is not one or it detects a cycle."""
+  """ A helper function that checks for a rotate file for the given threshold and key ids and returns the up to date threshold and keyids. The function will continue looking for rotate files until there is not one or it detects a cycle. previous_filename is a know previous rotate file, or "" if looking for the start of a rotate chain."""
 
   #use default values if none specified
   if keyids is None:
@@ -256,6 +256,8 @@ def _check_rotation(role, repository_name, threshold, keyids, previous_filename)
 
   #role.rotate.ID.PREV
   relative_filename = role + ".rotate." + hashlib.sha256((".".join(keyids) + "." + str(threshold)).encode('utf-8')).hexdigest() + "." + hashlib.sha256(previous_filename.encode('utf-8')).hexdigest()
+
+#TODO: get directory from rotate directory field in roledb
   repository_directory = tuf.settings.repositories_directory
 
   #if no directory, there can't be a rotation file

@@ -772,7 +772,7 @@ class Metadata(object):
       type
 
     <Side Effects>
-      Rotate file is created
+      Rotate object is created and added to _new_rotate_files to be written on the next write_all call.
 
     <Returns>
       Contents of the rotate file
@@ -1464,8 +1464,15 @@ class Rotate(Metadata):
     new_threshold
       The new threshold to be associated with the role.
 
+    old_keyids
+      The previous keyids for the role.
+
+    old_threshold
+      The previous threshod for the role.
+
   <Excpetions>
-    None.
+    RotateRevocationException
+      Raised when the role has a rotate revocation eariler in the chain.
 
   <Side Effects>
     None.
@@ -1499,6 +1506,9 @@ class Rotate(Metadata):
     self._signable = ""
 
   def get_filename(self):
+    '''
+    Generate the filename for this rotate file using the role name, old keyids, old threshold, and previous filename.
+    '''
     #get previous keys and threshold
     old_keyids = self._old_keyids
     old_threshold = self._old_threshold
@@ -1508,25 +1518,31 @@ class Rotate(Metadata):
     filename_id = hashlib.sha256((".".join(old_keyids) + "." + str(old_threshold)).encode('utf-8')).hexdigest()
     filename_prev = hashlib.sha256(self._previous.encode('utf-8')).hexdigest()
 
+    #role.rotate.ID.PREV
     filename = self._role + ".rotate." + filename_id + "." + filename_prev
 
     return filename
 
   def find_previous(self):
-# this will return "" if this is the first rotate file, raise RotateRevocationError if there is a previous revocation
+    '''
+    this will return "" if this is the first rotate file, raise RotateRevocationError if there is a previous revocation
+    '''
+
+    #initialize
     prev = ""
     roleinfo = tuf.roledb.get_roleinfo(self._role, self._repository_name)
     old_keyids = roleinfo['keyids']
     old_threshold = roleinfo['threshold']
     
-#keep looking until no rotate file is found
+    #keep looking until no rotate file is found
     while True:
       old_keyids.sort()
-      filename_id = hashlib.sha256(".".join(old_keyids) + "." + str(old_threshold)).hexdigest()
-      filename_prev = hashlib.sha256(prev).hexdigest()
+      filename_id = hashlib.sha256((".".join(old_keyids) + "." + str(old_threshold)).encode('utf-8')).hexdigest()
+      filename_prev = hashlib.sha256(prev.encode('utf-8').hexdigest()
 
       new_prev = self._role + ".rotate." + filename_id + "." + filename_prev
       if os.path.exists(new_prev):
+        #file exists, read and check values
         prev = new_prev
         signable = securesystemslib.util.load_json_file(prev)
         tuf.formats.check_signable_object_format(signable)
@@ -1544,11 +1560,15 @@ class Rotate(Metadata):
           old_keyids.append(key['keyid'])
 
       else:
+        #no more rotate files, at the previous
         self._previous = prev
         return prev
 
 
   def make_json(self):
+    '''
+    Generate the file contents.
+    '''
     file_contents = {"_type" : "rotate"}
     file_contents['previous'] = self._previous
     file_contents['role'] = self._role
