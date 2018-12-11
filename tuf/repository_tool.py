@@ -1538,7 +1538,7 @@ class Rotate(Metadata):
     while True:
       old_keyids.sort()
       filename_id = hashlib.sha256((".".join(old_keyids) + "." + str(old_threshold)).encode('utf-8')).hexdigest()
-      filename_prev = hashlib.sha256(prev.encode('utf-8').hexdigest()
+      filename_prev = hashlib.sha256(prev.encode('utf-8')).hexdigest()
 
       new_prev = self._role + ".rotate." + filename_id + "." + filename_prev
       if os.path.exists(new_prev):
