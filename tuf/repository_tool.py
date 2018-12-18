@@ -283,7 +283,6 @@ class Repository(object):
     #Generate any new rotate files.
 
     for rotate in _new_rotate_files:
-      #TODO: ensure not overwriting rotate file
       self.write_rotate_file(rotate, consistent_snapshot)
       _new_rotate_files.remove(rotate)
 
@@ -382,9 +381,11 @@ class Repository(object):
           raise
 
 
-    #set version number to 1 as should be immutable
-    repo_lib.write_metadata_file(rotate.get_file_contents(), rotate_filename, 
-        1, consistent_snapshot)
+    #write if the file does not exist or if this is a revocation
+    if not os.path.isfile(rotate_filename) or rotate._new_keys.contains(repo_lib.NULL_KEY):
+      #set version number to 1 as should be immutable
+      repo_lib.write_metadata_file(rotate.get_file_contents(), rotate_filename, 
+          1, consistent_snapshot)
 
 
 
