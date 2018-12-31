@@ -2349,6 +2349,12 @@ class Updater(object):
   def all_targets(self):
     """
     <Purpose>
+
+      NOTE: This function is deprecated.  Its behavior with regard to which
+      delegating Targets roles are trusted to determine how to validate a
+      delegated Targets role is NOT WELL DEFINED.  Please transition to use of
+      get_one_valid_targetinfo()!
+
       Get a list of the target information for all the trusted targets on the
       repository.  This list also includes all the targets of delegated roles.
       Targets of the list returned are ordered according the trusted order of
@@ -2558,6 +2564,12 @@ class Updater(object):
   def targets_of_role(self, rolename='targets'):
     """
     <Purpose>
+
+      NOTE: This function is deprecated.  Use with rolename 'targets' is secure
+      and the behavior well-defined, but use with any delegated targets role is
+      not. Please transition use for delegated targets roles to
+      get_one_valid_targetinfo().  More information is below.
+
       Return a list of trusted targets directly specified by 'rolename'.
       The returned information is a list conformant to
       'tuf.formats.TARGETINFOS_SCHEMA', and has the form:
@@ -2603,7 +2615,25 @@ class Updater(object):
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     securesystemslib.formats.RELPATH_SCHEMA.check_match(rolename)
 
-    self._refresh_targets_metadata(refresh_all_delegated_roles=True)
+    # If we've been given a delegated targets role, we don't know how to
+    # validate it without knowing what the delegating role is -- there could
+    # be several roles that delegate to the given role.  Behavior of this
+    # function for roles other than Targets is not well defined as a result.
+    # This function is deprecated, but:
+    #   - Usage of this function or a future successor makes sense when the
+    #     role of interest is Targets, since we always know exactly how to
+    #     validate Targets (We use root.).
+    #   - Until it's removed (hopefully soon), we'll try to provide what it has
+    #     always provided.  To do this, we fetch and "validate" all delegated
+    #     roles listed by snapshot.  For delegated roles only, the order of the
+    #     validation impacts the security of the validation -- the most-
+    #     recently-validated role delegating to a role you are currently
+    #     validating determines the expected keyids and threshold of the role
+    #     you are currently validating.  That is NOT GOOD.  Again, please switch
+    #     to get_one_valid_targetinfo, which is well-defined and secure.
+    if rolename != 'targets':
+      self._refresh_targets_metadata(refresh_all_delegated_roles=True)
+
 
     if not tuf.roledb.role_exists(rolename, self.repository_name):
       raise tuf.exceptions.UnknownRoleError(rolename)
