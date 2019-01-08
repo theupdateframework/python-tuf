@@ -4,8 +4,15 @@
 #
 #    pip-compile --generate-hashes --output-file requirements.txt requirements.in
 #
-# But run it in both Python2 and Python3, and combine the files carefully with
-# directives like  "; python_version < "3.0" and "# pyup: ignore" as necessary.
+# Run pip-compile in both Python2 and Python3, and combine the dependencies,
+# adding the following as necessary:
+#   - Add version directives like ' ; python_version >= "3.0"' based on which
+#     dependencies are required for Python2 vs Python3 (or other version
+#     constraints).
+#   - Add ' # pyup: ignore' for any dependency that must remain outdated
+#     because later versions drop support for (e.g.) Python2.
+#
+# Be sure to leave these comments at the top of the new file.
 #
 asn1crypto==0.24.0 \
     --hash=sha256:2f1adbb7546ed199e3c90ef23ec95c5cf3585bac7d11fb7eb562a3fe89c64e87 \
