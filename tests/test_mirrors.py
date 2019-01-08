@@ -112,4 +112,4 @@ class TestMirrors(unittest_toolbox.Modified_TestCase):
 
 # Run the unittests
 if __name__ == '__main__':
-  unittest.main()
+  unittest.main(buffer=True)

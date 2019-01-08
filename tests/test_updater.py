@@ -2120,4 +2120,4 @@ def _load_role_keys(keystore_directory):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  unittest.main(buffer=True)

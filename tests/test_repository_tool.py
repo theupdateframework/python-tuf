@@ -1800,4 +1800,4 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 # Run the test cases.
 if __name__ == '__main__':
-  unittest.main()
+  unittest.main(buffer=True)

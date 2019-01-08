@@ -404,4 +404,4 @@ def popen_python(command_arg_list):
 
 # Run unit test.
 if __name__ == '__main__':
-  unittest.main()
+  unittest.main(buffer=True)

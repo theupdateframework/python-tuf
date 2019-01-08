@@ -445,4 +445,4 @@ class TestSig(unittest.TestCase):
 
 # Run unit test.
 if __name__ == '__main__':
-  unittest.main()
+  unittest.main(buffer=True)
