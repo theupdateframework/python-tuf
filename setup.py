@@ -81,7 +81,7 @@ with open('README.md') as file_object:
 
 setup(
   name = 'tuf',
-  version = '0.11.2.dev2', # If updating version, also update it in tuf/__init__.py
+  version = '0.11.2.dev3', # If updating version, also update it in tuf/__init__.py
   description = 'A secure updater framework for Python',
   long_description = long_description,
   long_description_content_type='text/markdown',
