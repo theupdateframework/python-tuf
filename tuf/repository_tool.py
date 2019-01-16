@@ -102,7 +102,6 @@ TIMESTAMP_EXPIRATION = 86400
 _new_rotate_files = []
 
 
-
 class Repository(object):
   """
   <Purpose>
@@ -265,6 +264,12 @@ class Repository(object):
     # metadata file.  _generate_and_write_metadata() raises a
     # 'securesystemslib.exceptions.Error' exception if the metadata cannot be
     # written.
+
+    #Generate any new rotate files.
+    for rotate in _new_rotate_files:
+      _new_rotate_files.remove(rotate)
+      self.write_rotate_file(rotate, consistent_snapshot)
+
     root_roleinfo = tuf.roledb.get_roleinfo('root', self._repository_name)
     old_consistent_snapshot = root_roleinfo['consistent_snapshot']
     if 'root' in dirty_rolenames or consistent_snapshot != old_consistent_snapshot:
@@ -279,12 +284,6 @@ class Repository(object):
           self._targets_directory, self._metadata_directory,
           consistent_snapshot,
           repository_name=self._repository_name)
-
-    #Generate any new rotate files.
-
-    for rotate in _new_rotate_files:
-      self.write_rotate_file(rotate, consistent_snapshot)
-      _new_rotate_files.remove(rotate)
 
     # Generate the 'snapshot.json' metadata file.
     if 'snapshot' in dirty_rolenames:
@@ -367,6 +366,7 @@ class Repository(object):
     relative_filename = rotate.get_filename()
     rotate_directory = os.path.join(self._metadata_directory, self._rotate_directory)
     rotate_filename = os.path.join(rotate_directory, relative_filename)
+
     if not os.path.exists(rotate_directory):
       try:
         logger.info('Creating ' + repr(rotate_directory))
@@ -380,12 +380,16 @@ class Repository(object):
         else:
           raise
 
-
     #write if the file does not exist or if this is a revocation
-    if not os.path.isfile(rotate_filename) or rotate._new_keys.contains(repo_lib.NULL_KEY):
-      #set version number to 1 as should be immutable
-      repo_lib.write_metadata_file(rotate.get_file_contents(), rotate_filename, 
-          1, consistent_snapshot)
+    if (not os.path.isfile(rotate_filename)) or (repo_lib.NULL_KEY in rotate._new_keys):
+      if (tuf.sig.verify(rotate.get_file_contents(), rotate._role, self._repository_name)):
+        #set version number to 1 as should be immutable
+        repo_lib.write_metadata_file(rotate.get_file_contents(), rotate_filename, 
+            1, consistent_snapshot)
+      else:
+        raise tuf.exceptions.InvalidRotateFileError("rotate file not properly signed")
+    else:
+      raise tuf.exceptions.ImmutableRotateFileError("Rotate files can only be replaced with a revocation") 
 
 
 
@@ -659,7 +663,8 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    securesystemslib.formats.ANYKEY_SCHEMA.check_match(key)
+    if (not key is repo_lib.NULL_KEY):
+      securesystemslib.formats.ANYKEY_SCHEMA.check_match(key)
 
     # If 'expires' is unset, choose a default expiration for 'key'.  By
     # default, Root, Targets, Snapshot, and Timestamp keys are set to expire
@@ -735,7 +740,7 @@ class Metadata(object):
 
 
 
-  def add_rotate_file(self, old_keyids, old_threshold, new_keyids, new_threshold, private_keys, rolename="default"):
+  def add_rotate_file(self, old_keyids, old_threshold, new_private_keys, new_keyids, new_threshold, private_keys, rolename="default"):
     """
     <Purpose>
       Add rotate file to the metadata directory that rotates from 'old_keyids'
@@ -754,8 +759,8 @@ class Metadata(object):
         The current threshold, used for determining the rotate filename and 
         signing the rotate file
 
-      new_keyids:
-        The new keyids that will be put into the rotate file. May be the same 
+      new_keys:
+        The new keys that will be put into the rotate file. May be the same 
         as old_keyids as long as there is a different threshold
 
       new_threshold:
@@ -795,9 +800,11 @@ class Metadata(object):
 
     rotate_file.make_json()
 
+    for key in new_private_keys:
+      self.add_verification_key(key)
+
     for key in private_keys:
       rotate_file.add_rotate_signature(key)
-
 
     _new_rotate_files.append(rotate_file)
 
@@ -1495,7 +1502,7 @@ class Rotate(Metadata):
 
     super(Rotate, self).__init__()
     self._rotate_directory = rotate_directory
-    self._rolename = 'rotate'
+    self._rolename = role
     self._repository_name = repository_name
     self._role = role
     self._new_keys = new_keys
@@ -1505,6 +1512,16 @@ class Rotate(Metadata):
     self._old_threshold = old_threshold
     
     self._signable = ""
+
+    """roleinfo = {'keyids': old_keyids, 'signing_keyids': [], 'threshold': old_threshold,
+                'signatures': [], 'version': 0, 'consistent_snapshot': False,
+                'expires': expiration, 'partial_loaded': False}
+    try:
+      tuf.roledb.add_role(self._rolename, roleinfo, self._repository_name)
+
+    except tuf.exceptions.RoleAlreadyExistsError:
+      pass
+    """
 
   def get_filename(self):
     '''

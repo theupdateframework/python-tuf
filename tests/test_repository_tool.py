@@ -114,6 +114,21 @@ class TestRepository(unittest.TestCase):
 
 
 
+  def test_rotate(self):
+    # Test rotate file creation.
+    repository_name = 'test_repository'
+    repository = repo_tool.Repository('repository_directory/',
+        'metadata_directory/', 'targets_directory/', 'rotate_directory/', 
+        repository_name)
+
+    rotate_file = repo_tool.Rotate(repo_tool.ROTATE_DIRECTORY_NAME, repository_name, 
+        "timestamp", [], 1, [], 1)
+    self.assertTrue(isinstance(rotate_file, repo_tool.Rotate))
+
+    self.assertEquals(rotate_file.get_file_contents(), "")
+
+
+
   def test_writeall(self):
     # Test creation of a TUF repository.
     #

@@ -49,6 +49,9 @@ class RotateRevocationError(Error):
 class InvalidRotateFileError(Error):
   """Indicate an invalid rotate file"""
 
+class ImmutableRotateFileError(Error):
+  """Indicate that a rotate file already exists"""
+
 class InvalidKeyError(Error):
   """Indicate a a cycle in rotate files, equivalent to a key revocation"""
 

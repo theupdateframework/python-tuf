@@ -171,6 +171,47 @@ class TestRotateFile(unittest_toolbox.Modified_TestCase):
 
 
   # UNIT TESTS.
+  def test_key_rotation_errors(self):
+    # First verify that the Targets role is properly signed.  Calling
+    # refresh() should not raise an exception.
+    self.repository_updater.refresh()
+
+    # There should only be one key for Targets.  Store the keyid to later
+    # verify that it has been revoked.
+    targets_roleinfo = tuf.roledb.get_roleinfo('targets', self.repository_name)
+    targets_keyid = targets_roleinfo['keyids']
+    self.assertEqual(len(targets_keyid), 1)
+
+    #add rotate files
+    repository = repo_tool.load_repository(self.repository_directory)
+    #make new key the timestamp key for testing and keep the threshold at 1
+    new_keyids = [self.role_keys['timestamp']['public']['keyid']]
+    new_threshold = 1
+
+    #first rotate file
+    rotate_file = repository.targets.add_rotate_file(targets_roleinfo['keyids'], targets_roleinfo['threshold'],
+          [self.role_keys['timestamp']['private']], new_keyids, new_threshold, 
+          [self.role_keys['targets']['private']])
+    repository.targets.load_signing_key(self.role_keys['timestamp']['private'])
+    #self.assertRaises(tuf.exceptions.InvalidRotateFileError, repository.writeall)
+    repository.writeall()
+
+    #should not need to rewrite or update anything else
+
+    # The client performs a refresh of top-level metadata to get the latest
+    # changes.
+    self.repository_updater.refresh()
+
+    #this is not signed, should return to the old values, which will verify
+    #self.assertTrue(tuf.sig.verify(rotate_file, 'targets', self.repository_name, targets_roleinfo['threshold'], targets_roleinfo['keyids']))
+
+    rotate_file = repository.targets.add_rotate_file(targets_roleinfo['keyids'], 
+          targets_roleinfo['threshold'], [self.role_keys['targets']['private']], 
+          new_keyids, new_threshold, [self.role_keys['targets']['private']])
+    self.assertRaises(tuf.exceptions.ImmutableRotateFileError, repository.writeall)
+
+
+
   def test_targets_key_rotation(self):
     # First verify that the Targets role is properly signed.  Calling
     # refresh() should not raise an exception.
@@ -187,7 +228,10 @@ class TestRotateFile(unittest_toolbox.Modified_TestCase):
     #make new key the timestamp key for testing and keep the threshold at 1
     new_keyids = [self.role_keys['timestamp']['public']['keyid']]
     new_threshold = 1
-    rotate_file = repository.targets.add_rotate_file(targets_roleinfo['keyids'], targets_roleinfo['threshold'], new_keyids, new_threshold, [self.role_keys['targets']['private']])
+    rotate_file = repository.targets.add_rotate_file(targets_roleinfo['keyids'], 
+          targets_roleinfo['threshold'], [self.role_keys['timestamp']['private']], 
+          new_keyids, new_threshold, [self.role_keys['targets']['private']])
+    repository.targets.load_signing_key(self.role_keys['timestamp']['private'])
     repository.writeall()
 
     #should not need to rewrite or update anything else
@@ -217,7 +261,10 @@ class TestRotateFile(unittest_toolbox.Modified_TestCase):
     #make new key the timestamp key for testing and keep the threshold at 1
     new_keyids = [self.role_keys['timestamp']['public']['keyid']]
     new_threshold = 1
-    rotate_file = repository.targets.add_rotate_file(root_roleinfo['keyids'], root_roleinfo['threshold'], new_keyids, new_threshold, [self.role_keys['root']['private']], "root")
+    rotate_file = repository.targets.add_rotate_file(root_roleinfo['keyids'], 
+          root_roleinfo['threshold'], [self.role_keys['timestamp']['private']], 
+          new_keyids, new_threshold, [self.role_keys['root']['private']], "root")
+    repository.targets.load_signing_key(self.role_keys['timestamp']['private'])
     repository.writeall()
 
     # This will fail because the root file is not signed with the new key
@@ -257,7 +304,9 @@ class TestRotateFile(unittest_toolbox.Modified_TestCase):
     #make new key the timestamp key for testing and keep the threshold at 1
     new_keyids = [repo_lib.NULL_KEY]
     new_threshold = 1
-    rotate_file = repository.targets.add_rotate_file(targets_roleinfo['keyids'], targets_roleinfo['threshold'], new_keyids, new_threshold, [self.role_keys['targets']['private']])
+    rotate_file = repository.targets.add_rotate_file(targets_roleinfo['keyids'], 
+          targets_roleinfo['threshold'], [], new_keyids, new_threshold, 
+          [self.role_keys['targets']['private']])
     repository.writeall()
 
     #should not need to rewrite or update anything else
