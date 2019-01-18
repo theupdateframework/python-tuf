@@ -363,29 +363,29 @@ class Repository(object):
 
 
   def write_rotate_file(self, rotate, consistent_snapshot):
-  """
-    <Purpose>
-      Write a rotate file to the directory.
+    """
+      <Purpose>
+        Write a rotate file to the directory.
 
-    <Arguments>
-      rotate:
-        The Rotate object to be written.
+      <Arguments>
+        rotate:
+          The Rotate object to be written.
 
-      consistent_snapshot:
-        A boolean indicating whether written metadata and target files should
-        include a version number in the filename (i.e.,
-        <version_number>.root.json, <version_number>.README.json
-        Example: 13.root.json'
+        consistent_snapshot:
+          A boolean indicating whether written metadata and target files should
+          include a version number in the filename (i.e.,
+          <version_number>.root.json, <version_number>.README.json
+          Example: 13.root.json'
 
-    <Exceptions>
-      tuf.exceptions.InvalidRotateFileError, if the rotate file cannot be created due to invalid signatures or an existing rotate file.
+      <Exceptions>
+        tuf.exceptions.InvalidRotateFileError, if the rotate file cannot be created due to invalid signatures or an existing rotate file.
 
-    <Side Effects>
-      The rotate file is written.
+      <Side Effects>
+        The rotate file is written.
 
-    <Returns>
-      None.
-  """
+      <Returns>
+        None.
+    """
     #git the filename, and create the rotate directory if it does not exist
     relative_filename = rotate.get_filename()
     rotate_directory = os.path.join(self._metadata_directory, self._rotate_directory)
@@ -405,8 +405,8 @@ class Repository(object):
           raise
 
     #write if the file does not exist or if this is a revocation
-    if (not os.path.isfile(rotate_filename)) or (repo_lib.NULL_KEY in rotate._new_keys):
-      if (tuf.sig.verify(rotate.get_file_contents(), rotate._role, self._repository_name)):
+    if (not os.path.isfile(rotate_filename)) or (repo_lib.NULL_KEY in rotate.new_keys):
+      if (tuf.sig.verify(rotate.get_file_contents(), rotate.role, self._repository_name)):
         #set version number to 1 as should be immutable
         repo_lib.write_metadata_file(rotate.get_file_contents(), rotate_filename, 
             1, consistent_snapshot)
@@ -1532,8 +1532,8 @@ class Rotate(Metadata):
     self._rotate_directory = rotate_directory
     self._rolename = role
     self._repository_name = repository_name
-    self._role = role
-    self._new_keys = new_keys
+    self.role = role
+    self.new_keys = new_keys
     self._new_threshold = new_threshold
     self._previous = self.find_previous()
     self._old_keyids = old_keyids
@@ -1558,7 +1558,7 @@ class Rotate(Metadata):
     filename_prev = hashlib.sha256(self._previous.encode('utf-8')).hexdigest()
 
     #role.rotate.ID.PREV
-    filename = self._role + ".rotate." + filename_id + "." + filename_prev
+    filename = self.role + ".rotate." + filename_id + "." + filename_prev
 
     return filename
 
@@ -1569,7 +1569,7 @@ class Rotate(Metadata):
 
     #initialize
     prev = ""
-    roleinfo = tuf.roledb.get_roleinfo(self._role, self._repository_name)
+    roleinfo = tuf.roledb.get_roleinfo(self.role, self._repository_name)
     old_keyids = roleinfo['keyids']
     old_threshold = roleinfo['threshold']
     
@@ -1579,7 +1579,7 @@ class Rotate(Metadata):
       filename_id = hashlib.sha256((".".join(old_keyids) + "." + str(old_threshold)).encode('utf-8')).hexdigest()
       filename_prev = hashlib.sha256(prev.encode('utf-8')).hexdigest()
 
-      new_prev = self._role + ".rotate." + filename_id + "." + filename_prev
+      new_prev = self.role + ".rotate." + filename_id + "." + filename_prev
       if os.path.exists(new_prev):
         #file exists, read and check values
         prev = new_prev
@@ -1592,7 +1592,7 @@ class Rotate(Metadata):
 
         #check if this is a revocation, if so abort
         if repo_lib.NULL_KEY in old_keys:
-          raise tuf.exceptions.RotateRevocationError("Role " + self._role + " has been revoked by a rotate file")
+          raise tuf.exceptions.RotateRevocationError("Role " + self.role + " has been revoked by a rotate file")
 
         old_keyids = []
         for key in old_keys:
@@ -1610,8 +1610,8 @@ class Rotate(Metadata):
     '''
     file_contents = {"_type" : "rotate"}
     file_contents['previous'] = self._previous
-    file_contents['role'] = self._role
-    file_contents['keys'] = self._new_keys
+    file_contents['role'] = self.role
+    file_contents['keys'] = self.new_keys
     file_contents['threshold'] = self._new_threshold
 
     self._signable = tuf.formats.make_signable(file_contents)
