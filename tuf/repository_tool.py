@@ -363,6 +363,30 @@ class Repository(object):
 
 
   def write_rotate_file(self, rotate, consistent_snapshot):
+  """
+    <Purpose>
+      Write a rotate file to the directory.
+
+    <Arguments>
+      rotate:
+        The Rotate object to be written.
+
+      consistent_snapshot:
+        A boolean indicating whether written metadata and target files should
+        include a version number in the filename (i.e.,
+        <version_number>.root.json, <version_number>.README.json
+        Example: 13.root.json'
+
+    <Exceptions>
+      tuf.exceptions.InvalidRotateFileError, if the rotate file cannot be created due to invalid signatures or an existing rotate file.
+
+    <Side Effects>
+      The rotate file is written.
+
+    <Returns>
+      None.
+  """
+    #git the filename, and create the rotate directory if it does not exist
     relative_filename = rotate.get_filename()
     rotate_directory = os.path.join(self._metadata_directory, self._rotate_directory)
     rotate_filename = os.path.join(rotate_directory, relative_filename)
@@ -759,7 +783,10 @@ class Metadata(object):
         The current threshold, used for determining the rotate filename and 
         signing the rotate file
 
-      new_keys:
+      new_private_keys:
+        The new private keys to be added to the keydb
+
+      new_keyids:
         The new keys that will be put into the rotate file. May be the same 
         as old_keyids as long as there is a different threshold
 
@@ -787,6 +814,7 @@ class Metadata(object):
     if (rolename == "default"):
       rolename = self.rolename
 
+    #fine the new keys, checking for null keys
     new_keys = []
     for keyid in new_keyids:
       if keyid is repo_lib.NULL_KEY:
@@ -795,14 +823,17 @@ class Metadata(object):
         key = tuf.keydb.get_key(keyid, repository_name=self._repository_name)
       new_keys.append(key)
 
+    #create the rotate object
     rotate_file = Rotate(ROTATE_DIRECTORY_NAME, self._repository_name, rolename,
                          new_keys, new_threshold, old_keyids, old_threshold)
 
     rotate_file.make_json()
 
+    #add new keys to the keydb
     for key in new_private_keys:
       self.add_verification_key(key)
 
+    #add signatures to the rotate file
     for key in private_keys:
       rotate_file.add_rotate_signature(key)
 
@@ -1460,9 +1491,6 @@ class Rotate(Metadata):
       The name of the repository.  If not supplied, 'rolename' is added to the
       'default' repository.
 
-    previous:
-      The name of the previous rotate file. If not supplied it is the empty string
-
     role:
       The role that the rotate file is associated with.
 
@@ -1513,15 +1541,8 @@ class Rotate(Metadata):
     
     self._signable = ""
 
-    """roleinfo = {'keyids': old_keyids, 'signing_keyids': [], 'threshold': old_threshold,
-                'signatures': [], 'version': 0, 'consistent_snapshot': False,
-                'expires': expiration, 'partial_loaded': False}
-    try:
-      tuf.roledb.add_role(self._rolename, roleinfo, self._repository_name)
 
-    except tuf.exceptions.RoleAlreadyExistsError:
-      pass
-    """
+
 
   def get_filename(self):
     '''
@@ -1616,6 +1637,9 @@ class Rotate(Metadata):
         ' an invalid key type.' + repr(key['keytype']))
 
   def get_file_contents(self):
+    '''
+    Return the file contents
+    '''
     #TODO check signatures here (?)
     if self._signable != "":
       return self._signable
