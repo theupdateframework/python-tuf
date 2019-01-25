@@ -39,7 +39,6 @@ import logging
 import tempfile
 import shutil
 import json
-import hashlib
 
 import tuf
 import tuf.formats
@@ -1554,8 +1553,13 @@ class Rotate(Metadata):
 
     old_keyids.sort()
 
-    filename_id = hashlib.sha256((".".join(old_keyids) + "." + str(old_threshold)).encode('utf-8')).hexdigest()
-    filename_prev = hashlib.sha256(self._previous.encode('utf-8')).hexdigest()
+    digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
+    digest_object.update((".".join(old_keyids) + "." + str(old_threshold)).encode('utf-8'))
+    filename_id = digest_object.hexdigest()
+
+    digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
+    digest_object.update(self._previous.encode('utf-8'))
+    filename_prev = digest_object.hexdigest()
 
     #role.rotate.ID.PREV
     filename = self.role + ".rotate." + filename_id + "." + filename_prev
@@ -1576,8 +1580,13 @@ class Rotate(Metadata):
     #keep looking until no rotate file is found
     while True:
       old_keyids.sort()
-      filename_id = hashlib.sha256((".".join(old_keyids) + "." + str(old_threshold)).encode('utf-8')).hexdigest()
-      filename_prev = hashlib.sha256(prev.encode('utf-8')).hexdigest()
+      digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
+      digest_object.update((".".join(old_keyids) + "." + str(old_threshold)).encode('utf-8'))
+      filename_id = digest_object.hexdigest()
+
+      digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
+      digest_object.update(prev.encode('utf-8'))
+      filename_prev = digest_object.hexdigest()
 
       new_prev = self.role + ".rotate." + filename_id + "." + filename_prev
       if os.path.exists(new_prev):

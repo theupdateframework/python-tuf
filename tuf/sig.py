@@ -49,7 +49,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import logging
-import hashlib
 import os
 
 import tuf
@@ -70,6 +69,8 @@ iso8601_logger = logging.getLogger('iso8601')
 iso8601_logger.disabled = True
 
 from tuf.repository_lib import NULL_KEY
+
+HASH_FUNCTION = tuf.settings.DEFAULT_HASH_ALGORITHM
 
 
 def get_signature_status(signable, role=None, repository_name='default',
@@ -255,7 +256,15 @@ def _check_rotation(role, repository_name, threshold, keyids, previous_filename)
   keyids.sort()
 
   #role.rotate.ID.PREV
-  relative_filename = role + ".rotate." + hashlib.sha256((".".join(keyids) + "." + str(threshold)).encode('utf-8')).hexdigest() + "." + hashlib.sha256(previous_filename.encode('utf-8')).hexdigest()
+  digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
+  digest_object.update((".".join(keyids) + "." + str(threshold)).encode('utf-8'))
+  file_id = digest_object.hexdigest()
+
+  digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
+  digest_object.update(previous_filename.encode('utf-8'))
+  file_prev = digest_object.hexdigest()
+
+  relative_filename = role + ".rotate." + file_id + "." + file_prev
 
 #TODO: get directory from rotate directory field in roledb
   repository_directory = tuf.settings.repositories_directory
