@@ -109,7 +109,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     # We do *not* catch 'tuf.DownloadLengthMismatchError' in the following two
     # calls because the file at 'self.url' contains enough bytes to satisfy the
     # smaller number of required bytes requested. safe_download() and
-    # unsafe_download() will only log a warning when the the server-reported
+    # unsafe_download() will only log a warning when the server-reported
     # length of the file does not match the required_length.  'updater.py'
     # *does* verify the hashes of downloaded content.
     download.safe_download(self.url, self.target_data_length - 4)

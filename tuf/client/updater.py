@@ -1521,7 +1521,7 @@ class Updater(object):
 
     # Finally, update the metadata and fileinfo stores, and rebuild the
     # key and role info for the top-level roles if 'metadata_role' is root.
-    # Rebuilding the the key and role info is required if the newly-installed
+    # Rebuilding the key and role info is required if the newly-installed
     # root metadata has revoked keys or updated any top-level role information.
     logger.debug('Updated ' + repr(current_filepath) + '.')
     self.metadata['previous'][metadata_role] = current_metadata_object
