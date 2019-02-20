@@ -466,14 +466,14 @@ specification and [METADATA.md](METADATA.md) for a detailed example.
 All of the target files available on the software repository created so far
 have been added to one role (the top-level Targets role).  However, what if
 multiple developers are responsible for the files of a project?  What if
-responsiblity separation is desired?  Performing a delegation, where one role
+responsibility separation is desired?  Performing a delegation, where one role
 delegates trust of some paths to another role, is an option for integrators
 that require additional roles on top of the top-level roles available by
 default.
 
 In the next sub-section, the `unclaimed` role is delegated from the top-level
 `targets` role.  The `targets` role specifies the delegated role's public keys,
-the paths it is trusted to provide, and its role name.  Futhermore, the example
+the paths it is trusted to provide, and its role name. Furthermore, the example
 below demonstrates a nested delegation from `unclaimed` to `django`.  Once a
 role has delegated trust to another, the delegated role may independently add
 targets and generate signed metadata.
@@ -577,7 +577,7 @@ hashed bins (a special type of delegated role) might be an easier alternative
 to manually performing the delegations.  How many target files should each
 delegated role contain?  How will these delegations affect the number of
 metadata that clients must additionally download in a typical update?  Hashed
-bin delegations are availabe to integrators that rather not deal with the
+bin delegations are available to integrators that rather not deal with the
 management of delegated roles and a great number of target files.
 
 A large number of target files may be distributed to multiple hashed bins with

@@ -111,7 +111,7 @@ Note: This is a backwards-incompatible pre-release.
 
 Note: This is a backwards-incompatible pre-release.
 
-* Support TAP 4 (multiple repository concensus on entrusted targets).
+* Support TAP 4 (multiple repository consensus on entrusted targets).
   https://github.com/theupdateframework/taps/blob/master/tap4.md
 
 * Add quick start guide.
@@ -127,7 +127,7 @@ Note: This is a backwards-incompatible pre-release.
 * Add Pylint and Bandit (security) linters to Travis CI.  Fix issues reported
   by both linters.
 
-* Tidy up documenation and directory structure.
+* Tidy up documentation and directory structure.
 
 * Add option to exclude custom field when returning valid targetinfo with
   MultiRepoUpdater.get_valid_targetinfo().
