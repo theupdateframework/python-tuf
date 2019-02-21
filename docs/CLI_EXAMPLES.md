@@ -117,7 +117,7 @@ the expected file that should be downloaded by the client.
 (7) halt the server, add README.txt to the Targets role, restart the server,
 and fetch the Target's role README.txt.
 
-(8) Add LICENSE to 'role_y' and demonstate that the client must not fetch it
+(8) Add LICENSE to 'role_y' and demonstrate that the client must not fetch it
 because 'role_x' is a terminating delegation (and hasn't signed for it).
 
 ```Bash

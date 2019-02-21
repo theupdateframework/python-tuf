@@ -4,7 +4,7 @@ This is the 1-year roadmap for the project.
 
 ## Release schedule
 A new release of the project is expected every 3 months.  The release cycle,
-upcoming tasks, and any stated goals are subject to change.  The antipicated
+upcoming tasks, and any stated goals are subject to change.  The anticipated
 release dates are as follows:
 
 **January** 2018 ([0.10.2](https://github.com/theupdateframework/tuf/releases/tag/v0.10.2) released Jan. 31)
