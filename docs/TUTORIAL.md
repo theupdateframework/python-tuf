@@ -74,7 +74,7 @@ updates.
 ### Keys ###
 The repository tool supports multiple public-key algorithms, such as
 [RSA](https://en.wikipedia.org/wiki/RSA_%28cryptosystem%29) and
-[Ed25519](https://ed25519.cr.yp.to/), and multiple cryptography libraries.
+[Ed25519](http://ed25519.cr.yp.to/), and multiple cryptography libraries.
 Which cryptography library to use is determined by the default, or user modified,
 settings in [settings.py](../tuf/settings.py).
 
