@@ -195,7 +195,7 @@ def get_signature_status(signable, role=None, repository_name='default',
           untrusted_sigs.append(keyid)
           continue
 
-      # This is an unset role, thus an unknown signature.
+      # This is an unset role, thus an unknown signature. # TODO: <~> THIS IS WRONG.
       else:
         unknown_sigs.append(keyid)
         continue

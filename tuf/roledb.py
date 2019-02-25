@@ -132,24 +132,60 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
   # Do not modify the contents of the 'root_metadata' argument.
   root_metadata = copy.deepcopy(root_metadata)
 
-  # Iterate the roles found in 'root_metadata' and add them to '_roledb_dict'.
-  # Duplicates are avoided.
-  for rolename, roleinfo in six.iteritems(root_metadata['roles']):
-    if rolename == 'root':
-      roleinfo['version'] = root_metadata['version']
-      roleinfo['expires'] = root_metadata['expires']
-      roleinfo['previous_keyids'] = roleinfo['keyids']
-      roleinfo['previous_threshold'] = roleinfo['threshold']
+  # TODO: Make sure that the schema check at the top is adequate to validate
+  #       the contents of this metadata.  Should we be finicky about optional
+  #       args?  Should I make sure there are no extra elements?  Etc.
 
-    roleinfo['signatures'] = []
-    roleinfo['signing_keyids'] = []
-    roleinfo['partial_loaded'] = False
+  # Screw all the stuff below.  The internal metadata format should be
+  # CONSISTENT throughout TUF!  We use exactly what's in the metadata!
+  add_role('root', root_metadata, repository_name)
 
-    if rolename.startswith('targets'):
-      roleinfo['paths'] = {}
-      roleinfo['delegations'] = {'keys': {}, 'roles': []}
+  # TODO: See if it's necessary to add shallow entries.  More likely, we
+  #       should make fewer assumptions about these top-level roles being in
+  #       here before they're loaded.
+  # # Now we add shallow entries for the other top-level roles to avoid them
+  # # being considered unknown roles.
+  # # TODO: Determine if this can be skipped.
+  # add_role('timestamp', {}, repository_name)
+  # add_role('snapshot', {}, repository_name)
+  # add_role('targets', {}, repository_name)
 
-    add_role(rolename, roleinfo, repository_name)
+
+
+  # # Iterate the roles found in 'root_metadata' and add them to '_roledb_dict'.
+  # # Duplicates are avoided.
+  # for rolename, roleinfo in six.iteritems(root_metadata['roles']):
+  #   if rolename == 'root':
+  #     # TODO: Figure out why this code only stores version and expiration in
+  #     #       roledb for root, and not for other roles?
+  #     roleinfo['version'] = root_metadata['version']
+  #     roleinfo['expires'] = root_metadata['expires']
+  #     roleinfo['previous_keyids'] = roleinfo['keyids']
+  #     roleinfo['previous_threshold'] = roleinfo['threshold']
+
+  #   #roleinfo['signatures'] = []
+  #   #roleinfo['signing_keyids'] = []
+  #   #roleinfo['partial_loaded'] = False
+
+  #   # TODO: Figure out if rolename case sensitivity is consistent across TUF.
+  #   # TODO: Decide if we should skip these listings of non-top-level roles in
+  #   #       root metadata.
+  #   if not _is_top_level_role(rolename.lower()):
+  #     logger.warning(
+  #         'Found delegation metadata in a root role for a role that is not a '
+  #         'top-level role: ' + rolename + '.  Root should only be designating '
+  #         'authorized signing info for top-level roles.')
+
+  #   # TODO: <~> Kill this with fire.  This doesn't even make sense!  Root does
+  #   #           not list delegated targets roles......
+  #   if rolename.startswith('targets'):
+  #     raise Error('WTF?')
+  #     # TODO: <~> Note that this assumes that delegated roles begin with
+  #     #           "targets".  Is this still the case?? (targets/role1?)
+  #     roleinfo['paths'] = {}
+  #     roleinfo['delegations'] = {'keys': {}, 'roles': []}
+
+  #   add_role(rolename, roleinfo, repository_name)
 
 
 
@@ -256,20 +292,26 @@ def add_role(rolename, roleinfo, repository_name='default'):
       (e.g., 'root', 'snapshot', 'timestamp').
 
     roleinfo:
-      An object representing the role associated with 'rolename', conformant to
-      ROLEDB_SCHEMA.  'roleinfo' has the form:
-      {'keyids': ['34345df32093bd12...'],
-       'threshold': 1,
-       'signatures': ['ab23dfc32']
-       'paths': ['path/to/target1', 'path/to/target2', ...],
-       'path_hash_prefixes': ['a324fcd...', ...],
-       'delegations': {'keys': }
+      An object representing the role associated with 'rolename', conforming to
+      tuf.formats.ANYROLE_SCHEMA.
 
-      The 'paths', 'path_hash_prefixes', and 'delegations' dict keys are
-      optional.
-
-      The 'target' role has an additional 'paths' key.  Its value is a list of
-      strings representing the path of the target file(s).
+      For example, here's a timestamp role that could be provided as an
+      argument.
+          {
+            "_type": "timestamp",
+            "expires": "2030-01-01T00:00:00Z",
+            "meta": {
+             "snapshot.json": {
+              "hashes": {
+               "sha256": "6990b6586ed545387c6a51db62173b903a5dff46b17b1bc3fe1e6ca0d0844f2f"
+              },
+              "length": 554,
+              "version": 1
+             }
+            },
+            "spec_version": "1.0",
+            "version": 1
+          }
 
     repository_name:
       The name of the repository to store 'rolename'.  If not supplied,
@@ -298,12 +340,12 @@ def add_role(rolename, roleinfo, repository_name='default'):
   tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
 
   # Does 'roleinfo' have the correct object format?
-  tuf.formats.ROLEDB_SCHEMA.check_match(roleinfo)
+  tuf.formats.ANYROLE_SCHEMA.check_match(roleinfo)
 
   # Is 'repository_name' correctly formatted?
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
-  global _roledb_dict
+  global _roledb_dict  # TODO: Not needed, kill.
 
   # Raises securesystemslib.exceptions.InvalidNameError.
   _validate_rolename(rolename)
@@ -334,18 +376,26 @@ def update_roleinfo(rolename, roleinfo, mark_role_as_dirty=True, repository_name
       (e.g., 'root', 'snapshot', 'timestamp').
 
     roleinfo:
-      An object representing the role associated with 'rolename', conformant to
-      ROLEDB_SCHEMA.  'roleinfo' has the form:
-      {'name': 'role_name',
-       'keyids': ['34345df32093bd12...'],
-       'threshold': 1,
-       'paths': ['path/to/target1', 'path/to/target2', ...],
-       'path_hash_prefixes': ['a324fcd...', ...]}
+      A dictionary representing role metadata for rolename, as loaded from or
+      written to disk.  This must conform to tuf.formats.ANYROLE_SCHEMA.
 
-      The 'name', 'paths', and 'path_hash_prefixes' dict keys are optional.
-
-      The 'target' role has an additional 'paths' key.  Its value is a list of
-      strings representing the path of the target file(s).
+      For example, here's a timestamp role that could be provided as an
+      argument.
+          {
+            "_type": "timestamp",
+            "expires": "2030-01-01T00:00:00Z",
+            "meta": {
+             "snapshot.json": {
+              "hashes": {
+               "sha256": "6990b6586ed545387c6a51db62173b903a5dff46b17b1bc3fe1e6ca0d0844f2f"
+              },
+              "length": 554,
+              "version": 1
+             }
+            },
+            "spec_version": "1.0",
+            "version": 1
+          }
 
     mark_role_as_dirty:
       A boolean indicating whether the updated 'roleinfo' for 'rolename' should
@@ -384,7 +434,7 @@ def update_roleinfo(rolename, roleinfo, mark_role_as_dirty=True, repository_name
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
   # Does 'roleinfo' have the correct object format?
-  tuf.formats.ROLEDB_SCHEMA.check_match(roleinfo)
+  tuf.formats.ANYROLE_SCHEMA.check_match(roleinfo)
 
   # Raises securesystemslib.exceptions.InvalidNameError.
   _validate_rolename(rolename)
@@ -687,17 +737,7 @@ def get_rolenames(repository_name='default'):
 def get_roleinfo(rolename, repository_name='default'):
   """
   <Purpose>
-    Return the roleinfo of 'rolename'.
-
-    {'keyids': ['34345df32093bd12...'],
-     'threshold': 1,
-     'signatures': ['ab453bdf...', ...],
-     'paths': ['path/to/target1', 'path/to/target2', ...],
-     'path_hash_prefixes': ['a324fcd...', ...],
-     'delegations': {'keys': {}, 'roles': []}}
-
-    The 'signatures', 'paths', 'path_hash_prefixes', and 'delegations' dict keys
-    are optional.
+    Return the roleinfo of 'rolename', conforming to tuf.formats.ANYROLE_SCHEMA
 
   <Arguments>
     rolename:
@@ -743,23 +783,34 @@ def get_roleinfo(rolename, repository_name='default'):
 
 
 
-def get_role_keyids(rolename, repository_name='default'):
+def get_delegation_keyids(
+    rolename, repository_name='default', delegating_rolename='root'):
   """
   <Purpose>
-    Return a list of the keyids associated with 'rolename'.  Keyids are used as
-    identifiers for keys (e.g., rsa key).  A list of keyids are associated with
-    each rolename.  Signing a metadata file, such as 'root.json' (Root role),
-    involves signing or verifying the file with a list of keys identified by
-    keyid.
+    Given two roles, finds the delegation from delegating_rolename to rolename,
+    and returns the list of keyids authorized to sign role rolename, according
+    to that delegation from delegating_rolename.  Searches one repository.
+
+    If rolename is a top-level role ('targets', 'snapshot', 'root',
+    'timestamp'), then the delegating role must always be 'root'.  Delegated
+    targets roles, however, have no single authorizing role, so we must know
+    what targets role is doing the delegating that we care about.
 
   <Arguments>
     rolename:
-      An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
+      A string representing the role's name, conformant to 'ROLENAME_SCHEMA'
       (e.g., 'root', 'snapshot', 'timestamp').
 
     repository_name:
-      The name of the repository to get the role keyids.  If not supplied, the
-      'default' repository is searched.
+      The name of the repository whose roles we will inspect. If not supplied,
+      the 'default' repository is searched.
+
+    delegating_rolename:
+      The name of the role delegating authority to role rolename.  If this is
+      a top-level role, this must always be 'root'.  If this is a delegated
+      targets role, it cannot be 'root', and should be a targets role
+      delegating to role rolename, along a delegation that we are interested
+      in.
 
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the arguments do not have the
@@ -790,28 +841,43 @@ def get_role_keyids(rolename, repository_name='default'):
   global _roledb_dict
   global _dirty_roles
 
-  roleinfo = _roledb_dict[repository_name][rolename]
+  delegation = get_delegation(rolename, delegating_rolename, repository_name)
 
-  return roleinfo['keyids']
-
-
+  return delegation['keyids']
 
 
 
-def get_role_threshold(rolename, repository_name='default'):
+
+
+def get_delegation_threshold(
+    rolename, repository_name='default', delegating_rolename='root'):
   """
   <Purpose>
-    Return the threshold value of the role associated with 'rolename'.
+    Given two roles, finds the delegation from delegating_rolename to rolename,
+    and returns the threshold number of keys required to sign rolename,
+    according to that delegation from delegating_rolename.  Searches one
+    repository.
+
+    If rolename is a top-level role ('targets', 'snapshot', 'root',
+    'timestamp'), then the delegating role must always be 'root'.  Delegated
+    targets roles, however, have no single authorizing role, so we must know
+    what targets role is doing the delegating that we care about.
 
   <Arguments>
     rolename:
-      An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
+      A string representing the role's name, conformant to 'ROLENAME_SCHEMA'
       (e.g., 'root', 'snapshot', 'timestamp').
 
     repository_name:
-      The name of the repository to get the role threshold.  If not supplied,
+      The name of the repository whose roles we will inspect. If not supplied,
       the 'default' repository is searched.
 
+    delegating_rolename:
+      The name of the role delegating authority to role rolename.  If this is
+      a top-level role, this must always be 'root'.  If this is a delegated
+      targets role, it cannot be 'root', and should be a targets role
+      delegating to role rolename, along a delegation that we are interested
+      in.
 
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the arguments do not have the
@@ -842,27 +908,42 @@ def get_role_threshold(rolename, repository_name='default'):
   global _roledb_dict
   global _dirty_roles
 
-  roleinfo = _roledb_dict[repository_name][rolename]
+  delegation = get_delegation(rolename, delegating_rolename, repository_name)
 
-  return roleinfo['threshold']
-
-
+  return delegation['threshold']
 
 
 
-def get_role_paths(rolename, repository_name='default'):
+
+
+def get_delegation_paths(
+    rolename, repository_name='default', delegating_rolename):
   """
   <Purpose>
-    Return the paths of the role associated with 'rolename'.
+    Given two roles, finds the delegation from delegating_rolename to rolename,
+    and returns the paths delegated in that delegation.  Searches one
+    repository.
+
+    Only delegated targets roles are constrained to particular paths, so if
+    the given rolename is the name of a top-level role, an empty dictionary is
+    returned.
+
+    Delegated targets roles, however, have no single authorizing role, so we
+    must know what targets role is doing the delegating in order to find that
+    delegation.
 
   <Arguments>
     rolename:
-      An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
+      A string representing the role's name, conformant to 'ROLENAME_SCHEMA'
       (e.g., 'root', 'snapshot', 'timestamp').
 
     repository_name:
-      The name of the repository to get the role paths.  If not supplied, the
-      'default' repository is searched.
+      The name of the repository whose roles we will inspect. If not supplied,
+      the 'default' repository is searched.
+
+    delegating_rolename:
+      The name of the role delegating authority to role rolename, in the
+      delegation we are interested in.
 
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the arguments do not have the
@@ -890,17 +971,16 @@ def get_role_paths(rolename, repository_name='default'):
   # securesystemslib.exceptions.InvalidNameError.
   _check_rolename(rolename, repository_name)
 
-  global _roledb_dict
-  global _dirty_roles
 
-  roleinfo = _roledb_dict[repository_name][rolename]
-
-  # Paths won't exist for non-target roles.
-  try:
-    return roleinfo['paths']
-
-  except KeyError:
+  if _is_top_level_role(rolename):
+    # TODO: This doesn't really make a lot of sense.  See if there's a reason
+    #       to not just raise an error (which would make more sense).
     return dict()
+
+
+  delegation = get_delegation(rolename, delegating_rolename, repository_name)
+
+  return delegation['paths']
 
 
 

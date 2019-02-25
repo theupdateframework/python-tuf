@@ -100,8 +100,8 @@ ROLENAME_SCHEMA = SCHEMA.AnyString()
 # 'paths':[filepaths..]} format.
 # TODO: This is not a role.  In further #660-related PRs, fix it, similar to
 #       the way I did in Uptane's TUF fork.
-ROLE_SCHEMA = SCHEMA.Object(
-  object_name = 'ROLE_SCHEMA',
+DELEGATION_SCHEMA = SCHEMA.Object(
+  object_name = 'DELEGATION_SCHEMA',
   name = SCHEMA.Optional(securesystemslib.formats.ROLENAME_SCHEMA),
   keyids = securesystemslib.formats.KEYIDS_SCHEMA,
   threshold = securesystemslib.formats.THRESHOLD_SCHEMA,
@@ -109,11 +109,21 @@ ROLE_SCHEMA = SCHEMA.Object(
   paths = SCHEMA.Optional(securesystemslib.formats.RELPATHS_SCHEMA),
   path_hash_prefixes = SCHEMA.Optional(securesystemslib.formats.PATH_HASH_PREFIXES_SCHEMA))
 
+# This is the data stored for each top-level role, in root metadata.
+# TODO: Why is threshold schema in securesystemslib instead of here? Change
+# TODO: Contemplate alternative names like AUTHENTICATION_INFO_SCHEMA.
+#       This is the minimal information necessary for authentication in TUF.
+TOP_LEVEL_DELEGATION_SCHEMA = SCHEMA.Object(
+  object_name = 'TOP_LEVEL_DELEGATION_SCHEMA',
+  keyids = securesystemslib.formats.KEYIDS_SCHEMA,
+  threshold = securesystemslib.formats.THRESHOLD_SCHEMA)
+
+# TODO: <~> Look through where this is used and kill it or fix it.
 # A dict of roles where the dict keys are role names and the dict values holding
 # the role data/information.
-ROLEDICT_SCHEMA = SCHEMA.DictOf(
-  key_schema = ROLENAME_SCHEMA,
-  value_schema = ROLE_SCHEMA)
+# ROLEDICT_SCHEMA = SCHEMA.DictOf(
+#   key_schema = ROLENAME_SCHEMA,
+#   value_schema = ROLE_SCHEMA)
 
 # A dictionary of ROLEDICT, where dictionary keys can be repository names, and
 # dictionary values containing information for each role available on the
@@ -195,16 +205,6 @@ PATH_HASH_PREFIX_SCHEMA = HEX_SCHEMA
 # A list of path hash prefixes.
 PATH_HASH_PREFIXES_SCHEMA = SCHEMA.ListOf(PATH_HASH_PREFIX_SCHEMA)
 
-# Role object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1,
-# 'paths':[filepaths..]} format.
-ROLE_SCHEMA = SCHEMA.Object(
-  object_name = 'ROLE_SCHEMA',
-  name = SCHEMA.Optional(ROLENAME_SCHEMA),
-  keyids = KEYIDS_SCHEMA,
-  threshold = THRESHOLD_SCHEMA,
-  backtrack = SCHEMA.Optional(BOOLEAN_SCHEMA),
-  paths = SCHEMA.Optional(RELPATHS_SCHEMA),
-  path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA))
 
 # A dict of roles where the dict keys are role names and the dict values holding
 # the role data/information.
@@ -271,7 +271,7 @@ MAPFILE_SCHEMA = SCHEMA.Object(
 # Like ROLEDICT_SCHEMA, except that ROLE_SCHEMA instances are stored in order.
 ROLELIST_SCHEMA = SCHEMA.ListOf(ROLE_SCHEMA)
 
-# The delegated roles of a Targets role (a parent).
+# The 'delegations' entry in a piece of targets role metadata.
 DELEGATIONS_SCHEMA = SCHEMA.Object(
   keys = KEYDICT_SCHEMA,
   roles = ROLELIST_SCHEMA)
@@ -291,21 +291,23 @@ PATH_FILEINFO_SCHEMA = SCHEMA.DictOf(
   key_schema = RELPATH_SCHEMA,
   value_schema = CUSTOM_SCHEMA)
 
-# TUF roledb
-ROLEDB_SCHEMA = SCHEMA.Object(
-  object_name = 'ROLEDB_SCHEMA',
-  keyids = SCHEMA.Optional(KEYIDS_SCHEMA),
-  signing_keyids = SCHEMA.Optional(KEYIDS_SCHEMA),
-  previous_keyids = SCHEMA.Optional(KEYIDS_SCHEMA),
-  threshold = SCHEMA.Optional(THRESHOLD_SCHEMA),
-  previous_threshold = SCHEMA.Optional(THRESHOLD_SCHEMA),
-  version = SCHEMA.Optional(METADATAVERSION_SCHEMA),
-  expires = SCHEMA.Optional(ISO8601_DATETIME_SCHEMA),
-  signatures = SCHEMA.Optional(securesystemslib.formats.SIGNATURES_SCHEMA),
-  paths = SCHEMA.Optional(SCHEMA.OneOf([RELPATHS_SCHEMA, PATH_FILEINFO_SCHEMA])),
-  path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA),
-  delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA),
-  partial_loaded = SCHEMA.Optional(BOOLEAN_SCHEMA))
+# TODO: <~> Kill it with fire.  This is nonsensical.  We use the actual
+#           metadata format.  Maybe we add partial_loaded if we need it.
+# # TUF roledb
+# ROLEDB_SCHEMA = SCHEMA.Object(
+#   object_name = 'ROLEDB_SCHEMA',
+#   keyids = SCHEMA.Optional(KEYIDS_SCHEMA),
+#   signing_keyids = SCHEMA.Optional(KEYIDS_SCHEMA),
+#   previous_keyids = SCHEMA.Optional(KEYIDS_SCHEMA),
+#   threshold = SCHEMA.Optional(THRESHOLD_SCHEMA),
+#   previous_threshold = SCHEMA.Optional(THRESHOLD_SCHEMA),
+#   version = SCHEMA.Optional(METADATAVERSION_SCHEMA),
+#   expires = SCHEMA.Optional(ISO8601_DATETIME_SCHEMA),
+#   signatures = SCHEMA.Optional(securesystemslib.formats.SIGNATURES_SCHEMA),
+#   paths = SCHEMA.Optional(SCHEMA.OneOf([RELPATHS_SCHEMA, PATH_FILEINFO_SCHEMA])),
+#   path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA),
+#   delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA),
+#   partial_loaded = SCHEMA.Optional(BOOLEAN_SCHEMA))
 
 # A signable object.  Holds the signing role and its associated signatures.
 SIGNABLE_SCHEMA = SCHEMA.Object(
