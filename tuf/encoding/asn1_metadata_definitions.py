@@ -551,7 +551,24 @@ class TargetsEnvelope(ac.Sequence):
 
 
 
+class AnyMetadata(ac.Choice):
+  _alternatives = [
+      ('root', RootMetadata),
+      ('timestamp', TimestampMetadata),
+      ('snapshot', SnapshotMetadata),
+      ('targets', TargetsMetadata)]
 
+class AnyEnvelope(ac.Choice):
+  _alternatives = [
+      ('root', RootEnvelope),
+      ('timestamp', TimestampEnvelope),
+      ('snapshot', SnapshotEnvelope),
+      ('targets', TargetsEnvelope)]
+
+class SomeType(ac.Choice):
+  _alternatives = [
+      ('int', ac.Integer),
+      ('oct', ac.OctetString)]
 
 
 # # Or we could define the following, instead of the above four Envelope classes.
@@ -567,3 +584,11 @@ class TargetsEnvelope(ac.Sequence):
 #   _fields = [
 #       ('signatures', Signatures),
 #       ('signed', AnyMetadata)]
+
+
+KNOWN_TYPE_STRING_MAPPINGS = {
+    'root': RootMetadata,
+    'timestamp': TimestampMetadata,
+    'snapshot': SnapshotMetadata,
+    'targets': TargetsMetadata}
+

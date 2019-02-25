@@ -46,6 +46,7 @@ import tuf.sig
 import tuf.log
 import tuf.repository_lib as repo_lib
 import tuf.repository_tool
+import tuf.encoding.util
 
 import securesystemslib
 import securesystemslib.util
@@ -470,7 +471,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
 
   # non-partial write()
   else:
-    if tuf.sig.verify(signable, rolename, repository_name):
+    if tuf.sig.verify_signable(signable, rolename, repository_name):
       metadata['version'] = metadata['version'] + 1
       signable = repo_lib.sign_metadata(metadata, roleinfo['signing_keyids'],
           metadata_filename, repository_name)
@@ -478,7 +479,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   # Write the metadata to file if contains a threshold of signatures.
   signable['signatures'].extend(roleinfo['signatures'])
 
-  if tuf.sig.verify(signable, rolename, repository_name) or write_partial:
+  if tuf.sig.verify_signable(signable, rolename, repository_name) or write_partial:
     repo_lib._remove_invalid_and_duplicate_signatures(signable, repository_name)
     filename = repo_lib.write_metadata_file(signable, metadata_filename,
         metadata['version'], False)
@@ -832,7 +833,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
   # Load the project's metadata.
   targets_metadata_path = os.path.join(project_directory, metadata_directory,
       project_filename)
-  signable = securesystemslib.util.load_json_file(targets_metadata_path)
+  signable = tuf.encoding.util.deserialize_file(targets_metadata_path)
   tuf.formats.check_signable_object_format(signable)
   targets_metadata = signable['signed']
 
@@ -898,7 +899,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
         continue
 
       signable = None
-      signable = securesystemslib.util.load_json_file(metadata_path)
+      signable = tuf.encoding.util.deserialize_file(metadata_path)
 
       # Strip the prefix from the local working copy, it will be added again
       # when the targets metadata is written to disk.

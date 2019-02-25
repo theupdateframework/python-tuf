@@ -47,6 +47,7 @@ import tuf.roledb
 import tuf.sig
 import tuf.log
 import tuf.settings
+import tuf.encoding.util
 
 import securesystemslib
 import securesystemslib.interface
@@ -187,7 +188,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
     def should_write():
       # Root must be signed by its previous keys and threshold.
       if rolename == 'root' and len(previous_keyids) > 0:
-        if not tuf.sig.verify(signable, rolename, repository_name,
+        if not tuf.sig.verify_signable(signable, rolename, repository_name,
             previous_threshold, previous_keyids):
           return False
 
@@ -195,7 +196,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
           logger.debug('Root is signed by a threshold of its previous keyids.')
 
       # In the normal case, we should write metadata if the threshold is met.
-      return tuf.sig.verify(signable, rolename, repository_name,
+      return tuf.sig.verify_signable(signable, rolename, repository_name,
           roleinfo['threshold'], roleinfo['signing_keyids'])
 
 
@@ -248,14 +249,15 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 def _metadata_is_partially_loaded(rolename, signable, repository_name):
   """
   Non-public function that determines whether 'rolename' is loaded with
-  at least zero good signatures, but an insufficient threshold (which means
-  'rolename' was written to disk with repository.write_partial()).  A repository
-  maintainer may write partial metadata without including a valid signature.
-  Howerver, the final repository.write() must include a threshold number of
+  insufficient good signatures to meet its signing threshold.  'rolename' may
+  have been written to disk with repository.write_partial(), which allows a
+  role to be written even if it does not have enough signatures to be trusted.
+  (A repository maintainer may write partial metadata without including a valid
+  signature, or enough valid signatures.)
+  However, the final repository.write() must include a threshold number of
   signatures.
 
-  If 'rolename' is found to be partially loaded, mark it as partially loaded in
-  its 'tuf.roledb' roleinfo.  This function exists to assist in deciding whether
+  This function exists to assist in deciding whether
   a role's version number should be incremented when write() or write_parital()
   is called.  Return True if 'rolename' was partially loaded, False otherwise.
   """
@@ -264,8 +266,7 @@ def _metadata_is_partially_loaded(rolename, signable, repository_name):
   # bad, untrusted, unknown, etc.
   status = tuf.sig.get_signature_status(signable, rolename, repository_name)
 
-  if len(status['good_sigs']) < status['threshold'] and \
-                                                  len(status['good_sigs']) >= 0:
+  if len(status['good_sigs']) < status['threshold']:
     return True
 
   else:
@@ -542,7 +543,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
   if os.path.exists(root_filename):
 
     # Initialize the key and role metadata of the top-level roles.
-    signable = securesystemslib.util.load_json_file(root_filename)
+    signable = tuf.encoding.util.deserialize_file(root_filename)
     tuf.formats.check_signable_object_format(signable)
     root_metadata = signable['signed']
     tuf.keydb.create_keydb_from_root_metadata(root_metadata, repository_name)
@@ -585,7 +586,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
   # Load 'timestamp.json'.  A Timestamp role file without a version number is
   # always written.
   if os.path.exists(timestamp_filename):
-    signable = securesystemslib.util.load_json_file(timestamp_filename)
+    signable = tuf.encoding.util.deserialize_file(timestamp_filename)
     timestamp_metadata = signable['signed']
     for signature in signable['signatures']:
       repository.timestamp.add_signature(signature, mark_role_as_dirty=False)
@@ -622,7 +623,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
         str(snapshot_version) + '.' + basename + METADATA_EXTENSION)
 
   if os.path.exists(snapshot_filename):
-    signable = securesystemslib.util.load_json_file(snapshot_filename)
+    signable = tuf.encoding.util.deserialize_file(snapshot_filename)
     tuf.formats.check_signable_object_format(signable)
     snapshot_metadata = signable['signed']
 
@@ -657,7 +658,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     targets_filename = os.path.join(dirname, str(targets_version) + '.' + basename)
 
   if os.path.exists(targets_filename):
-    signable = securesystemslib.util.load_json_file(targets_filename)
+    signable = tuf.encoding.util.deserialize_file(targets_filename)
     tuf.formats.check_signable_object_format(signable)
     targets_metadata = signable['signed']
 

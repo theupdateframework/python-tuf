@@ -35,8 +35,12 @@ import tuf.encoding.asn1_metadata_definitions as asn1_definitions
 import tuf.exceptions
 
 
-# DEBUG ONLY; remove.
-DEBUG_MODE = True
+# DEBUG ONLY; remove.  These messages are low level and frequent enough that
+# they're not even appropriate for logger.debug(), so I have this here until
+# I'm satisfied with the behavior of this module.
+# TODO: Add a few logger messages at higher level (success and failure of
+# conversions, probably at the end to_asn1 and from_asn1.)
+DEBUG_MODE = False
 recursion_level = -1
 def debug(msg):
   if DEBUG_MODE:
@@ -664,6 +668,10 @@ def _structlike_dict_to_asn1(data, datatype):
         'to convert subcomponent named "' + element_name_asn1 + '", of type ' +
         str(element_type))
 
+    if element_type is None:
+      import pdb; pdb.set_trace()
+      print('debugging')
+
     element_asn1 = to_asn1(data[element_name_py], element_type)
 
     asn1_obj[element_name_asn1] = element_asn1
@@ -742,6 +750,13 @@ def from_asn1(asn1_obj):
           and convert to ASN.1 and back, you will get a dict back that uses
           strings for those indices instead.  There are probably a few quirky
           edge cases like this to keep in mind.
+
+  Cases addressed here: asn1_obj is:
+    Void
+    Primitive
+    List-like to be converted to list
+    List-like to be converted to dict
+    Struct-like
   """
   debug('from_asn1() called to convert from ' + str(type(asn1_obj)) +
       '. asn1crypto data: ' + str(asn1_obj))
@@ -817,6 +832,9 @@ def from_asn1(asn1_obj):
 
 
   elif is_structlike_datatype(type(asn1_obj)):
+    # In the case of converting from a Sequence/Set, we convert back to a dict,
+    # assuming that the structure of the dict should be the same as the
+    # structure of the ASN.1 object.
     debug('Converting to struct-like dict from ' + str(type(asn1_obj)))
     data = _structlike_dict_from_asn1(asn1_obj)
     debug(

@@ -47,6 +47,7 @@ import tuf.sig
 import tuf.log
 import tuf.exceptions
 import tuf.repository_lib as repo_lib
+import tuf.encoding.util
 
 import securesystemslib.keys
 import securesystemslib.formats
@@ -2976,7 +2977,7 @@ def load_repository(repository_directory, repository_name='default'):
     signable = None
 
     try:
-      signable = securesystemslib.util.load_json_file(metadata_path)
+      signable = tuf.encoding.util.deserialize_file(metadata_path)
 
     except (securesystemslib.exceptions.Error, ValueError, IOError):
       logger.debug('Tried to load metadata with invalid JSON'
@@ -3081,7 +3082,7 @@ def dump_signable_metadata(metadata_filepath):
   # Are the argument properly formatted?
   securesystemslib.formats.PATH_SCHEMA.check_match(metadata_filepath)
 
-  signable = securesystemslib.util.load_json_file(metadata_filepath)
+  signable = tuf.encoding.util.deserialize_file(metadata_filepath)
 
   # Is 'signable' a valid metadata file?
   tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
@@ -3137,7 +3138,7 @@ def append_signature(signature, metadata_filepath):
   securesystemslib.formats.SIGNATURE_SCHEMA.check_match(signature)
   securesystemslib.formats.PATH_SCHEMA.check_match(metadata_filepath)
 
-  signable = securesystemslib.util.load_json_file(metadata_filepath)
+  signable = tuf.encoding.util.deserialize_file(metadata_filepath)
 
   # Is 'signable' a valid metadata file?
   tuf.formats.SIGNABLE_SCHEMA.check_match(signable)

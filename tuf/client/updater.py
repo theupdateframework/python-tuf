@@ -139,6 +139,7 @@ import tuf.mirrors
 import tuf.roledb
 import tuf.sig
 import tuf.exceptions
+import tuf.encoding.util
 
 import securesystemslib.hash
 import securesystemslib.keys
@@ -833,17 +834,23 @@ class Updater(object):
       # Load the file.  The loaded object should conform to
       # 'tuf.formats.SIGNABLE_SCHEMA'.
       try:
-        metadata_signable = securesystemslib.util.load_json_file(
+        metadata_signable = tuf.encoding.util.deserialize_file(
             metadata_filepath)
 
       # Although the metadata file may exist locally, it may not
       # be a valid json file.  On the next refresh cycle, it will be
       # updated as required.  If Root if cannot be loaded from disk
       # successfully, an exception should be raised by the caller.
-      except securesystemslib.exceptions.Error:
+      except (securesystemslib.exceptions.Error, tuf.exceptions.Error):
         return
 
-      tuf.formats.check_signable_object_format(metadata_signable)
+      # JUST DEBUGGING. Get rid of the try/except again afterwards.
+      try:
+        tuf.formats.check_signable_object_format(metadata_signable)
+      except securesystemslib.exceptions.FormatError:
+        import pdb; pdb.set_trace()
+        print('debugging')
+
 
       # Extract the 'signed' role object from 'metadata_signable'.
       metadata_object = metadata_signable['signed']
@@ -1134,8 +1141,8 @@ class Updater(object):
     latest_root_metadata_file = self._get_metadata_file(
         'root', 'root.json', DEFAULT_ROOT_UPPERLENGTH, None)
 
-    latest_root_metadata = securesystemslib.util.load_json_string(
-        latest_root_metadata_file.read().decode('utf-8'))
+    latest_root_metadata = tuf.encoding.util.deserialize(
+        latest_root_metadata_file.read())
 
 
     next_version = current_root_metadata['version'] + 1
@@ -1402,10 +1409,10 @@ class Updater(object):
       None.
     """
 
-    metadata = metadata_file_object.read().decode('utf-8')
+    metadata = metadata_file_object.read()
 
     try:
-      metadata_signable = securesystemslib.util.load_json_string(metadata)
+      metadata_signable = tuf.encoding.util.deserialize(metadata)
 
     except Exception as exception:
       raise tuf.exceptions.InvalidMetadataJSONError(exception)
@@ -1423,7 +1430,7 @@ class Updater(object):
     # metadata.
 
     # Verify the signature on the downloaded metadata object.
-    valid = tuf.sig.verify(metadata_signable, metadata_role,
+    valid = tuf.sig.verify_signable(metadata_signable, metadata_role,
         self.repository_name)
 
     if not valid:
@@ -1487,8 +1494,7 @@ class Updater(object):
         # Verify 'file_object' according to the callable function.
         # 'file_object' is also verified if decompressed above (i.e., the
         # uncompressed version).
-        metadata_signable = \
-          securesystemslib.util.load_json_string(file_object.read().decode('utf-8'))
+        metadata_signable = tuf.encoding.util.deserialize(file_object.read())
 
         # Determine if the specification version number is supported.  It is
         # assumed that "spec_version" is in (major.minor.fix) format, (for
@@ -1570,7 +1576,8 @@ class Updater(object):
     current_root_role = current_root_metadata['roles'][rolename]
 
     # Verify next metadata with current keys/threshold
-    valid = tuf.sig.verify(next_root_metadata, rolename, self.repository_name,
+    valid = tuf.sig.verify_signable(
+        next_root_metadata, rolename, self.repository_name,
         current_root_role['threshold'], current_root_role['keyids'])
 
     if not valid:
@@ -1766,7 +1773,7 @@ class Updater(object):
     # Note that the 'move' method comes from securesystemslib.util's TempFile class.
     # 'metadata_file_object' is an instance of securesystemslib.util.TempFile.
     metadata_signable = \
-      securesystemslib.util.load_json_string(metadata_file_object.read().decode('utf-8'))
+      tuf.encoding.util.deserialize(metadata_file_object.read())
 
     metadata_file_object.move(current_filepath)
 

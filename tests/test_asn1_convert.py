@@ -28,6 +28,7 @@ from __future__ import unicode_literals
 import unittest
 unittest.util._MAX_LENGTH=20000  # DEBUG
 import os
+import os.path
 import logging
 import binascii # for bytes to hex
 # Dependency Imports
@@ -377,7 +378,7 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_signed_portion_of_root_conversion(self):
+  def test_root_conversion(self):
     root = {
       'signatures': [
         {
@@ -437,22 +438,25 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     # Test by calling the general to_asn1 and from_asn1 calls that will call
     # the helper functions.
     # 'signed' subsection first.
-    self.conversion_check(
+    data_asn1, data_der = self.conversion_check(
         data=root['signed'],
         datatype=asn1_defs.RootMetadata,
         expected_der=root_data_expected_der)
 
+    write_test_data_file('root_signed_portion_only.der', data_der)
+
     # Then the whole thing.
-    self.conversion_check(
+    data_asn1, data_der = self.conversion_check(
         data=root,
         datatype=asn1_defs.RootEnvelope,
         expected_der=root_signable_expected_der)
 
+    write_test_data_file('root_envelope.der', data_der)
 
 
 
 
-  def test_signed_portion_of_timestamp_conversion(self):
+  def test_timestamp_conversion(self):
     timestamp = {
       'signatures': [
         {
@@ -486,22 +490,27 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     # Test by calling the general to_asn1 and from_asn1 calls that will call
     # the helper functions.
     # 'signed' subsection first.
-    self.conversion_check(
+    data_asn1, data_der = self.conversion_check(
         data=timestamp['signed'],
         datatype=asn1_defs.TimestampMetadata,
         expected_der=timestamp_data_expected_der)
 
+    write_test_data_file('timestamp_signed_portion_only.der', data_der)
+
+
     # Then the whole thing.
-    self.conversion_check(
+    data_asn1, data_der = self.conversion_check(
         data=timestamp,
         datatype=asn1_defs.TimestampEnvelope,
         expected_der=timestamp_signable_expected_der)
 
+    write_test_data_file('timestamp_envelope.der', data_der)
 
 
 
 
-  def test_signed_portion_of_snapshot_conversion(self):
+
+  def test_snapshot_conversion(self):
     snapshot = {
       'signatures': [
         {
@@ -536,16 +545,22 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     # Test by calling the general to_asn1 and from_asn1 calls that will call
     # the helper functions.
     # 'signed' subsection first.
-    self.conversion_check(
+    data_asn1, data_der = self.conversion_check(
         data=snapshot['signed'],
         datatype=asn1_defs.SnapshotMetadata,
         expected_der=snapshot_data_expected_der)
 
+    write_test_data_file('snapshot_signed_contents.der', data_der)
+
+
     # Then the whole thing.
-    self.conversion_check(
+    data_asn1, data_der = self.conversion_check(
         data=snapshot,
         datatype=asn1_defs.SnapshotEnvelope,
         expected_der=snapshot_signable_expected_der)
+
+    write_test_data_file('snapshot_envelope.der', data_der)
+
 
 
 
@@ -623,17 +638,20 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
     # Test by calling the general to_asn1 and from_asn1 calls that will call
     # the helper functions.
     # 'signed' subsection first.
-    self.conversion_check(
+    data_asn1, data_der = self.conversion_check(
         data=targets['signed'],
         datatype=asn1_defs.TargetsMetadata,
         expected_der=targets_data_expected_der)
 
+    write_test_data_file('targets_w_delegation_and_targets_signed_contents.der', data_der)
+
     # Then the whole thing.
-    self.conversion_check(
+    data_asn1, data_der = self.conversion_check(
         data=targets,
         datatype=asn1_defs.TargetsEnvelope,
         expected_der=targets_signable_expected_der)
 
+    write_test_data_file('targets_w_delegation_and_targets_full_envelope.der', data_der)
 
 
 
@@ -786,6 +804,28 @@ class TestASN1(unittest_toolbox.Modified_TestCase):
 
       if hasattr(obj1, field):
         self.assertEqual(getattr(obj1, field), getattr(obj2, field))
+
+
+
+
+
+def write_test_data_file(fname, data_der):
+
+  if not os.path.exists('der_test_data'):
+    os.mkdir('der_test_data')
+
+  # Lazy protection.
+  assert '/' not in fname
+  assert '\\' not in fname
+  assert '~' not in fname
+  assert '..' not in fname
+  fullpath = os.path.abspath(os.path.join('der_test_data', fname))
+  assert fullpath.startswith(os.getcwd())
+
+  with open(fullpath, 'wb') as fobj:
+    fobj.write(data_der)
+
+
 
 
 

@@ -129,9 +129,12 @@ pynacl==1.3.0 \
 requests==2.21.0 \
     --hash=sha256:502a824f31acdacb3a35b6690b5fbf0bc41d63a24a45c4004352b0242707598e \
     --hash=sha256:7bf2a778576d825600030a110f3c0e3e8edc51dfaafe1c146e39a2027784957b
-securesystemslib==0.11.3 \
-    --hash=sha256:368ef6f6cc40d3636e271485c7adb21c53c22200bab44a2fe8af62886a01c3d5 \
-    --hash=sha256:cbd1f7f1af2f2921be33b9fd17384705f5f4147d3a8b5d95b33ec3ce2213f176
+# Temporary.  Switch to main-branch git dependency when the PR is merged, then
+# switch back to a normal PyPI dependency when a release is made.
+git+https://github.com/secure-systems-lab/securesystemslib.git@separate_data_serialization_from_signing
+# securesystemslib==0.11.3 \
+#     --hash=sha256:368ef6f6cc40d3636e271485c7adb21c53c22200bab44a2fe8af62886a01c3d5 \
+#     --hash=sha256:cbd1f7f1af2f2921be33b9fd17384705f5f4147d3a8b5d95b33ec3ce2213f176
 six==1.12.0 \
     --hash=sha256:3350809f0555b11f552448330d0b52d5f24c91a322ea4a15ef22629740f3761c \
     --hash=sha256:d16a0141ec1a18405cd4ce8b4613101da75da0e9a7aec5bdd4fa804d0e0eba73

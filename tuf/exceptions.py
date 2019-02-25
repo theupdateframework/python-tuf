@@ -138,7 +138,7 @@ class BadSignatureError(CryptoError):
 
 
 class UnknownMethodError(CryptoError):
-  """Indicate that a user-specified cryptograpthic method is unknown."""
+  """Indicate that a user-specified cryptographic method is unknown."""
 
 
 class UnsupportedLibraryError(Error):
@@ -264,4 +264,3 @@ class ASN1ConversionError(Error):
   defined in the specification) to the ASN.1 format this implementation allows,
   or vice versa.
   """
-  pass

@@ -228,12 +228,12 @@ TUFMetadataDefinitions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     expires             VisibleString,  -- date&time, UTC, as a UNIX timestamp
     version             IntegerNatural,
 
-    meta                SET OF RoleInfo                 -- unordered set
+    meta                SET OF RoleVersion                 -- unordered set
     -- What these should probably be called instead:
-    -- role-infos          SET OF RoleInfo
+    -- role-versions    SET OF RoleVersion
   }
 
-  RoleInfo ::= SEQUENCE {
+  RoleVersion ::= SEQUENCE {
     filename            VisibleString,
     version             IntegerNatural
     -- Older versions of TUF used a hash here instead of a version number.

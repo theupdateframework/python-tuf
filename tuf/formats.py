@@ -110,6 +110,12 @@ FILEINFODICT_SCHEMA = SCHEMA.DictOf(
 # A string representing a role's name.
 ROLENAME_SCHEMA = SCHEMA.AnyString()
 
+TOPLEVEL_ROLENAME_SCHEMA = SCHEMA.OneOf([
+    SCHEMA.String('root'), SCHEMA.String('timestamp'),
+    SCHEMA.String('snapshot'), SCHEMA.String('targets'),
+    SCHEMA.String('Root'), SCHEMA.String('Timestamp'),
+    SCHEMA.String('Snapshot'), SCHEMA.String('Targets')])
+
 # Role object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1,
 # 'paths':[filepaths..]} format.
 ROLE_SCHEMA = SCHEMA.Object(
