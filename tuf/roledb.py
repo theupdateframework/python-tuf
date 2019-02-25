@@ -113,6 +113,10 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
   # Is 'repository_name' formatted correctly?
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
+  # TODO: Confirm that none of these functions are actually changing the
+  #       pointer, only operating within these two variables, and then remove
+  #       all global statements for these two variables.  (They're not required
+  #       if so.)
   global _roledb_dict
   global _dirty_roles
 
@@ -963,6 +967,124 @@ def get_delegated_rolenames(rolename, repository_name='default'):
 
 
 
+def get_delegation(
+    delegated_rolename, delegating_rolename='root', repository_name='default'):
+  '''
+  <Purpose>
+    Given a repository name and the two endpoints of a delegation, return the
+    delegating role's info on the delegation.
+
+    This handles "delegations" from root to the four top-level roles as well
+    as delegations from any targets role (top-level or delegated) to a
+    delegated targets role.
+
+  <Returns>
+    Delegation info.  This is either delegation/authorization metadata for a
+    top-level role or a delegated targets role.
+
+    Top-level role delegations, provided in root metadata, are very simple,
+    conforming to tuf.formats.TOP_LEVEL_DELEGATION_SCHEMA. For example:
+        {
+          'keyids': ['1234...'],
+          'threshold': 1
+        }
+
+    Delegated targets role delegations (delegations from a targets role to
+    another targets role) are a bit more complex, conforming to
+    tuf.formats.DELEGATION_SCHEMA. For example:
+        {
+          "name": "role1",
+          "keyids": ["1234..."],
+          "threshold": 1
+          "paths": ["file3.txt"],
+          "terminating": False,
+        }
+
+  <Exceptions>
+    tuf.exceptions.UnknownRoleEror
+        if the delegating_rolename is not a known role.
+
+    tuf.exceptions.InvalidNameError
+        if repository_name is not a known repository
+
+    tuf.exceptions.Error
+        if role delegating_rolename does not have a delegation to role
+        delegated_rolename
+
+    Note that delegated_rolename does not have to be the name of a known role
+    in roledb; this function may be useful while roles are being loaded, and
+    before the entry is created for the delegated role.
+
+  <Side Effects>
+    None
+  '''
+
+  # Validate the arguments.
+  _check_rolename(delegating_rolename, repository_name)
+  tuf.formats.ROLENAME_SCHEMA.check_match(delegated_rolename)
+
+  # Determine if the given rolename is the name of a top-level role.
+  top_level = _is_top_level_role(delegated_rolename)
+
+  # Argument sanity check: top-level roles can only be delegated by root, and
+  # delegated targets roles cannot be delegated by root.
+  if top_level != (delegating_rolename == 'root'):
+    raise tuf.exceptions.Error(
+        'Rolename ' + delegated_rolename + ' can only be delegated to by '
+        'root, not by ' + delegating_rolename)
+
+
+  if top_level:
+    # If we're dealing with a top-level role, the delegation information is in
+    # the root metadata.
+
+    root_delegations = _roledb_dict[repository_name]['root']['roles']
+
+    if rolename not in root_delegations:
+      raise tuf.exceptions.Error( # TODO: Consider UnknownRoleError
+          'Root metadata does not include delegation metadata for role ' +
+          rolename)
+
+    delegation = root_delegations[rolename]
+    tuf.formats.TOP_LEVEL_DELEGATION_SCHEMA.check_match(delegation)
+    return delegation
+
+
+  else: # TODO: Make less wordy later.
+    # Otherwise, we're dealing with a delegated targets role, so there's no
+    # single source for the delegation information (authorized keys, etc.); we
+    # have to be told what delegating role we're interested in getting
+    # authorizing metadata (keys, threshold, etc.) from.
+
+    # delegation will look like, e.g.:
+    #   {'keyids': ['123', ...], 'threshold': 2, 'name': <rolename>}
+
+    delegations = \
+        _roledb_dict[repository_name][delegating_rolename]['delegations']['roles']
+
+    # Note that this would be much faster with an ordered dict rather than a list
+    # of delegations.  That would probably be slightly less understandable for
+    # folks perusing this reference implementation, however, and since we need
+    # to serialize role info to JSON, it would be a bit of a nuisance when loading
+    # and unloading, and complicate the metadata definition.
+    for delegation in delegations:
+      if delegation['name'] == deelgated_rolename:
+        tuf.formats.DELEGATION_SCHEMA.check_match(delegation)
+        return delegation
+
+  raise tuf.exceptions.Error(
+      'Delegation from ' + delegating_rolename + ' to ' + delegated_rolename +
+      ' in repository ' + repository_name + ' not found.')
+
+
+
+
+
+
+
+
+
+
 def clear_roledb(repository_name='default', clear_all=False):
   """
   <Purpose>
@@ -1049,6 +1171,9 @@ def _check_rolename(rolename, repository_name='default'):
 
 
 
+# TODO: Move the ROLENAME_SCHEMA check from _check_rolename to here, and then
+#       strip some of the extra schema checks from functions that already use
+#       this function.
 def _validate_rolename(rolename):
   """
   Raise securesystemslib.exceptions.InvalidNameError if 'rolename' is not
@@ -1066,3 +1191,23 @@ def _validate_rolename(rolename):
   if rolename.startswith('/') or rolename.endswith('/'):
     raise securesystemslib.exceptions.InvalidNameError('Invalid rolename.'
       '  Cannot start or end with a "/": ' + rolename)
+
+
+
+
+
+def _is_top_level_role(rolename):
+  '''
+  Simply returns True if rolename is one of the four top-level roles, and
+  False otherwise.
+  Raises tuf.exceptions.FormatError if rolename is not valid as a rolename (not
+  the right type, etc.).
+
+  Note that this does not guarantee that the role exists in roledb.
+  '''
+  tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+
+  # TODO: We should probably integrate this list as a schema in tuf.formats.
+  top_level_roles = ['Root', 'Timestamp', 'Snapshot', 'Targets']
+
+  return rolename in top_level_roles
