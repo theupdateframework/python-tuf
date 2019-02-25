@@ -45,8 +45,8 @@
 \section{Introduction}
 The goal of a TUF repository is to store a collection of targets (the updated files 
 to be served to the client) and a set of metadata with which the client can 
-ensure that the updates they recieve are complete, timely, and authentic. Meeting 
-those goals requires that the respository be able to leverage digital signatures,
+ensure that the updates they receive are complete, timely, and authentic. Meeting
+those goals requires that the repository be able to leverage digital signatures,
 and so TUF provides a set of tools that helps manage the complexity of generating 
 metadata and improves the security posture of the repository. These tools 
 (including mechanisms for key management, delegation of trust, and key revocation) 
@@ -61,7 +61,7 @@ for TUF repositories.
 \section{Overview}
 The Update Framework is a Python library designed to assist software developers
 in the task of safely and securely updating their software after its deployment
-with an emphasis on resiliance in the face of key compromise. Towards that end,
+with an emphasis on resilience in the face of key compromise. Towards that end,
 the issues of key storage, revocation of keys and their accompanying trust, and
 the delegation of that trust have been given careful attention. This document
 exists to provide guidance on both mandatory behaviors and best practices with 
@@ -129,7 +129,7 @@ material:
 \end{enumerate}
 
 For some, the above will prove to be difficult to provide inside of an
-organization. Those users should note that while TUF by no means requries an
+organization. Those users should note that while TUF by no means requires an
 external PKI to operate, its design permits their use.
 
 \subsection{Command Line Interface}
