@@ -18,7 +18,7 @@
   See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
-  Test cases for for sig.py.
+  Test cases for sig.py.
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
