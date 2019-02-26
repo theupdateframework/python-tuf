@@ -11,6 +11,8 @@ The following is a basic workflow in four steps:
 ```Bash
 $ repo.py --init
 ```
+Four sets of keys are created in the `tufkeystore` directory and metadata
+is initiated in the `tufrepo` and `tufclient` directories.
 
 **Step (2)** - Add a target file to the repo.  The file size and hashes of
 the target file are also written to the Targets metadata file.
@@ -36,6 +38,7 @@ tufrepo/
 
     3 directories, 11 files
 ```
+The new file `testfile` is added and metadata is updated in the `tufrepo` directory.
 
 **Step (3)** - Serve the repo
 ```Bash
@@ -72,6 +75,9 @@ $ tree
 
     5 directories, 11 files
 ```
+client.py verified metadata from the server and downloaded content. The client has now verified and obtained `testfile`.
+The scope of TUF ends here.
+
 ----
 
 See [CLI.md](CLI.md) and [CLI_EXAMPLES.md](CLI_EXAMPLES.md) to learn about the
