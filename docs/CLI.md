@@ -10,7 +10,9 @@ The CLI requires a few dependencies and C extensions that can be installed with
 
 Create a TUF repository in the current working directory.  A cryptographic key
 is created and set for each top-level role.  The written Targets metadata does
-not sign for any targets, nor does it delegate trust to any roles.
+not sign for any targets, nor does it delegate trust to any roles.  The
+`--init` call will also set up a client directory.  By default, these
+directories will be `./tufrepo` and `./tufclient`.
 
 ```Bash
 $ repo.py --init
