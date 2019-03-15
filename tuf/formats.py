@@ -828,52 +828,6 @@ def make_role_metadata(keyids, threshold, name=None, paths=None,
 
 
 
-def get_role_class(expected_rolename):
-  """
-  <Purpose>
-    Return the role class corresponding to
-    'expected_rolename'.  The role name returned
-    by expected_meta_rolename() should be the name
-    passed as an argument to this function.  If
-    'expected_rolename' is 'Root', the class
-    RootFile is returned.
-
-  <Arguments>
-    expected_rolename:
-      The role name used to determine which role class
-      to return.
-
-  <Exceptions>
-    securesystemslib.exceptions.FormatError, if 'expected_rolename' is not a
-    supported role.
-
-  <Side Effects>
-    None.
-
-  <Returns>
-    The class corresponding to 'expected_rolename'.
-    E.g., 'Snapshot' as an argument to this function causes
-    SnapshotFile' to be returned.
-  """
-
-  # Does 'expected_rolename' have the correct type?
-  # This check ensures 'expected_rolename' conforms to
-  # 'securesystemslib.formats.NAME_SCHEMA'.
-  # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.NAME_SCHEMA.check_match(expected_rolename)
-
-  try:
-    role_class = ROLE_CLASSES_BY_TYPE[expected_rolename]
-
-  except KeyError:
-    raise securesystemslib.exceptions.FormatError(repr(expected_rolename) + ' '
-     'not supported.')
-
-  else:
-    return role_class
-
-
-
 def expected_meta_rolename(meta_rolename):
   """
   <Purpose>
