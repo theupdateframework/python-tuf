@@ -345,6 +345,7 @@ SNAPSHOT_SCHEMA = SCHEMA.Object(
 TIMESTAMP_SCHEMA = SCHEMA.Object(
   object_name = 'TIMESTAMP_SCHEMA',
   _type = SCHEMA.String('timestamp'),
+  spec_version = SPECIFICATION_VERSION_SCHEMA,
   version = securesystemslib.formats.METADATAVERSION_SCHEMA,
   expires = securesystemslib.formats.ISO8601_DATETIME_SCHEMA,
   meta = securesystemslib.formats.FILEDICT_SCHEMA)
