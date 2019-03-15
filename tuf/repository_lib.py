@@ -1327,6 +1327,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
   return tuf.formats.build_dict_conforming_to_schema(
       tuf.formats.ROOT_SCHEMA,
       _type='root',
+      spec_version=tuf.SPECIFICATION_VERSION,
       version=version,
       expires=expiration_date,
       keys=keydict,
@@ -1465,6 +1466,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
     return tuf.formats.build_dict_conforming_to_schema(
         tuf.formats.TARGETS_SCHEMA,
         _type='targets',
+        spec_version=tuf.SPECIFICATION_VERSION,
         version=version,
         expires=expiration_date,
         targets=filedict,
@@ -1473,6 +1475,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
     return tuf.formats.build_dict_conforming_to_schema(
         tuf.formats.TARGETS_SCHEMA,
         _type='targets',
+        spec_version=tuf.SPECIFICATION_VERSION,
         version=version,
         expires=expiration_date,
         targets=filedict)
@@ -1607,6 +1610,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   return tuf.formats.build_dict_conforming_to_schema(
       tuf.formats.SNAPSHOT_SCHEMA,
       _type='snapshot',
+      spec_version=tuf.SPECIFICATION_VERSION,
       version=version,
       expires=expiration_date,
       meta=fileinfodict)
@@ -1684,6 +1688,7 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date,
   #       There are very few things that really need to be done differently.
   return tuf.formats.build_dict_conforming_to_schema(
       tuf.formats.TIMESTAMP_SCHEMA,
+      spec_version=tuf.SPECIFICATION_VERSION,
       _type='timestamp',
       version=version,
       expires=expiration_date,
