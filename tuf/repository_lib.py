@@ -1316,11 +1316,22 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
     role_metadata = tuf.formats.make_role_metadata(keyids, role_threshold)
     roledict[rolename] = role_metadata
 
-  # Generate the root metadata object.
-  root_metadata = tuf.formats.RootFile.make_metadata(version, expiration_date,
-      keydict, roledict, consistent_snapshot)
-
-  return root_metadata
+  # Use generalized build_dict_conforming_to_schema func to produce a dict that
+  # contains all the appropriate information for this type of metadata,
+  # checking that the result conforms to the appropriate schema.
+  # TODO: Later, probably after the rewrite for TUF Issue #660, generalize
+  #       further, upward, by replacing generate_targets_metadata,
+  #       generate_root_metadata, etc. with one function that generates
+  #       metadata, possibly rolling that upwards into the calling function.
+  #       There are very few things that really need to be done differently.
+  return tuf.formats.build_dict_conforming_to_schema(
+      tuf.formats.ROOT_SCHEMA,
+      _type='root',
+      version=version,
+      expires=expiration_date,
+      keys=keydict,
+      roles=roledict,
+      consistent_snapshot=consistent_snapshot)
 
 
 
@@ -1442,10 +1453,34 @@ def generate_targets_metadata(targets_directory, target_files, version,
         shutil.copyfile(target_path, digest_target)
 
   # Generate the targets metadata object.
-  targets_metadata = tuf.formats.TargetsFile.make_metadata(version,
-      expiration_date, filedict, delegations)
-
-  return targets_metadata
+  # Use generalized build_dict_conforming_to_schema func to produce a dict that
+  # contains all the appropriate information for targets metadata,
+  # checking that the result conforms to the appropriate schema.
+  # TODO: Later, probably after the rewrite for TUF Issue #660, generalize
+  #       further, upward, by replacing generate_targets_metadata,
+  #       generate_root_metadata, etc. with one function that generates
+  #       metadata, possibly rolling that upwards into the calling function.
+  #       There are very few things that really need to be done differently.
+  if delegations is not None:
+    return tuf.formats.build_dict_conforming_to_schema(
+        tuf.formats.TARGETS_SCHEMA,
+        _type='targets',
+        version=version,
+        expires=expiration_date,
+        targets=filedict,
+        delegations=delegations)
+  else:
+    return tuf.formats.build_dict_conforming_to_schema(
+        tuf.formats.TARGETS_SCHEMA,
+        _type='targets',
+        version=version,
+        expires=expiration_date,
+        targets=filedict)
+  # TODO: As an alternative to the odd if/else above where we decide whether or
+  #       not to include the delegations argument based on whether or not it is
+  #       None, consider instead adding a check in
+  #       build_dict_conforming_to_schema that skips a keyword if that keyword
+  #       is optional in the schema and the value passed in is set to None....
 
 
 
@@ -1561,10 +1596,20 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
           ' extension: ' + metadata_filename)
 
   # Generate the Snapshot metadata object.
-  snapshot_metadata = tuf.formats.SnapshotFile.make_metadata(version,
-      expiration_date, fileinfodict)
-
-  return snapshot_metadata
+  # Use generalized build_dict_conforming_to_schema func to produce a dict that
+  # contains all the appropriate information for snapshot metadata,
+  # checking that the result conforms to the appropriate schema.
+  # TODO: Later, probably after the rewrite for TUF Issue #660, generalize
+  #       further, upward, by replacing generate_targets_metadata,
+  #       generate_root_metadata, etc. with one function that generates
+  #       metadata, possibly rolling that upwards into the calling function.
+  #       There are very few things that really need to be done differently.
+  return tuf.formats.build_dict_conforming_to_schema(
+      tuf.formats.SNAPSHOT_SCHEMA,
+      _type='snapshot',
+      version=version,
+      expires=expiration_date,
+      meta=fileinfodict)
 
 
 
@@ -1629,10 +1674,20 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date,
   # excluded.
 
   # Generate the timestamp metadata object.
-  timestamp_metadata = tuf.formats.TimestampFile.make_metadata(version,
-      expiration_date, snapshot_fileinfo)
-
-  return timestamp_metadata
+  # Use generalized build_dict_conforming_to_schema func to produce a dict that
+  # contains all the appropriate information for timestamp metadata,
+  # checking that the result conforms to the appropriate schema.
+  # TODO: Later, probably after the rewrite for TUF Issue #660, generalize
+  #       further, upward, by replacing generate_targets_metadata,
+  #       generate_root_metadata, etc. with one function that generates
+  #       metadata, possibly rolling that upwards into the calling function.
+  #       There are very few things that really need to be done differently.
+  return tuf.formats.build_dict_conforming_to_schema(
+      tuf.formats.TIMESTAMP_SCHEMA,
+      _type='timestamp',
+      version=version,
+      expires=expiration_date,
+      meta=snapshot_fileinfo)
 
 
 

@@ -24,8 +24,7 @@
   module should be read and understood before tackling this module.
 
   'formats.py' can be broken down into three sections.  (1) Schemas and object
-  matching.  (2) Classes that represent Role Metadata and help produce correctly
-  formatted files.  (3) Functions that help produce or verify TUF objects.
+  matching.  (2) Functions that help produce or verify TUF objects.
 
   The first section deals with schemas and object matching based on format.
   There are two ways of checking the format of objects.  The first method
@@ -49,17 +48,7 @@
   the match fails.  There are numerous variations of object checking
   provided by 'formats.py' and 'schema.py'.
 
-  The second section deals with the role metadata classes.  There are
-  multiple top-level roles, each with differing metadata formats.
-  Example:
-
-  root_object = tuf.formats.RootFile.from_metadata(root_metadata_file)
-  targets_metadata = tuf.formats.TargetsFile.make_metadata(...)
-
-  The input and output of these classes are checked against their respective
-  schema to ensure correctly formatted metadata.
-
-  The last section contains miscellaneous functions related to the format of
+  The second section contains miscellaneous functions related to the format of
   TUF objects.
   Example:
 
@@ -474,227 +463,46 @@ def make_signable(role_schema):
 
 
 
-class MetaFile(object):
+
+
+
+def build_dict_conforming_to_schema(schema, **kwargs):
   """
-  <Purpose>
-    Base class for all metadata file classes.
-    Classes representing metadata files such as RootFile
-    and SnapshotFile all inherit from MetaFile.  The
-    __eq__, __ne__, perform 'equal' and 'not equal' comparisons
-    between Metadata File objects.
+  Given a schema object (for example, TIMESTAMP_SCHEMA from this module) and
+  a set of keyword arguments, create a dictionary that conforms to the given
+  schema, using the keyword arguments to define the elements of the new dict.
+
+  Checks the result to make sure that it conforms to the given schema, raising
+  an error if not.
+
+  Returns the new dict conforming to the schema if there are no problems.
   """
 
-  info = {}
+  # Check that schema supports a check_match call.
+  # Duck typing version of this check:
+  if not hasattr(schema, 'check_match'):
+    raise ValueError(
+        'The given "schema" does not seem to be a schema.  It has no '
+        '"check_match" method.  Given schema: ' + repr(schema))
 
-  def __eq__(self, other):
-    return isinstance(other, MetaFile) and self.info == other.info
+  # # Strict typing version of this check:
+  # # Check that schema_name is a SCHEMA.Object.
+  # if not isinstance(schema, schema.Schema):
+  #   raise ValueError(
+  #       'The first argument must be a schema.Schema object, but is not. '
+  #       'Given schema: ' + repr(schema))
 
-  __hash__ = None
+  # The return value.
+  d = {}
 
-  def __ne__(self, other):
-    return not self.__eq__(other)
+  for key, value in kwargs.items():
+    d[key] = value
 
+  schema.check_match(d)
 
-  def __getattr__(self, name):
-    """
-      Allow all metafile objects to have their interesting attributes
-      referred to directly without the info dict. The info dict is just
-      to be able to do the __eq__ comparison generically.
-    """
-
-    if name in self.info:
-      return self.info[name]
-
-    else:
-      raise AttributeError(name)
-
-
-
-class TimestampFile(MetaFile):
-  def __init__(self, version, expires, filedict):
-    self.info = {}
-    self.info['version'] = version
-    self.info['expires'] = expires
-    self.info['meta'] = filedict
+  return d
 
 
-  @staticmethod
-  def from_metadata(timestamp_metadata):
-    # Is 'timestamp_metadata' a Timestamp metadata file?
-    # Raise securesystemslib.exceptions.FormatError if not.
-    TIMESTAMP_SCHEMA.check_match(timestamp_metadata)
-
-    version = timestamp_metadata['version']
-    expires = timestamp_metadata['expires']
-    filedict = timestamp_metadata['meta']
-
-    return TimestampFile(version, expires, filedict)
-
-
-  @staticmethod
-  def make_metadata(version, expiration_date, filedict):
-    result = {'_type' : 'timestamp'}
-    result['spec_version'] = tuf.SPECIFICATION_VERSION
-    result['version'] = version
-    result['expires'] = expiration_date
-    result['meta'] = filedict
-
-    # Is 'result' a Timestamp metadata file?
-    # Raise 'securesystemslib.exceptions.FormatError' if not.
-    TIMESTAMP_SCHEMA.check_match(result)
-
-    return result
-
-
-
-class RootFile(MetaFile):
-  def __init__(self, version, expires, keys, roles, consistent_snapshot):
-    self.info = {}
-    self.info['version'] = version
-    self.info['expires'] = expires
-    self.info['keys'] = keys
-    self.info['roles'] = roles
-    self.info['consistent_snapshot'] = consistent_snapshot
-
-  @staticmethod
-  def from_metadata(root_metadata):
-    # Is 'root_metadata' a Root metadata file?
-    # Raise 'securesystemslib.exceptions.FormatError' if not.
-    tuf.formats.ROOT_SCHEMA.check_match(root_metadata)
-
-    version = root_metadata['version']
-    expires = root_metadata['expires']
-    keys = root_metadata['keys']
-    roles = root_metadata['roles']
-    consistent_snapshot = root_metadata['consistent_snapshot']
-
-    return RootFile(version, expires, keys, roles, consistent_snapshot)
-
-
-  @staticmethod
-  def make_metadata(version, expiration_date, keydict, roledict, consistent_snapshot):
-    result = {'_type' : 'root'}
-    result['spec_version'] = tuf.SPECIFICATION_VERSION
-    result['version'] = version
-    result['expires'] = expiration_date
-    result['keys'] = keydict
-    result['roles'] = roledict
-    result['consistent_snapshot'] = consistent_snapshot
-
-    # Is 'result' a Root metadata file?
-    # Raise 'securesystemslib.exceptions.FormatError' if not.
-    ROOT_SCHEMA.check_match(result)
-
-    return result
-
-
-
-
-class SnapshotFile(MetaFile):
-  def __init__(self, version, expires, versiondict):
-    self.info = {}
-    self.info['version'] = version
-    self.info['expires'] = expires
-    self.info['meta'] = versiondict
-
-
-  @staticmethod
-  def from_metadata(snapshot_metadata):
-    # Is 'snapshot_metadata' a Snapshot metadata file?
-    # Raise 'securesystemslib.exceptions.FormatError' if not.
-    SNAPSHOT_SCHEMA.check_match(snapshot_metadata)
-
-    version = snapshot_metadata['version']
-    expires = snapshot_metadata['expires']
-    versiondict = snapshot_metadata['meta']
-
-    return SnapshotFile(version, expires, versiondict)
-
-
-  @staticmethod
-  def make_metadata(version, expiration_date, versiondict):
-    result = {'_type' : 'snapshot'}
-    result['spec_version'] = tuf.SPECIFICATION_VERSION
-    result['version'] = version
-    result['expires'] = expiration_date
-    result['meta'] = versiondict
-
-    # Is 'result' a Snapshot metadata file?
-    # Raise 'securesystemslib.exceptions.FormatError' if not.
-    SNAPSHOT_SCHEMA.check_match(result)
-
-    return result
-
-
-
-
-class TargetsFile(MetaFile):
-  def __init__(self, version, expires, filedict=None, delegations=None):
-    if filedict is None:
-      filedict = {}
-    if delegations is None:
-      delegations = {}
-    self.info = {}
-    self.info['version'] = version
-    self.info['expires'] = expires
-    self.info['targets'] = filedict
-    self.info['delegations'] = delegations
-
-
-  @staticmethod
-  def from_metadata(targets_metadata):
-    # Is 'targets_metadata' a Targets metadata file?
-    # Raise securesystemslib.exceptions.FormatError if not.
-    tuf.formats.TARGETS_SCHEMA.check_match(targets_metadata)
-
-    version = targets_metadata['version']
-    expires = targets_metadata['expires']
-    filedict = targets_metadata.get('targets')
-    delegations = targets_metadata.get('delegations')
-
-    return TargetsFile(version, expires, filedict, delegations)
-
-
-  @staticmethod
-  def make_metadata(version, expiration_date, filedict=None, delegations=None):
-    if filedict is None and delegations is None:
-      raise securesystemslib.exceptions.Error('We don\'t allow completely'
-        ' empty targets metadata.')
-
-    result = {'_type' : 'targets'}
-    result['spec_version'] = tuf.SPECIFICATION_VERSION
-    result['version'] = version
-    result['expires'] = expiration_date
-    result['targets'] = {}
-
-    if filedict is not None:
-      result['targets'] = filedict
-    if delegations is not None:
-      result['delegations'] = delegations
-
-    # Is 'result' a Targets metadata file?
-    # Raise 'securesystemslib.exceptions.FormatError' if not.
-    tuf.formats.TARGETS_SCHEMA.check_match(result)
-
-    return result
-
-
-
-class MirrorsFile(MetaFile):
-  def __init__(self, version, expires):
-    self.info = {}
-    self.info['version'] = version
-    self.info['expires'] = expires
-
-
-  @staticmethod
-  def from_metadata(mirrors_metadata):
-    raise NotImplementedError
-
-
-  @staticmethod
-  def make_metadata():
-    raise NotImplementedError
 
 
 
@@ -705,15 +513,6 @@ SCHEMAS_BY_TYPE = {
   'snapshot' : SNAPSHOT_SCHEMA,
   'timestamp' : TIMESTAMP_SCHEMA,
   'mirrors' : MIRRORLIST_SCHEMA}
-
-# A dict holding the recognized class names for the top-level roles.
-# That is, the role classes listed in this module (e.g., class TargetsFile()).
-ROLE_CLASSES_BY_TYPE = {
-  'Root' : RootFile,
-  'Targets' : TargetsFile,
-  'Snapshot' : SnapshotFile,
-  'Timestamp' : TimestampFile,
-  'Mirrors' : MirrorsFile}
 
 
 
