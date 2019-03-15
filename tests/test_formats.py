@@ -286,69 +286,76 @@ class TestFormats(unittest.TestCase):
 
 
 
-  def test_MetaFile(self):
-    # Test conditions for instantiations of a class that inherits from
-    # 'tuf.formats.MetaFile'.
-    class NewMetadataFile(tuf.formats.MetaFile):
-      def __init__(self, version, expires):
-        self.info = {}
-        self.info['version'] = version
-        self.info['expires'] = expires
-
-    metadata = NewMetadataFile(123, 456)
-    metadata2 = NewMetadataFile(123, 456)
-    metadata3 = NewMetadataFile(333, 333)
-
-    # Test the comparison operators.
-    self.assertTrue(metadata == metadata2)
-    self.assertFalse(metadata != metadata2)
-    self.assertFalse(metadata == metadata3)
-
-    # Test the 'getattr' method.
-    self.assertEqual(123, getattr(metadata, 'version'))
-    self.assertRaises(AttributeError, getattr, metadata, 'bad')
 
 
+  def test_build_dict_conforming_to_schema(self):
+    # Test construction of a few metadata formats using
+    # build_dict_conforming_to_schema().
 
-  def test_TimestampFile(self):
-    # Test conditions for valid instances of 'tuf.formats.TimestampFile'.
+    # Try building Timestamp metadata.
+    spec_version = tuf.SPECIFICATION_VERSION
     version = 8
     length = 88
     hashes = {'sha256': '3c7fe3eeded4a34'}
     expires = '1985-10-21T13:20:00Z'
     filedict = {'snapshot.json': {'length': length, 'hashes': hashes}}
 
-    make_metadata = tuf.formats.TimestampFile.make_metadata
-    from_metadata = tuf.formats.TimestampFile.from_metadata
-    TIMESTAMP_SCHEMA = tuf.formats.TIMESTAMP_SCHEMA
+    self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches(
+        tuf.formats.build_dict_conforming_to_schema(
+        tuf.formats.TIMESTAMP_SCHEMA,
+        _type='timestamp',
+        spec_version=spec_version,
+        version=version,
+        expires=expires,
+        meta=filedict)))
 
-    self.assertTrue(TIMESTAMP_SCHEMA.matches(make_metadata(version, expires,
-                                                           filedict)))
-    metadata = make_metadata(version, expires, filedict)
-    self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.TimestampFile))
-
-    # Test conditions for invalid arguments.
+    # Try test arguments for invalid Timestamp creation.
+    bad_spec_version = 123
     bad_version = 'eight'
     bad_expires = '2000'
     bad_filedict = 123
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata, bad_version,
-                                                      expires, filedict)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata, version,
-                                                      bad_expires, filedict)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata, version,
-                                                      expires, bad_filedict)
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.formats.build_dict_conforming_to_schema(
+          tuf.formats.TIMESTAMP_SCHEMA,
+          _type='timestamp',
+          spec_version=bad_spec_version,
+          version=version,
+          expires=expires,
+          meta=filedict)
 
-    self.assertRaises(securesystemslib.exceptions.FormatError, from_metadata, 123)
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.formats.build_dict_conforming_to_schema(
+          tuf.formats.TIMESTAMP_SCHEMA,
+          _type='timestamp',
+          spec_version=spec_version,
+          version=bad_version,
+          expires=expires,
+          meta=filedict)
+
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.formats.build_dict_conforming_to_schema(
+          tuf.formats.TIMESTAMP_SCHEMA,
+          _type='timestamp',
+          spec_version=spec_version,
+          version=version,
+          expires=bad_expires,
+          meta=filedict)
+
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.formats.build_dict_conforming_to_schema(
+          tuf.formats.TIMESTAMP_SCHEMA,
+          _type='timestamp',
+          spec_version=spec_version,
+          version=version,
+          expires=expires,
+          meta=bad_filedict)
+
+    with self.assertRaises(ValueError):
+      tuf.formats.build_dict_conforming_to_schema(123)
 
 
-
-
-
-  def test_RootFile(self):
-    # Test conditions for valid instances of 'tuf.formats.RootFile'.
-    version = 8
+    # Try building Root metadata.
     consistent_snapshot = False
-    expires = '1985-10-21T13:20:00Z'
 
     keydict = {'123abc': {'keytype': 'rsa',
                           'scheme': 'rsassa-pss-sha256',
@@ -359,70 +366,153 @@ class TestFormats(unittest.TestCase):
                          'threshold': 1,
                          'paths': ['path1/', 'path2']}}
 
-    make_metadata = tuf.formats.RootFile.make_metadata
-    from_metadata = tuf.formats.RootFile.from_metadata
-    ROOT_SCHEMA = tuf.formats.ROOT_SCHEMA
 
-    self.assertTrue(ROOT_SCHEMA.matches(make_metadata(version, expires,
-        keydict, roledict, consistent_snapshot)))
-    metadata = make_metadata(version, expires, keydict, roledict,
-        consistent_snapshot)
-    self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.RootFile))
+    self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(
+        tuf.formats.build_dict_conforming_to_schema(
+        tuf.formats.ROOT_SCHEMA,
+        _type='root',
+        spec_version=spec_version,
+        version=version,
+        expires=expires,
+        keys=keydict,
+        roles=roledict,
+        consistent_snapshot=consistent_snapshot)))
 
-    # Test conditions for invalid arguments.
-    bad_version = '8'
-    bad_expires = 'eight'
+
+    # Additional test arguments for invalid Root creation.
     bad_keydict = 123
     bad_roledict = 123
 
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata,
-        bad_version, expires, keydict, roledict, consistent_snapshot)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata,
-        version, bad_expires, keydict, roledict, consistent_snapshot)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata,
-        version, expires, bad_keydict, roledict, consistent_snapshot)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata,
-        version, expires, keydict, bad_roledict, consistent_snapshot)
+    # TODO: Later on, write a test looper that takes pairs of key-value args
+    #       to substitute in on each run to shorten this.... There's a lot of
+    #       test code that looks like this, and it'd be easier to use a looper.
 
-    self.assertRaises(securesystemslib.exceptions.FormatError, from_metadata, 'bad')
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.formats.build_dict_conforming_to_schema(
+          tuf.formats.ROOT_SCHEMA,
+          _type='root',
+          spec_version=bad_spec_version,
+          version=version,
+          expires=expires,
+          keys=keydict,
+          roles=roledict,
+          consistent_snapshot=consistent_snapshot)
+
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.formats.build_dict_conforming_to_schema(
+          tuf.formats.ROOT_SCHEMA,
+          _type='root',
+          spec_version=spec_version,
+          version=bad_version,
+          expires=expires,
+          keys=keydict,
+          roles=roledict,
+          consistent_snapshot=consistent_snapshot)
+
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.formats.build_dict_conforming_to_schema(
+          tuf.formats.ROOT_SCHEMA,
+          _type='root',
+          spec_version=spec_version,
+          version=version,
+          expires=bad_expires,
+          keys=keydict,
+          roles=roledict,
+          consistent_snapshot=consistent_snapshot)
+
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.formats.build_dict_conforming_to_schema(
+          tuf.formats.ROOT_SCHEMA,
+          _type='root',
+          spec_version=spec_version,
+          version=version,
+          expires=expires,
+          keys=bad_keydict,
+          roles=roledict,
+          consistent_snapshot=consistent_snapshot)
+
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.formats.build_dict_conforming_to_schema(
+          tuf.formats.ROOT_SCHEMA,
+          _type='root',
+          spec_version=spec_version,
+          version=version,
+          expires=expires,
+          keys=keydict,
+          roles=bad_roledict,
+          consistent_snapshot=consistent_snapshot)
+
+    with self.assertRaises(TypeError):
+      tuf.formats.build_dict_conforming_to_schema(
+          tuf.formats.ROOT_SCHEMA, 'bad')
+
+    with self.assertRaises(ValueError):
+      tuf.formats.build_dict_conforming_to_schema(
+          'bad',
+          _type='root',
+          spec_version=spec_version,
+          version=version,
+          expires=expires,
+          keys=keydict,
+          roles=roledict,
+          consistent_snapshot=consistent_snapshot)
 
 
 
-  def test_SnapshotFile(self):
-    # Test conditions for valid instances of 'tuf.formats.SnapshotFile'.
-    version = 8
-    expires = '1985-10-21T13:20:00Z'
+    # Try building Snapshot metadata.
     versiondict = {'targets.json' : {'version': version}}
 
-    make_metadata = tuf.formats.SnapshotFile.make_metadata
-    from_metadata = tuf.formats.SnapshotFile.from_metadata
-    SNAPSHOT_SCHEMA = tuf.formats.SNAPSHOT_SCHEMA
+    self.assertTrue(tuf.formats.SNAPSHOT_SCHEMA.matches(
+      tuf.formats.build_dict_conforming_to_schema(
+          tuf.formats.SNAPSHOT_SCHEMA,
+          _type='snapshot',
+          spec_version=spec_version,
+          version=version,
+          expires=expires,
+          meta=versiondict)))
 
-    self.assertTrue(SNAPSHOT_SCHEMA.matches(make_metadata(version, expires,
-                                                         versiondict)))
-    metadata = make_metadata(version, expires, versiondict)
-    self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.SnapshotFile))
-
-    # Test conditions for invalid arguments.
-    bad_version = '8'
-    bad_expires = '2000'
+    # Additional test arguments for invalid Snapshot creation.
     bad_versiondict = 123
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata, version,
-                                                      expires, bad_versiondict)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata, bad_version, expires,
-                                                      versiondict)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata, version, bad_expires,
-                                                      bad_versiondict)
 
-    self.assertRaises(securesystemslib.exceptions.FormatError, from_metadata, 123)
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.formats.build_dict_conforming_to_schema(
+          tuf.formats.SNAPSHOT_SCHEMA,
+          _type='snapshot',
+          spec_version=bad_spec_version,
+          version=version,
+          expires=expires,
+          meta=versiondict)
+
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.formats.build_dict_conforming_to_schema(
+          tuf.formats.SNAPSHOT_SCHEMA,
+          _type='snapshot',
+          spec_version=spec_version,
+          version=bad_version,
+          expires=expires,
+          meta=versiondict)
+
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.formats.build_dict_conforming_to_schema(
+          tuf.formats.SNAPSHOT_SCHEMA,
+          _type='snapshot',
+          spec_version=spec_version,
+          version=version,
+          expires=bad_expires,
+          meta=versiondict)
+
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.formats.build_dict_conforming_to_schema(
+          tuf.formats.SNAPSHOT_SCHEMA,
+          _type='snapshot',
+          spec_version=spec_version,
+          version=version,
+          expires=expires,
+          meta=bad_versiondict)
 
 
 
-  def test_TargetsFile(self):
-    # Test conditions for valid instances of 'tuf.formats.TargetsFile'.
-    version = 8
-    expires = '1985-10-21T13:20:00Z'
-
+    # Try building Targets metadata.
     filedict = {'metadata/targets.json': {'length': 1024,
                                          'hashes': {'sha256': 'ABCD123'},
                                          'custom': {'type': 'metadata'}}}
@@ -434,61 +524,73 @@ class TestFormats(unittest.TestCase):
                    'roles': [{'name': 'root', 'keyids': ['123abc'],
                               'threshold': 1, 'paths': ['path1/', 'path2']}]}
 
-    make_metadata = tuf.formats.TargetsFile.make_metadata
-    from_metadata = tuf.formats.TargetsFile.from_metadata
-    TARGETS_SCHEMA = tuf.formats.TARGETS_SCHEMA
 
-    self.assertTrue(TARGETS_SCHEMA.matches(make_metadata(version, expires,
-                                                         filedict, delegations)))
-    self.assertTrue(TARGETS_SCHEMA.matches(make_metadata(version, expires, filedict)))
+    self.assertTrue(tuf.formats.TARGETS_SCHEMA.matches(
+      tuf.formats.build_dict_conforming_to_schema(
+          tuf.formats.TARGETS_SCHEMA,
+          _type='targets',
+          spec_version=spec_version,
+          version=version,
+          expires=expires,
+          targets=filedict,
+          delegations=delegations)))
 
-    metadata = make_metadata(version, expires, filedict, delegations)
-    self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.TargetsFile))
+    # Try with no delegations included (should work, since they're optional).
+    self.assertTrue(tuf.formats.TARGETS_SCHEMA.matches(
+      tuf.formats.build_dict_conforming_to_schema(
+          tuf.formats.TARGETS_SCHEMA,
+          _type='targets',
+          spec_version=spec_version,
+          version=version,
+          expires=expires,
+          targets=filedict)))
 
-    # Test conditions for different combination of required arguments (i.e.,
-    # a filedict or delegations argument is required.)
-    metadata = make_metadata(version, expires, filedict)
-    self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.TargetsFile))
 
-    metadata = make_metadata(version, expires, delegations=delegations)
-    self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.TargetsFile))
-
-    # Directly instantiating a TargetsFile object.
-    tuf.formats.TargetsFile(version, expires)
-    tuf.formats.TargetsFile(version, expires, filedict)
-    tuf.formats.TargetsFile(version, expires, delegations=delegations)
-
-    # Test conditions for invalid arguments.
-    bad_version = 'eight'
-    bad_expires = '2000'
+    # Additional test arguments for invalid Targets creation.
     bad_filedict = 123
     bad_delegations = 123
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata, bad_version, expires,
-                                                      filedict, delegations)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata, version, bad_expires,
-                                                      filedict, delegations)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata, version, expires,
-                                                      bad_filedict, delegations)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata, version, expires,
-                                                      filedict, bad_delegations)
-    self.assertRaises(securesystemslib.exceptions.Error, make_metadata, version, expires)
 
-    self.assertRaises(securesystemslib.exceptions.FormatError, from_metadata, 123)
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.formats.build_dict_conforming_to_schema(
+          tuf.formats.TARGETS_SCHEMA,
+          _type='targets',
+          spec_version=spec_version,
+          version=bad_version,
+          expires=expires,
+          targets=filedict,
+          delegations=delegations)
+
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.formats.build_dict_conforming_to_schema(
+          tuf.formats.TARGETS_SCHEMA,
+          _type='targets',
+          spec_version=spec_version,
+          version=version,
+          expires=bad_expires,
+          targets=filedict,
+          delegations=delegations)
+
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.formats.build_dict_conforming_to_schema(
+          tuf.formats.TARGETS_SCHEMA,
+          _type='targets',
+          spec_version=spec_version,
+          version=version,
+          expires=expires,
+          targets=bad_filedict,
+          delegations=delegations)
+
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.formats.build_dict_conforming_to_schema(
+          tuf.formats.TARGETS_SCHEMA,
+          _type='targets',
+          spec_version=spec_version,
+          version=version,
+          expires=expires,
+          targets=filedict,
+          delegations=bad_delegations)
 
 
-
-  def test_MirrorsFile(self):
-    # Test normal case.
-    version = 8
-    expires = '1985-10-21T13:20:00Z'
-
-    mirrors_file = tuf.formats.MirrorsFile(version, expires)
-
-    make_metadata = tuf.formats.MirrorsFile.make_metadata
-    from_metadata = tuf.formats.MirrorsFile.from_metadata
-
-    self.assertRaises(NotImplementedError, make_metadata)
-    self.assertRaises(NotImplementedError, from_metadata, mirrors_file)
 
 
 
@@ -659,22 +761,7 @@ class TestFormats(unittest.TestCase):
     # 'paths' and 'path_hash_prefixes' cannot both be specified.
     self.assertRaises(securesystemslib.exceptions.FormatError, make_role, keyids, threshold, name, paths, path_hash_prefixes)
 
-  def test_get_role_class(self):
-    # Test conditions for valid arguments.
-    get_role_class = tuf.formats.get_role_class
 
-    self.assertEqual(tuf.formats.RootFile, get_role_class('Root'))
-    self.assertEqual(tuf.formats.TargetsFile, get_role_class('Targets'))
-    self.assertEqual(tuf.formats.SnapshotFile, get_role_class('Snapshot'))
-    self.assertEqual(tuf.formats.TimestampFile, get_role_class('Timestamp'))
-    self.assertEqual(tuf.formats.MirrorsFile, get_role_class('Mirrors'))
-
-    # Test conditions for invalid arguments.
-    self.assertRaises(securesystemslib.exceptions.FormatError, get_role_class, 'role')
-    self.assertRaises(securesystemslib.exceptions.FormatError, get_role_class, 'ROLE')
-    self.assertRaises(securesystemslib.exceptions.FormatError, get_role_class, 'abcd')
-    self.assertRaises(securesystemslib.exceptions.FormatError, get_role_class, 123)
-    self.assertRaises(securesystemslib.exceptions.FormatError, get_role_class, tuf.formats.RootFile)
 
 
 
@@ -692,7 +779,7 @@ class TestFormats(unittest.TestCase):
 
     # Test conditions for invalid arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError, expected_rolename, 123)
-    self.assertRaises(securesystemslib.exceptions.FormatError, expected_rolename, tuf.formats.RootFile)
+    self.assertRaises(securesystemslib.exceptions.FormatError, expected_rolename, tuf.formats.ROOT_SCHEMA)
     self.assertRaises(securesystemslib.exceptions.FormatError, expected_rolename, True)
 
 
@@ -719,7 +806,7 @@ class TestFormats(unittest.TestCase):
     check_signable = tuf.formats.check_signable_object_format
     self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, 'root')
     self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, 123)
-    self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, tuf.formats.RootFile)
+    self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, tuf.formats.ROOT_SCHEMA)
     self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, True)
 
     saved_type = root['signed']['_type']
@@ -758,7 +845,7 @@ class TestFormats(unittest.TestCase):
     self.assertEqual('[1,2,3]', ''.join(result))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(securesystemslib.exceptions.FormatError, encode, tuf.formats.RootFile)
+    self.assertRaises(securesystemslib.exceptions.FormatError, encode, tuf.formats.ROOT_SCHEMA)
     self.assertRaises(securesystemslib.exceptions.FormatError, encode, 8.0)
     self.assertRaises(securesystemslib.exceptions.FormatError, encode, {"x": 8.0})
     self.assertRaises(securesystemslib.exceptions.FormatError, encode, 8.0, output)
