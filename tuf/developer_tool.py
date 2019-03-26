@@ -390,9 +390,10 @@ class Project(Targets):
             self.repository_name)
         self._log_status(self.project_name, signable, self.repository_name)
 
-      except securesystemslib.exceptions.Error as e:
-        signable = e[1]
-        self._log_status(self.project_name, signable, self.repository_name)
+      except tuf.exceptions.UnsignedMetadataError as e:
+        # This error is raised if the metadata has insufficient signatures to
+        # meet the threshold.
+        self._log_status(self.project_name, e.signable, self.repository_name)
         return
 
     finally:
