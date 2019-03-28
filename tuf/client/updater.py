@@ -166,11 +166,6 @@ logger = logging.getLogger('tuf.client.updater')
 iso8601_logger = logging.getLogger('iso8601')
 iso8601_logger.disabled = True
 
-# Metadata includes the specification version number that it follows.
-# All downloaded metadata must be equal to our supported major version of 1.
-# For example, "1.4.3" and "1.0.0" are supported.  "2.0.0" is not supported.
-SUPPORTED_MAJOR_VERSION = 1
-
 
 class MultiRepoUpdater(object):
   """
@@ -1497,11 +1492,15 @@ class Updater(object):
         # version number of new metadata equals our expected major version
         # number, the new metadata is safe to parse.
         try:
-          spec_version_parsed = metadata_signable['signed']['spec_version'].split('.')
-          if int(spec_version_parsed[0]) != SUPPORTED_MAJOR_VERSION:
-            raise securesystemslib.exceptions.BadVersionNumberError('Downloaded'
-              ' metadata that specifies an unsupported spec_version.  Supported'
-              ' major version number: ' + repr(SUPPORTED_MAJOR_VERSION))
+          metadata_spec_version = metadata_signable['signed']['spec_version']
+          spec_major_version = int(metadata_spec_version.split('.')[0])
+          if spec_major_version != tuf.formats.SUPPORTED_MAJOR_VERSION:
+            raise tuf.exceptions.UnsupportedSpecificationError(
+                'Downloaded metadata that specifies an unsupported '
+                'spec_version.  This code supports major version number: ' +
+                repr(tuf.formats.SUPPORTED_MAJOR_VERSION) + '; however, the '
+                'obtained metadata lists version number: ' +
+                str(metadata_spec_version))
 
         except (ValueError, TypeError):
           raise securesystemslib.exceptions.FormatError('Improperly'

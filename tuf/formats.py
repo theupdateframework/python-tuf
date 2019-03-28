@@ -90,7 +90,12 @@ import six
 # TUF specification version.  The constant should be updated when the version
 # number of the specification changes.  All metadata should list this version
 # number.
+# Metadata includes the specification version number that it follows.
+# All downloaded metadata must be equal to our supported major version of 1.
+# For example, "1.4.3" and "1.0.0" are supported.  "2.0.0" is not supported.
 TUF_VERSION_NUMBER = '1.0'
+SUPPORTED_MAJOR_VERSION = int(TUF_VERSION_NUMBER.split('.')[0])
+
 SPECIFICATION_VERSION_SCHEMA = SCHEMA.AnyString()
 
 # A datetime in 'YYYY-MM-DDTHH:MM:SSZ' ISO 8601 format.  The "Z" zone designator

@@ -739,8 +739,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_3__get_metadata_file(self):
 
+    '''
+    This test focuses on making sure that the updater rejects unknown or
+    badly-formatted TUF specification version numbers....
+    '''
+
     valid_tuf_version = tuf.formats.TUF_VERSION_NUMBER
-    tuf.formats.TUF_VERSION_NUMBER = '2'
+    tuf.formats.TUF_VERSION_NUMBER = '9.0'
 
     repository = repo_tool.load_repository(self.repository_directory)
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
@@ -757,8 +762,18 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       upperbound_filelength, 1)
 
     except tuf.exceptions.NoWorkingMirrorError as e:
+      # Note that this test provides a piece of metadata which would fail to
+      # be accepted -- with a different error -- if the specification version
+      # number were not a problem.
       for mirror_error in six.itervalues(e.mirror_errors):
-        assert isinstance(mirror_error, securesystemslib.exceptions.BadVersionNumberError)
+        assert isinstance(
+            mirror_error, tuf.exceptions.UnsupportedSpecificationError)
+
+    else:
+      self.fail(
+          'Expected a failure to verify metadata when the metadata had a '
+          'specification version number that was unexpected.  '
+          'No error was raised.')
 
     # Test for an improperly formatted TUF version number.
     tuf.formats.TUF_VERSION_NUMBER = 'BAD'
@@ -778,6 +793,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     except tuf.exceptions.NoWorkingMirrorError as e:
       for mirror_error in six.itervalues(e.mirror_errors):
         assert isinstance(mirror_error, securesystemslib.exceptions.FormatError)
+
+    else:
+      self.fail(
+          'Expected a failure to verify metadata when the metadata had a '
+          'specification version number that was not in the correct format.  '
+          'No error was raised.')
 
     # Reset the TUF_VERSION_NUMBER so that subsequent unit tests use the
     # expected value.
