@@ -721,6 +721,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       for mirror_error in six.itervalues(e.mirror_errors):
         assert isinstance(mirror_error, securesystemslib.exceptions.BadVersionNumberError)
 
+    else:
+      self.fail(
+          'Expected a NoWorkingMirrorError composed of BadVersionNumberErrors')
+
     # Verify that the specific exception raised is correct for the previous
     # case.  The version number is checked, so the specific error in
     # this case should be 'securesystemslib.exceptions.BadVersionNumberError'.
@@ -732,6 +736,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     except tuf.exceptions.NoWorkingMirrorError as e:
       for mirror_error in six.itervalues(e.mirror_errors):
         assert isinstance(mirror_error, securesystemslib.exceptions.BadVersionNumberError)
+
+    else:
+      self.fail(
+          'Expected a NoWorkingMirrorError composed of BadVersionNumberErrors')
 
 
 
@@ -1274,6 +1282,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     except OSError as e:
       self.assertTrue(e.errno == errno.ENAMETOOLONG or e.errno == errno.ENOENT)
 
+    else:
+      self.fail('Expected an OSError of type ENAMETOOLONG or ENOENT')
+
+
     # Test: Invalid arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError,
                       self.repository_updater.download_target,
@@ -1302,6 +1314,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       # directories.  get_list_of_mirrors() returns an empty list in this case,
       # which does not generate specific exception errors.
       self.assertEqual(len(exception.mirror_errors), 0)
+
+    else:
+      self.fail(
+          'Expected a NoWorkingMirrorError with zero mirror errors in it.')
+
+
 
 
 
