@@ -40,6 +40,12 @@ class Error(Exception):
   """Indicate a generic error."""
 
 
+class UnsupportedSpecificationError(Error):
+  """
+  Metadata received claims to conform to a version of the specification that is
+  not supported by this client.
+  """
+
 class FormatError(Error):
   """Indicate an error while validating an object's format."""
 
