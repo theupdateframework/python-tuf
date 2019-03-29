@@ -108,8 +108,10 @@ class TestSig(unittest.TestCase):
 
     tuf.keydb.add_key(KEYS[0])
     threshold = 1
-    roleinfo = tuf.formats.make_role_metadata(
-        [KEYS[0]['keyid']], threshold)
+
+    roleinfo = tuf.formats.build_dict_conforming_to_schema(
+        tuf.formats.ROLE_SCHEMA, keyids=[KEYS[0]['keyid']], threshold=threshold)
+
     tuf.roledb.add_role('Root', roleinfo)
 
     sig_status = tuf.sig.get_signature_status(signable, 'Root')
@@ -139,8 +141,10 @@ class TestSig(unittest.TestCase):
     KEYS[0]['scheme'] = 'unknown_signing_scheme'
     tuf.keydb.add_key(KEYS[0])
     threshold = 1
-    roleinfo = tuf.formats.make_role_metadata(
-        [KEYS[0]['keyid']], threshold)
+
+    roleinfo = tuf.formats.build_dict_conforming_to_schema(
+        tuf.formats.ROLE_SCHEMA, keyids=[KEYS[0]['keyid']], threshold=threshold)
+
     tuf.roledb.add_role('root', roleinfo)
 
     sig_status = tuf.sig.get_signature_status(signable, 'root')
@@ -169,8 +173,9 @@ class TestSig(unittest.TestCase):
                                   KEYS[0], signable['signed']))
 
     threshold = 1
-    roleinfo = tuf.formats.make_role_metadata(
-        [KEYS[0]['keyid']], threshold)
+
+    roleinfo = tuf.formats.build_dict_conforming_to_schema(
+        tuf.formats.ROLE_SCHEMA, keyids=[KEYS[0]['keyid']], threshold=threshold)
 
     tuf.roledb.add_role('Root', roleinfo)
     tuf.keydb.add_key(KEYS[0])
@@ -210,9 +215,12 @@ class TestSig(unittest.TestCase):
 
     tuf.keydb.add_key(KEYS[0])
     threshold = 2
-    roleinfo = tuf.formats.make_role_metadata(
-        [KEYS[0]['keyid'],
-        KEYS[2]['keyid']], threshold)
+
+    roleinfo = tuf.formats.build_dict_conforming_to_schema(
+        tuf.formats.ROLE_SCHEMA,
+        keyids=[KEYS[0]['keyid'], KEYS[2]['keyid']],
+        threshold=threshold)
+
     tuf.roledb.add_role('Root', roleinfo)
 
     sig_status = tuf.sig.get_signature_status(signable, 'Root')
@@ -245,9 +253,12 @@ class TestSig(unittest.TestCase):
     tuf.keydb.add_key(KEYS[0])
     tuf.keydb.add_key(KEYS[1])
     threshold = 2
-    roleinfo = tuf.formats.make_role_metadata(
-        [KEYS[0]['keyid'],
-        KEYS[1]['keyid']], threshold)
+
+    roleinfo = tuf.formats.build_dict_conforming_to_schema(
+        tuf.formats.ROLE_SCHEMA,
+        keyids=[KEYS[0]['keyid'], KEYS[1]['keyid']],
+        threshold=threshold)
+
     tuf.roledb.add_role('Root', roleinfo)
 
     sig_status = tuf.sig.get_signature_status(signable, 'Root')
@@ -282,11 +293,19 @@ class TestSig(unittest.TestCase):
     tuf.keydb.add_key(KEYS[0])
     tuf.keydb.add_key(KEYS[1])
     threshold = 2
-    roleinfo = tuf.formats.make_role_metadata(
-        [KEYS[0]['keyid'], KEYS[2]['keyid']], threshold)
+
+    roleinfo = tuf.formats.build_dict_conforming_to_schema(
+        tuf.formats.ROLE_SCHEMA,
+        keyids=[KEYS[0]['keyid'], KEYS[2]['keyid']],
+        threshold=threshold)
+
     tuf.roledb.add_role('Root', roleinfo)
-    roleinfo = tuf.formats.make_role_metadata(
-        [KEYS[1]['keyid'], KEYS[2]['keyid']], threshold)
+
+    roleinfo = tuf.formats.build_dict_conforming_to_schema(
+        tuf.formats.ROLE_SCHEMA,
+        keyids=[KEYS[1]['keyid'], KEYS[2]['keyid']],
+        threshold=threshold)
+
     tuf.roledb.add_role('Release', roleinfo)
 
     sig_status = tuf.sig.get_signature_status(signable, 'Root')
@@ -339,8 +358,10 @@ class TestSig(unittest.TestCase):
 
     tuf.keydb.add_key(KEYS[0])
     threshold = 1
-    roleinfo = tuf.formats.make_role_metadata(
-        [KEYS[0]['keyid']], threshold)
+
+    roleinfo = tuf.formats.build_dict_conforming_to_schema(
+        tuf.formats.ROLE_SCHEMA, keyids=[KEYS[0]['keyid']], threshold=threshold)
+
     tuf.roledb.add_role('Root', roleinfo)
 
     # This will call verify() and return True if 'signable' is valid,
@@ -366,8 +387,12 @@ class TestSig(unittest.TestCase):
     tuf.keydb.add_key(KEYS[0])
     tuf.keydb.add_key(KEYS[1])
     threshold = 2
-    roleinfo = tuf.formats.make_role_metadata(
-        [KEYS[0]['keyid'], KEYS[1]['keyid']], threshold)
+
+    roleinfo = tuf.formats.build_dict_conforming_to_schema(
+        tuf.formats.ROLE_SCHEMA,
+        keyids=[KEYS[0]['keyid'], KEYS[1]['keyid']],
+        threshold=threshold)
+
     tuf.roledb.add_role('Root', roleinfo)
 
     self.assertFalse(tuf.sig.verify(signable, 'Root'))
@@ -412,8 +437,10 @@ class TestSig(unittest.TestCase):
 
     tuf.keydb.add_key(KEYS[1])
     threshold = 1
-    roleinfo = tuf.formats.make_role_metadata(
-        [KEYS[1]['keyid']], threshold)
+
+    roleinfo = tuf.formats.build_dict_conforming_to_schema(
+        tuf.formats.ROLE_SCHEMA, keyids=[KEYS[1]['keyid']], threshold=threshold)
+
     tuf.roledb.add_role('Root', roleinfo)
 
     sig_status = tuf.sig.get_signature_status(signable, 'Root')
