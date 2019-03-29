@@ -752,8 +752,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     badly-formatted TUF specification version numbers....
     '''
 
-    valid_tuf_version = tuf.formats.TUF_VERSION_NUMBER
-    tuf.formats.TUF_VERSION_NUMBER = '9.0'
+    # Make note of the correct supported TUF specification version.
+    correct_specification_version = tuf.SPECIFICATION_VERSION
+
+    # Change it long enough to write new metadata.
+    tuf.SPECIFICATION_VERSION = '9.0'
 
     repository = repo_tool.load_repository(self.repository_directory)
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
@@ -763,6 +766,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
+
+
+    # Change the supported TUF specification version back to what it should be
+    # so that we can parse the metadata and see that the spec version in the
+    # metadata does not match the code's expected spec version.
+    tuf.SPECIFICATION_VERSION = correct_specification_version
 
     upperbound_filelength = tuf.settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
     try:
@@ -784,7 +793,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
           'No error was raised.')
 
     # Test for an improperly formatted TUF version number.
-    tuf.formats.TUF_VERSION_NUMBER = 'BAD'
+    # Tell the TUF code to write 'BAD' as its specification version number.
+    tuf.SPECIFICATION_VERSION = 'BAD'
     repository = repo_tool.load_repository(self.repository_directory)
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
     repository.writeall()
@@ -793,6 +803,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
+
+    # Change the supported TUF specification version back to what it should be,
+    # so that code expects the correct specification version, and gets nonsense
+    # instead.
+    tuf.SPECIFICATION_VERSION = correct_specification_version
 
     try:
       self.repository_updater._get_metadata_file('timestamp', 'timestamp.json',
@@ -808,9 +823,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
           'specification version number that was not in the correct format.  '
           'No error was raised.')
 
-    # Reset the TUF_VERSION_NUMBER so that subsequent unit tests use the
-    # expected value.
-    tuf.formats.TUF_VERSION_NUMBER = valid_tuf_version
+    # REDUNDANTLY reset the specification version the code thinks it supports
+    # as the last step in this test, in case future changes to the tests above
+    # neglect to reset it above....
+    tuf.SPECIFICATION_VERSION = correct_specification_version
 
 
 
