@@ -529,7 +529,7 @@ def build_dict_conforming_to_schema(schema, **kwargs):
   # (Please note that _required is slightly misleading, as it includes both
   #  required and optional elements. It should probably be called _components.)
   #
-  for schema_element in schema._required:
+  for schema_element in schema._required: #pylint: disable=protected-access
     key = schema_element[0]
     element_type = schema_element[1]
 
@@ -549,7 +549,7 @@ def build_dict_conforming_to_schema(schema, **kwargs):
 
       if key == '_type' and isinstance(element_type, SCHEMA.String):
         # A SCHEMA.String stores its expected value in _string, so use that.
-        dictionary[key] = element_type._string
+        dictionary[key] = element_type._string #pylint: disable=protected-access
 
       elif (key == 'spec_version' and
           element_type == SPECIFICATION_VERSION_SCHEMA):
