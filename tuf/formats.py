@@ -67,6 +67,7 @@ import binascii
 import calendar
 import datetime
 import time
+import copy
 
 import tuf
 
@@ -493,15 +494,17 @@ def build_dict_conforming_to_schema(schema, **kwargs):
   #       'The first argument must be a schema.Schema object, but is not. '
   #       'Given schema: ' + repr(schema))
 
-  # The return value.
-  d = {}
+  # Make a copy of the provided fields so that the caller's provided values
+  # do not change when the returned values are changed.
+  dictionary = copy.deepcopy(kwargs)
 
-  for key, value in kwargs.items():
-    d[key] = value
 
-  schema.check_match(d)
 
-  return d
+
+  # If what we produce does not match the provided schema, raise a FormatError.
+  schema.check_match(dictionary)
+
+  return dictionary
 
 
 
