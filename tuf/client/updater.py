@@ -1493,14 +1493,15 @@ class Updater(object):
         # number, the new metadata is safe to parse.
         try:
           metadata_spec_version = metadata_signable['signed']['spec_version']
-          spec_major_version = int(metadata_spec_version.split('.')[0])
-          if spec_major_version != tuf.formats.SUPPORTED_MAJOR_VERSION:
+          metadata_spec_major_version = int(metadata_spec_version.split('.')[0])
+          code_spec_major_version = int(tuf.SPECIFICATION_VERSION.split('.')[0])
+
+          if metadata_spec_major_version != code_spec_major_version:
             raise tuf.exceptions.UnsupportedSpecificationError(
                 'Downloaded metadata that specifies an unsupported '
                 'spec_version.  This code supports major version number: ' +
-                repr(tuf.formats.SUPPORTED_MAJOR_VERSION) + '; however, the '
-                'obtained metadata lists version number: ' +
-                str(metadata_spec_version))
+                repr(code_spec_major_version) + '; however, the obtained '
+                'metadata lists version number: ' + str(metadata_spec_version))
 
         except (ValueError, TypeError):
           raise securesystemslib.exceptions.FormatError('Improperly'
