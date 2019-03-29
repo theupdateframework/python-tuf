@@ -300,7 +300,10 @@ class TestFormats(unittest.TestCase):
     expires = '1985-10-21T13:20:00Z'
     filedict = {'snapshot.json': {'length': length, 'hashes': hashes}}
 
-    self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches(
+
+    # Try with and without _type and spec_version, both of which are
+    # automatically populated if they are not included.
+    self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches( # both
         tuf.formats.build_dict_conforming_to_schema(
         tuf.formats.TIMESTAMP_SCHEMA,
         _type='timestamp',
@@ -308,6 +311,27 @@ class TestFormats(unittest.TestCase):
         version=version,
         expires=expires,
         meta=filedict)))
+    self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches( # neither
+        tuf.formats.build_dict_conforming_to_schema(
+        tuf.formats.TIMESTAMP_SCHEMA,
+        version=version,
+        expires=expires,
+        meta=filedict)))
+    self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches( # one
+        tuf.formats.build_dict_conforming_to_schema(
+        tuf.formats.TIMESTAMP_SCHEMA,
+        spec_version=spec_version,
+        version=version,
+        expires=expires,
+        meta=filedict)))
+    self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches( # the other
+        tuf.formats.build_dict_conforming_to_schema(
+        tuf.formats.TIMESTAMP_SCHEMA,
+        _type='timestamp',
+        version=version,
+        expires=expires,
+        meta=filedict)))
+
 
     # Try test arguments for invalid Timestamp creation.
     bad_spec_version = 123

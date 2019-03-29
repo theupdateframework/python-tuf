@@ -69,10 +69,10 @@ import datetime
 import time
 import copy
 
-import tuf
-
 import securesystemslib.formats
 import securesystemslib.schema as SCHEMA
+
+import tuf
 
 import six
 
@@ -98,6 +98,8 @@ ROLENAME_SCHEMA = SCHEMA.AnyString()
 
 # Role object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1,
 # 'paths':[filepaths..]} format.
+# TODO: This is not a role.  In further #660-related PRs, fix it, similar to
+#       the way I did in Uptane's TUF fork.
 ROLE_SCHEMA = SCHEMA.Object(
   object_name = 'ROLE_SCHEMA',
   name = SCHEMA.Optional(securesystemslib.formats.ROLENAME_SCHEMA),
@@ -470,14 +472,27 @@ def make_signable(role_schema):
 
 def build_dict_conforming_to_schema(schema, **kwargs):
   """
-  Given a schema object (for example, TIMESTAMP_SCHEMA from this module) and
-  a set of keyword arguments, create a dictionary that conforms to the given
-  schema, using the keyword arguments to define the elements of the new dict.
+  <Purpose>
+    Given a schema object (for example, TIMESTAMP_SCHEMA from this module) and
+    a set of keyword arguments, create a dictionary that conforms to the given
+    schema, using the keyword arguments to define the elements of the new dict.
 
-  Checks the result to make sure that it conforms to the given schema, raising
-  an error if not.
+    Checks the result to make sure that it conforms to the given schema, raising
+    an error if not.
 
-  Returns the new dict conforming to the schema if there are no problems.
+  <Returns>
+    A dictionary conforming to the given schema.  Adds certain required fields
+    if they are missing and can be deduced from the schema.  The data returned
+    is a deep copy.
+
+  <Exceptions>
+    securesystemslib.exceptions.FormatError
+      if the provided data does not match the schema when assembled.
+
+  <Side Effects>
+    None.  In particular, the provided values are not modified, and the
+    returned dictionary does not include references to them.
+
   """
 
   # Check that schema supports a check_match call.
@@ -499,6 +514,47 @@ def build_dict_conforming_to_schema(schema, **kwargs):
   dictionary = copy.deepcopy(kwargs)
 
 
+
+
+
+
+
+
+  # Automatically provide certain schema properties if they are not already
+  # provided and are required in objects of class <schema>.
+  # This includes:
+  #   _type:        <securesystemslib.schema.String object>
+  #   spec_version: SPECIFICATION_VERSION_SCHEMA
+  #
+  # (Please note that _required is slightly misleading, as it includes both
+  #  required and optional elements. It should probably be called _components.)
+  #
+  for schema_element in schema._required:
+    key = schema_element[0]
+    element_type = schema_element[1]
+
+    if key in dictionary:
+      # If the field has been provided, proceed normally.
+      continue
+
+    elif isinstance(element_type, SCHEMA.Optional):
+      # If the field has NOT been provided but IS optional, proceed without it.
+      continue
+
+    else:
+      # If the field has not been provided and is required, check to see if
+      # the field is one of the one of the fields we automatically fill.
+
+      # Currently, the list is limited to ['_type', 'spec_version'].
+
+      if key == '_type' and isinstance(element_type, SCHEMA.String):
+        # A SCHEMA.String stores its expected value in _string, so use that.
+        dictionary[key] = element_type._string
+
+      elif (key == 'spec_version' and
+          element_type == SPECIFICATION_VERSION_SCHEMA):
+        # If not provided, use the specification version in tuf/__init__.py
+        dictionary[key] = tuf.SPECIFICATION_VERSION
 
 
   # If what we produce does not match the provided schema, raise a FormatError.
