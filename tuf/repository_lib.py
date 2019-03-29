@@ -1311,9 +1311,13 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
       # Add the loaded keyid for the role being processed.
       keyids.append(keyid)
 
-    # Generate and store the role data belonging to the processed role.
+    # Generate the authentication information Root establishes for each
+    # top-level role.
     role_threshold = tuf.roledb.get_role_threshold(rolename, repository_name)
-    role_metadata = tuf.formats.make_role_metadata(keyids, role_threshold)
+    role_metadata = tuf.formats.build_dict_conforming_to_schema(
+        tuf.formats.ROLE_SCHEMA,
+        keyids=keyids,
+        threshold=role_threshold)
     roledict[rolename] = role_metadata
 
   # Use generalized build_dict_conforming_to_schema func to produce a dict that

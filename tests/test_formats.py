@@ -718,51 +718,6 @@ class TestFormats(unittest.TestCase):
 
 
 
-  def test_make_role_metadata(self):
-    # Test conditions for valid arguments.
-    keyids = ['123abc', 'abc123']
-    threshold = 2
-    paths = ['path1/', 'path2']
-    path_hash_prefixes = ['000', '003']
-    name = '123'
-
-    ROLE_SCHEMA = tuf.formats.ROLE_SCHEMA
-    make_role = tuf.formats.make_role_metadata
-
-    self.assertTrue(ROLE_SCHEMA.matches(make_role(keyids, threshold)))
-    self.assertTrue(ROLE_SCHEMA.matches(make_role(keyids, threshold, name=name)))
-    self.assertTrue(ROLE_SCHEMA.matches(make_role(keyids, threshold, paths=paths)))
-    self.assertTrue(ROLE_SCHEMA.matches(make_role(keyids, threshold, name=name, paths=paths)))
-    self.assertTrue(ROLE_SCHEMA.matches(make_role(keyids, threshold, name=name,
-                                        path_hash_prefixes=path_hash_prefixes)))
-
-    # Test conditions for invalid arguments.
-    bad_keyids = 'bad'
-    bad_threshold = 'bad'
-    bad_paths = 'bad'
-    bad_name = 123
-
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_role, bad_keyids, threshold)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_role, keyids, bad_threshold)
-
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_role, bad_keyids, threshold, paths=paths)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_role, keyids, bad_threshold, paths=paths)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_role, keyids, threshold, paths=bad_paths)
-
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_role, bad_keyids, threshold, name=name)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_role, keyids, bad_threshold, name=name)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_role, keyids, threshold, name=bad_name)
-
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_role, bad_keyids, threshold, name=name, paths=paths)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_role, keyids, bad_threshold, name=name, paths=paths)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_role, keyids, threshold, name=bad_name, paths=paths)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_role, keyids, threshold, name=name, paths=bad_paths)
-
-    # 'paths' and 'path_hash_prefixes' cannot both be specified.
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_role, keyids, threshold, name, paths, path_hash_prefixes)
-
-
-
 
 
   def test_expected_meta_rolename(self):
