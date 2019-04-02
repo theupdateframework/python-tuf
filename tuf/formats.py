@@ -516,7 +516,7 @@ def build_dict_conforming_to_schema(schema, **kwargs):
   """
 
   # Check the schema argument type (must provide check_match and _required).
-  if not isinstance(schema, schema.Schema):
+  if not isinstance(schema, SCHEMA.Schema):
     raise ValueError(
         'The first argument must be a schema.Schema object, but is not. '
         'Given schema: ' + repr(schema))
