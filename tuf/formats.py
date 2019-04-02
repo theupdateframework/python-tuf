@@ -495,19 +495,11 @@ def build_dict_conforming_to_schema(schema, **kwargs):
 
   """
 
-  # Check that schema supports a check_match call.
-  # Duck typing version of this check:
-  if not hasattr(schema, 'check_match'):
+  # Check the schema argument type (must provide check_match and _required).
+  if not isinstance(schema, schema.Schema):
     raise ValueError(
-        'The given "schema" does not seem to be a schema.  It has no '
-        '"check_match" method.  Given schema: ' + repr(schema))
-
-  # # Strict typing version of this check:
-  # # Check that schema_name is a SCHEMA.Object.
-  # if not isinstance(schema, schema.Schema):
-  #   raise ValueError(
-  #       'The first argument must be a schema.Schema object, but is not. '
-  #       'Given schema: ' + repr(schema))
+        'The first argument must be a schema.Schema object, but is not. '
+        'Given schema: ' + repr(schema))
 
   # Make a copy of the provided fields so that the caller's provided values
   # do not change when the returned values are changed.
@@ -523,9 +515,7 @@ def build_dict_conforming_to_schema(schema, **kwargs):
   # (Please note that _required is slightly misleading, as it includes both
   #  required and optional elements. It should probably be called _components.)
   #
-  for schema_element in schema._required: #pylint: disable=protected-access
-    key = schema_element[0]
-    element_type = schema_element[1]
+  for key, element_type in schema._required: #pylint: disable=protected-access
 
     if key in dictionary:
       # If the field has been provided, proceed normally.
