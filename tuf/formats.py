@@ -23,7 +23,7 @@
   Note: 'formats.py' depends heavily on 'schema.py', so the 'schema.py'
   module should be read and understood before tackling this module.
 
-  'formats.py' can be broken down into three sections.  (1) Schemas and object
+  'formats.py' can be broken down into two sections.  (1) Schemas and object
   matching.  (2) Functions that help produce or verify TUF objects.
 
   The first section deals with schemas and object matching based on format.
@@ -514,12 +514,6 @@ def build_dict_conforming_to_schema(schema, **kwargs):
   dictionary = copy.deepcopy(kwargs)
 
 
-
-
-
-
-
-
   # Automatically provide certain schema properties if they are not already
   # provided and are required in objects of class <schema>.
   # This includes:
@@ -543,7 +537,7 @@ def build_dict_conforming_to_schema(schema, **kwargs):
 
     else:
       # If the field has not been provided and is required, check to see if
-      # the field is one of the one of the fields we automatically fill.
+      # the field is one of the fields we automatically fill.
 
       # Currently, the list is limited to ['_type', 'spec_version'].
 
