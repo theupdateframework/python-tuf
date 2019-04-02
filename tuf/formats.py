@@ -473,12 +473,32 @@ def make_signable(role_schema):
 def build_dict_conforming_to_schema(schema, **kwargs):
   """
   <Purpose>
-    Given a schema object (for example, TIMESTAMP_SCHEMA from this module) and
-    a set of keyword arguments, create a dictionary that conforms to the given
-    schema, using the keyword arguments to define the elements of the new dict.
+    Given a schema.Object object (for example, TIMESTAMP_SCHEMA from this
+    module) and a set of keyword arguments, create a dictionary that conforms
+    to the given schema, using the keyword arguments to define the elements of
+    the new dict.
 
     Checks the result to make sure that it conforms to the given schema, raising
     an error if not.
+
+  <Arguments>
+    schema
+      A schema.Object, like TIMESTAMP_SCHEMA, FILEINFO_SCHEMA,
+      securesystemslib.formats.SIGNATURE_SCHEMA, etc.
+
+    **kwargs
+      A keyword argument for each element of the schema.  Optional arguments
+      may be included or skipped, but all required arguments must be included.
+
+      For example, for TIMESTAMP_SCHEMA, a call might look like:
+        build_dict_conforming_to_schema(
+            TIMESTAMP_SCHEMA,
+            _type='timestamp',
+            spec_version='1.0',
+            version=1,
+            expires='2020-01-01T00:00:00Z',
+            meta={...})
+      Some arguments will be filled in if excluded: _type, spec_version
 
   <Returns>
     A dictionary conforming to the given schema.  Adds certain required fields
