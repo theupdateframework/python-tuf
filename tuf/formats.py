@@ -93,14 +93,6 @@ SPECIFICATION_VERSION_SCHEMA = SCHEMA.AnyString()
 # check, and an ISO8601 string should be fully verified when it is parsed.
 ISO8601_DATETIME_SCHEMA = SCHEMA.RegularExpression(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z')
 
-# A dict holding the version or file information for a particular metadata
-# role.  The dict keys hold the relative file paths, and the dict values the
-# corresponding version numbers and/or file information.
-FILEINFODICT_SCHEMA = SCHEMA.DictOf(
-  key_schema = securesystemslib.formats.RELPATH_SCHEMA,
-  value_schema = SCHEMA.OneOf([securesystemslib.formats.VERSIONINFO_SCHEMA,
-                              securesystemslib.formats.FILEINFO_SCHEMA]))
-
 # A string representing a role's name.
 ROLENAME_SCHEMA = SCHEMA.AnyString()
 
@@ -152,31 +144,89 @@ PATH_HASH_PREFIX_SCHEMA = securesystemslib.formats.HEX_SCHEMA
 # A list of path hash prefixes.
 PATH_HASH_PREFIXES_SCHEMA = SCHEMA.ListOf(PATH_HASH_PREFIX_SCHEMA)
 
-# Information about target files, like file length and file hash(es).  This
-# schema allows the storage of multiple hashes for the same file (e.g., sha256
-# and sha512 may be computed for the same file and stored).
-FILEINFO_SCHEMA = SCHEMA.Object(
-  object_name = 'FILEINFO_SCHEMA',
-  length = securesystemslib.formats.LENGTH_SCHEMA,
-  hashes = securesystemslib.formats.HASHDICT_SCHEMA,
-  version = SCHEMA.Optional(METADATAVERSION_SCHEMA),
-  custom = SCHEMA.Optional(SCHEMA.Object()))
 
-# A dict holding the information for a particular target / file.  The dict keys
-# hold the relative file paths, and the dict values the corresponding file
-# information.
-FILEDICT_SCHEMA = SCHEMA.DictOf(
-  key_schema = RELPATH_SCHEMA,
+# FILEINFO schemas:
+# In TUF, we store information about files in a variety of ways.
+# Sometimes, versions are used, and sometimes length and hashes are required.
+# So FILEINFO_SCHEMA will match any of these three schemas:
+# FILEINFO_IN_TIMESTAMP_SCHEMA, FILEINFO_IN_SNAPSHOT_SCHEMA,
+# and FILEINFO_IN_TARGETS_SCHEMA.
+
+# Timestamp metadata must list version, hashes, and length for the Snapshot
+# metadata.
+#   example:
+#     { 'version':  7, 'length': 52, 'hashes': {'sha256': '123456...'}}
+FILEINFO_IN_TIMESTAMP_SCHEMA = SCHEMA.Object(
+    object_name = 'FILEINFO_IN_TIMESTAMP_SCHEMA',
+    version = INTEGER_NATURAL_SCHEMA,
+    length = INTEGER_NATURAL_SCHEMA,
+    hashes = securesystemslib.formats.HASHDICT_SCHEMA)
+
+# Snapshot metadata lists only version numbers for all the Targets roles on the
+# repository.  (Other implementations might include hashes and length.)
+#   example:
+#     { 'version': 5 }
+FILEINFO_IN_SNAPSHOT_SCHEMA = SCHEMA.Object(
+    object_name = 'FILEINFO_IN_SNAPSHOT_SCHEMA',
+    version = INTEGER_NATURAL_SCHEMA)
+
+
+# Because Targets metadata must provide cryptographically secure information
+# about the targets that must be verified, it must list hashes and length.
+# It does not list version numbers, but may list additional, custom fields.
+#
+# Custom fields might be, for example, things like the hash to expect when an
+# encrypted target file is decrypted, the file permissions recommended, authors,
+# compatible part numbers, etc.).
+#   examples:
+#     {'length': 10, 'hashes': {'sha256': '123456...'}}
+#     {
+#       'length': 10,
+#       'hashes': {'sha256': '123456...'},
+#       'custom': {'arbitrary': 123, 'metadata': {1: ''}}
+#     }
+CUSTOM_SCHEMA = SCHEMA.Object()
+FILEINFO_IN_TARGETS_SCHEMA = SCHEMA.Object(
+    object_name= 'FILEINFO_IN_TARGETS_SCHEMA',
+    length = INTEGER_NATURAL_SCHEMA,
+    hashes = securesystemslib.formats.HASHDICT_SCHEMA,
+    custom = SCHEMA.Optional(CUSTOM_SCHEMA))
+
+# FILEINFO_SCHEMA provides a generalization of the above FILEINFO schemas, for
+# testing and modularity reasons.
+FILEINFO_SCHEMA = SCHEMA.OneOf(
+    [FILEINFO_IN_TIMESTAMP_SCHEMA,
+    FILEINFO_IN_SNAPSHOT_SCHEMA,
+    FILEINFO_IN_TARGETS_SCHEMA])
+
+
+# A dictionary mapping paths or rolenames to FILEINFO_SCHEMAs.
+# This is used in Timestamp, Snapshot, and Targets roles.
+#
+#   examples:
+#     { 'targets':
+#       {'length': 10, 'hashes': {'sha256': '123456'}, 'version': 3}}
+#
+FILEINFO_DICT_SCHEMA = SCHEMA.DictOf(
+  key_schema = SCHEMA.OneOf(
+      [securesystemslib.formats.PATH_SCHEMA, ROLENAME_SCHEMA]),
   value_schema = FILEINFO_SCHEMA)
 
-# A dict holding a target info.
-TARGETINFO_SCHEMA = SCHEMA.Object(
-  object_name = 'TARGETINFO_SCHEMA',
-  filepath = RELPATH_SCHEMA,
-  fileinfo = FILEINFO_SCHEMA)
+# LABELED_FILEINFO_SCHEMA is a filepath-labeled equivalent of
+# FILEINFO_IN_TARGETS_SCHEMA.  It may be of use when storing or exporting
+# information about multiple targets.
+# e.g.
+#     {'filepath': '1.tgz',
+#      'fileinfo': {'length': 10, 'hashes': {'sha256': '123456'}}}
+LABELED_FILEINFO_SCHEMA = SCHEMA.Object(
+  object_name = 'TARGELABELED_FILEINFO_SCHEMATINFO_SCHEMA',
+  filepath = securesystemslib.formats.PATH_SCHEMA,
+  fileinfo = FILEINFO_IN_TARGETS_SCHEMA)
 
-# A list of TARGETINFO_SCHEMA.
-TARGETINFOS_SCHEMA = SCHEMA.ListOf(TARGETINFO_SCHEMA)
+# A list of LABELED_FILEINFO_SCHEM objects.
+LABELED_FILEINFOS_SCHEMA = SCHEMA.ListOf(LABELED_FILEINFO_SCHEMA)
+
+
 
 # A dict of repository names to mirrors.
 REPO_NAMES_TO_MIRRORS_SCHEMA = SCHEMA.DictOf(
@@ -259,16 +309,13 @@ DELEGATIONS_SCHEMA = SCHEMA.Object(
   keys = KEYDICT_SCHEMA,
   roles = SCHEMA.ListOf(DELEGATION_SCHEMA))
 
+
 # The number of hashed bins, or the number of delegated roles.  See
 # delegate_hashed_bins() in 'repository_tool.py' for an example.  Note:
 # Tools may require further restrictions on the number of bins, such
 # as requiring them to be a power of 2.
 NUMBINS_SCHEMA = SCHEMA.Integer(lo=1)
 
-# The fileinfo format of targets specified in the repository and
-# developer tools.  The second element of this list holds custom data about the
-# target, such as file permissions, author(s), last modified, etc.
-CUSTOM_SCHEMA = SCHEMA.Object()
 
 PATH_FILEINFO_SCHEMA = SCHEMA.DictOf(
   key_schema = securesystemslib.formats.PATH_SCHEMA,
@@ -298,7 +345,7 @@ TARGETS_SCHEMA = SCHEMA.Object(
   spec_version = SPECIFICATION_VERSION_SCHEMA,
   version = INTEGER_NATURAL_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
-  targets = FILEDICT_SCHEMA,
+  targets = FILEINFO_DICT_SCHEMA,
   delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA))
 
 # Snapshot role: indicates the latest versions of all metadata (except
@@ -309,7 +356,7 @@ SNAPSHOT_SCHEMA = SCHEMA.Object(
   version = INTEGER_NATURAL_SCHEMA,
   expires = securesystemslib.formats.ISO8601_DATETIME_SCHEMA,
   spec_version = SPECIFICATION_VERSION_SCHEMA,
-  meta = FILEINFODICT_SCHEMA)
+  meta = FILEINFO_DICT_SCHEMA)
 
 # Timestamp role: indicates the latest version of the snapshot file.
 TIMESTAMP_SCHEMA = SCHEMA.Object(
@@ -318,7 +365,7 @@ TIMESTAMP_SCHEMA = SCHEMA.Object(
   spec_version = SPECIFICATION_VERSION_SCHEMA,
   version = SCHEMA.Integer(lo=0),
   expires = securesystemslib.formats.ISO8601_DATETIME_SCHEMA,
-  meta = securesystemslib.formats.FILEDICT_SCHEMA)
+  meta = FILEINFO_DICT_SCHEMA)
 
 
 # project.cfg file: stores information about the project in a json dictionary
@@ -365,6 +412,7 @@ MIRRORLIST_SCHEMA = SCHEMA.Object(
 # Any of the role schemas (e.g., TIMESTAMP_SCHEMA, SNAPSHOT_SCHEMA, etc.)
 ANYROLE_SCHEMA = SCHEMA.OneOf([ROOT_SCHEMA, TARGETS_SCHEMA, SNAPSHOT_SCHEMA,
                                TIMESTAMP_SCHEMA, MIRROR_SCHEMA])
+
 
 # ROLES_SCHEMA is simply a dictionary of role metadata for any of the types of
 # TUF roles.
