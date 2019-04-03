@@ -11,28 +11,35 @@
   Geremy Condra
   Vladimir Diaz <vladimir.v.diaz@gmail.com>
 
-<Started>
-  Refactored April 30, 2012. -vladimir.v.diaz
-
 <Copyright>
   See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
-  A central location for all format-related checking of TUF objects.
-  Some crypto-related formats may also be defined in securesystemslib.
-  Note: 'formats.py' depends heavily on 'schema.py', so the 'schema.py'
-  module should be read and understood before tackling this module.
+  A central module to define the data structures / formats used in the TUF
+  reference implementation, along with some functions for creating and checking
+  objects that conform to them.
 
-  'formats.py' can be broken down into two sections.  (1) Schemas and object
-  matching.  (2) Functions that help produce or verify TUF objects.
+  Because simpler components used in larger structures are defined first,
+  please look to the last definitions if you're looking for the metadata role
+  definitions.
 
-  The first section deals with schemas and object matching based on format.
-  There are two ways of checking the format of objects.  The first method
-  raises a 'securesystemslib.exceptions.FormatError' exception if the match
-  fails and the other returns a Boolean result.
+  These definitions depend on some basic schema-defining functionality and
+  crypto formats from securesystemslib.schemas and securesystemslib.formats.
 
-  tuf.formats.<SCHEMA>.check_match(object)
-  tuf.formats.<SCHEMA>.matches(object)
+  'formats.py' can be broken down into two sections:
+    (1) Schema definitions
+    (2) Functions that help produce or verify schema-conformant objects
+        (build_dict_conforming_to_schema, make_signable, etc.)
+
+
+  Checking objects against these definitions can be done with either of two
+  methods:
+
+      <SCHEMA>.check_match(object)
+          Raises FormatError if object does not match <SCHEMA>.
+
+      <SCHEMA>.matches(object)
+          Returns True if object matches <SCHEMA>, else False.
 
   Example:
 
@@ -48,11 +55,6 @@
   the match fails.  There are numerous variations of object checking
   provided by 'formats.py' and 'schema.py'.
 
-  The second section contains miscellaneous functions related to the format of
-  TUF objects.
-  Example:
-
-  signable_object = make_signable(unsigned_object)
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
