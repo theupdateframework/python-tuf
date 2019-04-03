@@ -917,7 +917,17 @@ def get_delegation_threshold(
 
 
 def get_delegation_paths(
-    rolename, repository_name='default', delegating_rolename):
+    rolename, delegating_rolename, repository_name='default'):
+    # TODO: <~> Deal with everything that calls get_delegation_paths such that:
+    #           1. the arguments are ordered correctly.  (repository_name is an
+    #              optional argument and so had to be moved from 2nd to 3rd
+    #              argument, as another required argument was added.)
+    #           2. Calls are made with the delegating rolename in mind (will
+    #              require restructuring code).
+    #       Note that unlike with get_delegation, delegating_rolename should
+    #       not be optional, as we will never be dealing with top-level roles
+    #       as the delegated roles here, so we can't default to Root, and it
+    #       doesn't make much sense to default to Targets.
   """
   <Purpose>
     Given two roles, finds the delegation from delegating_rolename to rolename,
