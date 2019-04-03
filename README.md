@@ -78,7 +78,7 @@ Cappos](https://ssl.engineering.nyu.edu/personalpages/jcappos/) and other
 members of the [Secure Systems Lab](https://ssl.engineering.nyu.edu/) at [New
 York University](https://engineering.nyu.edu/).  We appreciate the efforts of
 Konstantin Andrianov, Geremy Condra, Vladimir Diaz, Yuyu Zheng, Sebastien Awwad,
-and Justin Samuel who are among those who helped significantly with TUf's reference 
+and Justin Samuel who are among those who helped significantly with TUF's reference 
 implementation.  [Contributors](https://github.com/theupdateframework/tuf/blob/develop/docs/AUTHORS.txt)
 and
 [maintainers](https://github.com/theupdateframework/tuf/blob/develop/docs/MAINTAINERS.txt)
