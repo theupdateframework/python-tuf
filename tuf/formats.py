@@ -79,6 +79,12 @@ import tuf
 import six
 
 
+# Version numbers for metadata and data sizes/lengths are natural integers.
+INTEGER_NATURAL_SCHEMA = SCHEMA.Integer(lo=0)
+
+# The version of the specification with which a piece of metadata conforms is
+# expressed as a string.  It should conform to the typical major.minor.fix
+# format version numbers commonly use, but we are not yet strict about this.
 SPECIFICATION_VERSION_SCHEMA = SCHEMA.AnyString()
 
 # A datetime in 'YYYY-MM-DDTHH:MM:SSZ' ISO 8601 format.  The "Z" zone designator
@@ -104,15 +110,8 @@ COMMAND_SCHEMA = SCHEMA.DictOf(
   key_schema = securesystemslib.formats.NAME_SCHEMA,
   value_schema = SCHEMA.Any())
 
-# An integer representing the numbered version of a metadata file.
-# Must be 1, or greater.
-METADATAVERSION_SCHEMA = SCHEMA.Integer(lo=0)
-
 # A value that is either True or False, on or off, etc.
 BOOLEAN_SCHEMA = SCHEMA.Boolean()
-
-# A string representing a role's name.
-ROLENAME_SCHEMA = SCHEMA.AnyString()
 
 # A role's threshold value (i.e., the minimum number
 # of signatures required to sign a metadata file).
@@ -146,10 +145,6 @@ KEYDICT_SCHEMA = SCHEMA.DictOf(
   key_schema = KEYID_SCHEMA,
   value_schema = KEY_SCHEMA)
 
-
-# A relative file path (e.g., 'metadata/root/').
-RELPATH_SCHEMA = SCHEMA.AnyString()
-RELPATHS_SCHEMA = SCHEMA.ListOf(RELPATH_SCHEMA)
 
 # A path hash prefix is a hexadecimal string.
 PATH_HASH_PREFIX_SCHEMA = securesystemslib.formats.HEX_SCHEMA
@@ -190,7 +185,7 @@ REPO_NAMES_TO_MIRRORS_SCHEMA = SCHEMA.DictOf(
 
 # An object containing the map file's "mapping" attribute.
 MAPPING_SCHEMA = SCHEMA.ListOf(SCHEMA.Object(
-  paths = RELPATHS_SCHEMA,
+  paths = securesystemslib.formats.PATHS_SCHEMA,
   repositories = SCHEMA.ListOf(SCHEMA.AnyString()),
   terminating = BOOLEAN_SCHEMA,
   threshold = THRESHOLD_SCHEMA))
@@ -244,7 +239,7 @@ DELEGATION_SCHEMA = SCHEMA.Object(
   keyids = securesystemslib.formats.KEYIDS_SCHEMA,
   threshold = securesystemslib.formats.THRESHOLD_SCHEMA,
   terminating = SCHEMA.Optional(securesystemslib.formats.BOOLEAN_SCHEMA),
-  paths = SCHEMA.Optional(securesystemslib.formats.RELPATHS_SCHEMA),
+  paths = SCHEMA.Optional(securesystemslib.formats.PATHS_SCHEMA),
   path_hash_prefixes = SCHEMA.Optional(securesystemslib.formats.PATH_HASH_PREFIXES_SCHEMA))
 
 
@@ -269,7 +264,7 @@ NUMBINS_SCHEMA = SCHEMA.Integer(lo=1)
 CUSTOM_SCHEMA = SCHEMA.Object()
 
 PATH_FILEINFO_SCHEMA = SCHEMA.DictOf(
-  key_schema = RELPATH_SCHEMA,
+  key_schema = securesystemslib.formats.PATH_SCHEMA,
   value_schema = CUSTOM_SCHEMA)
 
 # A signable object.  Holds metadata and signatures over that metadata.
@@ -283,7 +278,7 @@ ROOT_SCHEMA = SCHEMA.Object(
   object_name = 'ROOT_SCHEMA',
   _type = SCHEMA.String('root'),
   spec_version = SPECIFICATION_VERSION_SCHEMA,
-  version = METADATAVERSION_SCHEMA,
+  version = INTEGER_NATURAL_SCHEMA,
   consistent_snapshot = BOOLEAN_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
   keys = KEYDICT_SCHEMA,
@@ -294,7 +289,7 @@ TARGETS_SCHEMA = SCHEMA.Object(
   object_name = 'TARGETS_SCHEMA',
   _type = SCHEMA.String('targets'),
   spec_version = SPECIFICATION_VERSION_SCHEMA,
-  version = METADATAVERSION_SCHEMA,
+  version = INTEGER_NATURAL_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
   targets = FILEDICT_SCHEMA,
   delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA))
@@ -304,7 +299,7 @@ TARGETS_SCHEMA = SCHEMA.Object(
 SNAPSHOT_SCHEMA = SCHEMA.Object(
   object_name = 'SNAPSHOT_SCHEMA',
   _type = SCHEMA.String('snapshot'),
-  version = securesystemslib.formats.METADATAVERSION_SCHEMA,
+  version = INTEGER_NATURAL_SCHEMA,
   expires = securesystemslib.formats.ISO8601_DATETIME_SCHEMA,
   spec_version = SPECIFICATION_VERSION_SCHEMA,
   meta = FILEINFODICT_SCHEMA)
@@ -314,7 +309,7 @@ TIMESTAMP_SCHEMA = SCHEMA.Object(
   object_name = 'TIMESTAMP_SCHEMA',
   _type = SCHEMA.String('timestamp'),
   spec_version = SPECIFICATION_VERSION_SCHEMA,
-  version = securesystemslib.formats.METADATAVERSION_SCHEMA,
+  version = SCHEMA.Integer(lo=0),
   expires = securesystemslib.formats.ISO8601_DATETIME_SCHEMA,
   meta = securesystemslib.formats.FILEDICT_SCHEMA)
 
@@ -336,9 +331,9 @@ PROJECT_CFG_SCHEMA = SCHEMA.Object(
 MIRROR_SCHEMA = SCHEMA.Object(
   object_name = 'MIRROR_SCHEMA',
   url_prefix = securesystemslib.formats.URL_SCHEMA,
-  metadata_path = securesystemslib.formats.RELPATH_SCHEMA,
-  targets_path = securesystemslib.formats.RELPATH_SCHEMA,
-  confined_target_dirs = securesystemslib.formats.RELPATHS_SCHEMA,
+  metadata_path = securesystemslib.formats.PATH_SCHEMA,
+  targets_path = securesystemslib.formats.PATH_SCHEMA,
+  confined_target_dirs = securesystemslib.formats.PATHS_SCHEMA,
   custom = SCHEMA.Optional(SCHEMA.Object()))
 
 # A dictionary of mirrors where the dict keys hold the mirror's name and
@@ -354,7 +349,7 @@ MIRRORDICT_SCHEMA = SCHEMA.DictOf(
 MIRRORLIST_SCHEMA = SCHEMA.Object(
   object_name = 'MIRRORLIST_SCHEMA',
   _type = SCHEMA.String('mirrors'),
-  version = METADATAVERSION_SCHEMA,
+  version = INTEGER_NATURAL_SCHEMA,
   expires = securesystemslib.formats.ISO8601_DATETIME_SCHEMA,
   mirrors = SCHEMA.ListOf(MIRROR_SCHEMA))
 
