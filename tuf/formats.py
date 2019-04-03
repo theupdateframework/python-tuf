@@ -198,32 +198,39 @@ MAPFILE_SCHEMA = SCHEMA.Object(
   mapping = MAPPING_SCHEMA)
 
 
-# SIGNING_SCHEMA is the minimal information necessary to delegate or
+# SIGNERS_SCHEMA is the minimal information necessary to delegate or
 # authenticate in TUF.  It is a list of keyids and a threshold.  For example,
 # the data in root metadata stored for each top-level role takes this form.
 # TODO: Contemplate alternative names like AUTHENTICATION_INFO_SCHEMA.
-SIGNING_SCHEMA = SCHEMA.Object(
-  object_name = 'SIGNING_SCHEMA',
+#   examples:
+#     { 'keyids': ['1234...', 'abcd...', ...], threshold: 2}
+SIGNERS_SCHEMA = SCHEMA.Object(
+  object_name = 'SIGNERS_SCHEMA',
   keyids = securesystemslib.formats.KEYIDS_SCHEMA,
   threshold = THRESHOLD_SCHEMA)
 
 
-# A dict of SIGNING_SCHEMAs.  The dictionary in the 'roles' field of Root
+# A dict of SIGNERS_SCHEMA dicts.  The dictionary in the 'roles' field of Root
 # metadata takes this form, where each top-level role has an entry listing the
 # keyids and threshold Root expects of those roles.
-# In this dictionary, the keys are role names and the values are SIGNING_SCHEMA
+# In this dictionary, the keys are role names and the values are SIGNERS_SCHEMA
 # holding keyids and threshold.
-SIGNING_DICT_SCHEMA = SCHEMA.DictOf(
+#   example:
+#     { 'root':      {keyids': ['1234...', 'abcd...', ...], threshold: 2},
+#       'snapshot':  {keyids': ['5656...', '9876...', ...], threshold: 1},
+#       ...
+#     }
+SIGNERS_DICT_SCHEMA = SCHEMA.DictOf(
   key_schema = ROLENAME_SCHEMA,
-  value_schema = SIGNING_SCHEMA)
+  value_schema = SIGNERS_SCHEMA)
 
 
-# DELEGATION_SCHEMA expands on SIGNING_SCHEMA with some optional fields that
+# DELEGATION_SCHEMA expands on SIGNERS_SCHEMA with some optional fields that
 # pertain to Targets delegations.  Each entry in the 'delegations' field
 # DELEGATION_SCHEMA provides, at a minimum, a list of keyids and a threshold.
 # This schema was previously also used for elements of the 'roles' dictionary
 # in Root metadata, where keyids and threshold are provided for each top-level
-# role; now, however, SIGNING_SCHEMA should be used for those.
+# role; now, however, SIGNERS_SCHEMA should be used for those.
 # This schema can also be used in the delegations field of Targets metadata,
 # where it is used to define a targets delegation.
 # This was once "ROLE_SCHEMA", but that was a misleading name.
@@ -282,7 +289,7 @@ ROOT_SCHEMA = SCHEMA.Object(
   consistent_snapshot = BOOLEAN_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
   keys = KEYDICT_SCHEMA,
-  roles = ROLEDICT_SCHEMA)
+  roles = SIGNERS_DICT_SCHEMA)
 
 # Targets role: Indicates targets and delegates target paths to other roles.
 TARGETS_SCHEMA = SCHEMA.Object(
