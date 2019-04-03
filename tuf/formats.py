@@ -373,7 +373,9 @@ ANYROLE_SCHEMA = SCHEMA.OneOf([ROOT_SCHEMA, TARGETS_SCHEMA, SNAPSHOT_SCHEMA,
 # takes the form of a dictionary containing a ROLES_SCHEMA for each repository
 # RoleDB stores metadata from.  ROLES_SCHEMA is simply a mapping from rolename
 # to the role metadata for that role.
-ROLES_SCHEMA = SCHEMA.DictOf(ANYROLE_SCHEMA)
+ROLES_SCHEMA = SCHEMA.DictOf(
+    key_schema = ROLENAME_SCHEMA,
+    value_schema = ANYROLE_SCHEMA)
 
 # TODO: This probably doesn't need to exist.
 # The format of the resulting "scp config dict" after extraction from the
