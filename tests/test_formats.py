@@ -292,6 +292,13 @@ class TestFormats(unittest.TestCase):
     # Test construction of a few metadata formats using
     # build_dict_conforming_to_schema().
 
+    # Try the wrong type of schema object.
+    STRING_SCHEMA = securesystemslib.schema.AnyString()
+
+    with self.assertRaises(ValueError):
+      tuf.formats.build_dict_conforming_to_schema(
+          STRING_SCHEMA, string='some string')
+
     # Try building Timestamp metadata.
     spec_version = tuf.SPECIFICATION_VERSION
     version = 8
