@@ -623,7 +623,18 @@ class TestRoledb(unittest.TestCase):
 
   def test_update_roleinfo(self):
     rolename = 'targets'
-    roleinfo = {'keyids': ['123'], 'threshold': 1}
+    roleinfo = {'_type': 'targets',
+                'spec_version': '1.0',
+                'targets': {
+                  'some_target': {
+                    'length': 0,
+                    'hashes': {
+                      'ab23143': 'abcd12134213abf'
+                    }
+                  }
+                },
+                'version': 1,
+                'expires': '2030-01-01T00:00:00Z'}
     tuf.roledb.add_role(rolename, roleinfo)
 
     # Test normal case.
