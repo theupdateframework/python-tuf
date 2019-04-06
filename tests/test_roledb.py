@@ -466,33 +466,13 @@ class TestRoledb(unittest.TestCase):
 
   def test_get_delegated_rolenames(self):
     # Test conditions where the arguments are valid.
-    rolename = 'unclaimed'
-    rolename2 = 'django'
-    rolename3 = 'release'
-    rolename4 = 'tuf'
+    rolename = 'targets'
+    rolename2 = 'role1'
+    rolename3 = 'role2'
 
-    # unclaimed's roleinfo.
-    roleinfo = {'keyids': ['123'], 'threshold': 1, 'delegations':
-      {'roles': [{'name': 'django', 'keyids': ['456'], 'threshold': 1},
-                 {'name': 'tuf', 'keyids': ['888'], 'threshold': 1}],
-      'keys': {'456': {'keytype': 'rsa', 'keyval': {'public': '456'}},
-      }}}
-
-    # django's roleinfo.
-    roleinfo2 = {'keyids': ['456'], 'threshold': 1, 'delegations':
-      {'roles': [{'name': 'release', 'keyids': ['789'], 'threshold': 1}],
-      'keys': {'789': {'keytype': 'rsa', 'keyval': {'public': '789'}},
-      }}}
-
-    # release's roleinfo.
-    roleinfo3 = {'keyids': ['789'], 'threshold': 1, 'delegations':
-      {'roles': [],
-      'keys': {}}}
-
-    # tuf's roleinfo.
-    roleinfo4 = {'keyids': ['888'], 'threshold': 1, 'delegations':
-      {'roles': [],
-      'keys': {}}}
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
+    roleinfo3 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role2.json"))['signed']
 
     self.assertRaises(tuf.exceptions.UnknownRoleError, tuf.roledb.get_delegated_rolenames,
                       rolename)
@@ -500,19 +480,15 @@ class TestRoledb(unittest.TestCase):
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
     tuf.roledb.add_role(rolename3, roleinfo3)
-    tuf.roledb.add_role(rolename4, roleinfo4)
 
-    self.assertEqual(set(['django', 'tuf']),
+    self.assertEqual(set(['role1']),
                      set(tuf.roledb.get_delegated_rolenames(rolename)))
 
-    self.assertEqual(set(['release']),
+    self.assertEqual(set(['role2']),
                      set(tuf.roledb.get_delegated_rolenames(rolename2)))
 
     self.assertEqual(set([]),
                      set(tuf.roledb.get_delegated_rolenames(rolename3)))
-
-    self.assertEqual(set([]),
-                     set(tuf.roledb.get_delegated_rolenames(rolename4)))
 
     # Verify that the delegated rolenames of a role in a non-default
     # repository can be accessed.
@@ -521,7 +497,7 @@ class TestRoledb(unittest.TestCase):
                                            rolename, repository_name)
     tuf.roledb.create_roledb(repository_name)
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
-    self.assertEqual(set(['django', 'tuf']),
+    self.assertEqual(set(['role1']),
                      set(tuf.roledb.get_delegated_rolenames(rolename, repository_name)))
 
     # Reset the roledb so that subsequent tests have access to the original,
