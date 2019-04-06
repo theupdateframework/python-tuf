@@ -39,6 +39,7 @@ import tuf.log
 
 import securesystemslib
 import securesystemslib.keys
+import os
 
 logger = logging.getLogger('tuf.test_roledb')
 
@@ -53,6 +54,7 @@ for junk in range(3):
 class TestRoledb(unittest.TestCase):
   def setUp(self):
     tuf.roledb.clear_roledb(clear_all=True)
+    self.test_data_path = os.path.join(os.getcwd(), "tests", "repository_data", "repository", "metadata")
 
 
 
@@ -107,20 +109,23 @@ class TestRoledb(unittest.TestCase):
     # Test for an empty roledb, a length of 1 after adding a key, and finally
     # an empty roledb after calling 'clear_roledb()'.
     self.assertEqual(0, len(tuf.roledb._roledb_dict['default']))
-    tuf.roledb._roledb_dict['default']['Root'] = {'keyids': ['123'], 'threshold': 1}
+    tuf.roledb._roledb_dict['default']['Root'] =\
+        securesystemslib.util.load_json_file(os.path.join(self.test_data_path,
+        "root.json"))['signed']
     self.assertEqual(1, len(tuf.roledb._roledb_dict['default']))
     tuf.roledb.clear_roledb()
     self.assertEqual(0, len(tuf.roledb._roledb_dict['default']))
 
     # Verify that the roledb can be cleared for a non-default repository.
     rolename = 'targets'
-    roleinfo = {'keyids': ['123'], 'threshold': 1}
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
 
     repository_name = 'example_repository'
     self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.clear_roledb, repository_name)
     tuf.roledb.create_roledb(repository_name)
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
-    self.assertEqual(roleinfo['keyids'], tuf.roledb.get_role_keyids(rolename, repository_name))
+    # TODO remove keyid check
+    # self.assertEqual(roleinfo['keyids'], tuf.roledb.get_delegation_keyids(rolename, repository_name))
     tuf.roledb.clear_roledb(repository_name)
     self.assertFalse(tuf.roledb.role_exists(rolename, repository_name))
 
@@ -138,7 +143,7 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are valid.
     self.assertEqual(0, len(tuf.roledb._roledb_dict['default']))
     rolename = 'targets'
-    roleinfo = {'keyids': ['123'], 'threshold': 1}
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
     rolename2 = 'role1'
     self.assertEqual(None, tuf.roledb.add_role(rolename, roleinfo))
     self.assertEqual(1, len(tuf.roledb._roledb_dict['default']))
@@ -152,8 +157,9 @@ class TestRoledb(unittest.TestCase):
                                             repository_name)
     tuf.roledb.create_roledb(repository_name)
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
-    self.assertEqual(roleinfo['keyids'], tuf.roledb.get_role_keyids(rolename,
-                                         repository_name))
+    # TODO remove keyid check
+    # self.assertEqual(roleinfo['keyids'], tuf.roledb.get_delegation_keyids(rolename,
+    #                                      repository_name))
 
     # Reset the roledb so that subsequent tests have access to a default
     # roledb.
@@ -190,7 +196,7 @@ class TestRoledb(unittest.TestCase):
   def test_role_exists(self):
     # Test conditions where the arguments are valid.
     rolename = 'targets'
-    roleinfo = {'keyids': ['123'], 'threshold': 1}
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
     rolename2 = 'role1'
 
     self.assertEqual(False, tuf.roledb.role_exists(rolename))
@@ -233,11 +239,8 @@ class TestRoledb(unittest.TestCase):
     rolename = 'targets'
     rolename2 = 'release'
     rolename3 = 'django'
-    roleinfo = {'keyids': ['123'], 'threshold': 1}
-    roleinfo2 = {'keyids': ['123'], 'threshold': 1, 'delegations':
-      {'roles': [{'name': 'django', 'keyids': ['456'], 'threshold': 1}],
-       'keys': {'456': {'keytype': 'rsa', 'keyval': {'public': '456'}},
-      }}}
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role2.json"))['signed']
 
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
@@ -252,7 +255,8 @@ class TestRoledb(unittest.TestCase):
     tuf.roledb.create_roledb(repository_name)
 
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
-    self.assertEqual(roleinfo['keyids'], tuf.roledb.get_role_keyids(rolename, repository_name))
+    # TODO remove keyid check
+    # self.assertEqual(roleinfo['keyids'], tuf.roledb.get_delegation_keyids(rolename, repository_name))
     self.assertEqual(None, tuf.roledb.remove_role(rolename, repository_name))
 
     # Verify that a role cannot be removed from a non-existent repository name.
@@ -281,7 +285,7 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are valid.
     rolename = 'targets'
     rolename2 = 'role1'
-    roleinfo = {'keyids': ['123'], 'threshold': 1}
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
     self.assertEqual([], tuf.roledb.get_rolenames())
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo)
@@ -312,8 +316,8 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are valid.
     rolename = 'targets'
     rolename2 = 'role1'
-    roleinfo = {'keyids': ['123'], 'threshold': 1}
-    roleinfo2 = {'keyids': ['456', '789'], 'threshold': 2}
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role2.json"))['signed']
     self.assertRaises(tuf.exceptions.UnknownRoleError, tuf.roledb.get_roleinfo, rolename)
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
@@ -348,32 +352,32 @@ class TestRoledb(unittest.TestCase):
 
 
 
-  def test_get_role_keyids(self):
+  def test_get_delegation_keyids(self):
     # Test conditions where the arguments are valid.
     rolename = 'targets'
     rolename2 = 'role1'
     roleinfo = {'keyids': ['123'], 'threshold': 1}
     roleinfo2 = {'keyids': ['456', '789'], 'threshold': 2}
-    self.assertRaises(tuf.exceptions.UnknownRoleError, tuf.roledb.get_role_keyids, rolename)
+    self.assertRaises(tuf.exceptions.UnknownRoleError, tuf.roledb.get_delegation_keyids, rolename)
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
 
-    self.assertEqual(['123'], tuf.roledb.get_role_keyids(rolename))
+    self.assertEqual(['123'], tuf.roledb.get_delegation_keyids(rolename))
     self.assertEqual(set(['456', '789']),
-                     set(tuf.roledb.get_role_keyids(rolename2)))
+                     set(tuf.roledb.get_delegation_keyids(rolename2)))
 
     # Verify that the role keyids can be retrieved for a role in a non-default
     # repository.
     repository_name = 'example_repository'
-    self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.get_role_keyids,
+    self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.get_delegation_keyids,
                                             rolename, repository_name)
     tuf.roledb.create_roledb(repository_name)
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
-    self.assertEqual(['123'], tuf.roledb.get_role_keyids(rolename, repository_name))
+    self.assertEqual(['123'], tuf.roledb.get_delegation_keyids(rolename, repository_name))
 
     # Verify that rolekeyids cannot be retrieved from a non-existent repository
     # name.
-    self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.get_role_keyids, rolename,
+    self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.get_delegation_keyids, rolename,
                       'non-existent')
 
     # Reset the roledb so that subsequent tests have access to the original,
@@ -382,36 +386,36 @@ class TestRoledb(unittest.TestCase):
 
     # Test conditions where the arguments are improperly formatted, contain
     # invalid names, or haven't been added to the role database.
-    self._test_rolename(tuf.roledb.get_role_keyids)
-    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.roledb.get_role_keyids, rolename, 123)
+    self._test_rolename(tuf.roledb.get_delegation_keyids)
+    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.roledb.get_delegation_keyids, rolename, 123)
 
 
 
-  def test_get_role_threshold(self):
+  def test_get_delegation_threshold(self):
     # Test conditions where the arguments are valid.
     rolename = 'targets'
     rolename2 = 'role1'
     roleinfo = {'keyids': ['123'], 'threshold': 1}
     roleinfo2 = {'keyids': ['456', '789'], 'threshold': 2}
-    self.assertRaises(tuf.exceptions.UnknownRoleError, tuf.roledb.get_role_threshold, rolename)
+    self.assertRaises(tuf.exceptions.UnknownRoleError, tuf.roledb.get_delegation_threshold, rolename)
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
 
-    self.assertEqual(1, tuf.roledb.get_role_threshold(rolename))
-    self.assertEqual(2, tuf.roledb.get_role_threshold(rolename2))
+    self.assertEqual(1, tuf.roledb.get_delegation_threshold(rolename))
+    self.assertEqual(2, tuf.roledb.get_delegation_threshold(rolename2))
 
     # Verify that the threshold can be retrieved for a role in a non-default
     # repository.
     repository_name = 'example_repository'
-    self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.get_role_threshold,
+    self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.get_delegation_threshold,
                                             rolename, repository_name)
     tuf.roledb.create_roledb(repository_name)
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
-    self.assertEqual(roleinfo['threshold'], tuf.roledb.get_role_threshold(rolename, repository_name))
+    self.assertEqual(roleinfo['threshold'], tuf.roledb.get_delegation_threshold(rolename, repository_name))
 
     # Verify that a role's threshold cannot be retrieved from a non-existent
     # repository name.
-    self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.get_role_threshold,
+    self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.get_delegation_threshold,
                       rolename, 'non-existent')
 
     # Reset the roledb so that subsequent tests have access to the original,
@@ -420,33 +424,33 @@ class TestRoledb(unittest.TestCase):
 
     # Test conditions where the arguments are improperly formatted,
     # contain invalid names, or haven't been added to the role database.
-    self._test_rolename(tuf.roledb.get_role_threshold)
-    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.roledb.get_role_threshold, rolename, 123)
+    self._test_rolename(tuf.roledb.get_delegation_threshold)
+    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.roledb.get_delegation_threshold, rolename, 123)
 
 
-  def test_get_role_paths(self):
+  def test_get_delegation_paths(self):
     # Test conditions where the arguments are valid.
     rolename = 'targets'
     rolename2 = 'role1'
     roleinfo = {'keyids': ['123'], 'threshold': 1}
     paths = ['a/b', 'c/d']
     roleinfo2 = {'keyids': ['456', '789'], 'threshold': 2, 'paths': paths}
-    self.assertRaises(tuf.exceptions.UnknownRoleError, tuf.roledb.get_role_paths, rolename)
+    self.assertRaises(tuf.exceptions.UnknownRoleError, tuf.roledb.get_delegation_paths, rolename)
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
 
-    self.assertEqual({}, tuf.roledb.get_role_paths(rolename))
-    self.assertEqual(paths, tuf.roledb.get_role_paths(rolename2))
+    self.assertEqual({}, tuf.roledb.get_delegation_paths(rolename))
+    self.assertEqual(paths, tuf.roledb.get_delegation_paths(rolename2))
 
     # Verify that role paths can be queried for roles in non-default
     # repositories.
     repository_name = 'example_repository'
-    self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.get_role_paths,
+    self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.get_delegation_paths,
                                             rolename, repository_name)
 
     tuf.roledb.create_roledb(repository_name)
     tuf.roledb.add_role(rolename2, roleinfo2, repository_name)
-    self.assertEqual(roleinfo2['paths'], tuf.roledb.get_role_paths(rolename2,
+    self.assertEqual(roleinfo2['paths'], tuf.roledb.get_delegation_paths(rolename2,
                                          repository_name))
 
     # Reset the roledb so that subsequent roles have access to the original,
@@ -455,8 +459,8 @@ class TestRoledb(unittest.TestCase):
 
     # Test conditions where the arguments are improperly formatted,
     # contain invalid names, or haven't been added to the role database.
-    self._test_rolename(tuf.roledb.get_role_paths)
-    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.roledb.get_role_paths, rolename, 123)
+    self._test_rolename(tuf.roledb.get_delegation_paths)
+    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.roledb.get_delegation_paths, rolename, 123)
 
 
 
@@ -560,16 +564,16 @@ class TestRoledb(unittest.TestCase):
                      tuf.roledb.create_roledb_from_root_metadata(root_metadata))
 
     # Ensure 'Root' and 'Targets' were added to the role database.
-    self.assertEqual([keyid], tuf.roledb.get_role_keyids('root'))
-    self.assertEqual([keyid2], tuf.roledb.get_role_keyids('targets'))
+    self.assertEqual([keyid], tuf.roledb.get_delegation_keyids('root'))
+    self.assertEqual([keyid2], tuf.roledb.get_delegation_keyids('targets'))
 
     # Test that a roledb is created for a non-default repository.
     repository_name = 'example_repository'
     self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.clear_roledb,
                                             repository_name)
     tuf.roledb.create_roledb_from_root_metadata(root_metadata, repository_name)
-    self.assertEqual([keyid], tuf.roledb.get_role_keyids('root', repository_name))
-    self.assertEqual([keyid2], tuf.roledb.get_role_keyids('targets', repository_name))
+    self.assertEqual([keyid], tuf.roledb.get_delegation_keyids('root', repository_name))
+    self.assertEqual([keyid2], tuf.roledb.get_delegation_keyids('targets', repository_name))
 
     # Remove the example repository added to the roledb so that subsequent
     # tests have access to an original, default roledb.
@@ -623,18 +627,7 @@ class TestRoledb(unittest.TestCase):
 
   def test_update_roleinfo(self):
     rolename = 'targets'
-    roleinfo = {'_type': 'targets',
-                'spec_version': '1.0',
-                'targets': {
-                  'some_target': {
-                    'length': 0,
-                    'hashes': {
-                      'ab23143': 'abcd12134213abf'
-                    }
-                  }
-                },
-                'version': 1,
-                'expires': '2030-01-01T00:00:00Z'}
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
     tuf.roledb.add_role(rolename, roleinfo)
 
     # Test normal case.
@@ -648,7 +641,8 @@ class TestRoledb(unittest.TestCase):
     tuf.roledb.create_roledb(repository_name)
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
     tuf.roledb.update_roleinfo(rolename, roleinfo, mark_role_as_dirty, repository_name)
-    self.assertEqual(roleinfo['keyids'], tuf.roledb.get_role_keyids(rolename, repository_name))
+    # TODO remove keyid check
+    # self.assertEqual(roleinfo['keyids'], tuf.roledb.get_delegation_keyids(rolename, repository_name))
 
     # Reset the roledb so that subsequent tests can access the default roledb.
     tuf.roledb.remove_roledb(repository_name)
@@ -678,9 +672,9 @@ class TestRoledb(unittest.TestCase):
   def test_get_dirty_roles(self):
     # Verify that the dirty roles of a role are returned.
     rolename = 'targets'
-    roleinfo1 = {'keyids': ['123'], 'threshold': 1}
+    roleinfo1 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
     tuf.roledb.add_role(rolename, roleinfo1)
-    roleinfo2 = {'keyids': ['123'], 'threshold': 2}
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role2.json"))['signed']
     mark_role_as_dirty = True
     tuf.roledb.update_roleinfo(rolename, roleinfo2, mark_role_as_dirty)
     # Note: The 'default' repository is searched if the repository name is
@@ -710,10 +704,10 @@ class TestRoledb(unittest.TestCase):
   def test_mark_dirty(self):
     # Add a dirty role to roledb.
     rolename = 'targets'
-    roleinfo1 = {'keyids': ['123'], 'threshold': 1}
+    roleinfo1 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
     tuf.roledb.add_role(rolename, roleinfo1)
     rolename2 = 'dirty_role'
-    roleinfo2 = {'keyids': ['123'], 'threshold': 2}
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role2.json"))['signed']
     mark_role_as_dirty = True
     tuf.roledb.update_roleinfo(rolename, roleinfo1, mark_role_as_dirty)
     # Note: The 'default' repository is searched if the repository name is
@@ -733,10 +727,10 @@ class TestRoledb(unittest.TestCase):
   def test_unmark_dirty(self):
     # Add a dirty role to roledb.
     rolename = 'targets'
-    roleinfo1 = {'keyids': ['123'], 'threshold': 1}
+    roleinfo1 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
     tuf.roledb.add_role(rolename, roleinfo1)
     rolename2 = 'dirty_role'
-    roleinfo2 = {'keyids': ['123'], 'threshold': 2}
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role2.json"))['signed']
     tuf.roledb.add_role(rolename2, roleinfo2)
     mark_role_as_dirty = True
     tuf.roledb.update_roleinfo(rolename, roleinfo1, mark_role_as_dirty)
