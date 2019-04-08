@@ -1130,12 +1130,12 @@ def get_delegation(
 
     root_delegations = _roledb_dict[repository_name]['root']['roles']
 
-    if rolename not in root_delegations:
+    if delegated_rolename not in root_delegations:
       raise tuf.exceptions.Error( # TODO: Consider UnknownRoleError
           'Root metadata does not include delegation metadata for role ' +
-          rolename)
+          delegated_rolename)
 
-    delegation = root_delegations[rolename]
+    delegation = root_delegations[delegated_rolename]
     tuf.formats.TOP_LEVEL_DELEGATION_SCHEMA.check_match(delegation)
     return delegation
 
@@ -1158,7 +1158,7 @@ def get_delegation(
     # to serialize role info to JSON, it would be a bit of a nuisance when loading
     # and unloading, and complicate the metadata definition.
     for delegation in delegations:
-      if delegation['name'] == deelgated_rolename:
+      if delegation['name'] == delgated_rolename:
         tuf.formats.DELEGATION_SCHEMA.check_match(delegation)
         return delegation
 
