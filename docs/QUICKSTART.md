@@ -133,10 +133,10 @@ provider, helping you produce and sign metadata about your updates.
 performing download and the critical verification steps for metadata and the
 update itself.
 
-You can look at [CLI.md](CLI.md) and [CLI_EXAMPLES.md](CLI_EXAMPLES.md) to toy
-with the TUF CLI a bit more.  After that, try out using the underlying modules
-for a great deal more control.  The more detailed [TUF Tutorial](TUTORIAL.md)
-shows you how to use them.
+You can look at [CLI.md](CLI.md) to toy with the TUF CLI a bit more.
+After that, try out using the underlying modules for a great deal more control.
+The more detailed [TUF Tutorial](TUTORIAL.md) shows you how to use the
+underlying modules, `repository_tool` and `updater`.
 
 Ultimately, a sophisticated update client will use or re-implement those
 underlying modules.  The TUF design is intended to play well with any update
