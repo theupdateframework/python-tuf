@@ -1,4 +1,4 @@
-# Tutorial #
+# Advanced Tutorial #
 
 ## Table of Contents ##
 - [How to Create and Modify a TUF Repository](#how-to-create-and-modify-a-tuf-repository)

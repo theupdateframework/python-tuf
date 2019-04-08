@@ -135,7 +135,7 @@ update itself.
 
 You can look at [CLI.md](CLI.md) to toy with the TUF CLI a bit more.
 After that, try out using the underlying modules for a great deal more control.
-The more detailed [TUF Tutorial](TUTORIAL.md) shows you how to use the
+The more detailed [Advanced Tutorial](TUTORIAL.md) shows you how to use the
 underlying modules, `repository_tool` and `updater`.
 
 Ultimately, a sophisticated update client will use or re-implement those
