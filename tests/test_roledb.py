@@ -356,14 +356,16 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are valid.
     rolename = 'targets'
     rolename2 = 'role1'
-    roleinfo = {'keyids': ['123'], 'threshold': 1}
-    roleinfo2 = {'keyids': ['456', '789'], 'threshold': 2}
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
+    # roleinfo = {'keyids': ['123'], 'threshold': 1}
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
+    # roleinfo2 = {'keyids': ['456', '789'], 'threshold': 2}
     self.assertRaises(tuf.exceptions.UnknownRoleError, tuf.roledb.get_delegation_keyids, rolename)
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
 
-    self.assertEqual(['123'], tuf.roledb.get_delegation_keyids(rolename))
-    self.assertEqual(set(['456', '789']),
+    self.assertEqual(['c8022fa1e9b9cb239a6b362bbdffa9649e61ad2cb699d2e4bc4fdf7930a0e64a'], tuf.roledb.get_delegation_keyids(rolename))
+    self.assertEqual(set(['c8022fa1e9b9cb239a6b362bbdffa9649e61ad2cb699d2e4bc4fdf7930a0e64a']),
                      set(tuf.roledb.get_delegation_keyids(rolename2)))
 
     # Verify that the role keyids can be retrieved for a role in a non-default
