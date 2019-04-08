@@ -7,18 +7,18 @@ and verify that update as a client.
 
 Unlike the underlying TUF modules that the CLI uses, the CLI itself is a bit
 bare-bones.  Using the CLI is the easiest way to familiarize yourself with
-how TUF works, however.  It will serve as a very basic update system and use
+how TUF works, however.  It will serve as a very basic update system.
 
 ----
 
-**Step (0)** - Make sure TUF is installed
+**Step (0)** - Make sure TUF is installed.
 
-See the [installation instructions for TUF](docs/INSTALLATION.rst).
+See the [installation instructions for TUF](INSTALLATION.rst).
 The TUF CLI makes use of some crypto dependencies, so please include the
 optional `pip install securesystemslib[crypto,pynacl]` step.
 
 
-**Step (1)** - Create a basic repository and client
+**Step (1)** - Create a basic repository and client.
 
 The following command will set up a basic update repository and basic client
 that knows about the repository.  `tufrepo`, `tufkeystore`, and
@@ -69,7 +69,7 @@ signed by the Targets role's key, so that clients can verify that metadata
 about `testfile` and then verify `testfile` itself.
 
 
-**Step (3)** - Serve the repo
+**Step (3)** - Serve the repo.
 
 We'll host a toy http server containing the `testfile` update and the
 repository's metadata.
