@@ -13,9 +13,9 @@ how TUF works, however.  It will serve as a very basic update system.
 
 **Step (0)** - Make sure TUF is installed.
 
-See the [installation instructions for TUF](INSTALLATION.rst).
-The TUF CLI makes use of some crypto dependencies, so please include the
-optional `pip install securesystemslib[crypto,pynacl]` step.
+Make sure that TUF is installed, along with some of the optional cryptographic
+libraries and C extensions:
+`pip install securesystemslib[crypto,pynacl] tuf`
 
 
 **Step (1)** - Create a basic repository and client.
