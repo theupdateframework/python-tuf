@@ -361,12 +361,14 @@ class TestRoledb(unittest.TestCase):
     roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
     # roleinfo2 = {'keyids': ['456', '789'], 'threshold': 2}
     self.assertRaises(tuf.exceptions.UnknownRoleError, tuf.roledb.get_delegation_keyids, rolename)
+    root_roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "root.json"))['signed']
+    tuf.roledb.add_role("root", root_roleinfo)
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
 
-    self.assertEqual(['c8022fa1e9b9cb239a6b362bbdffa9649e61ad2cb699d2e4bc4fdf7930a0e64a'], tuf.roledb.get_delegation_keyids(rolename))
+    self.assertEqual(['65171251a9aff5a8b3143a813481cb07f6e0de4eb197c767837fe4491b739093'], tuf.roledb.get_delegation_keyids(rolename))
     self.assertEqual(set(['c8022fa1e9b9cb239a6b362bbdffa9649e61ad2cb699d2e4bc4fdf7930a0e64a']),
-                     set(tuf.roledb.get_delegation_keyids(rolename2)))
+                     set(tuf.roledb.get_delegation_keyids(rolename2, delegating_rolename=rolename)))
 
     # Verify that the role keyids can be retrieved for a role in a non-default
     # repository.
@@ -374,8 +376,10 @@ class TestRoledb(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.get_delegation_keyids,
                                             rolename, repository_name)
     tuf.roledb.create_roledb(repository_name)
+    tuf.roledb.add_role("root", root_roleinfo, repository_name=repository_name)
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
-    self.assertEqual(['123'], tuf.roledb.get_delegation_keyids(rolename, repository_name))
+    self.assertEqual(['65171251a9aff5a8b3143a813481cb07f6e0de4eb197c767837fe4491b739093'],
+                     tuf.roledb.get_delegation_keyids(rolename, repository_name))
 
     # Verify that rolekeyids cannot be retrieved from a non-existent repository
     # name.
@@ -397,14 +401,19 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are valid.
     rolename = 'targets'
     rolename2 = 'role1'
-    roleinfo = {'keyids': ['123'], 'threshold': 1}
-    roleinfo2 = {'keyids': ['456', '789'], 'threshold': 2}
+    # roleinfo = {'keyids': ['123'], 'threshold': 1}
+    # roleinfo2 = {'keyids': ['456', '789'], 'threshold': 2}
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
     self.assertRaises(tuf.exceptions.UnknownRoleError, tuf.roledb.get_delegation_threshold, rolename)
+    # tuf.roledb.add_role("root", securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "root.json"))['signed'])
+    root_roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "root.json"))['signed']
+    tuf.roledb.create_roledb_from_root_metadata(root_roleinfo)
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
 
     self.assertEqual(1, tuf.roledb.get_delegation_threshold(rolename))
-    self.assertEqual(2, tuf.roledb.get_delegation_threshold(rolename2))
+    self.assertEqual(1, tuf.roledb.get_delegation_threshold(rolename2, delegating_rolename=rolename))
 
     # Verify that the threshold can be retrieved for a role in a non-default
     # repository.
@@ -412,8 +421,9 @@ class TestRoledb(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.get_delegation_threshold,
                                             rolename, repository_name)
     tuf.roledb.create_roledb(repository_name)
+    tuf.roledb.add_role('root', root_roleinfo, repository_name)
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
-    self.assertEqual(roleinfo['threshold'], tuf.roledb.get_delegation_threshold(rolename, repository_name))
+    self.assertEqual(1, tuf.roledb.get_delegation_threshold(rolename, repository_name))
 
     # Verify that a role's threshold cannot be retrieved from a non-existent
     # repository name.

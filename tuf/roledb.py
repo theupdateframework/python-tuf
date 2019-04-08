@@ -1136,7 +1136,7 @@ def get_delegation(
           delegated_rolename)
 
     delegation = root_delegations[delegated_rolename]
-    tuf.formats.TOP_LEVEL_DELEGATION_SCHEMA.check_match(delegation)
+    tuf.formats.SIGNERS_SCHEMA.check_match(delegation)
     return delegation
 
 
