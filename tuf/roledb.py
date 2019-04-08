@@ -1158,7 +1158,7 @@ def get_delegation(
     # to serialize role info to JSON, it would be a bit of a nuisance when loading
     # and unloading, and complicate the metadata definition.
     for delegation in delegations:
-      if delegation['name'] == delgated_rolename:
+      if delegation['name'] == delegated_rolename:
         tuf.formats.DELEGATION_SCHEMA.check_match(delegation)
         return delegation
 
