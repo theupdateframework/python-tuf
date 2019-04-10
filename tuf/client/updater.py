@@ -754,7 +754,6 @@ class Updater(object):
     # Load current and previous metadata.
     for metadata_set in ['current', 'previous']:
       for metadata_role in ['root', 'targets', 'snapshot', 'timestamp']:
-        # import pdb; pdb.set_trace()
         self._load_metadata_from_file(metadata_set, metadata_role)
 
     # Raise an exception if the repository is missing the required 'root'
@@ -821,7 +820,6 @@ class Updater(object):
 
     # Save and construct the full metadata path.
     metadata_directory = self.metadata_directory[metadata_set]
-    # import pdb; pdb.set_trace()
     metadata_filename = metadata_role + '.json'
     metadata_filepath = os.path.join(metadata_directory, metadata_filename)
 
@@ -844,7 +842,6 @@ class Updater(object):
 
       # Extract the 'signed' role object from 'metadata_signable'.
       metadata_object = metadata_signable['signed']
-      # import pdb; pdb.set_trace()
 
       # Save the metadata object to the metadata store.
       self.metadata[metadata_set][metadata_role] = metadata_object
@@ -859,7 +856,6 @@ class Updater(object):
 
         elif metadata_object['_type'] == 'targets':
           # TODO: Should we also remove the keys of the delegated roles?
-          # import pdb; pdb.set_trace()
           self._import_delegations(metadata_role)
 
 
