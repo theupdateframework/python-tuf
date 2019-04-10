@@ -392,7 +392,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # populates the 'self.versioninfo' dictionary.
     self.repository_updater._update_versioninfo('targets.json')
     self.assertEqual(len(versioninfo_dict), 1)
-    self.assertTrue(tuf.formats.FILEINFODICT_SCHEMA.matches(versioninfo_dict))
+    self.assertTrue(tuf.formats.FILEINFO_DICT_SCHEMA.matches(versioninfo_dict))
 
     # The Snapshot role stores the version numbers of all the roles available
     # on the repository.  Load Snapshot to extract Root's version number
@@ -437,7 +437,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       # 'self.fileinfo' dictionary.
       self.repository_updater._update_fileinfo('root.json')
       self.assertEqual(len(fileinfo_dict), 1)
-      self.assertTrue(tuf.formats.FILEDICT_SCHEMA.matches(fileinfo_dict))
+      self.assertTrue(tuf.formats.FILEINFO_DICT_SCHEMA.matches(fileinfo_dict))
       root_filepath = os.path.join(self.client_metadata_current, 'root.json')
       length, hashes = securesystemslib.util.get_file_details(root_filepath)
       root_fileinfo = tuf.formats.make_fileinfo(length, hashes)
@@ -899,7 +899,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Verify that the list of targets was returned, and that it contains valid
     # target files.
-    self.assertTrue(tuf.formats.TARGETINFOS_SCHEMA.matches(targetinfos_list))
+    self.assertTrue(tuf.formats.LABELED_FILEINFO_SCHEMA.matches(targetinfos_list))
     for targetinfo in targetinfos_list:
       self.assertTrue((targetinfo['filepath'], targetinfo['fileinfo']) in six.iteritems(targets_in_metadata))
 
@@ -1010,8 +1010,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
    all_targets = self.repository_updater.all_targets()
 
    # Verify format of 'all_targets', it should correspond to
-   # 'TARGETINFOS_SCHEMA'.
-   self.assertTrue(tuf.formats.TARGETINFOS_SCHEMA.matches(all_targets))
+   # 'LABELED_FILEINFO_SCHEMA'.
+   self.assertTrue(tuf.formats.LABELED_FILEINFO_SCHEMA.matches(all_targets))
 
    # Verify that there is a correct number of records in 'all_targets' list,
    # and the expected filepaths specified in the metadata.  On the targets
@@ -1062,7 +1062,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     #  Verify that list of targets was returned and that it contains valid
     # target files.
-    self.assertTrue(tuf.formats.TARGETINFOS_SCHEMA.matches(targetinfos))
+    self.assertTrue(tuf.formats.LABELED_FILEINFO_SCHEMA.matches(targetinfos))
     for targetinfo in targetinfos:
       self.assertTrue((targetinfo['filepath'], targetinfo['fileinfo']) in six.iteritems(expected_targets))
 
@@ -1120,7 +1120,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     target_files[filepath] = fileinfo
 
     target_targetinfo = self.repository_updater.get_one_valid_targetinfo(filepath)
-    self.assertTrue(tuf.formats.TARGETINFO_SCHEMA.matches(target_targetinfo))
+    self.assertTrue(tuf.formats.LABELED_FILEINFO_SCHEMA.matches(target_targetinfo))
     self.assertEqual(target_targetinfo['filepath'], filepath)
     self.assertEqual(target_targetinfo['fileinfo'], fileinfo)
 

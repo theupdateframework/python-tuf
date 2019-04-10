@@ -260,13 +260,13 @@ class MultiRepoUpdater(object):
 
     <Returns>
       A dict of the form: {updater1: targetinfo, updater2: targetinfo, ...}.
-      The targetinfo (conformant with tuf.formats.TARGETINFO_SCHEMA) is for
+      The targetinfo (conformant with tuf.formats.LABELED_FILEINFO_SCHEMA) is for
       'target_filename'.
     """
 
     # Is the argument properly formatted?  If not, raise
     # 'tuf.exceptions.FormatError'.
-    tuf.formats.RELPATH_SCHEMA.check_match(target_filename)
+    tuf.formats.SCHEMA.AnyString().check_match(target_filename)
 
     # TAP 4 requires that the following attributes be present in mappings:
     # "paths", "repositories", "terminating", and "threshold".
@@ -489,7 +489,7 @@ class MultiRepoUpdater(object):
 
     # Are the arguments properly formatted?  If not, raise
     # 'tuf.exceptions.FormatError'.
-    tuf.formats.NAME_SCHEMA.check_match(repository_name)
+    tuf.formats.SCHEMA.AnyString().check_match(repository_name)
 
     updater = self.repository_names_to_updaters.get(repository_name)
 
@@ -2367,7 +2367,7 @@ class Updater(object):
       repository.  This list also includes all the targets of delegated roles.
       Targets of the list returned are ordered according the trusted order of
       the delegated roles, where parent roles come before children.  The list
-      conforms to 'tuf.formats.TARGETINFOS_SCHEMA' and has the form:
+      conforms to 'tuf.formats.LABELED_FILEINFOS_SCHEMA' and has the form:
 
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
@@ -2390,7 +2390,7 @@ class Updater(object):
 
     <Returns>
      A list of targets, conformant to
-     'tuf.formats.TARGETINFOS_SCHEMA'.
+     'tuf.formats.LABELED_FILEINFOS_SCHEMA'.
     """
 
     warnings.warn(
@@ -2502,7 +2502,7 @@ class Updater(object):
     <Purpose>
       Non-public method that returns the target information of all the targets
       of 'rolename'.  The returned information is a list conformant to
-      'tuf.formats.TARGETINFOS_SCHEMA', and has the form:
+      'tuf.formats.LABELED_FILEINFOS_SCHEMA', and has the form:
 
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
@@ -2516,7 +2516,7 @@ class Updater(object):
 
       targets:
         A list of targets containing target information, conformant to
-        'tuf.formats.TARGETINFOS_SCHEMA'.
+        'tuf.formats.LABELED_FILEINFOS_SCHEMA'.
 
       skip_refresh:
         A boolean indicating if the target metadata for 'rolename'
@@ -2532,7 +2532,7 @@ class Updater(object):
     <Returns>
       A list of dict objects containing the target information of all the
       targets of 'rolename'.  Conformant to
-      'tuf.formats.TARGETINFOS_SCHEMA'.
+      'tuf.formats.LABELED_FILEINFOS_SCHEMA'.
     """
 
     if targets is None:
@@ -2580,7 +2580,7 @@ class Updater(object):
 
       Return a list of trusted targets directly specified by 'rolename'.
       The returned information is a list conformant to
-      'tuf.formats.TARGETINFOS_SCHEMA', and has the form:
+      'tuf.formats.LABELED_FILEINFOS_SCHEMA', and has the form:
 
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
@@ -2611,7 +2611,7 @@ class Updater(object):
 
     <Returns>
       A list of targets, conformant to
-      'tuf.formats.TARGETINFOS_SCHEMA'.
+      'tuf.formats.LABELED_FILEINFOS_SCHEMA'.
     """
 
     warnings.warn(
@@ -2621,7 +2621,7 @@ class Updater(object):
 
     # Does 'rolename' have the correct format?
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    securesystemslib.formats.RELPATH_SCHEMA.check_match(rolename)
+    securesystemslib.formats.SCHEMA.AnyString().check_match(rolename)
 
     # If we've been given a delegated targets role, we don't know how to
     # validate it without knowing what the delegating role is -- there could
@@ -2679,12 +2679,12 @@ class Updater(object):
 
     <Returns>
       The target information for 'target_filepath', conformant to
-      'tuf.formats.TARGETINFO_SCHEMA'.
+      'tuf.formats.LABELED_FILEINFO_SCHEMA'.
     """
 
     # Does 'target_filepath' have the correct format?
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    securesystemslib.formats.RELPATH_SCHEMA.check_match(target_filepath)
+    securesystemslib.formats.SCHEMA.AnyString().check_match(target_filepath)
 
     target_filepath = target_filepath.replace('\\', '/')
 
@@ -2733,7 +2733,7 @@ class Updater(object):
 
     <Returns>
       The target information for 'target_filepath', conformant to
-      'tuf.formats.TARGETINFO_SCHEMA'.
+      'tuf.formats.LABELED_FILEINFO_SCHEMA'.
     """
 
     target = None
@@ -2847,7 +2847,7 @@ class Updater(object):
 
     <Returns>
       The target information for 'target_filepath', conformant to
-      'tuf.formats.TARGETINFO_SCHEMA'.
+      'tuf.formats.LABELED_FILEINFO_SCHEMA'.
     """
 
     # Does the current role name have our target?
@@ -3085,7 +3085,7 @@ class Updater(object):
       didn't exist or didn't match.
 
       The returned information is a list conformant to
-      'tuf.formats.TARGETINFOS_SCHEMA' and has the form:
+      'tuf.formats.LABELED_FILEINFOS_SCHEMA' and has the form:
 
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
@@ -3097,7 +3097,7 @@ class Updater(object):
         Metadata about the expected state of target files, against which local
         files will be checked. This should be a list of target info
         dictionaries; i.e. 'targets' must be conformant to
-        tuf.formats.TARGETINFOS_SCHEMA.
+        tuf.formats.LABELED_FILEINFOS_SCHEMA.
 
       destination_directory:
         The directory containing the target files.
@@ -3111,13 +3111,13 @@ class Updater(object):
 
     <Returns>
       A list of target info dictionaries. The list conforms to
-      'tuf.formats.TARGETINFOS_SCHEMA'.
+      'tuf.formats.LABELED_FILEINFOS_SCHEMA'.
       This is a strict subset of the argument 'targets'.
     """
 
     # Do the arguments have the correct format?
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    tuf.formats.TARGETINFOS_SCHEMA.check_match(targets)
+    tuf.formats.LABELED_FILEINFOS_SCHEMA.check_match(targets)
     securesystemslib.formats.PATH_SCHEMA.check_match(destination_directory)
 
     # Keep track of the target objects and filepaths of updated targets.
@@ -3178,7 +3178,7 @@ class Updater(object):
     <Arguments>
       target:
         The target to be downloaded.  Conformant to
-        'tuf.formats.TARGETINFO_SCHEMA'.
+        'tuf.formats.LABELED_FILEINFO_SCHEMA'.
 
       destination_directory:
         The directory to save the downloaded target file.
@@ -3206,7 +3206,7 @@ class Updater(object):
     # number of objects and object types, and that all dict
     # keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if the check fail.
-    tuf.formats.TARGETINFO_SCHEMA.check_match(target)
+    tuf.formats.LABELED_FILEINFO_SCHEMA.check_match(target)
     securesystemslib.formats.PATH_SCHEMA.check_match(destination_directory)
 
     # Extract the target file information.
