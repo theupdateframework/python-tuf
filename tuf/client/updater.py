@@ -754,6 +754,7 @@ class Updater(object):
     # Load current and previous metadata.
     for metadata_set in ['current', 'previous']:
       for metadata_role in ['root', 'targets', 'snapshot', 'timestamp']:
+        # import pdb; pdb.set_trace()
         self._load_metadata_from_file(metadata_set, metadata_role)
 
     # Raise an exception if the repository is missing the required 'root'
@@ -820,6 +821,7 @@ class Updater(object):
 
     # Save and construct the full metadata path.
     metadata_directory = self.metadata_directory[metadata_set]
+    # import pdb; pdb.set_trace()
     metadata_filename = metadata_role + '.json'
     metadata_filepath = os.path.join(metadata_directory, metadata_filename)
 
@@ -842,6 +844,7 @@ class Updater(object):
 
       # Extract the 'signed' role object from 'metadata_signable'.
       metadata_object = metadata_signable['signed']
+      # import pdb; pdb.set_trace()
 
       # Save the metadata object to the metadata store.
       self.metadata[metadata_set][metadata_role] = metadata_object
@@ -856,6 +859,7 @@ class Updater(object):
 
         elif metadata_object['_type'] == 'targets':
           # TODO: Should we also remove the keys of the delegated roles?
+          # import pdb; pdb.set_trace()
           self._import_delegations(metadata_role)
 
 
@@ -937,9 +941,17 @@ class Updater(object):
     if 'delegations' not in current_parent_metadata:
       return
 
+    # Save and construct the full metadata path.
+    metadata_directory = self.metadata_directory['current']
+
     # This could be quite slow with a large number of delegations.
     keys_info = current_parent_metadata['delegations'].get('keys', {})
-    roles_info = current_parent_metadata['delegations'].get('roles', [])
+    # roles_info = current_parent_metadata['delegations'].get('roles', [])
+    roles_info = dict()
+    for role in current_parent_metadata['delegations']['roles']:
+      metadata_filename = role['name'] + '.json'
+      metadata_filepath = os.path.join(metadata_directory, metadata_filename)
+      roles_info[role['name']] = securesystemslib.util.load_json_file(metadata_filepath)['signed']
 
     logger.debug('Adding roles delegated from ' + repr(parent_role) + '.')
 
@@ -976,11 +988,11 @@ class Updater(object):
         continue
 
     # Add the roles to the role database.
-    for roleinfo in roles_info:
+    for rolename in roles_info:
       try:
         # NOTE: tuf.roledb.add_role will take care of the case where rolename
         # is None.
-        rolename = roleinfo.get('name')
+        roleinfo = roles_info.get(rolename)
         logger.debug('Adding delegated role: ' + str(rolename) + '.')
         tuf.roledb.add_role(rolename, roleinfo, self.repository_name)
 
