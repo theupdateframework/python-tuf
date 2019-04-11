@@ -1495,11 +1495,20 @@ class Updater(object):
           metadata_spec_version = metadata_signable['signed']['spec_version']
           metadata_spec_major_version = int(metadata_spec_version.split('.')[0])
           code_spec_major_version = int(tuf.SPECIFICATION_VERSION.split('.')[0])
+          
+          metadata_spec_minor_version = 0
+          metadata_spec_fix_version = 0
+          code_spec_minor_version = 0
+          code_spec_fix_version = 0
 
-          metadata_spec_minor_version = int(metadata_spec_version.split('.')[1])
-          metadata_spec_fix_version = int(metadata_spec_version.split('.')[2])
-          code_spec_minor_version = int(tuf.SPECIFICATION_VERSION.split('.')[1])
-          code_spec_fix_version = int(tuf.SPECIFICATION_VERSION.split('.')[2])
+          if(len(metadata_spec_version.split('.')) > 1):
+            metadata_spec_minor_version = int(metadata_spec_version.split('.')[1])
+          if(len(metadata_spec_version.split('.')) > 2):
+            metadata_spec_fix_version = int(metadata_spec_version.split('.')[2])
+          if(len(tuf.SPECIFICATION_VERSION.split('.')) > 1):
+            code_spec_minor_version = int(tuf.SPECIFICATION_VERSION.split('.')[1])
+          if(len(tuf.SPECIFICATION_VERSION.split('.')) > 2):
+            code_spec_fix_version = int(tuf.SPECIFICATION_VERSION.split('.')[2])
 
           if metadata_spec_major_version != code_spec_major_version:
             raise tuf.exceptions.UnsupportedSpecificationError(
