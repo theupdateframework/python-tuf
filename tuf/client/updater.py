@@ -1496,12 +1496,23 @@ class Updater(object):
           metadata_spec_major_version = int(metadata_spec_version.split('.')[0])
           code_spec_major_version = int(tuf.SPECIFICATION_VERSION.split('.')[0])
 
+          metadata_spec_minor_version = int(metadata_spec_version.split('.')[1])
+          metadata_spec_fix_version = int(metadata_spec_version.split('.')[2])
+          code_spec_minor_version = int(tuf.SPECIFICATION_VERSION.split('.')[1])
+          code_spec_fix_version = int(tuf.SPECIFICATION_VERSION.split('.')[2])
+
           if metadata_spec_major_version != code_spec_major_version:
             raise tuf.exceptions.UnsupportedSpecificationError(
                 'Downloaded metadata that specifies an unsupported '
                 'spec_version.  This code supports major version number: ' +
                 repr(code_spec_major_version) + '; however, the obtained '
                 'metadata lists version number: ' + str(metadata_spec_version))
+
+          if metadata_spec_minor_version > code_spec_minor_version or metadata_spec_fix_version > code_spec_fix_version:
+            logger.info("Downloaded metadata that specifies a higher minor " +
+                "spec_version. This code has version " + str(code_spec_version) +
+                "and the metadata lists version number " + str(metadata_spec_version) +
+                ". The update will continue as the major versions match.")
 
         except (ValueError, TypeError):
           raise securesystemslib.exceptions.FormatError('Improperly'
