@@ -170,7 +170,7 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
   #   # TODO: Figure out if rolename case sensitivity is consistent across TUF.
   #   # TODO: Decide if we should skip these listings of non-top-level roles in
   #   #       root metadata.
-  #   if not _is_top_level_role(rolename.lower()):
+  #   if not is_top_level_rolename(rolename.lower()):
   #     logger.warning(
   #         'Found delegation metadata in a root role for a role that is not a '
   #         'top-level role: ' + rolename + '.  Root should only be designating '
@@ -982,7 +982,7 @@ def get_delegation_paths(
   _check_rolename(rolename, repository_name)
 
 
-  if _is_top_level_role(rolename):
+  if is_top_level_rolename(rolename):
     # TODO: This doesn't really make a lot of sense.  See if there's a reason
     #       to not just raise an error (which would make more sense).
     return dict()
@@ -1114,7 +1114,7 @@ def get_delegation(
   tuf.formats.ROLENAME_SCHEMA.check_match(delegated_rolename)
 
   # Determine if the given rolename is the name of a top-level role.
-  top_level = _is_top_level_role(delegated_rolename)
+  top_level = is_top_level_rolename(delegated_rolename)
 
   # Argument sanity check: top-level roles can only be delegated by root, and
   # delegated targets roles cannot be delegated by root.
@@ -1286,7 +1286,7 @@ def _validate_rolename(rolename):
 
 
 
-def _is_top_level_role(rolename):
+def is_top_level_rolename(rolename):
   '''
   Simply returns True if rolename is one of the four top-level roles, and
   False otherwise.
@@ -1298,6 +1298,6 @@ def _is_top_level_role(rolename):
   tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
 
   # TODO: We should probably integrate this list as a schema in tuf.formats.
-  top_level_roles = ['Root', 'Timestamp', 'Snapshot', 'Targets']
+  top_level_roles = ['root', 'timestamp', 'snapshot', 'targets']
 
-  return rolename in top_level_roles
+  return rolename.lower in top_level_roles
