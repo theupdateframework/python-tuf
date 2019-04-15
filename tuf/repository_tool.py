@@ -23,36 +23,35 @@
   'tuf.repository_tool.py'.
 """
 
+
 # Help with Python 3 compatibility, where the print statement is a function, an
 # implicit relative import is invalid, and the '/' operator performs true
 # division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
-import os
-import errno
-import time
+import binascii
 import datetime
-import logging
-import tempfile
-import shutil
+import errno
 import json
+import logging
+import os
+import shutil
+import tempfile
+import time
 
-import tuf
-import tuf.formats
-import tuf.roledb
-import tuf.sig
-import tuf.log
-import tuf.exceptions
-import tuf.repository_lib as repo_lib
-
-import securesystemslib.keys
-import securesystemslib.formats
 import iso8601
 import six
 
+import securesystemslib.formats
+import securesystemslib.keys
+import tuf
+import tuf.exceptions
+import tuf.formats
+import tuf.log
+import tuf.repository_lib as repo_lib
+import tuf.roledb
+import tuf.sig
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.repository_tool')
@@ -96,6 +95,152 @@ SNAPSHOT_EXPIRATION = 604800
 
 # Initial 'timestamp.json' expiration time of 1 day.
 TIMESTAMP_EXPIRATION = 86400
+
+
+
+class Signer(object):
+  """
+  <Purpose>
+    Used as a wrapper class aroud Smart cards and other write-only devices
+    which does not allow exporting private keys, hence 'load_private_key()' is
+    not usable.
+
+    This is an abstract class and, depending on a signature scheme, one of
+    following methods can be overrided:
+      - _sign_ecdsa
+      - _sign_ed25519
+      - _sign_rsa
+
+    Method '_key_id' must be overrided.
+  """
+  @property
+  def _key_id(self):
+    """
+    <Purpose>
+      Return key identifier in order to properly register external key and use
+      it for signing.
+      Look at 'securesystemslib.keys._get_keyid' for more informations.
+    """
+    raise NotImplementedError()
+
+  def _sign_ecdsa(self, data, public, scheme):
+    raise NotImplementedError()
+
+  def _sign_ed25519(self, data, public, scheme):
+    raise NotImplementedError()
+
+  def _sign_rsa(self, data, scheme):
+    raise NotImplementedError()
+
+  @property
+  def key_id(self):
+    # Raise securesystemslib.exceptions.FormatError, if '_key_id' property is
+    # in incorrect format.
+    securesystemslib.formats.KEYID_SCHEMA.check_match(self._key_id)
+    return self._key_id
+
+  def sign(self, key_dict, data):
+    """
+    <Purpose>
+      Return a signature dictionary of the form:
+      {'keyid': 'f30a0870d026980100c0573bd557394f8c1bbd6...',
+      'sig': '...'}.
+
+      The signing process will call one of overrided methods in parent class
+      to generate the signature.
+
+      The following signature schemes are supported:
+
+      'RSASSA-PSS'
+      RFC3447 - RSASSA-PSS
+      http://www.ietf.org/rfc/rfc3447.
+
+      'ed25519'
+      ed25519 - high-speed high security signatures
+      http://ed25519.cr.yp.to/
+
+      Which signature to generate is determined by the key type of 'key_dict'
+      and the available cryptography library specified in 'settings'.
+
+    <Arguments>
+    key_dict:
+      A dictionary containing the keys.  An example RSA key dict has the
+      form:
+
+      {'keytype': 'rsa',
+       'scheme': 'rsassa-pss-sha256',
+       'keyid': 'f30a0870d026980100c0573bd557394f8c1bbd6...',
+       'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...'}}
+
+      The public and private keys are strings in PEM format.
+
+    data:
+      Data object used to generate the signature.
+
+    <Exceptions>
+      securesystemslib.exceptions.FormatError, if 'key_dict' is improperly
+      formatted.
+
+      securesystemslib.exceptions.UnsupportedAlgorithmError, if 'key_dict'
+      specifies an unsupported key type or signing scheme.
+
+      TypeError, if 'key_dict' contains an invalid keytype.
+
+      NotImplementedError, if method that generates signatures is not overrided
+
+    <Side Effects>
+      One of overrided methods in parent class is called to perform the
+      actual signing routine.
+
+    <Returns>
+      A signature dictionary conformant to
+      'securesystemslib_format.SIGNATURE_SCHEMA'.
+    """
+    # Does 'key_dict' have the correct format?
+    # This check will ensure 'key_dict' has the appropriate number of objects
+    # and object types, and that all dict keys are properly named.
+    # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
+    # The key type of 'key_dict' must be either 'rsa' or 'ed25519'.
+    securesystemslib.formats.ANYKEY_SCHEMA.check_match(key_dict)
+    # Convert 'data' to canonical JSON format so that repeatable signatures are
+    # generated across different platforms and Python key dictionaries.  The
+    # resulting 'data' is a string encoded in UTF-8 and compatible with the
+    # input expected by the cryptography functions called below.
+    data = securesystemslib.formats.encode_canonical(data)
+    data = data.encode('utf-8')
+
+    signature = {}
+    keytype = key_dict['keytype']
+    scheme = key_dict['scheme']
+    public = key_dict['keyval']['public']
+    keyid = key_dict['keyid']
+    sig = None
+
+    if keytype == 'rsa':
+      if scheme == 'rsassa-pss-sha256':
+        sig, scheme = self._sign_rsa(data, scheme)
+      else:
+        raise securesystemslib.exceptions.UnsupportedAlgorithmError('Unsupported'
+          ' RSA signature scheme specified: ' + repr(scheme))
+
+    elif keytype == 'ed25519':
+      sig, scheme = self._sign_ed25519(data, public, scheme)
+
+    elif keytype == 'ecdsa-sha2-nistp256':
+      sig, scheme = self._sign_ecdsa(data, public, scheme)
+
+    # 'securesystemslib.formats.ANYKEY_SCHEMA' should have detected invalid key
+    # types.  This is a defensive check against an invalid key type.
+    else: # pragma: no cover
+      raise TypeError('Invalid key type.')
+
+    # Build the signature dictionary to be returned.
+    # The hexadecimal representation of 'sig' is stored in the signature.
+    signature['keyid'] = keyid
+    signature['sig'] = binascii.hexlify(sig).decode()
+
+    return signature
+
 
 
 class Repository(object):
@@ -797,12 +942,64 @@ class Metadata(object):
 
 
 
+  def load_signing_key_external(self, signer):
+    """
+    <Purpose>
+      Load the role signer, which must be subclassed from
+      'tuf.repository_tool.Signer', so that role signatures may be generated on
+      write-only hardware devices (like YubiKey) when the role's metadata file
+      is eventually written to disk.
+
+      >>>
+      >>>
+      >>>
+
+    <Arguments>
+      signer:
+        The object subclassed from 'tuf.repository_tool.Signer' with 'key_id'
+        property and 'sign' method implemented.
+
+    <Exceptions>
+      securesystemslib.exceptions.Error, if the 'signer' argument object is not
+      a subclass of 'tuf.repository_tool.Signer' object or if
+
+      securesystemslib.exceptions.FormatError, if the 'signer.key_id'
+
+    <Side Effects>
+      Updates the signing keys of the role in 'tuf.roledb.py'.
+
+    <Returns>
+      None.
+    """
+    if not isinstance(signer, Signer):
+      raise securesystemslib.exceptions.Error(
+        'Signer has to be inherited from Signer class.')
+
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
+    if signer.key_id not in roleinfo['keyids']:
+      raise securesystemslib.exceptions.Error(
+        'Public key with id {} is not loaded!'.format(signer.key_id))
+
+    if signer.key_id not in roleinfo['signing_keyids']:
+      roleinfo['signing_keyids'].append(signer.key_id)
+
+      if roleinfo.get('external_signers', None) is None:
+        roleinfo['external_signers'] = {}
+
+      roleinfo['external_signers'][signer.key_id] = signer
+
+      tuf.roledb.update_roleinfo(self.rolename, roleinfo,
+          repository_name=self._repository_name)
+
+
+
   def unload_signing_key(self, key):
     """
     <Purpose>
-      Remove a previously loaded role private key (i.e., load_signing_key()).
+      Remove a previously loaded role private key (i.e., load_signing_key() or
+      load_signing_key_external()).
       The keyid of the 'key' is removed from the list of recognized signing
-      keys.
+      keys and from roleinfo['external_signers'] (in case of external keys).
 
       >>>
       >>>
@@ -841,6 +1038,9 @@ class Metadata(object):
     # stored in the keydb if not.  For now, just unload the key.
     if key['keyid'] in roleinfo['signing_keyids']:
       roleinfo['signing_keyids'].remove(key['keyid'])
+
+      if key['keyid'] in roleinfo['external_signers']:
+        roleinfo['external_signers'].remove(key['keyid'])
 
       tuf.roledb.update_roleinfo(self.rolename, roleinfo,
           repository_name=self._repository_name)

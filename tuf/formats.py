@@ -291,6 +291,10 @@ PATH_FILEINFO_SCHEMA = SCHEMA.DictOf(
   key_schema = RELPATH_SCHEMA,
   value_schema = CUSTOM_SCHEMA)
 
+EXTERNAL_SIGNERS_SCHEMA = SCHEMA.DictOf(
+  key_schema = KEYID_SCHEMA,
+  value_schema = SCHEMA.Any())
+
 # TUF roledb
 ROLEDB_SCHEMA = SCHEMA.Object(
   object_name = 'ROLEDB_SCHEMA',
@@ -305,7 +309,8 @@ ROLEDB_SCHEMA = SCHEMA.Object(
   paths = SCHEMA.Optional(SCHEMA.OneOf([RELPATHS_SCHEMA, PATH_FILEINFO_SCHEMA])),
   path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA),
   delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA),
-  partial_loaded = SCHEMA.Optional(BOOLEAN_SCHEMA))
+  partial_loaded = SCHEMA.Optional(BOOLEAN_SCHEMA),
+  external_signers = SCHEMA.Optional(EXTERNAL_SIGNERS_SCHEMA))
 
 # A signable object.  Holds the signing role and its associated signatures.
 SIGNABLE_SCHEMA = SCHEMA.Object(

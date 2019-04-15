@@ -113,6 +113,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
   previous_keyids = roleinfo.get('previous_keyids', [])
   previous_threshold = roleinfo.get('previous_threshold', 1)
   signing_keyids = list(set(roleinfo['signing_keyids']))
+  external_signers = roleinfo.get('external_signers', {})
 
   # Generate the appropriate role metadata for 'rolename'.
   if rolename == 'root':
@@ -180,8 +181,8 @@ def _generate_and_write_metadata(rolename, metadata_filename,
     # role should not be written to disk without full verification of its
     # signature(s), since it can only be considered fully signed depending on
     # the delegating role.
-    signable = sign_metadata(metadata, signing_keyids, metadata_filename,
-        repository_name)
+    signable = sign_metadata(metadata, signing_keyids, external_signers,
+                             metadata_filename, repository_name)
 
 
     def should_write():
@@ -225,8 +226,8 @@ def _generate_and_write_metadata(rolename, metadata_filename,
   # 'rolename' is a delegated role or a top-level role that is partially
   # signed, and thus its signatures should not be verified.
   else:
-    signable = sign_metadata(metadata, signing_keyids, metadata_filename,
-        repository_name)
+    signable = sign_metadata(metadata, signing_keyids, external_signers,
+                             metadata_filename, repository_name)
     _remove_invalid_and_duplicate_signatures(signable, repository_name)
 
     # Root should always be written as if consistent_snapshot is True (i.e.,
@@ -1692,7 +1693,7 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date,
 
 
 
-def sign_metadata(metadata_object, keyids, filename, repository_name):
+def sign_metadata(metadata_object, keyids, external_signers, filename, repository_name):
   """
   <Purpose>
     Sign a metadata object. If any of the keyids have already signed the file,
@@ -1754,17 +1755,26 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
     key = tuf.keydb.get_key(keyid, repository_name=repository_name)
     # Generate the signature using the appropriate signing method.
     if key['keytype'] in SUPPORTED_KEY_TYPES:
-      if 'private' in key['keyval']:
-        signed = signable['signed']
-        try:
-          signature = securesystemslib.keys.create_signature(key, signed)
-          signable['signatures'].append(signature)
+      signed = signable['signed']
 
-        except Exception:
-          logger.warning('Unable to create signature for keyid: ' + repr(keyid))
+      # External keys
+      if keyid in external_signers:
+        signature = external_signers[keyid].sign(key, signed)
+        signable['signatures'].append(signature)
 
       else:
-        logger.debug('Private key unset.  Skipping: ' + repr(keyid))
+        # Keys loaded from pem file
+        if 'private' in key['keyval']:
+
+          try:
+            signature = securesystemslib.keys.create_signature(key, signed)
+            signable['signatures'].append(signature)
+
+          except Exception:
+            logger.warning('Unable to create signature for keyid: ' + repr(keyid))
+
+        else:
+          logger.debug('Private key unset.  Skipping: ' + repr(keyid))
 
     else:
       raise securesystemslib.exceptions.Error('The keydb contains a key with'
