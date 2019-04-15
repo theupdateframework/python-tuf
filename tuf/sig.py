@@ -67,89 +67,144 @@ iso8601_logger = logging.getLogger('iso8601')
 iso8601_logger.disabled = True
 
 
-def get_signature_status(signable, role=None, repository_name='default',
+def get_signature_status(signable, rolename=None, repository_name='default',
     threshold=None, keyids=None):
   """
+  # TODO: should probably be called get_status_of_signatures, plural?
+
   <Purpose>
-    Return a dictionary representing the status of the signatures listed in
-    'signable'.  Given an object conformant to SIGNABLE_SCHEMA, a set of public
-    keys in 'tuf.keydb', a set of roles in 'tuf.roledb', and a role,
-    the status of these signatures can be determined.  This method will iterate
-    the signatures in 'signable' and enumerate all the keys that are valid,
-    invalid, unrecognized, or unauthorized.
+    Given a signable role dictionary, analyzes the signatures included in it
+    (signable['signatures']) as signatures over the other metadata included in
+    it (signable['signed']).
+
+    Returns a dictionary representing an analysis of the status of the
+    signatures in <signable> (see below).  This is done based on the
+    keyids expected to sign for the role.
+
+    If <threshold> and <keyids> are provided:
+      Uses argument <keyids> to determine which keys are authorized to sign,
+      and returns the information along with the <threshold> provided.
+
+    If <threshold> and <keyids> are NOT provided and <rolename> is a top-level
+    role:
+      Determines the threshold and keyids to use based on the currently trusted
+      Root metadata's listing for role <rolename>.
+
+    Why <threshold> and <keyids> are sometimes required:
+      # TODO: <~> Ask the reviewer in the PR if the comments below are
+      #           important or just in the way.
+      Note that the reason that keyids and threshold can only automatically be
+      determined for top-level roles (root, snapshot, timestamp, targets) is
+      that top-level roles have unambiguous signature expectations: the
+      expected keyids and threshold come only from trusted root metadata. 
+      Therefore, if optional args <threshold> and <keyids> are not provided,
+      the expected values can be taken from trusted Root metadata in
+      tuf.roledb.  Delegated targets roles, on the other hand, may be the
+      objects of multiple different delegations from different roles that can
+      each have different keyid and threshold expectations, so it is not
+      possible to deduce these without knowing the delegating role of interest.
+
 
   <Arguments>
     signable:
-      A dictionary containing a list of signatures and a 'signed' identifier.
-      signable = {'signed': 'signer',
-                  'signatures': [{'keyid': keyid,
-                                  'sig': sig}]}
+      A dictionary with a 'signatures' entry containing a list of signatures,
+      and a 'signed' entry, containing role metadata.
+      Specifically, <signable> must conform to tuf.formats.SIGNABLE_SCHEMA,
+      and the 'signed' entry in <signable> must conform to
+      tuf.formats.ANYROLE_SCHEMA.
+      e.g.:
+        {'signatures': [
+            {'keyid': '1234ef...', 'sig': 'abcd1234...'}, ... ],
+         'signed': { '_type': 'root', 'version': 3, ... }
+        }
 
-      Conformant to tuf.formats.SIGNABLE_SCHEMA.
+    rolename:     (required if <keyids> and <threshold> are not provided)
+      The name of the TUF role whose metadata is provided.
+      If specified, this must conform to tuf.formats.ROLENAME_SCHEMA.
+      e.g.: 'root', 'targets', 'some_delegated_rolename', ...
+      This will be used to look up the required keyids and threshold to use,
+      from the currently trusted Root metadata's listing by role.
 
-    role:
-      TUF role (e.g., 'root', 'targets', 'snapshot').
+    threshold:    (required for delegated targets roles)
+      If specified, this must match tuf.formats.THRESHOLD_SCHEMA.  If provided
+      along with <keyids>, this will be the information in the 'threshold'
+      entry of the returned dictionary.
 
-    threshold:
-      Rather than reference the role's threshold as set in tuf.roledb.py, use
-      the given 'threshold' to calculate the signature status of 'signable'.
-      'threshold' is an integer value that sets the role's threshold value, or
-      the miminum number of signatures needed for metadata to be considered
-      fully signed.
+    keyids:       (required for delegated targets roles)
+      If specified, this must conform to tuf.formats.KEYIDS_SCHEMA.  If
+      provided along with <threshold>, this defines which keys can provide
+      "good" signatures over the metadata.
 
-    keyids:
-      Similar to the 'threshold' argument, use the supplied list of 'keyids'
-      to calculate the signature status, instead of referencing the keyids
-      in tuf.roledb.py for 'role'.
+
+  <Returns>
+    Returns a dictionary representing the status of the signatures in
+    <signable>, conforming to tuf.formats.SIGNATURESTATUS_SCHEMA.  The
+    dictionary values are lists of keyids corresponding to signatures in
+    <signable>, broken down under these dictionary keys:
+
+      good_sigs:
+          keyids corresponding to verified signatures over the role by keys
+          trusted to sign over the role
+
+      bad_sigs:
+          keyids corresponding to invalid signatures over the role
+
+      unknown_sigs:
+          keyids (from signatures in <signable>) from unknown keys; i.e.,
+          keyids that had no entry in tuf.keydb.
+
+      untrusted_sigs:
+          keyids corresponding to correct signatures over the role, by known
+          keys (i.e. in tuf.keydb) that are nonetheless not authorized to sign
+          over the role.
+          (Authorization is based on either the <keyids> argument if provided,
+          or, if not provided, Root metadata, as discussed below.)
+
+      unknown_signing_scheme:
+          keyids corresponding to signatures that list a signing scheme that is
+          not supported.
+
 
   <Exceptions>
-    securesystemslib.exceptions.FormatError, if 'signable' does not have the
-    correct format.
+    securesystemslib.exceptions.UnknownRoleError
+      if <rolename> is not a known role in the repository.
 
-    tuf.exceptions.UnknownRoleError, if 'role' is not recognized.
+    tuf.exceptions.FormatError
+      if <signable>, <rolename>, or <repository_name> are not formatted
+        correctly,
+      or if <threshold> is provided and not formatted correctly
+      or if <threshold> is not provided but determined from trusted Root
+        metadata yet somehow formatted incorrectly there.
+
+    securesystemslib.exceptions.FormatError
+      if <keyids> is provided but not formatted correctly,
+      or if <repository_name> is not formatted correctly.
+
+    tuf.exceptions.Error
+      if <threshold> is provided but <keyids> is not, or vice versa,
+      of if we have no way of determining the right keyids and threshold to use
+        in verification -- specifically, if rolename is not the name of a
+        top-level role and <keyids> and <threshold> arguments are not provided.
+
 
   <Side Effects>
     None.
-
-  <Returns>
-    A dictionary representing the status of the signatures in 'signable'.
-    Conformant to tuf.formats.SIGNATURESTATUS_SCHEMA.
   """
 
-  # Do the arguments have the correct format?  This check will ensure that
-  # arguments have the appropriate number of objects and object types, and that
-  # all dict keys are properly named.  Raise
-  # 'securesystemslib.exceptions.FormatError' if the check fails.
+  # Make sure that <signable> is correctly formatted.
   tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
-  if role is not None:
-    tuf.formats.ROLENAME_SCHEMA.check_match(role)
+  # This helper function will perform all other argument checks and -- if
+  # necessary -- look up the keyids and threshold to use from currently trusted
+  # Root metadata.
+  keyids, threshold = _determine_keyids_and_threshold_to_use(
+      rolename, repository_name, keyids, threshold)
 
-  if threshold is not None:
-    securesystemslib.formats.THRESHOLD_SCHEMA.check_match(threshold)
-
-  if keyids is not None:
-    securesystemslib.formats.KEYIDS_SCHEMA.check_match(keyids)
-
-  # The signature status dictionary returned.
+  # The signature status dictionary we will return.
   signature_status = {}
 
-  # The fields of the signature_status dict, where each field stores keyids.  A
-  # description of each field:
-  #
-  # good_sigs = keys confirmed to have produced 'sig' using 'signed', which are
-  # associated with 'role';
-  #
-  # bad_sigs = negation of good_sigs;
-  #
-  # unknown_sigs = keys not found in the 'keydb' database;
-  #
-  # untrusted_sigs = keys that are not in the list of keyids associated with
-  # 'role';
-  #
-  # unknown_signing_scheme = signing schemes specified in keys that are
-  # unsupported;
+  # The fields of the signature_status dict, where each field is a list of
+  # keyids.  See docstring for an explanation of each.
   good_sigs = []
   bad_sigs = []
   unknown_sigs = []
@@ -166,7 +221,9 @@ def get_signature_status(signable, role=None, repository_name='default',
   for signature in signatures:
     keyid = signature['keyid']
 
-    # Does the signature use an unrecognized key?
+    # Try to find the public key corresponding to the keyid (fingerprint)
+    # listed in the signature, so that we can actually verify the signature.
+    # If we can't find it, note this as an unknown key, and skip to the next.
     try:
       key = tuf.keydb.get_key(keyid, repository_name)
 
@@ -174,7 +231,14 @@ def get_signature_status(signable, role=None, repository_name='default',
       unknown_sigs.append(keyid)
       continue
 
-    # Does the signature use an unknown/unsupported signing scheme?
+    # Now try verifying the signature.  If the signature use an
+    # unknown/unsupported signing scheme and cannot be verified, note that and
+    # skip to the next signature.
+    # TODO: Make sure that verify_signature_over_metadata will actually raise
+    #       this unsupported algorithm error appropriately.
+    # TODO: Note that once the next version of securesystemslib gets released,
+    #       signed here will have to be canonicalized and encoded before it
+    #       gets passed to verify_signature.
     try:
       valid_sig = securesystemslib.keys.verify_signature(key, signature, signed)
 
@@ -182,31 +246,24 @@ def get_signature_status(signable, role=None, repository_name='default',
       unknown_signing_schemes.append(keyid)
       continue
 
-    # We are now dealing with either a trusted or untrusted key...
+    # We know the key, we support the signing scheme, and
+    # verify_signature_over_metadata completed, its boolean return telling us if
+    # the signature is a valid signature by the key the signature mentions,
+    # over the data provided.
+    # We now ascertain whether or not this known key is one trusted to sign
+    # this particular metadata.
+
     if valid_sig:
-      if role is not None:
-
-        # Is this an unauthorized key? (a keyid associated with 'role')
-        # Note that if the role is not known, tuf.exceptions.UnknownRoleError
-        # is raised here.
-        if keyids is None:
-          keyids = tuf.roledb.get_role_keyids(role, repository_name)
-
-        if keyid not in keyids:
-          untrusted_sigs.append(keyid)
-          continue
-
-      # This is an unset role, thus an unknown signature. # TODO: <~> THIS IS WRONG.
+        # Is this an authorized key? (a keyid associated with 'role')
+      if keyid in keyids:
+        good_sigs.append(keyid)       # good sig from right key
       else:
-        unknown_sigs.append(keyid)
-        continue
-
-      # Identify good/authorized key.
-      good_sigs.append(keyid)
+        untrusted_sigs.append(keyid)  # good sig from wrong key
 
     else:
-      # This is a bad signature for a trusted key.
+      # The signature not even valid for the key the signature says it's using.
       bad_sigs.append(keyid)
+
 
   # Retrieve the threshold value for 'role'.  Raise
   # securesystemslib.exceptions.UnknownRoleError if we were given an invalid
@@ -237,164 +294,114 @@ def get_signature_status(signable, role=None, repository_name='default',
 
 
 
+def _determine_keyids_and_threshold_to_use(
+    rolename, repository_name, keyids, threshold):
+  """
+  Helper function for get_signature_status.  Tests all the various argument
+  constraints for get_signature_status and looks up the keyids and threshold if
+  necessary.  See docstring for get_signature_status.
+  """
 
-def verify(signable, role, repository_name='default', threshold=None,
+  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+
+  # Sanity check for argument pairs:
+  if (keyids is None) != (threshold is None) or \
+      (keyids is None) == (rolename is None):
+    raise tuf.exceptions.Error(
+        'This function must be called using either the "rolename" argument OR '
+        'using the "keyids" and "threshold" arguments.  One set or the other '
+        'must be provided, and not both sets. '
+        '(keyids provided? ' + str(keyids is not None) +
+        '; threshold provided? ' + str(threshold is not None) +
+        '; rolename provided? ' + str(rolename is not None) + ')')
+
+  if keyids is not None:
+
+    # DEBUG ONLY: REMOVE AFTER TESTING:
+    assert threshold is not None, 'Not possible; mistake in this function!'
+    assert rolename is None, 'Not possible: mistake in this function!'
+
+    securesystemslib.formats.KEYIDS_SCHEMA.check_match(keyids)
+    tuf.formats.THRESHOLD_SCHEMA.check_match(threshold)
+
+    # We were given keyids and threshold and their formats check out.
+    return keyids, threshold
+
+  # Otherwise, we weren't provided keyids and threshold, so figure them out if
+  # possible.
+
+  # DEBUG ONLY: REMOVE AFTER TESTING:
+  assert threshold is None and keyids is None, 'Not possible; mistake in this function!'
+  assert rolename is not None, 'Not possible; mistake in this function!'
+
+  tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+  if not roledb.is_top_level_rolename(rolename):
+    raise tuf.exceptions.Error(
+        'Cannot automatically determine the keyids and threshold expected of '
+        'a delegated targets role ("' + rolename + '").  The rolename '
+        'argument is sufficient only for roles listed by Root.  The name of '
+        'a delegated role need never be provided as argument.')
+
+  keyids = tuf.roledb.get_role_keyids(rolename, repository_name)
+  threshold = tuf.roledb.get_role_threshold(
+      rolename, repository_name=repository_name)
+
+  # Check the results.
+  # TODO: Determine if this is overkill.  It's probably checked already
+  #       before it is returned.
+  securesystemslib.formats.KEYIDS_SCHEMA.check_match(keyids)
+  tuf.formats.THRESHOLD_SCHEMA.check_match(threshold)
+
+
+
+
+
+def verify(signable, rolename=None, repository_name='default', threshold=None,
     keyids=None):
   """
   <Purpose>
-    Verify whether the authorized signatures of 'signable' meet the minimum
-    required by 'role'.  Authorized signatures are those with valid keys
-    associated with 'role'.  'signable' must conform to SIGNABLE_SCHEMA
-    and 'role' must not equal 'None' or be less than zero.
+    Verify whether the signatures in <signable> meet the requirements.
 
-  <Arguments>
-    signable:
-      A dictionary containing a list of signatures and a 'signed' identifier.
-      signable = {'signed':, 'signatures': [{'keyid':, 'method':, 'sig':}]}
+    Returns True if there are at least a threshold of valid signatures over the
+    'signed' component of <signable> by distinct keys with keyids in a list
+    of authorized keyids, else returns False.
 
-    role:
-      TUF role (e.g., 'root', 'targets', 'snapshot').
+    The list of authorized keys and the threshold of signatures required may
+    be passed in as <keyids> and <threshold>.  Alternatively, if they are not
+    provided, the keyids and threshold will be determined based on the
+    currently trusted Root metadata's listing for role <rolename>, but that
+    only works if the role being verified is a top-level role.
 
-    threshold:
-      Rather than reference the role's threshold as set in tuf.roledb.py, use
-      the given 'threshold' to calculate the signature status of 'signable'.
-      'threshold' is an integer value that sets the role's threshold value, or
-      the miminum number of signatures needed for metadata to be considered
-      fully signed.
 
-    keyids:
-      Similar to the 'threshold' argument, use the supplied list of 'keyids'
-      to calculate the signature status, instead of referencing the keyids
-      in tuf.roledb.py for 'role'.
+    This wraps get_signature_status(), takes the same arguments, and raises
+    the same errors, so please see the docstring for get_signature_status().
 
-  <Exceptions>
-    securesystemslib.exceptions.UnknownRoleError, if 'role' is not recognized.
-
-    securesystemslib.exceptions.FormatError, if 'signable' is not formatted
-    correctly.
-
-    securesystemslib.exceptions.Error, if an invalid threshold is encountered.
-
-  <Side Effects>
-    tuf.sig.get_signature_status() called.  Any exceptions thrown by
-    get_signature_status() will be caught here and re-raised.
 
   <Returns>
     Boolean.  True if the number of good signatures >= the role's threshold,
     False otherwise.
+
+  <Side Effects>
+    None.
   """
 
-  tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
-  tuf.formats.ROLENAME_SCHEMA.check_match(role)
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  # Note that get_signature_status() checks all arguments, so argument
+  # checking here is skipped.
 
-  # Retrieve the signature status.  tuf.sig.get_signature_status() raises:
-  # securesystemslib.exceptions.UnknownRoleError
-  # securesystemslib.exceptions.FormatError.  'threshold' and 'keyids' are also
-  # validated.
-  status = get_signature_status(signable, role, repository_name, threshold, keyids)
+  # Retrieve the status of signatures included in argument <signable>.
+  # tuf.sig.get_signature_status() raises:
+  #   securesystemslib.exceptions.UnknownRoleError,
+  #   tuf.exceptions.FormatError, and
+  #   securesystemslib.exceptions.FormatError
+  # tuf.exceptions.Error if the role is a delegated targets role but keyids and
+  # threshold are not provided.
+  status = get_signature_status(
+      signable, rolename, repository_name, threshold, keyids)
 
   # Retrieve the role's threshold and the authorized keys of 'status'
   threshold = status['threshold']
   good_sigs = status['good_sigs']
 
   # Does 'status' have the required threshold of signatures?
-  # First check for invalid threshold values before returning result.
-  # Note: get_signature_status() is expected to verify that 'threshold' is
-  # not None or <= 0.
-  if threshold is None or threshold <= 0: #pragma: no cover
-    raise securesystemslib.exceptions.Error("Invalid threshold: " + repr(threshold))
 
   return len(good_sigs) >= threshold
-
-
-
-
-
-def may_need_new_keys(signature_status):
-  """
-  <Purpose>
-    Return true iff downloading a new set of keys might tip this
-    signature status over to valid.  This is determined by checking
-    if either the number of unknown or untrused keys is > 0.
-
-  <Arguments>
-    signature_status:
-      The dictionary returned by tuf.sig.get_signature_status().
-
-  <Exceptions>
-    securesystemslib.exceptions.FormatError, if 'signature_status does not have
-    the correct format.
-
-  <Side Effects>
-    None.
-
-  <Returns>
-    Boolean.
-  """
-
-  # Does 'signature_status' have the correct format?
-  # This check will ensure 'signature_status' has the appropriate number
-  # of objects and object types, and that all dict keys are properly named.
-  # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
-  securesystemslib.formats.SIGNATURESTATUS_SCHEMA.check_match(signature_status)
-
-  unknown = signature_status['unknown_sigs']
-  untrusted = signature_status['untrusted_sigs']
-
-  return len(unknown) or len(untrusted)
-
-
-
-
-
-def generate_rsa_signature(signed, rsakey_dict):
-  """
-  <Purpose>
-    Generate a new signature dict presumably to be added to the 'signatures'
-    field of 'signable'.  The 'signable' dict is of the form:
-
-    {'signed': 'signer',
-               'signatures': [{'keyid': keyid,
-                               'method': 'evp',
-                               'sig': sig}]}
-
-    The 'signed' argument is needed here for the signing process.
-    The 'rsakey_dict' argument is used to generate 'keyid', 'method', and 'sig'.
-
-    The caller should ensure the returned signature is not already in
-    'signable'.
-
-  <Arguments>
-    signed:
-      The data used by 'securesystemslib.keys.create_signature()' to generate
-      signatures.  It is stored in the 'signed' field of 'signable'.
-
-    rsakey_dict:
-      The RSA key, a 'securesystemslib.formats.RSAKEY_SCHEMA' dictionary.
-      Used here to produce 'keyid', 'method', and 'sig'.
-
-  <Exceptions>
-    securesystemslib.exceptions.FormatError, if 'rsakey_dict' does not have the
-    correct format.
-
-    TypeError, if a private key is not defined for 'rsakey_dict'.
-
-  <Side Effects>
-    None.
-
-  <Returns>
-    Signature dictionary conformant to securesystemslib.formats.SIGNATURE_SCHEMA.
-    Has the form:
-    {'keyid': keyid, 'method': 'evp', 'sig': sig}
-  """
-
-  # We need 'signed' in canonical JSON format to generate
-  # the 'method' and 'sig' fields of the signature.
-  signed = securesystemslib.formats.encode_canonical(signed)
-
-  # Generate the RSA signature.
-  # Raises securesystemslib.exceptions.FormatError and TypeError.
-  signature = securesystemslib.keys.create_signature(rsakey_dict, signed)
-
-  return signature
