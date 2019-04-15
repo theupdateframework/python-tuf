@@ -17,27 +17,28 @@
   See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
-  Survivable key compromise is one feature of a secure update system
-  incorporated into TUF's design. Responsibility separation through
-  the use of multiple roles, multi-signature trust, and explicit and
-  implicit key revocation are some of the mechanisms employed towards
-  this goal of survivability.  These mechanisms can all be seen in
-  play by the functions available in this module.
+  sig provides a higher-level signature handling interface for tuf.updater,
+  tuf.repository_lib, and tuf.developer_tool.  Lower-level functionality used
+  here comes primarily from securesystemslib, tuf.roledb, and tuf.keydb.
 
-  The signed metadata files utilized by TUF to download target files
-  securely are used and represented here as the 'signable' object.
-  More precisely, the signature structures contained within these metadata
-  files are packaged into 'signable' dictionaries.  This module makes it
-  possible to capture the states of these signatures by organizing the
-  keys into different categories.  As keys are added and removed, the
-  system must securely and efficiently verify the status of these signatures.
-  For instance, a bunch of keys have recently expired. How many valid keys
-  are now available to the Snapshot role?  This question can be answered by
-  get_signature_status(), which will return a full 'status report' of these
-  'signable' dicts.  This module also provides a convenient verify() function
-  that will determine if a role still has a sufficient number of valid keys.
-  If a caller needs to update the signatures of a 'signable' object, there
-  is also a function for that.
+<Public Functions>
+
+    get_signature_status()
+      Analyzes the signatures included in given role metadata that includes
+      signatures, taking arguments that convey the expected keyids and
+      threshold for those signatures (either directly or in the form of a
+      rolename to look up in roledb), produces a report of the validity of the
+      signatures provided in the metadata indicating whether or not they
+      correctly sign the given metadata and whether or each signature is from
+      an authorized key.
+
+    verify()
+      Verifies a full piece of role metadata, returning True if the given role
+      metadata is verified (signed by at least enough correct signatures from
+      authorized keys to meet the threshold expected for this metadata) and
+      False otherwise.  It uses get_signature_status() to glean the status of
+      each signature.
+
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
