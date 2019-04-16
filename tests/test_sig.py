@@ -191,7 +191,10 @@ class TestSig(unittest.TestCase):
 
     self.assertTrue(tuf.sig.verify(signable, 'Root'))
 
-    # Test for an unknown signature when 'role' is left unspecified.
+    # If get_signature_status is not provided authorized keyids and threshold,
+    # and is also not provided a role to use to determine what keyids and
+    # threshold are authorized, then we expect any good signature to come back
+    # as untrustworthy, and any bad signature to come back as a bad signature.
     sig_status = tuf.sig.get_signature_status(signable)
 
     self.assertEqual(0, sig_status['threshold'])
