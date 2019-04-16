@@ -141,7 +141,7 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
       # Although keyid duplicates should *not* occur (unique dict keys), log a
       # warning and continue.  Howerver, 'key_dict' may have already been
       # adding to the keydb elsewhere.
-      except securesystemslib.exceptions.KeyAlreadyExistsError as e: # pragma: no cover
+      except tuf.exceptions.KeyAlreadyExistsError as e: # pragma: no cover
         logger.warning(e)
         continue
 
@@ -256,7 +256,7 @@ def add_key(key_dict, keyid=None, repository_name='default'):
 
     securesystemslib.exceptions.Error, if 'keyid' does not match the keyid for 'rsakey_dict'.
 
-    securesystemslib.exceptions.KeyAlreadyExistsError, if 'rsakey_dict' is found in the key database.
+    tuf.exceptions.KeyAlreadyExistsError, if 'rsakey_dict' is found in the key database.
 
     securesystemslib.exceptions.InvalidNameError, if 'repository_name' does not exist in the key
     database.
@@ -295,7 +295,7 @@ def add_key(key_dict, keyid=None, repository_name='default'):
   # available in the key database before returning.
   keyid = key_dict['keyid']
   if keyid in _keydb_dict[repository_name]:
-    raise securesystemslib.exceptions.KeyAlreadyExistsError('Key: ' + keyid)
+    raise tuf.exceptions.KeyAlreadyExistsError('Key: ' + keyid)
 
   _keydb_dict[repository_name][keyid] = copy.deepcopy(key_dict)
 
@@ -320,7 +320,7 @@ def get_key(keyid, repository_name='default'):
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the arguments do not have the correct format.
 
-    securesystemslib.exceptions.UnknownKeyError, if 'keyid' is not found in the keydb database.
+    tuf.exceptions.UnknownKeyError, if 'keyid' is not found in the keydb database.
 
     securesystemslib.exceptions.InvalidNameError, if 'repository_name' does not exist in the key
     database.
@@ -351,7 +351,7 @@ def get_key(keyid, repository_name='default'):
     return copy.deepcopy(_keydb_dict[repository_name][keyid])
 
   except KeyError:
-    raise securesystemslib.exceptions.UnknownKeyError('Key: ' + keyid)
+    raise tuf.exceptions.UnknownKeyError('Key: ' + keyid)
 
 
 
@@ -374,7 +374,7 @@ def remove_key(keyid, repository_name='default'):
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the arguments do not have the correct format.
 
-    securesystemslib.exceptions.UnknownKeyError, if 'keyid' is not found in key database.
+    tuf.exceptions.UnknownKeyError, if 'keyid' is not found in key database.
 
     securesystemslib.exceptions.InvalidNameError, if 'repository_name' does not exist in the key
     database.
@@ -404,7 +404,7 @@ def remove_key(keyid, repository_name='default'):
     del _keydb_dict[repository_name][keyid]
 
   else:
-    raise securesystemslib.exceptions.UnknownKeyError('Key: ' + keyid)
+    raise tuf.exceptions.UnknownKeyError('Key: ' + keyid)
 
 
 

@@ -719,7 +719,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     except tuf.exceptions.NoWorkingMirrorError as e:
       for mirror_error in six.itervalues(e.mirror_errors):
-        assert isinstance(mirror_error, securesystemslib.exceptions.BadVersionNumberError)
+        assert isinstance(mirror_error, tuf.exceptions.BadVersionNumberError)
 
     else:
       self.fail(
@@ -727,7 +727,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Verify that the specific exception raised is correct for the previous
     # case.  The version number is checked, so the specific error in
-    # this case should be 'securesystemslib.exceptions.BadVersionNumberError'.
+    # this case should be 'tuf.exceptions.BadVersionNumberError'.
     try:
       self.repository_updater._update_metadata('targets',
                                                DEFAULT_TARGETS_FILELENGTH,
@@ -735,7 +735,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     except tuf.exceptions.NoWorkingMirrorError as e:
       for mirror_error in six.itervalues(e.mirror_errors):
-        assert isinstance(mirror_error, securesystemslib.exceptions.BadVersionNumberError)
+        assert isinstance(mirror_error, tuf.exceptions.BadVersionNumberError)
 
     else:
       self.fail(

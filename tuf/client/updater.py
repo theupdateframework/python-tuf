@@ -963,7 +963,7 @@ class Updater(object):
             key['keyid'] = key_id
             tuf.keydb.add_key(key, keyid=None, repository_name=self.repository_name)
 
-        except securesystemslib.exceptions.KeyAlreadyExistsError:
+        except tuf.exceptions.KeyAlreadyExistsError:
           pass
 
         except (securesystemslib.exceptions.FormatError, securesystemslib.exceptions.Error):
@@ -1530,7 +1530,7 @@ class Updater(object):
           # Verify that the downloaded version matches the version expected by
           # the caller.
           if version_downloaded != expected_version:
-            raise securesystemslib.exceptions.BadVersionNumberError('Downloaded'
+            raise tuf.exceptions.BadVersionNumberError('Downloaded'
               ' version number: ' + repr(version_downloaded) + '.  Version'
               ' number MUST be: ' + repr(expected_version))
 

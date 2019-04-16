@@ -250,7 +250,7 @@ class TestRepository(unittest.TestCase):
     repository.status()
 
     # Verify that status() does not raise
-    # 'securesystemslib.exceptions.InsufficientKeysError' if a top-level role
+    # 'tuf.exceptions.InsufficientKeysError' if a top-level role
     # does not contain a threshold of keys.
     targets_roleinfo = tuf.roledb.get_roleinfo('targets', repository_name)
     old_threshold = targets_roleinfo['threshold']
@@ -266,7 +266,7 @@ class TestRepository(unittest.TestCase):
         repository_name=repository_name)
 
     # Verify that status() does not raise
-    # 'securesystemslib.exceptions.InsufficientKeysError' if a delegated role
+    # 'tuf.exceptions.InsufficientKeysError' if a delegated role
     # does not contain a threshold of keys.
     role1_roleinfo = tuf.roledb.get_roleinfo('role1', repository_name)
     old_role1_threshold = role1_roleinfo['threshold']
@@ -971,7 +971,7 @@ class TestTargets(unittest.TestCase):
     self.assertTrue(isinstance(targets_object('role1'), repo_tool.Targets))
 
     # Test invalid (i.e., non-delegated) rolename argument.
-    self.assertRaises(securesystemslib.exceptions.UnknownRoleError, targets_object, 'unknown_role')
+    self.assertRaises(tuf.exceptions.UnknownRoleError, targets_object, 'unknown_role')
 
     # Test improperly formatted argument.
     self.assertRaises(securesystemslib.exceptions.FormatError, targets_object, 1)
@@ -1741,7 +1741,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     root_filepath = os.path.join(repository_directory,
         repo_tool.METADATA_STAGED_DIRECTORY_NAME, 'root.json')
     os.remove(root_filepath)
-    self.assertRaises(securesystemslib.exceptions.RepositoryError,
+    self.assertRaises(tuf.exceptions.RepositoryError,
         repo_tool.load_repository, repository_directory)
 
 

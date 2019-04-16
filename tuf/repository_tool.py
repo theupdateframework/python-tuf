@@ -665,7 +665,7 @@ class Metadata(object):
     try:
       tuf.keydb.add_key(key, repository_name=self._repository_name)
 
-    except securesystemslib.exceptions.KeyAlreadyExistsError:
+    except tuf.exceptions.KeyAlreadyExistsError:
       logger.warning('Adding a verification key that has already been used.')
 
     keyid = key['keyid']
@@ -783,7 +783,7 @@ class Metadata(object):
     try:
       tuf.keydb.add_key(key, repository_name=self._repository_name)
 
-    except securesystemslib.exceptions.KeyAlreadyExistsError:
+    except tuf.exceptions.KeyAlreadyExistsError:
       tuf.keydb.remove_key(key['keyid'], self._repository_name)
       tuf.keydb.add_key(key, repository_name=self._repository_name)
 
@@ -1635,7 +1635,7 @@ class Targets(Metadata):
       securesystemslib.exceptions.FormatError, if the arguments are improperly
       formatted.
 
-      securesystemslib.exceptions.UnknownRoleError, if 'rolename' has not been
+      tuf.exceptions.UnknownRoleError, if 'rolename' has not been
       delegated by this Targets object.
 
     <Side Effects>
@@ -1655,7 +1655,7 @@ class Targets(Metadata):
       return self._delegated_roles[rolename]
 
     else:
-      raise securesystemslib.exceptions.UnknownRoleError(repr(rolename) + ' has'
+      raise tuf.exceptions.UnknownRoleError(repr(rolename) + ' has'
           ' not been delegated by ' + repr(self.rolename))
 
 
@@ -2168,11 +2168,11 @@ class Targets(Metadata):
         continue searching for targets (target files it is trusted to list but
         has not yet specified) in other delegations.  If 'terminating' is True
         and 'updater.target()' does not find 'example_target.tar.gz' in this
-        role, a 'securesystemslib.exceptions.UnknownTargetError' exception
-        should be raised.  If 'terminating' is False (default), and
-        'target/other_role' is also trusted with 'example_target.tar.gz' and
-        has listed it, updater.target() should backtrack and return the target
-        file specified by 'target/other_role'.
+        role, a 'tuf.exceptions.UnknownTargetError' exception should be raised.
+        If 'terminating' is False (default), and 'target/other_role' is also
+        trusted with 'example_target.tar.gz' and has listed it,
+        updater.target() should backtrack and return the target file specified
+        by 'target/other_role'.
 
       list_of_targets:
         A list of target filepaths that are added to 'rolename'.
@@ -2754,7 +2754,7 @@ class Targets(Metadata):
       None.
 
     <Exceptions>
-      securesystemslib.exceptions.UnknownRoleError, if this Targets' rolename
+      tuf.exceptions.UnknownRoleError, if this Targets' rolename
       does not exist in 'tuf.roledb'.
 
     <Side Effects>
@@ -2893,7 +2893,7 @@ def load_repository(repository_directory, repository_name='default'):
     securesystemslib.exceptions.FormatError, if 'repository_directory' or any of
     the metadata files are improperly formatted.
 
-    securesystemslib.exceptions.RepositoryError, if the Root role cannot be
+    tuf.exceptions.RepositoryError, if the Root role cannot be
     found.  At a minimum, a repository must contain 'root.json'
 
   <Side Effects>
@@ -3037,7 +3037,7 @@ def load_repository(repository_directory, repository_name='default'):
           tuf.keydb.add_key(key_object, keyid=None,
               repository_name=repository_name)
 
-      except securesystemslib.exceptions.KeyAlreadyExistsError:
+      except tuf.exceptions.KeyAlreadyExistsError:
         pass
 
   return repository

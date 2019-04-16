@@ -169,7 +169,7 @@ def get_signature_status(signable, role=None, repository_name='default',
     try:
       key = tuf.keydb.get_key(keyid, repository_name)
 
-    except securesystemslib.exceptions.UnknownKeyError:
+    except tuf.exceptions.UnknownKeyError:
       unknown_sigs.append(keyid)
       continue
 
@@ -208,8 +208,7 @@ def get_signature_status(signable, role=None, repository_name='default',
       bad_sigs.append(keyid)
 
   # Retrieve the threshold value for 'role'.  Raise
-  # securesystemslib.exceptions.UnknownRoleError if we were given an invalid
-  # role.
+  # tuf.exceptions.UnknownRoleError if we were given an invalid role.
   if role is not None:
     if threshold is None:
       # Note that if the role is not known, tuf.exceptions.UnknownRoleError is
@@ -267,7 +266,7 @@ def verify(signable, role, repository_name='default', threshold=None,
       in tuf.roledb.py for 'role'.
 
   <Exceptions>
-    securesystemslib.exceptions.UnknownRoleError, if 'role' is not recognized.
+    tuf.exceptions.UnknownRoleError, if 'role' is not recognized.
 
     securesystemslib.exceptions.FormatError, if 'signable' is not formatted
     correctly.
@@ -288,7 +287,7 @@ def verify(signable, role, repository_name='default', threshold=None,
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
   # Retrieve the signature status.  tuf.sig.get_signature_status() raises:
-  # securesystemslib.exceptions.UnknownRoleError
+  # tuf.exceptions.UnknownRoleError
   # securesystemslib.exceptions.FormatError.  'threshold' and 'keyids' are also
   # validated.
   status = get_signature_status(signable, role, repository_name, threshold, keyids)

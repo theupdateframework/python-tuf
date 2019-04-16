@@ -866,7 +866,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
     # Test invalid argument (i.e., client directory already exists.)
-    self.assertRaises(securesystemslib.exceptions.RepositoryError,
+    self.assertRaises(tuf.exceptions.RepositoryError,
         repo_lib.create_tuf_client_directory, repository_directory,
         client_directory)
 
@@ -882,7 +882,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Creation of the '/' directory is forbidden on all supported OSs.  The '/'
     # argument to create_tuf_client_directory should cause it to re-raise a
     # non-errno.EEXIST exception.
-    self.assertRaises((OSError, securesystemslib.exceptions.RepositoryError),
+    self.assertRaises((OSError, tuf.exceptions.RepositoryError),
         repo_lib.create_tuf_client_directory, repository_directory, '/')
 
     # Restore the metadata directory name in repo_lib.
@@ -1035,7 +1035,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Remove the required Root file and verify that an exception is raised.
     os.remove(os.path.join(metadata_directory, 'root.json'))
-    self.assertRaises(securesystemslib.exceptions.RepositoryError,
+    self.assertRaises(tuf.exceptions.RepositoryError,
         repo_lib._load_top_level_metadata, repository, filenames,
         repository_name)
 
