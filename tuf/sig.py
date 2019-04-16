@@ -254,7 +254,7 @@ def get_signature_status(signable, rolename=None, repository_name='default',
     # this particular metadata.
 
     if valid_sig:
-        # Is this an authorized key? (a keyid associated with 'role')
+        # Is this an authorized key? (a keyid associated with <rolename>)
       if keyid in keyids:
         good_sigs.append(keyid)       # good sig from right key
       else:
@@ -264,22 +264,6 @@ def get_signature_status(signable, rolename=None, repository_name='default',
       # The signature not even valid for the key the signature says it's using.
       bad_sigs.append(keyid)
 
-
-  # Retrieve the threshold value for 'role'.  Raise
-  # securesystemslib.exceptions.UnknownRoleError if we were given an invalid
-  # role.
-  if role is not None:
-    if threshold is None:
-      # Note that if the role is not known, tuf.exceptions.UnknownRoleError is
-      # raised here.
-      threshold = tuf.roledb.get_role_threshold(
-          role, repository_name=repository_name)
-
-    else:
-      logger.debug('Not using roledb.py\'s threshold for ' + repr(role))
-
-  else:
-    threshold = 0
 
   # Build the signature_status dict.
   signature_status['threshold'] = threshold
@@ -342,6 +326,13 @@ def _determine_keyids_and_threshold_to_use(
         'argument is sufficient only for roles listed by Root.  The name of '
         'a delegated role need never be provided as argument.')
 
+
+  # Pull the keyids and threshold expected for this top-level role from trusted
+  # Root metadata.  Note that if the rolename is not known,
+  # tuf.exceptions.UnknownRoleError is raised here.  Argument checks above
+  # ensure that `rolename` is the name of a top-level role, so this should only
+  # be possible if there is no Root metadata loaded somehow, or if that Root
+  # metadata is missing a listing for a top-level role for some reason....
   keyids = tuf.roledb.get_role_keyids(rolename, repository_name)
   threshold = tuf.roledb.get_role_threshold(
       rolename, repository_name=repository_name)
