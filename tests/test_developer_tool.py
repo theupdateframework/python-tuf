@@ -173,6 +173,9 @@ class TestProject(unittest.TestCase):
     except (OSError, tuf.exceptions.RepositoryError):
       pass
 
+    else:
+      self.fail('Expected RepositoryError exception not raised.')
+
     developer_tool.METADATA_DIRECTORY_NAME = valid_metadata_directory_name
 
 
