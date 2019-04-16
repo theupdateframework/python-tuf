@@ -109,8 +109,14 @@ class TestSig(unittest.TestCase):
     tuf.keydb.add_key(KEYS[0])
     threshold = 1
 
+    # TODO: roledb no longer stores metadata in this format. Once you're all
+    #       done with roledb, this will need to load a full sample Root
+    #       metadata file here in order to populate roledb with the Root info,
+    #       not just the keyid & threshold info.
+
     roleinfo = tuf.formats.build_dict_conforming_to_schema(
-        tuf.formats.ROLE_SCHEMA, keyids=[KEYS[0]['keyid']], threshold=threshold)
+        tuf.formats.SIGNERS_SCHEMA,
+        keyids=[KEYS[0]['keyid']], threshold=threshold)
 
     tuf.roledb.add_role('Root', roleinfo)
 
@@ -142,8 +148,13 @@ class TestSig(unittest.TestCase):
     tuf.keydb.add_key(KEYS[0])
     threshold = 1
 
+    # TODO: roledb no longer stores metadata in this format. Once you're all
+    #       done with roledb, this will need to load a full sample Root
+    #       metadata file here in order to populate roledb with the Root info,
+    #       not just the keyid & threshold info.
+
     roleinfo = tuf.formats.build_dict_conforming_to_schema(
-        tuf.formats.ROLE_SCHEMA, keyids=[KEYS[0]['keyid']], threshold=threshold)
+        tuf.formats.SIGNERS_SCHEMA, keyids=[KEYS[0]['keyid']], threshold=threshold)
 
     tuf.roledb.add_role('root', roleinfo)
 
@@ -174,8 +185,14 @@ class TestSig(unittest.TestCase):
 
     threshold = 1
 
+    # TODO: roledb no longer stores metadata in this format. Once you're all
+    #       done with roledb, this will need to load a full sample Root
+    #       metadata file here in order to populate roledb with the Root info,
+    #       not just the keyid & threshold info.
+
     roleinfo = tuf.formats.build_dict_conforming_to_schema(
-        tuf.formats.ROLE_SCHEMA, keyids=[KEYS[0]['keyid']], threshold=threshold)
+        tuf.formats.SIGNERS_SCHEMA,
+        keyids=[KEYS[0]['keyid']], threshold=threshold)
 
     tuf.roledb.add_role('Root', roleinfo)
     tuf.keydb.add_key(KEYS[0])
@@ -200,8 +217,10 @@ class TestSig(unittest.TestCase):
     self.assertEqual(0, sig_status['threshold'])
     self.assertEqual([], sig_status['good_sigs'])
     self.assertEqual([], sig_status['bad_sigs'])
-    self.assertEqual([KEYS[0]['keyid']], sig_status['unknown_sigs'])
-    self.assertEqual([], sig_status['untrusted_sigs'])
+    # TODO: <~> Add this comment to the commit message instead:
+    # Correct bad expectation: if role is not provided, then all signatures
+    self.assertEqual([], sig_status['unknown_sigs'])
+    self.assertEqual([KEYS[0]['keyid']], sig_status['untrusted_sigs'])
     self.assertEqual([], sig_status['unknown_signing_schemes'])
 
     # Done.  Let's remove the added key(s) from the key database.
@@ -219,8 +238,13 @@ class TestSig(unittest.TestCase):
     tuf.keydb.add_key(KEYS[0])
     threshold = 2
 
+    # TODO: roledb no longer stores metadata in this format. Once you're all
+    #       done with roledb, this will need to load a full sample Root
+    #       metadata file here in order to populate roledb with the Root info,
+    #       not just the keyid & threshold info.
+
     roleinfo = tuf.formats.build_dict_conforming_to_schema(
-        tuf.formats.ROLE_SCHEMA,
+        tuf.formats.SIGNERS_SCHEMA,
         keyids=[KEYS[0]['keyid'], KEYS[2]['keyid']],
         threshold=threshold)
 
@@ -257,8 +281,13 @@ class TestSig(unittest.TestCase):
     tuf.keydb.add_key(KEYS[1])
     threshold = 2
 
+    # TODO: roledb no longer stores metadata in this format. Once you're all
+    #       done with roledb, this will need to load a full sample Root
+    #       metadata file here in order to populate roledb with the Root info,
+    #       not just the keyid & threshold info.
+
     roleinfo = tuf.formats.build_dict_conforming_to_schema(
-        tuf.formats.ROLE_SCHEMA,
+        tuf.formats.SIGNERS_SCHEMA,
         keyids=[KEYS[0]['keyid'], KEYS[1]['keyid']],
         threshold=threshold)
 
@@ -297,15 +326,20 @@ class TestSig(unittest.TestCase):
     tuf.keydb.add_key(KEYS[1])
     threshold = 2
 
+    # TODO: roledb no longer stores metadata in this format. Once you're all
+    #       done with roledb, this will need to load a full sample Root
+    #       metadata file here in order to populate roledb with the Root info,
+    #       not just the keyid & threshold info.
+
     roleinfo = tuf.formats.build_dict_conforming_to_schema(
-        tuf.formats.ROLE_SCHEMA,
+        tuf.formats.SIGNERS_SCHEMA,
         keyids=[KEYS[0]['keyid'], KEYS[2]['keyid']],
         threshold=threshold)
 
     tuf.roledb.add_role('Root', roleinfo)
 
     roleinfo = tuf.formats.build_dict_conforming_to_schema(
-        tuf.formats.ROLE_SCHEMA,
+        tuf.formats.SIGNERS_SCHEMA,
         keyids=[KEYS[1]['keyid'], KEYS[2]['keyid']],
         threshold=threshold)
 
@@ -362,8 +396,14 @@ class TestSig(unittest.TestCase):
     tuf.keydb.add_key(KEYS[0])
     threshold = 1
 
+    # TODO: roledb no longer stores metadata in this format. Once you're all
+    #       done with roledb, this will need to load a full sample Root
+    #       metadata file here in order to populate roledb with the Root info,
+    #       not just the keyid & threshold info.
+
     roleinfo = tuf.formats.build_dict_conforming_to_schema(
-        tuf.formats.ROLE_SCHEMA, keyids=[KEYS[0]['keyid']], threshold=threshold)
+        tuf.formats.SIGNERS_SCHEMA,
+        keyids=[KEYS[0]['keyid']], threshold=threshold)
 
     tuf.roledb.add_role('Root', roleinfo)
 
@@ -391,8 +431,13 @@ class TestSig(unittest.TestCase):
     tuf.keydb.add_key(KEYS[1])
     threshold = 2
 
+    # TODO: roledb no longer stores metadata in this format. Once you're all
+    #       done with roledb, this will need to load a full sample Root
+    #       metadata file here in order to populate roledb with the Root info,
+    #       not just the keyid & threshold info.
+
     roleinfo = tuf.formats.build_dict_conforming_to_schema(
-        tuf.formats.ROLE_SCHEMA,
+        tuf.formats.SIGNERS_SCHEMA,
         keyids=[KEYS[0]['keyid'], KEYS[1]['keyid']],
         threshold=threshold)
 
