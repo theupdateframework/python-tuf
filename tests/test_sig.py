@@ -406,53 +406,6 @@ class TestSig(unittest.TestCase):
 
 
 
-  def test_generate_rsa_signature(self):
-    signable = {'signed' : 'test', 'signatures' : []}
-
-    signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[0], signable['signed']))
-
-    self.assertEqual(1, len(signable['signatures']))
-    signature = signable['signatures'][0]
-    self.assertEqual(KEYS[0]['keyid'], signature['keyid'])
-
-    returned_signature = tuf.sig.generate_rsa_signature(signable['signed'], KEYS[0])
-    self.assertTrue(securesystemslib.formats.SIGNATURE_SCHEMA.matches(returned_signature))
-
-    signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[1], signable['signed']))
-
-    self.assertEqual(2, len(signable['signatures']))
-    signature = signable['signatures'][1]
-    self.assertEqual(KEYS[1]['keyid'], signature['keyid'])
-
-
-
-  def test_may_need_new_keys(self):
-    # One untrusted key in 'signable'.
-    signable = {'signed' : 'test', 'signatures' : []}
-
-    signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[0], signable['signed']))
-
-    tuf.keydb.add_key(KEYS[1])
-    threshold = 1
-
-    roleinfo = tuf.formats.build_dict_conforming_to_schema(
-        tuf.formats.ROLE_SCHEMA, keyids=[KEYS[1]['keyid']], threshold=threshold)
-
-    tuf.roledb.add_role('Root', roleinfo)
-
-    sig_status = tuf.sig.get_signature_status(signable, 'Root')
-
-    self.assertTrue(tuf.sig.may_need_new_keys(sig_status))
-
-
-    # Done.  Let's remove the added key(s) from the key database.
-    tuf.keydb.remove_key(KEYS[1]['keyid'])
-
-    # Remove the roles.
-    tuf.roledb.remove_role('Root')
 
 
   def test_signable_has_invalid_format(self):
