@@ -244,7 +244,7 @@ class NoWorkingMirrorError(Error):
       else:
         mirror_netloc = mirror_url_tokens.netloc
 
-      all_errors += '\n  ' + repr(mirror_netloc) + ': ' + repr(mirror_error)
+      all_errors += '\n  ' + repr(mirror_netloc) + ': ' + str(mirror_error)
 
     return all_errors
 
