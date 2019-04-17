@@ -1548,7 +1548,7 @@ class Updater(object):
           except KeyError:
             logger.info(metadata_role + ' not available locally.')
 
-        self._verify_uncompressed_metadata_file(file_object, metadata_role)
+        self._verify_uncompressed_metadata_file(file_object, metadata_role, keyids=keyids, threshold=threshold)
 
       except Exception as exception:
         # Remember the error from this mirror, and "reset" the target file.
@@ -1751,7 +1751,7 @@ class Updater(object):
 
     metadata_file_object = \
       self._get_metadata_file(metadata_role, remote_filename,
-        upperbound_filelength, version)
+        upperbound_filelength, version, keyids=keyids, threshold=threshold)
 
     # The metadata has been verified. Move the metadata file into place.
     # First, move the 'current' metadata file to the 'previous' directory
@@ -1918,7 +1918,7 @@ class Updater(object):
 
     try:
       self._update_metadata(metadata_role, upperbound_filelength,
-          expected_versioninfo['version'])
+          expected_versioninfo['version'], keyids=keyids, threshold=threshold)
 
     except Exception:
       # The current metadata we have is not current but we couldn't get new
@@ -2491,7 +2491,7 @@ class Updater(object):
       self._load_metadata_from_file('previous', rolename)
       self._load_metadata_from_file('current', rolename)
 
-      self._update_metadata_if_changed(rolename)
+      self._update_metadata_if_changed(rolename, keyids=keyids, threshold=threshold)
 
 
 
@@ -2738,8 +2738,9 @@ class Updater(object):
 
     target = None
     current_metadata = self.metadata['current']
-    role_names = ['targets']
-    role_information = [('targets')]
+    targets_keyids = current_metadata['root']['roles']['targets']['keyids']
+    targets_threshold = current_metadata['root']['roles']['targets']['threshold']
+    roles_information = [('targets', targets_keyids, targets_threshold)]
     visited_role_names = set()
     number_of_delegations = tuf.settings.MAX_NUMBER_OF_DELEGATIONS
 
@@ -2752,10 +2753,11 @@ class Updater(object):
     self._update_metadata_if_changed('targets')
 
     # Preorder depth-first traversal of the graph of target delegations.
-    while target is None and number_of_delegations > 0 and len(role_names) > 0:
+    while target is None and number_of_delegations > 0 and len(roles_information) > 0:
 
       # Pop the role name from the top of the stack.
-      role_name = role_names.pop(-1)
+      role_information = roles_information.pop(-1)
+      role_name, role_keyids, role_threshold = role_information
 
       # Skip any visited current role to prevent cycles.
       if role_name in visited_role_names:
@@ -2768,12 +2770,8 @@ class Updater(object):
       # _refresh_targets_metadata() does not refresh 'targets.json', it
       # expects _update_metadata_if_changed() to have already refreshed it,
       # which this function has checked above.
-      self._refresh_targets_metadata(role_name,
+      self._refresh_targets_metadata(role_name, keyids=role_keyids, threshold=role_threshold,
           refresh_all_delegated_roles=False)
-      # self._refresh_targets_metadata(role_name, keyids=keyids, threshold=threshold,
-      #                                refresh_all_delegated_roles=False)
-
-      import pdb; pdb.set_trace()
 
       role_metadata = current_metadata[role_name]
       targets = role_metadata['targets']
@@ -2792,12 +2790,14 @@ class Updater(object):
         child_roles_to_visit = []
         # NOTE: This may be a slow operation if there are many delegated roles.
         for child_role in child_roles:
+          child_role_keyids = child_role.get('keyids', [])
+          child_role_threshold = child_role.get('threshold')
           child_role_name = self._visit_child_role(child_role, target_filepath)
           if child_role['terminating'] and child_role_name is not None:
             logger.debug('Adding child role ' + repr(child_role_name))
             logger.debug('Not backtracking to other roles.')
-            role_names = []
-            child_roles_to_visit.append(child_role_name)
+            roles_information = []
+            child_roles_to_visit.append((child_role_name, child_role_keyids, child_role_threshold))
             break
 
           elif child_role_name is None:
@@ -2805,19 +2805,19 @@ class Updater(object):
 
           else:
             logger.debug('Adding child role ' + repr(child_role_name))
-            child_roles_to_visit.append(child_role_name)
+            child_roles_to_visit.append((child_role_name, child_role_keyids, child_role_threshold))
 
         # Push 'child_roles_to_visit' in reverse order of appearance onto
         # 'role_names'.  Roles are popped from the end of the 'role_names'
         # list.
         child_roles_to_visit.reverse()
-        role_names.extend(child_roles_to_visit)
+        roles_information.extend(child_roles_to_visit)
 
       else:
         logger.debug('Found target in current role ' + repr(role_name))
 
-    if target is None and number_of_delegations == 0 and len(role_names) > 0:
-      logger.debug(repr(len(role_names)) + ' roles left to visit, ' +
+    if target is None and number_of_delegations == 0 and len(roles_information) > 0:
+      logger.debug(repr(len(roles_information)) + ' roles left to visit, ' +
           'but allowed to visit at most ' +
           repr(tuf.settings.MAX_NUMBER_OF_DELEGATIONS) + ' delegations.')
 
