@@ -1364,7 +1364,7 @@ class Updater(object):
 
 
   def _verify_uncompressed_metadata_file(self, metadata_file_object,
-      metadata_role):
+      metadata_role, keyids=None, threshold=None):
     """
     <Purpose>
       Non-public method that verifies an uncompressed metadata file.  An
@@ -1427,7 +1427,7 @@ class Updater(object):
 
     # Verify the signature on the downloaded metadata object.
     valid = tuf.sig.verify(metadata_signable, metadata_role,
-        self.repository_name)
+        self.repository_name, keyids=keyids, threshold=threshold)
 
     if not valid:
       raise securesystemslib.exceptions.BadSignatureError(metadata_role)
@@ -1437,7 +1437,7 @@ class Updater(object):
 
 
   def _get_metadata_file(self, metadata_role, remote_filename,
-    upperbound_filelength, expected_version):
+    upperbound_filelength, expected_version, keyids=None, threshold=None):
     """
     <Purpose>
       Non-public method that tries downloading, up to a certain length, a
@@ -1680,7 +1680,7 @@ class Updater(object):
 
 
 
-  def _update_metadata(self, metadata_role, upperbound_filelength, version=None):
+  def _update_metadata(self, metadata_role, upperbound_filelength, version=None, keyids=None, threshold=None):
     """
     <Purpose>
       Non-public method that downloads, verifies, and 'installs' the metadata
@@ -1801,7 +1801,7 @@ class Updater(object):
 
 
   def _update_metadata_if_changed(self, metadata_role,
-    referenced_metadata='snapshot'):
+    referenced_metadata='snapshot', keyids=None, threshold=None):
     """
     <Purpose>
       Non-public method that updates the metadata for 'metadata_role' if it has
@@ -2423,7 +2423,7 @@ class Updater(object):
 
 
 
-  def _refresh_targets_metadata(self, rolename='targets',
+  def _refresh_targets_metadata(self, rolename='targets', keyids=None, threshold=None,
     refresh_all_delegated_roles=False):
     """
     <Purpose>
@@ -2607,7 +2607,7 @@ class Updater(object):
         If 'rolename' is not found in the role database.
 
     <Side Effects>
-      The metadata of updated delegated roles are downloaded and stored.
+      The metadata of updated delegated roles are downloaded and stored. Clean up updater metadata update stack #841
 
     <Returns>
       A list of targets, conformant to
@@ -2739,6 +2739,7 @@ class Updater(object):
     target = None
     current_metadata = self.metadata['current']
     role_names = ['targets']
+    role_information = [('targets')]
     visited_role_names = set()
     number_of_delegations = tuf.settings.MAX_NUMBER_OF_DELEGATIONS
 
@@ -2769,6 +2770,10 @@ class Updater(object):
       # which this function has checked above.
       self._refresh_targets_metadata(role_name,
           refresh_all_delegated_roles=False)
+      # self._refresh_targets_metadata(role_name, keyids=keyids, threshold=threshold,
+      #                                refresh_all_delegated_roles=False)
+
+      import pdb; pdb.set_trace()
 
       role_metadata = current_metadata[role_name]
       targets = role_metadata['targets']
