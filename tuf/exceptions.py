@@ -60,8 +60,14 @@ class InvalidMetadataJSONError(FormatError):
     self.exception = exception
 
   def __str__(self):
+    return repr(self)
+
+  def __repr__(self):
     # Show the original exception.
-    return repr(self.exception)
+    return self.__class__.__name__ + ' : wraps error: ' + repr(self.exception)
+
+    # # Directly instance-reproducing:
+    # return self.__class__.__name__ + '(' + repr(self.exception) + ')'
 
 
 class UnsupportedAlgorithmError(Error):
@@ -69,7 +75,7 @@ class UnsupportedAlgorithmError(Error):
 
 
 class BadHashError(Error):
-  """Indicate an error while checking the value a hash object."""
+  """Indicate an error while checking the value of a hash object."""
 
   def __init__(self, expected_hash, observed_hash):
     super(BadHashError, self).__init__()
@@ -78,8 +84,19 @@ class BadHashError(Error):
     self.observed_hash = observed_hash
 
   def __str__(self):
-    return 'Observed hash (' + repr(self.observed_hash)+\
-           ') != expected hash (' + repr(self.expected_hash)+')'
+    return (
+        'Observed hash (' + repr(self.observed_hash) + ') != expected hash (' +
+        repr(self.expected_hash) + ')')
+
+  def __repr__(self):
+    return self.__class__.__name__ + ' : ' + str(self)
+
+    # # Directly instance-reproducing:
+    # return (
+    #     self.__class__.__name__ + '(' + repr(self.expected_hash) + ', ' +
+    #     repr(self.observed_hash) + ')')
+
+
 
 
 class BadVersionNumberError(Error):
@@ -122,9 +139,19 @@ class ReplayedMetadataError(RepositoryError):
 
 
   def __str__(self):
-    return 'Downloaded ' + repr(self.metadata_role)+' is older ('+\
-           repr(self.previous_version) + ') than the version currently '+\
-           'installed (' + repr(self.current_version) + ').'
+    return (
+        'Downloaded ' + repr(self.metadata_role) + ' is older (' +
+        repr(self.previous_version) + ') than the version currently '
+        'installed (' + repr(self.current_version) + ').')
+
+  def __repr__(self):
+    return self.__class__.__name__ + ' : ' + str(self)
+
+    # # Directly instance-reproducing:
+    # return (
+    #     self.__class__.__name__ + '(' + repr(self.metadata_role) + ', ' +
+    #     repr(self.previous_version) + ', ' + repr(self.current_version) + ')')
+
 
 
 class CryptoError(Error):
@@ -140,7 +167,14 @@ class BadSignatureError(CryptoError):
     self.metadata_role_name = metadata_role_name
 
   def __str__(self):
-    return repr(self.metadata_role_name) + ' metadata has bad signature.'
+    return repr(self.metadata_role_name) + ' metadata has a bad signature.'
+
+  def __repr__(self):
+    return self.__class__.__name__ + ' : ' + str(self)
+
+    # # Directly instance-reproducing:
+    # return (
+    #     self.__class__.__name__ + '(' + repr(self.metadata_role_name) + ')')
 
 
 class UnknownMethodError(CryptoError):
@@ -165,8 +199,18 @@ class DownloadLengthMismatchError(DownloadError):
     self.observed_length = observed_length #bytes
 
   def __str__(self):
-    return 'Observed length (' + repr(self.observed_length) + \
-        ') < expected length (' + repr(self.expected_length) + ').'
+    return (
+        'Observed length (' + repr(self.observed_length) +
+        ') < expected length (' + repr(self.expected_length) + ').')
+
+  def __repr__(self):
+    return self.__class__.__name__ + ' : ' + str(self)
+
+    # # Directly instance-reproducing:
+    # return (
+    #     self.__class__.__name__ + '(' + repr(self.expected_length) + ', ' +
+    #     self.observed_length + ')')
+
 
 
 class SlowRetrievalError(DownloadError):
@@ -178,8 +222,16 @@ class SlowRetrievalError(DownloadError):
     self.__average_download_speed = average_download_speed #bytes/second
 
   def __str__(self):
-    return 'Download was too slow. Average speed: ' +\
-           repr(self.__average_download_speed) + ' bytes per second.'
+    return (
+        'Download was too slow. Average speed: ' +
+         repr(self.__average_download_speed) + ' bytes per second.')
+
+  def __repr__(self):
+    return self.__class__.__name__ + ' : ' + str(self)
+
+    # # Directly instance-reproducing:
+    # return (
+    #     self.__class__.__name__ + '(' + repr(self.__average_download_speed + ')')
 
 
 class KeyAlreadyExistsError(Error):
@@ -214,6 +266,14 @@ class UnsignedMetadataError(Error):
   def __str__(self):
     return self.exception_message
 
+  def __repr__(self):
+    return self.__class__.__name__ + ' : ' + str(self)
+
+    # # Directly instance-reproducing:
+    # return (
+    #     self.__class__.__name__ + '(' + repr(self.exception_message) + ', ' +
+    #     repr(self.signable) + ')')
+
 
 class NoWorkingMirrorError(Error):
   """
@@ -247,6 +307,14 @@ class NoWorkingMirrorError(Error):
       all_errors += '\n  ' + repr(mirror_netloc) + ': ' + repr(mirror_error)
 
     return all_errors
+
+  def __repr__(self):
+    return self.__class__.__name__ + ' : ' + str(self)
+
+    # # Directly instance-reproducing:
+    # return (
+    #     self.__class__.__name__ + '(' + repr(self.mirror_errors) + ')')
+
 
 
 class NotFoundError(Error):
