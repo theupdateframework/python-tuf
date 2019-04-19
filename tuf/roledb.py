@@ -1119,6 +1119,7 @@ def get_delegation(
   # Argument sanity check: top-level roles can only be delegated by root, and
   # delegated targets roles cannot be delegated by root.
   if top_level != (delegating_rolename == 'root'):
+    import pdb; pdb.set_trace()
     raise tuf.exceptions.Error(
         'Rolename ' + delegated_rolename + ' can only be delegated to by '
         'root, not by ' + delegating_rolename)
@@ -1300,4 +1301,4 @@ def is_top_level_rolename(rolename):
   # TODO: We should probably integrate this list as a schema in tuf.formats.
   top_level_roles = ['root', 'timestamp', 'snapshot', 'targets']
 
-  return rolename.lower in top_level_roles
+  return rolename.lower() in top_level_roles
