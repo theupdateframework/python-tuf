@@ -54,7 +54,7 @@ for junk in range(3):
 class TestRoledb(unittest.TestCase):
   def setUp(self):
     tuf.roledb.clear_roledb(clear_all=True)
-    self.test_data_path = os.path.join(os.getcwd(), "tests", "repository_data", "repository", "metadata")
+    self.test_data_path = os.path.join(os.getcwd(), "repository_data", "repository", "metadata")
 
 
 
