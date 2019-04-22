@@ -333,8 +333,8 @@ def _determine_keyids_and_threshold_to_use(
   # ensure that `rolename` is the name of a top-level role, so this should only
   # be possible if there is no Root metadata loaded somehow, or if that Root
   # metadata is missing a listing for a top-level role for some reason....
-  keyids = tuf.roledb.get_role_keyids(rolename, repository_name)
-  threshold = tuf.roledb.get_role_threshold(
+  keyids = tuf.roledb.get_delegation_keyids(rolename, repository_name)
+  threshold = tuf.roledb.get_delegation_threshold(
       rolename, repository_name=repository_name)
 
   # Check the results.
@@ -342,6 +342,8 @@ def _determine_keyids_and_threshold_to_use(
   #       before it is returned.
   securesystemslib.formats.KEYIDS_SCHEMA.check_match(keyids)
   tuf.formats.THRESHOLD_SCHEMA.check_match(threshold)
+
+  return keyids, threshold
 
 
 
