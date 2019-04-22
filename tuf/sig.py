@@ -319,7 +319,7 @@ def _determine_keyids_and_threshold_to_use(
   assert rolename is not None, 'Not possible; mistake in this function!'
 
   tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
-  if not roledb.is_top_level_rolename(rolename):
+  if not tuf.roledb.is_top_level_rolename(rolename):
     raise tuf.exceptions.Error(
         'Cannot automatically determine the keyids and threshold expected of '
         'a delegated targets role ("' + rolename + '").  The rolename '
