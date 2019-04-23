@@ -346,7 +346,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     root_threshold = root_metadata['roles']['root']['threshold']
     number_of_root_keys = len(root_metadata['keys'])
 
-    self.assertEqual(root_roleinfo['threshold'], root_threshold)
+    self.assertEqual(root_roleinfo['roles']['root']['threshold'], root_threshold)
 
     # Ensure we add 2 to the number of root keys (actually, the number of root
     # keys multiplied by the number of keyid hash algorithms), to include the
@@ -360,7 +360,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater._rebuild_key_and_role_db()
 
     root_roleinfo = tuf.roledb.get_roleinfo('root', self.repository_name)
-    self.assertEqual(root_roleinfo['threshold'], root_threshold)
+    self.assertEqual(root_roleinfo['roles']['root']['threshold'], root_threshold)
 
     # _rebuild_key_and_role_db() will only rebuild the keys and roles specified
     # in the 'root.json' file, unlike __init__().  Instantiating an updater
@@ -375,7 +375,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater._rebuild_key_and_role_db()
 
     root_roleinfo = tuf.roledb.get_roleinfo('root', self.repository_name)
-    self.assertEqual(root_roleinfo['threshold'], 8)
+    self.assertEqual(root_roleinfo['roles']['root']['threshold'], 8)
     self.assertEqual(number_of_root_keys * 2 - 2, len(tuf.keydb._keydb_dict[self.repository_name]))
 
 
