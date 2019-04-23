@@ -690,6 +690,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Test: normal case.
     # Verify 'timestamp.json' is properly installed.
+    # TODO fix assertion -> should check current
     self.assertFalse('timestamp' in self.repository_updater.metadata)
 
     logger.info('\nroleinfo: ' + repr(tuf.roledb.get_rolenames(self.repository_name)))
