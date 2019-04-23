@@ -833,10 +833,13 @@ def get_delegation_keyids(
   # improperly formatted.
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
-  # Raises securesystemslib.exceptions.FormatError,
-  # securesystemslib.exceptions.UnknownRoleError, or
-  # securesystemslib.exceptions.InvalidNameError.
-  _check_rolename(rolename, repository_name)
+  # Does 'rolename' have the correct object format?
+  # This check will ensure 'rolename' has the appropriate number of objects
+  # and object types, and that all dict keys are properly named.
+  tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+
+  # Raises securesystemslib.exceptions.InvalidNameError.
+  _validate_rolename(rolename)
 
   global _roledb_dict
   global _dirty_roles
@@ -900,10 +903,13 @@ def get_delegation_threshold(
   # improperly formatted.
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
-  # Raises securesystemslib.exceptions.FormatError,
-  # securesystemslib.exceptions.UnknownRoleError, or
-  # securesystemslib.exceptions.InvalidNameError.
-  _check_rolename(rolename, repository_name)
+  # Does 'rolename' have the correct object format?
+  # This check will ensure 'rolename' has the appropriate number of objects
+  # and object types, and that all dict keys are properly named.
+  tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+
+  # Raises securesystemslib.exceptions.InvalidNameError.
+  _validate_rolename(rolename)
 
   global _roledb_dict
   global _dirty_roles
