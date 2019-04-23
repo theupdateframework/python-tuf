@@ -1578,8 +1578,7 @@ class Updater(object):
     current_root_role = current_root_metadata['roles'][rolename]
 
     # Verify next metadata with current keys/threshold
-    valid = tuf.sig.verify(next_root_metadata, rolename, self.repository_name,
-        current_root_role['threshold'], current_root_role['keyids'])
+    valid = tuf.sig.verify(next_root_metadata, rolename, self.repository_name)
 
     if not valid:
       raise securesystemslib.exceptions.BadSignatureError('Root is not signed'
