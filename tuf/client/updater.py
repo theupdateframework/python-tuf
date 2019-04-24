@@ -128,6 +128,7 @@ import time
 import fnmatch
 import copy
 import warnings
+import distutils.version
 
 import tuf
 import tuf.download
@@ -1496,20 +1497,6 @@ class Updater(object):
           metadata_spec_major_version = int(metadata_spec_version.split('.')[0])
           code_spec_major_version = int(tuf.SPECIFICATION_VERSION.split('.')[0])
           
-          metadata_spec_minor_version = 0
-          metadata_spec_fix_version = 0
-          code_spec_minor_version = 0
-          code_spec_fix_version = 0
-
-          if(len(metadata_spec_version.split('.')) > 1):
-            metadata_spec_minor_version = int(metadata_spec_version.split('.')[1])
-          if(len(metadata_spec_version.split('.')) > 2):
-            metadata_spec_fix_version = int(metadata_spec_version.split('.')[2])
-          if(len(tuf.SPECIFICATION_VERSION.split('.')) > 1):
-            code_spec_minor_version = int(tuf.SPECIFICATION_VERSION.split('.')[1])
-          if(len(tuf.SPECIFICATION_VERSION.split('.')) > 2):
-            code_spec_fix_version = int(tuf.SPECIFICATION_VERSION.split('.')[2])
-
           if metadata_spec_major_version != code_spec_major_version:
             raise tuf.exceptions.UnsupportedSpecificationError(
                 'Downloaded metadata that specifies an unsupported '
@@ -1517,7 +1504,8 @@ class Updater(object):
                 repr(code_spec_major_version) + '; however, the obtained '
                 'metadata lists version number: ' + str(metadata_spec_version))
 
-          if metadata_spec_minor_version > code_spec_minor_version or metadata_spec_fix_version > code_spec_fix_version:
+          #report to user if minor versions do not match, continue with update
+          if distutils.version.StrictVersion(metadata_spec_version) != distutils.version.StrictVersion(tuf.SPECIFICATION_VERSION):
             logger.info("Downloaded metadata that specifies a higher minor " +
                 "spec_version. This code has version " + str(tuf.SPECIFICATION_VERSION) +
                 "and the metadata lists version number " + str(metadata_spec_version) +
