@@ -128,7 +128,7 @@ import time
 import fnmatch
 import copy
 import warnings
-import distutils.version
+import pkg_resources
 
 import tuf
 import tuf.download
@@ -1505,7 +1505,7 @@ class Updater(object):
                 'metadata lists version number: ' + str(metadata_spec_version))
 
           #report to user if minor versions do not match, continue with update
-          if distutils.version.StrictVersion(metadata_spec_version) != distutils.version.StrictVersion(tuf.SPECIFICATION_VERSION):
+          if pkg_resources.parse_version(metadata_spec_version) != pkg_resources.parse_version(tuf.SPECIFICATION_VERSION):
             logger.info("Downloaded metadata that specifies a higher minor " +
                 "spec_version. This code has version " + str(tuf.SPECIFICATION_VERSION) +
                 "and the metadata lists version number " + str(metadata_spec_version) +
