@@ -1130,6 +1130,21 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(target_targetinfo['filepath'], filepath)
     self.assertEqual(target_targetinfo['fileinfo'], fileinfo)
 
+    # NOTE: this part only exists to verify that get_one_valid_targetinfo works
+    # fine for non top-level metadata
+    filepath = "file3.txt"
+    fileinfo = {
+      'hashes': {
+        'sha256': '141f740f53781d1ca54b8a50af22cbf74e44c21a998fa2a8a05aaac2c002886b',
+        'sha512': 'ef5beafa16041bcdd2937140afebd485296cd54f7348ecd5a4d035c09759608de467a7ac0eb58753d0242df873c305e8bffad2454aa48f44480f15efae1cacd0'
+      },
+      'length': 28
+    }
+    target_targetinfo = self.repository_updater.get_one_valid_targetinfo(filepath)
+    self.assertTrue(tuf.formats.LABELED_FILEINFO_SCHEMA.matches(target_targetinfo))
+    self.assertEqual(target_targetinfo['filepath'], filepath)
+    self.assertEqual(target_targetinfo['fileinfo'], fileinfo)
+
     # Test: invalid target path.
     self.assertRaises(tuf.exceptions.UnknownTargetError,
         self.repository_updater.get_one_valid_targetinfo,
