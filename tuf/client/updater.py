@@ -1721,6 +1721,7 @@ class Updater(object):
     # Construct the metadata filename as expected by the download/mirror
     # modules.
     metadata_filename = metadata_role + '.json'
+    # TODO remove this line separately
     metadata_filename = metadata_filename
 
     # Attempt a file download from each mirror until the file is downloaded and
