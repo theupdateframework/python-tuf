@@ -23,7 +23,6 @@
   'tuf.repository_tool.py'.
 """
 
-
 # Help with Python 3 compatibility, where the print statement is a function, an
 # implicit relative import is invalid, and the '/' operator performs true
 # division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
@@ -113,14 +112,13 @@ class Signer(object):
 
     Method '_key_id' must be overrided.
   """
+  def __init__(self):
+    self._public_key = None
+    self._key_id = None
+
   @property
-  def _key_id(self):
-    """
-    <Purpose>
-      Return key identifier in order to properly register external key and use
-      it for signing.
-      Look at 'securesystemslib.keys._get_keyid' for more informations.
-    """
+  def _public_key_pem(self):
+    """Returns public key in PEM format."""
     raise NotImplementedError()
 
   def _sign_ecdsa(self, data, public, scheme):
@@ -134,10 +132,15 @@ class Signer(object):
 
   @property
   def key_id(self):
-    # Raise securesystemslib.exceptions.FormatError, if '_key_id' property is
-    # in incorrect format.
-    securesystemslib.formats.KEYID_SCHEMA.check_match(self._key_id)
+    if self._key_id is None:
+      self._key_id = self.public_key['keyid']
     return self._key_id
+
+  @property
+  def public_key(self, ):
+    if self._public_key is None:
+      self._public_key = import_rsakey_from_pem(self._public_key_pem)
+    return self._public_key
 
   def sign(self, key_dict, data):
     """
@@ -977,8 +980,7 @@ class Metadata(object):
 
     roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
     if signer.key_id not in roleinfo['keyids']:
-      raise securesystemslib.exceptions.Error(
-        'Public key with id {} is not loaded!'.format(signer.key_id))
+      self.add_verification_key(signer.public_key)
 
     if signer.key_id not in roleinfo['signing_keyids']:
       roleinfo['signing_keyids'].append(signer.key_id)
