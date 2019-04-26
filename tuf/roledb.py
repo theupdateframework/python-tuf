@@ -1125,7 +1125,6 @@ def get_delegation(
   # Argument sanity check: top-level roles can only be delegated by root, and
   # delegated targets roles cannot be delegated by root.
   if top_level != (delegating_rolename == 'root'):
-    import pdb; pdb.set_trace()
     raise tuf.exceptions.Error(
         'Rolename ' + delegated_rolename + ' can only be delegated to by '
         'root, not by ' + delegating_rolename)
