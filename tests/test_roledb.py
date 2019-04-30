@@ -126,8 +126,7 @@ class TestRoledb(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.clear_roledb, repository_name)
     tuf.roledb.create_roledb(repository_name)
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
-    # TODO remove keyid check
-    # self.assertEqual(roleinfo['keyids'], tuf.roledb.get_delegation_keyids(rolename, repository_name))
+    tuf.roledb.role_exists(rolename)
     tuf.roledb.clear_roledb(repository_name)
     self.assertFalse(tuf.roledb.role_exists(rolename, repository_name))
 
@@ -160,9 +159,7 @@ class TestRoledb(unittest.TestCase):
                                             repository_name)
     tuf.roledb.create_roledb(repository_name)
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
-    # TODO remove keyid check
-    # self.assertEqual(roleinfo['keyids'], tuf.roledb.get_delegation_keyids(rolename,
-    #                                      repository_name))
+    tuf.roledb.role_exists(rolename)
 
     # Reset the roledb so that subsequent tests have access to a default
     # roledb.
@@ -261,8 +258,7 @@ class TestRoledb(unittest.TestCase):
     tuf.roledb.create_roledb(repository_name)
 
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
-    # TODO remove keyid check
-    # self.assertEqual(roleinfo['keyids'], tuf.roledb.get_delegation_keyids(rolename, repository_name))
+    tuf.roledb.role_exists(rolename)
     self.assertEqual(None, tuf.roledb.remove_role(rolename, repository_name))
 
     # Verify that a role cannot be removed from a non-existent repository name.
@@ -721,9 +717,8 @@ class TestRoledb(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.clear_roledb, repository_name)
     tuf.roledb.create_roledb(repository_name)
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
+    tuf.roledb.role_exists(rolename)
     tuf.roledb.update_roleinfo(rolename, roleinfo, mark_role_as_dirty, repository_name)
-    # TODO remove keyid check
-    # self.assertEqual(roleinfo['keyids'], tuf.roledb.get_delegation_keyids(rolename, repository_name))
 
     # Reset the roledb so that subsequent tests can access the default roledb.
     tuf.roledb.remove_roledb(repository_name)
