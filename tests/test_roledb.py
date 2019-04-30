@@ -109,7 +109,7 @@ class TestRoledb(unittest.TestCase):
     # Test for an empty roledb, a length of 1 after adding a key, and finally
     # an empty roledb after calling 'clear_roledb()'.
     self.assertEqual(0, len(tuf.roledb._roledb_dict['default']))
-    tuf.roledb._roledb_dict['default']['Root'] =\
+    tuf.roledb._roledb_dict['default']['Root'] = \
         securesystemslib.util.load_json_file(os.path.join(self.test_data_path,
         "root.json"))['signed']
     self.assertEqual(1, len(tuf.roledb._roledb_dict['default']))
@@ -118,7 +118,8 @@ class TestRoledb(unittest.TestCase):
 
     # Verify that the roledb can be cleared for a non-default repository.
     rolename = 'targets'
-    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        self.test_data_path, "targets.json"))['signed']
 
     repository_name = 'example_repository'
     self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.clear_roledb, repository_name)
@@ -143,7 +144,8 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are valid.
     self.assertEqual(0, len(tuf.roledb._roledb_dict['default']))
     rolename = 'targets'
-    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        self.test_data_path, "targets.json"))['signed']
     rolename2 = 'role1'
     self.assertEqual(None, tuf.roledb.add_role(rolename, roleinfo))
     self.assertEqual(1, len(tuf.roledb._roledb_dict['default']))
@@ -196,7 +198,8 @@ class TestRoledb(unittest.TestCase):
   def test_role_exists(self):
     # Test conditions where the arguments are valid.
     rolename = 'targets'
-    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        self.test_data_path, "role1.json"))['signed']
     rolename2 = 'role1'
 
     self.assertEqual(False, tuf.roledb.role_exists(rolename))
@@ -239,8 +242,10 @@ class TestRoledb(unittest.TestCase):
     rolename = 'targets'
     rolename2 = 'release'
     rolename3 = 'django'
-    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
-    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role2.json"))['signed']
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        self.test_data_path, "role1.json"))['signed']
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(
+        self.test_data_path, "role2.json"))['signed']
 
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
