@@ -1126,8 +1126,11 @@ def get_delegation(
   # delegated targets roles cannot be delegated by root.
   if top_level != (delegating_rolename == 'root'):
     raise tuf.exceptions.Error(
-        'Rolename ' + delegated_rolename + ' can only be delegated to by '
-        'root, not by ' + delegating_rolename)
+        'Top-level roles can only be delegated to by root, and delegated '
+        'targets roles should only be delegated by other targets roles.  '
+        'Received a request for a delegation from role "' +
+        delegating_rolename + '" to role "' + delegated_rolename + '"; no '
+        'such delegation may exist.')
 
 
   if top_level:
