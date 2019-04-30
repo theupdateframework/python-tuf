@@ -834,8 +834,6 @@ def get_delegation_keyids(
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
   # Does 'rolename' have the correct object format?
-  # This check will ensure 'rolename' has the appropriate number of objects
-  # and object types, and that all dict keys are properly named.
   tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
 
   # Raises securesystemslib.exceptions.InvalidNameError.
@@ -904,8 +902,6 @@ def get_delegation_threshold(
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
   # Does 'rolename' have the correct object format?
-  # This check will ensure 'rolename' has the appropriate number of objects
-  # and object types, and that all dict keys are properly named.
   tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
 
   # Raises securesystemslib.exceptions.InvalidNameError.
