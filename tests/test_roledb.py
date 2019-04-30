@@ -50,11 +50,12 @@ for junk in range(3):
   KEYS.append(securesystemslib.keys.generate_rsa_key(2048))
 
 
+TEST_DATA_PATH = os.path.join(os.getcwd(), "repository_data", "repository", "metadata")
+
 
 class TestRoledb(unittest.TestCase):
   def setUp(self):
     tuf.roledb.clear_roledb(clear_all=True)
-    self.test_data_path = os.path.join(os.getcwd(), "repository_data", "repository", "metadata")
 
 
 
@@ -110,7 +111,7 @@ class TestRoledb(unittest.TestCase):
     # an empty roledb after calling 'clear_roledb()'.
     self.assertEqual(0, len(tuf.roledb._roledb_dict['default']))
     tuf.roledb._roledb_dict['default']['Root'] = \
-        securesystemslib.util.load_json_file(os.path.join(self.test_data_path,
+        securesystemslib.util.load_json_file(os.path.join(TEST_DATA_PATH,
         "root.json"))['signed']
     self.assertEqual(1, len(tuf.roledb._roledb_dict['default']))
     tuf.roledb.clear_roledb()
@@ -119,7 +120,7 @@ class TestRoledb(unittest.TestCase):
     # Verify that the roledb can be cleared for a non-default repository.
     rolename = 'targets'
     roleinfo = securesystemslib.util.load_json_file(os.path.join(
-        self.test_data_path, "targets.json"))['signed']
+        TEST_DATA_PATH, "targets.json"))['signed']
 
     repository_name = 'example_repository'
     self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.clear_roledb, repository_name)
@@ -145,7 +146,7 @@ class TestRoledb(unittest.TestCase):
     self.assertEqual(0, len(tuf.roledb._roledb_dict['default']))
     rolename = 'targets'
     roleinfo = securesystemslib.util.load_json_file(os.path.join(
-        self.test_data_path, "targets.json"))['signed']
+        TEST_DATA_PATH, "targets.json"))['signed']
     rolename2 = 'role1'
     self.assertEqual(None, tuf.roledb.add_role(rolename, roleinfo))
     self.assertEqual(1, len(tuf.roledb._roledb_dict['default']))
@@ -199,7 +200,7 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are valid.
     rolename = 'targets'
     roleinfo = securesystemslib.util.load_json_file(os.path.join(
-        self.test_data_path, "role1.json"))['signed']
+        TEST_DATA_PATH, "role1.json"))['signed']
     rolename2 = 'role1'
 
     self.assertEqual(False, tuf.roledb.role_exists(rolename))
@@ -243,9 +244,9 @@ class TestRoledb(unittest.TestCase):
     rolename2 = 'release'
     rolename3 = 'django'
     roleinfo = securesystemslib.util.load_json_file(os.path.join(
-        self.test_data_path, "role1.json"))['signed']
+        TEST_DATA_PATH, "role1.json"))['signed']
     roleinfo2 = securesystemslib.util.load_json_file(os.path.join(
-        self.test_data_path, "role2.json"))['signed']
+        TEST_DATA_PATH, "role2.json"))['signed']
 
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
@@ -290,7 +291,8 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are valid.
     rolename = 'targets'
     rolename2 = 'role1'
-    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "targets.json"))['signed']
     self.assertEqual([], tuf.roledb.get_rolenames())
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo)
@@ -321,8 +323,10 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are valid.
     rolename = 'targets'
     rolename2 = 'role1'
-    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
-    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role2.json"))['signed']
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role1.json"))['signed']
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role2.json"))['signed']
     self.assertRaises(tuf.exceptions.UnknownRoleError, tuf.roledb.get_roleinfo, rolename)
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
@@ -361,12 +365,15 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are valid.
     rolename = 'targets'
     rolename2 = 'role1'
-    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "targets.json"))['signed']
     # roleinfo = {'keyids': ['123'], 'threshold': 1}
-    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role1.json"))['signed']
     # roleinfo2 = {'keyids': ['456', '789'], 'threshold': 2}
     self.assertRaises(tuf.exceptions.UnknownRoleError, tuf.roledb.get_delegation_keyids, rolename)
-    root_roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "root.json"))['signed']
+    root_roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "root.json"))['signed']
     tuf.roledb.add_role("root", root_roleinfo)
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
@@ -408,11 +415,13 @@ class TestRoledb(unittest.TestCase):
     rolename2 = 'role1'
     # roleinfo = {'keyids': ['123'], 'threshold': 1}
     # roleinfo2 = {'keyids': ['456', '789'], 'threshold': 2}
-    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
-    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "targets.json"))['signed']
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role1.json"))['signed']
     self.assertRaises(tuf.exceptions.UnknownRoleError, tuf.roledb.get_delegation_threshold, rolename)
-    # tuf.roledb.add_role("root", securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "root.json"))['signed'])
-    root_roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "root.json"))['signed']
+    root_roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "root.json"))['signed']
     tuf.roledb.create_roledb_from_root_metadata(root_roleinfo)
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
@@ -449,9 +458,11 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are valid.
     rolename = 'targets'
     rolename2 = 'role1'
-    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "targets.json"))['signed']
     paths = ['file3.txt']
-    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role1.json"))['signed']
     self.assertRaises(tuf.exceptions.UnknownRoleError, tuf.roledb.get_delegation_paths, rolename, rolename2)
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
@@ -489,9 +500,12 @@ class TestRoledb(unittest.TestCase):
     rolename2 = 'role1'
     rolename3 = 'role2'
 
-    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
-    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
-    roleinfo3 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role2.json"))['signed']
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "targets.json"))['signed']
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role1.json"))['signed']
+    roleinfo3 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role2.json"))['signed']
 
     self.assertRaises(tuf.exceptions.UnknownRoleError, tuf.roledb.get_delegated_rolenames,
                       rolename)
@@ -555,9 +569,11 @@ class TestRoledb(unittest.TestCase):
         roles=roledict,
         consistent_snapshot=consistent_snapshot)
 
-    root_roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "root.json"))['signed']
+    root_roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "root.json"))['signed']
 
-    targets_roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
+    targets_roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "targets.json"))['signed']
 
     self.assertEqual(None,
         tuf.roledb.create_roledb_from_root_metadata(root_roleinfo))
@@ -639,7 +655,8 @@ class TestRoledb(unittest.TestCase):
 
   def test_update_roleinfo(self):
     rolename = 'targets'
-    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "targets.json"))['signed']
     tuf.roledb.add_role(rolename, roleinfo)
 
     # Test normal case.
@@ -684,9 +701,11 @@ class TestRoledb(unittest.TestCase):
   def test_get_dirty_roles(self):
     # Verify that the dirty roles of a role are returned.
     rolename = 'targets'
-    roleinfo1 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
+    roleinfo1 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role1.json"))['signed']
     tuf.roledb.add_role(rolename, roleinfo1)
-    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role2.json"))['signed']
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role2.json"))['signed']
     mark_role_as_dirty = True
     tuf.roledb.update_roleinfo(rolename, roleinfo2, mark_role_as_dirty)
     # Note: The 'default' repository is searched if the repository name is
@@ -716,10 +735,12 @@ class TestRoledb(unittest.TestCase):
   def test_mark_dirty(self):
     # Add a dirty role to roledb.
     rolename = 'targets'
-    roleinfo1 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
+    roleinfo1 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role1.json"))['signed']
     tuf.roledb.add_role(rolename, roleinfo1)
     rolename2 = 'dirty_role'
-    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role2.json"))['signed']
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role2.json"))['signed']
     mark_role_as_dirty = True
     tuf.roledb.update_roleinfo(rolename, roleinfo1, mark_role_as_dirty)
     # Note: The 'default' repository is searched if the repository name is
@@ -739,10 +760,12 @@ class TestRoledb(unittest.TestCase):
   def test_unmark_dirty(self):
     # Add a dirty role to roledb.
     rolename = 'targets'
-    roleinfo1 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
+    roleinfo1 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role1.json"))['signed']
     tuf.roledb.add_role(rolename, roleinfo1)
     rolename2 = 'dirty_role'
-    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role2.json"))['signed']
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role2.json"))['signed']
     tuf.roledb.add_role(rolename2, roleinfo2)
     mark_role_as_dirty = True
     tuf.roledb.update_roleinfo(rolename, roleinfo1, mark_role_as_dirty)
