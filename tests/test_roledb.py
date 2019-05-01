@@ -50,11 +50,12 @@ for junk in range(3):
   KEYS.append(securesystemslib.keys.generate_rsa_key(2048))
 
 
+TEST_DATA_PATH = os.path.join(os.getcwd(), "repository_data", "repository", "metadata")
+
 
 class TestRoledb(unittest.TestCase):
   def setUp(self):
     tuf.roledb.clear_roledb(clear_all=True)
-    self.test_data_path = os.path.join(os.getcwd(), "repository_data", "repository", "metadata")
 
 
 
@@ -109,8 +110,8 @@ class TestRoledb(unittest.TestCase):
     # Test for an empty roledb, a length of 1 after adding a key, and finally
     # an empty roledb after calling 'clear_roledb()'.
     self.assertEqual(0, len(tuf.roledb._roledb_dict['default']))
-    tuf.roledb._roledb_dict['default']['Root'] =\
-        securesystemslib.util.load_json_file(os.path.join(self.test_data_path,
+    tuf.roledb._roledb_dict['default']['Root'] = \
+        securesystemslib.util.load_json_file(os.path.join(TEST_DATA_PATH,
         "root.json"))['signed']
     self.assertEqual(1, len(tuf.roledb._roledb_dict['default']))
     tuf.roledb.clear_roledb()
@@ -118,14 +119,14 @@ class TestRoledb(unittest.TestCase):
 
     # Verify that the roledb can be cleared for a non-default repository.
     rolename = 'targets'
-    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "targets.json"))['signed']
 
     repository_name = 'example_repository'
     self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.clear_roledb, repository_name)
     tuf.roledb.create_roledb(repository_name)
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
-    # TODO remove keyid check
-    # self.assertEqual(roleinfo['keyids'], tuf.roledb.get_delegation_keyids(rolename, repository_name))
+    tuf.roledb.role_exists(rolename)
     tuf.roledb.clear_roledb(repository_name)
     self.assertFalse(tuf.roledb.role_exists(rolename, repository_name))
 
@@ -143,7 +144,8 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are valid.
     self.assertEqual(0, len(tuf.roledb._roledb_dict['default']))
     rolename = 'targets'
-    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "targets.json"))['signed']
     rolename2 = 'role1'
     self.assertEqual(None, tuf.roledb.add_role(rolename, roleinfo))
     self.assertEqual(1, len(tuf.roledb._roledb_dict['default']))
@@ -157,9 +159,7 @@ class TestRoledb(unittest.TestCase):
                                             repository_name)
     tuf.roledb.create_roledb(repository_name)
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
-    # TODO remove keyid check
-    # self.assertEqual(roleinfo['keyids'], tuf.roledb.get_delegation_keyids(rolename,
-    #                                      repository_name))
+    tuf.roledb.role_exists(rolename)
 
     # Reset the roledb so that subsequent tests have access to a default
     # roledb.
@@ -196,7 +196,8 @@ class TestRoledb(unittest.TestCase):
   def test_role_exists(self):
     # Test conditions where the arguments are valid.
     rolename = 'targets'
-    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role1.json"))['signed']
     rolename2 = 'role1'
 
     self.assertEqual(False, tuf.roledb.role_exists(rolename))
@@ -239,8 +240,10 @@ class TestRoledb(unittest.TestCase):
     rolename = 'targets'
     rolename2 = 'release'
     rolename3 = 'django'
-    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
-    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role2.json"))['signed']
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role1.json"))['signed']
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role2.json"))['signed']
 
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
@@ -255,8 +258,7 @@ class TestRoledb(unittest.TestCase):
     tuf.roledb.create_roledb(repository_name)
 
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
-    # TODO remove keyid check
-    # self.assertEqual(roleinfo['keyids'], tuf.roledb.get_delegation_keyids(rolename, repository_name))
+    tuf.roledb.role_exists(rolename)
     self.assertEqual(None, tuf.roledb.remove_role(rolename, repository_name))
 
     # Verify that a role cannot be removed from a non-existent repository name.
@@ -275,8 +277,8 @@ class TestRoledb(unittest.TestCase):
 
     # Test conditions where the arguments are improperly formatted,
     # contain invalid names, or haven't been added to the role database.
-    self._test_rolename(tuf.roledb.remove_role)
-    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.roledb.remove_role, rolename, 123)
+    self._check_args_for_funcs_querying_roleinfo(tuf.roledb.remove_role)
+
 
 
 
@@ -285,7 +287,8 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are valid.
     rolename = 'targets'
     rolename2 = 'role1'
-    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "targets.json"))['signed']
     self.assertEqual([], tuf.roledb.get_rolenames())
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo)
@@ -316,8 +319,10 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are valid.
     rolename = 'targets'
     rolename2 = 'role1'
-    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
-    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role2.json"))['signed']
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role1.json"))['signed']
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role2.json"))['signed']
     self.assertRaises(tuf.exceptions.UnknownRoleError, tuf.roledb.get_roleinfo, rolename)
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
@@ -346,9 +351,9 @@ class TestRoledb(unittest.TestCase):
 
     # Test conditions where the arguments are improperly formatted, contain
     # invalid names, or haven't been added to the role database.
-    self._test_rolename(tuf.roledb.get_roleinfo)
-    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.roledb.get_roleinfo, rolename, 123)
-    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.roledb.get_roleinfo, 123)
+    self._check_args_for_funcs_querying_roleinfo(tuf.roledb.get_roleinfo)
+
+
 
 
 
@@ -356,12 +361,15 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are valid.
     rolename = 'targets'
     rolename2 = 'role1'
-    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "targets.json"))['signed']
     # roleinfo = {'keyids': ['123'], 'threshold': 1}
-    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role1.json"))['signed']
     # roleinfo2 = {'keyids': ['456', '789'], 'threshold': 2}
     self.assertRaises(tuf.exceptions.UnknownRoleError, tuf.roledb.get_delegation_keyids, rolename)
-    root_roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "root.json"))['signed']
+    root_roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "root.json"))['signed']
     tuf.roledb.add_role("root", root_roleinfo)
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
@@ -390,10 +398,12 @@ class TestRoledb(unittest.TestCase):
     # default roledb
     tuf.roledb.remove_roledb(repository_name)
 
-    # Test conditions where the arguments are improperly formatted, contain
-    # invalid names, or haven't been added to the role database.
-    self._test_rolename(tuf.roledb.get_delegation_keyids)
-    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.roledb.get_delegation_keyids, rolename, 123)
+    # Test conditions where the arguments are improperly formatted or contain
+    # invalid names.
+    self._check_args_for_funcs_querying_delegations(
+        tuf.roledb.get_delegation_keyids)
+
+
 
 
 
@@ -403,11 +413,13 @@ class TestRoledb(unittest.TestCase):
     rolename2 = 'role1'
     # roleinfo = {'keyids': ['123'], 'threshold': 1}
     # roleinfo2 = {'keyids': ['456', '789'], 'threshold': 2}
-    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
-    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "targets.json"))['signed']
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role1.json"))['signed']
     self.assertRaises(tuf.exceptions.UnknownRoleError, tuf.roledb.get_delegation_threshold, rolename)
-    # tuf.roledb.add_role("root", securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "root.json"))['signed'])
-    root_roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "root.json"))['signed']
+    root_roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "root.json"))['signed']
     tuf.roledb.create_roledb_from_root_metadata(root_roleinfo)
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
@@ -436,17 +448,22 @@ class TestRoledb(unittest.TestCase):
 
     # Test conditions where the arguments are improperly formatted,
     # contain invalid names, or haven't been added to the role database.
-    self._test_rolename(tuf.roledb.get_delegation_threshold)
-    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.roledb.get_delegation_threshold, rolename, 123)
+    self._check_args_for_funcs_querying_delegations(
+        tuf.roledb.get_delegation_threshold)
+
+
+
 
 
   def test_get_delegation_paths(self):
     # Test conditions where the arguments are valid.
     rolename = 'targets'
     rolename2 = 'role1'
-    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "targets.json"))['signed']
     paths = ['file3.txt']
-    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role1.json"))['signed']
     self.assertRaises(tuf.exceptions.UnknownRoleError, tuf.roledb.get_delegation_paths, rolename, rolename2)
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
@@ -470,11 +487,56 @@ class TestRoledb(unittest.TestCase):
     # default roledb.
     tuf.roledb.remove_roledb(repository_name)
 
-    # Test conditions where the arguments are improperly formatted,
-    # contain invalid names, or haven't been added to the role database.
-    # TODO update checks for multiple parameters
-    # self._test_rolename(tuf.roledb.get_delegation_paths)
-    # self.assertRaises(securesystemslib.exceptions.FormatError, tuf.roledb.get_delegation_paths, rolename, 123)
+    # Test conditions where the arguments are improperly formatted.
+    # roledb.get_delegation_paths() is a little bit different from the other
+    # functions querying delegation info, in that its delegating_rolename
+    # argument is NOT OPTIONAL (since it can only be called on two targets
+    # roles, and there's no real reason to default to the top-level targets
+    # role).  This means we can't use _check_args_for_funcs_querying_delegations
+    # as it is currently written, so for now we'll just duplicate test code and
+    # adjust the tests or add tests appropriately. :/  Bleh.
+    # Test conditions where the arguments are improperly formatted or missing.
+    # TODO: Some of these tests really feel a little silly....
+    with self.assertRaises(TypeError):
+      tuf.roledb.get_delegation_paths(None) # missing second arg
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.roledb.get_delegation_paths(None, None)
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.roledb.get_delegation_paths(123, 123)
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.roledb.get_delegation_paths(['rolename'], ['rolename'])
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.roledb.get_delegation_paths({'a': 'b'}, {'a': 'b'})
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.roledb.get_delegation_paths(('a', 'b'), ('a', 'b'))
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.roledb.get_delegation_paths(True, True)
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      tuf.roledb.get_delegation_paths('root', 'root', 123) # bad repository name.
+
+    # Test conditions for invalid rolenames.  Check both arguments (delegating
+    # and delegated rolenames).
+    # TODO: This exception should probably be moved to tuf from ssl.
+    #       Check its usage across projects later.  It's being generated in
+    #       TUF code in these cases.
+    with self.assertRaises(securesystemslib.exceptions.InvalidNameError):
+      tuf.roledb.get_delegation_paths('', delegating_rolename='targets')
+    with self.assertRaises(securesystemslib.exceptions.InvalidNameError):
+      tuf.roledb.get_delegation_paths(' badrole ', delegating_rolename='targets')
+    with self.assertRaises(securesystemslib.exceptions.InvalidNameError):
+      tuf.roledb.get_delegation_paths('/badrole/', delegating_rolename='targets')
+    with self.assertRaises(securesystemslib.exceptions.InvalidNameError):
+      tuf.roledb.get_delegation_paths('role1', delegating_rolename='')
+    with self.assertRaises(securesystemslib.exceptions.InvalidNameError):
+      tuf.roledb.get_delegation_paths('role1', delegating_rolename=' badrole ')
+    with self.assertRaises(securesystemslib.exceptions.InvalidNameError):
+      tuf.roledb.get_delegation_paths('role1', delegating_rolename='/badrole/')
+
+    # Expect UnknownRoleError if the delegating role has no metadata in roledb.
+    with self.assertRaises(tuf.exceptions.UnknownRoleError):
+      tuf.roledb.get_delegation_paths('some_role', delegating_rolename='does_not_exist')
+
+
 
 
 
@@ -484,9 +546,12 @@ class TestRoledb(unittest.TestCase):
     rolename2 = 'role1'
     rolename3 = 'role2'
 
-    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
-    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
-    roleinfo3 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role2.json"))['signed']
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "targets.json"))['signed']
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role1.json"))['signed']
+    roleinfo3 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role2.json"))['signed']
 
     self.assertRaises(tuf.exceptions.UnknownRoleError, tuf.roledb.get_delegated_rolenames,
                       rolename)
@@ -520,8 +585,10 @@ class TestRoledb(unittest.TestCase):
 
     # Test conditions where the arguments are improperly formatted,
     # contain invalid names, or haven't been added to the role database.
-    self._test_rolename(tuf.roledb.get_delegated_rolenames)
-    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.roledb.get_delegated_rolenames, rolename, 123)
+    self._check_args_for_funcs_querying_roleinfo(
+        tuf.roledb.get_delegated_rolenames)
+
+
 
 
 
@@ -550,9 +617,11 @@ class TestRoledb(unittest.TestCase):
         roles=roledict,
         consistent_snapshot=consistent_snapshot)
 
-    root_roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "root.json"))['signed']
+    root_roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "root.json"))['signed']
 
-    targets_roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
+    targets_roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "targets.json"))['signed']
 
     self.assertEqual(None,
         tuf.roledb.create_roledb_from_root_metadata(root_roleinfo))
@@ -634,7 +703,8 @@ class TestRoledb(unittest.TestCase):
 
   def test_update_roleinfo(self):
     rolename = 'targets'
-    roleinfo = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "targets.json"))['signed']
+    roleinfo = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "targets.json"))['signed']
     tuf.roledb.add_role(rolename, roleinfo)
 
     # Test normal case.
@@ -647,9 +717,8 @@ class TestRoledb(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.clear_roledb, repository_name)
     tuf.roledb.create_roledb(repository_name)
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
+    tuf.roledb.role_exists(rolename)
     tuf.roledb.update_roleinfo(rolename, roleinfo, mark_role_as_dirty, repository_name)
-    # TODO remove keyid check
-    # self.assertEqual(roleinfo['keyids'], tuf.roledb.get_delegation_keyids(rolename, repository_name))
 
     # Reset the roledb so that subsequent tests can access the default roledb.
     tuf.roledb.remove_roledb(repository_name)
@@ -679,9 +748,11 @@ class TestRoledb(unittest.TestCase):
   def test_get_dirty_roles(self):
     # Verify that the dirty roles of a role are returned.
     rolename = 'targets'
-    roleinfo1 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
+    roleinfo1 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role1.json"))['signed']
     tuf.roledb.add_role(rolename, roleinfo1)
-    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role2.json"))['signed']
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role2.json"))['signed']
     mark_role_as_dirty = True
     tuf.roledb.update_roleinfo(rolename, roleinfo2, mark_role_as_dirty)
     # Note: The 'default' repository is searched if the repository name is
@@ -711,10 +782,12 @@ class TestRoledb(unittest.TestCase):
   def test_mark_dirty(self):
     # Add a dirty role to roledb.
     rolename = 'targets'
-    roleinfo1 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
+    roleinfo1 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role1.json"))['signed']
     tuf.roledb.add_role(rolename, roleinfo1)
     rolename2 = 'dirty_role'
-    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role2.json"))['signed']
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role2.json"))['signed']
     mark_role_as_dirty = True
     tuf.roledb.update_roleinfo(rolename, roleinfo1, mark_role_as_dirty)
     # Note: The 'default' repository is searched if the repository name is
@@ -734,10 +807,12 @@ class TestRoledb(unittest.TestCase):
   def test_unmark_dirty(self):
     # Add a dirty role to roledb.
     rolename = 'targets'
-    roleinfo1 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role1.json"))['signed']
+    roleinfo1 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role1.json"))['signed']
     tuf.roledb.add_role(rolename, roleinfo1)
     rolename2 = 'dirty_role'
-    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(self.test_data_path, "role2.json"))['signed']
+    roleinfo2 = securesystemslib.util.load_json_file(os.path.join(
+        TEST_DATA_PATH, "role2.json"))['signed']
     tuf.roledb.add_role(rolename2, roleinfo2)
     mark_role_as_dirty = True
     tuf.roledb.update_roleinfo(rolename, roleinfo1, mark_role_as_dirty)
@@ -761,25 +836,120 @@ class TestRoledb(unittest.TestCase):
                       ['dirty_role'], 'non-existent')
 
 
-  def _test_rolename(self, test_function):
-    # Private function that tests the 'rolename' argument of 'test_function'
-    # for format, invalid name, and unknown role exceptions.
+
+
+
+  def _check_args_for_funcs_querying_roleinfo(self, func):
+    """
+    NOTE THAT THIS IS NOT A SINGLE TEST RUN AS PART OF THE TEST SUITE.
+    It is a helper function for tests.  As it does not start with 'test_', it is
+    not run by unittest automatically as a single test.
+
+    This helper function is provided to perform basic argument and
+    expected-exception tests for functions that query a role by rolename, their
+    first argument, and should expect that rolename to have metadata stored in
+    roledb.  It... also assumes that there's a second argument to func and that
+    that argument shouldn't be an integer.... (I think it's always
+    repository_name for all current cases.)
+    """
+    # TODO: These aren't great.  I've fixed the style such that they use 'with'
+    #       instead of listing the arguments together with the function, for
+    #       readability and style, but there are probably better tests to run.
 
     # Test conditions where the arguments are improperly formatted.
-    self.assertRaises(securesystemslib.exceptions.FormatError, test_function, None)
-    self.assertRaises(securesystemslib.exceptions.FormatError, test_function, 123)
-    self.assertRaises(securesystemslib.exceptions.FormatError, test_function, ['rolename'])
-    self.assertRaises(securesystemslib.exceptions.FormatError, test_function, {'a': 'b'})
-    self.assertRaises(securesystemslib.exceptions.FormatError, test_function, ('a', 'b'))
-    self.assertRaises(securesystemslib.exceptions.FormatError, test_function, True)
-
-    # Test condition where the 'rolename' has not been added to the role database.
-    self.assertRaises(tuf.exceptions.UnknownRoleError, test_function, 'badrole')
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      func(None)
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      func(123)
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      func(['rolename'])
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      func({'a': 'b'})
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      func(('a', 'b'))
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      func(True)
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      func('root', 123)  # bad repository name
 
     # Test conditions for invalid rolenames.
-    self.assertRaises(securesystemslib.exceptions.InvalidNameError, test_function, '')
-    self.assertRaises(securesystemslib.exceptions.InvalidNameError, test_function, ' badrole ')
-    self.assertRaises(securesystemslib.exceptions.InvalidNameError, test_function, '/badrole/')
+    # TODO: This exception should probably be moved to tuf from ssl.
+    #       Check its usage across projects later.  It's being generated in
+    #       TUF code in these cases.
+    with self.assertRaises(securesystemslib.exceptions.InvalidNameError):
+      func('')
+    with self.assertRaises(securesystemslib.exceptions.InvalidNameError):
+      func(' badrole ')
+    with self.assertRaises(securesystemslib.exceptions.InvalidNameError):
+      func('/badrole/')
+
+    # Expect UnknownRoleError if the rolename has no metadata in roledb.
+    with self.assertRaises(tuf.exceptions.UnknownRoleError):
+      func('does_not_exist')
+
+
+
+
+
+  def _check_args_for_funcs_querying_delegations(self, func):
+    """
+    NOTE THAT THIS IS NOT A SINGLE TEST RUN AS PART OF THE TEST SUITE.
+    It is a helper function for tests.  As it does not start with 'test_', it is
+    not run by unittest automatically as a single test.
+
+    This helper function is Provided to perform basic argument and
+    expected-exception tests for functions that query a delegation with the
+    delegated-to role as the first argument, and the delegating-role as an
+    optional argument defaulting to root.  The delegating role should have
+    metadata stored in roledb, but the delegated role need not yet.
+    """
+
+    # Test conditions where the arguments are improperly formatted.
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      func(None)
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      func(123)
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      func(['rolename'])
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      func({'a': 'b'})
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      func(('a', 'b'))
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      func(True)
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      func('root', 123)  # bad repository name.
+
+    # Test conditions for invalid rolenames.  Check both arguments (delegating
+    # and delegated rolenames).
+    # TODO: This exception should probably be moved to tuf from ssl.
+    #       Check its usage across projects later.  It's being generated in
+    #       TUF code in these cases.
+    with self.assertRaises(securesystemslib.exceptions.InvalidNameError):
+      func('')
+    with self.assertRaises(securesystemslib.exceptions.InvalidNameError):
+      func(' badrole ')
+    with self.assertRaises(securesystemslib.exceptions.InvalidNameError):
+      func('/badrole/')
+    with self.assertRaises(securesystemslib.exceptions.InvalidNameError):
+      func('root', delegating_rolename='')
+    with self.assertRaises(securesystemslib.exceptions.InvalidNameError):
+      func('root', delegating_rolename=' badrole ')
+    with self.assertRaises(securesystemslib.exceptions.InvalidNameError):
+      func('root', delegating_rolename='/badrole/')
+
+    # Expect UnknownRoleError if the delegating role has no metadata in roledb.
+    with self.assertRaises(tuf.exceptions.UnknownRoleError):
+      func('some_role', delegating_rolename='does_not_exist')
+
+    # Expect Error if the delegating role is not supposed to be delegating to
+    # the delegated role.
+    with self.assertRaises(tuf.exceptions.Error):
+      func('hypothetical_delegated_targets_role', delegating_rolename='root')
+    with self.assertRaises(tuf.exceptions.Error):
+      func('targets', delegating_rolename='hypothetical_delegated_targets_role')
+
+
 
 
 

@@ -1368,13 +1368,9 @@ class Root(Metadata):
         int(time.time() + ROOT_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
 
-    roleinfo = {"_type": "root",
-                "spec_version": "1.0",
-                "keys": {},
-                "roles": {},
-                "version": 1,
-                "consistent_snapshot": False,
-                "expires": "2030-01-01T00:00:00Z"}
+    roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
+                'signatures': [], 'version': 0, 'consistent_snapshot': False,
+                'expires': expiration, 'partial_loaded': False}
 
     try:
       tuf.roledb.add_role(self._rolename, roleinfo, self._repository_name)

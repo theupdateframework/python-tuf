@@ -834,8 +834,6 @@ def get_delegation_keyids(
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
   # Does 'rolename' have the correct object format?
-  # This check will ensure 'rolename' has the appropriate number of objects
-  # and object types, and that all dict keys are properly named.
   tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
 
   # Raises securesystemslib.exceptions.InvalidNameError.
@@ -904,8 +902,6 @@ def get_delegation_threshold(
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
   # Does 'rolename' have the correct object format?
-  # This check will ensure 'rolename' has the appropriate number of objects
-  # and object types, and that all dict keys are properly named.
   tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
 
   # Raises securesystemslib.exceptions.InvalidNameError.
@@ -1125,10 +1121,12 @@ def get_delegation(
   # Argument sanity check: top-level roles can only be delegated by root, and
   # delegated targets roles cannot be delegated by root.
   if top_level != (delegating_rolename == 'root'):
-    import pdb; pdb.set_trace()
     raise tuf.exceptions.Error(
-        'Rolename ' + delegated_rolename + ' can only be delegated to by '
-        'root, not by ' + delegating_rolename)
+        'Top-level roles can only be delegated to by root, and delegated '
+        'targets roles should only be delegated by other targets roles.  '
+        'Received a request for a delegation from role "' +
+        delegating_rolename + '" to role "' + delegated_rolename + '"; no '
+        'such delegation may exist.')
 
 
   if top_level:
