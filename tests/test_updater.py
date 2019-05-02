@@ -78,6 +78,11 @@ import six
 logger = logging.getLogger('tuf.test_updater')
 repo_tool.disable_console_log_messages()
 
+# Load the current specification version at import time in order to reset it
+# after each test.  At least one test modifies tuf.SPECIFICATION_VERSION, and
+# even if it fails, we want to make sure that the spec version is correct at
+# the start of the next test.
+UNMODIFIED_SPEC_VERSION = tuf.SPECIFICATION_VERSION
 
 class TestUpdater(unittest_toolbox.Modified_TestCase):
 
@@ -137,6 +142,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def setUp(self):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.setUp(self)
+
+    # Make sure that the tuf.SPECIFICATION_VERSION is correct, in case a prior
+    # test has modified it.
+    tuf.SPECIFICATION_VERSION = UNMODIFIED_SPEC_VERSION
+
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 
@@ -758,10 +768,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     badly-formatted TUF specification version numbers....
     '''
 
-    # Make note of the correct supported TUF specification version.
-    correct_specification_version = tuf.SPECIFICATION_VERSION
-
-    # Change it long enough to write new metadata.
+    # Change the TUF specification version long enough to write new metadata.
     tuf.SPECIFICATION_VERSION = '9.0'
 
     repository = repo_tool.load_repository(self.repository_directory)
@@ -777,7 +784,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Change the supported TUF specification version back to what it should be
     # so that we can parse the metadata and see that the spec version in the
     # metadata does not match the code's expected spec version.
-    tuf.SPECIFICATION_VERSION = correct_specification_version
+    tuf.SPECIFICATION_VERSION = UNMODIFIED_SPEC_VERSION
 
     upperbound_filelength = tuf.settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
     try:
@@ -813,7 +820,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Change the supported TUF specification version back to what it should be,
     # so that code expects the correct specification version, and gets nonsense
     # instead.
-    tuf.SPECIFICATION_VERSION = correct_specification_version
+    tuf.SPECIFICATION_VERSION = UNMODIFIED_SPEC_VERSION
 
     try:
       self.repository_updater._get_metadata_file('timestamp', 'timestamp.json',
@@ -828,11 +835,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
           'Expected a failure to verify metadata when the metadata had a '
           'specification version number that was not in the correct format.  '
           'No error was raised.')
-
-    # REDUNDANTLY reset the specification version the code thinks it supports
-    # as the last step in this test, in case future changes to the tests above
-    # neglect to reset it above....
-    tuf.SPECIFICATION_VERSION = correct_specification_version
 
 
 
