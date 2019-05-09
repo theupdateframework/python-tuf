@@ -23,9 +23,8 @@
   Note: 'formats.py' depends heavily on 'schema.py', so the 'schema.py'
   module should be read and understood before tackling this module.
 
-  'formats.py' can be broken down into three sections.  (1) Schemas and object
-  matching.  (2) Classes that represent Role Metadata and help produce correctly
-  formatted files.  (3) Functions that help produce or verify TUF objects.
+  'formats.py' can be broken down into two sections.  (1) Schemas and object
+  matching.  (2) Functions that help produce or verify TUF objects.
 
   The first section deals with schemas and object matching based on format.
   There are two ways of checking the format of objects.  The first method
@@ -49,17 +48,7 @@
   the match fails.  There are numerous variations of object checking
   provided by 'formats.py' and 'schema.py'.
 
-  The second section deals with the role metadata classes.  There are
-  multiple top-level roles, each with differing metadata formats.
-  Example:
-
-  root_object = tuf.formats.RootFile.from_metadata(root_metadata_file)
-  targets_metadata = tuf.formats.TargetsFile.make_metadata(...)
-
-  The input and output of these classes are checked against their respective
-  schema to ensure correctly formatted metadata.
-
-  The last section contains miscellaneous functions related to the format of
+  The second section contains miscellaneous functions related to the format of
   TUF objects.
   Example:
 
@@ -78,19 +67,16 @@ import binascii
 import calendar
 import datetime
 import time
-
-import tuf
+import copy
 
 import securesystemslib.formats
 import securesystemslib.schema as SCHEMA
 
+import tuf
+
 import six
 
 
-# TUF specification version.  The constant should be updated when the version
-# number of the specification changes.  All metadata should list this version
-# number.
-TUF_VERSION_NUMBER = '1.0'
 SPECIFICATION_VERSION_SCHEMA = SCHEMA.AnyString()
 
 # A datetime in 'YYYY-MM-DDTHH:MM:SSZ' ISO 8601 format.  The "Z" zone designator
@@ -112,6 +98,8 @@ ROLENAME_SCHEMA = SCHEMA.AnyString()
 
 # Role object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1,
 # 'paths':[filepaths..]} format.
+# TODO: This is not a role.  In further #660-related PRs, fix it, similar to
+#       the way I did in Uptane's TUF fork.
 ROLE_SCHEMA = SCHEMA.Object(
   object_name = 'ROLE_SCHEMA',
   name = SCHEMA.Optional(securesystemslib.formats.ROLENAME_SCHEMA),
@@ -360,6 +348,7 @@ SNAPSHOT_SCHEMA = SCHEMA.Object(
 TIMESTAMP_SCHEMA = SCHEMA.Object(
   object_name = 'TIMESTAMP_SCHEMA',
   _type = SCHEMA.String('timestamp'),
+  spec_version = SPECIFICATION_VERSION_SCHEMA,
   version = securesystemslib.formats.METADATAVERSION_SCHEMA,
   expires = securesystemslib.formats.ISO8601_DATETIME_SCHEMA,
   meta = securesystemslib.formats.FILEDICT_SCHEMA)
@@ -478,227 +467,106 @@ def make_signable(role_schema):
 
 
 
-class MetaFile(object):
+
+
+
+def build_dict_conforming_to_schema(schema, **kwargs):
   """
   <Purpose>
-    Base class for all metadata file classes.
-    Classes representing metadata files such as RootFile
-    and SnapshotFile all inherit from MetaFile.  The
-    __eq__, __ne__, perform 'equal' and 'not equal' comparisons
-    between Metadata File objects.
+    Given a schema.Object object (for example, TIMESTAMP_SCHEMA from this
+    module) and a set of keyword arguments, create a dictionary that conforms
+    to the given schema, using the keyword arguments to define the elements of
+    the new dict.
+
+    Checks the result to make sure that it conforms to the given schema, raising
+    an error if not.
+
+  <Arguments>
+    schema
+      A schema.Object, like TIMESTAMP_SCHEMA, FILEINFO_SCHEMA,
+      securesystemslib.formats.SIGNATURE_SCHEMA, etc.
+
+    **kwargs
+      A keyword argument for each element of the schema.  Optional arguments
+      may be included or skipped, but all required arguments must be included.
+
+      For example, for TIMESTAMP_SCHEMA, a call might look like:
+        build_dict_conforming_to_schema(
+            TIMESTAMP_SCHEMA,
+            _type='timestamp',
+            spec_version='1.0',
+            version=1,
+            expires='2020-01-01T00:00:00Z',
+            meta={...})
+      Some arguments will be filled in if excluded: _type, spec_version
+
+  <Returns>
+    A dictionary conforming to the given schema.  Adds certain required fields
+    if they are missing and can be deduced from the schema.  The data returned
+    is a deep copy.
+
+  <Exceptions>
+    securesystemslib.exceptions.FormatError
+      if the provided data does not match the schema when assembled.
+
+  <Side Effects>
+    None.  In particular, the provided values are not modified, and the
+    returned dictionary does not include references to them.
+
   """
 
-  info = {}
+  # Check the schema argument type (must provide check_match and _required).
+  if not isinstance(schema, SCHEMA.Object):
+    raise ValueError(
+        'The first argument must be a schema.Object instance, but is not. '
+        'Given schema: ' + repr(schema))
 
-  def __eq__(self, other):
-    return isinstance(other, MetaFile) and self.info == other.info
-
-  __hash__ = None
-
-  def __ne__(self, other):
-    return not self.__eq__(other)
+  # Make a copy of the provided fields so that the caller's provided values
+  # do not change when the returned values are changed.
+  dictionary = copy.deepcopy(kwargs)
 
 
-  def __getattr__(self, name):
-    """
-      Allow all metafile objects to have their interesting attributes
-      referred to directly without the info dict. The info dict is just
-      to be able to do the __eq__ comparison generically.
-    """
+  # Automatically provide certain schema properties if they are not already
+  # provided and are required in objects of class <schema>.
+  # This includes:
+  #   _type:        <securesystemslib.schema.String object>
+  #   spec_version: SPECIFICATION_VERSION_SCHEMA
+  #
+  # (Please note that _required is slightly misleading, as it includes both
+  #  required and optional elements. It should probably be called _components.)
+  #
+  for key, element_type in schema._required: #pylint: disable=protected-access
 
-    if name in self.info:
-      return self.info[name]
+    if key in dictionary:
+      # If the field has been provided, proceed normally.
+      continue
+
+    elif isinstance(element_type, SCHEMA.Optional):
+      # If the field has NOT been provided but IS optional, proceed without it.
+      continue
 
     else:
-      raise AttributeError(name)
+      # If the field has not been provided and is required, check to see if
+      # the field is one of the fields we automatically fill.
+
+      # Currently, the list is limited to ['_type', 'spec_version'].
+
+      if key == '_type' and isinstance(element_type, SCHEMA.String):
+        # A SCHEMA.String stores its expected value in _string, so use that.
+        dictionary[key] = element_type._string #pylint: disable=protected-access
+
+      elif (key == 'spec_version' and
+          element_type == SPECIFICATION_VERSION_SCHEMA):
+        # If not provided, use the specification version in tuf/__init__.py
+        dictionary[key] = tuf.SPECIFICATION_VERSION
 
 
+  # If what we produce does not match the provided schema, raise a FormatError.
+  schema.check_match(dictionary)
 
-class TimestampFile(MetaFile):
-  def __init__(self, version, expires, filedict):
-    self.info = {}
-    self.info['version'] = version
-    self.info['expires'] = expires
-    self.info['meta'] = filedict
+  return dictionary
 
 
-  @staticmethod
-  def from_metadata(timestamp_metadata):
-    # Is 'timestamp_metadata' a Timestamp metadata file?
-    # Raise securesystemslib.exceptions.FormatError if not.
-    TIMESTAMP_SCHEMA.check_match(timestamp_metadata)
-
-    version = timestamp_metadata['version']
-    expires = timestamp_metadata['expires']
-    filedict = timestamp_metadata['meta']
-
-    return TimestampFile(version, expires, filedict)
-
-
-  @staticmethod
-  def make_metadata(version, expiration_date, filedict):
-    result = {'_type' : 'timestamp'}
-    result['spec_version'] = TUF_VERSION_NUMBER
-    result['version'] = version
-    result['expires'] = expiration_date
-    result['meta'] = filedict
-
-    # Is 'result' a Timestamp metadata file?
-    # Raise 'securesystemslib.exceptions.FormatError' if not.
-    TIMESTAMP_SCHEMA.check_match(result)
-
-    return result
-
-
-
-class RootFile(MetaFile):
-  def __init__(self, version, expires, keys, roles, consistent_snapshot):
-    self.info = {}
-    self.info['version'] = version
-    self.info['expires'] = expires
-    self.info['keys'] = keys
-    self.info['roles'] = roles
-    self.info['consistent_snapshot'] = consistent_snapshot
-
-  @staticmethod
-  def from_metadata(root_metadata):
-    # Is 'root_metadata' a Root metadata file?
-    # Raise 'securesystemslib.exceptions.FormatError' if not.
-    tuf.formats.ROOT_SCHEMA.check_match(root_metadata)
-
-    version = root_metadata['version']
-    expires = root_metadata['expires']
-    keys = root_metadata['keys']
-    roles = root_metadata['roles']
-    consistent_snapshot = root_metadata['consistent_snapshot']
-
-    return RootFile(version, expires, keys, roles, consistent_snapshot)
-
-
-  @staticmethod
-  def make_metadata(version, expiration_date, keydict, roledict, consistent_snapshot):
-    result = {'_type' : 'root'}
-    result['spec_version'] = TUF_VERSION_NUMBER
-    result['version'] = version
-    result['expires'] = expiration_date
-    result['keys'] = keydict
-    result['roles'] = roledict
-    result['consistent_snapshot'] = consistent_snapshot
-
-    # Is 'result' a Root metadata file?
-    # Raise 'securesystemslib.exceptions.FormatError' if not.
-    ROOT_SCHEMA.check_match(result)
-
-    return result
-
-
-
-
-class SnapshotFile(MetaFile):
-  def __init__(self, version, expires, versiondict):
-    self.info = {}
-    self.info['version'] = version
-    self.info['expires'] = expires
-    self.info['meta'] = versiondict
-
-
-  @staticmethod
-  def from_metadata(snapshot_metadata):
-    # Is 'snapshot_metadata' a Snapshot metadata file?
-    # Raise 'securesystemslib.exceptions.FormatError' if not.
-    SNAPSHOT_SCHEMA.check_match(snapshot_metadata)
-
-    version = snapshot_metadata['version']
-    expires = snapshot_metadata['expires']
-    versiondict = snapshot_metadata['meta']
-
-    return SnapshotFile(version, expires, versiondict)
-
-
-  @staticmethod
-  def make_metadata(version, expiration_date, versiondict):
-    result = {'_type' : 'snapshot'}
-    result['spec_version'] = TUF_VERSION_NUMBER
-    result['version'] = version
-    result['expires'] = expiration_date
-    result['meta'] = versiondict
-
-    # Is 'result' a Snapshot metadata file?
-    # Raise 'securesystemslib.exceptions.FormatError' if not.
-    SNAPSHOT_SCHEMA.check_match(result)
-
-    return result
-
-
-
-
-class TargetsFile(MetaFile):
-  def __init__(self, version, expires, filedict=None, delegations=None):
-    if filedict is None:
-      filedict = {}
-    if delegations is None:
-      delegations = {}
-    self.info = {}
-    self.info['version'] = version
-    self.info['expires'] = expires
-    self.info['targets'] = filedict
-    self.info['delegations'] = delegations
-
-
-  @staticmethod
-  def from_metadata(targets_metadata):
-    # Is 'targets_metadata' a Targets metadata file?
-    # Raise securesystemslib.exceptions.FormatError if not.
-    tuf.formats.TARGETS_SCHEMA.check_match(targets_metadata)
-
-    version = targets_metadata['version']
-    expires = targets_metadata['expires']
-    filedict = targets_metadata.get('targets')
-    delegations = targets_metadata.get('delegations')
-
-    return TargetsFile(version, expires, filedict, delegations)
-
-
-  @staticmethod
-  def make_metadata(version, expiration_date, filedict=None, delegations=None):
-    if filedict is None and delegations is None:
-      raise securesystemslib.exceptions.Error('We don\'t allow completely'
-        ' empty targets metadata.')
-
-    result = {'_type' : 'targets'}
-    result['spec_version'] = TUF_VERSION_NUMBER
-    result['version'] = version
-    result['expires'] = expiration_date
-    result['targets'] = {}
-
-    if filedict is not None:
-      result['targets'] = filedict
-    if delegations is not None:
-      result['delegations'] = delegations
-
-    # Is 'result' a Targets metadata file?
-    # Raise 'securesystemslib.exceptions.FormatError' if not.
-    tuf.formats.TARGETS_SCHEMA.check_match(result)
-
-    return result
-
-
-
-class MirrorsFile(MetaFile):
-  def __init__(self, version, expires):
-    self.info = {}
-    self.info['version'] = version
-    self.info['expires'] = expires
-
-
-  @staticmethod
-  def from_metadata(mirrors_metadata):
-    raise NotImplementedError
-
-
-  @staticmethod
-  def make_metadata():
-    raise NotImplementedError
 
 
 
@@ -709,15 +577,6 @@ SCHEMAS_BY_TYPE = {
   'snapshot' : SNAPSHOT_SCHEMA,
   'timestamp' : TIMESTAMP_SCHEMA,
   'mirrors' : MIRRORLIST_SCHEMA}
-
-# A dict holding the recognized class names for the top-level roles.
-# That is, the role classes listed in this module (e.g., class TargetsFile()).
-ROLE_CLASSES_BY_TYPE = {
-  'Root' : RootFile,
-  'Targets' : TargetsFile,
-  'Snapshot' : SnapshotFile,
-  'Timestamp' : TimestampFile,
-  'Mirrors' : MirrorsFile}
 
 
 
@@ -957,124 +816,6 @@ def make_versioninfo(version_number):
   return versioninfo
 
 
-
-
-
-def make_role_metadata(keyids, threshold, name=None, paths=None,
-                       path_hash_prefixes=None):
-  """
-  <Purpose>
-    Create a dictionary conforming to 'tuf.formats.ROLE_SCHEMA',
-    representing the role with 'keyids', 'threshold', and 'paths'
-    as field values.  'paths' is optional (i.e., used only by the
-    'Target' role).
-
-  <Arguments>
-    keyids: a list of key ids.
-
-    threshold:
-      An integer denoting the number of required keys
-      for the signing role.
-
-    name:
-      A string that is the name of this role.
-
-    paths:
-      The 'Target' role stores the paths of target files
-      in its metadata file.  'paths' is a list of
-      file paths.
-
-    path_hash_prefixes:
-      The 'Target' role stores the paths of target files in its metadata file.
-      'path_hash_prefixes' is a succint way to describe a set of paths to
-      target files.
-
-  <Exceptions>
-    securesystemslib.exceptions.FormatError, if the returned role meta is
-    formatted incorrectly.
-
-  <Side Effects>
-    If any of the arguments do not have a proper format, a
-    securesystemslib.exceptions.FormatError exception is raised when the
-    'ROLE_SCHEMA' dict is created.
-
-  <Returns>
-    A properly formatted role meta dict, conforming to
-    'ROLE_SCHEMA'.
-  """
-
-  role_meta = {}
-  role_meta['keyids'] = keyids
-  role_meta['threshold'] = threshold
-
-  if name is not None:
-    role_meta['name'] = name
-
-  # According to the specification, the 'paths' and 'path_hash_prefixes' must
-  # be mutually exclusive. However, at the time of writing we do not always
-  # ensure that this is the case with the schema checks (see #83). Therefore,
-  # we must do it for ourselves.
-
-  if paths is not None and path_hash_prefixes is not None:
-    raise securesystemslib.exceptions.FormatError('Both "paths" and'
-      ' "path_hash_prefixes" are specified.')
-
-  if path_hash_prefixes is not None:
-    role_meta['path_hash_prefixes'] = path_hash_prefixes
-  elif paths is not None:
-    role_meta['paths'] = paths
-
-  # Does 'role_meta' have the correct type?
-  # This check ensures 'role_meta' conforms to tuf.formats.ROLE_SCHEMA.
-  ROLE_SCHEMA.check_match(role_meta)
-
-  return role_meta
-
-
-
-def get_role_class(expected_rolename):
-  """
-  <Purpose>
-    Return the role class corresponding to
-    'expected_rolename'.  The role name returned
-    by expected_meta_rolename() should be the name
-    passed as an argument to this function.  If
-    'expected_rolename' is 'Root', the class
-    RootFile is returned.
-
-  <Arguments>
-    expected_rolename:
-      The role name used to determine which role class
-      to return.
-
-  <Exceptions>
-    securesystemslib.exceptions.FormatError, if 'expected_rolename' is not a
-    supported role.
-
-  <Side Effects>
-    None.
-
-  <Returns>
-    The class corresponding to 'expected_rolename'.
-    E.g., 'Snapshot' as an argument to this function causes
-    SnapshotFile' to be returned.
-  """
-
-  # Does 'expected_rolename' have the correct type?
-  # This check ensures 'expected_rolename' conforms to
-  # 'securesystemslib.formats.NAME_SCHEMA'.
-  # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.NAME_SCHEMA.check_match(expected_rolename)
-
-  try:
-    role_class = ROLE_CLASSES_BY_TYPE[expected_rolename]
-
-  except KeyError:
-    raise securesystemslib.exceptions.FormatError(repr(expected_rolename) + ' '
-     'not supported.')
-
-  else:
-    return role_class
 
 
 

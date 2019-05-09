@@ -721,6 +721,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       for mirror_error in six.itervalues(e.mirror_errors):
         assert isinstance(mirror_error, securesystemslib.exceptions.BadVersionNumberError)
 
+    else:
+      self.fail(
+          'Expected a NoWorkingMirrorError composed of BadVersionNumberErrors')
+
     # Verify that the specific exception raised is correct for the previous
     # case.  The version number is checked, so the specific error in
     # this case should be 'securesystemslib.exceptions.BadVersionNumberError'.
@@ -733,14 +737,26 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       for mirror_error in six.itervalues(e.mirror_errors):
         assert isinstance(mirror_error, securesystemslib.exceptions.BadVersionNumberError)
 
+    else:
+      self.fail(
+          'Expected a NoWorkingMirrorError composed of BadVersionNumberErrors')
+
 
 
 
 
   def test_3__get_metadata_file(self):
 
-    valid_tuf_version = tuf.formats.TUF_VERSION_NUMBER
-    tuf.formats.TUF_VERSION_NUMBER = '2'
+    '''
+    This test focuses on making sure that the updater rejects unknown or
+    badly-formatted TUF specification version numbers....
+    '''
+
+    # Make note of the correct supported TUF specification version.
+    correct_specification_version = tuf.SPECIFICATION_VERSION
+
+    # Change it long enough to write new metadata.
+    tuf.SPECIFICATION_VERSION = '9.0'
 
     repository = repo_tool.load_repository(self.repository_directory)
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
@@ -750,6 +766,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
+
+
+    # Change the supported TUF specification version back to what it should be
+    # so that we can parse the metadata and see that the spec version in the
+    # metadata does not match the code's expected spec version.
+    tuf.SPECIFICATION_VERSION = correct_specification_version
 
     upperbound_filelength = tuf.settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
     try:
@@ -757,11 +779,22 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       upperbound_filelength, 1)
 
     except tuf.exceptions.NoWorkingMirrorError as e:
+      # Note that this test provides a piece of metadata which would fail to
+      # be accepted -- with a different error -- if the specification version
+      # number were not a problem.
       for mirror_error in six.itervalues(e.mirror_errors):
-        assert isinstance(mirror_error, securesystemslib.exceptions.BadVersionNumberError)
+        assert isinstance(
+            mirror_error, tuf.exceptions.UnsupportedSpecificationError)
+
+    else:
+      self.fail(
+          'Expected a failure to verify metadata when the metadata had a '
+          'specification version number that was unexpected.  '
+          'No error was raised.')
 
     # Test for an improperly formatted TUF version number.
-    tuf.formats.TUF_VERSION_NUMBER = 'BAD'
+    # Tell the TUF code to write 'BAD' as its specification version number.
+    tuf.SPECIFICATION_VERSION = 'BAD'
     repository = repo_tool.load_repository(self.repository_directory)
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
     repository.writeall()
@@ -770,6 +803,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
+
+    # Change the supported TUF specification version back to what it should be,
+    # so that code expects the correct specification version, and gets nonsense
+    # instead.
+    tuf.SPECIFICATION_VERSION = correct_specification_version
 
     try:
       self.repository_updater._get_metadata_file('timestamp', 'timestamp.json',
@@ -779,9 +817,16 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       for mirror_error in six.itervalues(e.mirror_errors):
         assert isinstance(mirror_error, securesystemslib.exceptions.FormatError)
 
-    # Reset the TUF_VERSION_NUMBER so that subsequent unit tests use the
-    # expected value.
-    tuf.formats.TUF_VERSION_NUMBER = valid_tuf_version
+    else:
+      self.fail(
+          'Expected a failure to verify metadata when the metadata had a '
+          'specification version number that was not in the correct format.  '
+          'No error was raised.')
+
+    # REDUNDANTLY reset the specification version the code thinks it supports
+    # as the last step in this test, in case future changes to the tests above
+    # neglect to reset it above....
+    tuf.SPECIFICATION_VERSION = correct_specification_version
 
 
 
@@ -1253,6 +1298,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     except OSError as e:
       self.assertTrue(e.errno == errno.ENAMETOOLONG or e.errno == errno.ENOENT)
 
+    else:
+      self.fail('Expected an OSError of type ENAMETOOLONG or ENOENT')
+
+
     # Test: Invalid arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError,
                       self.repository_updater.download_target,
@@ -1281,6 +1330,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       # directories.  get_list_of_mirrors() returns an empty list in this case,
       # which does not generate specific exception errors.
       self.assertEqual(len(exception.mirror_errors), 0)
+
+    else:
+      self.fail(
+          'Expected a NoWorkingMirrorError with zero mirror errors in it.')
+
+
 
 
 

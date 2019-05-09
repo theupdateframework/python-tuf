@@ -81,37 +81,28 @@ and instructions for installing locally from source are provided here:
     $ cd virtualenv-15.0.3
     $ python virtualenv.py myVE
 
-External Dependencies
-=====================
-
-Before installing TUF, a couple of its Python dependencies have non-Python dependencies
-of their own that should installed first.  PyCrypto and PyNaCl (third-party dependencies
-needed by the repository tools) require Python and FFI (Foreign Function Interface)
-development header files. Debian-based distributions can install these header
-libraries with apt (Advanced Package Tool.)
-::
-
-    $ apt-get install build-essential libssl-dev libffi-dev python-dev
-
-Fedora-based distributions can install these libraries with dnf.
-::
-
-    $ dnf install libffi-devel redhat-rpm-config openssl-devel
-
-OS X users can install these header libraries with the `Homebrew <https://brew.sh/>`_ package manager.
-::
-
-    $ brew install python
-    $ brew install libffi
 
 Development Installation
 ========================
 
-Installation of minimal, optional, development, and testing requirements
-can then be accomplished with one command:
+To work on the TUF project, it's best to perform a development install.
+
+1. First, `install non-Python dependencies <INSTALLATION.rst#non-python-dependencies>`_.
+
+2. Then clone this repository:
+
+::
+
+    $ git clone https://github.com/theupdateframework/tuf
+
+3. Then perform a full, editable/development install.  This will include all
+   optional cryptographic support, the testing/linting dependencies, etc.
+   With a development installation, modifications to the code in the current
+   directory will affect the installed version of TUF.
 ::
 
     $ pip install -r dev-requirements.txt
+
 
 Testing
 =======

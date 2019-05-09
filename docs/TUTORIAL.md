@@ -1,4 +1,4 @@
-# Tutorial #
+# Advanced Tutorial #
 
 ## Table of Contents ##
 - [How to Create and Modify a TUF Repository](#how-to-create-and-modify-a-tuf-repository)
@@ -376,6 +376,11 @@ the target filepaths to metadata.
 # these targets can be included in Targets metadata.
 >>> repository.targets.add_targets(list_of_targets)
 
+# Note that you can also add targets to existing delegated targets roles,
+# accessing them this way:
+>>> repository.targets('<delegated rolename>').add_target(...)
+>>> repository.targets('<delegated rolename>').add_targets(...)
+
 # Individual target files may also be added to roles, including custom data
 # about the target.  In the example below, file permissions of the target
 # (octal number specifying file access for owner, group, others (e.g., 0755) is
@@ -490,6 +495,10 @@ targets and generate signed metadata.
 # delegate(rolename, list_of_public_keys, paths, threshold=1,
 #     list_of_targets=None, path_hash_prefixes=None)
 >>> repository.targets.delegate("unclaimed", [public_unclaimed_key], ['/foo*.tgz'])
+
+# Thereafter, we can access a delegated role this way:
+>>> repository.targets("<delegated rolename")
+
 
 # Load the private key of "unclaimed" so that unclaimed's metadata can be
 # signed, and valid metadata created.

@@ -1,5 +1,4 @@
-A Framework for Securing Software Update Systems
-------------------------------------------------
+# <img src="https://cdn.rawgit.com/theupdateframework/artwork/3a649fa6/tuf-logo.svg" height="100" valign="middle" alt="TUF"/> A Framework for Securing Software Update Systems
 
 [![Travis-CI](https://travis-ci.org/theupdateframework/tuf.svg?branch=develop)](https://travis-ci.org/theupdateframework/tuf)
 [![Coveralls](https://coveralls.io/repos/theupdateframework/tuf/badge.svg?branch=develop)](https://coveralls.io/r/theupdateframework/tuf?branch=develop)
@@ -8,27 +7,44 @@ A Framework for Securing Software Update Systems
 [![FOSSA](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf?ref=badge_shield)
 [![CII](https://bestpractices.coreinfrastructure.org/projects/1351/badge)](https://bestpractices.coreinfrastructure.org/projects/1351)
 
-# <img src="https://cdn.rawgit.com/theupdateframework/artwork/3a649fa6/tuf-logo.svg" height="100" valign="middle" alt="TUF"/>
+----------------------------
+This repository is the **reference implementation** of
+[The Update Framework (TUF)](https://theupdateframework.github.io/).
+It is written in Python and intended to conform to version 1.0 of the
+[TUF specification](https://github.com/theupdateframework/specification/blob/master/tuf-spec.md).
+This implementation is in use in production systems, but is also intended to be
+a readable guide and demonstration for those working on implementing TUF in
+their own languages, environments, or update systems.
 
-The Update Framework (TUF) helps developers maintain the security of a software
-update system, even against attackers that compromise the repository or signing
-keys. TUF provides a flexible framework and specification that developers can
-adopt into any software update system.
+
+About The Update Framework
+--------------------------
+The Update Framework (TUF) design helps developers maintain the security of a
+software update system, even against attackers that compromise the repository
+or signing keys.
+TUF provides a flexible
+[specification](https://github.com/theupdateframework/specification/blob/master/tuf-spec.md)
+defining functionality that developers can use in any software update system or
+re-implement to fit their needs.
 
 TUF is hosted by the [Linux Foundation](https://www.linuxfoundation.org/) as
 part of the [Cloud Native Computing Foundation](https://www.cncf.io/) (CNCF)
-and is used [in production](docs/ADOPTERS.md) by companies such as Cloudflare, 
-DataDog, DigitalOcean, Docker, Flynn, IBM, Kolide, LEAP, Microsoft, RedHat, 
-and VMware. A variant of TUF called [Uptane](https://uptane.github.io/) is 
+and its design is [used in production](docs/ADOPTERS.md) by companies such as Cloudflare,
+DataDog, DigitalOcean, Docker, Flynn, IBM, Kolide, LEAP, Microsoft, RedHat,
+and VMware. A variant of TUF called [Uptane](https://uptane.github.io/) is
 widely used to secure over-the-air updates in automobiles.
+
+Please see the [TUF Introduction](docs/OVERVIEW.rst) and
+[TUF's website](https://theupdateframework.com/) for more information about TUF!
 
 
 Documentation
 -------------
-* [Overview](docs/OVERVIEW.rst)
-* [Specification](https://github.com/theupdateframework/specification/blob/master/tuf-spec.md)
-* [Getting Started](docs/GETTING_STARTED.rst)
+* [Introduction to TUF's Design](docs/OVERVIEW.rst)
+* [The TUF Specification](https://github.com/theupdateframework/specification/blob/master/tuf-spec.md)
+* [Getting Started with the TUF Reference Implementation](docs/GETTING_STARTED.rst)
 * [Governance](docs/GOVERNANCE.md) and [Maintainers](docs/MAINTAINERS.txt)
+for the reference implementation
 * [Miscellaneous Docs](docs/)
 
 
@@ -76,8 +92,10 @@ Acknowledgements
 This project is managed by Prof. [Justin
 Cappos](https://ssl.engineering.nyu.edu/personalpages/jcappos/) and other
 members of the [Secure Systems Lab](https://ssl.engineering.nyu.edu/) at [New
-York University](https://engineering.nyu.edu/).
-[Contributors](https://github.com/theupdateframework/tuf/blob/develop/docs/AUTHORS.txt)
+York University](https://engineering.nyu.edu/).  We appreciate the efforts of
+Konstantin Andrianov, Geremy Condra, Vladimir Diaz, Yuyu Zheng, Sebastien Awwad,
+and Justin Samuel who are among those who helped significantly with TUF's reference 
+implementation.  [Contributors](https://github.com/theupdateframework/tuf/blob/develop/docs/AUTHORS.txt)
 and
 [maintainers](https://github.com/theupdateframework/tuf/blob/develop/docs/MAINTAINERS.txt)
 are governed by the [CNCF Community Code of
