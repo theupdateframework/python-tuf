@@ -1,0 +1,48 @@
+{
+ "signatures": [
+  {
+   "keyid": "d66f1fbce9b31c97443e3e97cc821a031f8906858e65bdef59a11a7c229f1926",
+   "sig": "9d86f9232d0f482ac4aad58c956ab9507ca3abf76f7f5d9ed1fa2e5b0771d6d0d4642f79a3480a1c212f612b0de6b0536208f6da8a4f186221463ce32d0e21d987d663f0d6ed9574ec4cad59bda26d4add1bcdd09e1086d29148f251ad159d4db8a34243ffdaf4305e0ab3fe53986b3a10ed1d98ad32c5cedaa0bf911176a4444c23b86599f660289b5c03bbce4e4698aed7cfff1b3251b378bb9498df4df97c2ce1ef7095096afa7be9f2f78f910a14bcd0fe64359c998db3abfdc27d76bf65ff0e0b9ee2337661a63c81c4697aa21870a3a538e02e267feb6ebe3330f34d8a8cd4bb3051424831be29e7e1598d1911d5946cdf673a0e7494df1f5f648785a6de7dcd4c623d0b3ce2afcf285a454c991c72177d584690ce5267184bd9c65729e59ccd6ec1b1f0246ae32d143b6bee6c7917b0ed7ba0c29b2c9e731c807e360c1820b9400a5bcf2327eefd0d8edc4da1c659cf342deedaf2690cb4cba0330efac56d15e4c7b50a7747e9b5cae6d94338d47e68632d463bf919874c05956b96d0"
+  }
+ ],
+ "signed": {
+  "_type": "targets",
+  "delegations": {
+   "keys": {},
+   "roles": []
+  },
+  "expires": "2031-09-29T22:27:37Z",
+  "spec_version": "1.0",
+  "targets": {
+   "file1.txt": {
+    "hashes": {
+     "sha256": "ecdc5536f73bdae8816f0ea40726ef5e9b810d914493075903bb90623d97b1d8",
+     "sha512": "6cc7bddc064350c67080357976ea6b0538fadf2075d3fe2f65e7345505ac7d7cf9b05af2577f08408a4bdb4478982ca6f52326ba25b5c5ff64c7b8bead0992e0"
+    },
+    "length": 6
+   },
+   "file2.txt": {
+    "hashes": {
+     "sha256": "67ee5478eaadb034ba59944eb977797b49ca6aa8d3574587f36ebcbeeb65f70e",
+     "sha512": "24407506629c73302e01cf15c79cf02856a755abbdd2e9f8002a47515933460993afbaa4e806abb4d79ae332f331796c504f2a2ba39847a95f24a3a55159ff9e"
+    },
+    "length": 6
+   },
+   "file3.txt": {
+    "hashes": {
+     "sha256": "94f6e58bd04a4513b8301e75f40527cf7610c66d1960b26f6ac2e743e108bdac",
+     "sha512": "1cf808cd26db62d8cc0064a3d98c23113927cd15800db3f801afc292ab14e984154f07a8a7629b3bdf7fda6394cc73b0739a6ceeeeb2b5922a468894ee51c66e"
+    },
+    "length": 6
+   },
+   "myproject/file4.txt": {
+    "hashes": {
+     "sha256": "899e08f22584531d18a4ec45a5dd1daef683ea941daa8c95969f1fe5c08a8137",
+     "sha512": "9293eb4798eca3d267cb8a747dbc1d0d8690b6e44608fd9d667fac1225d6e3100db1a821c041a0cd881ce6455850195eacced7b144c763204c3ff387cf3293c5"
+    },
+    "length": 6
+   }
+  },
+  "version": 2
+ }
+}

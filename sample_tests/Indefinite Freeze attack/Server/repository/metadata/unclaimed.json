@@ -1,0 +1,14 @@
+{
+ "signatures": [],
+ "signed": {
+  "_type": "targets",
+  "delegations": {
+   "keys": {},
+   "roles": []
+  },
+  "expires": "2031-10-22T11:53:02Z",
+  "spec_version": "1.0",
+  "targets": {},
+  "version": 1
+ }
+}

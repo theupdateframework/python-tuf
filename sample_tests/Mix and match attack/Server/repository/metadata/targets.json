@@ -1,0 +1,72 @@
+{
+ "signatures": [
+  {
+   "keyid": "58562524c0a0aeb77dc8379a281debd9475e6956a602d3a995bd6d2f656a5a64",
+   "sig": "617152ec6a5508dfddabe53be9ec983c13a480a8c7dfbe677956b41b5ab5f1f6c0b5733552485d6e1d3effc76891432fa523189907ce078df7761499ecaf2fac78948ba4e1b346f60bf1e945242c3833282798a7c8ec64d617bf554d4f392cf61b9e3d436572b5fa26d280dc192836009ae69e512975e5cb4ebe759532bc82c54ce19c40a708e98f243a2e91d2ceac0b8eb7e989303366d93e4da83c66aa83ad55f657535c67569bb670ec048317a0eb103e20b5d52f25e0d4bbbee10279e0a5a2d88d299052863d508d2bd255a35cc841dc40146d03c4499115186a059b65ae8216f12e4f3e85df33f7bfb997d786b6758958cf2a33ef6a2d055be16d40425cc2ca5845ff93ae5f66dc26ad7f81ecf39c4bb418bac6b859170ace049fc91793e0408c64f67a7971dc51751c30858be8dda521ec522d577b50e3a95ebee1808ea42c3ad62e5f6ea4259c203f30b78ebc4ae84a06961bc787e2dae9ab3da1d4ceeb08181d587564d2dc83b0c8db17e0a0d4b6db2bdccbb19c5aa8267e8aee287e"
+  }
+ ],
+ "signed": {
+  "_type": "targets",
+  "delegations": {
+   "keys": {
+    "6c692aaa027ed9a82c4f9177572079425810b3a48228f66883e1a149f001f274": {
+     "keyid_hash_algorithms": [
+      "sha256",
+      "sha512"
+     ],
+     "keytype": "rsa",
+     "keyval": {
+      "public": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAucoI53aEVkf+QSRZf3I6\nduNaxESNwbAStpFm/g2knEIXyjx4500/H2kzLJO54uctsugYxpqZV/dJ89VJI7tm\nf3WTACHTYpG8q44Ax4fqBGbrOukaHfC2ZL7p4+x1orkZA1UDcokdyMxmtDYRnwp5\n211GwlnX830RjtlT439PT1Y948MAztoBTvnyGZAQJRYJh4D8z4gB3HWeDi69ovbC\nsKc+xUnq81jLR251d0NqqhITaDsZ/MIJIRiVCrGsa88gSdcpgleGfnBaRa5vWbFa\nUrJyN4SITxVaXdh9g8GbdmWPpx6EjN3z0MPJKp22NYoK+bvP6X5DurJ9xQKZrXGU\nkQIDAQAB\n-----END PUBLIC KEY-----"
+     },
+     "scheme": "rsassa-pss-sha256"
+    }
+   },
+   "roles": [
+    {
+     "keyids": [
+      "6c692aaa027ed9a82c4f9177572079425810b3a48228f66883e1a149f001f274"
+     ],
+     "name": "unclaimed",
+     "paths": [
+      "file3.txt"
+     ],
+     "terminating": false,
+     "threshold": 1
+    }
+   ]
+  },
+  "expires": "2031-11-13T16:39:04Z",
+  "spec_version": "1.0",
+  "targets": {
+   ".DS_Store": {
+    "hashes": {
+     "sha256": "2faed53b8dd099c0fb64a61b56ad704dbccc38e3d2ba52c478f398810b598984",
+     "sha512": "e1165fa247c20a22711442135ecb1ab4dd14721d39b6b8843b383d250f7dec24f155b876a3b9660a0b93f3e5732f6583f7dc8652714f3530f76c2b9e52a5dfd2"
+    },
+    "length": 8196
+   },
+   "file1.txt": {
+    "hashes": {
+     "sha256": "250afad6cb1013fd0b1fc90f97285745353d7e370a8aee5fe522bcc9ddb23e05",
+     "sha512": "876821f008b97241f091f1a056798da107f9e0936a34098484e20095b4202a3835b1b0d04c90623dc5e3fe6006e1d88f893c35f97387ddac981803271585dad8"
+    },
+    "length": 32
+   },
+   "file2.txt": {
+    "hashes": {
+     "sha256": "67ee5478eaadb034ba59944eb977797b49ca6aa8d3574587f36ebcbeeb65f70e",
+     "sha512": "24407506629c73302e01cf15c79cf02856a755abbdd2e9f8002a47515933460993afbaa4e806abb4d79ae332f331796c504f2a2ba39847a95f24a3a55159ff9e"
+    },
+    "length": 6
+   },
+   "file3.txt": {
+    "hashes": {
+     "sha256": "94f6e58bd04a4513b8301e75f40527cf7610c66d1960b26f6ac2e743e108bdac",
+     "sha512": "1cf808cd26db62d8cc0064a3d98c23113927cd15800db3f801afc292ab14e984154f07a8a7629b3bdf7fda6394cc73b0739a6ceeeeb2b5922a468894ee51c66e"
+    },
+    "length": 6
+   }
+  },
+  "version": 6
+ }
+}
