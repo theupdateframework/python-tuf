@@ -52,7 +52,7 @@ Now replace file1.txt with the backed up older version, such that while the repo
 $ mv file1.txt file1.txt.v_2
 $ mv file1_v1.txt file1.txt
 ```
-Now, at cleint side, we request for fresh update by,
+Now, at the client side, we request for fresh update by,
 
 ```Bash
 $ rm -rf "tuftargets/" "tufrepo/metadata/current/timestamp.json" "tufrepo/metadata/current/snapshot.json"
