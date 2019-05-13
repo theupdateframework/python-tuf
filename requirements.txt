@@ -129,7 +129,6 @@ securesystemslib==0.11.3 \
 six==1.12.0 \
     --hash=sha256:3350809f0555b11f552448330d0b52d5f24c91a322ea4a15ef22629740f3761c \
     --hash=sha256:d16a0141ec1a18405cd4ce8b4613101da75da0e9a7aec5bdd4fa804d0e0eba73
-urllib3==1.24.2 \
-    --hash=sha256:4c291ca23bbb55c76518905869ef34bdd5f0e46af7afe6861e8375643ffee1a0 \
-    --hash=sha256:9a247273df709c4fedb38c711e44292304f73f39ab01beda9f6b9fc375669ac3 \
-    # via requests
+urllib3==1.25.2 \
+    --hash=sha256:a53063d8b9210a7bdec15e7b272776b9d42b2fd6816401a0d43006ad2f9902db \
+    --hash=sha256:d363e3607d8de0c220d31950a8f38b18d5ba7c0830facd71a1c6b1036b7ce06c    # via requests
