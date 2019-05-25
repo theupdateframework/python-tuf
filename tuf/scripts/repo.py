@@ -701,7 +701,10 @@ def add_target_to_repo(parsed_arguments, target_path, repo_targets_path,
 
   if not os.path.exists(target_path):
     logger.debug(repr(target_path) + ' does not exist.  Skipping.')
-
+    
+  elif os.path.isabs(target_path):
+    logger.warn('omit this file:' + target_path + ', the target '
+        'file should be in ' + parsed_arguments.path)  
   else:
     securesystemslib.util.ensure_parent_dir(
         os.path.join(repo_targets_path, target_path))
