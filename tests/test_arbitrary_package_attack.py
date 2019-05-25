@@ -83,9 +83,9 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     command = ['python', 'simple_server.py', str(cls.SERVER_PORT)]
     cls.server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
     logger.info('Server process started.')
-    logger.info('Server process id: '+str(cls.server_process.pid))
-    logger.info('Serving on port: '+str(cls.SERVER_PORT))
-    cls.url = 'http://localhost:'+str(cls.SERVER_PORT) + os.path.sep
+    logger.info('Server process id: ' + str(cls.server_process.pid))
+    logger.info('Serving on port: ' + str(cls.SERVER_PORT))
+    cls.url = 'http://localhost:' + str(cls.SERVER_PORT) + os.path.sep
 
     # NOTE: Following error is raised if a delay is not applied:
     # <urlopen error [Errno 111] Connection refused>
@@ -104,7 +104,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
 
     # Kill the SimpleHTTPServer process.
     if cls.server_process.returncode is None:
-      logger.info('Server process '+str(cls.server_process.pid)+' terminated.')
+      logger.info('Server process ' + str(cls.server_process.pid) + ' terminated.')
       cls.server_process.kill()
 
 
