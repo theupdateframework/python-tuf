@@ -41,9 +41,10 @@ to the client in the `tufclient` directory.
 
 We'll create a target file that will later be delivered as an update to clients.
 Metadata about that file will be created and signed, and added to the
-repository's metadata.
+repository's metadata. 
 
 ```Bash
+# be in the same directory as step 1
 $ echo 'Test file' > testfile
 $ repo.py --add testfile
 $ tree tufrepo/
