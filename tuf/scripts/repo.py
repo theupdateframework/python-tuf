@@ -1141,6 +1141,10 @@ if __name__ == '__main__':
   except (tuf.exceptions.Error) as e:
     sys.stderr.write('Error: ' + str(e) + '\n')
     sys.exit(1)
-
+  except (securesystemslib.exceptions.UnsupportedLibraryError) as e:
+    sys.stderr.write('Error: ' + str(e) + '\n')
+    sys.stderr.write('resolve this problem by:\n')
+    sys.stderr.write('sudo pip install securesystemslib[crypto,pynacl]\n')
+	
   # Successfully created or updated the TUF repository.
   sys.exit(0)
