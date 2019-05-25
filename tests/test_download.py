@@ -76,8 +76,8 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     self.PORT = random.randint(30000, 45000)
     self.server_proc = popen_python(['simple_server.py', str(self.PORT)])
     logger.info('\n\tServer process started.')
-    logger.info('\tServer process id: '+str(self.server_proc.pid))
-    logger.info('\tServing on port: '+str(self.PORT))
+    logger.info('\tServer process id: ' + str(self.server_proc.pid))
+    logger.info('\tServing on port: ' + str(self.PORT))
     junk, rel_target_filepath = os.path.split(target_filepath)
     self.url = 'http://localhost:'+str(self.PORT)+'/'+rel_target_filepath
 
@@ -100,7 +100,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
   def tearDown(self):
     unittest_toolbox.Modified_TestCase.tearDown(self)
     if self.server_proc.returncode is None:
-      logger.info('\tServer process '+str(self.server_proc.pid)+' terminated.')
+      logger.info('\tServer process ' + str(self.server_proc.pid) + ' terminated.')
       self.server_proc.kill()
     self.target_fileobj.close()
 
