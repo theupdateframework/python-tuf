@@ -44,6 +44,7 @@ Metadata about that file will be created and signed, and added to the
 repository's metadata.
 
 ```Bash
+# be in the same directory as step 1
 $ echo 'Test file' > testfile
 $ repo.py --add testfile
 $ tree tufrepo/
