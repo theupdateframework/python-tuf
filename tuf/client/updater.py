@@ -1125,9 +1125,11 @@ class Updater(object):
       None.
     """
 
-    # Retrieve the latest, remote root.json.
-    latest_root_metadata_file = self._get_metadata_file(
-        'root', 'root.json', DEFAULT_ROOT_UPPERLENGTH, None)
+    # Retrieve the latest, remote root.json *WITHOUT* verifying it just yet.
+    # We will verify it soon if all goes well.
+    latest_root_metadata_file = self._get_file(
+        'root.json', lambda f: f, 'meta', DEFAULT_ROOT_UPPERLENGTH,
+        download_safely=False)
 
     latest_root_metadata = securesystemslib.util.load_json_string(
         latest_root_metadata_file.read().decode('utf-8'))
