@@ -1128,7 +1128,7 @@ class Updater(object):
     # Retrieve the latest, remote root.json *WITHOUT* verifying it just yet.
     # We will verify it soon if all goes well.
     latest_root_metadata_file = self._get_file(
-        'root.json', lambda f: f, 'meta', DEFAULT_ROOT_UPPERLENGTH,
+        'root.json', lambda f: True, 'meta', DEFAULT_ROOT_UPPERLENGTH,
         download_safely=False)
 
     latest_root_metadata = securesystemslib.util.load_json_string(
@@ -1149,6 +1149,16 @@ class Updater(object):
       # _update_metadata().
       self.consistent_snapshot = True
       self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH, version=version)
+      # Ensure that the role and key information of the top-level roles is the
+      # latest.  We do this whether or not Root needed to be updated, in order
+      # to ensure that, e.g., the entries in roledb for top-level roles are
+      # populated with expected keyid info so that roles can be validated.  In
+      # certain circumstances, top-level metadata might be missing because it
+      # was marked obsolete and deleted after a failed attempt, and thus we
+      # should refresh them here as a protective measure.  See Issue #736.
+      self._rebuild_key_and_role_db()
+      self.consistent_snapshot = \
+          self.metadata['current']['root']['consistent_snapshot']
 
 
 
