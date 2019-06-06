@@ -1509,8 +1509,8 @@ class Updater(object):
                 'metadata lists version number: ' + str(metadata_spec_version))
 
           #report to user if minor versions do not match, continue with update
-          if metadata_spec_minor_version > code_spec_minor_version:
-            logger.info("Downloaded metadata that specifies a higher minor " +
+          if metadata_spec_minor_version != code_spec_minor_version:
+            logger.info("Downloaded metadata that specifies a different minor " +
                 "spec_version. This code has version " +
                 str(tuf.SPECIFICATION_VERSION) +
                 " and the metadata lists version number " +
