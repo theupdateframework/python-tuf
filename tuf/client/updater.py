@@ -128,7 +128,6 @@ import time
 import fnmatch
 import copy
 import warnings
-import pkg_resources
 
 import tuf
 import tuf.download
