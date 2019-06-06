@@ -234,14 +234,23 @@ def _generate_and_write_metadata(rolename, metadata_filename,
     if rolename == 'root':
       filename = write_metadata_file(signable, metadata_filename,
           metadata['version'], consistent_snapshot=True)
-
     else:
       filename = write_metadata_file(signable, metadata_filename,
           metadata['version'], consistent_snapshot)
 
+
+  # If we got so far `write_metadata_file` must have been called successfully.
+  # If we wrote root metadata, we reset the `previous_keyids` and
+  # `previous_threshold` fields on roleinfo,
+  # FIXME: This is a quick fix for theupdateframework/tuf#883 and will be fixed
+  # properly with theupdateframework/tuf#864.
+  if rolename == 'root':
+    roleinfo['previous_keyids'] = []
+    roleinfo['previous_threshold'] = []
+    tuf.roledb.update_roleinfo(rolename, roleinfo,
+        repository_name=repository_name)
+
   return signable, filename
-
-
 
 
 
