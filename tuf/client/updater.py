@@ -1500,7 +1500,7 @@ class Updater(object):
           code_spec_version_split = tuf.SPECIFICATION_VERSION.split('.')
           code_spec_major_version = int(code_spec_version_split[0])
           code_spec_minor_version = int(code_spec_version_split[1])
- 
+
           if metadata_spec_major_version != code_spec_major_version:
             raise tuf.exceptions.UnsupportedSpecificationError(
                 'Downloaded metadata that specifies an unsupported '
