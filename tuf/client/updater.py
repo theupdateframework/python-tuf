@@ -1128,7 +1128,7 @@ class Updater(object):
     # Retrieve the latest, remote root.json *WITHOUT* verifying it just yet.
     # We will verify it soon if all goes well.
     latest_root_metadata_file = self._get_file(
-        'root.json', lambda f: True, 'meta', DEFAULT_ROOT_UPPERLENGTH,
+        'root.json', lambda f: None, 'meta', DEFAULT_ROOT_UPPERLENGTH,
         download_safely=False)
 
     latest_root_metadata = securesystemslib.util.load_json_string(
@@ -1143,11 +1143,13 @@ class Updater(object):
     # current = version 1
     # latest = version 3
     # update from 1.root.json to 3.root.json.
+
+    # Temporarily set consistent snapshot. Will be updated to whatever is set
+    # in the latest root.json after running through the intermediates with
+    # _update_metadata().
+    self.consistent_snapshot = True
+
     for version in range(next_version, latest_version + 1):
-      # Temporarily set consistent snapshot. Will be updated to whatever is set
-      # in the latest root.json after running through the intermediates with
-      # _update_metadata().
-      self.consistent_snapshot = True
       self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH, version=version)
       # Ensure that the role and key information of the top-level roles is the
       # latest.  We do this whether or not Root needed to be updated, in order
@@ -1157,8 +1159,10 @@ class Updater(object):
       # was marked obsolete and deleted after a failed attempt, and thus we
       # should refresh them here as a protective measure.  See Issue #736.
       self._rebuild_key_and_role_db()
-      self.consistent_snapshot = \
-          self.metadata['current']['root']['consistent_snapshot']
+
+    # Set our consistent snapshot property to what the latest root has said.
+    self.consistent_snapshot = \
+        self.metadata['current']['root']['consistent_snapshot']
 
 
 
