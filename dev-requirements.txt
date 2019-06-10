@@ -23,7 +23,7 @@ bandit==1.6.0
 cffi==1.12.3
 colorama==0.4.1
 configparser==3.7.4
-cryptography==2.6.1
+cryptography==2.7
 enum34==1.1.6
 gitdb2==2.0.5
 gitpython==2.1.11
