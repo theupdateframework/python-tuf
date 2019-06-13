@@ -145,6 +145,7 @@ import securesystemslib.keys
 import securesystemslib.util
 import six
 import iso8601
+import requests.exceptions
 
 # The Timestamp role does not have signed metadata about it; otherwise we
 # would need an infinite regress of metadata. Therefore, we use some
@@ -1125,32 +1126,26 @@ class Updater(object):
       None.
     """
 
-    # Retrieve the latest, remote root.json *WITHOUT* verifying it just yet.
-    # We will verify it soon if all goes well.
-    latest_root_metadata_file = self._get_file(
-        'root.json', lambda f: None, 'meta', DEFAULT_ROOT_UPPERLENGTH,
-        download_safely=False)
-
-    latest_root_metadata = securesystemslib.util.load_json_string(
-        latest_root_metadata_file.read().decode('utf-8'))
-
-
+    # Set the next version of root to download.
     next_version = current_root_metadata['version'] + 1
-    latest_version = latest_root_metadata['signed']['version']
-
-    # update from the next version of root up to (and including) the latest
-    # version.  For example:
-    # current = version 1
-    # latest = version 3
-    # update from 1.root.json to 3.root.json.
 
     # Temporarily set consistent snapshot. Will be updated to whatever is set
     # in the latest root.json after running through the intermediates with
     # _update_metadata().
     self.consistent_snapshot = True
 
-    for version in range(next_version, latest_version + 1):
-      self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH, version=version)
+    # Following the spec, try downloading the N+1th root for as long as we can.
+    while True:
+      # Try downloading the next root.
+      try:
+        # Thoroughly verify it.
+        self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH,
+          version=next_version)
+      # The first time we run into any HTTP error, break out of loop.
+      except requests.exceptions.HTTPError:
+        logging.traceback('Failed to download root version '+str(next_version))
+        break
+
       # Ensure that the role and key information of the top-level roles is the
       # latest.  We do this whether or not Root needed to be updated, in order
       # to ensure that, e.g., the entries in roledb for top-level roles are
@@ -1160,9 +1155,12 @@ class Updater(object):
       # should refresh them here as a protective measure.  See Issue #736.
       self._rebuild_key_and_role_db()
 
+      # Set the next version of root to download.
+      next_version += 1
+
     # Set our consistent snapshot property to what the latest root has said.
     self.consistent_snapshot = \
-        self.metadata['current']['root']['consistent_snapshot']
+      self.metadata['current']['root']['consistent_snapshot']
 
 
 
