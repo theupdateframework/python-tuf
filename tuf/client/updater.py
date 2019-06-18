@@ -1126,24 +1126,28 @@ class Updater(object):
       None.
     """
 
-    # Set the next version of root to download.
-    next_version = current_root_metadata['version'] + 1
-
     # Temporarily set consistent snapshot. Will be updated to whatever is set
     # in the latest root.json after running through the intermediates with
     # _update_metadata().
     self.consistent_snapshot = True
 
-    # Following the spec, try downloading the N+1th root for as long as we can.
-    while True:
-      # Try downloading the next root.
+    # Following the spec, try downloading the N+1th root for a certain maximum
+    # number of times.
+    lower_bound = current_root_metadata['version'] + 1
+    upper_bound = lower_bound + tuf.settings.MAX_NUMBER_ROOT_ROTATIONS
+
+    # Try downloading the next root.
+    for next_version in range(lower_bound, upper_bound):
       try:
         # Thoroughly verify it.
         self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH,
-          version=next_version)
+            version=next_version)
       # The first time we run into any HTTP error, break out of loop.
-      except requests.exceptions.HTTPError:
-        logging.traceback('Failed to download root version '+str(next_version))
+      except (requests.exceptions.HTTPError,
+              tuf.exceptions.NoWorkingMirrorError) as exception:
+        # Calling this function should give us a detailed stack trace including
+        # an HTTP error code, if any.
+        logging.exception('Failed to download root version '+str(next_version))
         break
 
       # Ensure that the role and key information of the top-level roles is the
@@ -1155,12 +1159,9 @@ class Updater(object):
       # should refresh them here as a protective measure.  See Issue #736.
       self._rebuild_key_and_role_db()
 
-      # Set the next version of root to download.
-      next_version += 1
-
     # Set our consistent snapshot property to what the latest root has said.
     self.consistent_snapshot = \
-      self.metadata['current']['root']['consistent_snapshot']
+        self.metadata['current']['root']['consistent_snapshot']
 
 
 
