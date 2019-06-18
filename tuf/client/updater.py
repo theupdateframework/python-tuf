@@ -145,6 +145,7 @@ import securesystemslib.keys
 import securesystemslib.util
 import six
 import iso8601
+import requests.exceptions
 
 # The Timestamp role does not have signed metadata about it; otherwise we
 # would need an infinite regress of metadata. Therefore, we use some
@@ -1125,6 +1126,16 @@ class Updater(object):
       None.
     """
 
+    def neither_403_nor_404(mirror_error):
+      if isinstance(mirror_error, six.moves.urllib.error.HTTPError):
+        if mirror_error.code in {403, 404}:
+          return False
+      elif isinstance(mirror_error, requests.exceptions.HTTPError):
+        if mirror_error.response.status_code in {403, 404}:
+          return False
+      else:
+        return True
+
     # Temporarily set consistent snapshot. Will be updated to whatever is set
     # in the latest root.json after running through the intermediates with
     # _update_metadata().
@@ -1147,8 +1158,8 @@ class Updater(object):
         for mirror_error in exception.mirror_errors.values():
           # Otherwise, reraise the error, because it is not a simple HTTP
           # error.
-          if not isinstance(mirror_error, six.moves.urllib.error.HTTPError) \
-             or mirror_error.code not in {403, 404}:
+          if neither_403_nor_404(mirror_error):
+            logging.exception('Misc error for root version '+str(next_version))
             raise
           else:
             # Calling this function should give us a detailed stack trace
