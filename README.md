@@ -30,7 +30,7 @@ re-implement to fit their needs.
 TUF is hosted by the [Linux Foundation](https://www.linuxfoundation.org/) as
 part of the [Cloud Native Computing Foundation](https://www.cncf.io/) (CNCF)
 and its design is [used in production](docs/ADOPTERS.md) by companies such as Cloudflare,
-DataDog, DigitalOcean, Docker, Flynn, IBM, Kolide, LEAP, Microsoft, RedHat,
+Datadog, DigitalOcean, Docker, Flynn, IBM, Kolide, LEAP, Microsoft, RedHat,
 and VMware. A variant of TUF called [Uptane](https://uptane.github.io/) is
 widely used to secure over-the-air updates in automobiles.
 
@@ -94,8 +94,9 @@ Cappos](https://ssl.engineering.nyu.edu/personalpages/jcappos/) and other
 members of the [Secure Systems Lab](https://ssl.engineering.nyu.edu/) at [New
 York University](https://engineering.nyu.edu/).  We appreciate the efforts of
 Konstantin Andrianov, Geremy Condra, Vladimir Diaz, Yuyu Zheng, Sebastien Awwad,
-and Justin Samuel who are among those who helped significantly with TUF's reference 
-implementation.  [Contributors](https://github.com/theupdateframework/tuf/blob/develop/docs/AUTHORS.txt)
+Santiago Torres-Arias, Trishank Kuppusamy, Zane Fisher, Pankhuri Goyal, Tian Tian,
+Konstantin Andrianov, and Justin Samuel who are among those who helped significantly 
+with TUF's reference implementation.  [Contributors](https://github.com/theupdateframework/tuf/blob/develop/docs/AUTHORS.txt)
 and
 [maintainers](https://github.com/theupdateframework/tuf/blob/develop/docs/MAINTAINERS.txt)
 are governed by the [CNCF Community Code of
