@@ -145,7 +145,6 @@ import securesystemslib.keys
 import securesystemslib.util
 import six
 import iso8601
-import requests.exceptions
 
 # The Timestamp role does not have signed metadata about it; otherwise we
 # would need an infinite regress of metadata. Therefore, we use some
@@ -1142,12 +1141,22 @@ class Updater(object):
         # Thoroughly verify it.
         self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH,
             version=next_version)
-      # The first time we run into any HTTP error, break out of loop.
-      except (requests.exceptions.HTTPError,
-              tuf.exceptions.NoWorkingMirrorError) as exception:
-        # Calling this function should give us a detailed stack trace including
-        # an HTTP error code, if any.
-        logging.exception('Failed to download root version '+str(next_version))
+      # When we run into HTTP 403 /404 error from ALL mirrors, break out of
+      # loop, because the next root metadata file is most likely missing.
+      except tuf.exceptions.NoWorkingMirrorError as exception:
+        for mirror_error in exception.mirror_errors.values():
+          # Otherwise, reraise the error, because it is not a simple HTTP
+          # error.
+          if not isinstance(mirror_error, six.moves.urllib.error.HTTPError) \
+             or mirror_error.code not in {403, 404}:
+            raise
+          else:
+            # Calling this function should give us a detailed stack trace
+            # including an HTTP error code, if any.
+            logging.exception('HTTP error for root version '+str(next_version))
+        # If we are here, then we ran into only 403 / 404 errors, which are
+        # good reasons to suspect that the next root metadata file does not
+        # exist.
         break
 
       # Ensure that the role and key information of the top-level roles is the
