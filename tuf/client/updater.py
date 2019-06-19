@@ -1493,8 +1493,13 @@ class Updater(object):
         # number, the new metadata is safe to parse.
         try:
           metadata_spec_version = metadata_signable['signed']['spec_version']
-          metadata_spec_major_version = int(metadata_spec_version.split('.')[0])
-          code_spec_major_version = int(tuf.SPECIFICATION_VERSION.split('.')[0])
+          metadata_spec_version_split = metadata_spec_version.split('.')
+          metadata_spec_major_version = int(metadata_spec_version_split[0])
+          metadata_spec_minor_version = int(metadata_spec_version_split[1])
+
+          code_spec_version_split = tuf.SPECIFICATION_VERSION.split('.')
+          code_spec_major_version = int(code_spec_version_split[0])
+          code_spec_minor_version = int(code_spec_version_split[1])
 
           if metadata_spec_major_version != code_spec_major_version:
             raise tuf.exceptions.UnsupportedSpecificationError(
@@ -1502,6 +1507,15 @@ class Updater(object):
                 'spec_version.  This code supports major version number: ' +
                 repr(code_spec_major_version) + '; however, the obtained '
                 'metadata lists version number: ' + str(metadata_spec_version))
+
+          #report to user if minor versions do not match, continue with update
+          if metadata_spec_minor_version != code_spec_minor_version:
+            logger.info("Downloaded metadata that specifies a different minor " +
+                "spec_version. This code has version " +
+                str(tuf.SPECIFICATION_VERSION) +
+                " and the metadata lists version number " +
+                str(metadata_spec_version) +
+                ". The update will continue as the major versions match.")
 
         except (ValueError, TypeError):
           raise securesystemslib.exceptions.FormatError('Improperly'
