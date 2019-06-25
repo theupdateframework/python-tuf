@@ -1,7 +1,9 @@
 securesystemslib[crypto,pynacl]
 six
 iso8601
-coverage
+requests
 pylint
 bandit
-requests
+# Pin to versions supported by `coveralls` (see .travis.yml)
+# https://github.com/coveralls-clients/coveralls-python/releases/tag/1.8.1
+coverage<5.0
