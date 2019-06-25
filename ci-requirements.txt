@@ -2,6 +2,6 @@ securesystemslib[crypto,pynacl]
 six
 iso8601
 coverage
-coveralls
 pylint
+bandit
 requests
