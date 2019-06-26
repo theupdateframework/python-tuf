@@ -20,6 +20,10 @@ script:
   - tox
 
 after_success:
-  - cd tests
-  - coveralls
-  - cd -
+  # Workaround to get coverage reports with relative paths.
+  # FIXME: Consider refactoring the tests to not require the test aggregation
+  # script being invoked from the `tests` directory, so that `.coverage` is
+  # written to and .coveragrc can also reside in the project root directory, as
+  # as the convention.
+  - cp tests/.coverage .
+  - coveralls --rcfile=tests/.coveragerc
