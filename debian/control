@@ -1,0 +1,32 @@
+Source: python-tuf
+Section: devel
+Priority: optional
+Maintainer: tuf developers <theupdateframework@googlegroups.com>
+Uploaders:
+ Lukas Puehringer <lukas.puehringer@nyu.edu>,
+ Justin Cappos <jcappos@nyu.edu>,
+Build-Depends:
+ dh-python,
+ debhelper (>= 12~),
+ python3-all,
+ python3-setuptools,
+ python3-six,
+ python3-iso8601,
+ python3-requests,
+ python3-securesystemslib (>= 0.11.3),
+Standards-Version: 4.3.0
+Homepage: https://theupdateframework.com
+Vcs-Git: https://github.com/theupdateframework/tuf.git
+Vcs-Browser: https://github.com/theupdateframework/tuf
+
+Package: python3-tuf
+Architecture: all
+Depends:
+  ${python3:Depends},
+  ${misc:Depends},
+Description: plug-and-play library for securing a software updater
+ The Update Framework (TUF) helps developers to maintain the security of a
+ software update system, even against attackers that compromise the repository
+ or signing keys.
+ .
+ tuf is developed at the Secure Systems Lab of NYU.

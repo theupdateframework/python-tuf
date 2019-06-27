@@ -1,0 +1,5 @@
+python-tuf (0.11.2.dev3-1) unstable; urgency=low
+
+  * Initial release.
+
+ -- Lukas Puehringer <lukas.puehringer@nyu.edu>  Thu, 27 Jun 2019 09:06:21 -0400

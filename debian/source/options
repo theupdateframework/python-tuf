@@ -1,0 +1,11 @@
+# Default ignore patterns contains *.o and *.a. So we need to define our own
+# patterns to get them included.
+--tar-ignore=.*.sw?
+--tar-ignore=*/*~
+--tar-ignore=,,*
+--tar-ignore=.[#~]*
+--tar-ignore=.deps
+--tar-ignore=.git
+--tar-ignore=.gitattributes
+--tar-ignore=.gitignore
+--tar-ignore=.gitmodules
