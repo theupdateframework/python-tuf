@@ -1127,12 +1127,8 @@ class Updater(object):
     """
 
     def neither_403_nor_404(mirror_error):
-      WHITELIST = {403, 404}
-      if isinstance(mirror_error, six.moves.urllib.error.HTTPError):
-        if mirror_error.code in WHITELIST:
-          return False
-      elif isinstance(mirror_error, requests.exceptions.HTTPError):
-        if mirror_error.response.status_code in WHITELIST:
+      if isinstance(mirror_error, requests.exceptions.HTTPError):
+        if mirror_error.response.status_code in {403, 404}:
           return False
       return True
 
