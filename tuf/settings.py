@@ -109,4 +109,4 @@ SLEEP_BEFORE_ROUND = None
 
 # Maximum number of root metadata file rotations we should perform in order to
 # prevent a denial-of-service (DoS) attack.
-MAX_NUMBER_ROOT_ROTATIONS = 2**10
+MAX_NUMBER_ROOT_ROTATIONS = 2**5
