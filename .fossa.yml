@@ -13,4 +13,5 @@ analyze:
     target: .
     path: .
     options:
-      strategy: pip
+      strategy: requirements
+      requirements: requirements.txt
