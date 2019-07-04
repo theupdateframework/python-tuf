@@ -5,10 +5,12 @@ version: 2
 cli:
   server: https://app.fossa.com
   fetcher: custom
-  project: git@github.com:theupdateframework/tuf.git
+  project: github.com/theupdateframework/tuf
 analyze:
   modules:
-  - name: .
+  - name: tuf
     type: pip
     target: .
     path: .
+    options:
+      strategy: pip
