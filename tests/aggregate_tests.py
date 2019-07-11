@@ -34,7 +34,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import os
 import sys
 import unittest
 import glob
@@ -91,17 +90,6 @@ for test in available_tests:
 random.shuffle(test_modules_to_run)
 
 if __name__ == '__main__':
-  # NOTE: Temporary workaround to ensure that `tuf` code from the sibling `tuf`
-  # directory is prioritized over `tuf` code installed to some system or
-  # virtualenv site-packages directory, which in turn is required for
-  # coverage/coveralls to function correctly.
-  # FIXME: Consider refactoring the tests to not require this the aggregation
-  # script being invoked from the `tests` directory. This seems to be the
-  # convention and would make use of other testing tools such as
-  # coverage/coveralls easier.
-  sys.path.insert(0,
-      os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
   suite = unittest.TestLoader().loadTestsFromNames(test_modules_to_run)
   all_tests_passed = unittest.TextTestRunner(
       verbosity=1, buffer=True).run(suite).wasSuccessful()
