@@ -10,17 +10,21 @@ Consensus Builder:
 
 Maintainers:
 
-  Vladimir Diaz
-    Email: vladimir.diaz@nyu.edu
-    GitHub username: @vladimir-v-diaz
-    PGP fingerprint: 3E87 BB33 9378 BC7B 3DD0  E5B2 5DEE 9B97 B0E2 289A
+  Lukas Puehringer
+    Email: lukas.puehringer@nyu.edu
+    GitHub username: @lukpueh
+    PGP fingerprint: 8BA6 9B87 D43B E294 F23E  8120 89A2 AD3C 07D9 62E8
+
+  Santiago Torres
+    Email: santiago@nyu.edu
+    GitHub username: @SantiagoTorres
+    PGP fingerprint: 903B AB73 640E B6D6 5533  EFF3 468F 122C E816 2295
+
+  Marina Moore
+    Email: mm9693@nyu.edu
+    GitHub username: @mnm678
 
   Sebastien Awwad
     Email: sebastien.awwad@nyu.edu
     GitHub username: @awwad
     PGP fingerprint: C2FB 9C91 0758 B682 7BC4  3233 BC0C 6DED D5E5 CC03
-
-  Lukas Puehringer
-    Email: lukas.puehringer@nyu.edu
-    GitHub username: @lukpueh
-    PGP fingerprint: 8BA6 9B87 D43B E294 F23E  8120 89A2 AD3C 07D9 62E8
