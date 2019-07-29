@@ -26,7 +26,7 @@ configparser==3.7.4
 cryptography==2.7
 enum34==1.1.6
 gitdb2==2.0.5
-gitpython==2.1.11
+gitpython==2.1.13
 idna==2.8
 ipaddress==1.0.22 ; python_version < "3.0"
 iso8601==0.1.12
