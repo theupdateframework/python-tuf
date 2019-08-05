@@ -49,4 +49,4 @@ smmap2==2.0.5
 stevedore==1.30.1
 tox==3.13.2
 virtualenv==16.7.2
-wrapt==1.11.1
+wrapt==1.11.2
