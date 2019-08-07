@@ -7,7 +7,7 @@ Uploaders:
  Justin Cappos <jcappos@nyu.edu>,
 Build-Depends:
  dh-python,
- debhelper (>= 12~),
+ debhelper-compat (= 12),
  python3-all,
  python3-setuptools,
  python3-six,
