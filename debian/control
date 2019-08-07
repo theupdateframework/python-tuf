@@ -14,7 +14,7 @@ Build-Depends:
  python3-iso8601,
  python3-requests,
  python3-securesystemslib (>= 0.11.3),
-Standards-Version: 4.3.0
+Standards-Version: 4.4.0
 Homepage: https://theupdateframework.com
 Vcs-Git: https://github.com/theupdateframework/tuf.git
 Vcs-Browser: https://github.com/theupdateframework/tuf
