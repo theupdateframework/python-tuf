@@ -1164,7 +1164,7 @@ class Metadata(object):
 
     <Arguments>
       threshold:
-        An integer value that sets the role's threshold value, or the miminum
+        An integer value that sets the role's threshold value, or the minimum
         number of signatures needed for metadata to be considered fully
         signed.  Conformant to 'securesystemslib.formats.THRESHOLD_SCHEMA'.
 
@@ -2169,7 +2169,7 @@ class Targets(Metadata):
         has not yet specified) in other delegations.  If 'terminating' is True
         and 'updater.target()' does not find 'example_target.tar.gz' in this
         role, a 'securesystemslib.exceptions.UnknownTargetError' exception
-        should be raised.  If 'terminatin' is False (default), and
+        should be raised.  If 'terminating' is False (default), and
         'target/other_role' is also trusted with 'example_target.tar.gz' and
         has listed it, updater.target() should backtrack and return the target
         file specified by 'target/other_role'.
@@ -2391,7 +2391,7 @@ class Targets(Metadata):
       Distribute a large number of target files over multiple delegated roles
       (hashed bins).  The metadata files of delegated roles will be nearly
       equal in size (i.e., 'list_of_targets' is uniformly distributed by
-      calculating the target filepath's hash and determing which bin it should
+      calculating the target filepath's hash and determining which bin it should
       reside in.  The updater client will use "lazy bin walk" to find a target
       file's hashed bin destination.  The parent role lists a range of path
       hash prefixes each hashed bin contains.  This method is intended for
@@ -3051,7 +3051,7 @@ def dump_signable_metadata(metadata_filepath):
   <Purpose>
     Dump the "signed" portion of metadata. It is the portion that is normally
     signed by the repository tool, which is in canonicalized JSON form.
-    This function is intented for external tools that wish to independently
+    This function is intended for external tools that wish to independently
     sign metadata.
 
     The normal workflow for this use case is to:
