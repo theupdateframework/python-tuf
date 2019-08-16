@@ -251,7 +251,7 @@ def _metadata_is_partially_loaded(rolename, signable, repository_name):
   at least zero good signatures, but an insufficient threshold (which means
   'rolename' was written to disk with repository.write_partial()).  A repository
   maintainer may write partial metadata without including a valid signature.
-  Howerver, the final repository.write() must include a threshold number of
+  However, the final repository.write() must include a threshold number of
   signatures.
 
   If 'rolename' is found to be partially loaded, mark it as partially loaded in
@@ -2080,7 +2080,7 @@ def create_tuf_client_directory(repository_directory, client_directory):
     is copied and that required directories ('previous' and 'current') are
     created in 'client_directory'.  Software updaters integrating TUF may
     use the client directory created as an initial copy of the repository's
-    metadadata.
+    metadata.
 
   <Arguments>
     repository_directory:
@@ -2090,7 +2090,7 @@ def create_tuf_client_directory(repository_directory, client_directory):
 
     client_directory:
       The path of the root client directory.  The 'current' and 'previous'
-      sub-directies are created and will store the metadata files copied
+      sub-directories are created and will store the metadata files copied
       from 'repository_directory'.  'client_directory' will store metadata
       and target files downloaded from a TUF repository.
 
