@@ -1164,7 +1164,7 @@ class Metadata(object):
 
     <Arguments>
       threshold:
-        An integer value that sets the role's threshold value, or the miminum
+        An integer value that sets the role's threshold value, or the minimum
         number of signatures needed for metadata to be considered fully
         signed.  Conformant to 'securesystemslib.formats.THRESHOLD_SCHEMA'.
 
