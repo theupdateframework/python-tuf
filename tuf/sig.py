@@ -93,7 +93,7 @@ def get_signature_status(signable, role=None, repository_name='default',
       Rather than reference the role's threshold as set in tuf.roledb.py, use
       the given 'threshold' to calculate the signature status of 'signable'.
       'threshold' is an integer value that sets the role's threshold value, or
-      the miminum number of signatures needed for metadata to be considered
+      the minimum number of signatures needed for metadata to be considered
       fully signed.
 
     keyids:
@@ -258,7 +258,7 @@ def verify(signable, role, repository_name='default', threshold=None,
       Rather than reference the role's threshold as set in tuf.roledb.py, use
       the given 'threshold' to calculate the signature status of 'signable'.
       'threshold' is an integer value that sets the role's threshold value, or
-      the miminum number of signatures needed for metadata to be considered
+      the minimum number of signatures needed for metadata to be considered
       fully signed.
 
     keyids:
@@ -315,7 +315,7 @@ def may_need_new_keys(signature_status):
   <Purpose>
     Return true iff downloading a new set of keys might tip this
     signature status over to valid.  This is determined by checking
-    if either the number of unknown or untrused keys is > 0.
+    if either the number of unknown or untrusted keys is > 0.
 
   <Arguments>
     signature_status:
