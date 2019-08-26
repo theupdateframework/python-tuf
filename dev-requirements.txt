@@ -22,7 +22,7 @@ backports.functools-lru-cache==1.5
 bandit==1.6.2
 cffi==1.12.3
 colorama==0.4.1
-configparser==3.7.4
+configparser==3.8.1
 cryptography==2.6.1
 enum34==1.1.6
 gitdb2==2.0.5
