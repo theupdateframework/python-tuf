@@ -398,7 +398,7 @@ def _download_fixed_amount_of_data(response, temp_file, required_length):
 
       else:
         logger.debug('The average download speed has not dipped below the'
-          ' mimimum average download speed set in tuf.settings.py.')
+          ' minimum average download speed set in tuf.settings.py.')
 
       # We might have no more data to read. Check number of bytes downloaded.
       if not data:
