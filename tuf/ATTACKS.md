@@ -200,7 +200,7 @@ $ python basic_client.py --repo http://localhost:8001
 
 At this point, part of the "file1.txt" file should have been fetched.  That is,
 up to 31 bytes of it should have been downloaded, and the rest of the maliciously
-appended data ignored.  If we inspect the logger, we'd disover the following:
+appended data ignored.  If we inspect the logger, we'd discover the following:
 
 ```Bash
 [2016-10-06 21:37:39,092 UTC] [tuf.download] [INFO] [_download_file:235@download.py]

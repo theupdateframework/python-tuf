@@ -519,7 +519,7 @@ def create_new_project(project_name, metadata_directory,
 
     location_in_repository:
       An optional argument to hold the "prefix" or the expected location for
-      the project files in the "upstream" respository. This value is only
+      the project files in the "upstream" repository. This value is only
       used to sign metadata in a way that it matches the future location
       of the files.
 

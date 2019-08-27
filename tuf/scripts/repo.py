@@ -112,7 +112,7 @@
     in --role) to --delegatee role with specified <rolename>.
     
   --delegatee:
-    Specify role that is targetted by delegator in --role to sign for
+    Specify role that is targeted by delegator in --role to sign for
     target files matching delegated <glob pattern> or in revocation of trust.
     
   --terminating:

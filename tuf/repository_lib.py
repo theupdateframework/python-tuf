@@ -2131,7 +2131,7 @@ def create_tuf_client_directory(repository_directory, client_directory):
 
   # If the client's metadata directory does not already exist, create it and
   # any of its parent directories, otherwise raise an exception.  An exception
-  # is raised to avoid accidently overwritting previous metadata.
+  # is raised to avoid accidentally overwritting previous metadata.
   try:
     os.makedirs(client_metadata_directory)
 
