@@ -918,7 +918,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater.refresh()
 
     # Second, verify that expired root metadata is not updated if
-    # 'unsafely_update_root_if_necessary' is explictly set to 'False'.
+    # 'unsafely_update_root_if_necessary' is explicitly set to 'False'.
     expired_date = '1960-01-01T12:00:00Z'
     self.repository_updater.metadata['current']['root']['expires'] = expired_date
     self.assertRaises(tuf.exceptions.ExpiredMetadataError,
@@ -1653,7 +1653,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_10__preorder_depth_first_walk(self):
 
-    # Test that infinit loop is prevented if the target file is not found and
+    # Test that infinite loop is prevented if the target file is not found and
     # the max number of delegations is reached.
     valid_max_number_of_delegations = tuf.settings.MAX_NUMBER_OF_DELEGATIONS
     tuf.settings.MAX_NUMBER_OF_DELEGATIONS = 0
