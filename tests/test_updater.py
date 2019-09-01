@@ -662,7 +662,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # because it has no signed metadata for itself.
     DEFAULT_TIMESTAMP_FILELENGTH = tuf.settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
 
-    # This is the the upper bound length for Targets metadata.
+    # This is the upper bound length for Targets metadata.
     DEFAULT_TARGETS_FILELENGTH = tuf.settings.DEFAULT_TARGETS_REQUIRED_LENGTH
 
     # Save the versioninfo of 'targets.json,' needed later when re-installing
