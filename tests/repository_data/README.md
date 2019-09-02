@@ -39,7 +39,7 @@ Before running the tests, static metadata is first copied to temporary
 directories and modified, as needed, by the tests.
 
 The test modules typically spawn HTTP(S) servers that serve metadata and target
-files for the the unit tests.  The [map
+files for the unit tests.  The [map
 file](https://github.com/theupdateframework/tuf/tree/develop/tests/repository_data)
 specifies the location of the test repositories and other properties.  For
 specific targets and metadata provided by the tests repositories, please

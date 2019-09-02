@@ -792,7 +792,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     repo_lib.write_metadata_file(root_signable, output_filename,
         version_number, consistent_snapshot=True)
 
-    # Test if the the latest root.json points to the expected consistent file
+    # Test if the latest root.json points to the expected consistent file
     # and consistent metadata do not all point to the same root.json
     version_and_filename = str(version_number) + '.' + 'root.json'
     second_version_output_file = os.path.join(temporary_directory, version_and_filename)
