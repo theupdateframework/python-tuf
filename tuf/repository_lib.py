@@ -726,7 +726,7 @@ def _log_warning_if_expires_soon(rolename, expires_iso8601_timestamp,
   """
 
   # Metadata stores expiration datetimes in ISO8601 format.  Convert to
-  # unix timestamp, subtract from from current time.time() (also in POSIX time)
+  # unix timestamp, subtract from current time.time() (also in POSIX time)
   # and compare against 'seconds_remaining_to_warn'.  Log a warning message
   # to console if 'rolename' expires soon.
   datetime_object = iso8601.parse_date(expires_iso8601_timestamp)

@@ -556,7 +556,7 @@ def _check_downloaded_length(total_downloaded, required_length,
     required_length.
 
     tuf.exceptions.SlowRetrievalError, if the total downloaded was
-    done in in less than the acceptable download speed (as set in
+    done in less than the acceptable download speed (as set in
     tuf.settings.py).
 
   <Returns>
