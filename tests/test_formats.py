@@ -145,7 +145,7 @@ class TestFormats(unittest.TestCase):
                            {'keyid': '123abc',
                             'sig': 'A4582BCF323BCEF'}),
 
-      'SIGNATURESTATUS_SCHEMA': (securesystemslib.formats.SIGNATURESTATUS_SCHEMA,
+      'SIGNATURESTATUS_SCHEMA': (tuf.formats.SIGNATURESTATUS_SCHEMA,
                                  {'threshold': 1,
                                   'good_sigs': ['123abc'],
                                   'bad_sigs': ['123abc'],
@@ -164,7 +164,7 @@ class TestFormats(unittest.TestCase):
                                      'keyval': {'public': 'pubkey',
                                                 'private': 'privkey'}}}),
 
-      'KEYDB_SCHEMA': (securesystemslib.formats.KEYDB_SCHEMA,
+      'KEYDB_SCHEMA': (tuf.formats.KEYDB_SCHEMA,
                        {'123abc': {'keytype': 'rsa',
                                    'scheme': 'rsassa-pss-sha256',
                                    'keyid': '123456789abcdef',
@@ -738,7 +738,7 @@ class TestFormats(unittest.TestCase):
     version_number = 8
     versioninfo = {'version': version_number}
 
-    VERSIONINFO_SCHEMA = securesystemslib.formats.VERSIONINFO_SCHEMA
+    VERSIONINFO_SCHEMA = tuf.formats.VERSIONINFO_SCHEMA
     make_versioninfo = tuf.formats.make_versioninfo
     self.assertTrue(VERSIONINFO_SCHEMA.matches(make_versioninfo(version_number)))
 

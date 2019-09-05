@@ -85,12 +85,20 @@ SPECIFICATION_VERSION_SCHEMA = SCHEMA.AnyString()
 # check, and an ISO8601 string should be fully verified when it is parsed.
 ISO8601_DATETIME_SCHEMA = SCHEMA.RegularExpression(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z')
 
+# An integer representing the numbered version of a metadata file.
+# Must be 1, or greater.
+METADATAVERSION_SCHEMA = SCHEMA.Integer(lo=0)
+
+VERSIONINFO_SCHEMA = SCHEMA.Object(
+  object_name = 'VERSIONINFO_SCHEMA',
+  version = METADATAVERSION_SCHEMA)
+
 # A dict holding the version or file information for a particular metadata
 # role.  The dict keys hold the relative file paths, and the dict values the
 # corresponding version numbers and/or file information.
 FILEINFODICT_SCHEMA = SCHEMA.DictOf(
   key_schema = securesystemslib.formats.RELPATH_SCHEMA,
-  value_schema = SCHEMA.OneOf([securesystemslib.formats.VERSIONINFO_SCHEMA,
+  value_schema = SCHEMA.OneOf([VERSIONINFO_SCHEMA,
                               securesystemslib.formats.FILEINFO_SCHEMA]))
 
 # A string representing a role's name.
@@ -136,10 +144,6 @@ VERSION_SCHEMA = SCHEMA.Object(
   minor = SCHEMA.Integer(lo=0),
   fix = SCHEMA.Integer(lo=0))
 
-# An integer representing the numbered version of a metadata file.
-# Must be 1, or greater.
-METADATAVERSION_SCHEMA = SCHEMA.Integer(lo=0)
-
 # A value that is either True or False, on or off, etc.
 BOOLEAN_SCHEMA = SCHEMA.Boolean()
 
@@ -183,6 +187,26 @@ KEY_SCHEMA = SCHEMA.Object(
 KEYDICT_SCHEMA = SCHEMA.DictOf(
   key_schema = KEYID_SCHEMA,
   value_schema = KEY_SCHEMA)
+
+# The format used by the key database to store keys.  The dict keys hold a key
+# identifier and the dict values any object.  The key database should store
+# key objects in the values (e.g., 'RSAKEY_SCHEMA', 'DSAKEY_SCHEMA').
+KEYDB_SCHEMA = SCHEMA.DictOf(
+  key_schema = KEYID_SCHEMA,
+  value_schema = SCHEMA.Any())
+
+# A schema holding the result of checking the signatures of a particular
+# 'SIGNABLE_SCHEMA' role.
+# For example, how many of the signatures for the 'Target' role are
+# valid?  This SCHEMA holds this information.  See 'sig.py' for
+# more information.
+SIGNATURESTATUS_SCHEMA = SCHEMA.Object(
+  object_name = 'SIGNATURESTATUS_SCHEMA',
+  threshold = SCHEMA.Integer(),
+  good_sigs = KEYIDS_SCHEMA,
+  bad_sigs = KEYIDS_SCHEMA,
+  unknown_sigs = KEYIDS_SCHEMA,
+  untrusted_sigs = KEYIDS_SCHEMA)
 
 
 # A relative file path (e.g., 'metadata/root/').
@@ -811,7 +835,7 @@ def make_versioninfo(version_number):
 
   # Raise 'securesystemslib.exceptions.FormatError' if 'versioninfo' is
   # improperly formatted.
-  securesystemslib.formats.VERSIONINFO_SCHEMA.check_match(versioninfo)
+  VERSIONINFO_SCHEMA.check_match(versioninfo)
 
   return versioninfo
 

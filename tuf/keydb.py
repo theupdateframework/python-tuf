@@ -65,7 +65,7 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
   <Purpose>
     Populate the key database with the unique keys found in 'root_metadata'.
     The database dictionary will conform to
-    'securesystemslib.formats.KEYDB_SCHEMA' and have the form: {keyid: key,
+    'tuf.formats.KEYDB_SCHEMA' and have the form: {keyid: key,
     ...}.  The 'keyid' conforms to 'securesystemslib.formats.KEYID_SCHEMA' and
     'key' to its respective type.  In the case of RSA keys, this object would
     match 'RSAKEY_SCHEMA'.
