@@ -97,8 +97,9 @@ CONSISTENT_METHOD = 'copy'
 
 # A setting for the instances where a default hashing algorithm is needed.
 # This setting is currently used to calculate the path hash prefixes of hashed
-# bin delegations.  The other instances (e.g., digest of files) that require a
-# hashing algorithm rely on settings in the securesystemslib external library.
+# bin delegations, and digests of targets filepaths.  The other instances
+# (e.g., digest of files) that require a hashing algorithm rely on settings in
+# the securesystemslib external library.
 DEFAULT_HASH_ALGORITHM = 'sha256'
 
 # The client's update procedure (contained within a while-loop) can potentially
