@@ -1131,7 +1131,7 @@ def get_metadata_versioninfo(rolename, repository_name):
   """
   <Purpose>
     Retrieve the version information of 'rolename'.  The object returned
-    conforms to 'securesystemslib.VERSIONINFO_SCHEMA'.  The information
+    conforms to 'tuf.formats.VERSIONINFO_SCHEMA'.  The information
     generated for 'rolename' is stored in 'snapshot.json'.
     The versioninfo object returned has the form:
 
@@ -1156,7 +1156,7 @@ def get_metadata_versioninfo(rolename, repository_name):
     None.
 
   <Returns>
-    A dictionary conformant to 'securesystemslib.VERSIONINFO_SCHEMA'.
+    A dictionary conformant to 'tuf.formats.VERSIONINFO_SCHEMA'.
     This dictionary contains the version  number of 'rolename'.
   """
 

@@ -1973,7 +1973,7 @@ class Updater(object):
         A dict object representing the new file information for
         'metadata_filename'.  'new_versioninfo' may be 'None' when
         updating 'root' without having 'snapshot' available.  This
-        dict conforms to 'securesystemslib.formats.VERSIONINFO_SCHEMA' and has
+        dict conforms to 'tuf.formats.VERSIONINFO_SCHEMA' and has
         the form:
 
         {'version': 288}

@@ -66,7 +66,7 @@ class TestSig(unittest.TestCase):
 
     # A valid, but empty signature status.
     sig_status = tuf.sig.get_signature_status(signable)
-    self.assertTrue(securesystemslib.formats.SIGNATURESTATUS_SCHEMA.matches(sig_status))
+    self.assertTrue(tuf.formats.SIGNATURESTATUS_SCHEMA.matches(sig_status))
 
     self.assertEqual(0, sig_status['threshold'])
     self.assertEqual([], sig_status['good_sigs'])
