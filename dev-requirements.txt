@@ -34,7 +34,7 @@ isort==4.3.21
 lazy-object-proxy==1.4.2
 mccabe==0.6.1
 pbr==5.4.3
-pluggy==0.9.0
+pluggy==0.12.0
 py==1.8.0
 pycparser==2.19
 pylint==2.3.1; python_version >= "3.0"
