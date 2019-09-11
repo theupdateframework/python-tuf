@@ -1,13 +1,15 @@
 [run]
 branch = True
 
+omit =
+    # Command-line scripts.
+    */tuf/scripts/client.py
+    */tuf/scripts/repo.py
+    */tests/*
+    */site-packages/*
+
 [report]
 exclude_lines =
     pragma: no cover
     def __str__
     if __name__ == .__main__.:
-
-omit =
-    # Command-line scripts.
-    */tuf/scripts/client.py
-    */tuf/scripts/repo.py
