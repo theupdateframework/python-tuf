@@ -2627,7 +2627,7 @@ class Updater(object):
 
     # Does 'rolename' have the correct format?
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    securesystemslib.formats.RELPATH_SCHEMA.check_match(rolename)
+    tuf.formats.RELPATH_SCHEMA.check_match(rolename)
 
     # If we've been given a delegated targets role, we don't know how to
     # validate it without knowing what the delegating role is -- there could
@@ -2690,7 +2690,7 @@ class Updater(object):
 
     # Does 'target_filepath' have the correct format?
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    securesystemslib.formats.RELPATH_SCHEMA.check_match(target_filepath)
+    tuf.formats.RELPATH_SCHEMA.check_match(target_filepath)
 
     target_filepath = target_filepath.replace('\\', '/')
 

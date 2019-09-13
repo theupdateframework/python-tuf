@@ -1049,7 +1049,7 @@ class Metadata(object):
     """
     <Purpose>
       A getter method that returns the role's version number, conformant to
-      'securesystemslib.formats.VERSION_SCHEMA'.
+      'tuf.formats.VERSION_SCHEMA'.
 
     <Arguments>
       None.
@@ -1062,7 +1062,7 @@ class Metadata(object):
 
     <Returns>
       The role's version number, conformant to
-      'securesystemslib.formats.VERSION_SCHEMA'.
+      'tuf.formats.VERSION_SCHEMA'.
     """
 
     roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
@@ -1094,7 +1094,7 @@ class Metadata(object):
     <Arguments>
       version:
         The role's version number, conformant to
-        'securesystemslib.formats.VERSION_SCHEMA'.
+        'tuf.formats.VERSION_SCHEMA'.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError, if the 'version' argument is
@@ -1140,7 +1140,7 @@ class Metadata(object):
 
     <Returns>
       The role's threshold value, conformant to
-      'securesystemslib.formats.THRESHOLD_SCHEMA'.
+      'tuf.formats.THRESHOLD_SCHEMA'.
     """
 
     roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
@@ -1166,7 +1166,7 @@ class Metadata(object):
       threshold:
         An integer value that sets the role's threshold value, or the minimum
         number of signatures needed for metadata to be considered fully
-        signed.  Conformant to 'securesystemslib.formats.THRESHOLD_SCHEMA'.
+        signed.  Conformant to 'tuf.formats.THRESHOLD_SCHEMA'.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError, if the 'threshold' argument is
@@ -1184,7 +1184,7 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    securesystemslib.formats.THRESHOLD_SCHEMA.check_match(threshold)
+    tuf.formats.THRESHOLD_SCHEMA.check_match(threshold)
 
     roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
     roleinfo['previous_threshold'] = roleinfo['threshold']
@@ -1983,7 +1983,7 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    securesystemslib.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
+    tuf.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
 
     # Update the tuf.roledb entry.
     targets_directory_length = len(self._targets_directory)
@@ -2054,7 +2054,7 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    securesystemslib.formats.RELPATH_SCHEMA.check_match(filepath)
+    tuf.formats.RELPATH_SCHEMA.check_match(filepath)
 
     # Remove 'relative_filepath', if found, and update this Targets roleinfo.
     fileinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
@@ -2211,15 +2211,15 @@ class Targets(Metadata):
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
     securesystemslib.formats.ANYKEYLIST_SCHEMA.check_match(public_keys)
-    securesystemslib.formats.RELPATHS_SCHEMA.check_match(paths)
-    securesystemslib.formats.THRESHOLD_SCHEMA.check_match(threshold)
+    tuf.formats.RELPATHS_SCHEMA.check_match(paths)
+    tuf.formats.THRESHOLD_SCHEMA.check_match(threshold)
     securesystemslib.formats.BOOLEAN_SCHEMA.check_match(terminating)
 
     if list_of_targets is not None:
-      securesystemslib.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
+      tuf.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
 
     if path_hash_prefixes is not None:
-      securesystemslib.formats.PATH_HASH_PREFIXES_SCHEMA.check_match(path_hash_prefixes)
+      tuf.formats.PATH_HASH_PREFIXES_SCHEMA.check_match(path_hash_prefixes)
 
     # Keep track of the valid keyids (added to the new Targets object) and
     # their keydicts (added to this Targets delegations).

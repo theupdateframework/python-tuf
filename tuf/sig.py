@@ -126,7 +126,7 @@ def get_signature_status(signable, role=None, repository_name='default',
     tuf.formats.ROLENAME_SCHEMA.check_match(role)
 
   if threshold is not None:
-    securesystemslib.formats.THRESHOLD_SCHEMA.check_match(threshold)
+    tuf.formats.THRESHOLD_SCHEMA.check_match(threshold)
 
   if keyids is not None:
     securesystemslib.formats.KEYIDS_SCHEMA.check_match(keyids)

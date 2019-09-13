@@ -694,7 +694,7 @@ def _save_project_configuration(metadata_directory, targets_directory,
   securesystemslib.formats.PATH_SCHEMA.check_match(metadata_directory)
   securesystemslib.formats.PATH_SCHEMA.check_match(prefix)
   securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
-  securesystemslib.formats.RELPATH_SCHEMA.check_match(project_name)
+  tuf.formats.RELPATH_SCHEMA.check_match(project_name)
 
   cfg_file_directory = metadata_directory
 

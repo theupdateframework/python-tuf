@@ -71,9 +71,9 @@ class TestFormats(unittest.TestCase):
 
       'SCHEME_SCHEMA': (securesystemslib.formats.SCHEME_SCHEMA, 'rsassa-pss-sha256'),
 
-      'RELPATH_SCHEMA': (securesystemslib.formats.RELPATH_SCHEMA, 'metadata/root/'),
+      'RELPATH_SCHEMA': (tuf.formats.RELPATH_SCHEMA, 'metadata/root/'),
 
-      'RELPATHS_SCHEMA': (securesystemslib.formats.RELPATHS_SCHEMA,
+      'RELPATHS_SCHEMA': (tuf.formats.RELPATHS_SCHEMA,
                           ['targets/role1/', 'targets/role2/']),
 
       'PATH_SCHEMA': (securesystemslib.formats.PATH_SCHEMA, '/home/someuser/'),
@@ -84,16 +84,16 @@ class TestFormats(unittest.TestCase):
       'URL_SCHEMA': (securesystemslib.formats.URL_SCHEMA,
                      'https://www.updateframework.com/'),
 
-      'VERSION_SCHEMA': (securesystemslib.formats.VERSION_SCHEMA,
+      'VERSION_SCHEMA': (tuf.formats.VERSION_SCHEMA,
                          {'major': 1, 'minor': 0, 'fix': 8}),
 
-      'LENGTH_SCHEMA': (securesystemslib.formats.LENGTH_SCHEMA, 8),
+      'LENGTH_SCHEMA': (tuf.formats.LENGTH_SCHEMA, 8),
 
       'NAME_SCHEMA': (securesystemslib.formats.NAME_SCHEMA, 'Marty McFly'),
 
       'BOOLEAN_SCHEMA': (securesystemslib.formats.BOOLEAN_SCHEMA, True),
 
-      'THRESHOLD_SCHEMA': (securesystemslib.formats.THRESHOLD_SCHEMA, 1),
+      'THRESHOLD_SCHEMA': (tuf.formats.THRESHOLD_SCHEMA, 1),
 
       'ROLENAME_SCHEMA': (tuf.formats.ROLENAME_SCHEMA, 'Root'),
 

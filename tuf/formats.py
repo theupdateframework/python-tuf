@@ -95,20 +95,30 @@ ISO8601_DATETIME_SCHEMA = SCHEMA.RegularExpression(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{
 # Must be 1, or greater.
 METADATAVERSION_SCHEMA = SCHEMA.Integer(lo=0)
 
+# A relative file path (e.g., 'metadata/root/').
+RELPATH_SCHEMA = SCHEMA.AnyString()
+RELPATHS_SCHEMA = SCHEMA.ListOf(RELPATH_SCHEMA)
+
 VERSIONINFO_SCHEMA = SCHEMA.Object(
   object_name = 'VERSIONINFO_SCHEMA',
   version = METADATAVERSION_SCHEMA)
 
-# A dict holding the version or file information for a particular metadata
-# role.  The dict keys hold the relative file paths, and the dict values the
-# corresponding version numbers and/or file information.
-FILEINFODICT_SCHEMA = SCHEMA.DictOf(
-  key_schema = securesystemslib.formats.RELPATH_SCHEMA,
-  value_schema = SCHEMA.OneOf([VERSIONINFO_SCHEMA,
-                              securesystemslib.formats.FILEINFO_SCHEMA]))
-
 # A string representing a role's name.
 ROLENAME_SCHEMA = SCHEMA.AnyString()
+
+# A role's threshold value (i.e., the minimum number
+# of signatures required to sign a metadata file).
+# Must be 1 and greater.
+THRESHOLD_SCHEMA = SCHEMA.Integer(lo=1)
+
+# A hexadecimal value in '23432df87ab..' format.
+HEX_SCHEMA = SCHEMA.RegularExpression(r'[a-fA-F0-9]+')
+
+# A path hash prefix is a hexadecimal string.
+PATH_HASH_PREFIX_SCHEMA = HEX_SCHEMA
+
+# A list of path hash prefixes.
+PATH_HASH_PREFIXES_SCHEMA = SCHEMA.ListOf(PATH_HASH_PREFIX_SCHEMA)
 
 # Role object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1,
 # 'paths':[filepaths..]} format.
@@ -116,12 +126,12 @@ ROLENAME_SCHEMA = SCHEMA.AnyString()
 #       the way I did in Uptane's TUF fork.
 ROLE_SCHEMA = SCHEMA.Object(
   object_name = 'ROLE_SCHEMA',
-  name = SCHEMA.Optional(securesystemslib.formats.ROLENAME_SCHEMA),
+  name = SCHEMA.Optional(ROLENAME_SCHEMA),
   keyids = securesystemslib.formats.KEYIDS_SCHEMA,
-  threshold = securesystemslib.formats.THRESHOLD_SCHEMA,
+  threshold = THRESHOLD_SCHEMA,
   terminating = SCHEMA.Optional(securesystemslib.formats.BOOLEAN_SCHEMA),
-  paths = SCHEMA.Optional(securesystemslib.formats.RELPATHS_SCHEMA),
-  path_hash_prefixes = SCHEMA.Optional(securesystemslib.formats.PATH_HASH_PREFIXES_SCHEMA))
+  paths = SCHEMA.Optional(RELPATHS_SCHEMA),
+  path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA))
 
 # A dict of roles where the dict keys are role names and the dict values holding
 # the role data/information.
@@ -156,16 +166,8 @@ BOOLEAN_SCHEMA = SCHEMA.Boolean()
 # A string representing a role's name.
 ROLENAME_SCHEMA = SCHEMA.AnyString()
 
-# A role's threshold value (i.e., the minimum number
-# of signatures required to sign a metadata file).
-# Must be 1 and greater.
-THRESHOLD_SCHEMA = SCHEMA.Integer(lo=1)
-
 # A hexadecimal value in '23432df87ab..' format.
 HASH_SCHEMA = SCHEMA.RegularExpression(r'[a-fA-F0-9]+')
-
-# A hexadecimal value in '23432df87ab..' format.
-HEX_SCHEMA = SCHEMA.RegularExpression(r'[a-fA-F0-9]+')
 
 # A key identifier (e.g., a hexadecimal value identifying an RSA key).
 KEYID_SCHEMA = HASH_SCHEMA
@@ -214,17 +216,6 @@ SIGNATURESTATUS_SCHEMA = SCHEMA.Object(
   unknown_sigs = KEYIDS_SCHEMA,
   untrusted_sigs = KEYIDS_SCHEMA)
 
-
-# A relative file path (e.g., 'metadata/root/').
-RELPATH_SCHEMA = SCHEMA.AnyString()
-RELPATHS_SCHEMA = SCHEMA.ListOf(RELPATH_SCHEMA)
-
-# A path hash prefix is a hexadecimal string.
-PATH_HASH_PREFIX_SCHEMA = HEX_SCHEMA
-
-# A list of path hash prefixes.
-PATH_HASH_PREFIXES_SCHEMA = SCHEMA.ListOf(PATH_HASH_PREFIX_SCHEMA)
-
 # Role object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1,
 # 'paths':[filepaths..]} format.
 ROLE_SCHEMA = SCHEMA.Object(
@@ -259,6 +250,14 @@ FILEINFO_SCHEMA = SCHEMA.Object(
   hashes = HASHDICT_SCHEMA,
   version = SCHEMA.Optional(METADATAVERSION_SCHEMA),
   custom = SCHEMA.Optional(SCHEMA.Object()))
+
+# A dict holding the version or file information for a particular metadata
+# role.  The dict keys hold the relative file paths, and the dict values the
+# corresponding version numbers and/or file information.
+FILEINFODICT_SCHEMA = SCHEMA.DictOf(
+  key_schema = RELPATH_SCHEMA,
+  value_schema = SCHEMA.OneOf([VERSIONINFO_SCHEMA,
+                              FILEINFO_SCHEMA]))
 
 # A dict holding the information for a particular target / file.  The dict keys
 # hold the relative file paths, and the dict values the corresponding file
@@ -369,7 +368,7 @@ TARGETS_SCHEMA = SCHEMA.Object(
 SNAPSHOT_SCHEMA = SCHEMA.Object(
   object_name = 'SNAPSHOT_SCHEMA',
   _type = SCHEMA.String('snapshot'),
-  version = securesystemslib.formats.METADATAVERSION_SCHEMA,
+  version = METADATAVERSION_SCHEMA,
   expires = securesystemslib.formats.ISO8601_DATETIME_SCHEMA,
   spec_version = SPECIFICATION_VERSION_SCHEMA,
   meta = FILEINFODICT_SCHEMA)
@@ -379,9 +378,9 @@ TIMESTAMP_SCHEMA = SCHEMA.Object(
   object_name = 'TIMESTAMP_SCHEMA',
   _type = SCHEMA.String('timestamp'),
   spec_version = SPECIFICATION_VERSION_SCHEMA,
-  version = securesystemslib.formats.METADATAVERSION_SCHEMA,
+  version = METADATAVERSION_SCHEMA,
   expires = securesystemslib.formats.ISO8601_DATETIME_SCHEMA,
-  meta = securesystemslib.formats.FILEDICT_SCHEMA)
+  meta = FILEDICT_SCHEMA)
 
 
 # project.cfg file: stores information about the project in a json dictionary
@@ -401,9 +400,9 @@ PROJECT_CFG_SCHEMA = SCHEMA.Object(
 MIRROR_SCHEMA = SCHEMA.Object(
   object_name = 'MIRROR_SCHEMA',
   url_prefix = securesystemslib.formats.URL_SCHEMA,
-  metadata_path = securesystemslib.formats.RELPATH_SCHEMA,
-  targets_path = securesystemslib.formats.RELPATH_SCHEMA,
-  confined_target_dirs = securesystemslib.formats.RELPATHS_SCHEMA,
+  metadata_path = RELPATH_SCHEMA,
+  targets_path = RELPATH_SCHEMA,
+  confined_target_dirs = RELPATHS_SCHEMA,
   custom = SCHEMA.Optional(SCHEMA.Object()))
 
 # A dictionary of mirrors where the dict keys hold the mirror's name and
@@ -807,7 +806,7 @@ def make_fileinfo(length, hashes, version=None, custom=None):
     fileinfo['custom'] = custom
 
   # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
-  securesystemslib.formats.FILEINFO_SCHEMA.check_match(fileinfo)
+  FILEINFO_SCHEMA.check_match(fileinfo)
 
   return fileinfo
 

@@ -1556,7 +1556,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       '/Jalape\xc3\xb1o': '78bfd5c314680545eb48ecad508aceb861f8d6e680f4fe1b791da45c298cda88'
     }
     for filepath, target_hash in six.iteritems(expected_target_hashes):
-      self.assertTrue(securesystemslib.formats.RELPATH_SCHEMA.matches(filepath))
+      self.assertTrue(tuf.formats.RELPATH_SCHEMA.matches(filepath))
       self.assertTrue(securesystemslib.formats.HASH_SCHEMA.matches(target_hash))
       self.assertEqual(self.repository_updater._get_target_hash(filepath), target_hash)
 

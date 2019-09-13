@@ -417,7 +417,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       '/packages/file2.txt': 'c9c4a5cdd84858dd6a23d98d7e6e6b2aec45034946c16b2200bc317c75415e92'
     }
     for filepath, target_hash in six.iteritems(expected_target_hashes):
-      self.assertTrue(securesystemslib.formats.RELPATH_SCHEMA.matches(filepath))
+      self.assertTrue(tuf.formats.RELPATH_SCHEMA.matches(filepath))
       self.assertTrue(securesystemslib.formats.HASH_SCHEMA.matches(target_hash))
       self.assertEqual(repo_lib.get_target_hash(filepath), target_hash)
 
