@@ -318,7 +318,7 @@ class TestKeydb(unittest.TestCase):
     root_metadata = tuf.formats.build_dict_conforming_to_schema(
         tuf.formats.ROOT_SCHEMA,
         _type='root',
-        spec_version='1.0',
+        spec_version='1.0.0',
         version=version,
         expires=expires,
         keys=keydict,
@@ -378,7 +378,7 @@ class TestKeydb(unittest.TestCase):
     root_metadata = tuf.formats.build_dict_conforming_to_schema(
         tuf.formats.ROOT_SCHEMA,
         _type='root',
-        spec_version='1.0',
+        spec_version='1.0.0',
         version=version,
         expires=expires,
         keys=keydict,

@@ -200,7 +200,7 @@ class TestFormats(unittest.TestCase):
 
       'ROOT_SCHEMA': (tuf.formats.ROOT_SCHEMA,
                       {'_type': 'root',
-                       'spec_version': '1.0',
+                       'spec_version': '1.0.0',
                        'version': 8,
                        'consistent_snapshot': False,
                        'expires': '1985-10-21T13:20:00Z',
@@ -214,7 +214,7 @@ class TestFormats(unittest.TestCase):
 
       'TARGETS_SCHEMA': (tuf.formats.TARGETS_SCHEMA,
         {'_type': 'targets',
-         'spec_version': '1.0',
+         'spec_version': '1.0.0',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
          'targets': {'metadata/targets.json': {'length': 1024,
@@ -230,14 +230,14 @@ class TestFormats(unittest.TestCase):
 
       'SNAPSHOT_SCHEMA': (tuf.formats.SNAPSHOT_SCHEMA,
         {'_type': 'snapshot',
-         'spec_version': '1.0',
+         'spec_version': '1.0.0',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
          'meta': {'snapshot.json': {'version': 1024}}}),
 
       'TIMESTAMP_SCHEMA': (tuf.formats.TIMESTAMP_SCHEMA,
         {'_type': 'timestamp',
-         'spec_version': '1.0',
+         'spec_version': '1.0.0',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
          'meta': {'metadattimestamp.json': {'length': 1024,
@@ -260,7 +260,7 @@ class TestFormats(unittest.TestCase):
       'MIRRORLIST_SCHEMA': (tuf.formats.MIRRORLIST_SCHEMA,
         {'_type': 'mirrors',
          'version': 8,
-         'spec_version': '1.0',
+         'spec_version': '1.0.0',
          'expires': '1985-10-21T13:20:00Z',
          'mirrors': [{'url_prefix': 'http://localhost:8001',
          'metadata_path': 'metadata/',
@@ -285,7 +285,96 @@ class TestFormats(unittest.TestCase):
       self.assertEqual(False, schema_type.matches(invalid_schema))
 
 
+  def test_specfication_version_schema(self):
+    """Test valid and invalid SPECIFICATION_VERSION_SCHEMAs, using examples
+    from 'regex101.com/r/Ly7O1x/3/', referenced by
+    'semver.org/spec/v2.0.0.html'. """
+    valid_schemas = [
+        "0.0.4",
+        "1.2.3",
+        "10.20.30",
+        "1.1.2-prerelease+meta",
+        "1.1.2+meta",
+        "1.1.2+meta-valid",
+        "1.0.0-alpha",
+        "1.0.0-beta",
+        "1.0.0-alpha.beta",
+        "1.0.0-alpha.beta.1",
+        "1.0.0-alpha.1",
+        "1.0.0-alpha0.valid",
+        "1.0.0-alpha.0valid",
+        "1.0.0-alpha-a.b-c-somethinglong+build.1-aef.1-its-okay",
+        "1.0.0-rc.1+build.1",
+        "2.0.0-rc.1+build.123",
+        "1.2.3-beta",
+        "10.2.3-DEV-SNAPSHOT",
+        "1.2.3-SNAPSHOT-123",
+        "1.0.0",
+        "2.0.0",
+        "1.1.7",
+        "2.0.0+build.1848",
+        "2.0.1-alpha.1227",
+        "1.0.0-alpha+beta",
+        "1.2.3----RC-SNAPSHOT.12.9.1--.12+788",
+        "1.2.3----R-S.12.9.1--.12+meta",
+        "1.2.3----RC-SNAPSHOT.12.9.1--.12",
+        "1.0.0+0.build.1-rc.10000aaa-kk-0.1",
+        "99999999999999999999999.999999999999999999.99999999999999999",
+        "1.0.0-0A.is.legal"]
 
+    for valid_schema in valid_schemas:
+      self.assertTrue(
+          tuf.formats.SPECIFICATION_VERSION_SCHEMA.matches(valid_schema),
+          "'{}' should match 'SPECIFICATION_VERSION_SCHEMA'.".format(
+          valid_schema))
+
+    invalid_schemas = [
+        "1",
+        "1.2",
+        "1.2.3-0123",
+        "1.2.3-0123.0123",
+        "1.1.2+.123",
+        "+invalid",
+        "-invalid",
+        "-invalid+invalid",
+        "-invalid.01",
+        "alpha",
+        "alpha.beta",
+        "alpha.beta.1",
+        "alpha.1",
+        "alpha+beta",
+        "alpha_beta",
+        "alpha.",
+        "alpha..",
+        "beta",
+        "1.0.0-alpha_beta",
+        "-alpha.",
+        "1.0.0-alpha..",
+        "1.0.0-alpha..1",
+        "1.0.0-alpha...1",
+        "1.0.0-alpha....1",
+        "1.0.0-alpha.....1",
+        "1.0.0-alpha......1",
+        "1.0.0-alpha.......1",
+        "01.1.1",
+        "1.01.1",
+        "1.1.01",
+        "1.2",
+        "1.2.3.DEV",
+        "1.2-SNAPSHOT",
+        "1.2.31.2.3----RC-SNAPSHOT.12.09.1--..12+788",
+        "1.2-RC-SNAPSHOT",
+        "-1.0.3-gamma+b7718",
+        "+justmeta",
+        "9.8.7+meta+meta",
+        "9.8.7-whatever+meta+meta",
+        "99999999999999999999999.999999999999999999.99999999999999999----RC-SNAPSHOT.12.09.1--------------------------------..12"]
+
+    for invalid_schema in invalid_schemas:
+      self.assertFalse(
+          tuf.formats.SPECIFICATION_VERSION_SCHEMA.matches(invalid_schema),
+          "'{}' should not match 'SPECIFICATION_VERSION_SCHEMA'.".format(
+          invalid_schema))
 
 
   def test_build_dict_conforming_to_schema(self):
@@ -681,7 +770,7 @@ class TestFormats(unittest.TestCase):
   def test_make_signable(self):
     # Test conditions for expected make_signable() behavior.
     root = {'_type': 'root',
-            'spec_version': '1.0',
+            'spec_version': '1.0.0',
             'version': 8,
             'consistent_snapshot': False,
             'expires': '1985-10-21T13:20:00Z',
@@ -773,7 +862,7 @@ class TestFormats(unittest.TestCase):
   def test_check_signable_object_format(self):
     # Test condition for a valid argument.
     root = {'_type': 'root',
-            'spec_version': '1.0',
+            'spec_version': '1.0.0',
             'version': 8,
             'consistent_snapshot': False,
             'expires': '1985-10-21T13:20:00Z',

@@ -756,7 +756,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     correct_specification_version = tuf.SPECIFICATION_VERSION
 
     # Change it long enough to write new metadata.
-    tuf.SPECIFICATION_VERSION = '9.0'
+    tuf.SPECIFICATION_VERSION = '0.9.0'
 
     repository = repo_tool.load_repository(self.repository_directory)
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
@@ -791,42 +791,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
           'Expected a failure to verify metadata when the metadata had a '
           'specification version number that was unexpected.  '
           'No error was raised.')
-
-    # Test for an improperly formatted TUF version number.
-    # Tell the TUF code to write 'BAD' as its specification version number.
-    tuf.SPECIFICATION_VERSION = 'BAD'
-    repository = repo_tool.load_repository(self.repository_directory)
-    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
-    repository.writeall()
-
-    # Move the staged metadata to the "live" metadata.
-    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
-    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
-                    os.path.join(self.repository_directory, 'metadata'))
-
-    # Change the supported TUF specification version back to what it should be,
-    # so that code expects the correct specification version, and gets nonsense
-    # instead.
-    tuf.SPECIFICATION_VERSION = correct_specification_version
-
-    try:
-      self.repository_updater._get_metadata_file('timestamp', 'timestamp.json',
-      upperbound_filelength, 1)
-
-    except tuf.exceptions.NoWorkingMirrorError as e:
-      for mirror_error in six.itervalues(e.mirror_errors):
-        assert isinstance(mirror_error, securesystemslib.exceptions.FormatError)
-
-    else:
-      self.fail(
-          'Expected a failure to verify metadata when the metadata had a '
-          'specification version number that was not in the correct format.  '
-          'No error was raised.')
-
-    # REDUNDANTLY reset the specification version the code thinks it supports
-    # as the last step in this test, in case future changes to the tests above
-    # neglect to reset it above....
-    tuf.SPECIFICATION_VERSION = correct_specification_version
 
 
 

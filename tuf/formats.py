@@ -76,8 +76,14 @@ import tuf
 
 import six
 
-
-SPECIFICATION_VERSION_SCHEMA = SCHEMA.AnyString()
+# As per TUF spec 1.0.0 the spec version field must follow the Semantic
+# Versioning 2.0.0 (semver) format. The regex pattern is provided by semver.
+# https://semver.org/spec/v2.0.0.html#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
+SPECIFICATION_VERSION_SCHEMA = SCHEMA.RegularExpression(
+  r'(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)'
+  r'(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)'
+  r'(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?'
+  r'(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?')
 
 # A datetime in 'YYYY-MM-DDTHH:MM:SSZ' ISO 8601 format.  The "Z" zone designator
 # for the zero UTC offset is always used (i.e., a numerical offset is not
@@ -518,7 +524,7 @@ def build_dict_conforming_to_schema(schema, **kwargs):
         build_dict_conforming_to_schema(
             TIMESTAMP_SCHEMA,
             _type='timestamp',
-            spec_version='1.0',
+            spec_version='1.0.0',
             version=1,
             expires='2020-01-01T00:00:00Z',
             meta={...})
