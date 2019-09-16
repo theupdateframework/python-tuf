@@ -1060,8 +1060,9 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Append the new valid, but duplicate PSS signature, and test that
     # duplicates are removed.  create_signature() generates a key for the
     # key type of the first argument (i.e., root_rsa_key).
+    data = securesystemslib.formats.encode_canonical(root_signable['signed']).encode('utf-8')
     new_pss_signature = securesystemslib.keys.create_signature(root_rsa_key,
-        root_signable['signed'])
+        data)
     root_signable['signatures'].append(new_pss_signature)
 
     expected_number_of_signatures = len(root_signable['signatures'])
