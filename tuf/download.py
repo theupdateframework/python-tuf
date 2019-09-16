@@ -20,10 +20,7 @@
 <Purpose>
   Download metadata and target files and check their validity.  The hash and
   length of a downloaded file has to match the hash and length supplied by the
-  metadata of that file.  The downloaded file is technically a  file-like
-  object that will automatically destroys itself once closed.  Note that the
-  file-like object, 'securesystemslib.util.TempFile', is returned by the
-  '_download_file()' function.
+  metadata of that file.
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
@@ -37,6 +34,7 @@ from __future__ import unicode_literals
 import logging
 import time
 import timeit
+import tempfile
 
 import tuf
 import requests
@@ -76,11 +74,6 @@ def safe_download(url, required_length):
     tuf.download.unsafe_download() may be called if an upper download limit is
     preferred.
 
-    'securesystemslib.util.TempFile', the file-like object returned, is used
-    instead of regular tempfile object because of additional functionality
-    provided, such as handling compressed metadata and automatically closing
-    files after moving to final destination.
-
   <Arguments>
     url:
       A URL string that represents the location of the file.
@@ -90,8 +83,7 @@ def safe_download(url, required_length):
       limit.
 
   <Side Effects>
-    A 'securesystemslib.util.TempFile' object is created on disk to store the
-    contents of 'url'.
+    A file object is created on disk to store the contents of 'url'.
 
   <Exceptions>
     tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if there was a
@@ -103,8 +95,7 @@ def safe_download(url, required_length):
     Any other unforeseen runtime exception.
 
   <Returns>
-    A 'securesystemslib.util.TempFile' file-like object that points to the
-    contents of 'url'.
+    A file object that points to the contents of 'url'.
   """
 
   # Do all of the arguments have the appropriate format?
@@ -127,11 +118,6 @@ def unsafe_download(url, required_length):
     tuf.download.safe_download() may be called if an exact download limit is
     preferred.
 
-    'securesystemslib.util.TempFile', the file-like object returned, is used
-    instead of regular tempfile object because of additional functionality
-    provided, such as handling compressed metadata and automatically closing
-    files after moving to final destination.
-
   <Arguments>
     url:
       A URL string that represents the location of the file.
@@ -141,8 +127,7 @@ def unsafe_download(url, required_length):
       limit.
 
   <Side Effects>
-    A 'securesystemslib.util.TempFile' object is created on disk to store the
-    contents of 'url'.
+    A file object is created on disk to store the contents of 'url'.
 
   <Exceptions>
     tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if there was a
@@ -154,8 +139,7 @@ def unsafe_download(url, required_length):
     Any other unforeseen runtime exception.
 
   <Returns>
-    A 'securesystemslib.util.TempFile' file-like object that points to the
-    contents of 'url'.
+    A file object that points to the contents of 'url'.
   """
 
   # Do all of the arguments have the appropriate format?
@@ -178,10 +162,6 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
     the file's length is not checked and a slow retrieval exception is raised
     if the downloaded rate falls below the acceptable rate).
 
-    securesystemslib.util.TempFile is used instead of regular tempfile object
-    because of additional functionality provided by
-    'securesystemslib.util.TempFile'.
-
   <Arguments>
     url:
       A URL string that represents the location of the file.
@@ -196,8 +176,7 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
       timestamp metadata, which has no signed required_length.
 
   <Side Effects>
-    A 'securesystemslib.util.TempFile' object is created on disk to store the
-    contents of 'url'.
+    A file object is created on disk to store the contents of 'url'.
 
   <Exceptions>
     tuf.exceptions.DownloadLengthMismatchError, if there was a
@@ -209,8 +188,7 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
     Any other unforeseen runtime exception.
 
   <Returns>
-    A 'securesystemslib.util.TempFile' file-like object that points to the
-    contents of 'url'.
+    A file object that points to the contents of 'url'.
   """
 
   # Do all of the arguments have the appropriate format?
@@ -228,7 +206,7 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
 
   # This is the temporary file that we will return to contain the contents of
   # the downloaded file.
-  temp_file = securesystemslib.util.TempFile()
+  temp_file = tempfile.TemporaryFile()
 
   try:
     # Use a different requests.Session per schema+hostname combination, to
@@ -304,7 +282,7 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
 
   except Exception:
     # Close 'temp_file'.  Any written data is lost.
-    temp_file.close_temp_file()
+    temp_file.close()
     logger.exception('Could not download URL: ' + repr(url))
     raise
 

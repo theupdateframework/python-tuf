@@ -111,9 +111,11 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     download_file = download.safe_download
 
     temp_fileobj = download_file(self.url, self.target_data_length)
-    self.assertEqual(self.target_data, temp_fileobj.read().decode('utf-8'))
-    self.assertEqual(self.target_data_length, len(temp_fileobj.read()))
-    temp_fileobj.close_temp_file()
+    temp_fileobj.seek(0)
+    temp_file_data = temp_fileobj.read().decode('utf-8')
+    self.assertEqual(self.target_data, temp_file_data)
+    self.assertEqual(self.target_data_length, len(temp_file_data))
+    temp_fileobj.close()
 
 
 
@@ -158,7 +160,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
     self.assertEqual(self.target_data, temp_fileobj.read())
     self.assertEqual(self.target_data_length, len(temp_fileobj.read()))
-    temp_fileobj.close_temp_file()
+    temp_fileobj.close()
 
     print "Performance cpu time: "+str(end_cpu - star_cpu)
     print "Performance real time: "+str(end_real - star_real)

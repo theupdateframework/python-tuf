@@ -128,6 +128,7 @@ import time
 import fnmatch
 import copy
 import warnings
+import tempfile
 
 import tuf
 import tuf.download
@@ -1129,6 +1130,7 @@ class Updater(object):
     latest_root_metadata_file = self._get_metadata_file(
         'root', 'root.json', DEFAULT_ROOT_UPPERLENGTH, None)
 
+    latest_root_metadata_file.seek(0)
     latest_root_metadata = securesystemslib.util.load_json_string(
         latest_root_metadata_file.read().decode('utf-8'))
 
@@ -1161,9 +1163,7 @@ class Updater(object):
 
     <Arguments>
       file_object:
-        A 'securesystemslib.util.TempFile' file-like object.  'file_object'
-        ensures that a read() without a size argument properly reads the entire
-        file.
+        A file object.
 
       trusted_hashes:
         A dictionary with hash-algorithm names as keys and hashes as dict values.
@@ -1175,6 +1175,7 @@ class Updater(object):
 
     <Side Effects>
       Hash digest object is created using the 'securesystemslib.hash' module.
+      Position within file_object is changed.
 
     <Returns>
       None.
@@ -1184,6 +1185,10 @@ class Updater(object):
     # return.
     for algorithm, trusted_hash in six.iteritems(trusted_hashes):
       digest_object = securesystemslib.hash.digest(algorithm)
+      # Ensure we read from the beginning of the file object
+      # TODO: should we store file position (before the loop) and reset after we
+      # seek about?
+      file_object.seek(0)
       digest_object.update(file_object.read())
       computed_hash = digest_object.hexdigest()
 
@@ -1210,9 +1215,7 @@ class Updater(object):
 
     <Arguments>
       file_object:
-        A 'securesystemslib.util.TempFile' file-like object.  'file_object'
-        ensures that a read() without a size argument properly reads the entire
-        file.
+        A file object.
 
       trusted_file_length:
         A non-negative integer that is the trusted length of the file.
@@ -1223,14 +1226,13 @@ class Updater(object):
     <Side Effects>
       Reads the contents of 'file_object' and logs a message if 'file_object'
       matches the trusted length.
+      Position within file_object is changed.
 
     <Returns>
       None.
     """
 
-    # Read the entire contents of 'file_object', a
-    # 'securesystemslib.util.TempFile' file-like object that ensures the entire
-    # file is read.
+    file_object.seek(0)
     observed_length = len(file_object.read())
 
     # Return and log a message if the length 'file_object' is equal to
@@ -1252,17 +1254,14 @@ class Updater(object):
   def _soft_check_file_length(self, file_object, trusted_file_length):
     """
     <Purpose>
-      Non-public method that checks the trusted file length of a
-      'securesystemslib.util.TempFile' file-like object. The length of the file
-      must be less than or equal to the expected length. This is a deliberately
-      redundant implementation designed to complement
-      tuf.download._check_downloaded_length().
+      Non-public method that checks the trusted file length of a file object.
+      The length of the file must be less than or equal to the expected
+      length. This is a deliberately redundant implementation designed to
+      complement tuf.download._check_downloaded_length().
 
     <Arguments>
       file_object:
-        A 'securesystemslib.util.TempFile' file-like object.  'file_object'
-        ensures that a read() without a size argument properly reads the entire
-        file.
+        A file object.
 
       trusted_file_length:
         A non-negative integer that is the trusted length of the file.
@@ -1274,14 +1273,14 @@ class Updater(object):
     <Side Effects>
       Reads the contents of 'file_object' and logs a message if 'file_object'
       is less than or equal to the trusted length.
+      Position within file_object is changed.
 
     <Returns>
       None.
     """
 
     # Read the entire contents of 'file_object', a
-    # 'securesystemslib.util.TempFile' file-like object that ensures the entire
-    # file is read.
+    file_object.seek(0)
     observed_length = len(file_object.read())
 
     # Return and log a message if 'file_object' is less than or equal to
@@ -1329,7 +1328,7 @@ class Updater(object):
       a temporary file and returned.
 
     <Returns>
-      A 'securesystemslib.util.TempFile' file-like object containing the target.
+      A file object containing the target.
     """
 
     # Define a callable function that is passed as an argument to _get_file()
@@ -1365,9 +1364,7 @@ class Updater(object):
 
     <Arguments>
       metadata_file_object:
-        A 'securesystemslib.util.TempFile' instance containing the metadata
-        file.  'metadata_file_object' ensures the entire file is returned with
-        read().
+        A file object containing the metadata file.
 
       metadata_role:
         The role name of the metadata (e.g., 'root', 'targets',
@@ -1391,12 +1388,14 @@ class Updater(object):
         In case the metadata file does not have a valid signature.
 
     <Side Effects>
-      The content of 'metadata_file_object' is read and loaded.
+      The content of 'metadata_file_object' is read and loaded, the current
+      position within the file is changed.
 
     <Returns>
       None.
     """
 
+    metadata_file_object.seek(0)
     metadata = metadata_file_object.read().decode('utf-8')
 
     try:
@@ -1463,8 +1462,7 @@ class Updater(object):
       file and returned.
 
     <Returns>
-      A 'securesystemslib.util.TempFile' file-like object containing the
-      metadata.
+      A file object containing the metadata.
     """
 
     file_mirrors = tuf.mirrors.get_list_of_mirrors('meta', remote_filename,
@@ -1478,6 +1476,7 @@ class Updater(object):
       try:
         file_object = tuf.download.unsafe_download(file_mirror,
             upperbound_filelength)
+        file_object.seek(0)
 
         # Verify 'file_object' according to the callable function.
         # 'file_object' is also verified if decompressed above (i.e., the
@@ -1608,8 +1607,8 @@ class Updater(object):
         The relative metadata or target filepath.
 
       verify_file_function:
-        A callable function that expects a 'securesystemslib.util.TempFile'
-        file-like object and raises an exception if the file is invalid.
+        A callable function that expects a file object and raises an exception
+        if the file is invalid.
         Target files and uncompressed versions of metadata may be verified with
         'verify_file_function'.
 
@@ -1637,8 +1636,7 @@ class Updater(object):
       file and returned.
 
     <Returns>
-      A 'securesystemslib.util.TempFile' file-like object containing the
-      metadata or target.
+      A file object containing the metadata or target.
     """
 
     file_mirrors = tuf.mirrors.get_list_of_mirrors(file_type, filepath,
@@ -1777,12 +1775,11 @@ class Updater(object):
       shutil.move(current_filepath, previous_filepath)
 
     # Next, move the verified updated metadata file to the 'current' directory.
-    # Note that the 'move' method comes from securesystemslib.util's TempFile class.
-    # 'metadata_file_object' is an instance of securesystemslib.util.TempFile.
+    metadata_file_object.seek(0)
     metadata_signable = \
       securesystemslib.util.load_json_string(metadata_file_object.read().decode('utf-8'))
 
-    metadata_file_object.move(current_filepath)
+    securesystemslib.util.persist_temp_file(metadata_file_object, current_filepath)
 
     # Extract the metadata object so we can store it to the metadata store.
     # 'current_metadata_object' set to 'None' if there is not an object
@@ -3249,4 +3246,4 @@ class Updater(object):
       else:
         raise
 
-    target_file_object.move(destination)
+    securesystemslib.util.persist_temp_file(target_file_object, destination)
