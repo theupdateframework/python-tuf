@@ -518,7 +518,7 @@ def build_dict_conforming_to_schema(schema, **kwargs):
         build_dict_conforming_to_schema(
             TIMESTAMP_SCHEMA,
             _type='timestamp',
-            spec_version='1.0',
+            spec_version='1.0.0',
             version=1,
             expires='2020-01-01T00:00:00Z',
             meta={...})

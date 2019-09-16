@@ -200,7 +200,7 @@ class TestFormats(unittest.TestCase):
 
       'ROOT_SCHEMA': (tuf.formats.ROOT_SCHEMA,
                       {'_type': 'root',
-                       'spec_version': '1.0',
+                       'spec_version': '1.0.0',
                        'version': 8,
                        'consistent_snapshot': False,
                        'expires': '1985-10-21T13:20:00Z',
@@ -214,7 +214,7 @@ class TestFormats(unittest.TestCase):
 
       'TARGETS_SCHEMA': (tuf.formats.TARGETS_SCHEMA,
         {'_type': 'targets',
-         'spec_version': '1.0',
+         'spec_version': '1.0.0',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
          'targets': {'metadata/targets.json': {'length': 1024,
@@ -230,14 +230,14 @@ class TestFormats(unittest.TestCase):
 
       'SNAPSHOT_SCHEMA': (tuf.formats.SNAPSHOT_SCHEMA,
         {'_type': 'snapshot',
-         'spec_version': '1.0',
+         'spec_version': '1.0.0',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
          'meta': {'snapshot.json': {'version': 1024}}}),
 
       'TIMESTAMP_SCHEMA': (tuf.formats.TIMESTAMP_SCHEMA,
         {'_type': 'timestamp',
-         'spec_version': '1.0',
+         'spec_version': '1.0.0',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
          'meta': {'metadattimestamp.json': {'length': 1024,
@@ -260,7 +260,7 @@ class TestFormats(unittest.TestCase):
       'MIRRORLIST_SCHEMA': (tuf.formats.MIRRORLIST_SCHEMA,
         {'_type': 'mirrors',
          'version': 8,
-         'spec_version': '1.0',
+         'spec_version': '1.0.0',
          'expires': '1985-10-21T13:20:00Z',
          'mirrors': [{'url_prefix': 'http://localhost:8001',
          'metadata_path': 'metadata/',
@@ -681,7 +681,7 @@ class TestFormats(unittest.TestCase):
   def test_make_signable(self):
     # Test conditions for expected make_signable() behavior.
     root = {'_type': 'root',
-            'spec_version': '1.0',
+            'spec_version': '1.0.0',
             'version': 8,
             'consistent_snapshot': False,
             'expires': '1985-10-21T13:20:00Z',
@@ -773,7 +773,7 @@ class TestFormats(unittest.TestCase):
   def test_check_signable_object_format(self):
     # Test condition for a valid argument.
     root = {'_type': 'root',
-            'spec_version': '1.0',
+            'spec_version': '1.0.0',
             'version': 8,
             'consistent_snapshot': False,
             'expires': '1985-10-21T13:20:00Z',
