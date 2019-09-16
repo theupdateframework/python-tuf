@@ -82,8 +82,9 @@ class TestSig(unittest.TestCase):
     # Should verify we are not adding a duplicate signature
     # when doing the following action.  Here we know 'signable'
     # has only one signature so it's okay.
+    signed = securesystemslib.formats.encode_canonical(signable['signed']).encode('utf-8')
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[0], signable['signed']))
+                                  KEYS[0], signed))
 
     tuf.keydb.add_key(KEYS[0])
 
@@ -101,9 +102,10 @@ class TestSig(unittest.TestCase):
 
   def test_get_signature_status_bad_sig(self):
     signable = {'signed' : 'test', 'signatures' : []}
+    signed = securesystemslib.formats.encode_canonical(signable['signed']).encode('utf-8')
 
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[0], signable['signed']))
+                                  KEYS[0], signed))
     signable['signed'] += 'signature no longer matches signed data'
 
     tuf.keydb.add_key(KEYS[0])
@@ -133,9 +135,10 @@ class TestSig(unittest.TestCase):
 
   def test_get_signature_status_unknown_signing_scheme(self):
     signable = {'signed' : 'test', 'signatures' : []}
+    signed = securesystemslib.formats.encode_canonical(signable['signed']).encode('utf-8')
 
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[0], signable['signed']))
+                                  KEYS[0], signed))
 
     valid_scheme = KEYS[0]['scheme']
     KEYS[0]['scheme'] = 'unknown_signing_scheme'
@@ -168,9 +171,10 @@ class TestSig(unittest.TestCase):
 
   def test_get_signature_status_single_key(self):
     signable = {'signed' : 'test', 'signatures' : []}
+    signed = securesystemslib.formats.encode_canonical(signable['signed']).encode('utf-8')
 
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[0], signable['signed']))
+                                  KEYS[0], signed))
 
     threshold = 1
 
@@ -209,9 +213,10 @@ class TestSig(unittest.TestCase):
 
   def test_get_signature_status_below_threshold(self):
     signable = {'signed' : 'test', 'signatures' : []}
+    signed = securesystemslib.formats.encode_canonical(signable['signed']).encode('utf-8')
 
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[0], signable['signed']))
+                                  KEYS[0], signed))
 
     tuf.keydb.add_key(KEYS[0])
     threshold = 2
@@ -243,12 +248,13 @@ class TestSig(unittest.TestCase):
 
   def test_get_signature_status_below_threshold_unrecognized_sigs(self):
     signable = {'signed' : 'test', 'signatures' : []}
+    signed = securesystemslib.formats.encode_canonical(signable['signed']).encode('utf-8')
 
     # Two keys sign it, but only one of them will be trusted.
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[0], signable['signed']))
+                                  KEYS[0], signed))
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[2], signable['signed']))
+                                  KEYS[2], signed))
 
     tuf.keydb.add_key(KEYS[0])
     tuf.keydb.add_key(KEYS[1])
@@ -282,13 +288,13 @@ class TestSig(unittest.TestCase):
 
   def test_get_signature_status_below_threshold_unauthorized_sigs(self):
     signable = {'signed' : 'test', 'signatures' : []}
-
+    signed = securesystemslib.formats.encode_canonical(signable['signed']).encode('utf-8')
     # Two keys sign it, but one of them is only trusted for a different
     # role.
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[0], signable['signed']))
+                                  KEYS[0], signed))
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[1], signable['signed']))
+                                  KEYS[1], signed))
 
     tuf.keydb.add_key(KEYS[0])
     tuf.keydb.add_key(KEYS[1])
@@ -334,9 +340,10 @@ class TestSig(unittest.TestCase):
 
   def test_check_signatures_no_role(self):
     signable = {'signed' : 'test', 'signatures' : []}
+    signed = securesystemslib.formats.encode_canonical(signable['signed']).encode('utf-8')
 
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[0], signable['signed']))
+                                  KEYS[0], signed))
 
     tuf.keydb.add_key(KEYS[0])
 
@@ -353,8 +360,10 @@ class TestSig(unittest.TestCase):
 
   def test_verify_single_key(self):
     signable = {'signed' : 'test', 'signatures' : []}
+    signed = securesystemslib.formats.encode_canonical(signable['signed']).encode('utf-8')
+
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[0], signable['signed']))
+                                  KEYS[0], signed))
 
     tuf.keydb.add_key(KEYS[0])
     threshold = 1
@@ -377,12 +386,13 @@ class TestSig(unittest.TestCase):
 
   def test_verify_unrecognized_sig(self):
     signable = {'signed' : 'test', 'signatures' : []}
+    signed = securesystemslib.formats.encode_canonical(signable['signed']).encode('utf-8')
 
     # Two keys sign it, but only one of them will be trusted.
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[0], signable['signed']))
+                                  KEYS[0], signed))
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[2], signable['signed']))
+                                  KEYS[2], signed))
 
     tuf.keydb.add_key(KEYS[0])
     tuf.keydb.add_key(KEYS[1])
@@ -408,9 +418,10 @@ class TestSig(unittest.TestCase):
 
   def test_generate_rsa_signature(self):
     signable = {'signed' : 'test', 'signatures' : []}
+    signed = securesystemslib.formats.encode_canonical(signable['signed']).encode('utf-8')
 
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[0], signable['signed']))
+                                  KEYS[0], signed))
 
     self.assertEqual(1, len(signable['signatures']))
     signature = signable['signatures'][0]
@@ -420,7 +431,7 @@ class TestSig(unittest.TestCase):
     self.assertTrue(securesystemslib.formats.SIGNATURE_SCHEMA.matches(returned_signature))
 
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[1], signable['signed']))
+                                  KEYS[1], signed))
 
     self.assertEqual(2, len(signable['signatures']))
     signature = signable['signatures'][1]
@@ -431,9 +442,10 @@ class TestSig(unittest.TestCase):
   def test_may_need_new_keys(self):
     # One untrusted key in 'signable'.
     signable = {'signed' : 'test', 'signatures' : []}
+    signed = securesystemslib.formats.encode_canonical(signable['signed']).encode('utf-8')
 
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[0], signable['signed']))
+                                  KEYS[0], signed))
 
     tuf.keydb.add_key(KEYS[1])
     threshold = 1

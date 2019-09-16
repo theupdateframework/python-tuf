@@ -353,7 +353,7 @@ def _remove_invalid_and_duplicate_signatures(signable, repository_name):
   signature_keyids = []
 
   for signature in signable['signatures']:
-    signed = signable['signed']
+    signed = securesystemslib.formats.encode_canonical(signable['signed']).encode('utf-8')
     keyid = signature['keyid']
     key = None
 
@@ -1621,7 +1621,7 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
     # Generate the signature using the appropriate signing method.
     if key['keytype'] in SUPPORTED_KEY_TYPES:
       if 'private' in key['keyval']:
-        signed = signable['signed']
+        signed = securesystemslib.formats.encode_canonical(signable['signed']).encode('utf-8')
         try:
           signature = securesystemslib.keys.create_signature(key, signed)
           signable['signatures'].append(signature)

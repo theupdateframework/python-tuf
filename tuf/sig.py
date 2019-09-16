@@ -157,7 +157,7 @@ def get_signature_status(signable, role=None, repository_name='default',
 
   # Extract the relevant fields from 'signable' that will allow us to identify
   # the different classes of keys (i.e., good_sigs, bad_sigs, etc.).
-  signed = signable['signed']
+  signed = securesystemslib.formats.encode_canonical(signable['signed']).encode('utf-8')
   signatures = signable['signatures']
 
   # Iterate the signatures and enumerate the signature_status fields.
@@ -389,7 +389,7 @@ def generate_rsa_signature(signed, rsakey_dict):
 
   # We need 'signed' in canonical JSON format to generate
   # the 'method' and 'sig' fields of the signature.
-  signed = securesystemslib.formats.encode_canonical(signed)
+  signed = securesystemslib.formats.encode_canonical(signed).encode('utf-8')
 
   # Generate the RSA signature.
   # Raises securesystemslib.exceptions.FormatError and TypeError.
