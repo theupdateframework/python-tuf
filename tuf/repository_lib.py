@@ -38,6 +38,7 @@ import logging
 import shutil
 import json
 import platform
+import tempfile
 
 import tuf
 import tuf.formats
@@ -51,6 +52,7 @@ import tuf.settings
 import securesystemslib
 import securesystemslib.hash
 import securesystemslib.interface
+import securesystemslib.util
 import iso8601
 import six
 
@@ -1712,12 +1714,11 @@ def write_metadata_file(metadata, filename, version_number, consistent_snapshot)
   # The 'metadata' object is written to 'file_object'.  To avoid partial
   # metadata from being written, 'metadata' is first written to a temporary
   # location (i.e., 'file_object') and then moved to 'filename'.
-  file_object = securesystemslib.util.TempFile()
+  file_object = tempfile.TemporaryFile()
 
   # Serialize 'metadata' to the file-like object and then write 'file_object'
   # to disk.  The dictionary keys of 'metadata' are sorted and indentation is
-  # used.  The 'securesystemslib.util.TempFile' file-like object is automically
-  # closed after the final move.
+  # used.
   file_object.write(file_content)
 
   if consistent_snapshot:
@@ -1732,7 +1733,7 @@ def write_metadata_file(metadata, filename, version_number, consistent_snapshot)
     # the consistent snapshot and point 'written_filename' to it.
     logger.debug('Creating a consistent file for ' + repr(written_filename))
     logger.debug('Saving ' + repr(written_consistent_filename))
-    file_object.move(written_consistent_filename)
+    securesystemslib.util.persist_temp_file(file_object, written_consistent_filename)
 
     # For GitHub issue #374 https://github.com/theupdateframework/tuf/issues/374
     # We provide the option of either (1) creating a link via os.link() to the
@@ -1764,7 +1765,7 @@ def write_metadata_file(metadata, filename, version_number, consistent_snapshot)
   else:
     logger.debug('Not creating a consistent snapshot for ' + repr(written_filename))
     logger.debug('Saving ' + repr(written_filename))
-    file_object.move(written_filename)
+    securesystemslib.util.persist_temp_file(file_object, written_filename)
 
   return written_filename
 

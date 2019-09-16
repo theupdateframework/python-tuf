@@ -50,6 +50,7 @@ import tuf.repository_lib as repo_lib
 
 import securesystemslib.keys
 import securesystemslib.formats
+import securesystemslib.util
 import iso8601
 import six
 
@@ -3175,13 +3176,13 @@ def append_signature(signature, metadata_filepath):
 
   signable['signatures'].append(signature)
 
-  file_object = securesystemslib.util.TempFile()
+  file_object = tempfile.TemporaryFile()
 
   written_metadata_content = json.dumps(signable, indent=1,
       separators=(',', ': '), sort_keys=True).encode('utf-8')
 
   file_object.write(written_metadata_content)
-  file_object.move(metadata_filepath)
+  securesystemslib.util.persist_temp_file(file_object, metadata_filepath)
 
 
 
