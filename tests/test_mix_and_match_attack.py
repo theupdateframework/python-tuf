@@ -240,7 +240,7 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
       self.repository_updater.targets_of_role('role1')
 
     # Verify that the specific
-    # 'securesystemslib.exceptions.BadVersionNumberError' exception is raised by
+    # 'tuf.exceptions.BadVersionNumberError' exception is raised by
     # each mirror.
     except tuf.exceptions.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
@@ -249,8 +249,8 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
 
         # Verify that 'role1.json' is the culprit.
         self.assertEqual(url_file.replace('\\', '/'), mirror_url)
-        self.assertTrue(isinstance(mirror_error,
-                        securesystemslib.exceptions.BadVersionNumberError))
+        self.assertTrue(isinstance(
+            mirror_error, tuf.exceptions.BadVersionNumberError))
 
     else:
       self.fail('TUF did not prevent a mix-and-match attack.')

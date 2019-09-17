@@ -132,12 +132,12 @@ class TestKeydb(unittest.TestCase):
     keyid = KEYS[0]['keyid']
     repository_name = 'example_repository'
     tuf.keydb.create_keydb(repository_name)
-    self.assertRaises(securesystemslib.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid, repository_name)
+    self.assertRaises(tuf.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid, repository_name)
     tuf.keydb.add_key(rsakey, keyid, repository_name)
     self.assertEqual(rsakey, tuf.keydb.get_key(keyid, repository_name))
 
     tuf.keydb.clear_keydb(repository_name)
-    self.assertRaises(securesystemslib.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid, repository_name)
+    self.assertRaises(tuf.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid, repository_name)
 
     # Remove 'repository_name' from the key database to revert it back to its
     # original, default state (i.e., only the 'default' repository exists).
@@ -169,7 +169,7 @@ class TestKeydb(unittest.TestCase):
 
     # Test condition using a 'keyid' that has not been added yet.
     keyid3 = KEYS[2]['keyid']
-    self.assertRaises(securesystemslib.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid3)
+    self.assertRaises(tuf.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid3)
 
     # Test condition for a key added to a non-default repository.
     repository_name = 'example_repository'
@@ -183,7 +183,7 @@ class TestKeydb(unittest.TestCase):
 
     # Verify that 'rsakey3' is added to the expected repository name.
     # If not supplied, the 'default' repository name is searched.
-    self.assertRaises(securesystemslib.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid3)
+    self.assertRaises(tuf.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid3)
     self.assertEqual(rsakey3, tuf.keydb.get_key(keyid3, repository_name))
 
     # Remove the 'example_repository' so that other test functions have access
@@ -231,15 +231,15 @@ class TestKeydb(unittest.TestCase):
     # Test conditions using keyids that have already been added.
     tuf.keydb.add_key(rsakey, keyid)
     tuf.keydb.add_key(rsakey2, keyid2)
-    self.assertRaises(securesystemslib.exceptions.KeyAlreadyExistsError, tuf.keydb.add_key, rsakey)
-    self.assertRaises(securesystemslib.exceptions.KeyAlreadyExistsError, tuf.keydb.add_key, rsakey2)
+    self.assertRaises(tuf.exceptions.KeyAlreadyExistsError, tuf.keydb.add_key, rsakey)
+    self.assertRaises(tuf.exceptions.KeyAlreadyExistsError, tuf.keydb.add_key, rsakey2)
 
     # Test condition for key added to the keydb of a non-default repository.
     repository_name = 'example_repository'
     tuf.keydb.create_keydb(repository_name)
-    self.assertRaises(securesystemslib.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid3, repository_name)
+    self.assertRaises(tuf.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid3, repository_name)
     tuf.keydb.add_key(rsakey3, keyid3, repository_name)
-    self.assertRaises(securesystemslib.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid3)
+    self.assertRaises(tuf.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid3)
     self.assertEqual(rsakey3, tuf.keydb.get_key(keyid3, repository_name))
 
     # Test condition for key added to the keydb of a non-existent repository.
@@ -268,14 +268,14 @@ class TestKeydb(unittest.TestCase):
     self.assertEqual(None, tuf.keydb.remove_key(keyid2))
 
     # Ensure the keys were actually removed.
-    self.assertRaises(securesystemslib.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid)
-    self.assertRaises(securesystemslib.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid2)
+    self.assertRaises(tuf.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid)
+    self.assertRaises(tuf.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid2)
 
     # Test for 'keyid' not in keydb.
-    self.assertRaises(securesystemslib.exceptions.UnknownKeyError, tuf.keydb.remove_key, keyid)
+    self.assertRaises(tuf.exceptions.UnknownKeyError, tuf.keydb.remove_key, keyid)
 
     # Test condition for unknown key argument.
-    self.assertRaises(securesystemslib.exceptions.UnknownKeyError, tuf.keydb.remove_key, '1')
+    self.assertRaises(tuf.exceptions.UnknownKeyError, tuf.keydb.remove_key, '1')
 
     # Test condition for removal of keys from a non-default repository.
     repository_name = 'example_repository'
@@ -283,7 +283,7 @@ class TestKeydb(unittest.TestCase):
     tuf.keydb.add_key(rsakey, keyid, repository_name)
     self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.keydb.remove_key, keyid, 'non-existent')
     tuf.keydb.remove_key(keyid, repository_name)
-    self.assertRaises(securesystemslib.exceptions.UnknownKeyError, tuf.keydb.remove_key, keyid, repository_name)
+    self.assertRaises(tuf.exceptions.UnknownKeyError, tuf.keydb.remove_key, keyid, repository_name)
 
     # Reset the keydb so that subsequent tests have access to the original,
     # default keydb.
@@ -390,8 +390,8 @@ class TestKeydb(unittest.TestCase):
     # Ensure only 'keyid2' was added to the keydb database.  'keyid' and
     # 'keyid3' should not be stored.
     self.assertEqual(rsakey2, tuf.keydb.get_key(keyid2))
-    self.assertRaises(securesystemslib.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid)
-    self.assertRaises(securesystemslib.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid3)
+    self.assertRaises(tuf.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid)
+    self.assertRaises(tuf.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid3)
     rsakey3['keytype'] = 'rsa'
 
 

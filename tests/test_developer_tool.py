@@ -170,7 +170,7 @@ class TestProject(unittest.TestCase):
       developer_tool.create_new_project(project_name, metadata_directory,
           location_in_repository, targets_directory, project_key)
 
-    except (OSError, securesystemslib.exceptions.RepositoryError):
+    except (OSError, tuf.exceptions.RepositoryError):
       pass
 
     developer_tool.METADATA_DIRECTORY_NAME = valid_metadata_directory_name

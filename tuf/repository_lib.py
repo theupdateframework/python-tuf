@@ -333,12 +333,12 @@ def _check_role_keys(rolename, repository_name):
 
   # Raise an exception for an invalid threshold of public keys.
   if total_keyids < threshold:
-    raise securesystemslib.exceptions.InsufficientKeysError(repr(rolename) + ' role contains'
+    raise tuf.exceptions.InsufficientKeysError(repr(rolename) + ' role contains'
       ' ' + repr(total_keyids) + ' / ' + repr(threshold) + ' public keys.')
 
   # Raise an exception for an invalid threshold of signing keys.
   if total_signatures == 0 and total_signing_keys < threshold:
-    raise securesystemslib.exceptions.InsufficientKeysError(repr(rolename) + ' role contains'
+    raise tuf.exceptions.InsufficientKeysError(repr(rolename) + ' role contains'
       ' ' + repr(total_signing_keys) + ' / ' + repr(threshold) + ' signing keys.')
 
 
@@ -369,7 +369,7 @@ def _remove_invalid_and_duplicate_signatures(signable, repository_name):
     try:
       key = tuf.keydb.get_key(keyid, repository_name=repository_name)
 
-    except securesystemslib.exceptions.UnknownKeyError:
+    except tuf.exceptions.UnknownKeyError:
       signable['signatures'].remove(signature)
       continue
 
@@ -580,7 +580,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     consistent_snapshot = root_metadata['consistent_snapshot']
 
   else:
-    raise securesystemslib.exceptions.RepositoryError('Cannot load the required'
+    raise tuf.exceptions.RepositoryError('Cannot load the required'
       ' root file: ' + repr(root_filename))
 
   # Load 'timestamp.json'.  A Timestamp role file without a version number is
@@ -708,7 +708,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
           tuf.keydb.add_key(key_object, keyid=None,
               repository_name=repository_name)
 
-      except securesystemslib.exceptions.KeyAlreadyExistsError:
+      except tuf.exceptions.KeyAlreadyExistsError:
         pass
 
   else:
@@ -1141,7 +1141,7 @@ def get_metadata_versioninfo(rolename, repository_name):
   <Arguments>
     rolename:
       The metadata role whose versioninfo is needed.  It must exist, otherwise
-      a 'securesystemslib.exceptions.UnknownRoleError' exception is raised.
+      a 'tuf.exceptions.UnknownRoleError' exception is raised.
 
     repository_name:
       The name of the repository.  If not supplied, 'rolename' is added to the
@@ -1151,7 +1151,7 @@ def get_metadata_versioninfo(rolename, repository_name):
     securesystemslib.exceptions.FormatError, if 'rolename' is improperly
     formatted.
 
-    securesystemslib.exceptions.UnknownRoleError, if 'rolename' does not exist.
+    tuf.exceptions.UnknownRoleError, if 'rolename' does not exist.
 
   <Side Effects>
     None.
@@ -1955,7 +1955,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
     try:
       _check_role_keys(rolename, repository_name)
 
-    except securesystemslib.exceptions.InsufficientKeysError as e:
+    except tuf.exceptions.InsufficientKeysError as e:
       logger.info(str(e))
 
   # Do the top-level roles contain a valid threshold of signatures?  Top-level
@@ -2112,7 +2112,7 @@ def create_tuf_client_directory(repository_directory, client_directory):
     securesystemslib.exceptions.FormatError, if the arguments are improperly
     formatted.
 
-    securesystemslib.exceptions.RepositoryError, if the metadata directory in
+    tuf.exceptions.RepositoryError, if the metadata directory in
     'client_directory' already exists.
 
   <Side Effects>
@@ -2153,7 +2153,7 @@ def create_tuf_client_directory(repository_directory, client_directory):
     if e.errno == errno.EEXIST:
       message = 'Cannot create a fresh client metadata directory: ' +\
         repr(client_metadata_directory) + '.  Already exists.'
-      raise securesystemslib.exceptions.RepositoryError(message)
+      raise tuf.exceptions.RepositoryError(message)
 
     # Testing of non-errno.EEXIST exceptions have been verified on all
     # supported OSs.  An unexpected exception (the '/' directory exists, rather

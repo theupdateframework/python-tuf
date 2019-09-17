@@ -351,7 +351,7 @@ class Project(Targets):
         try:
           _check_role_keys(delegated_role, self.repository_name)
 
-        except securesystemslib.exceptions.InsufficientKeysError:
+        except tuf.exceptions.InsufficientKeysError:
           insufficient_keys.append(delegated_role)
           continue
 
@@ -380,7 +380,7 @@ class Project(Targets):
       try:
         _check_role_keys(self.rolename, self.repository_name)
 
-      except securesystemslib.exceptions.InsufficientKeysError as e:
+      except tuf.exceptions.InsufficientKeysError as e:
         logger.info(str(e))
         return
 
@@ -944,7 +944,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
         try:
           tuf.keydb.add_key(key_object, repository_name=repository_name)
 
-        except securesystemslib.exceptions.KeyAlreadyExistsError:
+        except tuf.exceptions.KeyAlreadyExistsError:
           pass
 
       for role in metadata_object['delegations']['roles']:
