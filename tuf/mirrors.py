@@ -84,7 +84,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   """
 
   # Checking if all the arguments have appropriate format.
-  securesystemslib.formats.RELPATH_SCHEMA.check_match(file_path)
+  tuf.formats.RELPATH_SCHEMA.check_match(file_path)
   tuf.formats.MIRRORDICT_SCHEMA.check_match(mirrors_dict)
   securesystemslib.formats.NAME_SCHEMA.check_match(file_type)
 

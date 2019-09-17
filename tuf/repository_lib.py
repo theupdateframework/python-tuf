@@ -1203,7 +1203,7 @@ def get_target_hash(target_filepath):
     The hash of 'target_filepath'.
 
   """
-  securesystemslib.formats.RELPATH_SCHEMA.check_match(target_filepath)
+  tuf.formats.RELPATH_SCHEMA.check_match(target_filepath)
 
   # Calculate the hash of the filepath to determine which bin to find the
   # target.  The client currently assumes the repository uses
@@ -1416,7 +1416,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
   # types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
   securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
-  securesystemslib.formats.PATH_FILEINFO_SCHEMA.check_match(target_files)
+  tuf.formats.PATH_FILEINFO_SCHEMA.check_match(target_files)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   securesystemslib.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
   securesystemslib.formats.BOOLEAN_SCHEMA.check_match(write_consistent_targets)
