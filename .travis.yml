@@ -2,6 +2,12 @@ dist: xenial
 language: python
 cache: pip
 
+
+env:
+  global:
+    # NOTE: Public push only token (can't be used to read or edit project info)
+    - FOSSA_API_KEY=cbc317812661645ea400ab9ee6c7616a
+
 matrix:
   include:
     - python: "2.7"
@@ -22,8 +28,12 @@ matrix:
 install:
   - pip install tox coveralls
 
+before_script:
+  - "curl -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | sudo bash"
+
 script:
   - tox
+  - fossa
 
 after_success:
   # Workaround to get coverage reports with relative paths.
