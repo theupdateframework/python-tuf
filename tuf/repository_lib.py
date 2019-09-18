@@ -63,13 +63,6 @@ logger = logging.getLogger('tuf.repository_lib')
 iso8601_logger = logging.getLogger('iso8601')
 iso8601_logger.disabled = True
 
-# Recommended RSA key sizes:
-# http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1
-# According to the document above, revised May 6, 2003, RSA keys of
-# size 3072 provide security through 2031 and beyond. 2048-bit keys
-# are the recommended minimum and are good from the present through 2030.
-DEFAULT_RSA_KEY_BITS = 3072
-
 # The extension of TUF metadata.
 METADATA_EXTENSION = '.json'
 
@@ -752,42 +745,6 @@ def _log_warning_if_expires_soon(rolename, expires_iso8601_timestamp,
 
 
 
-def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
-    password=None):
-  """
-  <Purpose>
-    Generate an RSA key file, create an encrypted PEM string (using 'password'
-    as the pass phrase), and store it in 'filepath'.  The public key portion of
-    the generated RSA key is stored in <'filepath'>.pub.
-
-  <Arguments>
-    filepath:
-      The public and private key files are saved to <filepath>.pub, <filepath>,
-      respectively.
-
-    bits:
-      The number of bits of the generated RSA key.
-
-    password:
-      The password used to encrypt 'filepath'.
-
-  <Exceptions>
-    securesystemslib.exceptions.FormatError, if the arguments are improperly
-    formatted.
-
-  <Side Effects>
-    Writes key files to '<filepath>' and '<filepath>.pub'.
-
-  <Returns>
-    None.
-  """
-
-  securesystemslib.interface.generate_and_write_rsa_keypair(
-      filepath, bits, password)
-
-
-
-
 def import_rsa_privatekey_from_file(filepath, password=None):
   """
   <Purpose>
@@ -837,111 +794,6 @@ def import_rsa_privatekey_from_file(filepath, password=None):
   return private_key
 
 
-
-
-
-def import_rsa_publickey_from_file(filepath):
-  """
-  <Purpose>
-    Import the RSA key stored in 'filepath'.  The key object returned is a TUF
-    key, specifically 'securesystemslib.RSAKEY_SCHEMA'.  If the RSA PEM
-    in 'filepath' contains a private key, it is discarded.
-
-  <Arguments>
-    filepath:
-      <filepath>.pub file, an RSA PEM file.
-
-  <Exceptions>
-    securesystemslib.exceptions.FormatError, if 'filepath' is improperly formatted.
-
-    securesystemslib.exceptions.Error, if a valid RSA key object cannot be
-    generated.  This may be caused by an improperly formatted PEM file.
-
-  <Side Effects>
-    'filepath' is read and its contents extracted.
-
-  <Returns>
-    An RSA key object conformant to 'securesystemslib.RSAKEY_SCHEMA'.
-  """
-
-  return securesystemslib.interface.import_rsa_publickey_from_file(filepath)
-
-
-
-
-
-def generate_and_write_ed25519_keypair(filepath, password=None):
-  """
-  <Purpose>
-    Generate an Ed25519 key file, create an encrypted TUF key (using 'password'
-    as the pass phrase), and store it in 'filepath'.  The public key portion of
-    the generated ED25519 key is stored in <'filepath'>.pub.  Which cryptography
-    library performs the cryptographic decryption is determined by the string
-    set in 'settings.ED25519_CRYPTO_LIBRARY'.
-
-    The Ed25519 private key is encrypted with AES-256 and CTR the mode of
-    operation.  The password is strengthened with PBKDF2-HMAC-SHA256.
-
-  <Arguments>
-    filepath:
-      The public and private key files are saved to <filepath>.pub and
-      <filepath>, respectively.
-
-    password:
-      The password, or passphrase, to encrypt the private portion of the
-      generated ed25519 key.  A symmetric encryption key is derived from
-      'password', so it is not directly used.
-
-  <Exceptions>
-    securesystemslib.exceptions.FormatError, if the arguments are improperly
-    formatted.
-
-    securesystemslib.exceptions.CryptoError, if 'filepath' cannot be encrypted.
-
-    securesystemslib.exceptions.UnsupportedLibraryError, if 'filepath' cannot be
-    encrypted due to an invalid configuration setting (i.e., invalid
-    'tuf.settings.py' setting).
-
-  <Side Effects>
-    Writes key files to '<filepath>' and '<filepath>.pub'.
-
-  <Returns>
-    None.
-  """
-
-  securesystemslib.interface.generate_and_write_ed25519_keypair(
-      filepath, password)
-
-
-
-
-
-def import_ed25519_publickey_from_file(filepath):
-  """
-  <Purpose>
-    Load the ED25519 public key object (conformant to
-    'securesystemslib.KEY_SCHEMA') stored in 'filepath'.  Return
-    'filepath' in securesystemslib.ED25519KEY_SCHEMA format.
-
-    If the TUF key object in 'filepath' contains a private key, it is discarded.
-
-  <Arguments>
-    filepath:
-      <filepath>.pub file, a TUF public key file.
-
-  <Exceptions>
-    securesystemslib.exceptions.FormatError, if 'filepath' is improperly
-    formatted or is an unexpected key type.
-
-  <Side Effects>
-    The contents of 'filepath' is read and saved.
-
-  <Returns>
-    An ED25519 key object conformant to
-    'securesystemslib.ED25519KEY_SCHEMA'.
-  """
-
-  return securesystemslib.interface.import_ed25519_publickey_from_file(filepath)
 
 
 
