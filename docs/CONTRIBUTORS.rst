@@ -99,6 +99,7 @@ To work on the TUF project, it's best to perform a development install.
    optional cryptographic support, the testing/linting dependencies, etc.
    With a development installation, modifications to the code in the current
    directory will affect the installed version of TUF.
+
 ::
 
     $ pip install -r dev-requirements.txt
@@ -107,9 +108,47 @@ To work on the TUF project, it's best to perform a development install.
 Testing
 =======
 
-The Update Framework's unit tests can be executed by invoking
-`tox <https://testrun.org/tox/>`_. All supported Python versions are
-tested, but must already be installed locally.
+The Update Framework's unit test suite can be executed by invoking the test
+aggregation script inside the *tests* subdirectory. ``tuf`` and its
+dependencies must already be installed (see above).
+::
+
+    $ cd tests
+    $ python aggregate_tests.py
+
+
+To run the tests and measure their code coverage, the aggregation script can be
+invoked with the ``coverage`` tool (requires installation of ``coverage``, e.g.
+via PyPI).
+::
+
+    $ coverage run aggregate_tests.py && coverage report
+
+
+To develop and test ``tuf`` with above commands alongside its in-house dependency
+`securesystemslib <https://github.com/secure-systems-lab/securesystemslib>`_,
+it is recommended to first make an editable install of ``securesystemslib`` (in
+a *venv*), and then install ``tuf`` in editable mode too (in the same *venv*).
+::
+
+    $ cd path/to/securesystemslib
+    $ pip install -r dev-requirements.txt
+    $ cd path/to/tuf
+    $ pip install -r dev-requirements.txt
+
+
+With `tox <https://testrun.org/tox/>`_ the test suite can be executed in a
+separate *venv* for each supported Python version. While the supported
+Python versions must already be available, ``tox`` will install ``tuf`` and its
+dependencies anew in each environment.
 ::
 
     $ tox
+
+
+An additional non-default ``tox`` environment is available and can be used to
+test ``tuf`` against the tip of development of ``securesystemslib`` on GitHub,
+to e.g. prepare the former for a new release of the latter.
+::
+
+    $ tox -e with-sslib-master

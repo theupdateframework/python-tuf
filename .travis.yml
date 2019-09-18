@@ -12,6 +12,12 @@ matrix:
       env: TOXENV=py35
     - python: "3.6"
       env: TOXENV=py36
+    - python: "3.6"
+      env: TOXENV=with-sslib-master
+
+  allow_failures:
+    - python: "3.6"
+      env: TOXENV=with-sslib-master
 
 install:
   - pip install tox coveralls
