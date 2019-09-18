@@ -117,8 +117,9 @@ dependencies must already be installed (see above).
     $ python aggregate_tests.py
 
 
-To run the tests, measuring code coverage, the script can be run with the
-``coverage`` tool.
+To run the tests and measure their code coverage, the aggregation script can be
+invoked with the ``coverage`` tool (requires installation of ``coverage``, e.g.
+via PyPI).
 ::
 
     $ coverage run aggregate_tests.py && coverage report
