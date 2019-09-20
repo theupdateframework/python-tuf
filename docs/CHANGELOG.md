@@ -1,5 +1,18 @@
 # Changelog
 
+
+## v0.12.0
+* Add backwards incompatible TUF spec version checks (#842, #844, #854, #914)
+* Adopt securesystemslib v0.12.0 update (#909, #910, #855, #912, #934)
+* Fix multi-root rotation (#885, #930)
+* Fix duplicate schema definitions (#929)
+* Refactor metadata generation (#836)
+* Refactor securesystemslib interface (#919)
+* Update implementation roadmap (#833)
+* Improve tests and testing infrastructure (#825, #839, #890, #915, #892, #923)
+* Improve documentation (#824, #849, #852, #853, #893, #924, #928, et al.)
+* Update misc dependencies (#850, #851, #916, #922, #926, #931)
+
 ## v0.11.1
 
 * Prevent persistent freeze attack (pr [#737](https://github.com/theupdateframework/tuf/pull/737)).
