@@ -2086,9 +2086,9 @@ def _log_status(rolename, signable, repository_name):
 def create_tuf_client_directory(repository_directory, client_directory):
   """
   <Purpose>
-    Create a client directory structure that the 'tuf.interposition' package
-    and 'tuf.client.updater' module expect of clients.  Metadata files
-    downloaded from a remote TUF repository are saved to 'client_directory'.
+    Create client directory structure as 'tuf.client.updater' expects it.
+    Metadata files downloaded from a remote TUF repository are saved to
+    'client_directory'.
     The Root file must initially exist before an update request can be
     satisfied.  create_tuf_client_directory() ensures the minimum metadata
     is copied and that required directories ('previous' and 'current') are
@@ -2164,8 +2164,8 @@ def create_tuf_client_directory(repository_directory, client_directory):
 
   # Move all  metadata to the client's 'current' and 'previous' directories.
   # The root metadata file MUST exist in '{client_metadata_directory}/current'.
-  # 'tuf.interposition' and 'tuf.client.updater.py' expect the 'current' and
-  # 'previous' directories to exist under 'metadata'.
+  # 'tuf.client.updater' expects the 'current' and 'previous' directories to
+  # exist under 'metadata'.
   client_current = os.path.join(client_metadata_directory, 'current')
   client_previous = os.path.join(client_metadata_directory, 'previous')
   shutil.copytree(metadata_directory, client_current)

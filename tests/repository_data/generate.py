@@ -153,6 +153,6 @@ if not options.dry_run:
   shutil.copytree(staged_metadata_directory, metadata_directory)
 
 # Create the client files (required directory structure and minimal metadata)
-# required by the 'tuf.interposition' and 'tuf.client.updater.py' updaters.
+# as expected by 'tuf.client.updater'.
 if not options.dry_run:
   create_tuf_client_directory('repository', os.path.join('client', 'test_repository1'))

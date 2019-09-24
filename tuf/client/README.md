@@ -11,10 +11,6 @@ and set the repository mirror information.
 The **tuf.repository_tool** module can be used to create a TUF repository.  See
 [tuf/README](../README.md) for more information on creating TUF repositories.
 
-The **tuf.interposition** package can also assist in integrating TUF with a
-software updater.  See [tuf/interposition/README](../interposition/README.md)
-for more information on interposing Python urllib calls with TUF.
-
 
 ## Overview of the Update Process
 
