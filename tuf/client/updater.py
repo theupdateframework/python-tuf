@@ -1728,7 +1728,6 @@ class Updater(object):
     # Construct the metadata filename as expected by the download/mirror
     # modules.
     metadata_filename = metadata_role + '.json'
-    metadata_filename = metadata_filename
 
     # Attempt a file download from each mirror until the file is downloaded and
     # verified.  If the signature of the downloaded file is valid, proceed,
