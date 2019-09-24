@@ -53,14 +53,34 @@ import securesystemslib.keys
 
 import six
 
-# These imports provide the interface for 'developer_tool.py', since the
-# imports are made there.
-from securesystemslib.keys import format_keyval_to_metadata
-
 from tuf.repository_tool import Targets
 from tuf.repository_lib import _check_role_keys
-from tuf.repository_lib import generate_targets_metadata
 from tuf.repository_lib import _metadata_is_partially_loaded
+
+
+# Copy API
+# pylint: disable=unused-import
+
+# Copy generic repository API functions to be used via `developer_tool`
+from tuf.repository_lib import (
+    generate_targets_metadata,
+    create_tuf_client_directory,
+    disable_console_log_messages)
+
+# Copy key-related API functions to be used via `developer_tool`
+from tuf.repository_lib import (
+    import_rsa_privatekey_from_file)
+
+from securesystemslib.keys import (
+    format_keyval_to_metadata)
+
+from securesystemslib.interface import (
+    generate_and_write_rsa_keypair,
+    generate_and_write_ed25519_keypair,
+    import_rsa_publickey_from_file,
+    import_ed25519_publickey_from_file,
+    import_ed25519_privatekey_from_file)
+
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.developer_tool')
@@ -984,35 +1004,6 @@ def _strip_prefix_from_targets_metadata(targets_metadata, prefix):
 
   return targets_metadata
 
-
-
-# Wrapper functions that we wish to make available here from repository_lib.py.
-# Users are expected to call functions provided by repository_tool.py.  We opt
-# for this approach, as opposed to using import statements to achieve the
-# equivalent, to avoid linter warnings for unused imports.
-def generate_and_write_rsa_keypair(filepath, bits, password):
-  return repo_lib.generate_and_write_rsa_keypair(filepath, bits, password)
-
-def generate_and_write_ed25519_keypair(filepath, password):
-  return repo_lib.generate_and_write_ed25519_keypair(filepath, password)
-
-def import_rsa_publickey_from_file(filepath):
-  return repo_lib.import_rsa_publickey_from_file(filepath)
-
-def import_ed25519_publickey_from_file(filepath):
-  return repo_lib.import_ed25519_publickey_from_file(filepath)
-
-def import_rsa_privatekey_from_file(filepath, password):
-  return repo_lib.import_rsa_privatekey_from_file(filepath, password)
-
-def import_ed25519_privatekey_from_file(filepath, password):
-  return repo_lib.import_ed25519_privatekey_from_file(filepath, password)
-
-def create_tuf_client_directory(repository_directory, client_directory):
-  return repo_lib.create_tuf_client_directory(repository_directory, client_directory)
-
-def disable_console_log_messages():
-  return repo_lib.disable_console_log_messages()
 
 
 
