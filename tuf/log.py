@@ -173,7 +173,7 @@ class ConsoleFilter(logging.Filter):
       # file logging handler, the user may always consult the file log for the
       # original exception traceback. The exc_info is explained here:
       # http://docs.python.org/2/library/sys.html#sys.exc_info
-      exc_type, junk, junk = record.exc_info
+      exc_type, _, _ = record.exc_info
 
       # Simply set the class name as the exception text.
       record.exc_text = exc_type.__name__
