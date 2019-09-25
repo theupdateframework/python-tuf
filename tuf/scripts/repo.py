@@ -565,7 +565,7 @@ def remove_verification_key(parsed_arguments):
     # It is assumed remove_verification_key() only raises
     # securesystemslib.exceptions.Error and
     # securesystemslib.exceptions.FormatError, and the latter is not raised
-    # bacause a valid key should have been returned by
+    # because a valid key should have been returned by
     # import_publickey_from_file().
     except securesystemslib.exceptions.Error:
       print(repr(keypath) + ' is not a trusted key.  Skipping.')
