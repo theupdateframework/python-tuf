@@ -254,7 +254,7 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     # because the timestamp key has changed; Snapshot, because  Root has
     # changed, and Timesamp, because it must sign its metadata with a new key.
     repository.root.load_signing_key(self.role_keys['root']['private'])
-    # Note: we added Timetamp's key to the Snapshot role.
+    # Note: we added Timestamp's key to the Snapshot role.
     repository.snapshot.load_signing_key(self.role_keys['timestamp']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
     repository.writeall()
@@ -306,7 +306,7 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     # because the timestamp key has changed; Snapshot, because  Root has
     # changed, and Timestamp because it must sign its metadata with a new key.
     repository.root.load_signing_key(self.role_keys['root']['private'])
-    # Note: we added Timetamp's key to the Targets role.
+    # Note: we added Timestamp's key to the Targets role.
     repository.targets.load_signing_key(self.role_keys['timestamp']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
@@ -362,7 +362,7 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     repository.root.load_signing_key(self.role_keys['targets']['private'])
     repository.root.load_signing_key(self.role_keys['timestamp']['private'])
 
-    # Note: We added the Snapshot, Targets, and Timetamp keys to the Root role.
+    # Note: We added the Snapshot, Targets, and Timestampkeys to the Root role.
     # The Root's expected private key has not been loaded yet, so that we can
     # verify that refresh() correctly raises a
     # securesystemslib.exceptions.BadSignatureError exception.

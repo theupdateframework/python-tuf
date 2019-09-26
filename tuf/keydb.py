@@ -139,7 +139,7 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
           add_key(key_dict, keyid=None, repository_name=repository_name)
 
       # Although keyid duplicates should *not* occur (unique dict keys), log a
-      # warning and continue.  Howerver, 'key_dict' may have already been
+      # warning and continue.  However, 'key_dict' may have already been
       # adding to the keydb elsewhere.
       except tuf.exceptions.KeyAlreadyExistsError as e: # pragma: no cover
         logger.warning(e)
