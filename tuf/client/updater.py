@@ -1148,7 +1148,7 @@ class Updater(object):
         # Thoroughly verify it.
         self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH,
             version=next_version)
-      # When we run into HTTP 403 /404 error from ALL mirrors, break out of
+      # When we run into HTTP 403/404 error from ALL mirrors, break out of
       # loop, because the next root metadata file is most likely missing.
       except tuf.exceptions.NoWorkingMirrorError as exception:
         for mirror_error in exception.mirror_errors.values():
