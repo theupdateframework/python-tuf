@@ -51,6 +51,7 @@ import random
 import subprocess
 import sys
 import unittest
+import filecmp
 
 import tuf
 import tuf.log
@@ -213,8 +214,46 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
-
     self.repository_updater.refresh()
+
+
+
+  def test_root_rotation_full(self):
+    """Test that a client whose root is outdated by multiple versions and who
+    has none of the latest nor next-to-latest root keys can still update and
+    does so by incrementally verifying all roots until the most recent one. """
+    # Load initial repository with 1.root.json == root.json, signed by "root"
+    # key. This is the root.json that is already on the client.
+    repository = repo_tool.load_repository(self.repository_directory)
+
+    # 1st rotation: 1.root.json --> 2.root.json
+    # 2.root.json will be signed by previous "root" key and by new "root2" key
+    repository.root.load_signing_key(self.role_keys['root']['private'])
+    repository.root.add_verification_key(self.role_keys['root2']['public'])
+    repository.root.load_signing_key(self.role_keys['root2']['private'])
+    repository.writeall()
+
+    # 2nd rotation: 2.root.json --> 3.root.json
+    # 3.root.json will be signed by previous "root2" key and by new "root3" key
+    repository.root.unload_signing_key(self.role_keys['root']['private'])
+    repository.root.remove_verification_key(self.role_keys['root']['public'])
+    repository.root.add_verification_key(self.role_keys['root3']['public'])
+    repository.root.load_signing_key(self.role_keys['root3']['private'])
+    repository.writeall()
+
+    # Move staged metadata to "live" metadata
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+
+    # Update on client 1.root.json --> 2.root.json --> 3.root.json
+    self.repository_updater.refresh()
+
+    # Assert that client updated to the latest root from the repository
+    self.assertTrue(filecmp.cmp(
+      os.path.join(self.repository_directory, 'metadata', '3.root.json'),
+      os.path.join(self.client_metadata_current, 'root.json')))
+
 
 
   def test_root_rotation_missing_keys(self):
@@ -324,6 +363,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # previous self.role_keys['root'] key, which wasn't loaded.
     self.assertRaises(tuf.exceptions.NoWorkingMirrorError,
         self.repository_updater.refresh)
+
 
 
 
