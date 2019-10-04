@@ -342,17 +342,23 @@ def _load_role_keys(keystore_directory):
   role_keys = {}
 
   root_key_file = os.path.join(keystore_directory, 'root_key')
+  root2_key_file = os.path.join(keystore_directory, 'root_key2')
+  root3_key_file = os.path.join(keystore_directory, 'root_key3')
   targets_key_file = os.path.join(keystore_directory, 'targets_key')
   snapshot_key_file = os.path.join(keystore_directory, 'snapshot_key')
   timestamp_key_file = os.path.join(keystore_directory, 'timestamp_key')
   delegation_key_file = os.path.join(keystore_directory, 'delegation_key')
 
-  role_keys = {'root': {}, 'targets': {}, 'snapshot': {}, 'timestamp': {},
-               'role1': {}}
+  role_keys = {'root': {}, 'root2': {}, 'root3': {}, 'targets': {}, 'snapshot':
+               {}, 'timestamp': {}, 'role1': {}}
 
   # Import the top-level and delegated role public keys.
   role_keys['root']['public'] = \
     repo_tool.import_rsa_publickey_from_file(root_key_file+'.pub')
+  role_keys['root2']['public'] = \
+    repo_tool.import_ed25519_publickey_from_file(root2_key_file+'.pub')
+  role_keys['root3']['public'] = \
+    repo_tool.import_ed25519_publickey_from_file(root3_key_file+'.pub')
   role_keys['targets']['public'] = \
     repo_tool.import_ed25519_publickey_from_file(targets_key_file+'.pub')
   role_keys['snapshot']['public'] = \
@@ -365,6 +371,12 @@ def _load_role_keys(keystore_directory):
   # Import the private keys of the top-level and delegated roles.
   role_keys['root']['private'] = \
     repo_tool.import_rsa_privatekey_from_file(root_key_file,
+                                              EXPECTED_KEYFILE_PASSWORD)
+  role_keys['root2']['private'] = \
+    repo_tool.import_ed25519_privatekey_from_file(root2_key_file,
+                                              EXPECTED_KEYFILE_PASSWORD)
+  role_keys['root3']['private'] = \
+    repo_tool.import_ed25519_privatekey_from_file(root3_key_file,
                                               EXPECTED_KEYFILE_PASSWORD)
   role_keys['targets']['private'] = \
     repo_tool.import_ed25519_privatekey_from_file(targets_key_file,
