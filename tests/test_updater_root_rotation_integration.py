@@ -61,6 +61,7 @@ import tuf.exceptions
 import tuf.repository_tool as repo_tool
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.client.updater as updater
+import tuf.settings
 
 import securesystemslib
 import six
@@ -253,6 +254,57 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertTrue(filecmp.cmp(
       os.path.join(self.repository_directory, 'metadata', '3.root.json'),
       os.path.join(self.client_metadata_current, 'root.json')))
+
+
+
+  def test_root_rotation_max(self):
+    """Test that client does not rotate beyond a configured upper bound, i.e.
+    `current_version + MAX_NUMBER_ROOT_ROTATIONS`. """
+    # NOTE: The nature of below root changes is irrelevant. Here we only want
+    # the client to update but not beyond a configured upper bound.
+
+    # 1.root.json --> 2.root.json (add root2 and root3 keys)
+    repository = repo_tool.load_repository(self.repository_directory)
+    repository.root.load_signing_key(self.role_keys['root']['private'])
+    repository.root.add_verification_key(self.role_keys['root2']['public'])
+    repository.root.load_signing_key(self.role_keys['root2']['private'])
+    repository.root.add_verification_key(self.role_keys['root3']['public'])
+    repository.root.load_signing_key(self.role_keys['root3']['private'])
+    repository.writeall()
+
+    # 2.root.json --> 3.root.json (change threshold)
+    repository.root.threshold = 2
+    repository.writeall()
+
+    # 3.root.json --> 4.root.json (change threshold again)
+    repository.root.threshold = 3
+    repository.writeall()
+
+    # Move staged metadata to "live" metadata
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+
+    # Assert that repo indeed has "4.root.json" and that it's the latest root
+    self.assertTrue(filecmp.cmp(
+      os.path.join(self.repository_directory, 'metadata', '4.root.json'),
+      os.path.join(self.repository_directory, 'metadata', 'root.json')))
+
+    # Lower max root rotation cap so that client stops updating early
+    max_rotation_backup = tuf.settings.MAX_NUMBER_ROOT_ROTATIONS
+    tuf.settings.MAX_NUMBER_ROOT_ROTATIONS = 2
+
+    # Update on client 1.root.json --> 2.root.json --> 3.root.json,
+    # but not stop before updating to 4.root.json
+    self.repository_updater.refresh()
+
+    # Assert that the client indeed only updated until 3.root.json
+    self.assertTrue(filecmp.cmp(
+      os.path.join(self.repository_directory, 'metadata', '3.root.json'),
+      os.path.join(self.client_metadata_current, 'root.json')))
+
+    # reset
+    tuf.settings.MAX_NUMBER_ROOT_ROTATIONS = max_rotation_backup
 
 
 
