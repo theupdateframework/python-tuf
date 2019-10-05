@@ -163,9 +163,6 @@ VERSION_SCHEMA = SCHEMA.Object(
 # A value that is either True or False, on or off, etc.
 BOOLEAN_SCHEMA = SCHEMA.Boolean()
 
-# A string representing a role's name.
-ROLENAME_SCHEMA = SCHEMA.AnyString()
-
 # A hexadecimal value in '23432df87ab..' format.
 HASH_SCHEMA = SCHEMA.RegularExpression(r'[a-fA-F0-9]+')
 
@@ -215,23 +212,6 @@ SIGNATURESTATUS_SCHEMA = SCHEMA.Object(
   bad_sigs = KEYIDS_SCHEMA,
   unknown_sigs = KEYIDS_SCHEMA,
   untrusted_sigs = KEYIDS_SCHEMA)
-
-# Role object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1,
-# 'paths':[filepaths..]} format.
-ROLE_SCHEMA = SCHEMA.Object(
-  object_name = 'ROLE_SCHEMA',
-  name = SCHEMA.Optional(ROLENAME_SCHEMA),
-  keyids = KEYIDS_SCHEMA,
-  threshold = THRESHOLD_SCHEMA,
-  backtrack = SCHEMA.Optional(BOOLEAN_SCHEMA),
-  paths = SCHEMA.Optional(RELPATHS_SCHEMA),
-  path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA))
-
-# A dict of roles where the dict keys are role names and the dict values holding
-# the role data/information.
-ROLEDICT_SCHEMA = SCHEMA.DictOf(
-  key_schema = ROLENAME_SCHEMA,
-  value_schema = ROLE_SCHEMA)
 
 # An integer representing length.  Must be 0, or greater.
 LENGTH_SCHEMA = SCHEMA.Integer(lo=0)
