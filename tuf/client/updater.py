@@ -145,6 +145,7 @@ import securesystemslib.keys
 import securesystemslib.util
 import six
 import iso8601
+import requests.exceptions
 
 # The Timestamp role does not have signed metadata about it; otherwise we
 # would need an infinite regress of metadata. Therefore, we use some
@@ -1125,28 +1126,58 @@ class Updater(object):
       None.
     """
 
-    # Retrieve the latest, remote root.json.
-    latest_root_metadata_file = self._get_metadata_file(
-        'root', 'root.json', DEFAULT_ROOT_UPPERLENGTH, None)
+    def neither_403_nor_404(mirror_error):
+      if isinstance(mirror_error, requests.exceptions.HTTPError):
+        if mirror_error.response.status_code in {403, 404}:
+          return False
+      return True
 
-    latest_root_metadata = securesystemslib.util.load_json_string(
-        latest_root_metadata_file.read().decode('utf-8'))
+    # Temporarily set consistent snapshot. Will be updated to whatever is set
+    # in the latest root.json after running through the intermediates with
+    # _update_metadata().
+    self.consistent_snapshot = True
 
+    # Following the spec, try downloading the N+1th root for a certain maximum
+    # number of times.
+    lower_bound = current_root_metadata['version'] + 1
+    upper_bound = lower_bound + tuf.settings.MAX_NUMBER_ROOT_ROTATIONS
 
-    next_version = current_root_metadata['version'] + 1
-    latest_version = latest_root_metadata['signed']['version']
+    # Try downloading the next root.
+    for next_version in range(lower_bound, upper_bound):
+      try:
+        # Thoroughly verify it.
+        self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH,
+            version=next_version)
+      # When we run into HTTP 403/404 error from ALL mirrors, break out of
+      # loop, because the next root metadata file is most likely missing.
+      except tuf.exceptions.NoWorkingMirrorError as exception:
+        for mirror_error in exception.mirror_errors.values():
+          # Otherwise, reraise the error, because it is not a simple HTTP
+          # error.
+          if neither_403_nor_404(mirror_error):
+            logging.exception('Misc error for root version '+str(next_version))
+            raise
+          else:
+            # Calling this function should give us a detailed stack trace
+            # including an HTTP error code, if any.
+            logging.exception('HTTP error for root version '+str(next_version))
+        # If we are here, then we ran into only 403 / 404 errors, which are
+        # good reasons to suspect that the next root metadata file does not
+        # exist.
+        break
 
-    # update from the next version of root up to (and including) the latest
-    # version.  For example:
-    # current = version 1
-    # latest = version 3
-    # update from 1.root.json to 3.root.json.
-    for version in range(next_version, latest_version + 1):
-      # Temporarily set consistent snapshot. Will be updated to whatever is set
-      # in the latest root.json after running through the intermediates with
-      # _update_metadata().
-      self.consistent_snapshot = True
-      self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH, version=version)
+      # Ensure that the role and key information of the top-level roles is the
+      # latest.  We do this whether or not Root needed to be updated, in order
+      # to ensure that, e.g., the entries in roledb for top-level roles are
+      # populated with expected keyid info so that roles can be validated.  In
+      # certain circumstances, top-level metadata might be missing because it
+      # was marked obsolete and deleted after a failed attempt, and thus we
+      # should refresh them here as a protective measure.  See Issue #736.
+      self._rebuild_key_and_role_db()
+
+    # Set our consistent snapshot property to what the latest root has said.
+    self.consistent_snapshot = \
+        self.metadata['current']['root']['consistent_snapshot']
 
 
 

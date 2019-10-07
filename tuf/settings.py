@@ -107,3 +107,7 @@ DEFAULT_HASH_ALGORITHM = 'sha256'
 # to suspend execution for a specified amount of time.  See
 # theupdateframework/tuf/issue#338.
 SLEEP_BEFORE_ROUND = None
+
+# Maximum number of root metadata file rotations we should perform in order to
+# prevent a denial-of-service (DoS) attack.
+MAX_NUMBER_ROOT_ROTATIONS = 2**5
