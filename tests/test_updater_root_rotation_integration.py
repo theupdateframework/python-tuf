@@ -51,6 +51,7 @@ import random
 import subprocess
 import sys
 import unittest
+import filecmp
 
 import tuf
 import tuf.log
@@ -60,6 +61,7 @@ import tuf.exceptions
 import tuf.repository_tool as repo_tool
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.client.updater as updater
+import tuf.settings
 
 import securesystemslib
 import six
@@ -213,8 +215,97 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
-
     self.repository_updater.refresh()
+
+
+
+  def test_root_rotation_full(self):
+    """Test that a client whose root is outdated by multiple versions and who
+    has none of the latest nor next-to-latest root keys can still update and
+    does so by incrementally verifying all roots until the most recent one. """
+    # Load initial repository with 1.root.json == root.json, signed by "root"
+    # key. This is the root.json that is already on the client.
+    repository = repo_tool.load_repository(self.repository_directory)
+
+    # 1st rotation: 1.root.json --> 2.root.json
+    # 2.root.json will be signed by previous "root" key and by new "root2" key
+    repository.root.load_signing_key(self.role_keys['root']['private'])
+    repository.root.add_verification_key(self.role_keys['root2']['public'])
+    repository.root.load_signing_key(self.role_keys['root2']['private'])
+    repository.writeall()
+
+    # 2nd rotation: 2.root.json --> 3.root.json
+    # 3.root.json will be signed by previous "root2" key and by new "root3" key
+    repository.root.unload_signing_key(self.role_keys['root']['private'])
+    repository.root.remove_verification_key(self.role_keys['root']['public'])
+    repository.root.add_verification_key(self.role_keys['root3']['public'])
+    repository.root.load_signing_key(self.role_keys['root3']['private'])
+    repository.writeall()
+
+    # Move staged metadata to "live" metadata
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+
+    # Update on client 1.root.json --> 2.root.json --> 3.root.json
+    self.repository_updater.refresh()
+
+    # Assert that client updated to the latest root from the repository
+    self.assertTrue(filecmp.cmp(
+      os.path.join(self.repository_directory, 'metadata', '3.root.json'),
+      os.path.join(self.client_metadata_current, 'root.json')))
+
+
+
+  def test_root_rotation_max(self):
+    """Test that client does not rotate beyond a configured upper bound, i.e.
+    `current_version + MAX_NUMBER_ROOT_ROTATIONS`. """
+    # NOTE: The nature of below root changes is irrelevant. Here we only want
+    # the client to update but not beyond a configured upper bound.
+
+    # 1.root.json --> 2.root.json (add root2 and root3 keys)
+    repository = repo_tool.load_repository(self.repository_directory)
+    repository.root.load_signing_key(self.role_keys['root']['private'])
+    repository.root.add_verification_key(self.role_keys['root2']['public'])
+    repository.root.load_signing_key(self.role_keys['root2']['private'])
+    repository.root.add_verification_key(self.role_keys['root3']['public'])
+    repository.root.load_signing_key(self.role_keys['root3']['private'])
+    repository.writeall()
+
+    # 2.root.json --> 3.root.json (change threshold)
+    repository.root.threshold = 2
+    repository.writeall()
+
+    # 3.root.json --> 4.root.json (change threshold again)
+    repository.root.threshold = 3
+    repository.writeall()
+
+    # Move staged metadata to "live" metadata
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+
+    # Assert that repo indeed has "4.root.json" and that it's the latest root
+    self.assertTrue(filecmp.cmp(
+      os.path.join(self.repository_directory, 'metadata', '4.root.json'),
+      os.path.join(self.repository_directory, 'metadata', 'root.json')))
+
+    # Lower max root rotation cap so that client stops updating early
+    max_rotation_backup = tuf.settings.MAX_NUMBER_ROOT_ROTATIONS
+    tuf.settings.MAX_NUMBER_ROOT_ROTATIONS = 2
+
+    # Update on client 1.root.json --> 2.root.json --> 3.root.json,
+    # but stop before updating to 4.root.json
+    self.repository_updater.refresh()
+
+    # Assert that the client indeed only updated until 3.root.json
+    self.assertTrue(filecmp.cmp(
+      os.path.join(self.repository_directory, 'metadata', '3.root.json'),
+      os.path.join(self.client_metadata_current, 'root.json')))
+
+    # reset
+    tuf.settings.MAX_NUMBER_ROOT_ROTATIONS = max_rotation_backup
+
 
 
   def test_root_rotation_missing_keys(self):
@@ -327,6 +418,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
+
 def _load_role_keys(keystore_directory):
 
   # Populating 'self.role_keys' by importing the required public and private
@@ -342,17 +434,23 @@ def _load_role_keys(keystore_directory):
   role_keys = {}
 
   root_key_file = os.path.join(keystore_directory, 'root_key')
+  root2_key_file = os.path.join(keystore_directory, 'root_key2')
+  root3_key_file = os.path.join(keystore_directory, 'root_key3')
   targets_key_file = os.path.join(keystore_directory, 'targets_key')
   snapshot_key_file = os.path.join(keystore_directory, 'snapshot_key')
   timestamp_key_file = os.path.join(keystore_directory, 'timestamp_key')
   delegation_key_file = os.path.join(keystore_directory, 'delegation_key')
 
-  role_keys = {'root': {}, 'targets': {}, 'snapshot': {}, 'timestamp': {},
-               'role1': {}}
+  role_keys = {'root': {}, 'root2': {}, 'root3': {}, 'targets': {}, 'snapshot':
+               {}, 'timestamp': {}, 'role1': {}}
 
   # Import the top-level and delegated role public keys.
   role_keys['root']['public'] = \
     repo_tool.import_rsa_publickey_from_file(root_key_file+'.pub')
+  role_keys['root2']['public'] = \
+    repo_tool.import_ed25519_publickey_from_file(root2_key_file+'.pub')
+  role_keys['root3']['public'] = \
+    repo_tool.import_ed25519_publickey_from_file(root3_key_file+'.pub')
   role_keys['targets']['public'] = \
     repo_tool.import_ed25519_publickey_from_file(targets_key_file+'.pub')
   role_keys['snapshot']['public'] = \
@@ -365,6 +463,12 @@ def _load_role_keys(keystore_directory):
   # Import the private keys of the top-level and delegated roles.
   role_keys['root']['private'] = \
     repo_tool.import_rsa_privatekey_from_file(root_key_file,
+                                              EXPECTED_KEYFILE_PASSWORD)
+  role_keys['root2']['private'] = \
+    repo_tool.import_ed25519_privatekey_from_file(root2_key_file,
+                                              EXPECTED_KEYFILE_PASSWORD)
+  role_keys['root3']['private'] = \
+    repo_tool.import_ed25519_privatekey_from_file(root3_key_file,
                                               EXPECTED_KEYFILE_PASSWORD)
   role_keys['targets']['private'] = \
     repo_tool.import_ed25519_privatekey_from_file(targets_key_file,
