@@ -14,10 +14,9 @@
 #
 # Be sure to leave these comments at the top of the new file.
 #
-asn1crypto==0.24.0 \
-    --hash=sha256:2f1adbb7546ed199e3c90ef23ec95c5cf3585bac7d11fb7eb562a3fe89c64e87 \
-    --hash=sha256:9d5c20441baf0cb60a4ac34cc447c6c189024b6b4c6cd7877034f4965c464e49 \
-    # via cryptography
+asn1crypto==1.0.1 \
+    --hash=sha256:0b199f211ae690df3db4fd6c1c4ff976497fb1da689193e368eedbadc53d9292 \
+    --hash=sha256:bca90060bd995c3f62c4433168eab407e44bdbdb567b3f3a396a676c1a4c4a3f    # via cryptography
 certifi==2019.9.11 \
     --hash=sha256:e4f3620cfea4f83eedc95b24abd9cd56f3c4b146dd0177e83a21b4eb49e21e50 \
     --hash=sha256:fd7c7c74727ddcf00e9acd26bba8da604ffec95bf1c2144e67aff7a8b50e6cef    # via requests

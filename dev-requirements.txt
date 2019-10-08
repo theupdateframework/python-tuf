@@ -15,7 +15,7 @@
 # Be sure to leave these comments at the top of the new file.
 #
 -e .
-asn1crypto==0.24.0
+asn1crypto==1.0.1
 astroid==1.6.5 ; python_version < "3.0" # pyup: ignore
 astroid==2.3.1; python_version >= "3.0"
 backports.functools-lru-cache==1.5
@@ -26,7 +26,7 @@ configparser==4.0.2
 cryptography==2.7
 enum34==1.1.6
 gitdb2==2.0.6
-gitpython==3.0.2
+gitpython==3.0.3
 idna==2.8
 ipaddress==1.0.22 ; python_version < "3.0"
 iso8601==0.1.12
