@@ -295,7 +295,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     tuf.settings.MAX_NUMBER_ROOT_ROTATIONS = 2
 
     # Update on client 1.root.json --> 2.root.json --> 3.root.json,
-    # but not stop before updating to 4.root.json
+    # but stop before updating to 4.root.json
     self.repository_updater.refresh()
 
     # Assert that the client indeed only updated until 3.root.json
