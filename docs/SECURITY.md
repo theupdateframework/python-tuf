@@ -20,7 +20,8 @@ snapshot metadata, and thus new updates could never be downloaded.
 
 * **Endless data attacks**. An attacker responds to a file download request with an endless stream of data, causing harm to clients (e.g. a disk partition filling up or memory exhaustion). 
 
-* **Slow retrieval attacks**. An attacker responds to clients with a very slow stream of data that essentially results in the client never continuing the update process. 
+* **~~Slow retrieval attacks~~**. An attacker responds to clients with a very slow stream of data that essentially results in the client never continuing the update process.\
+**_NOTE: Due to limitations in a 3rd-party HTTP library, the TUF reference implementation currently provides only limited protection against slow retrieval attacks (see [tuf#932](https://github.com/theupdateframework/tuf/issues/932)). We plan to fix this in a future release._**
 
 * **Extraneous dependencies attacks**. An attacker indicates to clients that in order to install the software they wanted, they also need to install unrelated software. This unrelated software can be from a trusted source but may have known vulnerabilities that are exploitable by the attacker. 
 
