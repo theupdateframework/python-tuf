@@ -114,7 +114,7 @@ setup(
     'iso8601>=0.1.12',
     'requests>=2.19.1',
     'six>=1.11.0',
-    'securesystemslib>=0.11.3'
+    'securesystemslib>=0.12.0'
   ],
   packages = find_packages(exclude=['tests']),
   scripts = [
