@@ -119,7 +119,7 @@ pynacl==1.3.0 \
 requests==2.22.0 \
     --hash=sha256:11e007a8a2aa0323f5a921e9e6a2d7e4e67d9877e85773fba9ba6419025cbeb4 \
     --hash=sha256:9cf5292fcd0f598c671cfc1e0d7d1a7f13bb8085e9a590f48c010551dc6c4b31
-securesystemslib==0.11.3 \
+securesystemslib==0.12.0 \
     --hash=sha256:368ef6f6cc40d3636e271485c7adb21c53c22200bab44a2fe8af62886a01c3d5 \
     --hash=sha256:cbd1f7f1af2f2921be33b9fd17384705f5f4147d3a8b5d95b33ec3ce2213f176
 six==1.12.0 \

@@ -1568,7 +1568,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_10__hard_check_file_length(self):
     # Test for exception if file object is not equal to trusted file length.
-    temp_file_object = securesystemslib.util.TempFile()
+    temp_file_object = tempfile.TemporaryFile()
     temp_file_object.write(b'X')
     temp_file_object.seek(0)
     self.assertRaises(tuf.exceptions.DownloadLengthMismatchError,
@@ -1581,7 +1581,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_10__soft_check_file_length(self):
     # Test for exception if file object is not equal to trusted file length.
-    temp_file_object = securesystemslib.util.TempFile()
+    temp_file_object = tempfile.TemporaryFile()
     temp_file_object.write(b'XXX')
     temp_file_object.seek(0)
     self.assertRaises(tuf.exceptions.DownloadLengthMismatchError,
@@ -1704,7 +1704,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_11__verify_uncompressed_metadata_file(self):
     # Test for invalid metadata content.
-    metadata_file_object = securesystemslib.util.TempFile()
+    metadata_file_object = tempfile.TemporaryFile()
     metadata_file_object.write(b'X')
     metadata_file_object.seek(0)
 
