@@ -47,4 +47,5 @@ A contributor to the project must express interest in becoming a maintainer.
 The CB has the authority to add or remove maintainers.
 
 ## Changes in governance
-The CB supervises changes in governance.
+The CB supervises changes in governance.  In the case where the CB cannot or elects not 
+to do so, a quorum of the maintainers select the new CB.
