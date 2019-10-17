@@ -89,8 +89,8 @@ Please see [LICENSE-MIT](LICENSE-MIT) and [LICENSE](LICENSE).
 Acknowledgements
 ----------------
 
-This project is managed by Prof. [Justin
-Cappos](https://ssl.engineering.nyu.edu/personalpages/jcappos/) and other
+This project is hosted by the Linux Foundation under the Cloud Native Computing
+Foundation.  TUF's early development was managed by 
 members of the [Secure Systems Lab](https://ssl.engineering.nyu.edu/) at [New
 York University](https://engineering.nyu.edu/).  We appreciate the efforts of
 Konstantin Andrianov, Geremy Condra, Vladimir Diaz, Yuyu Zheng, Sebastien Awwad,
