@@ -54,7 +54,7 @@ Changes in the consensus builder or term is initiated by opening a github PR.  T
 
 Anyone from the community can vote on the PR with either +1 or -1.
 
-Only votes from maintainer that have been listed in the top-level MAINTAINERS file before the PR is opened are binding.
+Only votes from maintainers that have been listed in the top-level [MAINTAINERS](MAINTAINERS.txt) file before the PR is opened are binding.
 
 When there are conflicting PRs about changes in the consensus builder, the PR with the most binding +1 votes is merged.
 
