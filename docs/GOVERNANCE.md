@@ -48,7 +48,7 @@ The CB has the authority to add or remove maintainers.
 
 ## Changes in governance
 The CB supervises changes in governance.  In the case where the CB cannot or elects not 
-to do so, a quorum of the maintainers select the new CB as follows.
+to do so, a quorum of the maintainers select the new CB as follows:
 
 Changes in the consensus builder or term is initiated by opening a github PR.  The PR should only be opened no earlier than 6 weeks before the end of the CB's term. The PR should be kept open for no less than 4 weeks. The PR can only be merged after the end of the last CB's term, with more +1 than -1 in the binding votes.
 
