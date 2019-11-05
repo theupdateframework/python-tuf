@@ -30,7 +30,7 @@ Maintainers:
     GitHub username: @lukpueh
     PGP fingerprint: 8BA6 9B87 D43B E294 F23E  8120 89A2 AD3C 07D9 62E8
 
-  Santiago Torres
+  Santiago Torres-Arias
     Email: santiago@nyu.edu
     GitHub username: @SantiagoTorres
     PGP fingerprint: 903B AB73 640E B6D6 5533  EFF3 468F 122C E816 2295
