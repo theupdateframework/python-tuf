@@ -10,21 +10,27 @@ Consensus Builder:
 
 Maintainers:
 
-  Lukas Puehringer
-    Email: lukas.puehringer@nyu.edu
-    GitHub username: @lukpueh
-    PGP fingerprint: 8BA6 9B87 D43B E294 F23E  8120 89A2 AD3C 07D9 62E8
-
-  Santiago Torres
-    Email: santiago@nyu.edu
-    GitHub username: @SantiagoTorres
-    PGP fingerprint: 903B AB73 640E B6D6 5533  EFF3 468F 122C E816 2295
+  Sebastien Awwad
+    Email: sebastien.awwad@nyu.edu
+    GitHub username: @awwad
+    PGP fingerprint: C2FB 9C91 0758 B682 7BC4  3233 BC0C 6DED D5E5 CC03
 
   Marina Moore
     Email: mm9693@nyu.edu
     GitHub username: @mnm678
 
-  Sebastien Awwad
-    Email: sebastien.awwad@nyu.edu
-    GitHub username: @awwad
-    PGP fingerprint: C2FB 9C91 0758 B682 7BC4  3233 BC0C 6DED D5E5 CC03
+  Trishank Karthik Kuppusamy
+    Email: trishank@nyu.edu
+    GitHub username: @trishankatdatadog
+    PGP fingerprint: 8C48 08B5 B684 53DE 06A3  08FD 5C09 0ED7 318B 6C1E
+    Keybase username: trishankdatadog
+  
+  Lukas Puehringer
+    Email: lukas.puehringer@nyu.edu
+    GitHub username: @lukpueh
+    PGP fingerprint: 8BA6 9B87 D43B E294 F23E  8120 89A2 AD3C 07D9 62E8
+
+  Santiago Torres-Arias
+    Email: santiago@nyu.edu
+    GitHub username: @SantiagoTorres
+    PGP fingerprint: 903B AB73 640E B6D6 5533  EFF3 468F 122C E816 2295
