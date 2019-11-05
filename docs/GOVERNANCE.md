@@ -15,7 +15,7 @@ contributors.
 More significant changes in the project, such as those that require a TAP or
 changes in governance, are guided by a maintainer called the Consensus 
 Builder (CB), who has a lifetime appointment.  The project's Consensus Builder (CB) is Justin Cappos 
-<jcappos@nyu.edu, @JustinCappos> with a lifetime appointment.
+<jcappos@nyu.edu, @JustinCappos>.
 
 ## Contributions
 [A contributor can submit GitHub pull
