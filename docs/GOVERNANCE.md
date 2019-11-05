@@ -10,8 +10,12 @@ The project is maintained by the people indicated in
 review GitHub pull requests and (2) open issues or [submit vulnerability
 reports](https://github.com/theupdateframework/tuf#security-issues-and-bugs).
 A maintainer has the authority to approve or reject pull requests submitted by
-contributors.  The project's Consensus Builder (CB) is
-Justin Cappos <jcappos@nyu.edu, @JustinCappos>.
+contributors.    
+
+More significant changes in the project, such as those that require a TAP or
+changes in governance, are guided by a maintainer called the Consensus 
+Builder (CB).  The project's Consensus Builder (CB) is Justin Cappos 
+<jcappos@nyu.edu, @JustinCappos>.
 
 ## Contributions
 [A contributor can submit GitHub pull
