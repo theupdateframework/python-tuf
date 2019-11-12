@@ -15,9 +15,8 @@
 # Be sure to leave these comments at the top of the new file.
 #
 -e .
-<<<<<<< HEAD
 
-astroid==2.3.2; python_version >= "3.0"
+astroid==2.3.3; python_version >= "3.0"
 astroid==1.6.5 ; python_version < "3.0" # pyup: ignore
 backports.functools-lru-cache==1.6.1
 bandit==1.6.2
@@ -57,9 +56,9 @@ python-dateutil==2.8.1 # via securesystemslib
 pyyaml==5.1.2
 requests==2.22.0
 scandir==1.10.0 ; python_version < "3.0" # via pathlib2
-securesystemslib[crypto,pynacl]==0.12.1
+securesystemslib[crypto,pynacl]==0.12.2
 singledispatch==3.4.0.3
-six==1.12.0
+six==1.13.0
 smmap2==2.0.5
 stevedore==1.31.0
 subprocess32==3.5.4 ; python_version < "3.0" # via securesystemslib
