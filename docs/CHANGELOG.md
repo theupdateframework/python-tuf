@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.12.1
+* Relax spec version format check for backwards compatibility (#950)
+* Update project metadata (#937, #939, #944, #947, #948, #953, #954)
+* Update misc dependencies (#936, #941, #942, #945, #956)
 
 ## v0.12.0
 * Add backwards incompatible TUF spec version checks (#842, #844, #854, #914)
