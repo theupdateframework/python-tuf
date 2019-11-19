@@ -357,7 +357,7 @@ class TestRepository(unittest.TestCase):
     self.assertEqual([], tuf.roledb.get_dirty_roles(repository_name))
 
     repository.mark_dirty(['root', 'timestamp'])
-    self.assertEqual(['root', 'timestamp'], sorted(tuf.roledb.get_dirty_roles(repository_name)))
+    self.assertEqual(['root', 'timestamp'], tuf.roledb.get_dirty_roles(repository_name))
     repository.unmark_dirty(['root'])
     self.assertEqual(['timestamp'], tuf.roledb.get_dirty_roles(repository_name))
 

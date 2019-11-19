@@ -710,7 +710,7 @@ class TestRoledb(unittest.TestCase):
     self.assertEqual([rolename], tuf.roledb.get_dirty_roles())
 
     tuf.roledb.mark_dirty(['dirty_role'])
-    self.assertEqual([rolename2, rolename], sorted(tuf.roledb.get_dirty_roles()))
+    self.assertEqual([rolename2, rolename], tuf.roledb.get_dirty_roles())
 
     # Verify that a role cannot be marked as dirty for a non-existent
     # repository.
@@ -735,9 +735,9 @@ class TestRoledb(unittest.TestCase):
     tuf.roledb.update_roleinfo(rolename2, roleinfo2, mark_role_as_dirty)
 
     tuf.roledb.unmark_dirty(['dirty_role'])
-    self.assertEqual([rolename], sorted(tuf.roledb.get_dirty_roles()))
+    self.assertEqual([rolename], tuf.roledb.get_dirty_roles())
     tuf.roledb.unmark_dirty(['targets'])
-    self.assertEqual([], sorted(tuf.roledb.get_dirty_roles()))
+    self.assertEqual([], tuf.roledb.get_dirty_roles())
 
     # What happens for a role that isn't dirty?  unmark_dirty() should just
     # log a message.
