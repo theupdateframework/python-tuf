@@ -34,10 +34,20 @@ import datetime # part of TUTORIAL.md
 import os # part of TUTORIAL.md, but also needed separately
 import shutil
 import tempfile
+import sys
+
+if sys.version_info >= (3, 3):
+  import unittest.mock as mock
+
+else:
+  import mock
 
 from tuf.repository_tool import *   # part of TUTORIAL.md
 
 import securesystemslib.exceptions
+
+from securesystemslib.formats import encode_canonical # part of TUTORIAL.md
+from securesystemslib.keys import create_signature # part of TUTORIAL.md
 
 
 class TestTutorial(unittest.TestCase):
@@ -60,9 +70,6 @@ class TestTutorial(unittest.TestCase):
     skipped from the tutorial instructions, "# Skipping user entry of password"
     is written, with the original line below it, starting with ##.
     """
-    repo = create_new_repository("my_repo")
-
-
 
     # ----- Tutorial Section:  Keys
 
@@ -77,10 +84,9 @@ class TestTutorial(unittest.TestCase):
     for fname in ['root_key', 'root_key.pub', 'root_key2', 'root_key2.pub']:
       self.assertTrue(os.path.exists(fname))
 
-    # Note: Skipping the creation of an effectively-randomly named key file, as
-    # that is harder to clean up.
-    ## generate_and_write_rsa_keypair()
-
+    # Generate key pair at /path/to/KEYID
+    fname = generate_and_write_rsa_keypair(password="password")
+    self.assertTrue(os.path.exists(fname))
 
 
     # ----- Tutorial Section:  Import RSA Keys
@@ -128,21 +134,25 @@ class TestTutorial(unittest.TestCase):
     repository.root.load_signing_key(private_root_key)
     repository.root.load_signing_key(private_root_key2)
 
+    # Patch logger to assert that it accurately logs dirty roles
+    with mock.patch("tuf.repository_tool.logger") as mock_logger:
+      repository.dirty_roles()
+      # Concat strings to avoid Python2/3 unicode prefix problems ('' vs. u'')
+      mock_logger.info.assert_called_with("Dirty roles: " + str(['root']))
 
-    # TODO: dirty_roles() doesn't return the list of dirty roles; it just
-    # prints the list. It should probably it should return it as well.
-    # If that's not changed, perhaps we should test the print output from the
-    # dirty_roles() statement here.
-    repository.dirty_roles()
-    # self.assertEqual(repository.dirty_roles(), ['root'])
-
-
-    # TODO: status() should return some sort of value that indicates what
-    # it prints. It's currently just printing status information.
-    # If that's not changed, perhaps we should test the print output from the
-    # status() statement here.
-    repository.status()
-
+    # Patch logger to assert that it accurately logs the repo's status. Since
+    # the logger is called multiple times, we have to assert for the accurate
+    # sequence of calls or rather its call arguments.
+    with mock.patch("tuf.repository_lib.logger") as mock_logger:
+      repository.status()
+      # Concat strings to avoid Python2/3 unicode prefix problems ('' vs. u'')
+      self.assertListEqual([
+        repr('targets') + " role contains 0 / 1 public keys.",
+        repr('snapshot') + " role contains 0 / 1 public keys.",
+        repr('timestamp') + " role contains 0 / 1 public keys.",
+        repr('root') + " role contains 2 / 2 signatures.",
+        repr('targets') + " role contains 0 / 1 signatures."
+      ], [args[0] for args, _ in mock_logger.info.call_args_list])
 
     generate_and_write_rsa_keypair('targets_key', password='password')
     generate_and_write_rsa_keypair('snapshot_key', password='password')
@@ -176,6 +186,12 @@ class TestTutorial(unittest.TestCase):
 
     repository.timestamp.expiration = datetime.datetime(2080, 10, 28, 12, 8)
 
+    with mock.patch("tuf.repository_tool.logger") as mock_logger:
+      repository.dirty_roles()
+      # Concat strings to avoid Python2/3 unicode prefix problems ('' vs. u'')
+      mock_logger.info.assert_called_with("Dirty roles: " +
+            str(['root', 'snapshot', 'targets', 'timestamp']))
+
     repository.writeall()
 
 
@@ -207,19 +223,7 @@ class TestTutorial(unittest.TestCase):
     list_of_targets = repository.get_filepaths_in_directory(
         os.path.join('repository', 'targets'), recursive_walk=False, followlinks=True)
 
-    # Ensure that we have absolute paths. (Harmless before and after PR #774,
-    # which fixes the issue with non-absolute paths coming from
-    # get_filepaths_in_directory.)
-
-    list_of_targets_temp = []
-
-    for t in list_of_targets:
-      list_of_targets_temp.append(os.path.abspath(t))
-
-    list_of_targets = list_of_targets_temp
-
-
-    self.assertEqual(sorted(list_of_targets), [
+    self.assertListEqual(sorted(list_of_targets), [
         os.path.abspath(os.path.join('repository', 'targets', 'file1.txt')),
         os.path.abspath(os.path.join('repository', 'targets', 'file2.txt')),
         os.path.abspath(os.path.join('repository', 'targets', 'file3.txt'))])
@@ -255,34 +259,47 @@ class TestTutorial(unittest.TestCase):
         'snapshot_key', 'password')
     repository.snapshot.load_signing_key(private_snapshot_key)
 
-
     # Skipping user entry of password
     ## private_timestamp_key = import_rsa_privatekey_from_file('timestamp_key')
     private_timestamp_key = import_rsa_privatekey_from_file(
         'timestamp_key', 'password')
     repository.timestamp.load_signing_key(private_timestamp_key)
 
-    # TODO: dirty_roles() doesn't return the list of dirty roles; it just
-    # prints the list. It should probably it should return it as well.
-    # If that's not changed, perhaps we should test the print output from the
-    # dirty_roles() statement here.
-    repository.dirty_roles()
-    # self.assertEqual(
-    #   repository.dirty_roles(), ['timestamp', 'snapshot', 'targets'])
+    # Patch logger to assert that it accurately logs dirty roles
+    with mock.patch("tuf.repository_tool.logger") as mock_logger:
+      repository.dirty_roles()
+      # Concat strings to avoid Python2/3 unicode prefix problems ('' vs. u'')
+      mock_logger.info.assert_called_with(
+          "Dirty roles: " + str(['snapshot', 'targets', 'timestamp']))
 
     repository.writeall()
 
-    repository.targets.remove_target('file3.txt')
+    repository.targets.remove_target('myproject/file4.txt')
     self.assertTrue(os.path.exists(os.path.join(
-        'repository','targets', 'file3.txt')))
+        'repository','targets', 'myproject', 'file4.txt')))
 
+    with mock.patch("tuf.repository_tool.logger") as mock_logger:
+      repository.dirty_roles()
+      # Concat strings to avoid Python2/3 unicode prefix problems ('' vs. u'')
+      mock_logger.info.assert_called_with(
+          "Dirty roles: " + str(['targets']))
+
+    repository.mark_dirty(['snapshot', 'timestamp'])
     repository.writeall()
 
+
+    # ----- Tutorial Section: Excursion: Dump Metadata and Append Signature
     signable_content = dump_signable_metadata(
-        os.path.join('repository', 'metadata.staged', 'targets.json'))
+        os.path.join('repository', 'metadata.staged', 'timestamp.json'))
+
+    # Skipping user entry of password
+    ## private_ed25519_key = import_ed25519_privatekey_from_file('ed25519_key')
+    private_ed25519_key = import_ed25519_privatekey_from_file('ed25519_key', 'password')
+    signature = create_signature(
+        private_ed25519_key, encode_canonical(signable_content).encode())
     append_signature(
-        {'keyid': '99aabb', 'sig': '000000'},
-        os.path.join('repository', 'metadata.staged', 'targets.json'))
+        signature,
+        os.path.join('repository', 'metadata.staged', 'timestamp.json'))
 
 
 
@@ -291,7 +308,9 @@ class TestTutorial(unittest.TestCase):
         'unclaimed_key', bits=2048, password='password')
     public_unclaimed_key = import_rsa_publickey_from_file('unclaimed_key.pub')
     repository.targets.delegate(
-        'unclaimed', [public_unclaimed_key], ['foo*.tgz'])
+        'unclaimed', [public_unclaimed_key], ['myproject/*.txt'])
+
+    repository.targets("unclaimed").add_target("myproject/file4.txt")
 
     # Skipping user entry of password
     ## private_unclaimed_key = import_rsa_privatekey_from_file('unclaimed_key')
@@ -299,20 +318,14 @@ class TestTutorial(unittest.TestCase):
         'unclaimed_key', 'password')
     repository.targets("unclaimed").load_signing_key(private_unclaimed_key)
 
-    repository.targets("unclaimed").version = 2
 
-    # TODO: dirty_roles() doesn't return the list of dirty roles; it just
-    # prints the list. It should probably it should return it as well.
-    # If that's not changed, perhaps we should test the print output from the
-    # dirty_roles() statement here.
-    repository.dirty_roles()
-    # self.assertEqual(repository.dirty_roles(),
-    #   ['timestamp', 'snapshot', 'targets', 'unclaimed'])
+    with mock.patch("tuf.repository_tool.logger") as mock_logger:
+      repository.dirty_roles()
+      # Concat strings to avoid Python2/3 unicode prefix problems ('' vs. u'')
+      mock_logger.info.assert_called_with(
+          "Dirty roles: " + str(['targets', 'unclaimed']))
 
-    repository.writeall()
-
-    repository.targets('unclaimed').delegate('django', [public_unclaimed_key], ['bar*.tgz'])
-    repository.targets('unclaimed').revoke('django')
+    repository.mark_dirty(["snapshot", "timestamp"])
     repository.writeall()
 
 
@@ -323,29 +336,34 @@ class TestTutorial(unittest.TestCase):
         os.path.join('repository', 'metadata'))
 
 
-
-    # ----- Tutorial Section: Consistent Snapshots
-
-    repository.root.load_signing_key(private_root_key)
-    repository.root.load_signing_key(private_root_key2)
-    repository.writeall(consistent_snapshot=True)
-
-
-
     # ----- Tutorial Section: Delegate to Hashed Bins
 
     targets = repository.get_filepaths_in_directory(
         os.path.join('repository', 'targets', 'myproject'), recursive_walk=True)
 
+    repository.targets('unclaimed').delegate_hashed_bins(
+        targets, [public_unclaimed_key], 32)
+
     for delegation in repository.targets('unclaimed').delegations:
       delegation.load_signing_key(private_unclaimed_key)
 
+    with mock.patch("tuf.repository_tool.logger") as mock_logger:
+      repository.dirty_roles()
+      # Concat strings to avoid Python2/3 unicode prefix problems ('' vs. u'')
+      mock_logger.info.assert_called_with(
+          "Dirty roles: " + str(['00-07', '08-0f', '10-17', '18-1f', '20-27',
+          '28-2f', '30-37', '38-3f', '40-47', '48-4f', '50-57', '58-5f',
+          '60-67', '68-6f', '70-77', '78-7f', '80-87', '88-8f', '90-97',
+          '98-9f', 'a0-a7', 'a8-af', 'b0-b7', 'b8-bf', 'c0-c7', 'c8-cf',
+          'd0-d7', 'd8-df', 'e0-e7', 'e8-ef', 'f0-f7', 'f8-ff', 'unclaimed']))
 
+    repository.mark_dirty(["snapshot", "timestamp"])
+    repository.writeall()
 
     # ----- Tutorial Section: How to Perform an Update
 
     # A separate tutorial is linked to for client use. That is not tested here.
-    create_tuf_client_directory("repository/", "client/")
+    create_tuf_client_directory("repository/", "client/tufrepo/")
 
 
 
