@@ -115,7 +115,8 @@ The following four key files should now exist:
 
 If a filepath is not given, the KEYID of the generated key is used as the
 filename.  The key files are written to the current working directory.
-```
+```python
+# Continuing from the previous section . . .
 >>> generate_and_write_rsa_keypair()
 Enter a password for the encrypted RSA key (/path/to/b5b8de8aeda674bce948fbe82cab07e309d6775fc0ec299199d16746dc2bd54c):
 Confirm:
@@ -334,6 +335,11 @@ repository, the `add_targets()` method of a Targets role can be called to add
 the target filepaths to metadata.
 
 ```python
+# Continuing from the previous section . . .
+
+# NOTE: If you exited the Python interactive interpreter above you need to
+# re-import the repository_tool-functions and re-load the repository and
+# signing keys.
 >>> from tuf.repository_tool import *
 
 # The 'os' module is needed to gather file attributes, which will be included
@@ -387,8 +393,10 @@ metadata.  `snapshot.json` keys must be loaded and its metadata signed because
 `timestamp.json` role must also be signed.
 
 ```Python
-# The private key of the updated targets metadata must be loaded before it can
-# be signed and written (Note the load_repository() call above).
+# Continuing from the previous section . . .
+
+# The private key of the updated targets metadata must be re-loaded before it
+# can be signed and written (Note the load_repository() call above).
 >>> private_targets_key = import_rsa_privatekey_from_file('targets_key')
 Enter a password for the encrypted RSA key (/path/to/targets_key):
 
@@ -600,7 +608,10 @@ delegate_hashed_bins(list_of_targets, keys_of_hashed_bins, number_of_bins)
 We next provide a complete example of retrieving target paths to add to hashed
 bins, performing the hashed bin delegations, signing them, and delegating paths
 to some role.
+
 ```Python
+# Continuing from the previous section . . .
+
 # Get a list of target paths for the hashed bins.
 >>> targets = \
   repository.get_filepaths_in_directory('repository/targets/myproject', recursive_walk=True)
