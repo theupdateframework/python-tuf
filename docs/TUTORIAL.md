@@ -227,9 +227,9 @@ top-level roles, including itself.
 >>> repository.root.load_signing_key(private_root_key)
 >>> repository.root.load_signing_key(private_root_key2)
 
-# Print the roles that are "dirty" (i.e., that have not been written to disk
-# or have changed.  Root should be dirty because verification keys have been
-# added, private keys loaded, etc.)
+# Print the roles that are "dirty" (i.e., that have changed and have not yet
+# been written to disk.  Root should be dirty because verification keys were
+# added, signing keys loaded, and a threshold added)
 >>> repository.dirty_roles()
 Dirty roles: ['root']
 
@@ -297,8 +297,10 @@ Enter a password for the encrypted RSA key (/path/to/timestamp_key):
 # week), timestamp(1 day).
 >>> repository.timestamp.expiration = datetime.datetime(2080, 10, 28, 12, 8)
 
-# Write all metadata to "repository/metadata.staged/".  The common case is to
-# crawl the filesystem for all the delegated roles in "metadata.staged/".
+>>> repository.dirty_roles()
+Dirty roles: ['snapshot', 'targets', 'timestamp']
+
+# Write all metadata to "repository/metadata.staged/"
 >>> repository.writeall()
 ```
 
@@ -412,9 +414,8 @@ Enter a password for the encrypted RSA key (/path/to/snapshot_key):
 Enter a password for the encrypted RSA key (/path/to/timestamp_key):
 >>> repository.timestamp.load_signing_key(private_timestamp_key)
 
-# Which roles are dirty?
 >>> repository.dirty_roles()
-Dirty roles: ['timestamp', 'snapshot', 'targets']
+Dirty roles: ['root', 'snapshot', 'targets', 'timestamp']
 
 # Generate new versions of the modified top-level metadata (targets, snapshot,
 # and timestamp).
@@ -432,11 +433,11 @@ new metadata to disk.
 # Remove a target file listed in the "targets" metadata.  The target file is
 # not actually deleted from the file system.
 >>> repository.targets.remove_target('myproject/file4.txt')
+>>> repository.dirty_roles()
+Dirty roles: ['targets']
 
-# repository.writeall() writes any required metadata files (e.g., if
-# targets.json is updated, snapshot.json and timestamp.json are also written
-# to disk), updates those that have changed, and any that need updating to make
-# a new "snapshot" (new snapshot.json and timestamp.json).
+# Mark roles as dirty that have not changed but need to be updated (see #958)
+>>> repository.mark_dirty(['snapshot', 'timestamp'])
 >>> repository.writeall()
 ```
 
