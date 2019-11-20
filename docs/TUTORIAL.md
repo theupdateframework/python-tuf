@@ -375,11 +375,6 @@ the target filepaths to metadata.
 # these targets can be included in Targets metadata.
 >>> repository.targets.add_targets(list_of_targets)
 
-# Note that you can also add targets to existing delegated targets roles,
-# accessing them this way:
->>> repository.targets('<delegated rolename>').add_target(...)
->>> repository.targets('<delegated rolename>').add_targets(...)
-
 # Individual target files may also be added to roles, including custom data
 # about the target.  In the example below, file permissions of the target
 # (octal number specifying file access for owner, group, others (e.g., 0755) is
@@ -436,7 +431,7 @@ new metadata to disk.
 
 # Remove a target file listed in the "targets" metadata.  The target file is
 # not actually deleted from the file system.
->>> repository.targets.remove_target('file3.txt')
+>>> repository.targets.remove_target('myproject/file4.txt')
 
 # repository.writeall() writes any required metadata files (e.g., if
 # targets.json is updated, snapshot.json and timestamp.json are also written
@@ -503,15 +498,13 @@ targets and generate signed metadata.
 >>> generate_and_write_rsa_keypair('unclaimed_key', bits=2048, password='password')
 >>> public_unclaimed_key = import_rsa_publickey_from_file('unclaimed_key.pub')
 
-# Make a delegation (delegate trust of 'foo*.tgz' files) from "targets" to
-# "unclaimed", where 'unclaimed' initially contains zero targets.
-# delegate(rolename, list_of_public_keys, paths, threshold=1,
-#     list_of_targets=None, path_hash_prefixes=None)
->>> repository.targets.delegate('unclaimed', [public_unclaimed_key], ['foo*.tgz'])
+# Make a delegation (delegate trust of 'myproject/*.txt' files) from "targets"
+# to "unclaimed", where "unclaimed" initially contains zero targets.
+>>> repository.targets.delegate('unclaimed', [public_unclaimed_key], ['myproject/*.txt'])
 
-# Thereafter, we can access a delegated role this way:
->>> repository.targets("<delegated rolename")
-
+# Thereafter, we can access the delegated role by its name to e.g. add target
+# files, just like we did with the top-level targets role.
+>>> repository.targets("unclaimed").add_target("myproject/file4.txt")
 
 # Load the private key of "unclaimed" so that unclaimed's metadata can be
 # signed, and valid metadata created.
@@ -520,19 +513,18 @@ Enter a password for the encrypted RSA key (/path/to/unclaimed_key):
 
 >>> repository.targets("unclaimed").load_signing_key(private_unclaimed_key)
 
-# Update an attribute of the unclaimed role.  Note: writeall() will
-# automatically increment this version number automatically, so the written
-# unclaimed will be version 3.
->>> repository.targets("unclaimed").version = 2
+>>> repository.dirty_roles()
+Dirty roles: ['targets', 'unclaimed']
 
-# Dirty roles?
-$ repository.dirty_roles()
-Dirty roles: ['timestamp', 'snapshot', 'targets', 'unclaimed']
-
-#  Write the metadata of "unclaimed", "targets", "snapshot,
-# and "timestamp".
+# Mark roles as dirty that have not changed but need to be updated (see #958)
+>>> repository.mark_dirty(["snapshot", "timestamp"])
 >>> repository.writeall()
 ```
+
+<!--
+TODO: Integrate section with an updated delegation tutorial.
+As it is now, it just messes up the state of the repository, i.e. marks
+"unclaimed" as dirty, although there is nothing new to write.
 
 #### Revoke Delegated Role ####
 ```python
@@ -545,6 +537,8 @@ Dirty roles: ['timestamp', 'snapshot', 'targets', 'unclaimed']
 >>> repository.targets('unclaimed').revoke("django")
 >>> repository.writeall()
 ```
+-->
+
 
 #### Wrap-up ####
 
@@ -629,15 +623,29 @@ to some role.
 ```Python
 # Continuing from the previous section . . .
 
+# Remove 'myproject/file4.txt' from unclaimed role and instead further delegate
+# all targets in myproject/ to hashed bins.
+>>> repository.targets('unclaimed').remove_target("myproject/file4.txt")
+
 # Get a list of target paths for the hashed bins.
->>> targets = \
-  repository.get_filepaths_in_directory('repository/targets/myproject', recursive_walk=True)
->>> repository.targets('unclaimed').delegate_hashed_bins(targets, [public_unclaimed_key], 32)
+>>> targets = repository.get_filepaths_in_directory(
+...     'repository/targets/myproject', recursive_walk=True)
+
+>>> repository.targets('unclaimed').delegate_hashed_bins(
+...     targets, [public_unclaimed_key], 32)
 
 # delegated_hashed_bins() only assigns the public key(s) of the hashed bins, so
 # the private keys may be manually loaded as follows:
 >>> for delegation in repository.targets('unclaimed').delegations:
 ...   delegation.load_signing_key(private_unclaimed_key)
+
+
+>>> repository.dirty_roles()
+Dirty roles: ['00-07', '08-0f', '10-17', '18-1f', '20-27', '28-2f', '30-37', '38-3f', '40-47', '48-4f', '50-57', '58-5f', '60-67', '68-6f', '70-77', '78-7f', '80-87', '88-8f', '90-7', '98-9f', 'a0-a7', 'a8-af', 'b0-b7', 'b8-bf', 'c0-c7', 'c8-cf', 'd0-d7', 'd8-df', 'e0-e7', 'e8-ef', 'f0-f7', 'f8-ff', 'unclaimed']
+
+# Mark roles as dirty that have not changed but need to be updated (see #958)
+>>> repository.mark_dirty(["snapshot", "timestamp"])
+>>> repository.writeall()
 
 ```
 
