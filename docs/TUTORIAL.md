@@ -445,23 +445,35 @@ new metadata to disk.
 >>> repository.writeall()
 ```
 
-#### Dump Metadata and Append Signature ####
+#### Excursion: Dump Metadata and Append Signature ####
 
 The following two functions are intended for those that wish to independently
 sign metadata.  Repository maintainers can dump the portion of metadata that is
 normally signed, sign it with an external signing tool, and append the
 signature to already existing metadata.
 
-First, the signable portion of metadata can be generated
-as follows:
+First, the signable portion of metadata can be generated as follows:
 
 ```Python
->>> signable_content = dump_signable_metadata('targets.json')
+>>> signable_content = dump_signable_metadata('repository/metadata.staged/timestamp.json')
 ```
 
-The externally generated signature can then be appended to metadata:
+Then, use a tool like securesystemslib to create a signature over the signable
+portion. *Note, to make the signing key count towards the role's signature
+threshold, it needs to be added to `root.json`, e.g. via
+`repository.timestamp.add_verification_key(key)` (not shown in below snippet).*
+```python
+>>> from securesystemslib.formats import encode_canonical
+>>> from securesystemslib.keys import create_signature
+>>> private_ed25519_key = import_ed25519_privatekey_from_file('ed25519_key')
+Enter a password for the encrypted Ed25519 key (/path/to/ed25519_key):
+>>> signature = create_signature(
+...     private_ed25519_key, encode_canonical(signable_content).encode())
+```
+
+Finally, append the signature to the metadata
 ```Python
->>> append_signature(signature, 'targets.json')
+>>> append_signature(signature, 'repository/metadata.staged/timestamp.json')
 ```
 
 Note that the format of the signature is the format expected in metadata, which
