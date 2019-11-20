@@ -233,11 +233,16 @@ top-level roles, including itself.
 >>> repository.dirty_roles()
 Dirty roles: ['root']
 
-# The status() function also prints the next role that needs editing.  In this
-# example, the 'targets' role needs editing next, since the root role is now
-# fully valid.
+# `repository.status()` shows missing verification and signing keys for the
+# top-level roles, and whether signatures can be created (also see #955).
+# Thi output shows that so far only the "root" role meets the key threshold and
+# can successfully sign its metadata.
 >>> repository.status()
 'targets' role contains 0 / 1 public keys.
+'snapshot' role contains 0 / 1 public keys.
+'timestamp' role contains 0 / 1 public keys.
+'root' role contains 2 / 2 signatures.
+'targets' role contains 0 / 1 signatures.
 
 # In the next section, update the other top-level roles and create a repository
 # with valid metadata.
