@@ -33,6 +33,7 @@ import unittest
 import datetime # part of TUTORIAL.md
 import os # part of TUTORIAL.md, but also needed separately
 import shutil
+import tempfile
 
 from tuf.repository_tool import *   # part of TUTORIAL.md
 
@@ -41,14 +42,13 @@ import securesystemslib.exceptions
 
 class TestTutorial(unittest.TestCase):
   def setUp(self):
-    clean_test_environment()
-
-
+    self.working_dir = os.getcwd()
+    self.test_dir = os.path.realpath(tempfile.mkdtemp())
+    os.chdir(self.test_dir)
 
   def tearDown(self):
-    clean_test_environment()
-
-
+    os.chdir(self.working_dir)
+    shutil.rmtree(self.test_dir)
 
   def test_tutorial(self):
     """
@@ -370,41 +370,6 @@ class TestTutorial(unittest.TestCase):
 
     # targets/:
     # file1.txt
-
-
-
-
-
-def clean_test_environment():
-  """
-  Delete temporary files and directories from this test (or with the same name
-  as those created by this test...).
-  """
-  for directory in ['repository', 'my_repo', 'client',
-      'repository/targets/my_project']:
-    if os.path.exists(directory):
-      shutil.rmtree(directory)
-
-  for fname in [
-        os.path.join('repository', 'targets', 'file1.txt'),
-        os.path.join('repository', 'targets', 'file2.txt'),
-        os.path.join('repository', 'targets', 'file3.txt'),
-        'root_key',
-        'root_key.pub',
-        'root_key2',
-        'root_key2.pub',
-        'ed25519_key',
-        'ed25519_key.pub',
-        'targets_key',
-        'targets_key.pub',
-        'snapshot_key',
-        'snapshot_key.pub',
-        'timestamp_key',
-        'timestamp_key.pub',
-        'unclaimed_key',
-        'unclaimed_key.pub']:
-    if os.path.exists(fname):
-      os.remove(fname)
 
 
 
