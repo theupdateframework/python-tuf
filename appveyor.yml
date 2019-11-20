@@ -25,7 +25,7 @@ init:
 
 install:
   - set PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%
-  - python -m pip install -U pip
+  - python -m pip install -U pip setuptools
   - pip install -e .
   - pip install securesystemslib[crypto,pynacl]
 
