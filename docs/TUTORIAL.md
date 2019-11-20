@@ -675,7 +675,7 @@ saved on the client side.
 
 ```python
 >>> from tuf.repository_tool import *
->>> create_tuf_client_directory("repository/", "client/")
+>>> create_tuf_client_directory("repository/", "client/tufrepo/")
 ```
 
 `create_tuf_client_directory()` moves metadata from `repository/metadata` to
@@ -695,21 +695,19 @@ $ cd "repository/"; python3 -m http.server 8001
 
 We next retrieve targets from the TUF repository and save them to `client/`.
 The `client.py` script is available to download metadata and files from a
-specified repository.  In a different command-line prompt . . .
+specified repository.  In a different command-line prompt, where `tuf` is
+installed . . .
 ```Bash
 $ cd "client/"
 $ ls
-metadata/
+tufrepo/
 
-# Note: You should activate another "tufenv" virtualenv if using a new
-# windows/tab, otherwise the local Python installation would be incorrectly
-# used.
 $ client.py --repo http://localhost:8001 file1.txt
-$ ls . targets/
+$ ls . tuftargets/
 .:
-metadata  targets
+tufrepo  tuftargets
 
-targets/:
+tuftargets/:
 file1.txt
 ```
 
