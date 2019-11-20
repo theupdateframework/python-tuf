@@ -356,15 +356,15 @@ the target filepaths to metadata.
 # in targets metadata.
 >>> repository = load_repository('repository')
 
-# get_filepaths_in_directory() returns a list of file paths in a directory.  It can also return
-# files in sub-directories if 'recursive_walk' is True.
->>> list_of_targets = repository.get_filepaths_in_directory("repository/targets/",
-                                                        recursive_walk=False, followlinks=True)
+# get_filepaths_in_directory() returns a list of file paths in a directory. It
+# can also return files in sub-directories if 'recursive_walk' is True.
+>>> list_of_targets = repository.get_filepaths_in_directory(
+...     "repository/targets/", recursive_walk=False, followlinks=True)
 
 # Note: Since we set the 'recursive_walk' argument to false, the 'myproject'
 # sub-directory is excluded from 'list_of_targets'.
 >>> list_of_targets
-['repository/targets/file2.txt', 'repository/targets/file1.txt', 'repository/targets/file3.txt']
+['/path/to/repository/targets/file2.txt', '/path/to/repository/targets/file1.txt', '/path/to/repository/targets/file3.txt']
 
 # Add the list of target paths to the metadata of the top-level Targets role.
 # Any target file paths that might already exist are NOT replaced, and
@@ -385,7 +385,7 @@ the target filepaths to metadata.
 # (octal number specifying file access for owner, group, others (e.g., 0755) is
 # added alongside the default fileinfo.  All target objects in metadata include
 # the target's filepath, hash, and length.
->>> target4_filepath = "repository/targets/myproject/file4.txt"
+>>> target4_filepath = os.path.abspath("repository/targets/myproject/file4.txt")
 >>> octal_file_permissions = oct(os.stat(target4_filepath).st_mode)[4:]
 >>> custom_file_permissions = {'file_permissions': octal_file_permissions}
 >>> repository.targets.add_target(target4_filepath, custom_file_permissions)
