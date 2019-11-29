@@ -233,9 +233,9 @@ top-level roles, including itself.
 >>> repository.dirty_roles()
 Dirty roles: ['root']
 
-# `repository.status()` shows missing verification and signing keys for the
+# repository.status() shows missing verification and signing keys for the
 # top-level roles, and whether signatures can be created (also see #955).
-# Thi output shows that so far only the "root" role meets the key threshold and
+# This output shows that so far only the "root" role meets the key threshold and
 # can successfully sign its metadata.
 >>> repository.status()
 'targets' role contains 0 / 1 public keys.
@@ -244,7 +244,7 @@ Dirty roles: ['root']
 'root' role contains 2 / 2 signatures.
 'targets' role contains 0 / 1 signatures.
 
-# In the next section, update the other top-level roles and create a repository
+# In the next section we update the other top-level roles and create a repository
 # with valid metadata.
 ```
 
@@ -379,7 +379,7 @@ the target filepaths to metadata.
 
 # Individual target files may also be added to roles, including custom data
 # about the target.  In the example below, file permissions of the target
-# (octal number specifying file access for owner, group, others (e.g., 0755) is
+# (octal number specifying file access for owner, group, others e.g., 0755) is
 # added alongside the default fileinfo.  All target objects in metadata include
 # the target's filepath, hash, and length.
 >>> target4_filepath = os.path.abspath("repository/targets/myproject/file4.txt")
@@ -710,4 +710,3 @@ tufrepo  tuftargets
 tuftargets/:
 file1.txt
 ```
-
