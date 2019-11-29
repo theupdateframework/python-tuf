@@ -446,7 +446,7 @@ class Repository(object):
       None.
     """
 
-    logger.info('Dirty roles: ' + str(tuf.roledb.get_dirty_roles(self._repository_name)))
+    logger.info('Dirty roles: ' + str(sorted(tuf.roledb.get_dirty_roles(self._repository_name))))
 
 
 
