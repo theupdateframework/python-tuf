@@ -62,14 +62,14 @@ and verify metadata files.
 To begin, cryptographic keys are generated with the repository tool.  However,
 before metadata files can be validated by clients and target files fetched in a
 secure manner, public keys must be pinned to particular metadata roles and
-metadata signed by the role's private keys.  After covering keys, the four
-required top-level metadata are created next.  Examples are given demonstrating
-the expected work flow, where the metadata roles are created in a specific
-order, keys imported and loaded, and metadata signed and written to disk.
-Lastly, target files are added to the repository, and a custom delegation
-performed to extend the default roles of the repository.  By the end, a fully
-populated TUF repository is generated that can be used by clients to securely
-download updates.
+metadata signed by role's private keys.  After covering keys, the four required
+top-level metadata are created next.  Examples are given demonstrating the
+expected work flow, where the metadata roles are created in a specific order,
+keys imported and loaded, and metadata signed and written to disk.  Lastly,
+target files are added to the repository, and a custom delegation performed to
+extend the default roles of the repository.  By the end, a fully populated TUF
+repository is generated that can be used by clients to securely download
+updates.
 
 ### Keys ###
 The repository tool supports multiple public-key algorithms, such as
