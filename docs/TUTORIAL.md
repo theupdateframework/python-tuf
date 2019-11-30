@@ -487,10 +487,14 @@ default.
 
 In the next sub-section, the `unclaimed` role is delegated from the top-level
 `targets` role.  The `targets` role specifies the delegated role's public keys,
-the paths it is trusted to provide, and its role name. Furthermore, the example
-below demonstrates a nested delegation from `unclaimed` to `django`.  Once a
+the paths it is trusted to provide, and its role name. <!--
+TODO: Uncomment together with "Revoke Delegated Role" section below
+
+Furthermore, the example
+below demonstrates a nested delegation from `unclaimed` to `django`. Once a
 role has delegated trust to another, the delegated role may independently add
 targets and generate signed metadata.
+-->
 
 ```python
 # Continuing from the previous section . . .
@@ -501,6 +505,7 @@ targets and generate signed metadata.
 
 # Make a delegation (delegate trust of 'myproject/*.txt' files) from "targets"
 # to "unclaimed", where "unclaimed" initially contains zero targets.
+# NOTE: Please ignore the warning about the path pattern's location (see #963)
 >>> repository.targets.delegate('unclaimed', [public_unclaimed_key], ['myproject/*.txt'])
 
 # Thereafter, we can access the delegated role by its name to e.g. add target
