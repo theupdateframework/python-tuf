@@ -647,11 +647,24 @@ to some role.
 >>> targets = repository.get_filepaths_in_directory(
 ...     'repository/targets/myproject', recursive_walk=True)
 
+# Delegate trust to 32 hashed bin roles. Each role is responsible for the set
+# of target files, determined by the path hash prefix. TUF evenly distributes
+# hexadecimal ranges over the chosen number of bins (see output).
+# To initialize the bins we use one key, which TUF warns us about (see output).
+# However, we can assign separate keys to each bin, with the method used in
+# previous sections, accessing a bin by its hash prefix range name, e.g.:
+# "repository.targets('00-07').add_verification_key('public_00-07_key')".
 >>> repository.targets('unclaimed').delegate_hashed_bins(
 ...     targets, [public_unclaimed_key], 32)
+Creating hashed bin delegations.
+1 total targets.
+32 hashed bins.
+256 total hash prefixes.
+Each bin ranges over 8 hash prefixes.
+Adding a verification key that has already been used. [repeated 32x]
 
-# delegated_hashed_bins() only assigns the public key(s) of the hashed bins, so
-# the private keys may be manually loaded as follows:
+# The hashed bin roles can also be accessed by iterating the "delegations"
+# property of the delegating role, which we do here to load the signing key.
 >>> for delegation in repository.targets('unclaimed').delegations:
 ...   delegation.load_signing_key(private_unclaimed_key)
 
