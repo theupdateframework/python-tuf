@@ -227,12 +227,6 @@ top-level roles, including itself.
 >>> repository.root.load_signing_key(private_root_key)
 >>> repository.root.load_signing_key(private_root_key2)
 
-# Print the roles that are "dirty" (i.e., that have changed and have not yet
-# been written to disk.  Root should be dirty because verification keys were
-# added, signing keys loaded, and a threshold added)
->>> repository.dirty_roles()
-Dirty roles: ['root']
-
 # repository.status() shows missing verification and signing keys for the
 # top-level roles, and whether signatures can be created (also see #955).
 # This output shows that so far only the "root" role meets the key threshold and
@@ -297,8 +291,8 @@ Enter a password for the encrypted RSA key (/path/to/timestamp_key):
 # week), timestamp(1 day).
 >>> repository.timestamp.expiration = datetime.datetime(2080, 10, 28, 12, 8)
 
->>> repository.dirty_roles()
-Dirty roles: ['snapshot', 'targets', 'timestamp']
+# Mark roles for metadata update (see #964, #958)
+>>> repository.mark_dirty(['root', 'snapshot', 'targets', 'timestamp'])
 
 # Write all metadata to "repository/metadata.staged/"
 >>> repository.writeall()
@@ -414,8 +408,8 @@ Enter a password for the encrypted RSA key (/path/to/snapshot_key):
 Enter a password for the encrypted RSA key (/path/to/timestamp_key):
 >>> repository.timestamp.load_signing_key(private_timestamp_key)
 
->>> repository.dirty_roles()
-Dirty roles: ['root', 'snapshot', 'targets', 'timestamp']
+# Mark roles for metadata update (see #964, #958)
+>>> repository.mark_dirty(['snapshot', 'targets', 'timestamp'])
 
 # Generate new versions of the modified top-level metadata (targets, snapshot,
 # and timestamp).
@@ -433,11 +427,10 @@ new metadata to disk.
 # Remove a target file listed in the "targets" metadata.  The target file is
 # not actually deleted from the file system.
 >>> repository.targets.remove_target('myproject/file4.txt')
->>> repository.dirty_roles()
-Dirty roles: ['targets']
 
-# Mark roles as dirty that have not changed but need to be updated (see #958)
->>> repository.mark_dirty(['snapshot', 'timestamp'])
+# Mark roles for metadata update (see #964, #958)
+>>> repository.mark_dirty(['snapshot', 'targets', 'timestamp'])
+
 >>> repository.writeall()
 ```
 
@@ -519,18 +512,16 @@ Enter a password for the encrypted RSA key (/path/to/unclaimed_key):
 
 >>> repository.targets("unclaimed").load_signing_key(private_unclaimed_key)
 
->>> repository.dirty_roles()
-Dirty roles: ['targets', 'unclaimed']
+# Mark roles for metadata update (see #964, #958)
+>>> repository.mark_dirty(['snapshot', 'targets','timestamp', 'unclaimed'])
 
-# Mark roles as dirty that have not changed but need to be updated (see #958)
->>> repository.mark_dirty(["snapshot", "timestamp"])
 >>> repository.writeall()
 ```
 
 <!--
 TODO: Integrate section with an updated delegation tutorial.
 As it is now, it just messes up the state of the repository, i.e. marks
-"unclaimed" as dirty, although there is nothing new to write.
+"unclaimed" as dirty, although there is nothing newto write.
 
 #### Revoke Delegated Role ####
 ```python
@@ -668,12 +659,13 @@ Adding a verification key that has already been used. [repeated 32x]
 >>> for delegation in repository.targets('unclaimed').delegations:
 ...   delegation.load_signing_key(private_unclaimed_key)
 
+# Mark roles for metadata update (see #964, #958)
+>>> repository.mark_dirty(['00-07', '08-0f', '10-17', '18-1f', '20-27', '28-2f',
+...   '30-37', '38-3f', '40-47', '48-4f', '50-57', '58-5f', '60-67', '68-6f',
+...   '70-77', '78-7f', '80-87', '88-8f', '90-7', '98-9f', 'a0-a7', 'a8-af',
+...   'b0-b7', 'b8-bf', 'c0-c7', 'c8-cf', 'd0-d7', 'd8-df', 'e0-e7', 'e8-ef',
+...   'f0-f7', 'f8-ff', 'snapshot', 'timestamp', 'unclaimed'])
 
->>> repository.dirty_roles()
-Dirty roles: ['00-07', '08-0f', '10-17', '18-1f', '20-27', '28-2f', '30-37', '38-3f', '40-47', '48-4f', '50-57', '58-5f', '60-67', '68-6f', '70-77', '78-7f', '80-87', '88-8f', '90-7', '98-9f', 'a0-a7', 'a8-af', 'b0-b7', 'b8-bf', 'c0-c7', 'c8-cf', 'd0-d7', 'd8-df', 'e0-e7', 'e8-ef', 'f0-f7', 'f8-ff', 'unclaimed']
-
-# Mark roles as dirty that have not changed but need to be updated (see #958)
->>> repository.mark_dirty(["snapshot", "timestamp"])
 >>> repository.writeall()
 
 ```
