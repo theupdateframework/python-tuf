@@ -341,8 +341,27 @@ class TestTutorial(unittest.TestCase):
     targets = repository.get_filepaths_in_directory(
         os.path.join('repository', 'targets', 'myproject'), recursive_walk=True)
 
-    repository.targets('unclaimed').delegate_hashed_bins(
-        targets, [public_unclaimed_key], 32)
+    # Patch logger to assert that it accurately logs the output of hashed bin
+    # delegation. The logger is called multiple times, first with info level
+    # then with warning level. So we have to assert for the accurate sequence
+    # of calls or rather its call arguments.
+    with mock.patch("tuf.repository_tool.logger") as mock_logger:
+      repository.targets('unclaimed').delegate_hashed_bins(
+          targets, [public_unclaimed_key], 32)
+
+      self.assertListEqual([
+            "Creating hashed bin delegations.",
+            "1 total targets.",
+            "32 hashed bins.",
+            "256 total hash prefixes.",
+            "Each bin ranges over 8 hash prefixes."
+          ] + ["Adding a verification key that has already been used."] * 32,
+          [
+            args[0] for args, _ in
+              mock_logger.info.call_args_list + mock_logger.warning.call_args_list
+          ])
+
+
 
     for delegation in repository.targets('unclaimed').delegations:
       delegation.load_signing_key(private_unclaimed_key)
