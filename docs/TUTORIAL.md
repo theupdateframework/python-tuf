@@ -521,7 +521,7 @@ Enter a password for the encrypted RSA key (/path/to/unclaimed_key):
 <!--
 TODO: Integrate section with an updated delegation tutorial.
 As it is now, it just messes up the state of the repository, i.e. marks
-"unclaimed" as dirty, although there is nothing newto write.
+"unclaimed" as dirty, although there is nothing new to write.
 
 #### Revoke Delegated Role ####
 ```python
