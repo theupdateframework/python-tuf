@@ -28,6 +28,7 @@ install:
   - python -m pip install -U pip setuptools
   - pip install -e .
   - pip install securesystemslib[crypto,pynacl]
+  - if %PYTHON_VERSION%==2.7 pip install mock
 
 build: false
 
