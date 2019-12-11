@@ -134,7 +134,8 @@ class TestTutorial(unittest.TestCase):
     repository.root.load_signing_key(private_root_key)
     repository.root.load_signing_key(private_root_key2)
 
-    # Patch logger to assert that it accurately logs dirty roles
+    # NOTE: The tutorial does not call dirty_roles anymore due to #964 and
+    # #958. We still call it here to see if roles are dirty as expected.
     with mock.patch("tuf.repository_tool.logger") as mock_logger:
       repository.dirty_roles()
       # Concat strings to avoid Python2/3 unicode prefix problems ('' vs. u'')
@@ -186,6 +187,8 @@ class TestTutorial(unittest.TestCase):
 
     repository.timestamp.expiration = datetime.datetime(2080, 10, 28, 12, 8)
 
+    # NOTE: The tutorial does not call dirty_roles anymore due to #964 and
+    # #958. We still call it here to see if roles are dirty as expected.
     with mock.patch("tuf.repository_tool.logger") as mock_logger:
       repository.dirty_roles()
       # Concat strings to avoid Python2/3 unicode prefix problems ('' vs. u'')
@@ -265,7 +268,8 @@ class TestTutorial(unittest.TestCase):
         'timestamp_key', 'password')
     repository.timestamp.load_signing_key(private_timestamp_key)
 
-    # Patch logger to assert that it accurately logs dirty roles
+    # NOTE: The tutorial does not call dirty_roles anymore due to #964 and
+    # #958. We still call it here to see if roles are dirty as expected.
     with mock.patch("tuf.repository_tool.logger") as mock_logger:
       repository.dirty_roles()
       # Concat strings to avoid Python2/3 unicode prefix problems ('' vs. u'')
@@ -278,6 +282,8 @@ class TestTutorial(unittest.TestCase):
     self.assertTrue(os.path.exists(os.path.join(
         'repository','targets', 'myproject', 'file4.txt')))
 
+    # NOTE: The tutorial does not call dirty_roles anymore due to #964 and
+    # #958. We still call it here to see if roles are dirty as expected.
     with mock.patch("tuf.repository_tool.logger") as mock_logger:
       repository.dirty_roles()
       # Concat strings to avoid Python2/3 unicode prefix problems ('' vs. u'')
@@ -318,7 +324,8 @@ class TestTutorial(unittest.TestCase):
         'unclaimed_key', 'password')
     repository.targets("unclaimed").load_signing_key(private_unclaimed_key)
 
-
+    # NOTE: The tutorial does not call dirty_roles anymore due to #964 and
+    # #958. We still call it here to see if roles are dirty as expected.
     with mock.patch("tuf.repository_tool.logger") as mock_logger:
       repository.dirty_roles()
       # Concat strings to avoid Python2/3 unicode prefix problems ('' vs. u'')
@@ -337,6 +344,7 @@ class TestTutorial(unittest.TestCase):
 
 
     # ----- Tutorial Section: Delegate to Hashed Bins
+    repository.targets('unclaimed').remove_target("myproject/file4.txt")
 
     targets = repository.get_filepaths_in_directory(
         os.path.join('repository', 'targets', 'myproject'), recursive_walk=True)
@@ -362,10 +370,11 @@ class TestTutorial(unittest.TestCase):
           ])
 
 
-
     for delegation in repository.targets('unclaimed').delegations:
       delegation.load_signing_key(private_unclaimed_key)
 
+    # NOTE: The tutorial does not call dirty_roles anymore due to #964 and
+    # #958. We still call it here to see if roles are dirty as expected.
     with mock.patch("tuf.repository_tool.logger") as mock_logger:
       repository.dirty_roles()
       # Concat strings to avoid Python2/3 unicode prefix problems ('' vs. u'')
