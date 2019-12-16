@@ -430,7 +430,7 @@ def get_dirty_roles(repository_name='default'):
     None.
 
   <Returns>
-    A list of the roles that have been modified.
+    A sorted list of the roles that have been modified.
   """
 
   # Does 'repository_name' have the correct format?  Raise
@@ -444,7 +444,7 @@ def get_dirty_roles(repository_name='default'):
     raise securesystemslib.exceptions.InvalidNameError('Repository name does'
       '  not' ' exist: ' + repository_name)
 
-  return list(_dirty_roles[repository_name])
+  return sorted(list(_dirty_roles[repository_name]))
 
 
 

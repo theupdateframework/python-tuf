@@ -118,6 +118,9 @@ setup(
     'six>=1.11.0',
     'securesystemslib>=0.12.0'
   ],
+  tests_require = [
+    'mock; python_version < "3.3"'
+  ],
   packages = find_packages(exclude=['tests']),
   scripts = [
     'tuf/scripts/repo.py',
