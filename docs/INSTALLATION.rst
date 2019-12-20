@@ -21,7 +21,7 @@ release and their PGP fingerprint, can also be found on our 1-year `roadmap
 Release Verification
 --------------------
 
-Assuming you trust `the maintainer's PGP key <MAINTAINERS.txt>`_), the detached
+Assuming you trust `the maintainer's PGP key <MAINTAINERS.txt>`_, the detached
 ASC signature can be downloaded and verified.  For example:
 
 ::
