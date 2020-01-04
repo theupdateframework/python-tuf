@@ -79,6 +79,12 @@ The issue tracker is intended for bug reports and to make feature requests.
 Major feature requests, such as design changes to the specification, should
 be proposed via a [TUF Augmentation Proposal](docs/TAP.rst) (TAP).
 
+Limitations
+-----------
+
+The reference implementation may behave unexpectedly when concurrently
+downloading from the same location to the same location.
+
 License
 -------
 
@@ -91,12 +97,12 @@ Acknowledgements
 ----------------
 
 This project is hosted by the Linux Foundation under the Cloud Native Computing
-Foundation.  TUF's early development was managed by 
+Foundation.  TUF's early development was managed by
 members of the [Secure Systems Lab](https://ssl.engineering.nyu.edu/) at [New
 York University](https://engineering.nyu.edu/).  We appreciate the efforts of
 Konstantin Andrianov, Geremy Condra, Vladimir Diaz, Yuyu Zheng, Sebastien Awwad,
 Santiago Torres-Arias, Trishank Kuppusamy, Zane Fisher, Pankhuri Goyal, Tian Tian,
-Konstantin Andrianov, and Justin Samuel who are among those who helped significantly 
+Konstantin Andrianov, and Justin Samuel who are among those who helped significantly
 with TUF's reference implementation.  [Contributors](https://github.com/theupdateframework/tuf/blob/develop/docs/AUTHORS.txt)
 and
 [maintainers](https://github.com/theupdateframework/tuf/blob/develop/docs/MAINTAINERS.txt)
