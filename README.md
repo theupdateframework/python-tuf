@@ -83,7 +83,7 @@ Limitations
 -----------
 
 The reference implementation may behave unexpectedly when concurrently
-downloading from the same location to the same location.
+downloading the same target files with the same TUF client.
 
 License
 -------
