@@ -31,6 +31,7 @@ from __future__ import unicode_literals
 
 import unittest
 import logging
+import copy
 
 import tuf
 import tuf.log
@@ -382,6 +383,65 @@ class TestSig(unittest.TestCase):
 
     # Remove the roles.
     tuf.roledb.remove_role('Root')
+
+
+
+  def test_verify_must_not_count_duplicate_keyids_towards_threshold(self):
+    # Create and sign dummy metadata twice with same key
+    signable = {"signed" : "test", "signatures" : []}
+    signed = securesystemslib.formats.encode_canonical(
+        signable["signed"]).encode("utf-8")
+    signable["signatures"].append(
+        securesystemslib.keys.create_signature(KEYS[0], signed))
+    signable["signatures"].append(
+        securesystemslib.keys.create_signature(KEYS[0], signed))
+
+    # 'get_signature_status' uses keys from keydb for verification
+    tuf.keydb.add_key(KEYS[0])
+
+    # Assert that 'get_signature_status' returns two good signatures ...
+    status = tuf.sig.get_signature_status(
+        signable, "root", keyids=[KEYS[0]["keyid"]], threshold=2)
+    self.assertTrue(len(status["good_sigs"]) == 2)
+
+    # ... but only one counts towards the threshold
+    self.assertFalse(
+        tuf.sig.verify(signable, "root", keyids=[KEYS[0]["keyid"]], threshold=2))
+
+    # Clean-up keydb
+    tuf.keydb.remove_key(KEYS[0]["keyid"])
+
+
+
+  def test_verify_count_different_keyids_for_same_key_towards_threshold(self):
+    # Create and sign dummy metadata twice with same key but different keyids
+    signable = {"signed" : "test", "signatures" : []}
+    key_sha256 = copy.deepcopy(KEYS[0])
+    key_sha256["keyid"] = "deadbeef256"
+
+    key_sha512 = copy.deepcopy(KEYS[0])
+    key_sha512["keyid"] = "deadbeef512"
+
+    signed = securesystemslib.formats.encode_canonical(
+        signable["signed"]).encode("utf-8")
+    signable["signatures"].append(
+        securesystemslib.keys.create_signature(key_sha256, signed))
+    signable["signatures"].append(
+        securesystemslib.keys.create_signature(key_sha512, signed))
+
+    # 'get_signature_status' uses keys from keydb for verification
+    tuf.keydb.add_key(key_sha256)
+    tuf.keydb.add_key(key_sha512)
+
+    # Assert that both keys count towards threshold although its the same key
+    keyids = [key_sha256["keyid"], key_sha512["keyid"]]
+    self.assertTrue(
+        tuf.sig.verify(signable, "root", keyids=keyids, threshold=2))
+
+    # Clean-up keydb
+    tuf.keydb.remove_key(key_sha256["keyid"])
+    tuf.keydb.remove_key(key_sha512["keyid"])
+
 
 
   def test_verify_unrecognized_sig(self):
