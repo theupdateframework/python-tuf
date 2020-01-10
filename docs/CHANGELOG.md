@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.12.2
+* Fix incorrect threshold signature computation (#974)
+* Drop support for python 3.4 (#966)
+* Improve documentation (#970, #960, #962, #961, 972)
+* Improve test suite and tutorial scripts (#775)
+
 ## v0.12.1
 * Relax spec version format check for backwards compatibility (#950)
 * Update project metadata (#937, #939, #944, #947, #948, #953, #954)
