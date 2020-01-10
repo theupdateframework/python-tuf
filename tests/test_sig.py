@@ -388,6 +388,9 @@ class TestSig(unittest.TestCase):
 
   def test_verify_must_not_count_duplicate_keyids_towards_threshold(self):
     # Create and sign dummy metadata twice with same key
+    # Note that we use the non-deterministic rsassa-pss signing scheme, so
+    # creating the signature twice shows that we don't only detect duplicate
+    # signatures but also different signatures from the same key.
     signable = {"signed" : "test", "signatures" : []}
     signed = securesystemslib.formats.encode_canonical(
         signable["signed"]).encode("utf-8")

@@ -78,7 +78,8 @@ def get_signature_status(signable, role=None, repository_name='default',
     * good -- Valid signature from key that is available in 'tuf.keydb', and is
       authorized for the passed role as per 'tuf.roledb' (authorization may be
       overwritten by passed 'keyids').
-    * unknown -- Signature from key that is not available in 'tuf.keydb'.
+    * unknown -- Signature from key that is not available in 'tuf.keydb', or if
+      'role' is None.
     * unknown signing schemes -- Signature from key with unknown signing
       scheme.
     * untrusted -- Valid signature from key that is available in 'tuf.keydb',
