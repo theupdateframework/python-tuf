@@ -425,6 +425,53 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
+  def test_1__refresh_must_not_count_duplicate_keyids_towards_threshold(self):
+    # Update root threshold on the server repository and sign twice with 1 key
+    repository = repo_tool.load_repository(self.repository_directory)
+    repository.root.threshold = 2
+    repository.root.load_signing_key(self.role_keys['root']['private'])
+
+    # The client uses the threshold from the previous root file to verify the
+    # new root. Thus we need to make two updates so that the threshold used for
+    # verification becomes 2. I.e. we bump the version, sign twice with the
+    # same key and write to disk '2.root.json' and '3.root.json'.
+    for version in [2, 3]:
+      repository.root.version = version
+      info = tuf.roledb.get_roleinfo("root")
+      metadata = repo_lib.generate_root_metadata(
+          info["version"], info["expires"], False)
+      signed_metadata = repo_lib.sign_metadata(
+          metadata, info["keyids"], "root.json", "default")
+      signed_metadata["signatures"].append(signed_metadata["signatures"][0])
+      live_root_path = os.path.join(
+          self.repository_directory, "metadata", "root.json")
+
+      # Bypass server side verification in 'write' or 'writeall', which would
+      # catch the unmet threshold.
+      # We also skip writing to 'metadata.staged' and copying to 'metadata' and
+      # instead write directly to 'metadata'
+      repo_lib.write_metadata_file(signed_metadata, live_root_path, info["version"], True)
+
+
+    # Update from current '1.root.json' to '3.root.json' on client and assert
+    # raise of 'BadSignatureError' (caused by unmet signature threshold).
+    try:
+      self.repository_updater.refresh()
+
+    except tuf.exceptions.NoWorkingMirrorError as e:
+      mirror_errors = list(e.mirror_errors.values())
+      self.assertTrue(len(mirror_errors) == 1)
+      self.assertTrue(
+          isinstance(mirror_errors[0],
+          securesystemslib.exceptions.BadSignatureError))
+      self.assertEqual(
+          str(mirror_errors[0]),
+          repr("root") + " metadata has bad signature.")
+
+    else:
+      self.fail(
+          "Expected a NoWorkingMirrorError composed of one BadSignatureError")
+
 
   def test_1__update_fileinfo(self):
       # Tests
