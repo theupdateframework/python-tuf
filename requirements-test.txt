@@ -1,0 +1,2 @@
+# Runtime requirements for test suite
+mock; python_version < "3.3"

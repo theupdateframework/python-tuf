@@ -1,0 +1,10 @@
+# pinned tuf runtime dependencies
+-r requirements-pinned.txt
+
+# tuf test suite runtime dependencies
+-r requirements-test.txt
+
+# test tools for linting and test coverage measurement
+coverage
+pylint
+bandit

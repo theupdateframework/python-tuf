@@ -1,0 +1,8 @@
+# Install tox for local testing, but also everything that tox would install
+# in a test environment, so that we can run the test suite or individual tests
+# directly in the development environment as well.
+tox
+-r requirements-tox.txt
+
+# Install tuf in editable mode
+-e .
