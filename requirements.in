@@ -1,5 +1,42 @@
-# requirements.in for pip-compile.
-
+# Template for tuf runtime requirements files including optional dependencies
+#
+# Copy-paste script below (without leading '#') to bash when requirements are
+# added or removed to generate:
+#
+# - 'requirements.txt': lists pinned dependencies with hashes, used for
+#   client-side integrity checks
+#
+# - 'requirements-pinned.txt': lists pinned dependencies without hashes, used
+#   for ci/cd builds, where 'requirements.txt' can't be used together with
+#   other (non-runtime) requirements that don't list hashes (see pypa/pip#4995)
+#
+# Both files are automatically updated on GitHub with Dependabot.
+#
+# -----------------------------------------------------------------------------
+# # Gather pip-compile results for each supported Python version
+# for v in 2.7 3.5 3.6 3.7 3.8; do
+#   mkvirtualenv tuf-env-${v} -p python${v};
+#   pip install pip-tools;
+#   pip-compile requirements.in -n 2>&1 | grep -v "^#"  >> requirements.combined;
+#   # Keep one venv as we need it below to add hashes
+#   if [ $v != 3.8 ]; then
+#     deactivate;
+#     rmvirtualenv tuf-env-${v};
+#   fi
+# done;
+#
+# # Create requirements-pinned.txt
+# echo "# Auto-generated (see requirements.in)" > requirements-pinned.txt
+# cat requirements.combined | grep -v "^Dry-run," | sort -u >> requirements-pinned.txt
+# rm requirements.combined
+#
+# # Create requirements.txt with hashes
+# pip-compile --generate-hashes -o requirements.txt requirements-pinned.txt
+#
+# # Remove remaining venv
+# deactivate
+# rmvirtualenv tuf-env-3.8
+# -----------------------------------------------------------------------------
 securesystemslib
 cryptography
 colorama

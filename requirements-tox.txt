@@ -1,10 +1,12 @@
-# pinned tuf runtime dependencies
+# Install requirements needed in each tox environment
+
+# pinned tuf runtime dependencies (should auto-update and -trigger ci/cd)
 -r requirements-pinned.txt
 
-# tuf test suite runtime dependencies
+# test runtime dependencies
 -r requirements-test.txt
 
-# test tools for linting and test coverage measurement
+# additional test tools for linting and coverage measurement
 coverage
 pylint
 bandit
