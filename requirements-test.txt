@@ -1,0 +1,2 @@
+# Install test requirements (see 'tests_require' field in setup.py)
+mock; python_version < "3.3"

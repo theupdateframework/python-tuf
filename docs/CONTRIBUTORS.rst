@@ -102,7 +102,7 @@ To work on the TUF project, it's best to perform a development install.
 
 ::
 
-    $ pip install -r dev-requirements.txt
+    $ pip install -r requirements-dev.txt
 
 
 Testing
@@ -132,9 +132,9 @@ a *venv*), and then install ``tuf`` in editable mode too (in the same *venv*).
 ::
 
     $ cd path/to/securesystemslib
-    $ pip install -r dev-requirements.txt
+    $ pip install -r requirements-dev.txt
     $ cd path/to/tuf
-    $ pip install -r dev-requirements.txt
+    $ pip install -r requirements-dev.txt
 
 
 With `tox <https://testrun.org/tox/>`_ the test suite can be executed in a
