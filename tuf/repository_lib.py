@@ -121,11 +121,10 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
 
   elif rolename == 'snapshot':
-    root_filename = ROOT_FILENAME[:-len(METADATA_EXTENSION)]
     targets_filename = TARGETS_FILENAME[:-len(METADATA_EXTENSION)]
     metadata = generate_snapshot_metadata(metadata_directory,
-        roleinfo['version'], roleinfo['expires'], root_filename,
-        targets_filename, consistent_snapshot, repository_name)
+        roleinfo['version'], roleinfo['expires'], targets_filename,
+        consistent_snapshot, repository_name)
 
 
     _log_warning_if_expires_soon(SNAPSHOT_FILENAME, roleinfo['expires'],
@@ -1356,8 +1355,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
 
 def generate_snapshot_metadata(metadata_directory, version, expiration_date,
-    root_filename, targets_filename, consistent_snapshot=False,
-    repository_name='default'):
+    targets_filename, consistent_snapshot=False, repository_name='default'):
   """
   <Purpose>
     Create the snapshot metadata.  The minimum metadata must exist (i.e.,
@@ -1378,10 +1376,6 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
     expiration_date:
       The expiration date of the metadata file.
       Conformant to 'securesystemslib.formats.ISO8601_DATETIME_SCHEMA'.
-
-    root_filename:
-      The filename of the top-level root role.  The hash and file size of this
-      file is listed in the snapshot role.
 
     targets_filename:
       The filename of the top-level targets role.  The hash and file size of
@@ -1417,7 +1411,6 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   securesystemslib.formats.PATH_SCHEMA.check_match(metadata_directory)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   securesystemslib.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
-  securesystemslib.formats.PATH_SCHEMA.check_match(root_filename)
   securesystemslib.formats.PATH_SCHEMA.check_match(targets_filename)
   securesystemslib.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
@@ -1427,8 +1420,6 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   # Snapshot's 'fileinfodict' shall contain the version number of Root,
   # Targets, and all delegated roles fo the repository.
   fileinfodict = {}
-  fileinfodict[ROOT_FILENAME] = get_metadata_versioninfo(root_filename,
-      repository_name)
   fileinfodict[TARGETS_FILENAME] = get_metadata_versioninfo(targets_filename,
       repository_name)
 
