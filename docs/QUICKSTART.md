@@ -15,7 +15,7 @@ how TUF works, however.  It will serve as a very basic update system.
 
 Make sure that TUF is installed, along with some of the optional cryptographic
 libraries and C extensions.  Try this command to do that:
-`pip install securesystemslib[crypto,pynacl] tuf`
+`pip install securesystemslib[colors,crypto,pynacl] tuf`
 
 If you run into errors during that pip command, please consult the more
 detailed [TUF Installation Instructions](INSTALLATION.rst).  (There are some
