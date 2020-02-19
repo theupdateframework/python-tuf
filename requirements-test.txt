@@ -1,2 +1,12 @@
-# Install test requirements (see 'tests_require' field in setup.py)
+# Install requirements needed in each tox environment
+
+# pinned tuf runtime dependencies (should auto-update and -trigger ci/cd)
+-r requirements-pinned.txt
+
+# test runtime dependencies  (see 'tests_require' field in setup.py)
 mock; python_version < "3.3"
+
+# additional test tools for linting and coverage measurement
+coverage
+pylint
+bandit
