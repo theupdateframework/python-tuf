@@ -124,7 +124,6 @@ setup(
   packages = find_packages(exclude=['tests']),
   scripts = [
     'tuf/scripts/repo.py',
-    'tuf/scripts/client.py',
-    'tuf/scripts/simple_server.py',
+    'tuf/scripts/client.py'
   ]
 )
