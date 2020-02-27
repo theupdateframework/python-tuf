@@ -20,7 +20,7 @@
   Provide a set of pre-generated key files and a basic repository that unit
   tests can use in their test cases.  The pre-generated files created by this
   script should be copied by the unit tests as needed.  The original versions
-  should be preserved.  'tuf/tests/unit/repository_files/' will store the files
+  should be preserved.  'tuf/tests/repository_data/' will store the files
   generated.  'generate.py' should not require re-execution if the
   pre-generated repository files have already been created, unless they need to
   change in some way.
@@ -119,12 +119,12 @@ if not options.dry_run:
 # about the target (i.e., file permissions in octal format.)
 octal_file_permissions = oct(os.stat(target1_filepath).st_mode)[4:]
 file_permissions = {'file_permissions': octal_file_permissions}
-repository.targets.add_target(target1_filepath, file_permissions)
-repository.targets.add_target(target2_filepath)
+repository.targets.add_target(os.path.basename(target1_filepath), file_permissions)
+repository.targets.add_target(os.path.basename(target2_filepath))
 
 repository.targets.delegate('role1', [delegation_public],
     [os.path.basename(target3_filepath)])
-repository.targets('role1').add_target(target3_filepath)
+repository.targets('role1').add_target(os.path.basename(target3_filepath))
 repository.targets('role1').load_signing_key(delegation_private)
 
 repository.targets('role1').delegate('role2', [delegation_public], [])
