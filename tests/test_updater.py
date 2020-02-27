@@ -886,7 +886,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILELENGTH)
     self.repository_updater._update_metadata_if_changed('snapshot', 'timestamp')
     self.repository_updater._update_metadata_if_changed('targets')
-    self.repository_updater._update_metadata_if_changed('root')
     targets_path = os.path.join(self.client_metadata_current, 'targets.json')
     self.assertTrue(os.path.exists(targets_path))
     self.assertTrue(self.repository_updater.metadata['current']['targets'])
