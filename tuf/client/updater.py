@@ -589,7 +589,7 @@ class Updater(object):
   <Updater Methods>
     refresh():
       This method downloads, verifies, and loads metadata for the top-level
-      roles in a specific order (i.e., timestamp -> snapshot -> root -> targets)
+      roles in a specific order (i.e., root -> timestamp -> snapshot -> targets)
       The expiration time for downloaded metadata is also verified.
 
       The metadata for delegated roles are not refreshed by this method, but by
@@ -1002,7 +1002,7 @@ class Updater(object):
       Update the latest copies of the metadata for the top-level roles. The
       update request process follows a specific order to ensure the metadata
       files are securely updated:
-      timestamp -> snapshot -> root (if necessary) -> targets.
+      root (if necessary) -> timestamp -> snapshot -> targets.
 
       Delegated metadata is not refreshed by this method. After this method is
       called, the use of get_one_valid_targetinfo() will update delegated
@@ -1072,10 +1072,8 @@ class Updater(object):
         logger.info('An expired Root metadata was loaded and must be updated.')
         raise
 
-    # TODO: How should the latest root metadata be verified?  According to the
-    # currently trusted root keys?  What if all of the currently trusted
-    # root keys have since been revoked by the latest metadata?  Alternatively,
-    # do we blindly trust the downloaded root metadata here?
+    # Update the root metadata and verify it by building a chain of trusted root
+    # keys from the current trusted root metadata file
     self._update_root_metadata(root_metadata)
 
     # Ensure that the role and key information of the top-level roles is the
@@ -1093,9 +1091,6 @@ class Updater(object):
     # require strict checks on its required length.
     self._update_metadata('timestamp', DEFAULT_TIMESTAMP_UPPERLENGTH)
 
-    # TODO: After fetching snapshot.json, we should either verify the root
-    # fileinfo referenced there matches what was fetched earlier in
-    # _update_root_metadata() or make another attempt to download root.json.
     self._update_metadata_if_changed('snapshot',
         referenced_metadata='timestamp')
     self._update_metadata_if_changed('targets')
@@ -1836,21 +1831,23 @@ class Updater(object):
     """
     <Purpose>
       Non-public method that updates the metadata for 'metadata_role' if it has
-      changed.  With the exception of the 'timestamp' role, all the top-level
+      changed.  All top-level roles other than the 'timestamp' and 'root'
       roles are updated by this method.  The 'timestamp' role is always
       downloaded from a mirror without first checking if it has been updated;
       it is updated in refresh() by calling _update_metadata('timestamp').
+      The 'root' role is always updated first and verified based on the trusted
+      root metadata file the client already has a copy of; it is updated in
+      refresh() by calling _update_root_metadata().
       This method is also called for delegated role metadata, which are
       referenced by 'snapshot'.
 
       If the metadata needs to be updated but an update cannot be obtained,
-      this method will delete the file (with the exception of the root
-      metadata, which never gets removed without a replacement).
+      this method will delete the file.
 
       Due to the way in which metadata files are updated, it is expected that
       'referenced_metadata' is not out of date and trusted.  The refresh()
-      method updates the top-level roles in 'timestamp -> snapshot ->
-      root -> targets' order.  For delegated metadata, the parent role is
+      method updates the top-level roles in 'root -> timestamp -> snapshot ->
+      targets' order.  For delegated metadata, the parent role is
       updated before the delegated role.  Taking into account that
       'referenced_metadata' is updated and verified before 'metadata_role',
       this method determines if 'metadata_role' has changed by checking
