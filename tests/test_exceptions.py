@@ -33,7 +33,7 @@ import logging
 
 import tuf.exceptions
 
-logger = logging.getLogger('test_exceptions')
+logger = logging.getLogger(__name__)
 
 class TestExceptions(unittest.TestCase):
   def setUp(self):

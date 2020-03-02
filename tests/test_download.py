@@ -53,7 +53,7 @@ import requests.exceptions
 import securesystemslib
 import six
 
-logger = logging.getLogger('tuf.test_download')
+logger = logging.getLogger(__name__)
 
 
 class TestDownload(unittest_toolbox.Modified_TestCase):

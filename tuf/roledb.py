@@ -60,7 +60,7 @@ import securesystemslib
 import six
 
 # See 'tuf.log' to learn how logging is handled in TUF.
-logger = logging.getLogger('tuf.roledb')
+logger = logging.getLogger(__name__)
 
 # The role database.
 _roledb_dict = {}

@@ -37,7 +37,7 @@ import tuf.log
 
 import securesystemslib
 
-logger = logging.getLogger('tuf.test_init')
+logger = logging.getLogger(__name__)
 
 class TestInit(unittest.TestCase):
   def setUp(self):

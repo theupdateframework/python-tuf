@@ -33,7 +33,7 @@ from __future__ import unicode_literals
 import six
 
 import logging
-logger = logging.getLogger('tuf.exceptions')
+logger = logging.getLogger(__name__)
 
 
 class Error(Exception):

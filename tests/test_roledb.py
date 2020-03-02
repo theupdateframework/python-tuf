@@ -40,7 +40,7 @@ import tuf.log
 import securesystemslib
 import securesystemslib.keys
 
-logger = logging.getLogger('tuf.test_roledb')
+logger = logging.getLogger(__name__)
 
 
 # Generate the three keys to use in our test cases.

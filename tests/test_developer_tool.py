@@ -42,7 +42,7 @@ import securesystemslib
 from tuf.developer_tool import METADATA_DIRECTORY_NAME
 from tuf.developer_tool import TARGETS_DIRECTORY_NAME
 
-logger = logging.getLogger('tuf.test_developer_tool')
+logger = logging.getLogger(__name__)
 
 developer_tool.disable_console_log_messages()
 

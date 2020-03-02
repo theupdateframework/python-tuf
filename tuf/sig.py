@@ -58,7 +58,7 @@ import tuf.formats
 import securesystemslib
 
 # See 'log.py' to learn how logging is handled in TUF.
-logger = logging.getLogger('tuf.sig')
+logger = logging.getLogger(__name__)
 
 # Disable 'iso8601' logger messages to prevent 'iso8601' from clogging the
 # log file.

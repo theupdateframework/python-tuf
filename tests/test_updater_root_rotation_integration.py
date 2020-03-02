@@ -66,7 +66,7 @@ import tuf.settings
 import securesystemslib
 import six
 
-logger = logging.getLogger('tuf.test_updater_root_rotation_integration')
+logger = logging.getLogger(__name__)
 repo_tool.disable_console_log_messages()
 
 

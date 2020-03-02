@@ -160,7 +160,7 @@ import six
 
 
 # See 'log.py' to learn how logging is handled in TUF.
-logger = logging.getLogger('tuf.scripts.repo')
+logger = logging.getLogger(__name__)
 
 repo_tool.disable_console_log_messages()
 

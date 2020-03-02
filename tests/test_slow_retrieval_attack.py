@@ -65,7 +65,7 @@ import tuf.keydb
 
 import six
 
-logger = logging.getLogger('tuf.test_slow_retrieval_attack')
+logger = logging.getLogger(__name__)
 repo_tool.disable_console_log_messages()
 
 

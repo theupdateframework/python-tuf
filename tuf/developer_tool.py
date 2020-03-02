@@ -83,7 +83,7 @@ from securesystemslib.interface import (
 
 
 # See 'log.py' to learn how logging is handled in TUF.
-logger = logging.getLogger('tuf.developer_tool')
+logger = logging.getLogger(__name__)
 
 # The extension of TUF metadata.
 from tuf.repository_lib import METADATA_EXTENSION as METADATA_EXTENSION

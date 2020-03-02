@@ -63,7 +63,7 @@ import tuf.unittest_toolbox as unittest_toolbox
 import securesystemslib
 import six
 
-logger = logging.getLogger('tuf.test_extraneous_dependencies_attack')
+logger = logging.getLogger(__name__)
 
 
 

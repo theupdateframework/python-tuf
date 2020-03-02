@@ -75,7 +75,7 @@ import tuf.client.updater as updater
 import securesystemslib
 import six
 
-logger = logging.getLogger('tuf.test_updater')
+logger = logging.getLogger(__name__)
 repo_tool.disable_console_log_messages()
 
 

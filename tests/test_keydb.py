@@ -38,7 +38,7 @@ import securesystemslib.settings
 import tuf.keydb
 import tuf.log
 
-logger = logging.getLogger('tuf.test_keydb')
+logger = logging.getLogger(__name__)
 
 
 # Generate the three keys to use in our test cases.
