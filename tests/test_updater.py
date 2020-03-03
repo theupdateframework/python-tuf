@@ -98,7 +98,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # as a delegated role 'targets/role1', three target files, five key files,
     # etc.
     cls.SERVER_PORT = random.randint(30000, 45000)
-    command = ['python', '-m', 'tuf.scripts.simple_server', str(cls.SERVER_PORT)]
+    command = ['python', '-m', 'tests.simple_server', str(cls.SERVER_PORT)]
     cls.server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
     logger.info('\n\tServer process started.')
     logger.info('\tServer process id: '+str(cls.server_process.pid))
@@ -1094,7 +1094,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # The SimpleHTTPServer started in the setupclass has a tendency to
     # timeout in Windows after a few tests.
     SERVER_PORT = random.randint(30000, 45000)
-    command = ['python', '-m', 'tuf.scripts.simple_server', str(SERVER_PORT)]
+    command = ['python', '-m', 'tests.simple_server', str(SERVER_PORT)]
     server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
 
     # NOTE: Following error is raised if a delay is not long enough:
@@ -1361,7 +1361,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # The SimpleHTTPServer started in the setupclass has a tendency to
     # timeout in Windows after a few tests.
     SERVER_PORT = random.randint(30000, 45000)
-    command = ['python', '-m', 'tuf.scripts.simple_server', str(SERVER_PORT)]
+    command = ['python', '-m', 'tests.simple_server', str(SERVER_PORT)]
     server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
 
     # NOTE: Following error is raised if a delay is not long enough to allow
@@ -1493,7 +1493,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # The SimpleHTTPServer started in the setupclass has a tendency to
     # timeout in Windows after a few tests.
     SERVER_PORT = random.randint(30000, 45000)
-    command = ['python', '-m', 'tuf.scripts.simple_server', str(SERVER_PORT)]
+    command = ['python', '-m', 'tests.simple_server', str(SERVER_PORT)]
     server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
 
     # NOTE: Following error is raised if a delay is not long enough to allow
@@ -1877,8 +1877,8 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     self.SERVER_PORT = 30001
     self.SERVER_PORT2 = 30002
 
-    command = ['python', '-m', 'tuf.scripts.simple_server', str(self.SERVER_PORT)]
-    command2 = ['python', '-m', 'tuf.scripts.simple_server', str(self.SERVER_PORT2)]
+    command = ['python', '-m', 'tests.simple_server', str(self.SERVER_PORT)]
+    command2 = ['python', '-m', 'tests.simple_server', str(self.SERVER_PORT2)]
 
     self.server_process = subprocess.Popen(command, stderr=subprocess.PIPE,
         cwd=self.repository_directory)

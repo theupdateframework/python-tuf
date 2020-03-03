@@ -35,8 +35,10 @@ from __future__ import unicode_literals
 
 import sys
 import random
+import platform
 
 import six
+from six.moves.SimpleHTTPServer import SimpleHTTPRequestHandler
 
 PORT = 0
 
@@ -55,7 +57,22 @@ if len(sys.argv) > 1:
 else:
   PORT = _port_gen()
 
-Handler = six.moves.SimpleHTTPServer.SimpleHTTPRequestHandler
-httpd = six.moves.socketserver.TCPServer(('', PORT), Handler)
+
+class QuietHTTPRequestHandler(SimpleHTTPRequestHandler):
+  """A SimpleHTTPRequestHandler that does not write incoming requests to
+  stderr. """
+  def log_request(self, code='-', size='-'):
+    pass
+
+# NOTE: On Windows/Python2 tests that use this simple_server.py in a
+# subprocesses hang after a certain amount of requests (~68), if a PIPE is
+# passed as Popen's stderr argument. As a simple workaround we silence the
+# server on those Windows/Py2 to not fill the buffer.
+if six.PY2 and platform.system() == 'Windows':
+  handler = QuietHTTPRequestHandler
+else:
+  handler = SimpleHTTPRequestHandler
+
+httpd = six.moves.socketserver.TCPServer(('', PORT), handler)
 
 httpd.serve_forever()
