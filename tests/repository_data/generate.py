@@ -107,6 +107,11 @@ securesystemslib.util.ensure_parent_dir(target2_filepath)
 if not options.dry_run:
   with open(target1_filepath, 'wt') as file_object:
     file_object.write('This is an example target file.')
+  # As we will add this file's permissions to the custom_attribute in the
+  # target's metadata we need to ensure that the file has the same
+  # permissions when created by this script regardless of umask value on
+  # the host system generating the data
+  os.chmod(target1_filepath, 0o644)
 
   with open(target2_filepath, 'wt') as file_object:
     file_object.write('This is an another example target file.')
