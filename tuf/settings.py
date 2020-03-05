@@ -102,6 +102,9 @@ CONSISTENT_METHOD = 'copy'
 # the securesystemslib external library.
 DEFAULT_HASH_ALGORITHM = 'sha256'
 
+# The hashing algorithms used to compute file hashes
+FILE_HASH_ALGORITHMS = ['sha256', 'sha512']
+
 # The client's update procedure (contained within a while-loop) can potentially
 # hog the CPU.  The following setting can be used to force the update sequence
 # to suspend execution for a specified amount of time.  See

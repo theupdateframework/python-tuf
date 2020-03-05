@@ -974,7 +974,7 @@ def get_metadata_fileinfo(filename, custom=None):
   # file information, such as the file's author, version/revision
   # numbers, etc.
   filesize, filehashes = securesystemslib.util.get_file_details(filename,
-      securesystemslib.settings.HASH_ALGORITHMS)
+      tuf.settings.FILE_HASH_ALGORITHMS)
 
   return tuf.formats.make_fileinfo(filesize, filehashes, custom=custom)
 
