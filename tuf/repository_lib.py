@@ -1531,7 +1531,8 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date,
 
   # Retrieve the versioninfo of the Snapshot metadata file.
   snapshot_fileinfo = {}
-  length, hashes = securesystemslib.util.get_file_details(snapshot_filename)
+  length, hashes = securesystemslib.util.get_file_details(snapshot_filename,
+      tuf.settings.FILE_HASH_ALGORITHMS)
   snapshot_version = get_metadata_versioninfo('snapshot', repository_name)
   snapshot_fileinfo[SNAPSHOT_FILENAME] = \
     tuf.formats.make_fileinfo(length, hashes, version=snapshot_version['version'])
