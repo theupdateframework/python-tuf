@@ -662,7 +662,7 @@ Adding a verification key that has already been used. [repeated 32x]
 # Mark roles for metadata update (see #964, #958)
 >>> repository.mark_dirty(['00-07', '08-0f', '10-17', '18-1f', '20-27', '28-2f',
 ...   '30-37', '38-3f', '40-47', '48-4f', '50-57', '58-5f', '60-67', '68-6f',
-...   '70-77', '78-7f', '80-87', '88-8f', '90-7', '98-9f', 'a0-a7', 'a8-af',
+...   '70-77', '78-7f', '80-87', '88-8f', '90-97', '98-9f', 'a0-a7', 'a8-af',
 ...   'b0-b7', 'b8-bf', 'c0-c7', 'c8-cf', 'd0-d7', 'd8-df', 'e0-e7', 'e8-ef',
 ...   'f0-f7', 'f8-ff', 'snapshot', 'timestamp', 'unclaimed'])
 
