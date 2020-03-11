@@ -87,7 +87,7 @@ from securesystemslib.keys import (
 
 
 # See 'log.py' to learn how logging is handled in TUF.
-logger = logging.getLogger('tuf.repository_tool')
+logger = logging.getLogger(__name__)
 
 # Add a console handler so that users are aware of potentially unintended
 # states, such as multiple roles that share keys.
@@ -220,7 +220,8 @@ class Repository(object):
   def writeall(self, consistent_snapshot=False):
     """
     <Purpose>
-      Write all the JSON Metadata objects to their corresponding files.
+      Write all the JSON Metadata objects to their corresponding files for
+      roles which have changed.
       writeall() raises an exception if any of the role metadata to be written
       to disk is invalid, such as an insufficient threshold of signatures,
       missing private keys, etc.

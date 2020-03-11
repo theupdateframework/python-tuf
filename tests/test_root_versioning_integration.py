@@ -42,7 +42,7 @@ import tuf.repository_tool as repo_tool
 
 import securesystemslib
 
-logger = logging.getLogger('tuf.test_root_versioning')
+logger = logging.getLogger(__name__)
 
 repo_tool.disable_console_log_messages()
 

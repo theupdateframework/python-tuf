@@ -34,7 +34,7 @@ import shutil
 
 import tuf.unittest_toolbox as unittest_toolbox
 
-logger = logging.getLogger('test_unittest_toolbox')
+logger = logging.getLogger(__name__)
 
 
 class TestUnittestToolbox(unittest_toolbox.Modified_TestCase):

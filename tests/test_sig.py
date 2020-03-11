@@ -44,7 +44,7 @@ import tuf.exceptions
 import securesystemslib
 import securesystemslib.keys
 
-logger = logging.getLogger('tuf.test_sig')
+logger = logging.getLogger(__name__)
 
 # Setup the keys to use in our test cases.
 KEYS = []

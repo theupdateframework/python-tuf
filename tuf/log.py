@@ -113,6 +113,9 @@ console_handler = None
 file_handler = None
 
 # Set the logger and its settings.
+# Note: we're configuring the top-level hierarchy for the tuf package,
+# therefore we explicitly request the 'tuf' logger, rather than following
+# the standard pattern of logging.getLogger(__name__)
 logger = logging.getLogger('tuf')
 logger.setLevel(_DEFAULT_LOG_LEVEL)
 

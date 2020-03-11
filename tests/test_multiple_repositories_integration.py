@@ -52,7 +52,7 @@ import tuf.repository_tool as repo_tool
 import six
 import securesystemslib
 
-logger = logging.getLogger('test_multiple_repositories_integration')
+logger = logging.getLogger(__name__)
 
 repo_tool.disable_console_log_messages()
 

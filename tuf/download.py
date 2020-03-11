@@ -47,7 +47,7 @@ import tuf.exceptions
 import urllib3.exceptions
 
 # See 'log.py' to learn how logging is handled in TUF.
-logger = logging.getLogger('tuf.download')
+logger = logging.getLogger(__name__)
 
 # From http://docs.python-requests.org/en/master/user/advanced/#session-objects:
 #

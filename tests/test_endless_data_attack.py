@@ -60,7 +60,7 @@ import tuf.roledb
 import securesystemslib
 import six
 
-logger = logging.getLogger('tuf.test_endless_data_attack')
+logger = logging.getLogger(__name__)
 
 
 class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):

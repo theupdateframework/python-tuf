@@ -56,7 +56,7 @@ import securesystemslib.rsa_keys
 import securesystemslib.interface
 import six
 
-logger = logging.getLogger('tuf.test_repository_lib')
+logger = logging.getLogger(__name__)
 
 repo_lib.disable_console_log_messages()
 

@@ -34,7 +34,10 @@ import securesystemslib.util
 
 from six.moves import reload_module
 
-
+# We explicitly create a logger which is a child of the tuf hierarchy,
+# instead of using the standard getLogger(__name__) pattern, because the
+# tests are not part of the tuf hierarchy and we are testing functionality
+# of the tuf package explicitly enabled on the tuf hierarchy
 logger = logging.getLogger('tuf.test_log')
 
 log_levels = [logging.CRITICAL, logging.ERROR, logging.WARNING,

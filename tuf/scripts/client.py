@@ -77,7 +77,7 @@ import tuf.settings
 import tuf.log
 
 # See 'log.py' to learn how logging is handled in TUF.
-logger = logging.getLogger('tuf.scripts.client')
+logger = logging.getLogger(__name__)
 
 
 def update_client(parsed_arguments):

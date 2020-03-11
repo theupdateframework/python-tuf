@@ -58,7 +58,7 @@ import tuf.unittest_toolbox as unittest_toolbox
 import securesystemslib
 import six
 
-logger = logging.getLogger('tuf.test_arbitrary_package_attack')
+logger = logging.getLogger(__name__)
 
 
 class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):

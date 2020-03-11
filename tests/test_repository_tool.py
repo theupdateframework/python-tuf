@@ -50,7 +50,7 @@ import securesystemslib.exceptions
 import securesystemslib
 import six
 
-logger = logging.getLogger('tuf.test_repository_tool')
+logger = logging.getLogger(__name__)
 
 repo_tool.disable_console_log_messages()
 
