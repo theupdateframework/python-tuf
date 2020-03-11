@@ -64,7 +64,7 @@ of delegated Targets metadata and [example](https://raw.githubusercontent.com/th
 
 Signed by: Snapshot role.
 
-The snapshot.json metadata file lists hashes and sizes of all metadata files other than timestamp.json. This file ensures that clients will see a consistent view of the files on the repository. That is, metadata files (and thus target file) that existed on the repository at different times cannot be combined and presented to clients by an attacker.
+The snapshot.json metadata file lists the version, and optionally the file hashes and sizes, of the top-level targets metadata and all delegated targets metadata. This file ensures that clients will see a consistent view of the files on the repository. That is, metadata files (and thus target file) that existed on the repository at different times cannot be combined and presented to clients by an attacker.
 
 ​See [example](https://raw.githubusercontent.com/theupdateframework/tuf/develop/tests/repository_data/repository/metadata/snapshot.json) of Snapshot metadata.
 

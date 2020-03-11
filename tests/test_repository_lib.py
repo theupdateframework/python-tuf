@@ -433,7 +433,6 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     metadata_directory = os.path.join(repository_directory,
                                       repo_lib.METADATA_STAGED_DIRECTORY_NAME)
     targets_directory = os.path.join(repository_directory, repo_lib.TARGETS_DIRECTORY_NAME)
-    root_filename = os.path.join(metadata_directory, repo_lib.ROOT_FILENAME)
     targets_filename = os.path.join(metadata_directory,
                                     repo_lib.TARGETS_FILENAME)
     version = 1
@@ -453,12 +452,11 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     with open(invalid_metadata_file, 'w') as file_object:
       file_object.write('bad extension on metadata file')
 
-    root_filename = 'root'
     targets_filename = 'targets'
 
     snapshot_metadata = \
       repo_lib.generate_snapshot_metadata(metadata_directory, version,
-                                          expiration_date, root_filename,
+                                          expiration_date,
                                           targets_filename,
                                           consistent_snapshot=False)
     self.assertTrue(tuf.formats.SNAPSHOT_SCHEMA.matches(snapshot_metadata))
@@ -467,22 +465,19 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Test improperly formatted arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_snapshot_metadata,
                       3, version, expiration_date,
-                      root_filename, targets_filename, consistent_snapshot=False)
+                      targets_filename, consistent_snapshot=False)
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_snapshot_metadata,
                       metadata_directory, '3', expiration_date,
-                      root_filename, targets_filename, consistent_snapshot=False)
+                      targets_filename, consistent_snapshot=False)
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_snapshot_metadata,
                       metadata_directory, version, '3',
-                      root_filename, targets_filename, consistent_snapshot=False)
+                      targets_filename, consistent_snapshot=False)
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_snapshot_metadata,
                       metadata_directory, version, expiration_date,
-                      3, targets_filename, consistent_snapshot=False)
+                      3, consistent_snapshot=False)
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_snapshot_metadata,
                       metadata_directory, version, expiration_date,
-                      root_filename, 3, consistent_snapshot=False)
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_snapshot_metadata,
-                      metadata_directory, version, expiration_date,
-                      root_filename, targets_filename, 3)
+                      targets_filename, 3)
 
 
 
