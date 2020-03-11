@@ -1922,9 +1922,9 @@ class Updater(object):
       self._ensure_not_expired(self.metadata['current'][metadata_role],
           metadata_role)
 
-      # TODO: If 'metadata_role' is root or snapshot, we should verify that
-      # root's hash matches what's in snapshot, and that snapshot hash matches
-      # what's listed in timestamp.json.
+      # TODO: If metadata role is snapshot, we should verify that snapshot's
+      # hash matches what's listed in timestamp.json per step 3.1 of the
+      # detailed workflows in the specification
 
       return
 
@@ -1936,9 +1936,6 @@ class Updater(object):
     # function.
     if metadata_role == 'snapshot':
       upperbound_filelength = tuf.settings.DEFAULT_SNAPSHOT_REQUIRED_LENGTH
-
-    elif metadata_role == 'root':
-      upperbound_filelength = DEFAULT_ROOT_UPPERLENGTH
 
     # The metadata is considered Targets (or delegated Targets metadata).
     else:
