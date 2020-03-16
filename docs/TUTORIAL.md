@@ -672,10 +672,6 @@ Adding a verification key that has already been used. [repeated 32x]
 
 ## How to Perform an Update ##
 
-Documentation for setting up a TUF client and performing an update is
-available [here](../tuf/client_setup_and_repository_example.md).  The documentation
-there is provided here for convenience.
-
 The following [repository tool](../tuf/repository_tool.py) function creates a directory
 structure that a client downloading new software using TUF (via
 [tuf/client/updater.py](../tuf/client/updater.py)) expects. The `root.json` metadata file must exist, and
