@@ -38,3 +38,5 @@ Maintainers:
   Joshua Lock
     Email: jlock@vmware.com
     GitHub username: @joshuagl
+    PGP fingerprint: 08F3 409F CF71 D87E 30FB D3C2 1671 F65C B748 32A4
+    Keybase username: joshuagl
