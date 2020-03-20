@@ -1378,7 +1378,7 @@ class TestTargets(unittest.TestCase):
 
     # Add 'target1_filepath' and verify that the relative path of
     # 'target1_filepath' is added to the correct bin.
-    self.targets_object.add_target_to_bin(os.path.basename(target1_filepath))
+    self.targets_object.add_target_to_bin(os.path.basename(target1_filepath), 16)
 
     for delegation in self.targets_object.delegations:
       if delegation.rolename == '5':
@@ -1387,55 +1387,27 @@ class TestTargets(unittest.TestCase):
       else:
         self.assertFalse('file1.txt' in delegation.target_files)
 
-    # Verify that 'path_hash_prefixes' must exist for hashed bin delegations.
-
-    roleinfo = tuf.roledb.get_roleinfo(self.targets_object.rolename,
-        repository_name)
-
-    for delegated_role in roleinfo['delegations']['roles']:
-      delegated_role['path_hash_prefixes'] = []
-
-    tuf.roledb.update_roleinfo(self.targets_object.rolename, roleinfo,
-        repository_name=repository_name)
-    self.assertRaises(securesystemslib.exceptions.Error,
-                      self.targets_object.add_target_to_bin, target1_filepath)
-
-    # Verify that an exception is raised if a target does not match with
-    # any of the 'path_hash_prefixes'.
-    roleinfo = tuf.roledb.get_roleinfo(self.targets_object.rolename,
-        repository_name)
-    delegated_role = roleinfo['delegations']['roles'][0]
-    delegated_role['path_hash_prefixes'] = ['faac']
-    delegated_roles = list()
-    delegated_roles.append(delegated_role)
-    roleinfo['delegations']['roles'] = delegated_roles
-    tuf.roledb.update_roleinfo(self.targets_object.rolename, roleinfo,
-        repository_name=repository_name)
-
-    self.assertRaises(securesystemslib.exceptions.Error,
-                      self.targets_object.add_target_to_bin, target1_filepath)
-
     # Test for non-existent delegations and hashed bins.
     empty_targets_role = repo_tool.Targets(self.targets_directory, 'empty',
         repository_name=repository_name)
 
     self.assertRaises(securesystemslib.exceptions.Error,
                       empty_targets_role.add_target_to_bin,
-                      target1_filepath)
+                      os.path.basename(target1_filepath), 16)
 
     # Test for a required hashed bin that does not exist.
-    self.targets_object.revoke('e')
+    self.targets_object.revoke('5')
     self.assertRaises(securesystemslib.exceptions.Error,
                       self.targets_object.add_target_to_bin,
-                      target1_filepath)
+                      os.path.basename(target1_filepath), 16)
 
     # Test improperly formatted argument.
     self.assertRaises(securesystemslib.exceptions.FormatError,
-                      self.targets_object.add_target_to_bin, 3)
+                      self.targets_object.add_target_to_bin, 3, 'foo')
 
     # Invalid target file path argument.
     self.assertRaises(securesystemslib.exceptions.Error,
-                      self.targets_object.add_target_to_bin, '/non-existent')
+                      self.targets_object.add_target_to_bin, '/non-existent', 16)
 
 
 
@@ -1462,34 +1434,30 @@ class TestTargets(unittest.TestCase):
 
     # Add 'target1_filepath' and verify that the relative path of
     # 'target1_filepath' is added to the correct bin.
-    self.targets_object.add_target_to_bin(os.path.basename(target1_filepath))
+    self.targets_object.add_target_to_bin(os.path.basename(target1_filepath), 16)
 
     for delegation in self.targets_object.delegations:
       if delegation.rolename == '5':
         self.assertTrue('file1.txt' in delegation.target_files)
-
+        self.assertTrue(len(delegation.target_files) == 1)
       else:
         self.assertTrue('file1.txt' not in delegation.target_files)
 
     # Test the remove_target_from_bin() method.  Verify that 'target1_filepath'
     # has been removed.
-    self.targets_object.remove_target_from_bin(os.path.basename(target1_filepath))
+    self.targets_object.remove_target_from_bin(os.path.basename(target1_filepath), 16)
 
     for delegation in self.targets_object.delegations:
-      if delegation.rolename == 'e':
-        self.assertTrue('file1.txt' not in delegation.target_files)
-
-      else:
-        self.assertTrue('file1.txt' not in delegation.target_files)
+      self.assertTrue('file1.txt' not in delegation.target_files)
 
 
     # Test improperly formatted argument.
     self.assertRaises(securesystemslib.exceptions.FormatError,
-                      self.targets_object.remove_target_from_bin, 3)
+        self.targets_object.remove_target_from_bin, 3, 'foo')
 
     # Invalid target file path argument.
     self.assertRaises(securesystemslib.exceptions.Error,
-        self.targets_object.remove_target_from_bin, '/non-existent')
+        self.targets_object.remove_target_from_bin, '/non-existent', 16)
 
 
 

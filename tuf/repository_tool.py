@@ -2588,7 +2588,8 @@ class Targets(Metadata):
 
 
 
-  def add_target_to_bin(self, target_filepath):
+
+  def add_target_to_bin(self, target_filepath, number_of_bins, custom=None):
     """
     <Purpose>
       Add the fileinfo of 'target_filepath' to the expected hashed bin, if the
@@ -2604,6 +2605,13 @@ class Targets(Metadata):
       target_filepath:
         The filepath of the target to be added to a hashed bin.  The filepath
         must be located in the repository's targets directory.
+
+      number_of_bins:
+        The number of delegated roles, or hashed bins, in use by the repository.
+        Note: 'number_of_bins' must be a power of 2.
+
+      custom:
+        An optional object providing additional information about the file.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError, if 'target_filepath' is
@@ -2626,12 +2634,24 @@ class Targets(Metadata):
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     securesystemslib.formats.PATH_SCHEMA.check_match(target_filepath)
+    tuf.formats.NUMBINS_SCHEMA.check_match(number_of_bins)
 
-    return self._locate_and_update_target_in_bin(target_filepath, 'add_target')
+    # TODO: check target_filepath is sane
+
+    path_hash = _get_hash(target_filepath)
+    bin_name = _find_bin_for_hash(path_hash, number_of_bins)
+
+    # Ensure the Targets object has delegated to hashed bins
+    if not self._delegated_roles.get(bin_name, None):
+      raise securesystemslib.exceptions.Error(self.rolename + ' does not have'
+          ' a delegated role ' + bin_name)
+
+    self._delegated_roles[bin_name].add_target(target_filepath, custom)
 
 
 
-  def remove_target_from_bin(self, target_filepath):
+
+  def remove_target_from_bin(self, target_filepath, number_of_bins):
     """
     <Purpose>
       Remove the fileinfo of 'target_filepath' from the expected hashed bin, if
@@ -2647,6 +2667,10 @@ class Targets(Metadata):
       target_filepath:
         The filepath of the target to be added to a hashed bin.  The filepath
         must be located in the repository's targets directory.
+
+      number_of_bins:
+        The number of delegated roles, or hashed bins, in use by the repository.
+        Note: 'number_of_bins' must be a power of 2.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError, if 'target_filepath' is
@@ -2669,107 +2693,20 @@ class Targets(Metadata):
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     securesystemslib.formats.PATH_SCHEMA.check_match(target_filepath)
+    tuf.formats.NUMBINS_SCHEMA.check_match(number_of_bins)
 
-    return self._locate_and_update_target_in_bin(target_filepath, 'remove_target')
+    # TODO: check target_filepath is sane?
 
+    path_hash = _get_hash(target_filepath)
+    bin_name = _find_bin_for_hash(path_hash, number_of_bins)
 
+    # Ensure the Targets object has delegated to hashed bins
+    if not self._delegated_roles.get(bin_name, None):
+      raise securesystemslib.exceptions.Error(self.rolename + ' does not have'
+          ' a delegated role ' + bin_name)
 
-  def _locate_and_update_target_in_bin(self, target_filepath, method_name):
-    """
-    <Purpose>
-      Assuming the target filepath is located in the repository's targets
-      directory, determine the filepath's hash prefix, locate the expected bin
-      (if any), and then call the 'method_name' method of the expected hashed
-      bin role.
+    self._delegated_roles[bin_name].remove_target(target_filepath)
 
-    <Arguments>
-      target_filepath:
-        The filepath of the target that may be specified in one of the hashed
-        bins.  'target_filepath' must be located in the repository's targets
-        directory.
-
-      method_name:
-        A supported method, in string format, of the Targets() class.  For
-        example, 'add_target' and 'remove_target'.  If 'target_filepath' were
-        to be manually added or removed from a bin:
-
-        repository.targets('58-f7').add_target(target_filepath)
-        repository.targets('000-007').remove_target(target_filepath)
-
-    <Exceptions>
-      securesystemslib.exceptions.Error, if 'target_filepath' cannot be updated
-      (e.g., an invalid target filepath, or the expected hashed bin does not
-      exist.)
-
-    <Side Effects>
-      The fileinfo of 'target_filepath' is added to a hashed bin of this Targets
-      object.
-
-    <Returns>
-      None.
-    """
-
-    # Determine the prefix length of any one of the hashed bins.  The prefix
-    # length is not stored in the roledb, so it must be determined here by
-    # inspecting one of path hash prefixes listed.
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
-    prefix_length = 0
-    delegation = None
-
-    # Set 'delegation' if this Targets role has performed any delegations.
-    if len(roleinfo['delegations']['roles']):
-      delegation = roleinfo['delegations']['roles'][0]
-
-    else:
-      raise securesystemslib.exceptions.Error(self.rolename + ' has not'
-          ' delegated to any roles.')
-
-    # Set 'prefix_length' if this Targets object has delegated to hashed bins,
-    # otherwise raise an exception.
-    if 'path_hash_prefixes' in delegation and len(delegation['path_hash_prefixes']):
-      prefix_length = len(delegation['path_hash_prefixes'][0])
-
-    else:
-      raise securesystemslib.exceptions.Error(self.rolename + ' has not'
-        ' delegated to hashed bins.')
-
-    # Log warning if 'target_filepath' is not located in the repository's
-    # targets directory.
-    if not os.path.isfile(os.path.join(self._targets_directory, target_filepath)):
-      logger.warning(repr(target_filepath) + ' is not located in the'
-          ' repository\'s targets directory: ' + repr(self._targets_directory))
-
-    # Determine the hash prefix of 'target_path' by computing the digest of
-    # its path relative to the targets directory.  Example:
-    # '{repository_root}/targets/file1.txt' -> '/file1.txt'.
-    digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
-    digest_object.update(target_filepath.encode('utf-8'))
-    path_hash = digest_object.hexdigest()
-    path_hash_prefix = path_hash[:prefix_length]
-
-    # Search for 'path_hash_prefix', and if found, extract the hashed bin's
-    # rolename.  The hashed bin name is needed so that 'target_filepath' can be
-    # added to the Targets object of the hashed bin.
-    hashed_bin_name = None
-    for delegation in roleinfo['delegations']['roles']:
-      if path_hash_prefix in delegation['path_hash_prefixes']:
-        hashed_bin_name = delegation['name']
-        break
-
-      else:
-        logger.debug('"path_hash_prefix" not found.')
-
-    # 'self._delegated_roles' is keyed by relative rolenames, so update
-    # 'hashed_bin_name'.
-    if hashed_bin_name is not None:
-
-      # 'method_name' should be one of the supported methods of the Targets()
-      # class.
-      getattr(self._delegated_roles[hashed_bin_name], method_name)(target_filepath)
-
-    else:
-      raise securesystemslib.exceptions.Error(target_filepath + ' not found'
-          ' in any of the bins.')
 
 
 
