@@ -2824,6 +2824,61 @@ def _get_hash(target_filepath):
 
 
 
+def _create_bin_name(low, high, prefix_len):
+  """
+  <Purpose>
+    Create a string name of a delegated hash bin, where name will be a range of
+    zero-padded (up to prefix_len) strings i.e. for low=00, high=07,
+    prefix_len=3 the returned name would be '000-007'.
+
+  """
+  if low == high:
+    return "{low:0{len}x}".format(low=low, len=prefix_len)
+
+  return "{low:0{len}x}-{high:0{len}x}".format(low=low, high=high,
+      len=prefix_len)
+
+
+
+
+
+def _find_bin_for_hash(path_hash, number_of_bins):
+  """
+  <Purpose>
+    For a given hashed filename, path_hash, calculate the name of a hashed bin
+    into which this file would be delegated given number_of_bins bins are in
+    use.
+
+  <Arguments>
+    path_hash:
+      The hash of the target file's path
+
+    number_of_bins:
+      The number of hashed_bins in use
+
+  <Returns>
+    The name of the hashed bin path_hash would be binned into.
+  """
+
+  prefix_len = len("{:x}".format(number_of_bins - 1))
+  prefix_count = 16 ** prefix_len
+
+  if prefix_count % number_of_bins != 0:
+    # Note: doesn't guarantee a power of two for any x and y, but does work
+    # due to the relationship between nuber_of_bins and prefix_count
+    raise securesystemslib.exceptions.Error('The "number_of_bins" argument'
+        ' must be a power of 2.')
+
+  bin_size = prefix_count // number_of_bins
+  prefix = int(path_hash[:prefix_len], 16)
+
+  low = prefix - (prefix % bin_size)
+  high = (low + bin_size - 1)
+
+  return _create_bin_name(low, high, prefix_len)
+
+
+
 
 
 def create_new_repository(repository_directory, repository_name='default'):

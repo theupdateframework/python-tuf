@@ -1301,7 +1301,7 @@ class TestTargets(unittest.TestCase):
           prefixes = delegated_role['path_hash_prefixes']
 
           if len(prefixes) > 1:
-            prefix_range = "{}-{}".format(prefixes[0], prefixes[1])
+            prefix_range = "{}-{}".format(prefixes[0], prefixes[-1])
           else:
             prefix_range = prefixes[0]
 
