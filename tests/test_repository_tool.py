@@ -1365,17 +1365,16 @@ class TestTargets(unittest.TestCase):
 
     # Set needed arguments by delegate_hashed_bins().
     public_keys = [public_key]
-    list_of_targets = [target1_filepath]
 
     # Delegate to hashed bins.  The target filepath to be tested is expected
     # to contain a hash prefix of 'e', and should be available at:
     # repository.targets('e').
-    self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
+    self.targets_object.delegate_hashed_bins([], public_keys,
         number_of_bins=16)
 
     # Ensure each hashed bin initially contains zero targets.
     for delegation in self.targets_object.delegations:
-      self.assertTrue(target1_filepath not in delegation.target_files)
+      self.assertEqual(delegation.target_files, {})
 
     # Add 'target1_filepath' and verify that the relative path of
     # 'target1_filepath' is added to the correct bin.
@@ -1450,17 +1449,16 @@ class TestTargets(unittest.TestCase):
 
     # Set needed arguments by delegate_hashed_bins().
     public_keys = [public_key]
-    list_of_targets = [os.path.basename(target1_filepath)]
 
     # Delegate to hashed bins.  The target filepath to be tested is expected
     # to contain a hash prefix of 'e', and can be accessed as:
     # repository.targets('e').
-    self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
+    self.targets_object.delegate_hashed_bins([], public_keys,
                                              number_of_bins=16)
 
     # Ensure each hashed bin initially contains zero targets.
     for delegation in self.targets_object.delegations:
-      self.assertTrue(os.path.basename(target1_filepath) not in delegation.target_files)
+      self.assertEqual(delegation.target_files, {})
 
     # Add 'target1_filepath' and verify that the relative path of
     # 'target1_filepath' is added to the correct bin.
