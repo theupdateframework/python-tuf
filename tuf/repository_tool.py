@@ -2486,14 +2486,13 @@ class Targets(Metadata):
     # Convert 'number_of_bins' to hexadecimal and determine the number of
     # hexadecimal digits needed by each hash prefix.  Calculate the total
     # number of hash prefixes (e.g., 000 - FFF total values) to be spread over
-    # 'number_of_bins' and strip the first two characters ('0x') from Python's
-    # representation of hexadecimal values (so that they are not used in the
-    # calculation of the prefix length.) Example: number_of_bins = 32,
+    # 'number_of_bins'. Example: number_of_bins = 32,
     # total_hash_prefixes = 256, and each hashed bin is responsible for 8 hash
     # prefixes.  Hashed bin roles created = 00-07.json, 08-0f.json, ...,
     # f8-ff.json.
-    prefix_length =  len(hex(number_of_bins - 1)[2:])
+    prefix_length = len("{:x}".format(number_of_bins - 1))
     total_hash_prefixes = 16 ** prefix_length
+    bin_size = total_hash_prefixes // number_of_bins
 
     # For simplicity, ensure that 'total_hash_prefixes' (16 ^ n) can be evenly
     # distributed over 'number_of_bins' (must be 2 ^ n).  Each bin will contain
@@ -2506,84 +2505,42 @@ class Targets(Metadata):
     logger.info(repr(len(list_of_targets)) + ' total targets.')
     logger.info(repr(number_of_bins) + ' hashed bins.')
     logger.info(repr(total_hash_prefixes) + ' total hash prefixes.')
+    logger.info('Each bin ranges over ' + repr(bin_size) + ' hash prefixes.')
 
-    # Store the target paths that fall into each bin.  The digest of the target
-    # path, reduced to the first 'prefix_length' hex digits, is calculated to
-    # determine which 'bin_index' it should go.  we use xrange() here because
-    # there can be a large number of prefixes to process.
-    target_paths_in_bin = {}
-    for bin_index in six.moves.xrange(total_hash_prefixes):
-      target_paths_in_bin[bin_index] = []
-
-    # Assign every path to its bin.  Log a warning if the target path does not
-    # exist in the repository's targets directory.
-    for target_path in list_of_targets:
-      if not os.path.isfile(os.path.join(self._targets_directory, target_path)):
-        logger.warning('A path in "list of'
-            ' targets" is not located in the repository\'s targets'
-            ' directory: ' + repr(target_path))
-
+    # Generate a list of bin names, the range of prefixes to be delegated to
+    # that bin, along with the corresponding full list of target prefixes
+    # to be delegated to that bin
+    ordered_roles = []
+    for idx in range(0, total_hash_prefixes, bin_size):
+      high = idx + bin_size - 1
+      name = _create_bin_name(idx, high, prefix_length)
+      if bin_size == 1:
+        target_hash_prefixes = [name]
       else:
-        logger.debug(repr(target_path) + ' is located in the repository\'s'
-            ' targets directory.')
+        target_hash_prefixes = []
+        for idy in range(idx, idx+bin_size):
+          target_hash_prefixes.append("{prefix:0{len}x}".format(prefix=idy,
+              len=prefix_length))
+
+      role = {"name": name,
+          "target_paths": [],
+          "target_hash_prefixes": target_hash_prefixes}
+      ordered_roles.append(role)
+
+    for target_path in list_of_targets:
 
       # Determine the hash prefix of 'target_path' by computing the digest of
       # its path relative to the targets directory.  Example:
       # '{repository_root}/targets/file1.txt' -> 'file1.txt'.
       #relative_path = target_path[len(self._targets_directory):]
-      digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
-      digest_object.update(target_path.encode('utf-8'))
-      relative_path_hash = digest_object.hexdigest()
-      relative_path_hash_prefix = relative_path_hash[:prefix_length]
+      hash_prefix = _get_hash(target_path)[:prefix_length]
+      ordered_roles[int(hash_prefix, 16) // bin_size]["target_paths"].append(target_path)
 
-      # 'target_paths_in_bin' store bin indices in base-10, so convert the
-      # 'relative_path_hash_prefix' base-16 (hex) number to a base-10 (dec)
-      # number.
-      bin_index = int(relative_path_hash_prefix, 16)
-
-      # Add the 'target_path' (absolute) to the bin.  These target paths are
-      # later added to the targets of the 'bin_index' role.
-      target_paths_in_bin[bin_index].append(target_path)
-
-    # Calculate the path hash prefixes of each 'bin_offset' stored in the parent
-    # role.  For example: 'targets/unclaimed/000-003' may list the path hash
-    # prefixes "000", "001", "002", "003" in the delegations dict of
-    # 'targets/unclaimed'.
-    bin_offset = total_hash_prefixes // number_of_bins
-
-    logger.info('Each bin ranges over ' + repr(bin_offset) + ' hash prefixes.')
-
-    # The parent roles will list bin roles starting from "0" to
-    # 'total_hash_prefixes' in 'bin_offset' increments.  The skipped bin roles
-    # are listed in 'path_hash_prefixes' of 'outer_bin_index'.
-    for outer_bin_index in six.moves.xrange(0, total_hash_prefixes, bin_offset):
-      # The bin index is hex padded from the left with zeroes for up to the
-      # 'prefix_length' (e.g., '000-003').  Ensure the correct hash bin name is
-      # generated if a prefix range is unneeded.
-      start_bin = hex(outer_bin_index)[2:].zfill(prefix_length)
-      end_bin = hex(outer_bin_index+bin_offset-1)[2:].zfill(prefix_length)
-      if start_bin == end_bin:
-        bin_rolename = start_bin
-
-      else:
-        bin_rolename = start_bin + '-' + end_bin
-
-      # 'bin_rolename' may contain a range of target paths, from 'start_bin' to
-      # 'end_bin'.  Determine the total target paths that should be included.
-      path_hash_prefixes = []
-      bin_rolename_targets = []
-
-      for inner_bin_index in six.moves.xrange(outer_bin_index, outer_bin_index+bin_offset):
-        # 'inner_bin_rolename' needed in padded hex.  For example, "00b".
-        inner_bin_rolename = hex(inner_bin_index)[2:].zfill(prefix_length)
-        path_hash_prefixes.append(inner_bin_rolename)
-        bin_rolename_targets.extend(target_paths_in_bin[inner_bin_index])
-
+    for bin_rolename in ordered_roles:
       # Delegate from the "unclaimed" targets role to each 'bin_rolename'
-      # (i.e., outer_bin_index).
-      self.delegate(bin_rolename, keys_of_hashed_bins, [],
-          list_of_targets=bin_rolename_targets,
-          path_hash_prefixes=path_hash_prefixes)
+      self.delegate(bin_rolename['name'], keys_of_hashed_bins, [],
+          list_of_targets=bin_rolename['target_paths'],
+          path_hash_prefixes=bin_rolename['target_hash_prefixes'])
       logger.debug('Delegated from ' + repr(self.rolename) + ' to ' + repr(bin_rolename))
 
 
