@@ -1288,6 +1288,27 @@ class TestTargets(unittest.TestCase):
     public_keys = [public_key]
     list_of_targets = [target1_filepath]
 
+
+    # A helper function to check that the range of prefixes the role is
+    # delegated for, specified in path_hash_prefixes, matches the range
+    # implied by the bin, or delegation role, name.
+    def check_prefixes_match_range():
+      roleinfo = tuf.roledb.get_roleinfo(self.targets_object.rolename,
+          'test_repository')
+      for delegated_role in roleinfo['delegations']['roles']:
+        if len(delegated_role['path_hash_prefixes']) > 0:
+          rolename = delegated_role['name']
+          prefixes = delegated_role['path_hash_prefixes']
+
+          if len(prefixes) > 1:
+            prefix_range = "{}-{}".format(prefixes[0], prefixes[1])
+          else:
+            prefix_range = prefixes[0]
+
+          self.assertEqual(rolename, prefix_range)
+
+
+
     # Test delegate_hashed_bins() and verify that 16 hashed bins have
     # been delegated in the parent's roleinfo.
     self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
@@ -1299,11 +1320,14 @@ class TestTargets(unittest.TestCase):
 
     self.assertEqual(sorted(self.targets_object.get_delegated_rolenames()),
                      sorted(delegated_rolenames))
+    check_prefixes_match_range()
 
     # For testing / coverage purposes, try to create delegated bins that
     # hold a range of hash prefixes (e.g., bin name: 000-003).
     self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
                                              number_of_bins=512)
+    check_prefixes_match_range()
+
     # Test improperly formatted arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError,
                       self.targets_object.delegate_hashed_bins, 3, public_keys,
