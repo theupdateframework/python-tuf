@@ -2530,10 +2530,9 @@ class Targets(Metadata):
     for target_path in list_of_targets:
 
       # Determine the hash prefix of 'target_path' by computing the digest of
-      # its path relative to the targets directory.  Example:
-      # '{repository_root}/targets/file1.txt' -> 'file1.txt'.
-      #relative_path = target_path[len(self._targets_directory):]
-      hash_prefix = _get_hash(target_path)[:prefix_length]
+      # its path relative to the targets directory.
+      # We must hash a target path as it appears in the metadata
+      hash_prefix = _get_hash(target_path.replace('\\', '/').lstrip('/'))[:prefix_length]
       ordered_roles[int(hash_prefix, 16) // bin_size]["target_paths"].append(target_path)
 
     for bin_rolename in ordered_roles:
