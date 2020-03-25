@@ -2027,10 +2027,10 @@ class Targets(Metadata):
     for relative_target in relative_list_of_targets:
       if relative_target not in roleinfo['paths']:
         logger.debug('Adding new target: ' + repr(relative_target))
-        roleinfo['paths'].update({relative_target: {}})
 
       else:
         logger.debug('Replacing target: ' + repr(relative_target))
+      roleinfo['paths'].update({relative_target: {}})
 
     tuf.roledb.update_roleinfo(self.rolename, roleinfo,
         repository_name=self._repository_name)
