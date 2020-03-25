@@ -2754,6 +2754,65 @@ class Targets(Metadata):
 
 
 
+
+  def _check_relpath(self, pathname):
+    """
+    <Purpose>
+      Check if a path matches the definition of a PATHPATTERN or a
+      TARGETPATH (uses the forward slash (/) as directory separator and
+      does not start with a directory separator). Checks are performed only
+      on the path string, without accessing the file system.
+
+    <Arguments>
+      pathname:
+        A file path or a glob pattern.
+
+    <Exceptions>
+      securesystemslib.exceptions.FormatError, if 'pathname' is improperly
+      formatted.
+
+      tuf.exceptions.InvalidNameError, if 'pathname' starts with a directory
+      separator.
+
+    <Side Effects>
+      Normalizes pathname.
+
+    <Returns>
+        The normazlied 'pathname'.
+    """
+
+    tuf.formats.RELPATH_SCHEMA.check_match(pathname)
+
+    if os.path.isabs(pathname):
+      raise tuf.exceptions.InvalidNameError(repr(pathname) + ' contains a leading'
+          ' path separator. All paths should be relative to the repository\'s'
+          ' targets directory.')
+
+    # Trigger a warning when the path contains '..' since directories
+    # upper than the current cannot be resolved by normpath.
+    dir_list = pathname.split(os.sep)
+    for dirname in dir_list:
+      if dirname == '..':
+        logger.warning('Path ' + repr(pathname) + ' contains \'..\'.'
+            ' Parent directory may not be resolved.')
+        break
+
+    pathname = os.path.normpath(pathname)
+
+    # Trigger a warning in case path name is not passed as a relative
+    # to the targets directory but starts with it instead. Ensure a trailing
+    # path separator with os.path.join(path, '').
+    targets_directory = os.path.join(self._targets_directory, '')
+    if pathname.startswith(targets_directory):
+      logger.warning(repr(pathname) + ' should not include the'
+          ' repository\'s targets'
+          ' directory: ' + repr(self._targets_directory))
+
+    return pathname
+
+
+
+
 def _keys_to_keydict(keys):
   """
   Iterate over a list of keys and return a list of keyids and a dict mapping
@@ -2772,6 +2831,7 @@ def _keys_to_keydict(keys):
     keyids.append(keyid)
 
   return keyids, keydict
+
 
 
 
@@ -2805,7 +2865,6 @@ def _create_bin_name(low, high, prefix_len):
     Create a string name of a delegated hash bin, where name will be a range of
     zero-padded (up to prefix_len) strings i.e. for low=00, high=07,
     prefix_len=3 the returned name would be '000-007'.
-
   """
   if low == high:
     return "{low:0{len}x}".format(low=low, len=prefix_len)
