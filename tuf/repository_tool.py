@@ -1854,6 +1854,9 @@ class Targets(Metadata):
       securesystemslib.exceptions.Error, if 'child_rolename' has not been
       delegated yet.
 
+      tuf.exceptions.InvalidNameError, if any path in 'paths' starts with
+      a directory separator.
+
     <Side Effects>
       Modifies this Targets' delegations field.
 
@@ -1879,16 +1882,11 @@ class Targets(Metadata):
           ' not exist.')
 
     for path in paths:
-      # Are the delegated paths or glob patterns located in the repository's
-      # targets directory?  If so, log it - the paths don't necessarily need to
-      # be located in the repository's directory.  Append a trailing path
-      # separator with os.path.join(path, '').
-      targets_directory = os.path.join(self._targets_directory, '')
-      if not path.startswith(targets_directory):
-        logger.debug(repr(path) + ' is not located in the'
-            ' repository\'s targets'
-            ' directory: ' + repr(self._targets_directory))
-
+      # Check if the delegated paths or glob patterns are relative and
+      # normalize them. Paths' existence on the file system is not verified.
+      # If the path is incorrect, the targetfile won't be matched successfully
+      # during a client update.
+      path = self._check_relpath(path)
       relative_paths.append(path)
 
     # Get the current role's roleinfo, so that its delegations field can be
@@ -2288,6 +2286,9 @@ class Targets(Metadata):
       or if any target in 'list_of_targets' is an invalid path (i.e., not
       located in the repository's targets directory).
 
+      tuf.exceptions.InvalidNameError, if any path in 'paths' is not a
+      relative path (starts with a directory separator).
+
     <Side Effects>
       A new Target object is created for 'rolename' that is accessible to the
       caller (i.e., targets.<rolename>).  The 'tuf.keydb.py' and
@@ -2331,15 +2332,17 @@ class Targets(Metadata):
 
         relative_targetpaths.update({target[targets_directory_length:]: {}})
 
-    for path in paths:
-      if path.startswith(os.sep):
-        raise tuf.exceptions.Error('One of the given paths contains a leading'
-            ' path separator: ' + repr(path) + '.  All delegated paths should'
-            ' be relative to the repo\'s targets directory.')
+    # A list of relative and verified paths or glob patterns to be added to the
+    # child role's entry in the parent's delegations field.
+    relative_paths = []
 
-      if not path.startswith(self._targets_directory + os.sep):
-        logger.warning(repr(path) + ' is not located in the repository\'s'
-          ' targets directory: ' + repr(self._targets_directory))
+    for path in paths:
+      # Check if the delegated paths or glob patterns are relative and
+      # normalize them. Paths' existense on the file system is not verified.
+      # If the path is incorrect, the targetfile won't be matched successfully
+      # during a client update.
+      path = self._check_relpath(path)
+      relative_paths.append(path)
 
     # The new targets object is added as an attribute to this Targets object.
     new_targets_object = self._create_delegated_target(rolename, keyids,
@@ -2353,8 +2356,8 @@ class Targets(Metadata):
                 'terminating': terminating,
                 'paths': list(relative_targetpaths.keys())}
 
-    if paths:
-      roleinfo['paths'] = paths
+    if relative_paths:
+      roleinfo['paths'] = relative_paths
 
     if path_hash_prefixes:
       roleinfo['path_hash_prefixes'] = path_hash_prefixes
