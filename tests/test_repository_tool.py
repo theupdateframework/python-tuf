@@ -1094,18 +1094,6 @@ class TestTargets(unittest.TestCase):
                       target_filepath, 3)
 
 
-    # Test invalid filepath argument (i.e., non-existent or invalid file.)
-    self.assertRaises(securesystemslib.exceptions.Error, self.targets_object.add_target,
-                      'non-existent.txt')
-
-    # Not under the repository's targets directory.
-    self.assertRaises(securesystemslib.exceptions.Error, self.targets_object.add_target,
-                      self.temporary_directory)
-
-    # Not a file (i.e., a valid path, but a directory.)
-    test_directory = os.path.join(self.targets_directory, 'test_directory')
-    os.mkdir(test_directory)
-    self.assertRaises(securesystemslib.exceptions.Error, self.targets_object.add_target, test_directory)
 
 
 
@@ -1134,17 +1122,6 @@ class TestTargets(unittest.TestCase):
     # Test improperly formatted arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError, self.targets_object.add_targets, 3)
 
-    # Test invalid filepath argument (i.e., non-existent or invalid file.)
-    self.assertRaises(securesystemslib.exceptions.Error, self.targets_object.add_targets,
-                      ['non-existent.txt'])
-    self.assertRaises(securesystemslib.exceptions.Error, self.targets_object.add_targets,
-                      [target1_filepath, target2_filepath, 'non-existent.txt'])
-    self.assertRaises(securesystemslib.exceptions.Error, self.targets_object.add_targets,
-                      [self.temporary_directory])
-    temp_directory = os.path.join(self.targets_directory, 'temp')
-    os.mkdir(temp_directory)
-    self.assertRaises(securesystemslib.exceptions.Error, self.targets_object.add_targets,
-                      [temp_directory])
 
 
 
@@ -1404,10 +1381,6 @@ class TestTargets(unittest.TestCase):
     # Test improperly formatted argument.
     self.assertRaises(securesystemslib.exceptions.FormatError,
                       self.targets_object.add_target_to_bin, 3, 'foo')
-
-    # Invalid target file path argument.
-    self.assertRaises(securesystemslib.exceptions.Error,
-                      self.targets_object.add_target_to_bin, '/non-existent', 16)
 
 
 

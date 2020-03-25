@@ -1922,9 +1922,6 @@ class Targets(Metadata):
       securesystemslib.exceptions.FormatError, if 'filepath' is improperly
       formatted.
 
-      securesystemslib.exceptions.Error, if 'filepath' is not located in the
-      repository's targets directory.
-
     <Side Effects>
       Adds 'filepath' to this role's list of targets.  This role's
       'tuf.roledb.py' entry is also updated.
@@ -1953,31 +1950,25 @@ class Targets(Metadata):
     # freedom to add targets and parent restrictions in any order, minimize the
     # number of times these checks are performed, and allow any role to
     # delegate trust of packages to this Targes role.
-    if os.path.isfile(filepath):
 
-      # Update the role's 'tuf.roledb.py' entry and avoid duplicates.  Make
-      # sure to exclude the path separator when calculating the length of the
-      # targets directory.
-      targets_directory_length = len(self._targets_directory) + 1
-      roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
-      relative_path = filepath[targets_directory_length:].replace('\\', '/')
+    # Update the role's 'tuf.roledb.py' entry and avoid duplicates.  Make
+    # sure to exclude the path separator when calculating the length of the
+    # targets directory.
+    targets_directory_length = len(self._targets_directory) + 1
+    roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
+    relative_path = filepath[targets_directory_length:].replace('\\', '/')
 
-      if relative_path not in roleinfo['paths']:
-        logger.debug('Adding new target: ' + repr(relative_path))
-        roleinfo['paths'].update({relative_path: custom})
-
-      else:
-        logger.debug('Replacing target: ' + repr(relative_path))
-        roleinfo['paths'].update({relative_path: custom})
-
-
-      tuf.roledb.update_roleinfo(self._rolename, roleinfo,
-          repository_name=self._repository_name)
+    if relative_path not in roleinfo['paths']:
+      logger.debug('Adding new target: ' + repr(relative_path))
 
     else:
-      raise securesystemslib.exceptions.Error(repr(filepath) + ' is not'
-          ' a valid file in the repository\'s targets'
-          ' directory: ' + repr(self._targets_directory))
+      logger.debug('Replacing target: ' + repr(relative_path))
+
+    roleinfo['paths'].update({relative_path: custom})
+
+    tuf.roledb.update_roleinfo(self._rolename, roleinfo,
+        repository_name=self._repository_name)
+
 
 
 
@@ -2000,10 +1991,6 @@ class Targets(Metadata):
     <Exceptions>
       securesystemslib.exceptions.FormatError, if the arguments are improperly
       formatted.
-
-      securesystemslib.exceptions.Error, if any of the paths listed in
-      'list_of_targets' is not located in the repository's targets directory or
-      is invalid.
 
     <Side Effects>
       This Targets' roleinfo is updated with the paths in 'list_of_targets'.
@@ -2031,13 +2018,9 @@ class Targets(Metadata):
     for target in list_of_targets:
       filepath = os.path.join(self._targets_directory, target)
 
-      if os.path.isfile(filepath):
-        relative_list_of_targets.append(
-            filepath[targets_directory_length + 1:].replace('\\', '/'))
+      relative_list_of_targets.append(
+          filepath[targets_directory_length + 1:].replace('\\', '/'))
 
-      else:
-        raise securesystemslib.exceptions.Error(repr(filepath) + ' is not'
-          ' a valid file.')
 
     # Update this Targets 'tuf.roledb.py' entry.
     roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
