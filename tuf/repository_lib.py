@@ -662,7 +662,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     # Update 'targets.json' in 'tuf.roledb.py'
     roleinfo = tuf.roledb.get_roleinfo('targets', repository_name)
     for filepath, fileinfo in six.iteritems(targets_metadata['targets']):
-      roleinfo['paths'].update({filepath: fileinfo.get('custom', {})})
+      roleinfo['paths'].update({filepath: fileinfo})
     roleinfo['version'] = targets_metadata['version']
     roleinfo['expires'] = targets_metadata['expires']
     roleinfo['delegations'] = targets_metadata['delegations']
@@ -1287,7 +1287,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
   targets_directory = _check_directory(targets_directory)
 
   # Generate the fileinfo of all the target files listed in 'target_files'.
-  for target, custom in six.iteritems(target_files):
+  for target, fileinfo in six.iteritems(target_files):
 
     # The root-most folder of the targets directory should not be included in
     # target paths listed in targets metadata.
@@ -1307,9 +1307,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
     # Add 'custom' if it has been provided.  Custom data about the target is
     # optional and will only be included in metadata (i.e., a 'custom' field in
     # the target's fileinfo dictionary) if specified here.
-    custom_data = None
-    if len(custom):
-      custom_data = custom
+    custom_data = fileinfo.get('custom', None)
 
     filedict[relative_targetpath.replace('\\', '/').lstrip('/')] = \
       get_metadata_fileinfo(target_path, custom_data)

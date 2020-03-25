@@ -298,13 +298,20 @@ DELEGATIONS_SCHEMA = SCHEMA.Object(
 NUMBINS_SCHEMA = SCHEMA.Integer(lo=1)
 
 # The fileinfo format of targets specified in the repository and
-# developer tools.  The second element of this list holds custom data about the
-# target, such as file permissions, author(s), last modified, etc.
+# developer tools.  The fields match that of FILEINFO_SCHEMA, only all
+# fields are optional.
 CUSTOM_SCHEMA = SCHEMA.Object()
+LOOSE_FILEINFO_SCHEMA = SCHEMA.Object(
+  object_name = "LOOSE_FILEINFO_SCHEMA",
+  length = SCHEMA.Optional(LENGTH_SCHEMA),
+  hashes = SCHEMA.Optional(HASHDICT_SCHEMA),
+  version = SCHEMA.Optional(METADATAVERSION_SCHEMA),
+  custom = SCHEMA.Optional(SCHEMA.Object())
+)
 
 PATH_FILEINFO_SCHEMA = SCHEMA.DictOf(
   key_schema = RELPATH_SCHEMA,
-  value_schema = CUSTOM_SCHEMA)
+  value_schema = LOOSE_FILEINFO_SCHEMA)
 
 # TUF roledb
 ROLEDB_SCHEMA = SCHEMA.Object(

@@ -1895,7 +1895,7 @@ class Targets(Metadata):
 
 
 
-  def add_target(self, filepath, custom=None):
+  def add_target(self, filepath, custom=None, fileinfo=None):
     """
     <Purpose>
       Add a filepath (must be located in the repository's targets directory) to
@@ -1918,6 +1918,10 @@ class Targets(Metadata):
       custom:
         An optional object providing additional information about the file.
 
+      fileinfo:
+        An optional fileinfo object, conforming to tuf.formats.FILEINFO_SCHEMA,
+        providing full information about the file.
+
     <Exceptions>
       securesystemslib.exceptions.FormatError, if 'filepath' is improperly
       formatted.
@@ -1935,6 +1939,13 @@ class Targets(Metadata):
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     securesystemslib.formats.PATH_SCHEMA.check_match(filepath)
+
+    if fileinfo and custom:
+      raise securesystemslib.exceptions.Error("Can only take one of"
+          " custom or fileinfo, not both.")
+
+    if fileinfo:
+      tuf.formats.FILEINFO_SCHEMA.check_match(fileinfo)
 
     if custom is None:
       custom = {}
@@ -1964,7 +1975,10 @@ class Targets(Metadata):
     else:
       logger.debug('Replacing target: ' + repr(relative_path))
 
-    roleinfo['paths'].update({relative_path: custom})
+    if fileinfo:
+      roleinfo['paths'].update({relative_path: fileinfo})
+    else:
+      roleinfo['paths'].update({relative_path: {'custom': custom}})
 
     tuf.roledb.update_roleinfo(self._rolename, roleinfo,
         repository_name=self._repository_name)
@@ -2528,7 +2542,8 @@ class Targets(Metadata):
 
 
 
-  def add_target_to_bin(self, target_filepath, number_of_bins, custom=None):
+  def add_target_to_bin(self, target_filepath, number_of_bins, custom=None,
+      fileinfo=None):
     """
     <Purpose>
       Add the fileinfo of 'target_filepath' to the expected hashed bin, if the
@@ -2552,9 +2567,16 @@ class Targets(Metadata):
       custom:
         An optional object providing additional information about the file.
 
+      fileinfo:
+        An optional fileinfo object, conforming to tuf.formats.FILEINFO_SCHEMA,
+        providing full information about the file.
+
     <Exceptions>
       securesystemslib.exceptions.FormatError, if 'target_filepath' is
       improperly formatted.
+
+      securesystemslib.exceptions.Error, if both 'custom' and 'fileinfo' are
+      passed.
 
       securesystemslib.exceptions.Error, if 'target_filepath' cannot be added to
       a hashed bin (e.g., an invalid target filepath, or the expected hashed
@@ -2585,7 +2607,8 @@ class Targets(Metadata):
       raise securesystemslib.exceptions.Error(self.rolename + ' does not have'
           ' a delegated role ' + bin_name)
 
-    self._delegated_roles[bin_name].add_target(target_filepath, custom)
+    self._delegated_roles[bin_name].add_target(target_filepath, custom,
+        fileinfo)
 
 
 

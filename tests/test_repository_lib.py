@@ -335,7 +335,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     datetime_object = datetime.datetime(2030, 1, 1, 12, 0)
     expiration_date = datetime_object.isoformat() + 'Z'
     file_permissions = oct(os.stat(file1_path).st_mode)[4:]
-    target_files = {'file.txt': {'file_permission': file_permissions}}
+    target_files = {'file.txt': {'custom': {'file_permission': file_permissions}}}
 
     delegations = {"keys": {
       "a394c28384648328b16731f81440d72243c77bb44c07c040be99347f0df7d7bf": {
