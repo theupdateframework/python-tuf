@@ -217,7 +217,7 @@ class Repository(object):
 
 
 
-  def writeall(self, consistent_snapshot=False):
+  def writeall(self, consistent_snapshot=False, use_existing_fileinfo=False):
     """
     <Purpose>
       Write all the JSON Metadata objects to their corresponding files for
@@ -232,6 +232,11 @@ class Repository(object):
         include a version number in the filename (i.e.,
         <version_number>.root.json, <version_number>.README.json
         Example: 13.root.json'
+
+      use_existing_fileinfo:
+        Boolean indicating whether the fileinfo dicts in the roledb should be
+        written as-is (True) or whether hashes should be generated (False,
+        requires access to the targets files on-disk).
 
     <Exceptions>
       tuf.exceptions.UnsignedMetadataError, if any of the top-level
@@ -278,7 +283,8 @@ class Repository(object):
       repo_lib._generate_and_write_metadata(dirty_rolename, dirty_filename,
           self._targets_directory, self._metadata_directory,
           consistent_snapshot, filenames,
-          repository_name=self._repository_name)
+          repository_name=self._repository_name,
+          use_existing_fileinfo=use_existing_fileinfo)
 
     # Metadata should be written in (delegated targets -> root -> targets ->
     # snapshot -> timestamp) order.  Begin by generating the 'root.json'
@@ -298,7 +304,8 @@ class Repository(object):
       repo_lib._generate_and_write_metadata('targets', filenames['targets'],
           self._targets_directory, self._metadata_directory,
           consistent_snapshot,
-          repository_name=self._repository_name)
+          repository_name=self._repository_name,
+          use_existing_fileinfo=use_existing_fileinfo)
 
     # Generate the 'snapshot.json' metadata file.
     if 'snapshot' in dirty_rolenames:
@@ -325,7 +332,8 @@ class Repository(object):
 
 
 
-  def write(self, rolename, consistent_snapshot=False, increment_version_number=True):
+  def write(self, rolename, consistent_snapshot=False, increment_version_number=True,
+      use_existing_fileinfo=False):
     """
     <Purpose>
       Write the JSON metadata for 'rolename' to its corresponding file on disk.
@@ -345,6 +353,11 @@ class Repository(object):
       increment_version_number:
         Boolean indicating whether the version number of 'rolename' should be
         automatically incremented.
+
+      use_existing_fileinfo:
+        Boolean indicating whether the fileinfo dicts in the roledb should be
+        written as-is (True) or whether hashes should be generated (False,
+        requires access to the targets files on-disk).
 
     <Exceptions>
       None.
@@ -368,7 +381,8 @@ class Repository(object):
         self._targets_directory, self._metadata_directory, consistent_snapshot,
         filenames=filenames, allow_partially_signed=True,
         increment_version_number=increment_version_number,
-        repository_name=self._repository_name)
+        repository_name=self._repository_name,
+        use_existing_fileinfo=use_existing_fileinfo)
 
     # Ensure 'rolename' is no longer marked as dirty after the successful write().
     tuf.roledb.unmark_dirty([rolename], self._repository_name)

@@ -94,7 +94,7 @@ SUPPORTED_KEY_TYPES = ['rsa', 'ed25519', 'ecdsa-sha2-nistp256']
 def _generate_and_write_metadata(rolename, metadata_filename,
   targets_directory, metadata_directory, consistent_snapshot=False,
   filenames=None, allow_partially_signed=False, increment_version_number=True,
-  repository_name='default'):
+  repository_name='default', use_existing_fileinfo=False):
   """
   Non-public function that can generate and write the metadata for the
   specified 'rolename'.  It also increments the version number of 'rolename' if
@@ -148,7 +148,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
     metadata = generate_targets_metadata(targets_directory, roleinfo['paths'],
         roleinfo['version'], roleinfo['expires'], roleinfo['delegations'],
-        consistent_snapshot)
+        consistent_snapshot, use_existing_fileinfo)
 
   # Before writing 'rolename' to disk, automatically increment its version
   # number (if 'increment_version_number' is True) so that the caller does not
@@ -270,7 +270,7 @@ def _metadata_is_partially_loaded(rolename, signable, repository_name):
 
 
 
-def _check_directory(directory):
+def _check_directory(directory, must_exist=True):
   """
   <Purpose>
     Non-public function that ensures 'directory' is valid and it exists.  This
@@ -281,6 +281,9 @@ def _check_directory(directory):
   <Arguments>
     directory:
       The directory to check.
+
+    must_exist:
+      A boolean indicating whether to check the directory exists.
 
   <Exceptions>
     securesystemslib.exceptions.Error, if 'directory' could not be validated.
@@ -300,7 +303,7 @@ def _check_directory(directory):
   securesystemslib.formats.PATH_SCHEMA.check_match(directory)
 
   # Check if the directory exists.
-  if not os.path.isdir(directory):
+  if must_exist and not os.path.isdir(directory):
     raise securesystemslib.exceptions.Error(repr(directory) + ' directory does not exist.')
 
   directory = os.path.abspath(directory)
@@ -1208,7 +1211,8 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
 
 
 def generate_targets_metadata(targets_directory, target_files, version,
-    expiration_date, delegations=None, write_consistent_targets=False):
+    expiration_date, delegations=None, write_consistent_targets=False,
+    use_existing_fileinfo=False):
   """
   <Purpose>
     Generate the targets metadata object. The targets in 'target_files' must
@@ -1224,8 +1228,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
     target_files:
       The target files tracked by 'targets.json'.  'target_files' is a
       dictionary of target paths that are relative to the targets directory and
-      an optional custom value (e.g., {'file1.txt': {'custom_data: 0755},
-      'Django/module.py': {}}).
+      a fileinfo dict matching tuf.formats.LOOSE_FILEINFO_SCHEMA
 
     version:
       The metadata version number.  Clients use the version number to
@@ -1244,16 +1247,28 @@ def generate_targets_metadata(targets_directory, target_files, version,
       Boolean that indicates whether file digests should be prepended to the
       target files.
 
+    use_existing_fileinfo:
+      Boolean that indicates whether to use the complete fileinfo, including
+      hashes, as already exists in the roledb (True) or whether to generate
+      hashes (False).
+
   <Exceptions>
     securesystemslib.exceptions.FormatError, if an error occurred trying to
     generate the targets metadata object.
 
-    securesystemslib.exceptions.Error, if any of the target files cannot be
-    read.
+    securesystemslib.exceptions.Error, if use_existing_fileinfo is False and
+    any of the target files cannot be read.
+
+    securesystemslib.exceptions.Error, if use_existing_fileinfo is True and
+    some of the target files do not have corresponding hashes in the roledb.
+
+    securesystemslib.exceptions.Error, if both of use_existing_fileinfo and
+    write_consistent_targets are True.
 
   <Side Effects>
-    The target files are read and file information generated about them.  If
-    'write_consistent_targets' is True, each target in 'target_files' will be
+    If use_existing_fileinfo is False, the target files are read and file
+    information generated about them.
+    If 'write_consistent_targets' is True, each target in 'target_files' will be
     copied to a file with a digest prepended to its filename. For example, if
     'some_file.txt' is one of the targets of 'target_files', consistent targets
     <sha-2 hash>.some_file.txt, <sha-3 hash>.some_file.txt, etc., are created
@@ -1273,6 +1288,11 @@ def generate_targets_metadata(targets_directory, target_files, version,
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   securesystemslib.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
   securesystemslib.formats.BOOLEAN_SCHEMA.check_match(write_consistent_targets)
+  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_existing_fileinfo)
+
+  if write_consistent_targets and use_existing_fileinfo:
+    raise securesystemslib.exceptions.Error('Cannot support writing consistent'
+        ' targets and using existing fileinfo.')
 
   if delegations is not None:
     tuf.formats.DELEGATIONS_SCHEMA.check_match(delegations)
@@ -1284,41 +1304,26 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
   # Ensure the user is aware of a non-existent 'target_directory', and convert
   # it to its abosolute path, if it exists.
-  targets_directory = _check_directory(targets_directory)
+  check_exists = not use_existing_fileinfo
+  targets_directory = _check_directory(targets_directory, check_exists)
 
-  # Generate the fileinfo of all the target files listed in 'target_files'.
-  for target, fileinfo in six.iteritems(target_files):
+  if use_existing_fileinfo:
+    for target, fileinfo in six.iteritems(target_files):
 
-    # The root-most folder of the targets directory should not be included in
-    # target paths listed in targets metadata.
-    # (e.g., 'targets/more_targets/somefile.txt' -> 'more_targets/somefile.txt')
-    relative_targetpath = target
+      # Ensure all fileinfo entries in target_files have a non-empty hashes dict
+      if not fileinfo.get('hashes', None):
+        raise securesystemslib.exceptions.Error('use_existing_hashes option set'
+            ' but no hashes exist in roledb for ' + repr(target))
 
-    # Note: join() discards 'targets_directory' if 'target' contains a leading
-    # path separator (i.e., is treated as an absolute path).
-    target_path = os.path.join(targets_directory, target.lstrip(os.sep))
+      if fileinfo.get('length', -1) < 0:
+        raise securesystemslib.exceptions.Error('use_existing_hashes option set'
+            ' but fileinfo\'s length is not set')
 
-    # Ensure all target files listed in 'target_files' exist.  If just one of
-    # these files does not exist, raise an exception.
-    if not os.path.exists(target_path):
-      raise securesystemslib.exceptions.Error(repr(target_path) + ' cannot'
-        ' be read.  Unable to generate targets metadata.')
+      filedict[target.replace('\\', '/').lstrip('/')] = fileinfo
 
-    # Add 'custom' if it has been provided.  Custom data about the target is
-    # optional and will only be included in metadata (i.e., a 'custom' field in
-    # the target's fileinfo dictionary) if specified here.
-    custom_data = fileinfo.get('custom', None)
-
-    filedict[relative_targetpath.replace('\\', '/').lstrip('/')] = \
-      get_metadata_fileinfo(target_path, custom_data)
-
-    # Copy 'target_path' to 'digest_target' if consistent hashing is enabled.
-    if write_consistent_targets:
-      for target_digest in six.itervalues(filedict[relative_targetpath]['hashes']):
-        dirname, basename = os.path.split(target_path)
-        digest_filename = target_digest + '.' + basename
-        digest_target = os.path.join(dirname, digest_filename)
-        shutil.copyfile(target_path, digest_target)
+  else:
+    filedict = _generate_targets_fileinfo(target_files, targets_directory,
+        write_consistent_targets)
 
   # Generate the targets metadata object.
   # Use generalized build_dict_conforming_to_schema func to produce a dict that
@@ -1348,6 +1353,58 @@ def generate_targets_metadata(targets_directory, target_files, version,
   #       build_dict_conforming_to_schema that skips a keyword if that keyword
   #       is optional in the schema and the value passed in is set to None....
 
+
+
+
+
+def _generate_targets_fileinfo(target_files, targets_directory,
+    write_consistent_targets):
+  """
+  Iterate over target_files and:
+    * ensure they exist in the targets_directory
+    * generate a fileinfo dict for the target file, including hashes
+    * copy 'target_path' to 'digest_target' if write_consistent_targets
+  add all generated fileinfo dicts to a dictionary mapping
+  targetpath: fileinfo and return the dict.
+  """
+
+  filedict = {}
+
+  # Generate the fileinfo of all the target files listed in 'target_files'.
+  for target, fileinfo in six.iteritems(target_files):
+
+    # The root-most folder of the targets directory should not be included in
+    # target paths listed in targets metadata.
+    # (e.g., 'targets/more_targets/somefile.txt' -> 'more_targets/somefile.txt')
+    relative_targetpath = target
+
+    # Note: join() discards 'targets_directory' if 'target' contains a leading
+    # path separator (i.e., is treated as an absolute path).
+    target_path = os.path.join(targets_directory, target.lstrip(os.sep))
+
+    # Ensure all target files listed in 'target_files' exist.  If just one of
+    # these files does not exist, raise an exception.
+    if not os.path.exists(target_path):
+      raise securesystemslib.exceptions.Error(repr(target_path) + ' cannot'
+          ' be read.  Unable to generate targets metadata.')
+
+    # Add 'custom' if it has been provided.  Custom data about the target is
+    # optional and will only be included in metadata (i.e., a 'custom' field in
+    # the target's fileinfo dictionary) if specified here.
+    custom_data = fileinfo.get('custom', None)
+
+    filedict[relative_targetpath.replace('\\', '/').lstrip('/')] = \
+        get_metadata_fileinfo(target_path, custom_data)
+
+    # Copy 'target_path' to 'digest_target' if consistent hashing is enabled.
+    if write_consistent_targets:
+      for target_digest in six.itervalues(filedict[relative_targetpath]['hashes']):
+        dirname, basename = os.path.split(target_path)
+        digest_filename = target_digest + '.' + basename
+        digest_target = os.path.join(dirname, digest_filename)
+        shutil.copyfile(target_path, digest_target)
+
+  return filedict
 
 
 
