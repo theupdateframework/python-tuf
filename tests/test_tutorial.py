@@ -358,10 +358,10 @@ class TestTutorial(unittest.TestCase):
           targets, [public_unclaimed_key], 32)
 
       self.assertListEqual([
-            "Creating hashed bin delegations.",
-            "1 total targets.",
-            "32 hashed bins.",
-            "256 total hash prefixes.",
+            "Creating hashed bin delegations.\n"
+            "1 total targets.\n"
+            "32 hashed bins.\n"
+            "256 total hash prefixes.\n"
             "Each bin ranges over 8 hash prefixes."
           ] + ["Adding a verification key that has already been used."] * 32,
           [

@@ -2512,11 +2512,11 @@ class Targets(Metadata):
       raise securesystemslib.exceptions.Error('The "number_of_bins" argument'
           ' must be a power of 2.')
 
-    logger.info('Creating hashed bin delegations.')
-    logger.info(repr(len(list_of_targets)) + ' total targets.')
-    logger.info(repr(number_of_bins) + ' hashed bins.')
-    logger.info(repr(total_hash_prefixes) + ' total hash prefixes.')
-    logger.info('Each bin ranges over ' + repr(bin_size) + ' hash prefixes.')
+    logger.info('Creating hashed bin delegations.\n' +
+        repr(len(list_of_targets)) + ' total targets.\n' +
+        repr(number_of_bins) + ' hashed bins.\n' +
+        repr(total_hash_prefixes) + ' total hash prefixes.\n' +
+        'Each bin ranges over ' + repr(bin_size) + ' hash prefixes.')
 
     # Generate a list of bin names, the range of prefixes to be delegated to
     # that bin, along with the corresponding full list of target prefixes
