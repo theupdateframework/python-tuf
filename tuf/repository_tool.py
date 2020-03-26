@@ -1913,13 +1913,17 @@ class Targets(Metadata):
   def add_target(self, filepath, custom=None, fileinfo=None):
     """
     <Purpose>
-      Add a filepath (must be located in the repository's targets directory) to
-      the Targets object.
+      Add a filepath (must be relative to the repository's targets directory)
+      to the Targets object.
 
-      This method does not actually create 'filepath' on the file system.
-      'filepath' must already exist on the file system.  If 'filepath'
-      has already been added, it will be replaced with any new file
-      or 'custom' information.
+      This method does not access the file system. 'filepath' must already
+      exist on the file system.
+
+      If 'filepath' does not exist the file will still be added to 'roleinfo'.
+      Only later calls to write() and writeall() will fail.
+
+      If 'filepath' has already been added, it will be replaced with any new
+      file or 'custom' information.
 
       >>>
       >>>
@@ -1927,8 +1931,8 @@ class Targets(Metadata):
 
     <Arguments>
       filepath:
-        The path of the target file.  It must exist in the repository's targets
-        directory.
+        The path of the target file.  It must be relative to the repository's
+        targets directory.
 
       custom:
         An optional object providing additional information about the file.
@@ -1940,6 +1944,9 @@ class Targets(Metadata):
     <Exceptions>
       securesystemslib.exceptions.FormatError, if 'filepath' is improperly
       formatted.
+
+      tuf.exceptions.InvalidNameError, if 'filepath' is not relative (starts
+      with a directory separator).
 
     <Side Effects>
       Adds 'filepath' to this role's list of targets.  This role's
@@ -1953,7 +1960,7 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    securesystemslib.formats.PATH_SCHEMA.check_match(filepath)
+    tuf.formats.RELPATH_SCHEMA.check_match(filepath)
 
     if fileinfo and custom:
       raise securesystemslib.exceptions.Error("Can only take one of"
@@ -1964,25 +1971,23 @@ class Targets(Metadata):
 
     if custom is None:
       custom = {}
-
     else:
       tuf.formats.CUSTOM_SCHEMA.check_match(custom)
-
-    filepath = os.path.join(self._targets_directory, filepath)
 
     # Add 'filepath' (i.e., relative to the targets directory) to the role's
     # list of targets.  'filepath' will not be verified as an allowed path
     # according to some delegating role.  Not verifying 'filepath' here allows
     # freedom to add targets and parent restrictions in any order, minimize the
     # number of times these checks are performed, and allow any role to
-    # delegate trust of packages to this Targes role.
+    # delegate trust of packages to this Targets role.
 
-    # Update the role's 'tuf.roledb.py' entry and avoid duplicates.  Make
-    # sure to exclude the path separator when calculating the length of the
-    # targets directory.
-    targets_directory_length = len(self._targets_directory) + 1
+    # Check if the target path is relative and normalize it. File's existence
+    # on the file system is not verified. If the file does not exist relative
+    # to the targets directory, later calls to write() will fail.
+    relative_path = self._check_relpath(filepath)
+
+    # Update the role's 'tuf.roledb.py' entry and avoid duplicates.
     roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
-    relative_path = filepath[targets_directory_length:].replace('\\', '/')
 
     if relative_path not in roleinfo['paths']:
       logger.debug('Adding new target: ' + repr(relative_path))
@@ -1997,7 +2002,6 @@ class Targets(Metadata):
 
     tuf.roledb.update_roleinfo(self._rolename, roleinfo,
         repository_name=self._repository_name)
-
 
 
 
@@ -2021,6 +2025,9 @@ class Targets(Metadata):
       securesystemslib.exceptions.FormatError, if the arguments are improperly
       formatted.
 
+      tuf.exceptions.InvalidNameError, if any target in 'list_of_targets'
+      is not relative (starts with a directory separator).
+
     <Side Effects>
       This Targets' roleinfo is updated with the paths in 'list_of_targets'.
 
@@ -2035,7 +2042,6 @@ class Targets(Metadata):
     tuf.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
 
     # Update the tuf.roledb entry.
-    targets_directory_length = len(self._targets_directory)
     relative_list_of_targets = []
 
     # Ensure the paths in 'list_of_targets' are valid and are located in the
@@ -2045,11 +2051,7 @@ class Targets(Metadata):
     # freedom to add targets and parent restrictions in any order, and minimize
     # the number of times these checks are performed.
     for target in list_of_targets:
-      filepath = os.path.join(self._targets_directory, target)
-
-      relative_list_of_targets.append(
-          filepath[targets_directory_length + 1:].replace('\\', '/'))
-
+      relative_list_of_targets.append(self._check_relpath(target))
 
     # Update this Targets 'tuf.roledb.py' entry.
     roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
@@ -2282,12 +2284,11 @@ class Targets(Metadata):
       securesystemslib.exceptions.FormatError, if any of the arguments are
       improperly formatted.
 
-      securesystemslib.exceptions.Error, if the delegated role already exists
-      or if any target in 'list_of_targets' is an invalid path (i.e., not
-      located in the repository's targets directory).
+      securesystemslib.exceptions.Error, if the delegated role already exists.
 
-      tuf.exceptions.InvalidNameError, if any path in 'paths' is not a
-      relative path (starts with a directory separator).
+      tuf.exceptions.InvalidNameError, if any path in 'paths' or any
+      target in 'list_of_targets' is not relative (starts with a directory
+      separator).
 
     <Side Effects>
       A new Target object is created for 'rolename' that is accessible to the
@@ -2321,16 +2322,15 @@ class Targets(Metadata):
     # Ensure the paths of 'list_of_targets' are located in the repository's
     # targets directory.
     relative_targetpaths = {}
-    targets_directory_length = len(self._targets_directory)
 
     if list_of_targets:
       for target in list_of_targets:
-        target = os.path.join(self._targets_directory, target)
-        if not os.path.isfile(target):
-          logger.warning(repr(target) + ' does not exist in the'
-              ' repository\'s targets directory: ' + repr(self._targets_directory))
-
-        relative_targetpaths.update({target[targets_directory_length:]: {}})
+        # Check if the target path is relative and normalize it. File's
+        # existence on the file system is not verified. If the file does not
+        # exist relative to the targets directory, later calls to write()
+        # will fail.
+        rel_targetpath = self._check_relpath(target)
+        relative_targetpaths.update({rel_targetpath: {}})
 
     # A list of relative and verified paths or glob patterns to be added to the
     # child role's entry in the parent's delegations field.
@@ -2495,8 +2495,11 @@ class Targets(Metadata):
       formatted.
 
       securesystemslib.exceptions.Error, if 'number_of_bins' is not a power of
-      2, or one of the targets in 'list_of_targets' is not located in the
+      2, or one of the targets in 'list_of_targets' is not relative to the
       repository's targets directory.
+
+      tuf.exceptions.InvalidNameError, if any target in 'list_of_targets'
+      is not relative (starts with a directory separator).
 
     <Side Effects>
       Delegates multiple target roles from the current parent role.
@@ -2542,11 +2545,15 @@ class Targets(Metadata):
       ordered_roles.append(role)
 
     for target_path in list_of_targets:
+      # Check if the target path is relative and normalize it. File's existence
+      # on the file system is not verified. If the file does not exist relative
+      # to the targets directory, later calls to write() will fail.
+      target_path = self._check_relpath(target_path)
 
       # Determine the hash prefix of 'target_path' by computing the digest of
       # its path relative to the targets directory.
       # We must hash a target path as it appears in the metadata
-      hash_prefix = _get_hash(target_path.replace('\\', '/').lstrip('/'))[:prefix_length]
+      hash_prefix = _get_hash(target_path)[:prefix_length]
       ordered_roles[int(hash_prefix, 16) // bin_size]["target_paths"].append(target_path)
 
     keyids, keydict = _keys_to_keydict(keys_of_hashed_bins)
@@ -2569,9 +2576,8 @@ class Targets(Metadata):
       # operation at the end of the iteration.
 
       relative_paths = {}
-      targets_directory_length = len(self._targets_directory)
       for path in bin_role['target_paths']:
-        relative_paths.update({path[targets_directory_length:]: {}})
+        relative_paths.update({path: {}})
 
       # Delegate from the "unclaimed" targets role to each 'bin_role'
       target = self._create_delegated_target(bin_role['name'], keyids, 1,
