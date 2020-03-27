@@ -369,6 +369,108 @@ class TestRepository(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.FormatError, repository.writeall, 3)
 
 
+  def test_writeall_no_files(self):
+    # Test writeall() when using pre-supplied fileinfo
+
+    repository_name = 'test_repository'
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+    repository_directory = os.path.join(temporary_directory, 'repository')
+    targets_directory = os.path.join(repository_directory,
+                                     repo_tool.TARGETS_DIRECTORY_NAME)
+
+    repository = repo_tool.create_new_repository(repository_directory, repository_name)
+
+    # (1) Load the public and private keys of the top-level roles, and one
+    # delegated role.
+    keystore_directory = os.path.join('repository_data', 'keystore')
+
+    # Load the public keys.
+    root_pubkey_path = os.path.join(keystore_directory, 'root_key.pub')
+    targets_pubkey_path = os.path.join(keystore_directory, 'targets_key.pub')
+    snapshot_pubkey_path = os.path.join(keystore_directory, 'snapshot_key.pub')
+    timestamp_pubkey_path = os.path.join(keystore_directory, 'timestamp_key.pub')
+
+    root_pubkey = repo_tool.import_rsa_publickey_from_file(root_pubkey_path)
+    targets_pubkey = \
+      repo_tool.import_ed25519_publickey_from_file(targets_pubkey_path)
+    snapshot_pubkey = \
+      repo_tool.import_ed25519_publickey_from_file(snapshot_pubkey_path)
+    timestamp_pubkey = \
+      repo_tool.import_ed25519_publickey_from_file(timestamp_pubkey_path)
+
+    # Load the private keys.
+    root_privkey_path = os.path.join(keystore_directory, 'root_key')
+    targets_privkey_path = os.path.join(keystore_directory, 'targets_key')
+    snapshot_privkey_path = os.path.join(keystore_directory, 'snapshot_key')
+    timestamp_privkey_path = os.path.join(keystore_directory, 'timestamp_key')
+
+    root_privkey = \
+      repo_tool.import_rsa_privatekey_from_file(root_privkey_path, 'password')
+    targets_privkey = \
+      repo_tool.import_ed25519_privatekey_from_file(targets_privkey_path,
+                                                'password')
+    snapshot_privkey = \
+      repo_tool.import_ed25519_privatekey_from_file(snapshot_privkey_path,
+                                                'password')
+    timestamp_privkey = \
+      repo_tool.import_ed25519_privatekey_from_file(timestamp_privkey_path,
+                                                'password')
+
+
+    # (2) Add top-level verification keys.
+    repository.root.add_verification_key(root_pubkey)
+    repository.targets.add_verification_key(targets_pubkey)
+    repository.snapshot.add_verification_key(snapshot_pubkey)
+
+    # Verify that repository.writeall() fails for insufficient threshold
+    # of signatures (default threshold = 1).
+    self.assertRaises(tuf.exceptions.UnsignedMetadataError, repository.writeall)
+
+    repository.timestamp.add_verification_key(timestamp_pubkey)
+
+
+    # (3) Load top-level signing keys.
+    repository.status()
+    repository.root.load_signing_key(root_privkey)
+    repository.status()
+    repository.targets.load_signing_key(targets_privkey)
+    repository.status()
+    repository.snapshot.load_signing_key(snapshot_privkey)
+    repository.status()
+
+    # Verify that repository.writeall() fails for insufficient threshold
+    # of signatures (default threshold = 1).
+    self.assertRaises(tuf.exceptions.UnsignedMetadataError, repository.writeall)
+
+    repository.timestamp.load_signing_key(timestamp_privkey)
+
+    # Add target fileinfo
+    target1_hashes = {'sha256': 'c2986576f5fdfd43944e2b19e775453b96748ec4fe2638a6d2f32f1310967095'}
+    target2_hashes = {'sha256': '517c0ce943e7274a2431fa5751e17cfd5225accd23e479bfaad13007751e87ef'}
+    target1_fileinfo = tuf.formats.make_fileinfo(555, target1_hashes)
+    target2_fileinfo = tuf.formats.make_fileinfo(37, target2_hashes)
+    target1 = os.path.join(targets_directory, 'file1.txt')
+    target2 = os.path.join(targets_directory, 'file2.txt')
+    repository.targets.add_target(target1, fileinfo=target1_fileinfo)
+    repository.targets.add_target(target2, fileinfo=target2_fileinfo)
+
+    repository.writeall(use_existing_fileinfo=True)
+
+    # Verify that the expected metadata is written.
+    metadata_directory = os.path.join(repository_directory,
+                                      repo_tool.METADATA_STAGED_DIRECTORY_NAME)
+
+    for role in ['root.json', 'targets.json', 'snapshot.json', 'timestamp.json']:
+      role_filepath = os.path.join(metadata_directory, role)
+      role_signable = securesystemslib.util.load_json_file(role_filepath)
+
+      # Raise 'securesystemslib.exceptions.FormatError' if 'role_signable' is
+      # an invalid signable.
+      tuf.formats.check_signable_object_format(role_signable)
+
+      self.assertTrue(os.path.exists(role_filepath))
+
+
 
   def test_get_filepaths_in_directory(self):
     # Test normal case.
