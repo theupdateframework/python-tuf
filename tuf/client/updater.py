@@ -951,18 +951,10 @@ class Updater(object):
         # We specify the keyid to ensure that it's the correct keyid
         # for the key.
         try:
+          key, keyids = securesystemslib.keys.format_metadata_to_key(keyinfo, keyid)
 
-          # The repo may have used hashing algorithms for the generated keyids
-          # that doesn't match the client's set of hash algorithms.  Make sure
-          # to only used the repo's selected hashing algorithms.
-          hash_algorithms = securesystemslib.settings.HASH_ALGORITHMS
-          securesystemslib.settings.HASH_ALGORITHMS = keyinfo['keyid_hash_algorithms']
-          key, keyids = securesystemslib.keys.format_metadata_to_key(keyinfo)
-          securesystemslib.settings.HASH_ALGORITHMS = hash_algorithms
-
-          for key_id in keyids:
-            key['keyid'] = key_id
-            tuf.keydb.add_key(key, keyid=None, repository_name=self.repository_name)
+          key['keyid'] = keyid
+          tuf.keydb.add_key(key, keyid=None, repository_name=self.repository_name)
 
         except tuf.exceptions.KeyAlreadyExistsError:
           pass
