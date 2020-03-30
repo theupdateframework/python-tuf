@@ -2556,8 +2556,7 @@ class Targets(Metadata):
 
 
 
-  def add_target_to_bin(self, target_filepath, number_of_bins, custom=None,
-      fileinfo=None):
+  def add_target_to_bin(self, target_filepath, number_of_bins, fileinfo=None):
     """
     <Purpose>
       Add the fileinfo of 'target_filepath' to the expected hashed bin, if the
@@ -2578,9 +2577,6 @@ class Targets(Metadata):
         The number of delegated roles, or hashed bins, in use by the repository.
         Note: 'number_of_bins' must be a power of 2.
 
-      custom:
-        An optional object providing additional information about the file.
-
       fileinfo:
         An optional fileinfo object, conforming to tuf.formats.FILEINFO_SCHEMA,
         providing full information about the file.
@@ -2588,9 +2584,6 @@ class Targets(Metadata):
     <Exceptions>
       securesystemslib.exceptions.FormatError, if 'target_filepath' is
       improperly formatted.
-
-      securesystemslib.exceptions.Error, if both 'custom' and 'fileinfo' are
-      passed.
 
       securesystemslib.exceptions.Error, if 'target_filepath' cannot be added to
       a hashed bin (e.g., an invalid target filepath, or the expected hashed
@@ -2621,8 +2614,8 @@ class Targets(Metadata):
       raise securesystemslib.exceptions.Error(self.rolename + ' does not have'
           ' a delegated role ' + bin_name)
 
-    self._delegated_roles[bin_name].add_target(target_filepath, custom,
-        fileinfo)
+    self._delegated_roles[bin_name].add_target(target_filepath,
+        fileinfo=fileinfo)
 
 
 
