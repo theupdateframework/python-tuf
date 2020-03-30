@@ -1374,10 +1374,13 @@ class TestTargets(unittest.TestCase):
     def check_prefixes_match_range():
       roleinfo = tuf.roledb.get_roleinfo(self.targets_object.rolename,
           'test_repository')
+      have_prefixes = False
+
       for delegated_role in roleinfo['delegations']['roles']:
         if len(delegated_role['path_hash_prefixes']) > 0:
           rolename = delegated_role['name']
           prefixes = delegated_role['path_hash_prefixes']
+          have_prefixes = True
 
           if len(prefixes) > 1:
             prefix_range = "{}-{}".format(prefixes[0], prefixes[-1])
@@ -1386,6 +1389,8 @@ class TestTargets(unittest.TestCase):
 
           self.assertEqual(rolename, prefix_range)
 
+      # We expect at least one delegation with some path_hash_prefixes
+      self.assertTrue(have_prefixes)
 
 
     # Test delegate_hashed_bins() and verify that 16 hashed bins have
