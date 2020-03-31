@@ -2546,12 +2546,56 @@ class Targets(Metadata):
       hash_prefix = _get_hash(target_path.replace('\\', '/').lstrip('/'))[:prefix_length]
       ordered_roles[int(hash_prefix, 16) // bin_size]["target_paths"].append(target_path)
 
-    for bin_rolename in ordered_roles:
-      # Delegate from the "unclaimed" targets role to each 'bin_rolename'
-      self.delegate(bin_rolename['name'], keys_of_hashed_bins, [],
-          list_of_targets=bin_rolename['target_paths'],
-          path_hash_prefixes=bin_rolename['target_hash_prefixes'])
-      logger.debug('Delegated from ' + repr(self.rolename) + ' to ' + repr(bin_rolename))
+    keyids, keydict = _keys_to_keydict(keys_of_hashed_bins)
+
+    # A queue of roleinfo's that need to be updated in the roledb
+    delegated_roleinfos = []
+
+    for bin_role in ordered_roles:
+      # TODO: originally we just called self.delegate() for each item in this
+      # iteration. However, this is *extremely* slow when creating a large
+      # number of hashed bins, i.e. 16k as is recommended for PyPI usage in
+      # PEP 458: https://www.python.org/dev/peps/pep-0458/
+      # The source of the slowness is the interactions with the roledb, which
+      # causes several deep copies of roleinfo dictionaries:
+      # https://github.com/theupdateframework/tuf/issues/1005
+      # Once the underlying issues in #1005 are resolved, i.e. some combination
+      # of the intermediate and long-term fixes, we may simplify here by
+      # switching back to just calling self.delegate(), but until that time we
+      # queue roledb interactions and perform all updates to the roledb in one
+      # operation at the end of the iteration.
+
+      relative_paths = {}
+      targets_directory_length = len(self._targets_directory)
+      for path in bin_role['target_paths']:
+        relative_paths.update({path[targets_directory_length:]: {}})
+
+      # Delegate from the "unclaimed" targets role to each 'bin_role'
+      target = self._create_delegated_target(bin_role['name'], keyids, 1,
+          relative_paths)
+
+      roleinfo = {'name': bin_role['name'],
+                  'keyids': keyids,
+                  'threshold': 1,
+                  'terminating': False,
+                  'path_hash_prefixes': bin_role['target_hash_prefixes']}
+      delegated_roleinfos.append(roleinfo)
+
+      for key in keys_of_hashed_bins:
+        target.add_verification_key(key)
+
+      # Add the new delegation to the top-level 'targets' role object (i.e.,
+      # 'repository.targets()').
+      if self.rolename != 'targets':
+        self._parent_targets_object.add_delegated_role(bin_role['name'],
+            target)
+
+      # Add 'new_targets_object' to the 'targets' role object (this object).
+      self.add_delegated_role(bin_role['name'], target)
+      logger.debug('Delegated from ' + repr(self.rolename) + ' to ' + repr(bin_role))
+
+
+    self._update_roledb_delegations(keydict, delegated_roleinfos)
 
 
 
