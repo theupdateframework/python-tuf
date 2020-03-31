@@ -2494,35 +2494,19 @@ class Targets(Metadata):
     securesystemslib.formats.ANYKEYLIST_SCHEMA.check_match(keys_of_hashed_bins)
     tuf.formats.NUMBINS_SCHEMA.check_match(number_of_bins)
 
-    # Convert 'number_of_bins' to hexadecimal and determine the number of
-    # hexadecimal digits needed by each hash prefix.  Calculate the total
-    # number of hash prefixes (e.g., 000 - FFF total values) to be spread over
-    # 'number_of_bins'. Example: number_of_bins = 32,
-    # total_hash_prefixes = 256, and each hashed bin is responsible for 8 hash
-    # prefixes.  Hashed bin roles created = 00-07.json, 08-0f.json, ...,
-    # f8-ff.json.
-    prefix_length = len("{:x}".format(number_of_bins - 1))
-    total_hash_prefixes = 16 ** prefix_length
-    bin_size = total_hash_prefixes // number_of_bins
-
-    # For simplicity, ensure that 'total_hash_prefixes' (16 ^ n) can be evenly
-    # distributed over 'number_of_bins' (must be 2 ^ n).  Each bin will contain
-    # (total_hash_prefixes / number_of_bins) hash prefixes.
-    if total_hash_prefixes % number_of_bins != 0:
-      raise securesystemslib.exceptions.Error('The "number_of_bins" argument'
-          ' must be a power of 2.')
+    prefix_length, prefix_count, bin_size = _get_bin_numbers(number_of_bins)
 
     logger.info('Creating hashed bin delegations.\n' +
         repr(len(list_of_targets)) + ' total targets.\n' +
         repr(number_of_bins) + ' hashed bins.\n' +
-        repr(total_hash_prefixes) + ' total hash prefixes.\n' +
+        repr(prefix_count) + ' total hash prefixes.\n' +
         'Each bin ranges over ' + repr(bin_size) + ' hash prefixes.')
 
     # Generate a list of bin names, the range of prefixes to be delegated to
     # that bin, along with the corresponding full list of target prefixes
     # to be delegated to that bin
     ordered_roles = []
-    for idx in range(0, total_hash_prefixes, bin_size):
+    for idx in range(0, prefix_count, bin_size):
       high = idx + bin_size - 1
       name = _create_bin_name(idx, high, prefix_length)
       if bin_size == 1:
@@ -2748,6 +2732,41 @@ def _create_bin_name(low, high, prefix_len):
 
 
 
+def _get_bin_numbers(number_of_bins):
+  """
+  Given the desired number of bins (number_of_bins) calculate the prefix length
+  (prefix_length), total number of prefixes (prefix_count) and the number of
+  prefixes to be stored in each bin (bin_size).
+  Example: number_of_bins = 32
+    prefix_length = 2
+    prefix_count = 256
+    bin_size = 8
+  That is, each of the 32 hashed bins are responsible for 8 hash prefixes, i.e.
+  00-07, 08-0f, ..., f8-ff.
+  """
+  # Convert 'number_of_bins' to hexadecimal and determine the number of
+  # hexadecimal digits needed by each hash prefix
+  prefix_length = len("{:x}".format(number_of_bins - 1))
+  # Calculate the total number of hash prefixes (e.g., 000 - FFF total values)
+  prefix_count = 16 ** prefix_length
+  # Determine how many prefixes to assign to each bin
+  bin_size = prefix_count // number_of_bins
+
+  # For simplicity, ensure that 'prefix_count' (16 ^ n) can be evenly
+  # distributed over 'number_of_bins' (must be 2 ^ n).  Each bin will contain
+  # (prefix_count / number_of_bins) hash prefixes.
+  if prefix_count % number_of_bins != 0:
+    # Note: x % y != 0 does not guarantee that y is not a power of 2 for
+    # arbitrary x and y values. However, due to the relationship between
+    # number_of_bins and prefix_count, it is true for them.
+    raise securesystemslib.exceptions.Error('The "number_of_bins" argument'
+        ' must be a power of 2.')
+
+  return prefix_length, prefix_count, bin_size
+
+
+
+
 def _find_bin_for_hash(path_hash, number_of_bins):
   """
   <Purpose>
@@ -2766,22 +2785,14 @@ def _find_bin_for_hash(path_hash, number_of_bins):
     The name of the hashed bin path_hash would be binned into.
   """
 
-  prefix_len = len("{:x}".format(number_of_bins - 1))
-  prefix_count = 16 ** prefix_len
+  prefix_length, _, bin_size = _get_bin_numbers(number_of_bins)
 
-  if prefix_count % number_of_bins != 0:
-    # Note: doesn't guarantee a power of two for any x and y, but does work
-    # due to the relationship between nuber_of_bins and prefix_count
-    raise securesystemslib.exceptions.Error('The "number_of_bins" argument'
-        ' must be a power of 2.')
-
-  bin_size = prefix_count // number_of_bins
-  prefix = int(path_hash[:prefix_len], 16)
+  prefix = int(path_hash[:prefix_length], 16)
 
   low = prefix - (prefix % bin_size)
   high = (low + bin_size - 1)
 
-  return _create_bin_name(low, high, prefix_len)
+  return _create_bin_name(low, high, prefix_length)
 
 
 
