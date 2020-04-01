@@ -1485,6 +1485,20 @@ class TestTargets(unittest.TestCase):
                       self.targets_object.add_target_to_bin,
                       os.path.basename(target1_filepath), 16)
 
+    # Test adding a target with fileinfo
+    target2_hashes = {'sha256': '517c0ce943e7274a2431fa5751e17cfd5225accd23e479bfaad13007751e87ef'}
+    target2_fileinfo = tuf.formats.make_fileinfo(37, target2_hashes)
+    target2_filepath = os.path.join(self.targets_directory, 'file2.txt')
+
+    self.targets_object.add_target_to_bin(os.path.basename(target2_filepath), 16, fileinfo=target2_fileinfo)
+
+    for delegation in self.targets_object.delegations:
+      if delegation.rolename == '0':
+        self.assertTrue('file2.txt' in delegation.target_files)
+
+      else:
+        self.assertFalse('file2.txt' in delegation.target_files)
+
     # Test improperly formatted argument.
     self.assertRaises(securesystemslib.exceptions.FormatError,
                       self.targets_object.add_target_to_bin, 3, 'foo')
