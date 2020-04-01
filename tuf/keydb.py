@@ -122,20 +122,19 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
       # format_metadata_to_key() uses the provided keyid as the default keyid.
       # All other keyids returned are ignored.
 
-      if (keyid == key_metadata['keyid']):
-        key_dict, keyids = securesystemslib.keys.format_metadata_to_key(key_metadata, keyid)
+      key_dict, keyids = securesystemslib.keys.format_metadata_to_key(key_metadata, keyid)
 
-        # Make sure to update key_dict['keyid'] to use one of the other valid
-        # keyids, otherwise add_key() will have no reference to it.
-        try:
-          key_dict['keyid'] = keyid
-          add_key(key_dict, keyid=None, repository_name=repository_name)
+      # Make sure to update key_dict['keyid'] to use one of the other valid
+      # keyids, otherwise add_key() will have no reference to it.
+      try:
+        key_dict['keyid'] = keyid
+        add_key(key_dict, keyid=None, repository_name=repository_name)
 
-        # Although keyid duplicates should *not* occur (unique dict keys), log a
-        # warning and continue.  However, 'key_dict' may have already been
-        # adding to the keydb elsewhere.
-        except tuf.exceptions.KeyAlreadyExistsError as e: # pragma: no cover
-          logger.warning(e)
+      # Although keyid duplicates should *not* occur (unique dict keys), log a
+      # warning and continue.  However, 'key_dict' may have already been
+      # adding to the keydb elsewhere.
+      except tuf.exceptions.KeyAlreadyExistsError as e: # pragma: no cover
+        logger.warning(e)
         continue
 
     else:
