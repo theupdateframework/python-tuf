@@ -389,10 +389,16 @@ class TestKeydb(unittest.TestCase):
 
     # Ensure only 'keyid2' was added to the keydb database.  'keyid' and
     # 'keyid3' should not be stored.
+    self.maxDiff = None
     self.assertEqual(rsakey2, tuf.keydb.get_key(keyid2))
-    self.assertRaises(tuf.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid)
+
+    test_key = rsakey2
+    test_key['keyid'] = keyid
+    self.assertEqual(test_key, tuf.keydb.get_key(keyid))
     self.assertRaises(tuf.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid3)
+
     rsakey3['keytype'] = 'rsa'
+    rsakey2['keyid'] = keyid2
 
 
 
