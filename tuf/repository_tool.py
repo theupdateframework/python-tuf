@@ -217,7 +217,7 @@ class Repository(object):
 
 
 
-  def writeall(self, consistent_snapshot=False):
+  def writeall(self, consistent_snapshot=False, use_existing_fileinfo=False):
     """
     <Purpose>
       Write all the JSON Metadata objects to their corresponding files for
@@ -232,6 +232,11 @@ class Repository(object):
         include a version number in the filename (i.e.,
         <version_number>.root.json, <version_number>.README.json
         Example: 13.root.json'
+
+      use_existing_fileinfo:
+        Boolean indicating whether the fileinfo dicts in the roledb should be
+        written as-is (True) or whether hashes should be generated (False,
+        requires access to the targets files on-disk).
 
     <Exceptions>
       tuf.exceptions.UnsignedMetadataError, if any of the top-level
@@ -278,7 +283,8 @@ class Repository(object):
       repo_lib._generate_and_write_metadata(dirty_rolename, dirty_filename,
           self._targets_directory, self._metadata_directory,
           consistent_snapshot, filenames,
-          repository_name=self._repository_name)
+          repository_name=self._repository_name,
+          use_existing_fileinfo=use_existing_fileinfo)
 
     # Metadata should be written in (delegated targets -> root -> targets ->
     # snapshot -> timestamp) order.  Begin by generating the 'root.json'
@@ -298,7 +304,8 @@ class Repository(object):
       repo_lib._generate_and_write_metadata('targets', filenames['targets'],
           self._targets_directory, self._metadata_directory,
           consistent_snapshot,
-          repository_name=self._repository_name)
+          repository_name=self._repository_name,
+          use_existing_fileinfo=use_existing_fileinfo)
 
     # Generate the 'snapshot.json' metadata file.
     if 'snapshot' in dirty_rolenames:
@@ -325,7 +332,8 @@ class Repository(object):
 
 
 
-  def write(self, rolename, consistent_snapshot=False, increment_version_number=True):
+  def write(self, rolename, consistent_snapshot=False, increment_version_number=True,
+      use_existing_fileinfo=False):
     """
     <Purpose>
       Write the JSON metadata for 'rolename' to its corresponding file on disk.
@@ -345,6 +353,11 @@ class Repository(object):
       increment_version_number:
         Boolean indicating whether the version number of 'rolename' should be
         automatically incremented.
+
+      use_existing_fileinfo:
+        Boolean indicating whether the fileinfo dicts in the roledb should be
+        written as-is (True) or whether hashes should be generated (False,
+        requires access to the targets files on-disk).
 
     <Exceptions>
       None.
@@ -368,7 +381,8 @@ class Repository(object):
         self._targets_directory, self._metadata_directory, consistent_snapshot,
         filenames=filenames, allow_partially_signed=True,
         increment_version_number=increment_version_number,
-        repository_name=self._repository_name)
+        repository_name=self._repository_name,
+        use_existing_fileinfo=use_existing_fileinfo)
 
     # Ensure 'rolename' is no longer marked as dirty after the successful write().
     tuf.roledb.unmark_dirty([rolename], self._repository_name)
@@ -1895,7 +1909,7 @@ class Targets(Metadata):
 
 
 
-  def add_target(self, filepath, custom=None):
+  def add_target(self, filepath, custom=None, fileinfo=None):
     """
     <Purpose>
       Add a filepath (must be located in the repository's targets directory) to
@@ -1918,12 +1932,13 @@ class Targets(Metadata):
       custom:
         An optional object providing additional information about the file.
 
+      fileinfo:
+        An optional fileinfo object, conforming to tuf.formats.FILEINFO_SCHEMA,
+        providing full information about the file.
+
     <Exceptions>
       securesystemslib.exceptions.FormatError, if 'filepath' is improperly
       formatted.
-
-      securesystemslib.exceptions.Error, if 'filepath' is not located in the
-      repository's targets directory.
 
     <Side Effects>
       Adds 'filepath' to this role's list of targets.  This role's
@@ -1939,6 +1954,13 @@ class Targets(Metadata):
     # 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     securesystemslib.formats.PATH_SCHEMA.check_match(filepath)
 
+    if fileinfo and custom:
+      raise securesystemslib.exceptions.Error("Can only take one of"
+          " custom or fileinfo, not both.")
+
+    if fileinfo:
+      tuf.formats.FILEINFO_SCHEMA.check_match(fileinfo)
+
     if custom is None:
       custom = {}
 
@@ -1953,31 +1975,28 @@ class Targets(Metadata):
     # freedom to add targets and parent restrictions in any order, minimize the
     # number of times these checks are performed, and allow any role to
     # delegate trust of packages to this Targes role.
-    if os.path.isfile(filepath):
 
-      # Update the role's 'tuf.roledb.py' entry and avoid duplicates.  Make
-      # sure to exclude the path separator when calculating the length of the
-      # targets directory.
-      targets_directory_length = len(self._targets_directory) + 1
-      roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
-      relative_path = filepath[targets_directory_length:].replace('\\', '/')
+    # Update the role's 'tuf.roledb.py' entry and avoid duplicates.  Make
+    # sure to exclude the path separator when calculating the length of the
+    # targets directory.
+    targets_directory_length = len(self._targets_directory) + 1
+    roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
+    relative_path = filepath[targets_directory_length:].replace('\\', '/')
 
-      if relative_path not in roleinfo['paths']:
-        logger.debug('Adding new target: ' + repr(relative_path))
-        roleinfo['paths'].update({relative_path: custom})
-
-      else:
-        logger.debug('Replacing target: ' + repr(relative_path))
-        roleinfo['paths'].update({relative_path: custom})
-
-
-      tuf.roledb.update_roleinfo(self._rolename, roleinfo,
-          repository_name=self._repository_name)
+    if relative_path not in roleinfo['paths']:
+      logger.debug('Adding new target: ' + repr(relative_path))
 
     else:
-      raise securesystemslib.exceptions.Error(repr(filepath) + ' is not'
-          ' a valid file in the repository\'s targets'
-          ' directory: ' + repr(self._targets_directory))
+      logger.debug('Replacing target: ' + repr(relative_path))
+
+    if fileinfo:
+      roleinfo['paths'].update({relative_path: fileinfo})
+    else:
+      roleinfo['paths'].update({relative_path: {'custom': custom}})
+
+    tuf.roledb.update_roleinfo(self._rolename, roleinfo,
+        repository_name=self._repository_name)
+
 
 
 
@@ -2000,10 +2019,6 @@ class Targets(Metadata):
     <Exceptions>
       securesystemslib.exceptions.FormatError, if the arguments are improperly
       formatted.
-
-      securesystemslib.exceptions.Error, if any of the paths listed in
-      'list_of_targets' is not located in the repository's targets directory or
-      is invalid.
 
     <Side Effects>
       This Targets' roleinfo is updated with the paths in 'list_of_targets'.
@@ -2031,23 +2046,19 @@ class Targets(Metadata):
     for target in list_of_targets:
       filepath = os.path.join(self._targets_directory, target)
 
-      if os.path.isfile(filepath):
-        relative_list_of_targets.append(
-            filepath[targets_directory_length + 1:].replace('\\', '/'))
+      relative_list_of_targets.append(
+          filepath[targets_directory_length + 1:].replace('\\', '/'))
 
-      else:
-        raise securesystemslib.exceptions.Error(repr(filepath) + ' is not'
-          ' a valid file.')
 
     # Update this Targets 'tuf.roledb.py' entry.
     roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
     for relative_target in relative_list_of_targets:
       if relative_target not in roleinfo['paths']:
         logger.debug('Adding new target: ' + repr(relative_target))
-        roleinfo['paths'].update({relative_target: {}})
 
       else:
         logger.debug('Replacing target: ' + repr(relative_target))
+      roleinfo['paths'].update({relative_target: {}})
 
     tuf.roledb.update_roleinfo(self.rolename, roleinfo,
         repository_name=self._repository_name)
@@ -2483,112 +2494,53 @@ class Targets(Metadata):
     securesystemslib.formats.ANYKEYLIST_SCHEMA.check_match(keys_of_hashed_bins)
     tuf.formats.NUMBINS_SCHEMA.check_match(number_of_bins)
 
-    # Convert 'number_of_bins' to hexadecimal and determine the number of
-    # hexadecimal digits needed by each hash prefix.  Calculate the total
-    # number of hash prefixes (e.g., 000 - FFF total values) to be spread over
-    # 'number_of_bins' and strip the first two characters ('0x') from Python's
-    # representation of hexadecimal values (so that they are not used in the
-    # calculation of the prefix length.) Example: number_of_bins = 32,
-    # total_hash_prefixes = 256, and each hashed bin is responsible for 8 hash
-    # prefixes.  Hashed bin roles created = 00-07.json, 08-0f.json, ...,
-    # f8-ff.json.
-    prefix_length =  len(hex(number_of_bins - 1)[2:])
-    total_hash_prefixes = 16 ** prefix_length
+    prefix_length, prefix_count, bin_size = _get_bin_numbers(number_of_bins)
 
-    # For simplicity, ensure that 'total_hash_prefixes' (16 ^ n) can be evenly
-    # distributed over 'number_of_bins' (must be 2 ^ n).  Each bin will contain
-    # (total_hash_prefixes / number_of_bins) hash prefixes.
-    if total_hash_prefixes % number_of_bins != 0:
-      raise securesystemslib.exceptions.Error('The "number_of_bins" argument'
-          ' must be a power of 2.')
+    logger.info('Creating hashed bin delegations.\n' +
+        repr(len(list_of_targets)) + ' total targets.\n' +
+        repr(number_of_bins) + ' hashed bins.\n' +
+        repr(prefix_count) + ' total hash prefixes.\n' +
+        'Each bin ranges over ' + repr(bin_size) + ' hash prefixes.')
 
-    logger.info('Creating hashed bin delegations.')
-    logger.info(repr(len(list_of_targets)) + ' total targets.')
-    logger.info(repr(number_of_bins) + ' hashed bins.')
-    logger.info(repr(total_hash_prefixes) + ' total hash prefixes.')
-
-    # Store the target paths that fall into each bin.  The digest of the target
-    # path, reduced to the first 'prefix_length' hex digits, is calculated to
-    # determine which 'bin_index' it should go.  we use xrange() here because
-    # there can be a large number of prefixes to process.
-    target_paths_in_bin = {}
-    for bin_index in six.moves.xrange(total_hash_prefixes):
-      target_paths_in_bin[bin_index] = []
-
-    # Assign every path to its bin.  Log a warning if the target path does not
-    # exist in the repository's targets directory.
-    for target_path in list_of_targets:
-      if not os.path.isfile(os.path.join(self._targets_directory, target_path)):
-        logger.warning('A path in "list of'
-            ' targets" is not located in the repository\'s targets'
-            ' directory: ' + repr(target_path))
-
+    # Generate a list of bin names, the range of prefixes to be delegated to
+    # that bin, along with the corresponding full list of target prefixes
+    # to be delegated to that bin
+    ordered_roles = []
+    for idx in range(0, prefix_count, bin_size):
+      high = idx + bin_size - 1
+      name = _create_bin_name(idx, high, prefix_length)
+      if bin_size == 1:
+        target_hash_prefixes = [name]
       else:
-        logger.debug(repr(target_path) + ' is located in the repository\'s'
-            ' targets directory.')
+        target_hash_prefixes = []
+        for idy in range(idx, idx+bin_size):
+          target_hash_prefixes.append("{prefix:0{len}x}".format(prefix=idy,
+              len=prefix_length))
+
+      role = {"name": name,
+          "target_paths": [],
+          "target_hash_prefixes": target_hash_prefixes}
+      ordered_roles.append(role)
+
+    for target_path in list_of_targets:
 
       # Determine the hash prefix of 'target_path' by computing the digest of
-      # its path relative to the targets directory.  Example:
-      # '{repository_root}/targets/file1.txt' -> 'file1.txt'.
-      #relative_path = target_path[len(self._targets_directory):]
-      digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
-      digest_object.update(target_path.encode('utf-8'))
-      relative_path_hash = digest_object.hexdigest()
-      relative_path_hash_prefix = relative_path_hash[:prefix_length]
+      # its path relative to the targets directory.
+      # We must hash a target path as it appears in the metadata
+      hash_prefix = _get_hash(target_path.replace('\\', '/').lstrip('/'))[:prefix_length]
+      ordered_roles[int(hash_prefix, 16) // bin_size]["target_paths"].append(target_path)
 
-      # 'target_paths_in_bin' store bin indices in base-10, so convert the
-      # 'relative_path_hash_prefix' base-16 (hex) number to a base-10 (dec)
-      # number.
-      bin_index = int(relative_path_hash_prefix, 16)
-
-      # Add the 'target_path' (absolute) to the bin.  These target paths are
-      # later added to the targets of the 'bin_index' role.
-      target_paths_in_bin[bin_index].append(target_path)
-
-    # Calculate the path hash prefixes of each 'bin_offset' stored in the parent
-    # role.  For example: 'targets/unclaimed/000-003' may list the path hash
-    # prefixes "000", "001", "002", "003" in the delegations dict of
-    # 'targets/unclaimed'.
-    bin_offset = total_hash_prefixes // number_of_bins
-
-    logger.info('Each bin ranges over ' + repr(bin_offset) + ' hash prefixes.')
-
-    # The parent roles will list bin roles starting from "0" to
-    # 'total_hash_prefixes' in 'bin_offset' increments.  The skipped bin roles
-    # are listed in 'path_hash_prefixes' of 'outer_bin_index'.
-    for outer_bin_index in six.moves.xrange(0, total_hash_prefixes, bin_offset):
-      # The bin index is hex padded from the left with zeroes for up to the
-      # 'prefix_length' (e.g., '000-003').  Ensure the correct hash bin name is
-      # generated if a prefix range is unneeded.
-      start_bin = hex(outer_bin_index)[2:].zfill(prefix_length)
-      end_bin = hex(outer_bin_index+bin_offset-1)[2:].zfill(prefix_length)
-      if start_bin == end_bin:
-        bin_rolename = start_bin
-
-      else:
-        bin_rolename = start_bin + '-' + end_bin
-
-      # 'bin_rolename' may contain a range of target paths, from 'start_bin' to
-      # 'end_bin'.  Determine the total target paths that should be included.
-      path_hash_prefixes = []
-      bin_rolename_targets = []
-
-      for inner_bin_index in six.moves.xrange(outer_bin_index, outer_bin_index+bin_offset):
-        # 'inner_bin_rolename' needed in padded hex.  For example, "00b".
-        inner_bin_rolename = hex(inner_bin_index)[2:].zfill(prefix_length)
-        path_hash_prefixes.append(inner_bin_rolename)
-        bin_rolename_targets.extend(target_paths_in_bin[inner_bin_index])
-
+    for bin_rolename in ordered_roles:
       # Delegate from the "unclaimed" targets role to each 'bin_rolename'
-      # (i.e., outer_bin_index).
-      self.delegate(bin_rolename, keys_of_hashed_bins, [],
-          list_of_targets=bin_rolename_targets,
-          path_hash_prefixes=path_hash_prefixes)
+      self.delegate(bin_rolename['name'], keys_of_hashed_bins, [],
+          list_of_targets=bin_rolename['target_paths'],
+          path_hash_prefixes=bin_rolename['target_hash_prefixes'])
       logger.debug('Delegated from ' + repr(self.rolename) + ' to ' + repr(bin_rolename))
 
 
 
-  def add_target_to_bin(self, target_filepath):
+
+  def add_target_to_bin(self, target_filepath, number_of_bins, fileinfo=None):
     """
     <Purpose>
       Add the fileinfo of 'target_filepath' to the expected hashed bin, if the
@@ -2604,6 +2556,14 @@ class Targets(Metadata):
       target_filepath:
         The filepath of the target to be added to a hashed bin.  The filepath
         must be located in the repository's targets directory.
+
+      number_of_bins:
+        The number of delegated roles, or hashed bins, in use by the repository.
+        Note: 'number_of_bins' must be a power of 2.
+
+      fileinfo:
+        An optional fileinfo object, conforming to tuf.formats.FILEINFO_SCHEMA,
+        providing full information about the file.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError, if 'target_filepath' is
@@ -2626,12 +2586,25 @@ class Targets(Metadata):
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     securesystemslib.formats.PATH_SCHEMA.check_match(target_filepath)
+    tuf.formats.NUMBINS_SCHEMA.check_match(number_of_bins)
 
-    return self._locate_and_update_target_in_bin(target_filepath, 'add_target')
+    # TODO: check target_filepath is sane
+
+    path_hash = _get_hash(target_filepath)
+    bin_name = _find_bin_for_hash(path_hash, number_of_bins)
+
+    # Ensure the Targets object has delegated to hashed bins
+    if not self._delegated_roles.get(bin_name, None):
+      raise securesystemslib.exceptions.Error(self.rolename + ' does not have'
+          ' a delegated role ' + bin_name)
+
+    self._delegated_roles[bin_name].add_target(target_filepath,
+        fileinfo=fileinfo)
 
 
 
-  def remove_target_from_bin(self, target_filepath):
+
+  def remove_target_from_bin(self, target_filepath, number_of_bins):
     """
     <Purpose>
       Remove the fileinfo of 'target_filepath' from the expected hashed bin, if
@@ -2647,6 +2620,10 @@ class Targets(Metadata):
       target_filepath:
         The filepath of the target to be added to a hashed bin.  The filepath
         must be located in the repository's targets directory.
+
+      number_of_bins:
+        The number of delegated roles, or hashed bins, in use by the repository.
+        Note: 'number_of_bins' must be a power of 2.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError, if 'target_filepath' is
@@ -2669,107 +2646,20 @@ class Targets(Metadata):
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     securesystemslib.formats.PATH_SCHEMA.check_match(target_filepath)
+    tuf.formats.NUMBINS_SCHEMA.check_match(number_of_bins)
 
-    return self._locate_and_update_target_in_bin(target_filepath, 'remove_target')
+    # TODO: check target_filepath is sane?
 
+    path_hash = _get_hash(target_filepath)
+    bin_name = _find_bin_for_hash(path_hash, number_of_bins)
 
+    # Ensure the Targets object has delegated to hashed bins
+    if not self._delegated_roles.get(bin_name, None):
+      raise securesystemslib.exceptions.Error(self.rolename + ' does not have'
+          ' a delegated role ' + bin_name)
 
-  def _locate_and_update_target_in_bin(self, target_filepath, method_name):
-    """
-    <Purpose>
-      Assuming the target filepath is located in the repository's targets
-      directory, determine the filepath's hash prefix, locate the expected bin
-      (if any), and then call the 'method_name' method of the expected hashed
-      bin role.
+    self._delegated_roles[bin_name].remove_target(target_filepath)
 
-    <Arguments>
-      target_filepath:
-        The filepath of the target that may be specified in one of the hashed
-        bins.  'target_filepath' must be located in the repository's targets
-        directory.
-
-      method_name:
-        A supported method, in string format, of the Targets() class.  For
-        example, 'add_target' and 'remove_target'.  If 'target_filepath' were
-        to be manually added or removed from a bin:
-
-        repository.targets('58-f7').add_target(target_filepath)
-        repository.targets('000-007').remove_target(target_filepath)
-
-    <Exceptions>
-      securesystemslib.exceptions.Error, if 'target_filepath' cannot be updated
-      (e.g., an invalid target filepath, or the expected hashed bin does not
-      exist.)
-
-    <Side Effects>
-      The fileinfo of 'target_filepath' is added to a hashed bin of this Targets
-      object.
-
-    <Returns>
-      None.
-    """
-
-    # Determine the prefix length of any one of the hashed bins.  The prefix
-    # length is not stored in the roledb, so it must be determined here by
-    # inspecting one of path hash prefixes listed.
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
-    prefix_length = 0
-    delegation = None
-
-    # Set 'delegation' if this Targets role has performed any delegations.
-    if len(roleinfo['delegations']['roles']):
-      delegation = roleinfo['delegations']['roles'][0]
-
-    else:
-      raise securesystemslib.exceptions.Error(self.rolename + ' has not'
-          ' delegated to any roles.')
-
-    # Set 'prefix_length' if this Targets object has delegated to hashed bins,
-    # otherwise raise an exception.
-    if 'path_hash_prefixes' in delegation and len(delegation['path_hash_prefixes']):
-      prefix_length = len(delegation['path_hash_prefixes'][0])
-
-    else:
-      raise securesystemslib.exceptions.Error(self.rolename + ' has not'
-        ' delegated to hashed bins.')
-
-    # Log warning if 'target_filepath' is not located in the repository's
-    # targets directory.
-    if not os.path.isfile(os.path.join(self._targets_directory, target_filepath)):
-      logger.warning(repr(target_filepath) + ' is not located in the'
-          ' repository\'s targets directory: ' + repr(self._targets_directory))
-
-    # Determine the hash prefix of 'target_path' by computing the digest of
-    # its path relative to the targets directory.  Example:
-    # '{repository_root}/targets/file1.txt' -> '/file1.txt'.
-    digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
-    digest_object.update(target_filepath.encode('utf-8'))
-    path_hash = digest_object.hexdigest()
-    path_hash_prefix = path_hash[:prefix_length]
-
-    # Search for 'path_hash_prefix', and if found, extract the hashed bin's
-    # rolename.  The hashed bin name is needed so that 'target_filepath' can be
-    # added to the Targets object of the hashed bin.
-    hashed_bin_name = None
-    for delegation in roleinfo['delegations']['roles']:
-      if path_hash_prefix in delegation['path_hash_prefixes']:
-        hashed_bin_name = delegation['name']
-        break
-
-      else:
-        logger.debug('"path_hash_prefix" not found.')
-
-    # 'self._delegated_roles' is keyed by relative rolenames, so update
-    # 'hashed_bin_name'.
-    if hashed_bin_name is not None:
-
-      # 'method_name' should be one of the supported methods of the Targets()
-      # class.
-      getattr(self._delegated_roles[hashed_bin_name], method_name)(target_filepath)
-
-    else:
-      raise securesystemslib.exceptions.Error(target_filepath + ' not found'
-          ' in any of the bins.')
 
 
 
@@ -2798,6 +2688,111 @@ class Targets(Metadata):
     """
 
     return list(self._delegated_roles.values())
+
+
+
+
+def _get_hash(target_filepath):
+  """
+  <Purpose>
+    Generate a hash of target_filepath, a path to a file (not the file
+    itself), using HASH_FUNCTION
+
+  <Arguments>
+    target_filepath:
+      A path to a targetfile, relative to the targets directory
+
+  <Returns>
+    The hexdigest hash of the filepath.
+  """
+
+  # TODO: ensure target_filepath is relative to targets_directory?
+  digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
+  digest_object.update(target_filepath.encode('utf-8'))
+  return digest_object.hexdigest()
+
+
+
+
+def _create_bin_name(low, high, prefix_len):
+  """
+  <Purpose>
+    Create a string name of a delegated hash bin, where name will be a range of
+    zero-padded (up to prefix_len) strings i.e. for low=00, high=07,
+    prefix_len=3 the returned name would be '000-007'.
+
+  """
+  if low == high:
+    return "{low:0{len}x}".format(low=low, len=prefix_len)
+
+  return "{low:0{len}x}-{high:0{len}x}".format(low=low, high=high,
+      len=prefix_len)
+
+
+
+
+
+def _get_bin_numbers(number_of_bins):
+  """
+  Given the desired number of bins (number_of_bins) calculate the prefix length
+  (prefix_length), total number of prefixes (prefix_count) and the number of
+  prefixes to be stored in each bin (bin_size).
+  Example: number_of_bins = 32
+    prefix_length = 2
+    prefix_count = 256
+    bin_size = 8
+  That is, each of the 32 hashed bins are responsible for 8 hash prefixes, i.e.
+  00-07, 08-0f, ..., f8-ff.
+  """
+  # Convert 'number_of_bins' to hexadecimal and determine the number of
+  # hexadecimal digits needed by each hash prefix
+  prefix_length = len("{:x}".format(number_of_bins - 1))
+  # Calculate the total number of hash prefixes (e.g., 000 - FFF total values)
+  prefix_count = 16 ** prefix_length
+  # Determine how many prefixes to assign to each bin
+  bin_size = prefix_count // number_of_bins
+
+  # For simplicity, ensure that 'prefix_count' (16 ^ n) can be evenly
+  # distributed over 'number_of_bins' (must be 2 ^ n).  Each bin will contain
+  # (prefix_count / number_of_bins) hash prefixes.
+  if prefix_count % number_of_bins != 0:
+    # Note: x % y != 0 does not guarantee that y is not a power of 2 for
+    # arbitrary x and y values. However, due to the relationship between
+    # number_of_bins and prefix_count, it is true for them.
+    raise securesystemslib.exceptions.Error('The "number_of_bins" argument'
+        ' must be a power of 2.')
+
+  return prefix_length, prefix_count, bin_size
+
+
+
+
+def _find_bin_for_hash(path_hash, number_of_bins):
+  """
+  <Purpose>
+    For a given hashed filename, path_hash, calculate the name of a hashed bin
+    into which this file would be delegated given number_of_bins bins are in
+    use.
+
+  <Arguments>
+    path_hash:
+      The hash of the target file's path
+
+    number_of_bins:
+      The number of hashed_bins in use
+
+  <Returns>
+    The name of the hashed bin path_hash would be binned into.
+  """
+
+  prefix_length, _, bin_size = _get_bin_numbers(number_of_bins)
+
+  prefix = int(path_hash[:prefix_length], 16)
+
+  low = prefix - (prefix % bin_size)
+  high = (low + bin_size - 1)
+
+  return _create_bin_name(low, high, prefix_length)
 
 
 
