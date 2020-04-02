@@ -104,6 +104,9 @@ DEFAULT_RSA_KEY_BITS=3072
 # of hashed bin delegations.  Please see delegate_hashed_bins()
 HASH_FUNCTION = tuf.settings.DEFAULT_HASH_ALGORITHM
 
+# The default number of hashed bin delegations
+DEFAULT_NUM_BINS=1024
+
 # The targets and metadata directory names.  Metadata files are written
 # to the staged metadata directory instead of the "live" one.
 METADATA_STAGED_DIRECTORY_NAME = 'metadata.staged'
@@ -2429,7 +2432,7 @@ class Targets(Metadata):
 
 
   def delegate_hashed_bins(self, list_of_targets, keys_of_hashed_bins,
-      number_of_bins=1024):
+      number_of_bins=DEFAULT_NUM_BINS):
     """
     <Purpose>
       Distribute a large number of target files over multiple delegated roles
@@ -2540,7 +2543,8 @@ class Targets(Metadata):
 
 
 
-  def add_target_to_bin(self, target_filepath, number_of_bins, fileinfo=None):
+  def add_target_to_bin(self, target_filepath, number_of_bins=DEFAULT_NUM_BINS,
+      fileinfo=None):
     """
     <Purpose>
       Add the fileinfo of 'target_filepath' to the expected hashed bin, if the
@@ -2604,7 +2608,8 @@ class Targets(Metadata):
 
 
 
-  def remove_target_from_bin(self, target_filepath, number_of_bins):
+  def remove_target_from_bin(self, target_filepath,
+      number_of_bins=DEFAULT_NUM_BINS):
     """
     <Purpose>
       Remove the fileinfo of 'target_filepath' from the expected hashed bin, if
