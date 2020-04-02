@@ -1854,8 +1854,7 @@ class Targets(Metadata):
       securesystemslib.exceptions.Error, if 'child_rolename' has not been
       delegated yet.
 
-      tuf.exceptions.InvalidNameError, if any path in 'paths' starts with
-      a directory separator.
+      tuf.exceptions.InvalidNameError, if 'pathname' does not match pattern.
 
     <Side Effects>
       Modifies this Targets' delegations field.
@@ -1882,11 +1881,11 @@ class Targets(Metadata):
           ' not exist.')
 
     for path in paths:
-      # Check if the delegated paths or glob patterns are relative and
-      # normalize them. Paths' existence on the file system is not verified.
-      # If the path is incorrect, the targetfile won't be matched successfully
-      # during a client update.
-      path = self._check_relpath(path)
+      # Check if the delegated paths or glob patterns are relative and use
+      # forward slash as a separator or raise an exception. Paths' existence
+      # on the file system is not verified. If the path is incorrect,
+      # the targetfile won't be matched successfully during a client update.
+      self._check_path(path)
       relative_paths.append(path)
 
     # Get the current role's roleinfo, so that its delegations field can be
@@ -1945,8 +1944,7 @@ class Targets(Metadata):
       securesystemslib.exceptions.FormatError, if 'filepath' is improperly
       formatted.
 
-      tuf.exceptions.InvalidNameError, if 'filepath' is not relative (starts
-      with a directory separator).
+      tuf.exceptions.InvalidNameError, if 'pathname' does not match pattern.
 
     <Side Effects>
       Adds 'filepath' to this role's list of targets.  This role's
@@ -1977,28 +1975,29 @@ class Targets(Metadata):
     # Add 'filepath' (i.e., relative to the targets directory) to the role's
     # list of targets.  'filepath' will not be verified as an allowed path
     # according to some delegating role.  Not verifying 'filepath' here allows
-    # freedom to add targets and parent restrictions in any order, minimize the
-    # number of times these checks are performed, and allow any role to
+    # freedom to add targets and parent restrictions in any order, minimize
+    # the number of times these checks are performed, and allow any role to
     # delegate trust of packages to this Targets role.
 
-    # Check if the target path is relative and normalize it. File's existence
-    # on the file system is not verified. If the file does not exist relative
-    # to the targets directory, later calls to write() will fail.
-    relative_path = self._check_relpath(filepath)
+    # Check if the target is relative and uses forward slash as a separator
+    # or raise an exception. File's existence on the file system is not
+    # verified. If the file does not exist relative to the targets directory,
+    # later calls to write() will fail.
+    self._check_path(filepath)
 
     # Update the role's 'tuf.roledb.py' entry and avoid duplicates.
     roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
 
-    if relative_path not in roleinfo['paths']:
-      logger.debug('Adding new target: ' + repr(relative_path))
+    if filepath not in roleinfo['paths']:
+      logger.debug('Adding new target: ' + repr(filepath))
 
     else:
-      logger.debug('Replacing target: ' + repr(relative_path))
+      logger.debug('Replacing target: ' + repr(filepath))
 
     if fileinfo:
-      roleinfo['paths'].update({relative_path: fileinfo})
+      roleinfo['paths'].update({filepath: fileinfo})
     else:
-      roleinfo['paths'].update({relative_path: {'custom': custom}})
+      roleinfo['paths'].update({filepath: {'custom': custom}})
 
     tuf.roledb.update_roleinfo(self._rolename, roleinfo,
         repository_name=self._repository_name)
@@ -2025,8 +2024,7 @@ class Targets(Metadata):
       securesystemslib.exceptions.FormatError, if the arguments are improperly
       formatted.
 
-      tuf.exceptions.InvalidNameError, if any target in 'list_of_targets'
-      is not relative (starts with a directory separator).
+      tuf.exceptions.InvalidNameError, if 'pathname' does not match pattern.
 
     <Side Effects>
       This Targets' roleinfo is updated with the paths in 'list_of_targets'.
@@ -2044,14 +2042,15 @@ class Targets(Metadata):
     # Update the tuf.roledb entry.
     relative_list_of_targets = []
 
-    # Ensure the paths in 'list_of_targets' are valid and are located in the
-    # repository's targets directory.  The paths of 'list_of_targets' will be
-    # verified as allowed paths according to this Targets parent role when
-    # write() or writeall() is called.  Not verifying filepaths here allows the
-    # freedom to add targets and parent restrictions in any order, and minimize
-    # the number of times these checks are performed.
+    # Ensure the paths in 'list_of_targets' are relative and use forward slash
+    # as a separator or raise an exception. The paths of 'list_of_targets'
+    # will be verified as existing and allowed paths according to this Targets
+    # parent role when write() or writeall() is called.  Not verifying
+    # filepaths here allows the freedom to add targets and parent restrictions
+    # in any order and minimize the number of times these checks are performed.
     for target in list_of_targets:
-      relative_list_of_targets.append(self._check_relpath(target))
+      self._check_path(target)
+      relative_list_of_targets.append(target)
 
     # Update this Targets 'tuf.roledb.py' entry.
     roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
@@ -2286,9 +2285,7 @@ class Targets(Metadata):
 
       securesystemslib.exceptions.Error, if the delegated role already exists.
 
-      tuf.exceptions.InvalidNameError, if any path in 'paths' or any
-      target in 'list_of_targets' is not relative (starts with a directory
-      separator).
+      tuf.exceptions.InvalidNameError, if 'pathname' does not match pattern.
 
     <Side Effects>
       A new Target object is created for 'rolename' that is accessible to the
@@ -2325,24 +2322,19 @@ class Targets(Metadata):
 
     if list_of_targets:
       for target in list_of_targets:
-        # Check if the target path is relative and normalize it. File's
+        # Check if the target path is relative or raise an exception. File's
         # existence on the file system is not verified. If the file does not
         # exist relative to the targets directory, later calls to write()
         # will fail.
-        rel_targetpath = self._check_relpath(target)
-        relative_targetpaths.update({rel_targetpath: {}})
-
-    # A list of relative and verified paths or glob patterns to be added to the
-    # child role's entry in the parent's delegations field.
-    relative_paths = []
+        self._check_path(target)
+        relative_targetpaths.update({target: {}})
 
     for path in paths:
-      # Check if the delegated paths or glob patterns are relative and
-      # normalize them. Paths' existense on the file system is not verified.
-      # If the path is incorrect, the targetfile won't be matched successfully
-      # during a client update.
-      path = self._check_relpath(path)
-      relative_paths.append(path)
+      # Check if the delegated paths or glob patterns are relative or
+      # raise an exception. Paths' existence on the file system is not
+      # verified. If the path is incorrect, the targetfile won't be matched
+      # successfully during a client update.
+      self._check_path(path)
 
     # The new targets object is added as an attribute to this Targets object.
     new_targets_object = self._create_delegated_target(rolename, keyids,
@@ -2356,8 +2348,8 @@ class Targets(Metadata):
                 'terminating': terminating,
                 'paths': list(relative_targetpaths.keys())}
 
-    if relative_paths:
-      roleinfo['paths'] = relative_paths
+    if paths:
+      roleinfo['paths'] = paths
 
     if path_hash_prefixes:
       roleinfo['path_hash_prefixes'] = path_hash_prefixes
@@ -2498,8 +2490,7 @@ class Targets(Metadata):
       2, or one of the targets in 'list_of_targets' is not relative to the
       repository's targets directory.
 
-      tuf.exceptions.InvalidNameError, if any target in 'list_of_targets'
-      is not relative (starts with a directory separator).
+      tuf.exceptions.InvalidNameError, if 'pathname' does not match pattern.
 
     <Side Effects>
       Delegates multiple target roles from the current parent role.
@@ -2545,10 +2536,11 @@ class Targets(Metadata):
       ordered_roles.append(role)
 
     for target_path in list_of_targets:
-      # Check if the target path is relative and normalize it. File's existence
-      # on the file system is not verified. If the file does not exist relative
-      # to the targets directory, later calls to write() will fail.
-      target_path = self._check_relpath(target_path)
+      # Check if the target path is relative or raise an exception. File's
+      # existence on the file system is not verified. If the file does not
+      # exist relative to the targets directory, later calls to write() and
+      # writeall() will fail.
+      self._check_path(target_path)
 
       # Determine the hash prefix of 'target_path' by computing the digest of
       # its path relative to the targets directory.
@@ -2764,7 +2756,7 @@ class Targets(Metadata):
 
 
 
-  def _check_relpath(self, pathname):
+  def _check_path(self, pathname):
     """
     <Purpose>
       Check if a path matches the definition of a PATHPATTERN or a
@@ -2780,44 +2772,23 @@ class Targets(Metadata):
       securesystemslib.exceptions.FormatError, if 'pathname' is improperly
       formatted.
 
-      tuf.exceptions.InvalidNameError, if 'pathname' starts with a directory
-      separator.
-
-    <Side Effects>
-      Normalizes pathname.
+      tuf.exceptions.InvalidNameError, if 'pathname' does not match pattern.
 
     <Returns>
-        The normazlied 'pathname'.
+      None.
     """
 
     tuf.formats.RELPATH_SCHEMA.check_match(pathname)
 
-    if os.path.isabs(pathname):
-      raise tuf.exceptions.InvalidNameError(repr(pathname) + ' contains a leading'
-          ' path separator. All paths should be relative to the repository\'s'
-          ' targets directory.')
+    if '\\' in pathname:
+      raise tuf.exceptions.InvalidNameError('Path ' + repr(pathname)
+          + ' does not use the forward slash (/) as directory separator.')
 
-    # Trigger a warning when the path contains '..' since directories
-    # upper than the current cannot be resolved by normpath.
-    dir_list = pathname.split(os.sep)
-    for dirname in dir_list:
-      if dirname == '..':
-        logger.warning('Path ' + repr(pathname) + ' contains \'..\'.'
-            ' Parent directory may not be resolved.')
-        break
+    if pathname.startswith(os.sep):
+      raise tuf.exceptions.InvalidNameError('Path ' + repr(pathname)
+          + ' starts with a directory separator. All paths should be relative'
+          '  to targets directory.')
 
-    pathname = os.path.normpath(pathname)
-
-    # Trigger a warning in case path name is not passed as a relative
-    # to the targets directory but starts with it instead. Ensure a trailing
-    # path separator with os.path.join(path, '').
-    targets_directory = os.path.join(self._targets_directory, '')
-    if pathname.startswith(targets_directory):
-      logger.warning(repr(pathname) + ' should not include the'
-          ' repository\'s targets'
-          ' directory: ' + repr(self._targets_directory))
-
-    return pathname
 
 
 
