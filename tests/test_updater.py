@@ -863,7 +863,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Modify one target file on the remote repository.
     repository = repo_tool.load_repository(self.repository_directory)
-    target3 = os.path.join(self.repository_directory, 'targets', 'file3.txt')
+    target3 = 'file3.txt'
 
     repository.targets.add_target(target3)
     repository.root.version = repository.root.version + 1
@@ -936,7 +936,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                       unsafely_update_root_if_necessary=False)
 
     repository = repo_tool.load_repository(self.repository_directory)
-    target3 = os.path.join(self.repository_directory, 'targets', 'file3.txt')
+    target3 = 'file3.txt'
 
     repository.targets.add_target(target3)
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
@@ -969,8 +969,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Verify that the client's metadata was updated.
     targets_metadata = self.repository_updater.metadata['current']['targets']
-    targets_directory = os.path.join(self.repository_directory, 'targets')
-    target3 = target3[len(targets_directory) + 1:]
     self.assertTrue(target3 in targets_metadata['targets'])
 
     # Verify the expected version numbers of the updated roles.
@@ -1142,12 +1140,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test updater.get_one_valid_targetinfo() backtracking behavior (enabled by
     # default.)
     targets_directory = os.path.join(self.repository_directory, 'targets')
-    foo_directory = os.path.join(targets_directory, 'foo')
-    foo_pattern = 'foo/foo*.tar.gz'
-    os.makedirs(foo_directory)
+    os.makedirs(os.path.join(targets_directory, 'foo'))
 
-    foo_package = os.path.join(foo_directory, 'foo1.1.tar.gz')
-    with open(foo_package, 'wb') as file_object:
+    foo_package = 'foo/foo1.1.tar.gz'
+    foo_pattern = 'foo/foo*.tar.gz'
+
+    foo_fullpath = os.path.join(targets_directory, foo_package)
+    with open(foo_fullpath, 'wb') as file_object:
       file_object.write(b'new release')
 
     # Modify delegations on the remote repository to test backtracking behavior.
@@ -1452,7 +1451,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     length, hashes = securesystemslib.util.get_file_details(target1)
 
-    repository.targets.add_target(target1)
+    repository.targets.add_target(os.path.basename(target1))
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
 
@@ -1461,7 +1460,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     length, hashes = securesystemslib.util.get_file_details(target1)
 
-    repository.targets.add_target(target1)
+    repository.targets.add_target(os.path.basename(target1))
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
@@ -2065,7 +2064,7 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     repository.targets.remove_target(os.path.basename(target1))
 
     custom_field = {"custom": "my_custom_data"}
-    repository.targets.add_target(target1, custom_field)
+    repository.targets.add_target(os.path.basename(target1), custom_field)
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
@@ -2091,7 +2090,7 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
 
     repository.targets.remove_target(os.path.basename(target1))
 
-    repository.targets.add_target(target1)
+    repository.targets.add_target(os.path.basename(target1))
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])

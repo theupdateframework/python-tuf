@@ -213,14 +213,14 @@ class TestRepository(unittest.TestCase):
 
 
     # (4) Add target files.
-    target1 = os.path.join(targets_directory, 'file1.txt')
-    target2 = os.path.join(targets_directory, 'file2.txt')
-    target3 = os.path.join(targets_directory, 'file3.txt')
+    target1 = 'file1.txt'
+    target2 = 'file2.txt'
+    target3 = 'file3.txt'
     repository.targets.add_target(target1)
     repository.targets.add_target(target2)
 
     # (5) Perform delegation.
-    repository.targets.delegate('role1', [role1_pubkey], [os.path.basename(target3)])
+    repository.targets.delegate('role1', [role1_pubkey], [target3])
     repository.targets('role1').load_signing_key(role1_privkey)
 
     # (6) Write repository.
@@ -449,8 +449,8 @@ class TestRepository(unittest.TestCase):
     target2_hashes = {'sha256': '517c0ce943e7274a2431fa5751e17cfd5225accd23e479bfaad13007751e87ef'}
     target1_fileinfo = tuf.formats.make_fileinfo(555, target1_hashes)
     target2_fileinfo = tuf.formats.make_fileinfo(37, target2_hashes)
-    target1 = os.path.join(targets_directory, 'file1.txt')
-    target2 = os.path.join(targets_directory, 'file2.txt')
+    target1 = 'file1.txt'
+    target2 = 'file2.txt'
     repository.targets.add_target(target1, fileinfo=target1_fileinfo)
     repository.targets.add_target(target2, fileinfo=target2_fileinfo)
 
@@ -1064,11 +1064,10 @@ class TestTargets(unittest.TestCase):
     keystore_directory = os.path.join('repository_data', 'keystore')
     public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
     public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
-    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
 
     # Create Targets() object to be tested.
     targets_object = repo_tool.Targets(self.targets_directory)
-    targets_object.delegate('role1', [public_key], [os.path.basename(target1_filepath)])
+    targets_object.delegate('role1', [public_key], ['file1.txt'])
 
     self.assertTrue(isinstance(targets_object('role1'), repo_tool.Targets))
 
@@ -1087,18 +1086,16 @@ class TestTargets(unittest.TestCase):
     keystore_directory = os.path.join('repository_data', 'keystore')
     public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
     public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
-    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
-    target2_filepath = os.path.join(self.targets_directory, 'file2.txt')
 
     # Set needed arguments by delegate().
     public_keys = [public_key]
     threshold = 1
 
     self.targets_object.delegate('tuf', public_keys, [], threshold, False,
-        [target1_filepath], path_hash_prefixes=None)
+        ['file1.txt'], path_hash_prefixes=None)
 
     self.targets_object.delegate('warehouse', public_keys, [], threshold, False,
-        [target2_filepath], path_hash_prefixes=None)
+        ['file2.txt'], path_hash_prefixes=None)
 
     # Test that get_delegated_rolenames returns the expected delegations.
     expected_delegated_rolenames = ['targets/tuf/', 'targets/warehouse']
@@ -1112,11 +1109,11 @@ class TestTargets(unittest.TestCase):
     # Verify the targets object initially contains zero target files.
     self.assertEqual(self.targets_object.target_files, {})
 
-    target_filepath = os.path.join(self.targets_directory, 'file1.txt')
+    target_filepath = 'file1.txt'
     self.targets_object.add_target(target_filepath)
 
     self.assertEqual(len(self.targets_object.target_files), 1)
-    self.assertTrue('file1.txt' in self.targets_object.target_files)
+    self.assertTrue(target_filepath in self.targets_object.target_files)
 
 
 
@@ -1127,12 +1124,11 @@ class TestTargets(unittest.TestCase):
     keystore_directory = os.path.join('repository_data', 'keystore')
     public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
     public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
-    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
 
     # Set needed arguments by delegate().
     public_keys = [public_key]
     rolename = 'tuf'
-    paths = [os.path.basename(target1_filepath)]
+    paths = ['file1.txt']
     threshold = 1
 
     self.targets_object.delegate(rolename, public_keys, paths, threshold,
@@ -1160,42 +1156,53 @@ class TestTargets(unittest.TestCase):
     # Verify the targets object initially contains zero target files.
     self.assertEqual(self.targets_object.target_files, {})
 
-    target_filepath = os.path.join(self.targets_directory, 'file1.txt')
+    target_filepath = 'file1.txt'
     self.targets_object.add_target(target_filepath)
 
     self.assertEqual(len(self.targets_object.target_files), 1)
-    self.assertTrue('file1.txt' in self.targets_object.target_files)
+    self.assertTrue(target_filepath in self.targets_object.target_files)
 
     # Test the 'custom' parameter of add_target(), where additional information
     # may be specified for the target.
-    target2_filepath = os.path.join(self.targets_directory, 'file2.txt')
+    target2_filepath = 'file2.txt'
+    target2_fullpath = os.path.join(self.targets_directory, target2_filepath)
 
     # The file permission of the target (octal number specifying file access
     # for owner, group, others (e.g., 0755).
-    octal_file_permissions = oct(os.stat(target2_filepath).st_mode)[4:]
+    octal_file_permissions = oct(os.stat(target2_fullpath).st_mode)[4:]
     custom_file_permissions = {'file_permissions': octal_file_permissions}
     self.targets_object.add_target(target2_filepath, custom_file_permissions)
 
     self.assertEqual(len(self.targets_object.target_files), 2)
-    self.assertTrue('file2.txt' in self.targets_object.target_files)
+    self.assertTrue(target2_filepath in self.targets_object.target_files)
     self.assertEqual(self.targets_object.target_files['file2.txt']['custom'],
                      custom_file_permissions)
 
     # Attempt to replace target that has already been added.
-    octal_file_permissions2 = oct(os.stat(target_filepath).st_mode)[4:]
+    octal_file_permissions2 = oct(os.stat(target2_fullpath).st_mode)[4:]
     custom_file_permissions2 = {'file_permissions': octal_file_permissions}
     self.targets_object.add_target(target2_filepath, custom_file_permissions2)
-    self.assertEqual(self.targets_object.target_files['file2.txt']['custom'],
-    custom_file_permissions2)
+    self.assertEqual(self.targets_object.target_files[target2_filepath]['custom'],
+        custom_file_permissions2)
 
     # Test improperly formatted arguments.
-    self.assertRaises(securesystemslib.exceptions.FormatError, self.targets_object.add_target, 3)
-    self.assertRaises(securesystemslib.exceptions.FormatError, self.targets_object.add_target, 3,
-                      custom_file_permissions)
-    self.assertRaises(securesystemslib.exceptions.FormatError, self.targets_object.add_target,
-                      target_filepath, 3)
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        self.targets_object.add_target, 3)
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        self.targets_object.add_target, 3, custom_file_permissions)
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        self.targets_object.add_target, target_filepath, 3)
 
+    # A target path starting with a directory separator
+    self.assertRaises(tuf.exceptions.InvalidNameError,
+        self.targets_object.add_target, '/file1.txt')
 
+    # A target path using a backward slash as a separator
+    self.assertRaises(tuf.exceptions.InvalidNameError,
+        self.targets_object.add_target, 'subdir\\file1.txt')
+
+    # Should not access the file system to check for non-existent files
+    self.targets_object.add_target('non-existent')
 
 
 
@@ -1204,27 +1211,44 @@ class TestTargets(unittest.TestCase):
     # Verify the targets object initially contains zero target files.
     self.assertEqual(self.targets_object.target_files, {})
 
-    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
-    target2_filepath = os.path.join(self.targets_directory, 'file2.txt')
-    target3_filepath = os.path.join(self.targets_directory, 'file3.txt')
+    target1_filepath = 'file1.txt'
+    target2_filepath = 'file2.txt'
+    target3_filepath = 'file3.txt'
 
     # Add a 'target1_filepath' duplicate for testing purposes
     # ('target1_filepath' should not be added twice.)
     target_files = \
-      ['file1.txt', 'file2.txt', 'file3.txt', 'file1.txt']
+      [target1_filepath, target2_filepath, 'file3.txt', target1_filepath]
     self.targets_object.add_targets(target_files)
 
     self.assertEqual(len(self.targets_object.target_files), 3)
     self.assertEqual(self.targets_object.target_files,
-        {'file1.txt': {}, 'file2.txt': {}, 'file3.txt': {}})
+        {target1_filepath: {}, target2_filepath: {}, target3_filepath: {}})
 
     # Attempt to replace targets that has already been added.
     self.targets_object.add_targets(target_files)
 
     # Test improperly formatted arguments.
-    self.assertRaises(securesystemslib.exceptions.FormatError, self.targets_object.add_targets, 3)
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        self.targets_object.add_targets, 3)
 
+    # A target path starting with a directory separator
+    self.assertRaises(tuf.exceptions.InvalidNameError,
+        self.targets_object.add_targets, ['/file1.txt'])
 
+    # A target path using a backward slash as a separator
+    self.assertRaises(tuf.exceptions.InvalidNameError,
+        self.targets_object.add_targets, ['subdir\\file1.txt'])
+
+    # Check if the addition of the whole list is rolled back in case of
+    # wrong target path
+    target_files = self.targets_object.target_files
+    self.assertRaises(tuf.exceptions.InvalidNameError,
+        self.targets_object.add_targets, ['file4.txt', '/file5.txt'])
+    self.assertEqual(self.targets_object.target_files, target_files)
+
+    # Should not access the file system to check for non-existent files
+    self.targets_object.add_targets(['non-existent'])
 
 
   def test_remove_target(self):
@@ -1233,25 +1257,19 @@ class TestTargets(unittest.TestCase):
     self.assertEqual(self.targets_object.target_files, {})
 
     # Add a target so that remove_target() has something to remove.
-    target_filepath = os.path.join(self.targets_directory, 'file1.txt')
+    target_filepath = 'file1.txt'
     self.targets_object.add_target(target_filepath)
 
     # Test remove_target()'s behavior.
-    self.targets_object.remove_target(os.path.basename(target_filepath))
+    self.targets_object.remove_target(target_filepath)
     self.assertEqual(self.targets_object.target_files, {})
 
     # Test improperly formatted arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError,
                       self.targets_object.remove_target, 3)
 
-
-    # Test invalid filepath argument (i.e., non-existent or invalid file.)
-    self.assertRaises(securesystemslib.exceptions.Error,
-                      self.targets_object.remove_target,
-                      '/non-existent.txt')
-
     # Test for filepath that hasn't been added yet.
-    target5_filepath = os.path.join(self.targets_directory, 'file5.txt')
+    target5_filepath = 'file5.txt'
     self.assertRaises(securesystemslib.exceptions.Error,
                       self.targets_object.remove_target,
                       target5_filepath)
@@ -1264,8 +1282,8 @@ class TestTargets(unittest.TestCase):
     self.assertEqual(self.targets_object.target_files, {})
 
     # Add targets, to be tested by clear_targets().
-    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
-    target2_filepath = os.path.join(self.targets_directory, 'file2.txt')
+    target1_filepath = 'file1.txt'
+    target2_filepath = 'file2.txt'
     self.targets_object.add_targets([target1_filepath, target2_filepath])
 
     self.targets_object.clear_targets()
@@ -1280,14 +1298,11 @@ class TestTargets(unittest.TestCase):
     keystore_directory = os.path.join('repository_data', 'keystore')
     public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
     public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
-    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
-    target2_filepath = os.path.join(self.targets_directory, 'file2.txt')
-
 
     # Set needed arguments by delegate().
     public_keys = [public_key]
     rolename = 'tuf'
-    list_of_targets = [target1_filepath, target2_filepath]
+    list_of_targets = ['file1.txt', 'file2.txt']
     threshold = 1
     paths = ['*']
     path_hash_prefixes = ['e3a3', '8fae', 'd543']
@@ -1299,22 +1314,20 @@ class TestTargets(unittest.TestCase):
     self.assertEqual(self.targets_object.get_delegated_rolenames(),
                      ['tuf'])
 
-    # Test for targets that do not exist under the targets directory.
-    self.targets_object.revoke(rolename)
-    self.targets_object.delegate(rolename, public_keys, paths, threshold,
-        terminating=False, list_of_targets=['non-existent.txt'],
-        path_hash_prefixes=path_hash_prefixes)
-    for delegation in self.targets_object.delegations:
-      self.assertFalse('non-existent.txt' in delegation.target_files)
-
     # Test for delegated paths that do not exist.
     # An exception should not be raised for non-existent delegated paths, since
     # these paths may not necessarily exist when the delegation is done,
     # and also because the delegated paths can be glob patterns.
-    self.targets_object.delegate(rolename, public_keys, ['non-existent.txt'],
+    self.targets_object.delegate(rolename, public_keys, ['non-existent'],
         threshold, terminating=False, list_of_targets=list_of_targets,
         path_hash_prefixes=path_hash_prefixes)
 
+    # Test for delegated targets that do not exist.
+    # An exception should not be raised for non-existent delegated targets,
+    # since at this point the file system should not be accessed yet
+    self.targets_object.delegate(rolename, public_keys, [], threshold,
+        terminating=False, list_of_targets=['non-existent.txt'],
+        path_hash_prefixes=path_hash_prefixes)
 
     # Test improperly formatted arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError,
@@ -1349,10 +1362,20 @@ class TestTargets(unittest.TestCase):
         self.targets_object.delegate, rolename, public_keys, paths, threshold,
         list_of_targets, path_hash_prefixes)
 
-    # Test non-existent target paths.
-    self.assertRaises(securesystemslib.exceptions.Error,
-        self.targets_object.delegate, rolename, public_keys, [], threshold,
-        ['/non-existent'], path_hash_prefixes)
+    # A path or target starting with a directory separator
+    self.assertRaises(tuf.exceptions.InvalidNameError,
+        self.targets_object.delegate, rolename, public_keys, ['/*'])
+    self.assertRaises(tuf.exceptions.InvalidNameError,
+        self.targets_object.delegate, rolename, public_keys, [],
+        list_of_targets=['/file1.txt'])
+
+    # A path or target using '\' as a directory separator
+    self.assertRaises(tuf.exceptions.InvalidNameError,
+        self.targets_object.delegate, rolename, public_keys, ['subpath\\*'])
+    self.assertRaises(tuf.exceptions.InvalidNameError,
+        self.targets_object.delegate, rolename, public_keys, [],
+        list_of_targets=['subpath\\file1.txt'])
+
 
 
 
@@ -1361,11 +1384,10 @@ class TestTargets(unittest.TestCase):
     keystore_directory = os.path.join('repository_data', 'keystore')
     public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
     public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
-    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
 
     # Set needed arguments by delegate_hashed_bins().
     public_keys = [public_key]
-    list_of_targets = [target1_filepath]
+    list_of_targets = ['file1.txt']
 
 
     # A helper function to check that the range of prefixes the role is
@@ -1445,7 +1467,7 @@ class TestTargets(unittest.TestCase):
     keystore_directory = os.path.join('repository_data', 'keystore')
     public_keypath = os.path.join(keystore_directory, 'targets_key.pub')
     public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
-    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
+    target1_filepath = 'file1.txt'
 
     # Set needed arguments by delegate_hashed_bins().
     public_keys = [public_key]
@@ -1462,7 +1484,7 @@ class TestTargets(unittest.TestCase):
 
     # Add 'target1_filepath' and verify that the relative path of
     # 'target1_filepath' is added to the correct bin.
-    self.targets_object.add_target_to_bin(os.path.basename(target1_filepath), 16)
+    self.targets_object.add_target_to_bin(target1_filepath, 16)
 
     for delegation in self.targets_object.delegations:
       if delegation.rolename == '5':
@@ -1477,27 +1499,27 @@ class TestTargets(unittest.TestCase):
 
     self.assertRaises(securesystemslib.exceptions.Error,
                       empty_targets_role.add_target_to_bin,
-                      os.path.basename(target1_filepath), 16)
+                      target1_filepath, 16)
 
     # Test for a required hashed bin that does not exist.
     self.targets_object.revoke('5')
     self.assertRaises(securesystemslib.exceptions.Error,
                       self.targets_object.add_target_to_bin,
-                      os.path.basename(target1_filepath), 16)
+                      target1_filepath, 16)
 
     # Test adding a target with fileinfo
     target2_hashes = {'sha256': '517c0ce943e7274a2431fa5751e17cfd5225accd23e479bfaad13007751e87ef'}
     target2_fileinfo = tuf.formats.make_fileinfo(37, target2_hashes)
-    target2_filepath = os.path.join(self.targets_directory, 'file2.txt')
+    target2_filepath = 'file2.txt'
 
-    self.targets_object.add_target_to_bin(os.path.basename(target2_filepath), 16, fileinfo=target2_fileinfo)
+    self.targets_object.add_target_to_bin(target2_filepath, 16, fileinfo=target2_fileinfo)
 
     for delegation in self.targets_object.delegations:
       if delegation.rolename == '0':
-        self.assertTrue('file2.txt' in delegation.target_files)
+        self.assertTrue(target2_filepath in delegation.target_files)
 
       else:
-        self.assertFalse('file2.txt' in delegation.target_files)
+        self.assertFalse(target2_filepath in delegation.target_files)
 
     # Test improperly formatted argument.
     self.assertRaises(securesystemslib.exceptions.FormatError,
@@ -1511,7 +1533,7 @@ class TestTargets(unittest.TestCase):
     keystore_directory = os.path.join('repository_data', 'keystore')
     public_keypath = os.path.join(keystore_directory, 'targets_key.pub')
     public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
-    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
+    target1_filepath = 'file1.txt'
 
     # Set needed arguments by delegate_hashed_bins().
     public_keys = [public_key]
@@ -1528,7 +1550,7 @@ class TestTargets(unittest.TestCase):
 
     # Add 'target1_filepath' and verify that the relative path of
     # 'target1_filepath' is added to the correct bin.
-    self.targets_object.add_target_to_bin(os.path.basename(target1_filepath), 16)
+    self.targets_object.add_target_to_bin(target1_filepath, 16)
 
     for delegation in self.targets_object.delegations:
       if delegation.rolename == '5':
@@ -1539,10 +1561,10 @@ class TestTargets(unittest.TestCase):
 
     # Test the remove_target_from_bin() method.  Verify that 'target1_filepath'
     # has been removed.
-    self.targets_object.remove_target_from_bin(os.path.basename(target1_filepath), 16)
+    self.targets_object.remove_target_from_bin(target1_filepath, 16)
 
     for delegation in self.targets_object.delegations:
-      self.assertTrue('file1.txt' not in delegation.target_files)
+      self.assertTrue(target1_filepath not in delegation.target_files)
 
 
     # Test improperly formatted argument.
@@ -1551,7 +1573,7 @@ class TestTargets(unittest.TestCase):
 
     # Invalid target file path argument.
     self.assertRaises(securesystemslib.exceptions.Error,
-        self.targets_object.remove_target_from_bin, '/non-existent', 16)
+        self.targets_object.remove_target_from_bin, 'non-existent', 16)
 
 
 
@@ -1611,7 +1633,7 @@ class TestTargets(unittest.TestCase):
     # delegated paths are not added to a child role that was not requested).
     self.targets_object.delegate('junk_role', public_keys, [])
 
-    paths = ['/tuf_files/*']
+    paths = ['tuf_files/*']
     self.targets_object.add_paths(paths, 'tuf')
 
     # Retrieve 'targets_object' roleinfo, and verify the roleinfo contains the
@@ -1620,7 +1642,7 @@ class TestTargets(unittest.TestCase):
         'test_repository')
 
     delegated_role = targets_object_roleinfo['delegations']['roles'][0]
-    self.assertEqual(['/tuf_files/*'], delegated_role['paths'])
+    self.assertEqual(['tuf_files/*'], delegated_role['paths'])
 
     # Try to add a delegated path that has already been set.
     # add_paths() should simply log a message in this case.
@@ -1638,12 +1660,20 @@ class TestTargets(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.Error,
         self.targets_object.add_paths, paths, 'non_delegated_rolename')
 
+    # A path starting with a directory separator
+    self.assertRaises(tuf.exceptions.InvalidNameError,
+        self.targets_object.add_paths, ['/tuf_files/*'], 'tuf')
+
+    # A path using a backward slash as a separator
+    self.assertRaises(tuf.exceptions.InvalidNameError,
+        self.targets_object.add_paths, ['tuf_files\\*'], 'tuf')
+
     # add_paths() should not raise an exception for non-existent
     # paths, which it previously did.
-    self.targets_object.add_paths(['/non-existent'], 'tuf')
+    self.targets_object.add_paths(['non-existent'], 'tuf')
 
     # add_paths() should not raise an exception for paths that
-    # are not located in the repository's targets directory.
+    # are not located in the repository's targets directory
     repository_directory = os.path.join('repository_data', 'repository')
     self.targets_object.add_paths([repository_directory], 'tuf')
 
@@ -1655,12 +1685,11 @@ class TestTargets(unittest.TestCase):
     keystore_directory = os.path.join('repository_data', 'keystore')
     public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
     public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
-    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
 
     # Set needed arguments by delegate().
     public_keys = [public_key]
     rolename = 'tuf'
-    paths = [target1_filepath]
+    paths = ['file1.txt']
     threshold = 1
 
     self.targets_object.delegate(rolename, public_keys, [], threshold, False,
@@ -1675,6 +1704,28 @@ class TestTargets(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.FormatError, self.targets_object.revoke, 3)
 
 
+
+  def test_check_path(self):
+    # Test that correct path does not raise exception: using '/' as a separator
+    # and does not start with a directory separator
+    self.targets_object._check_path('file1.txt')
+
+    # Test that non-existent path does not raise exception (_check_path
+    # checks only the path string for compliance)
+    self.targets_object._check_path('non-existent.txt')
+    self.targets_object._check_path('subdir/non-existent')
+
+    # Test improperly formatted pathname argument.
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        self.targets_object._check_path, 3)
+
+    # Test invalid pathname - starting with os separator
+    self.assertRaises(tuf.exceptions.InvalidNameError,
+        self.targets_object._check_path, '/file1.txt')
+
+    # Test invalid pathname - using '\' as os separator
+    self.assertRaises(tuf.exceptions.InvalidNameError,
+        self.targets_object._check_path, 'subdir\\non-existent')
 
 
 

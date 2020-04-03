@@ -223,13 +223,10 @@ class TestTutorial(unittest.TestCase):
 
 
     repository = load_repository('repository')
-    list_of_targets = repository.get_filepaths_in_directory(
-        os.path.join('repository', 'targets'), recursive_walk=False, followlinks=True)
 
-    self.assertListEqual(sorted(list_of_targets), [
-        os.path.abspath(os.path.join('repository', 'targets', 'file1.txt')),
-        os.path.abspath(os.path.join('repository', 'targets', 'file2.txt')),
-        os.path.abspath(os.path.join('repository', 'targets', 'file3.txt'))])
+    # List of targets is hardcoded since get_filepaths_in_directory()
+    # returns absolute paths and add_targets() raises an exception.
+    list_of_targets = ['file1.txt', 'file2.txt', 'file3.txt']
 
 
     repository.targets.add_targets(list_of_targets)
@@ -243,7 +240,7 @@ class TestTutorial(unittest.TestCase):
         'repository', 'targets', 'myproject', 'file4.txt'))
     octal_file_permissions = oct(os.stat(target4_filepath).st_mode)[4:]
     custom_file_permissions = {'file_permissions': octal_file_permissions}
-    repository.targets.add_target(target4_filepath, custom_file_permissions)
+    repository.targets.add_target('myproject/file4.txt', custom_file_permissions)
     # Note that target filepaths specified in the repo use '/' even on Windows.
     # (This is important to make metadata platform-independent.)
     self.assertTrue(
@@ -346,8 +343,7 @@ class TestTutorial(unittest.TestCase):
     # ----- Tutorial Section: Delegate to Hashed Bins
     repository.targets('unclaimed').remove_target("myproject/file4.txt")
 
-    targets = repository.get_filepaths_in_directory(
-        os.path.join('repository', 'targets', 'myproject'), recursive_walk=True)
+    targets = ['myproject/file4.txt']
 
     # Patch logger to assert that it accurately logs the output of hashed bin
     # delegation. The logger is called multiple times, first with info level
