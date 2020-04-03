@@ -2,7 +2,7 @@ certifi==2019.11.28       # via requests
 cffi==1.14.0              # via cryptography, pynacl
 chardet==3.0.4            # via requests
 colorama==0.4.3           # via securesystemslib
-cryptography==2.8         # via securesystemslib
+cryptography==2.9         # via securesystemslib
 enum34==1.1.6             ; python_version < '3' # via cryptography
 idna==2.9                 # via requests
 ipaddress==1.0.23         ; python_version < '3' # via cryptography
