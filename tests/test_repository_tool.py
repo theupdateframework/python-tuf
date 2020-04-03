@@ -1555,6 +1555,42 @@ class TestTargets(unittest.TestCase):
 
 
 
+  def test_default_bin_num(self):
+    # Test creating, adding to and removing from hashed bins with the default
+    # number of bins
+    keystore_directory = os.path.join('repository_data', 'keystore')
+    public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
+    public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
+    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
+
+    # Set needed arguments by delegate_hashed_bins().
+    public_keys = [public_key]
+
+    # Test default parameters for number_of_bins
+    self.targets_object.delegate_hashed_bins([], public_keys)
+
+    # Ensure each hashed bin initially contains zero targets.
+    for delegation in self.targets_object.delegations:
+      self.assertEqual(delegation.target_files, {})
+
+    # Add 'target1_filepath' and verify that the relative path of
+    # 'target1_filepath' is added to the correct bin.
+    self.targets_object.add_target_to_bin(os.path.basename(target1_filepath))
+
+    for delegation in self.targets_object.delegations:
+      if delegation.rolename == '558-55b':
+        self.assertTrue('file1.txt' in delegation.target_files)
+
+      else:
+        self.assertFalse('file1.txt' in delegation.target_files)
+
+    # Remove target1_filepath and verify that all bins are now empty
+    self.targets_object.remove_target_from_bin(os.path.basename(target1_filepath))
+
+    for delegation in self.targets_object.delegations:
+      self.assertEqual(delegation.target_files, {})
+
+
   def test_add_paths(self):
     # Test normal case.
     # Perform a delegation so that add_paths() has a child role to delegate a
