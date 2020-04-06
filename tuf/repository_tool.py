@@ -2174,6 +2174,51 @@ class Targets(Metadata):
 
 
 
+  def _create_delegated_target(self, rolename, keyids, threshold, paths):
+    """
+    Create a new Targets object for the 'rolename' delegation.  An initial
+    expiration is set (3 months from the current time).
+    """
+
+    expiration = tuf.formats.unix_timestamp_to_datetime(
+        int(time.time() + TARGETS_EXPIRATION))
+    expiration = expiration.isoformat() + 'Z'
+
+    roleinfo = {'name': rolename, 'keyids': keyids, 'signing_keyids': [],
+                'threshold': threshold, 'version': 0,
+                'expires': expiration, 'signatures': [], 'partial_loaded': False,
+                'paths': paths, 'delegations': {'keys': {}, 'roles': []}}
+
+    # The new targets object is added as an attribute to this Targets object.
+    new_targets_object = Targets(self._targets_directory, rolename, roleinfo,
+        parent_targets_object=self._parent_targets_object,
+        repository_name=self._repository_name)
+
+    return new_targets_object
+
+
+
+
+
+  def _update_roledb_delegations(self, keydict, delegations_roleinfo):
+    """
+    Update the roledb to include delegations of the keys in keydict and the
+    roles in delegations_roleinfo
+    """
+
+    current_roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
+    current_roleinfo['delegations']['keys'].update(keydict)
+
+    for roleinfo in delegations_roleinfo:
+      current_roleinfo['delegations']['roles'].append(roleinfo)
+
+    tuf.roledb.update_roleinfo(self.rolename, current_roleinfo,
+        repository_name=self._repository_name)
+
+
+
+
+
   def delegate(self, rolename, public_keys, paths, threshold=1,
       terminating=False, list_of_targets=None, path_hash_prefixes=None):
     """
@@ -2270,19 +2315,7 @@ class Targets(Metadata):
 
     # Keep track of the valid keyids (added to the new Targets object) and
     # their keydicts (added to this Targets delegations).
-    keyids = []
-    keydict = {}
-
-    # Add all the keys in 'public_keys' to tuf.keydb.
-    for key in public_keys:
-      keyid = key['keyid']
-      key_metadata_format = securesystemslib.keys.format_keyval_to_metadata(
-          key['keytype'], key['scheme'], key['keyval'])
-
-      # Update 'keyids' and 'keydict'.
-      new_keydict = {keyid: key_metadata_format}
-      keydict.update(new_keydict)
-      keyids.append(keyid)
+    keyids, keydict = _keys_to_keydict(public_keys)
 
     # Ensure the paths of 'list_of_targets' are located in the repository's
     # targets directory.
@@ -2308,34 +2341,17 @@ class Targets(Metadata):
         logger.warning(repr(path) + ' is not located in the repository\'s'
           ' targets directory: ' + repr(self._targets_directory))
 
-    # Create a new Targets object for the 'rolename' delegation.  An initial
-    # expiration is set (3 months from the current time).
-    expiration = tuf.formats.unix_timestamp_to_datetime(
-        int(time.time() + TARGETS_EXPIRATION))
-    expiration = expiration.isoformat() + 'Z'
-
-    roleinfo = {'name': rolename, 'keyids': keyids, 'signing_keyids': [],
-                'threshold': threshold, 'version': 0,
-                'expires': expiration, 'signatures': [], 'partial_loaded': False,
-                'paths': relative_targetpaths, 'delegations': {'keys': {},
-                'roles': []}}
-
     # The new targets object is added as an attribute to this Targets object.
-    new_targets_object = Targets(self._targets_directory, rolename, roleinfo,
-        parent_targets_object=self._parent_targets_object,
-        repository_name=self._repository_name)
-
-    # Update the 'delegations' field of the current role.
-    current_roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
-    current_roleinfo['delegations']['keys'].update(keydict)
+    new_targets_object = self._create_delegated_target(rolename, keyids,
+        threshold, relative_targetpaths)
 
     # Update the roleinfo of this role.  A ROLE_SCHEMA object requires only
     # 'keyids', 'threshold', and 'paths'.
     roleinfo = {'name': rolename,
-                'keyids': roleinfo['keyids'],
-                'threshold': roleinfo['threshold'],
+                'keyids': keyids,
+                'threshold': threshold,
                 'terminating': terminating,
-                'paths': list(roleinfo['paths'].keys())}
+                'paths': list(relative_targetpaths.keys())}
 
     if paths:
       roleinfo['paths'] = paths
@@ -2346,10 +2362,6 @@ class Targets(Metadata):
       # or 'paths'.
       del roleinfo['paths']
 
-    current_roleinfo['delegations']['roles'].append(roleinfo)
-    tuf.roledb.update_roleinfo(self.rolename, current_roleinfo,
-        repository_name=self._repository_name)
-
     # Update the public keys of 'new_targets_object'.
     for key in public_keys:
       new_targets_object.add_verification_key(key)
@@ -2357,14 +2369,15 @@ class Targets(Metadata):
     # Add the new delegation to the top-level 'targets' role object (i.e.,
     # 'repository.targets()').  For example, 'django', which was delegated by
     # repository.target('claimed'), is added to 'repository.targets('django')).
+    if self.rolename != 'targets':
+      self._parent_targets_object.add_delegated_role(rolename,
+          new_targets_object)
 
     # Add 'new_targets_object' to the 'targets' role object (this object).
-    if self.rolename == 'targets':
-      self.add_delegated_role(rolename, new_targets_object)
+    self.add_delegated_role(rolename, new_targets_object)
 
-    else:
-      self._parent_targets_object.add_delegated_role(rolename, new_targets_object)
-      self.add_delegated_role(rolename, new_targets_object)
+    # Update the 'delegations' field of the current role.
+    self._update_roledb_delegations(keydict, [roleinfo])
 
 
 
@@ -2533,12 +2546,56 @@ class Targets(Metadata):
       hash_prefix = _get_hash(target_path.replace('\\', '/').lstrip('/'))[:prefix_length]
       ordered_roles[int(hash_prefix, 16) // bin_size]["target_paths"].append(target_path)
 
-    for bin_rolename in ordered_roles:
-      # Delegate from the "unclaimed" targets role to each 'bin_rolename'
-      self.delegate(bin_rolename['name'], keys_of_hashed_bins, [],
-          list_of_targets=bin_rolename['target_paths'],
-          path_hash_prefixes=bin_rolename['target_hash_prefixes'])
-      logger.debug('Delegated from ' + repr(self.rolename) + ' to ' + repr(bin_rolename))
+    keyids, keydict = _keys_to_keydict(keys_of_hashed_bins)
+
+    # A queue of roleinfo's that need to be updated in the roledb
+    delegated_roleinfos = []
+
+    for bin_role in ordered_roles:
+      # TODO: originally we just called self.delegate() for each item in this
+      # iteration. However, this is *extremely* slow when creating a large
+      # number of hashed bins, i.e. 16k as is recommended for PyPI usage in
+      # PEP 458: https://www.python.org/dev/peps/pep-0458/
+      # The source of the slowness is the interactions with the roledb, which
+      # causes several deep copies of roleinfo dictionaries:
+      # https://github.com/theupdateframework/tuf/issues/1005
+      # Once the underlying issues in #1005 are resolved, i.e. some combination
+      # of the intermediate and long-term fixes, we may simplify here by
+      # switching back to just calling self.delegate(), but until that time we
+      # queue roledb interactions and perform all updates to the roledb in one
+      # operation at the end of the iteration.
+
+      relative_paths = {}
+      targets_directory_length = len(self._targets_directory)
+      for path in bin_role['target_paths']:
+        relative_paths.update({path[targets_directory_length:]: {}})
+
+      # Delegate from the "unclaimed" targets role to each 'bin_role'
+      target = self._create_delegated_target(bin_role['name'], keyids, 1,
+          relative_paths)
+
+      roleinfo = {'name': bin_role['name'],
+                  'keyids': keyids,
+                  'threshold': 1,
+                  'terminating': False,
+                  'path_hash_prefixes': bin_role['target_hash_prefixes']}
+      delegated_roleinfos.append(roleinfo)
+
+      for key in keys_of_hashed_bins:
+        target.add_verification_key(key)
+
+      # Add the new delegation to the top-level 'targets' role object (i.e.,
+      # 'repository.targets()').
+      if self.rolename != 'targets':
+        self._parent_targets_object.add_delegated_role(bin_role['name'],
+            target)
+
+      # Add 'new_targets_object' to the 'targets' role object (this object).
+      self.add_delegated_role(bin_role['name'], target)
+      logger.debug('Delegated from ' + repr(self.rolename) + ' to ' + repr(bin_role))
+
+
+    self._update_roledb_delegations(keydict, delegated_roleinfos)
 
 
 
@@ -2693,6 +2750,29 @@ class Targets(Metadata):
     """
 
     return list(self._delegated_roles.values())
+
+
+
+
+def _keys_to_keydict(keys):
+  """
+  Iterate over a list of keys and return a list of keyids and a dict mapping
+  keyid to key metadata
+  """
+  keyids = []
+  keydict = {}
+
+  for key in keys:
+    keyid = key['keyid']
+    key_metadata_format = securesystemslib.keys.format_keyval_to_metadata(
+        key['keytype'], key['scheme'], key['keyval'])
+
+    new_keydict = {keyid: key_metadata_format}
+    keydict.update(new_keydict)
+    keyids.append(keyid)
+
+  return keyids, keydict
+
 
 
 
