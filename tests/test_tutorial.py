@@ -224,10 +224,9 @@ class TestTutorial(unittest.TestCase):
 
     repository = load_repository('repository')
 
-    # List of targets is hardcoded since get_filepaths_in_directory()
-    # returns absolute paths and add_targets() raises an exception.
+    # TODO: replace the hard-coded list of targets with a helper
+    # method that returns a list of normalized relative target paths
     list_of_targets = ['file1.txt', 'file2.txt', 'file3.txt']
-
 
     repository.targets.add_targets(list_of_targets)
 
@@ -235,16 +234,16 @@ class TestTutorial(unittest.TestCase):
     self.assertTrue('file2.txt' in repository.targets.target_files)
     self.assertTrue('file3.txt' in repository.targets.target_files)
 
-
-    target4_filepath = os.path.abspath(os.path.join(
-        'repository', 'targets', 'myproject', 'file4.txt'))
-    octal_file_permissions = oct(os.stat(target4_filepath).st_mode)[4:]
+    target4_filepath = 'myproject/file4.txt'
+    target4_abspath = os.path.abspath(os.path.join(
+        'repository', 'targets', target4_filepath))
+    octal_file_permissions = oct(os.stat(target4_abspath).st_mode)[4:]
     custom_file_permissions = {'file_permissions': octal_file_permissions}
-    repository.targets.add_target('myproject/file4.txt', custom_file_permissions)
+    repository.targets.add_target(target4_filepath, custom_file_permissions)
     # Note that target filepaths specified in the repo use '/' even on Windows.
     # (This is important to make metadata platform-independent.)
     self.assertTrue(
-        os.path.join('myproject/file4.txt') in repository.targets.target_files)
+        os.path.join(target4_filepath) in repository.targets.target_files)
 
 
     # Skipping user entry of password

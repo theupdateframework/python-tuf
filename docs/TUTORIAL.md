@@ -371,10 +371,11 @@ the target filepaths to metadata.
 # the target's filepath, hash, and length.
 # Note: target path passed to add_target() method has to be relative
 # to the targets directory or an exception is raised.
->>> target4_filepath = os.path.abspath("repository/targets/myproject/file4.txt")
->>> octal_file_permissions = oct(os.stat(target4_filepath).st_mode)[4:]
+>>> target4_filepath = 'myproject/file4.txt'
+>>> target4_abspath = os.path.abspath(os.path.join('repository', 'targets', target4_filepath))
+>>> octal_file_permissions = oct(os.stat(target4_abspath).st_mode)[4:]
 >>> custom_file_permissions = {'file_permissions': octal_file_permissions}
->>> repository.targets.add_target('myproject/file4.txt', custom_file_permissions)
+>>> repository.targets.add_target(target4_filepath, custom_file_permissions)
 ```
 
 The private keys of roles affected by the changes above must now be imported and
