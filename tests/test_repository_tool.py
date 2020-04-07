@@ -1452,13 +1452,18 @@ class TestTargets(unittest.TestCase):
                       list_of_targets, public_keys, number_of_bins=3)
 
     # Invalid 'list_of_targets'.
-    # TODO
-    """
-    invalid_targets = ['/non-existent']
-    self.assertRaises(securesystemslib.exceptions.Error,
+    # A path or target starting with a directory separator
+    self.assertRaises(tuf.exceptions.InvalidNameError,
                       self.targets_object.delegate_hashed_bins,
-                      invalid_targets, public_keys, number_of_bins=16)
-    """
+                      ['/file1.txt'], public_keys,
+                      number_of_bins=2)
+
+    # A path or target using '\' as a directory separator
+    self.assertRaises(tuf.exceptions.InvalidNameError,
+                      self.targets_object.delegate_hashed_bins,
+                      ['subpath\\file1.txt'], public_keys,
+                      number_of_bins=2)
+
 
   def test_add_target_to_bin(self):
     # Test normal case.
