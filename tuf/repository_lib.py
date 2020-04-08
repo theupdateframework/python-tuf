@@ -1319,7 +1319,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
         raise securesystemslib.exceptions.Error('use_existing_hashes option set'
             ' but fileinfo\'s length is not set')
 
-      filedict[target.replace('\\', '/').lstrip('/')] = fileinfo
+      filedict[target] = fileinfo
 
   else:
     filedict = _generate_targets_fileinfo(target_files, targets_directory,
@@ -1393,7 +1393,7 @@ def _generate_targets_fileinfo(target_files, targets_directory,
     # the target's fileinfo dictionary) if specified here.
     custom_data = fileinfo.get('custom', None)
 
-    filedict[relative_targetpath.replace('\\', '/').lstrip('/')] = \
+    filedict[relative_targetpath] = \
         get_metadata_fileinfo(target_path, custom_data)
 
     # Copy 'target_path' to 'digest_target' if consistent hashing is enabled.

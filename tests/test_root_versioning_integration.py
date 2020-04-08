@@ -165,15 +165,15 @@ class TestRepository(unittest.TestCase):
     repository.timestamp.load_signing_key(timestamp_privkey)
 
     # (4) Add target files.
-    target1 = os.path.join(targets_directory, 'file1.txt')
-    target2 = os.path.join(targets_directory, 'file2.txt')
-    target3 = os.path.join(targets_directory, 'file3.txt')
+    target1 = 'file1.txt'
+    target2 = 'file2.txt'
+    target3 = 'file3.txt'
     repository.targets.add_target(target1)
     repository.targets.add_target(target2)
 
 
     # (5) Perform delegation.
-    repository.targets.delegate('role1', [role1_pubkey], [os.path.basename(target3)])
+    repository.targets.delegate('role1', [role1_pubkey], [target3])
     repository.targets('role1').load_signing_key(role1_privkey)
 
     # (6) Write repository.

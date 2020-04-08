@@ -218,7 +218,7 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
     # new version is generated.
     with open(file3_path, 'wt') as file_object:
       file_object.write('This is role2\'s target file.')
-    repository.targets('role1').add_target(file3_path)
+    repository.targets('role1').add_target(os.path.basename(file3_path))
 
     repository.writeall()
 

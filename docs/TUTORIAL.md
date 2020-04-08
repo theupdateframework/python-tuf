@@ -352,15 +352,8 @@ the target filepaths to metadata.
 # in targets metadata.
 >>> repository = load_repository('repository')
 
-# get_filepaths_in_directory() returns a list of file paths in a directory. It
-# can also return files in sub-directories if 'recursive_walk' is True.
->>> list_of_targets = repository.get_filepaths_in_directory(
-...     "repository/targets/", recursive_walk=False, followlinks=True)
-
-# Note: Since we set the 'recursive_walk' argument to false, the 'myproject'
-# sub-directory is excluded from 'list_of_targets'.
->>> list_of_targets
-['/path/to/repository/targets/file2.txt', '/path/to/repository/targets/file1.txt', '/path/to/repository/targets/file3.txt']
+# Create a list of all targets in the directory.
+>>> list_of_targets = ['file1.txt', 'file2.txt', 'file3.txt']
 
 # Add the list of target paths to the metadata of the top-level Targets role.
 # Any target file paths that might already exist are NOT replaced, and
@@ -376,8 +369,11 @@ the target filepaths to metadata.
 # (octal number specifying file access for owner, group, others e.g., 0755) is
 # added alongside the default fileinfo.  All target objects in metadata include
 # the target's filepath, hash, and length.
->>> target4_filepath = os.path.abspath("repository/targets/myproject/file4.txt")
->>> octal_file_permissions = oct(os.stat(target4_filepath).st_mode)[4:]
+# Note: target path passed to add_target() method has to be relative
+# to the targets directory or an exception is raised.
+>>> target4_filepath = 'myproject/file4.txt'
+>>> target4_abspath = os.path.abspath(os.path.join('repository', 'targets', target4_filepath))
+>>> octal_file_permissions = oct(os.stat(target4_abspath).st_mode)[4:]
 >>> custom_file_permissions = {'file_permissions': octal_file_permissions}
 >>> repository.targets.add_target(target4_filepath, custom_file_permissions)
 ```
@@ -498,7 +494,6 @@ targets and generate signed metadata.
 
 # Make a delegation (delegate trust of 'myproject/*.txt' files) from "targets"
 # to "unclaimed", where "unclaimed" initially contains zero targets.
-# NOTE: Please ignore the warning about the path pattern's location (see #963)
 >>> repository.targets.delegate('unclaimed', [public_unclaimed_key], ['myproject/*.txt'])
 
 # Thereafter, we can access the delegated role by its name to e.g. add target
@@ -635,8 +630,7 @@ to some role.
 >>> repository.targets('unclaimed').remove_target("myproject/file4.txt")
 
 # Get a list of target paths for the hashed bins.
->>> targets = repository.get_filepaths_in_directory(
-...     'repository/targets/myproject', recursive_walk=True)
+>>> targets = ['myproject/file4.txt']
 
 # Delegate trust to 32 hashed bin roles. Each role is responsible for the set
 # of target files, determined by the path hash prefix. TUF evenly distributes
