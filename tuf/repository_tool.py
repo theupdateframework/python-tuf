@@ -1854,7 +1854,8 @@ class Targets(Metadata):
       securesystemslib.exceptions.Error, if 'child_rolename' has not been
       delegated yet.
 
-      tuf.exceptions.InvalidNameError, if 'pathname' does not match pattern.
+      tuf.exceptions.InvalidNameError, if any path in 'paths' does not match
+      pattern.
 
     <Side Effects>
       Modifies this Targets' delegations field.
@@ -1870,10 +1871,6 @@ class Targets(Metadata):
     securesystemslib.formats.PATHS_SCHEMA.check_match(paths)
     tuf.formats.ROLENAME_SCHEMA.check_match(child_rolename)
 
-    # A list of relative and verified paths or glob patterns to be added to the
-    # child role's entry in the parent's delegations field.
-    relative_paths = []
-
     # Ensure that 'child_rolename' exists, otherwise it will not have an entry
     # in the parent role's delegations field.
     if not tuf.roledb.role_exists(child_rolename, self._repository_name):
@@ -1886,7 +1883,6 @@ class Targets(Metadata):
       # on the file system is not verified. If the path is incorrect,
       # the targetfile won't be matched successfully during a client update.
       self._check_path(path)
-      relative_paths.append(path)
 
     # Get the current role's roleinfo, so that its delegations field can be
     # updated.
@@ -1895,7 +1891,7 @@ class Targets(Metadata):
     # Update the delegated paths of 'child_rolename' to add relative paths.
     for role in roleinfo['delegations']['roles']:
       if role['name'] == child_rolename:
-        for relative_path in relative_paths:
+        for relative_path in paths:
           if relative_path not in role['paths']:
             role['paths'].append(relative_path)
 
@@ -1944,7 +1940,7 @@ class Targets(Metadata):
       securesystemslib.exceptions.FormatError, if 'filepath' is improperly
       formatted.
 
-      tuf.exceptions.InvalidNameError, if 'pathname' does not match pattern.
+      tuf.exceptions.InvalidNameError, if 'filepath' does not match pattern.
 
     <Side Effects>
       Adds 'filepath' to this role's list of targets.  This role's
@@ -2024,7 +2020,8 @@ class Targets(Metadata):
       securesystemslib.exceptions.FormatError, if the arguments are improperly
       formatted.
 
-      tuf.exceptions.InvalidNameError, if 'pathname' does not match pattern.
+      tuf.exceptions.InvalidNameError, if any target in 'list_of_targets'
+      does not match pattern.
 
     <Side Effects>
       This Targets' roleinfo is updated with the paths in 'list_of_targets'.
@@ -2039,9 +2036,6 @@ class Targets(Metadata):
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     tuf.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
 
-    # Update the tuf.roledb entry.
-    relative_list_of_targets = []
-
     # Ensure the paths in 'list_of_targets' are relative and use forward slash
     # as a separator or raise an exception. The paths of 'list_of_targets'
     # will be verified as existing and allowed paths according to this Targets
@@ -2050,14 +2044,12 @@ class Targets(Metadata):
     # in any order and minimize the number of times these checks are performed.
     for target in list_of_targets:
       self._check_path(target)
-      relative_list_of_targets.append(target)
 
     # Update this Targets 'tuf.roledb.py' entry.
     roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
-    for relative_target in relative_list_of_targets:
+    for relative_target in list_of_targets:
       if relative_target not in roleinfo['paths']:
         logger.debug('Adding new target: ' + repr(relative_target))
-
       else:
         logger.debug('Replacing target: ' + repr(relative_target))
       roleinfo['paths'].update({relative_target: {}})
@@ -2285,7 +2277,8 @@ class Targets(Metadata):
 
       securesystemslib.exceptions.Error, if the delegated role already exists.
 
-      tuf.exceptions.InvalidNameError, if 'pathname' does not match pattern.
+      tuf.exceptions.InvalidNameError, if any path in 'paths' or target in
+      'list_of_targets' does not match pattern.
 
     <Side Effects>
       A new Target object is created for 'rolename' that is accessible to the
@@ -2490,7 +2483,8 @@ class Targets(Metadata):
       2, or one of the targets in 'list_of_targets' is not relative to the
       repository's targets directory.
 
-      tuf.exceptions.InvalidNameError, if 'pathname' does not match pattern.
+      tuf.exceptions.InvalidNameError, if any target in 'list_of_targets'
+      does not match pattern.
 
     <Side Effects>
       Delegates multiple target roles from the current parent role.
