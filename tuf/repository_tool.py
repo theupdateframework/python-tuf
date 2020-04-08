@@ -2784,7 +2784,7 @@ class Targets(Metadata):
       raise tuf.exceptions.InvalidNameError('Path ' + repr(pathname)
           + ' does not use the forward slash (/) as directory separator.')
 
-    if pathname.startswith(os.sep):
+    if pathname.startswith('/'):
       raise tuf.exceptions.InvalidNameError('Path ' + repr(pathname)
           + ' starts with a directory separator. All paths should be relative'
           '  to targets directory.')

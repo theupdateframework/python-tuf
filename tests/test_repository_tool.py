@@ -1677,10 +1677,6 @@ class TestTargets(unittest.TestCase):
     # paths, which it previously did.
     self.targets_object.add_paths(['non-existent'], 'tuf')
 
-    # add_paths() should not raise an exception for paths that
-    # are not located in the repository's targets directory
-    repository_directory = os.path.join('repository_data', 'repository')
-    self.targets_object.add_paths([repository_directory], 'tuf')
 
 
 
@@ -1724,11 +1720,16 @@ class TestTargets(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.FormatError,
         self.targets_object._check_path, 3)
 
-    # Test invalid pathname - starting with os separator
+    # Test invalid pathname
+    # Starting with os separator
     self.assertRaises(tuf.exceptions.InvalidNameError,
         self.targets_object._check_path, '/file1.txt')
 
-    # Test invalid pathname - using '\' as os separator
+    # Starting with Windows-style separator
+    self.assertRaises(tuf.exceptions.InvalidNameError,
+        self.targets_object._check_path, '\\file1.txt')
+
+    # Using Windows-style separator ('\')
     self.assertRaises(tuf.exceptions.InvalidNameError,
         self.targets_object._check_path, 'subdir\\non-existent')
 
