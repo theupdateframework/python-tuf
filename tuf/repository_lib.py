@@ -146,9 +146,12 @@ def _generate_and_write_metadata(rolename, metadata_filename,
       _log_warning_if_expires_soon(TARGETS_FILENAME, roleinfo['expires'],
           TARGETS_EXPIRES_WARN_SECONDS)
 
+    # Don't hash-prefix consistent target files if they are handled out of band
+    consistent_targets = consistent_snapshot and not use_existing_fileinfo
+
     metadata = generate_targets_metadata(targets_directory, roleinfo['paths'],
         roleinfo['version'], roleinfo['expires'], roleinfo['delegations'],
-        consistent_snapshot, use_existing_fileinfo)
+        consistent_targets, use_existing_fileinfo)
 
   # Before writing 'rolename' to disk, automatically increment its version
   # number (if 'increment_version_number' is True) so that the caller does not

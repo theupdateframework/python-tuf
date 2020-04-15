@@ -231,10 +231,19 @@ class Repository(object):
 
     <Arguments>
       consistent_snapshot:
-        A boolean indicating whether written metadata and target files should
-        include a version number in the filename (i.e.,
-        <version_number>.root.json, <version_number>.README.json
-        Example: 13.root.json'
+        A boolean indicating whether role metadata files should have their
+        version numbers as filename prefix when written to disk, i.e
+        'VERSION.ROLENAME.json', and target files should be copied to a
+        filename that has their hex digest as filename prefix, i.e
+        'HASH.FILENAME'. Note that:
+        - root metadata is always written with a version prefix, independently
+          of 'consistent_snapshot'
+        - the latest version of each metadata file is always also written
+          without version prefix
+        - target files are only copied to a hash-prefixed filename if
+          'consistent_snapshot' is True and 'use_existing_fileinfo' is False.
+          If both are True hash-prefixed target file copies must be created
+          out-of-band.
 
       use_existing_fileinfo:
         Boolean indicating whether the fileinfo dicts in the roledb should be
@@ -348,10 +357,19 @@ class Repository(object):
         The name of the role to be written to disk.
 
       consistent_snapshot:
-        A boolean indicating whether written metadata and target files should
-        include a version number in the filename (i.e.,
-        <version_number>.root.json, <version_number>.README.json
-        Example: 13.root.json'
+        A boolean indicating whether the role metadata file should have its
+        version number as filename prefix when written to disk, i.e
+        'VERSION.ROLENAME.json'. Note that:
+        - root metadata is always written with a version prefix, independently
+          of 'consistent_snapshot'
+        - the latest version of the metadata file is always also written
+          without version prefix
+        - if the metadata is targets metadata and 'consistent_snapshot' is
+          True, the corresponding target files are copied to a filename with
+          their hex digest as filename prefix, i.e 'HASH.FILENAME', unless
+          'use_existing_fileinfo' is also True.
+          If 'consistent_snapshot' and 'use_existing_fileinfo' both are True,
+          hash-prefixed target file copies must be created out-of-band.
 
       increment_version_number:
         Boolean indicating whether the version number of 'rolename' should be
