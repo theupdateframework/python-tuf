@@ -14,4 +14,4 @@ requests==2.23.0
 securesystemslib[colors,crypto,pynacl]==0.14.2
 six==1.14.0
 subprocess32==3.5.4       ; python_version < '3' # via securesystemslib
-urllib3==1.25.8           # via requests
+urllib3==1.25.9           # via requests
