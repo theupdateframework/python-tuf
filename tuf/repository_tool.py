@@ -178,6 +178,16 @@ class Repository(object):
       The name of the repository.  If not supplied, 'rolename' is added to the
       'default' repository.
 
+    use_timestamp_length:
+      Whether to include the optional length attribute of the snapshot
+      metadata file in the timestamp metadata.
+      Default is True.
+
+    use_timestamp_hashes:
+      Whether to include the optional hashes attribute of the snapshot
+      metadata file in the timestamp metadata.
+      Default is True.
+
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the arguments are improperly
     formatted.
@@ -191,7 +201,8 @@ class Repository(object):
   """
 
   def __init__(self, repository_directory, metadata_directory,
-      targets_directory, storage_backend, repository_name='default'):
+      targets_directory, storage_backend, repository_name='default',
+      use_timestamp_length=True, use_timestamp_hashes=True):
 
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
@@ -201,12 +212,16 @@ class Repository(object):
     securesystemslib.formats.PATH_SCHEMA.check_match(metadata_directory)
     securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
     securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_timestamp_length)
+    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_timestamp_hashes)
 
     self._repository_directory = repository_directory
     self._metadata_directory = metadata_directory
     self._targets_directory = targets_directory
     self._repository_name = repository_name
     self._storage_backend = storage_backend
+    self._use_timestamp_length = use_timestamp_length
+    self._use_timestamp_hashes = use_timestamp_hashes
 
     try:
       tuf.roledb.create_roledb(repository_name)
@@ -337,7 +352,9 @@ class Repository(object):
       repo_lib._generate_and_write_metadata('timestamp', filenames['timestamp'],
           self._targets_directory, self._metadata_directory,
           self._storage_backend, consistent_snapshot,
-          filenames, repository_name=self._repository_name)
+          filenames, repository_name=self._repository_name,
+          use_timestamp_length=self._use_timestamp_length,
+          use_timestamp_hashes=self._use_timestamp_hashes)
 
     tuf.roledb.unmark_dirty(dirty_rolenames, self._repository_name)
 

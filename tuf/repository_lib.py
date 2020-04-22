@@ -96,11 +96,14 @@ SUPPORTED_KEY_TYPES = ['rsa', 'ed25519', 'ecdsa-sha2-nistp256']
 HASH_FUNCTION = tuf.settings.DEFAULT_HASH_ALGORITHM
 
 
+
+
 def _generate_and_write_metadata(rolename, metadata_filename,
   targets_directory, metadata_directory, storage_backend,
   consistent_snapshot=False, filenames=None, allow_partially_signed=False,
   increment_version_number=True, repository_name='default',
-  use_existing_fileinfo=False):
+  use_existing_fileinfo=False, use_timestamp_length=True,
+  use_timestamp_hashes=True):
   """
   Non-public function that can generate and write the metadata for the
   specified 'rolename'.  It also increments the version number of 'rolename' if
@@ -139,7 +142,8 @@ def _generate_and_write_metadata(rolename, metadata_filename,
   elif rolename == 'timestamp':
     snapshot_filename = filenames['snapshot']
     metadata = generate_timestamp_metadata(snapshot_filename, roleinfo['version'],
-        roleinfo['expires'], storage_backend, repository_name)
+        roleinfo['expires'], storage_backend, repository_name,
+        use_length=use_timestamp_length, use_hashes=use_timestamp_hashes)
 
     _log_warning_if_expires_soon(TIMESTAMP_FILENAME, roleinfo['expires'],
         TIMESTAMP_EXPIRES_WARN_SECONDS)
@@ -1512,7 +1516,6 @@ def _generate_targets_fileinfo(target_files, targets_directory,
 
 
 
-
 def generate_snapshot_metadata(metadata_directory, version, expiration_date,
     targets_filename, storage_backend, consistent_snapshot=False,
     repository_name='default'):
@@ -1634,7 +1637,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
 
 
 def generate_timestamp_metadata(snapshot_filename, version, expiration_date,
-    storage_backend, repository_name):
+    storage_backend, repository_name, use_length=True, use_hashes=True):
   """
   <Purpose>
     Generate the timestamp metadata object.  The 'snapshot.json' file must
@@ -1662,6 +1665,16 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date,
       The name of the repository.  If not supplied, 'rolename' is added to the
       'default' repository.
 
+    use_length:
+      Whether to include the optional length attribute of the snapshot
+      metadata file in the timestamp metadata.
+      Default is True.
+
+    use_hashes:
+      Whether to include the optional hashes attribute of the snapshot
+      metadata file in the timestamp metadata.
+      Default is True.
+
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the generated timestamp metadata
     object cannot be formatted correctly, or one of the arguments is improperly
@@ -1682,14 +1695,21 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date,
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   securesystemslib.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_length)
+  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_hashes)
 
-  # Retrieve the versioninfo of the Snapshot metadata file.
   snapshot_fileinfo = {}
+
   length, hashes = securesystemslib.util.get_file_details(snapshot_filename,
       tuf.settings.FILE_HASH_ALGORITHMS, storage_backend)
+
+  length = (use_length and length) or None
+  hashes = (use_hashes and hashes) or None
+
+  # Retrieve the versioninfo of the Snapshot metadata file.
   snapshot_version = get_metadata_versioninfo('snapshot', repository_name)
   snapshot_fileinfo[SNAPSHOT_FILENAME] = \
-    tuf.formats.make_fileinfo(length, hashes, version=snapshot_version['version'])
+      tuf.formats.make_fileinfo(length, hashes, version=snapshot_version['version'])
 
   # Generate the timestamp metadata object.
   # Use generalized build_dict_conforming_to_schema func to produce a dict that

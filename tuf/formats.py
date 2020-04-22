@@ -232,8 +232,8 @@ HASHDICT_SCHEMA = SCHEMA.DictOf(
 # and sha512 may be computed for the same file and stored).
 FILEINFO_SCHEMA = SCHEMA.Object(
   object_name = 'FILEINFO_SCHEMA',
-  length = LENGTH_SCHEMA,
-  hashes = HASHDICT_SCHEMA,
+  length = SCHEMA.Optional(LENGTH_SCHEMA),
+  hashes = SCHEMA.Optional(HASHDICT_SCHEMA),
   version = SCHEMA.Optional(METADATAVERSION_SCHEMA),
   custom = SCHEMA.Optional(SCHEMA.Object()))
 
@@ -793,7 +793,13 @@ def make_fileinfo(length, hashes, version=None, custom=None):
     information of a metadata or target file.
   """
 
-  fileinfo = {'length' : length, 'hashes' : hashes}
+  fileinfo = {}
+
+  if length is not None:
+    fileinfo['length'] = length
+
+  if hashes is not None:
+    fileinfo['hashes'] = hashes
 
   if version is not None:
     fileinfo['version'] = version
