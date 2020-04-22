@@ -140,6 +140,7 @@ import tuf.roledb
 import tuf.sig
 import tuf.exceptions
 
+import securesystemslib.exceptions
 import securesystemslib.hash
 import securesystemslib.keys
 import securesystemslib.util
@@ -211,7 +212,7 @@ class MultiRepoUpdater(object):
       # The map file dictionary that associates targets with repositories.
       self.map_file = securesystemslib.util.load_json_file(map_file)
 
-    except (securesystemslib.exceptions.Error, IOError) as e:
+    except (securesystemslib.exceptions.Error) as e:
       raise tuf.exceptions.Error('Cannot load the map file: ' + str(e))
 
     # Raise securesystemslib.exceptions.FormatError if the map file is
@@ -3174,7 +3175,7 @@ class Updater(object):
             algorithm=algorithm)
 
         # This exception would occur if the target does not exist locally.
-        except IOError:
+        except securesystemslib.exceptions.StorageError:
           updated_targets.append(target)
           updated_targetpaths.append(target_filepath)
           break

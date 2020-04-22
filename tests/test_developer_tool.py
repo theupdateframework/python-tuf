@@ -38,6 +38,7 @@ import tuf.developer_tool as developer_tool
 import tuf.exceptions
 
 import securesystemslib
+import securesystemslib.exceptions
 
 from tuf.developer_tool import METADATA_DIRECTORY_NAME
 from tuf.developer_tool import TARGETS_DIRECTORY_NAME
@@ -188,7 +189,8 @@ class TestProject(unittest.TestCase):
 
     # Test non-existent project filepath.
     nonexistent_path = os.path.join(local_tmp, 'nonexistent')
-    self.assertRaises(IOError, developer_tool.load_project, nonexistent_path)
+    self.assertRaises(securesystemslib.exceptions.StorageError,
+        developer_tool.load_project, nonexistent_path)
 
     # Copy the pregenerated metadata.
     project_data_filepath = os.path.join('repository_data', 'project')

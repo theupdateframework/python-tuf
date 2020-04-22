@@ -87,14 +87,6 @@ MIN_AVERAGE_DOWNLOAD_SPEED = 50 #bytes/second
 # By default, limit number of delegatees we visit for any target.
 MAX_NUMBER_OF_DELEGATIONS = 2**5
 
-# This configuration is for indicating how consistent files should be created.
-# There are two options: "copy" and "hard_link".  For "copy", the consistent
-# file with be a copy of root.json.  This approach will require the most disk
-# space out of the two options.  For "hard_link", the latest root.json will be
-# a hard link to 2.root.json (for example).  This approach is more efficient in
-# terms of disk space usage.  By default, we use 'copy'.
-CONSISTENT_METHOD = 'copy'
-
 # A setting for the instances where a default hashing algorithm is needed.
 # This setting is currently used to calculate the path hash prefixes of hashed
 # bin delegations, and digests of targets filepaths.  The other instances

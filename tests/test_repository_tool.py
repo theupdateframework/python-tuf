@@ -48,6 +48,7 @@ import tuf.repository_tool as repo_tool
 import securesystemslib.exceptions
 
 import securesystemslib
+import securesystemslib.storage
 import six
 
 logger = logging.getLogger(__name__)
@@ -96,20 +97,22 @@ class TestRepository(unittest.TestCase):
   def test_init(self):
     # Test normal case.
     repository_name = 'test_repository'
+    storage_backend = securesystemslib.storage.FilesystemBackend()
     repository = repo_tool.Repository('repository_directory/',
-        'metadata_directory/', 'targets_directory/', repository_name)
+        'metadata_directory/', 'targets_directory/', storage_backend,
+        repository_name)
     self.assertTrue(isinstance(repository.root, repo_tool.Root))
     self.assertTrue(isinstance(repository.snapshot, repo_tool.Snapshot))
     self.assertTrue(isinstance(repository.timestamp, repo_tool.Timestamp))
     self.assertTrue(isinstance(repository.targets, repo_tool.Targets))
 
     # Test improperly formatted arguments.
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.Repository, 3,
-                      'metadata_directory/', 'targets_directory')
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.Repository,
-                      'repository_directory', 3, 'targets_directory')
+                      storage_backend, 3, 'metadata_directory/', 'targets_directory')
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.Repository,
-                      'repository_directory', 'metadata_directory', 3)
+                      'repository_directory', storage_backend, 3, 'targets_directory')
+    self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.Repository,
+                      'repository_directory', 'metadata_directory', 3, storage_backend)
 
 
 
@@ -1818,14 +1821,9 @@ class TestRepositoryToolFunctions(unittest.TestCase):
         repo_tool.create_new_repository, 3, repository_name)
 
     # For testing purposes, try to create a repository directory that
-    # fails due to a non-errno.EEXIST exception raised.  create_new_repository()
-    # should only pass for OSError (errno.EEXIST).
-    try:
-      repo_tool.create_new_repository('bad' * 2000, repository_name)
-
-    except OSError as e:
-      # errno.ENOENT is raised in Windows.
-      self.assertTrue(e.errno == errno.ENAMETOOLONG or e.errno == errno.ENOENT)
+    # fails due to a non-errno.EEXIST exception raised.
+    self.assertRaises(securesystemslib.exceptions.StorageError,
+        repo_tool.create_new_repository, 'bad' * 2000, repository_name)
 
     # Reset the 'repository_directory' so that the metadata and targets
     # directories can be tested likewise.
@@ -1836,12 +1834,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       tuf.repository_tool.METADATA_STAGED_DIRECTORY_NAME
     tuf.repository_tool.METADATA_STAGED_DIRECTORY_NAME = 'bad' * 2000
 
-    try:
-      repo_tool.create_new_repository(repository_directory, repository_name)
-
-    except OSError as e:
-      # errno.ENOENT is raised in Windows.
-      self.assertTrue(e.errno == errno.ENAMETOOLONG or e.errno == errno.ENOENT)
+    self.assertRaises(securesystemslib.exceptions.StorageError,
+        repo_tool.create_new_repository, repository_directory, repository_name)
 
     # Reset metadata staged directory so that the targets directory can be
     # tested...
@@ -1851,12 +1845,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     original_targets_directory = tuf.repository_tool.TARGETS_DIRECTORY_NAME
     tuf.repository_tool.TARGETS_DIRECTORY_NAME = 'bad' * 2000
 
-    try:
-      repo_tool.create_new_repository(repository_directory, repository_name)
-
-    except OSError as e:
-      # errno.ENOENT is raised in Windows.
-      self.assertTrue(e.errno == errno.ENAMETOOLONG or e.errno == errno.ENOENT)
+    self.assertRaises(securesystemslib.exceptions.StorageError,
+         repo_tool.create_new_repository, repository_directory, repository_name)
 
     tuf.repository_tool.TARGETS_DIRECTORY_NAME = \
       original_targets_directory
@@ -1943,8 +1933,10 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     metadata_content = repo_tool.dump_signable_metadata(targets_metadata_file)
 
     # Test for an invalid targets metadata file..
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.dump_signable_metadata, 1)
-    self.assertRaises(IOError, repo_tool.dump_signable_metadata, 'bad file path')
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        repo_tool.dump_signable_metadata, 1)
+    self.assertRaises(securesystemslib.exceptions.StorageError,
+        repo_tool.dump_signable_metadata, 'bad file path')
 
 
 
