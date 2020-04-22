@@ -496,7 +496,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
 
-  def test_generate_timestamp_metadata(self):
+  def _setup_generate_timestamp_metadata_test(self):
     # Test normal case.
     repository_name = 'test_repository'
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
@@ -524,6 +524,14 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     repository_junk = repo_tool.load_repository(repository_directory,
         repository_name)
 
+    return snapshot_filename, version, expiration_date, storage_backend, \
+        repository_name
+
+
+  def test_generate_timestamp_metadata(self):
+    snapshot_filename, version, expiration_date, storage_backend, \
+      repository_name = self._setup_generate_timestamp_metadata_test()
+
     timestamp_metadata = repo_lib.generate_timestamp_metadata(snapshot_filename,
         version, expiration_date, storage_backend, repository_name)
     self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches(timestamp_metadata))
@@ -541,6 +549,54 @@ class TestRepositoryToolFunctions(unittest.TestCase):
         storage_backend, repository_name)
 
 
+
+  def test_generate_timestamp_metadata_without_length(self):
+    snapshot_filename, version, expiration_date, storage_backend, \
+      repository_name = self._setup_generate_timestamp_metadata_test()
+
+    timestamp_metadata = repo_lib.generate_timestamp_metadata(snapshot_filename,
+        version, expiration_date, storage_backend, repository_name,
+        use_length=False)
+    self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches(timestamp_metadata))
+
+    # Check that length is not calculated but hashes is
+    timestamp_file_info = timestamp_metadata['meta']
+
+    self.assertNotIn('length', timestamp_file_info['snapshot.json'])
+    self.assertIn('hashes', timestamp_file_info['snapshot.json'])
+
+
+
+  def test_generate_timestamp_metadata_without_hashes(self):
+    snapshot_filename, version, expiration_date, storage_backend, \
+      repository_name = self._setup_generate_timestamp_metadata_test()
+
+    timestamp_metadata = repo_lib.generate_timestamp_metadata(snapshot_filename,
+        version, expiration_date, storage_backend, repository_name,
+        use_hashes=False)
+    self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches(timestamp_metadata))
+
+    # Check that hashes is not calculated but length is
+    timestamp_file_info = timestamp_metadata['meta']
+
+    self.assertIn('length', timestamp_file_info['snapshot.json'])
+    self.assertNotIn('hashes', timestamp_file_info['snapshot.json'])
+
+
+
+  def test_generate_timestamp_metadata_without_length_and_hashes(self):
+    snapshot_filename, version, expiration_date, storage_backend, \
+      repository_name = self._setup_generate_timestamp_metadata_test()
+
+    timestamp_metadata = repo_lib.generate_timestamp_metadata(snapshot_filename,
+        version, expiration_date, storage_backend, repository_name,
+        use_hashes=False, use_length=False)
+    self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches(timestamp_metadata))
+
+    # Check that length and hashes attributes are not added
+    timestamp_file_info = timestamp_metadata['meta']
+    self.assertNotIn('length', timestamp_file_info['snapshot.json'])
+    self.assertNotIn('hashes', timestamp_file_info['snapshot.json'])
 
 
 
