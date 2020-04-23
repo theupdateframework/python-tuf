@@ -820,10 +820,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # metadata does not match the code's expected spec version.
     tuf.SPECIFICATION_VERSION = correct_specification_version
 
-    upperbound_filelength = tuf.settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
+    upperbound_file_length = tuf.settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
     try:
       self.repository_updater._get_metadata_file('timestamp', 'timestamp.json',
-      upperbound_filelength, 1)
+      upperbound_file_length, 1)
 
     except tuf.exceptions.NoWorkingMirrorError as e:
       # Note that this test provides a piece of metadata which would fail to

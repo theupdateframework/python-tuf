@@ -1452,7 +1452,7 @@ class Updater(object):
 
 
   def _get_metadata_file(self, metadata_role, remote_filename,
-    upperbound_filelength, expected_version):
+    upperbound_file_length, expected_version):
     """
     <Purpose>
       Non-public method that tries downloading, up to a certain length, a
@@ -1467,7 +1467,7 @@ class Updater(object):
       remote_filename:
         The relative file path (on the remove repository) of 'metadata_role'.
 
-      upperbound_filelength:
+      upperbound_file_length:
         The expected length, or upper bound, of the metadata file to be
         downloaded.
 
@@ -1499,7 +1499,7 @@ class Updater(object):
     for file_mirror in file_mirrors:
       try:
         file_object = tuf.download.unsafe_download(file_mirror,
-            upperbound_filelength)
+            upperbound_file_length)
         file_object.seek(0)
 
         # Verify 'file_object' according to the callable function.
@@ -1708,7 +1708,7 @@ class Updater(object):
 
 
 
-  def _update_metadata(self, metadata_role, upperbound_filelength, version=None):
+  def _update_metadata(self, metadata_role, upperbound_file_length, version=None):
     """
     <Purpose>
       Non-public method that downloads, verifies, and 'installs' the metadata
@@ -1724,7 +1724,7 @@ class Updater(object):
         The name of the metadata. This is a role name and should not end
         in '.json'.  Examples: 'root', 'targets', 'targets/linux/x86'.
 
-      upperbound_filelength:
+      upperbound_file_length:
         The expected length, or upper bound, of the metadata file to be
         downloaded.
 
@@ -1778,7 +1778,7 @@ class Updater(object):
 
     metadata_file_object = \
       self._get_metadata_file(metadata_role, remote_filename,
-        upperbound_filelength, version)
+        upperbound_file_length, version)
 
     # The metadata has been verified. Move the metadata file into place.
     # First, move the 'current' metadata file to the 'previous' directory
@@ -1935,14 +1935,14 @@ class Updater(object):
     # expected role.  Note: The Timestamp role is not updated via this
     # function.
     if metadata_role == 'snapshot':
-      upperbound_filelength = tuf.settings.DEFAULT_SNAPSHOT_REQUIRED_LENGTH
+      upperbound_file_length = tuf.settings.DEFAULT_SNAPSHOT_REQUIRED_LENGTH
 
     # The metadata is considered Targets (or delegated Targets metadata).
     else:
-      upperbound_filelength = tuf.settings.DEFAULT_TARGETS_REQUIRED_LENGTH
+      upperbound_file_length = tuf.settings.DEFAULT_TARGETS_REQUIRED_LENGTH
 
     try:
-      self._update_metadata(metadata_role, upperbound_filelength,
+      self._update_metadata(metadata_role, upperbound_file_length,
           expected_versioninfo['version'])
 
     except Exception:
