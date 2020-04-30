@@ -300,7 +300,10 @@ NUMBINS_SCHEMA = SCHEMA.Integer(lo=1)
 # The fileinfo format of targets specified in the repository and
 # developer tools.  The fields match that of FILEINFO_SCHEMA, only all
 # fields are optional.
-CUSTOM_SCHEMA = SCHEMA.Object()
+CUSTOM_SCHEMA = SCHEMA.DictOf(
+  key_schema = SCHEMA.AnyString(),
+  value_schema = SCHEMA.Any()
+)
 LOOSE_FILEINFO_SCHEMA = SCHEMA.Object(
   object_name = "LOOSE_FILEINFO_SCHEMA",
   length = SCHEMA.Optional(LENGTH_SCHEMA),
