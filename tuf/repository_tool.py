@@ -1929,12 +1929,6 @@ class Targets(Metadata):
       Add a filepath (must be relative to the repository's targets directory)
       to the Targets object.
 
-      This method does not access the file system. 'filepath' must already
-      exist on the file system.
-
-      If 'filepath' does not exist the file will still be added to 'roleinfo'.
-      Only later calls to write() and writeall() will fail.
-
       If 'filepath' has already been added, it will be replaced with any new
       file or 'custom' information.
 
@@ -1948,11 +1942,21 @@ class Targets(Metadata):
         targets directory.
 
       custom:
-        An optional object providing additional information about the file.
+        An optional dictionary providing additional information about the file.
+        NOTE: if a custom value is passed, the fileinfo parameter must be None.
+        This parameter will be deprecated in a future release of tuf, use of
+        the fileinfo parameter is preferred.
 
       fileinfo:
-        An optional fileinfo object, conforming to tuf.formats.FILEINFO_SCHEMA,
-        providing full information about the file.
+        An optional fileinfo dictionary, conforming to
+        tuf.formats.FILEINFO_SCHEMA, providing full information about the
+        file, i.e:
+          { 'length': 101,
+            'hashes': { 'sha256': '123EDF...' },
+            'version': 2, # optional
+            'custom': { 'permissions': '600'} # optional
+          }
+        NOTE: if a custom value is passed, the fileinfo parameter must be None.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError, if 'filepath' is improperly
