@@ -188,6 +188,20 @@ class Repository(object):
       metadata file in the timestamp metadata.
       Default is True.
 
+    use_snapshot_length:
+      Whether to include the optional length attribute for targets
+      metadata files in the snapshot metadata.
+      Default is False because of bandwidth considerations.
+      Read more at section 5.6 from the Mercury paper:
+      https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
+
+    use_snapshot_hashes:
+      Whether to include the optional hashes attribute for targets
+      metadata files in the snapshot metadata.
+      Default is False because of bandwidth considerations.
+      Read more at section 5.6 from the Mercury paper:
+      https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
+
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the arguments are improperly
     formatted.
@@ -202,7 +216,8 @@ class Repository(object):
 
   def __init__(self, repository_directory, metadata_directory,
       targets_directory, storage_backend, repository_name='default',
-      use_timestamp_length=True, use_timestamp_hashes=True):
+      use_timestamp_length=True, use_timestamp_hashes=True,
+      use_snapshot_length=False, use_snapshot_hashes=False):
 
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
@@ -214,6 +229,8 @@ class Repository(object):
     securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
     securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_timestamp_length)
     securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_timestamp_hashes)
+    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_snapshot_length)
+    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_snapshot_hashes)
 
     self._repository_directory = repository_directory
     self._metadata_directory = metadata_directory
@@ -222,6 +239,8 @@ class Repository(object):
     self._storage_backend = storage_backend
     self._use_timestamp_length = use_timestamp_length
     self._use_timestamp_hashes = use_timestamp_hashes
+    self._use_snapshot_length = use_snapshot_length
+    self._use_snapshot_hashes = use_snapshot_hashes
 
     try:
       tuf.roledb.create_roledb(repository_name)
@@ -345,7 +364,9 @@ class Repository(object):
           filenames['snapshot'], self._targets_directory,
           self._metadata_directory, self._storage_backend,
           consistent_snapshot, filenames,
-          repository_name=self._repository_name)
+          repository_name=self._repository_name,
+          use_snapshot_length=self._use_snapshot_length,
+          use_snapshot_hashes=self._use_snapshot_hashes)
 
     # Generate the 'timestamp.json' metadata file.
     if 'timestamp' in dirty_rolenames:

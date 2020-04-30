@@ -103,7 +103,8 @@ def _generate_and_write_metadata(rolename, metadata_filename,
   consistent_snapshot=False, filenames=None, allow_partially_signed=False,
   increment_version_number=True, repository_name='default',
   use_existing_fileinfo=False, use_timestamp_length=True,
-  use_timestamp_hashes=True):
+  use_timestamp_hashes=True, use_snapshot_length=False,
+  use_snapshot_hashes=False):
   """
   Non-public function that can generate and write the metadata for the
   specified 'rolename'.  It also increments the version number of 'rolename' if
@@ -133,7 +134,8 @@ def _generate_and_write_metadata(rolename, metadata_filename,
     targets_filename = TARGETS_FILENAME[:-len(METADATA_EXTENSION)]
     metadata = generate_snapshot_metadata(metadata_directory,
         roleinfo['version'], roleinfo['expires'], targets_filename,
-        storage_backend, consistent_snapshot, repository_name)
+        storage_backend, consistent_snapshot, repository_name,
+        use_length=use_snapshot_length, use_hashes=use_snapshot_hashes)
 
 
     _log_warning_if_expires_soon(SNAPSHOT_FILENAME, roleinfo['expires'],
@@ -1518,7 +1520,7 @@ def _generate_targets_fileinfo(target_files, targets_directory,
 
 def generate_snapshot_metadata(metadata_directory, version, expiration_date,
     targets_filename, storage_backend, consistent_snapshot=False,
-    repository_name='default'):
+    repository_name='default', use_length=False, use_hashes=False):
   """
   <Purpose>
     Create the snapshot metadata.  The minimum metadata must exist (i.e.,
@@ -1557,6 +1559,20 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       The name of the repository.  If not supplied, 'rolename' is added to the
       'default' repository.
 
+    use_length:
+      Whether to include the optional length attribute for targets
+      metadata files in the snapshot metadata.
+      Default is False because of bandwidth considerations.
+      Read more at section 5.6 from the Mercury paper:
+      https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
+
+    use_hashes:
+      Whether to include the optional hashes attribute for targets
+      metadata files in the snapshot metadata.
+      Default is False because of bandwidth considerations.
+      Read more at section 5.6 from the Mercury paper:
+      https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
+
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the arguments are improperly
     formatted.
@@ -1581,12 +1597,25 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   securesystemslib.formats.PATH_SCHEMA.check_match(targets_filename)
   securesystemslib.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_length)
+  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_hashes)
 
   # Snapshot's 'fileinfodict' shall contain the version number of Root,
   # Targets, and all delegated roles of the repository.
   fileinfodict = {}
-  fileinfodict[TARGETS_FILENAME] = get_metadata_versioninfo(targets_filename,
+
+  length, hashes = securesystemslib.util.get_file_details(
+      os.path.join(metadata_directory, targets_filename),
+      tuf.settings.FILE_HASH_ALGORITHMS, storage_backend)
+
+  length = (use_length and length) or None
+  hashes = (use_hashes and hashes) or None
+
+  targets_file_version = get_metadata_versioninfo(targets_filename,
       repository_name)
+
+  fileinfodict[TARGETS_FILENAME] = tuf.formats.make_fileinfo(
+    length, hashes, version=targets_file_version['version'])
 
   # Search the metadata directory and generate the versioninfo of all the role
   # files found there.  This information is stored in the 'meta' field of
@@ -1610,8 +1639,19 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       # list these roles found in the metadata directory.
       if tuf.roledb.role_exists(rolename, repository_name) and \
           rolename not in tuf.roledb.TOP_LEVEL_ROLES:
-        fileinfodict[metadata_name] = get_metadata_versioninfo(rolename,
+
+        length, hashes = securesystemslib.util.get_file_details(
+          os.path.join(metadata_directory, metadata_filename),
+          tuf.settings.FILE_HASH_ALGORITHMS)
+
+        length = (use_length and length) or None
+        hashes = (use_hashes and hashes) or None
+
+        file_version = get_metadata_versioninfo(rolename,
             repository_name)
+
+        fileinfodict[metadata_name] = tuf.formats.make_fileinfo(
+          length, hashes, version=file_version['version'])
 
     else:
       logger.debug('Metadata file has an unsupported file'
