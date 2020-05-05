@@ -530,8 +530,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
 
   # Load 'root.json'.  A Root role file without a version number is always
   # written.
-  if os.path.exists(root_filename):
-
+  try:
     # Initialize the key and role metadata of the top-level roles.
     signable = securesystemslib.util.load_json_file(root_filename)
     tuf.formats.check_signable_object_format(signable)
@@ -569,13 +568,13 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     # Ensure the 'consistent_snapshot' field is extracted.
     consistent_snapshot = root_metadata['consistent_snapshot']
 
-  else:
+  except securesystemslib.exceptions.StorageError:
     raise tuf.exceptions.RepositoryError('Cannot load the required'
-      ' root file: ' + repr(root_filename))
+        ' root file: ' + repr(root_filename))
 
   # Load 'timestamp.json'.  A Timestamp role file without a version number is
   # always written.
-  if os.path.exists(timestamp_filename):
+  try:
     signable = securesystemslib.util.load_json_file(timestamp_filename)
     timestamp_metadata = signable['signed']
     for signature in signable['signatures']:
@@ -598,7 +597,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     tuf.roledb.update_roleinfo('timestamp', roleinfo, mark_role_as_dirty=False,
         repository_name=repository_name)
 
-  else:
+  except securesystemslib.exceptions.StorageError:
     logger.debug('Cannot load the Timestamp  file: ' + repr(timestamp_filename))
 
   # Load 'snapshot.json'.  A consistent snapshot.json must be calculated if
@@ -612,7 +611,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     snapshot_filename = os.path.join(dirname,
         str(snapshot_version) + '.' + basename + METADATA_EXTENSION)
 
-  if os.path.exists(snapshot_filename):
+  try:
     signable = securesystemslib.util.load_json_file(snapshot_filename)
     tuf.formats.check_signable_object_format(signable)
     snapshot_metadata = signable['signed']
@@ -637,7 +636,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     tuf.roledb.update_roleinfo('snapshot', roleinfo, mark_role_as_dirty=False,
         repository_name=repository_name)
 
-  else:
+  except securesystemslib.exceptions.StorageError:
     logger.debug('The Snapshot file cannot be loaded: ' + repr(snapshot_filename))
 
   # Load 'targets.json'.  A consistent snapshot of the Targets role must be
@@ -647,7 +646,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     dirname, basename = os.path.split(targets_filename)
     targets_filename = os.path.join(dirname, str(targets_version) + '.' + basename)
 
-  if os.path.exists(targets_filename):
+  try:
     signable = securesystemslib.util.load_json_file(targets_filename)
     tuf.formats.check_signable_object_format(signable)
     targets_metadata = signable['signed']
@@ -701,8 +700,8 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
       except tuf.exceptions.KeyAlreadyExistsError:
         pass
 
-  else:
-    logger.debug('The Targets file cannot be loaded: ' + repr(targets_filename))
+  except securesystemslib.exceptions.StorageError:
+    logger.debug('The Targets file can not be loaded: ' + repr(targets_filename))
 
   return repository, consistent_snapshot
 
