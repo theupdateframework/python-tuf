@@ -136,14 +136,14 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     command = ['python', SIMPLE_SERVER_PATH, str(self.SERVER_PORT)]
     command2 = ['python', SIMPLE_SERVER_PATH, str(self.SERVER_PORT2)]
 
-    self.server_process = subprocess.Popen(command, stderr=subprocess.PIPE,
+    self.server_process = subprocess.Popen(command,
         cwd=self.repository_directory)
 
     logger.debug('Server process started.')
     logger.debug('Server process id: ' + str(self.server_process.pid))
     logger.debug('Serving on port: ' + str(self.SERVER_PORT))
 
-    self.server_process2 = subprocess.Popen(command2, stderr=subprocess.PIPE,
+    self.server_process2 = subprocess.Popen(command2,
         cwd=self.repository_directory2)
 
 

@@ -104,7 +104,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # etc.
     cls.SERVER_PORT = random.randint(30000, 45000)
     command = ['python', cls.SIMPLE_SERVER_PATH, str(cls.SERVER_PORT)]
-    cls.server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
+    cls.server_process = subprocess.Popen(command)
     logger.info('\n\tServer process started.')
     logger.info('\tServer process id: '+str(cls.server_process.pid))
     logger.info('\tServing on port: '+str(cls.SERVER_PORT))
@@ -1097,7 +1097,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # timeout in Windows after a few tests.
     SERVER_PORT = random.randint(30000, 45000)
     command = ['python', self.SIMPLE_SERVER_PATH, str(SERVER_PORT)]
-    server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
+    server_process = subprocess.Popen(command)
 
     # NOTE: Following error is raised if a delay is not long enough:
     # <urlopen error [Errno 111] Connection refused>
@@ -1365,7 +1365,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # timeout in Windows after a few tests.
     SERVER_PORT = random.randint(30000, 45000)
     command = ['python', self.SIMPLE_SERVER_PATH, str(SERVER_PORT)]
-    server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
+    server_process = subprocess.Popen(command)
 
     # NOTE: Following error is raised if a delay is not long enough to allow
     # the server process to set up and start listening:
@@ -1497,7 +1497,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # timeout in Windows after a few tests.
     SERVER_PORT = random.randint(30000, 45000)
     command = ['python', self.SIMPLE_SERVER_PATH, str(SERVER_PORT)]
-    server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
+    server_process = subprocess.Popen(command)
 
     # NOTE: Following error is raised if a delay is not long enough to allow
     # the server process to set up and start listening:
@@ -1888,14 +1888,14 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     command = ['python', self.SIMPLE_SERVER_PATH, str(self.SERVER_PORT)]
     command2 = ['python', self.SIMPLE_SERVER_PATH, str(self.SERVER_PORT2)]
 
-    self.server_process = subprocess.Popen(command, stderr=subprocess.PIPE,
+    self.server_process = subprocess.Popen(command,
         cwd=self.repository_directory)
 
     logger.debug('Server process started.')
     logger.debug('Server process id: ' + str(self.server_process.pid))
     logger.debug('Serving on port: ' + str(self.SERVER_PORT))
 
-    self.server_process2 = subprocess.Popen(command2, stderr=subprocess.PIPE,
+    self.server_process2 = subprocess.Popen(command2,
         cwd=self.repository_directory2)
 
     logger.debug('Server process 2 started.')

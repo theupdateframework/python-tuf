@@ -71,7 +71,15 @@ class QuietHTTPRequestHandler(SimpleHTTPRequestHandler):
 if six.PY2 and platform.system() == 'Windows':
   handler = QuietHTTPRequestHandler
 else:
-  handler = SimpleHTTPRequestHandler
+  use_quiet_http_request_handler = True
+
+  if len(sys.argv) > 2:
+    use_quiet_http_request_handler = sys.argv[2]
+
+  if use_quiet_http_request_handler:
+    handler = QuietHTTPRequestHandler
+  else:
+    handler = SimpleHTTPRequestHandler
 
 httpd = six.moves.socketserver.TCPServer(('', PORT), handler)
 

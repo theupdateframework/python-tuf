@@ -103,7 +103,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     # as a delegated role 'targets/role1', three target files, five key files,
     # etc.
     command = ['python', 'slow_retrieval_server.py', str(self.SERVER_PORT), mode]
-    server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
+    server_process = subprocess.Popen(command)
     logger.info('Slow Retrieval Server process started.')
     logger.info('Server process id: '+str(server_process.pid))
     logger.info('Serving on port: '+str(self.SERVER_PORT))
