@@ -128,8 +128,13 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     while self.SERVER_PORT == self.SERVER_PORT2:
       self.SERVER_PORT2 = random.SystemRandom().randint(30000, 45000)
 
-    command = ['python', '-m', 'tests.simple_server', str(self.SERVER_PORT)]
-    command2 = ['python', '-m', 'tests.simple_server', str(self.SERVER_PORT2)]
+    # Needed because in some tests simple_server.py cannot be found.
+    # The reason is that the current working directory
+    # has been changed when executing a subprocess.
+    SIMPLE_SERVER_PATH = os.path.join(os.getcwd(), 'simple_server.py')
+
+    command = ['python', SIMPLE_SERVER_PATH, str(self.SERVER_PORT)]
+    command2 = ['python', SIMPLE_SERVER_PATH, str(self.SERVER_PORT2)]
 
     self.server_process = subprocess.Popen(command, stderr=subprocess.PIPE,
         cwd=self.repository_directory)
