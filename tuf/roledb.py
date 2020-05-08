@@ -72,6 +72,21 @@ _roledb_dict['default'] = {}
 _dirty_roles = {}
 _dirty_roles['default'] = set()
 
+# A dictionary representing the relations between roles in an update chain.
+# e.g _upper_level_role['snapshot'] gives the next role that needs to be
+# marked as dirty in case of a version update of 'snapshot'.
+_upper_level_role = {'root': None,
+                     'timestamp': None,
+                     'snapshot': 'timestamp',
+                     'targets': 'snapshot'}
+
+# A dictionary representing a reverse graph of the top-level roles delegations
+# Given a delegated role as a key, it gives the delegating role.
+# e.g 'root' = _delegating_role['snapshot']
+_delegating_role = {'root': None,
+                    'timestamp': 'root',
+                    'snapshot': 'root',
+                    'targets': 'root'}
 
 def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
   """
@@ -308,7 +323,6 @@ def add_role(rolename, roleinfo, mark_role_as_dirty=False, repository_name='defa
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
   global _roledb_dict
-  global _dirty_roles
 
   # Raises securesystemslib.exceptions.InvalidNameError.
   _validate_rolename(rolename)
@@ -322,7 +336,7 @@ def add_role(rolename, roleinfo, mark_role_as_dirty=False, repository_name='defa
   _roledb_dict[repository_name][rolename] = copy.deepcopy(roleinfo)
 
   if mark_role_as_dirty:
-    _dirty_roles[repository_name].add(rolename)
+    _propagate_dirty_roles(rolename, False, repository_name)
 
 
 
@@ -405,14 +419,94 @@ def update_roleinfo(rolename, roleinfo, mark_role_as_dirty=True, repository_name
   if rolename not in _roledb_dict[repository_name]:
     raise tuf.exceptions.UnknownRoleError('Role does not exist: ' + rolename)
 
+  if mark_role_as_dirty:
+    # Check if the update is triggered by a key update and use it to
+    # determine the chain of roles affected by the update
+    key_update = _is_key_update(rolename, roleinfo, repository_name)
+
   # Update the global _roledb_dict and _dirty_roles structures so that
   # the latest 'roleinfo' is available to other modules, and the repository
   # tools know which roles should be saved to disk.
   _roledb_dict[repository_name][rolename] = copy.deepcopy(roleinfo)
 
   if mark_role_as_dirty:
-    _dirty_roles[repository_name].add(rolename)
+    # Recursively mark as dirty all roles affected by this roledb update
+    _propagate_dirty_roles(rolename, key_update, repository_name)
 
+
+
+def _is_key_update(rolename, roleinfo, repository='default'):
+  """
+  Checks roleinfo against the rolename's 'keyids' and 'threshold' stored
+  in roledb. Returns True if roleinfo contains different values.
+  """
+
+  key_update = False
+  try:
+    if roleinfo['keyids'] != _roledb_dict[repository][rolename]['keyids'] or \
+       roleinfo['threshold'] != _roledb_dict[repository][rolename]['threshold']:
+      key_update = True
+
+  except KeyError:
+    pass
+
+  return key_update
+
+
+
+def _propagate_dirty_roles(rolename, key_update, repository_name='default'):
+  """
+  <Purpose>
+    Recursively mark as dirty all roles affected by the roledb update
+    of rolename e.g.:
+    'targets' -> 'snapshot' -> 'timestamp'
+    and in case of a key update:
+    'targets' -> 'root'
+
+  <Arguments>
+    rolename:
+    An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
+    (e.g., 'root', 'snapshot', 'timestamp').
+
+    key_update:
+      a boolean indicating if the delegation chain of roles should
+      be triggered by this update
+
+    repository_name:
+      The name of the repository to get the dirty roles.  If not supplied, the
+      'default' repository is searched.
+
+  <Returns>
+    None.
+  """
+
+  global _dirty_roles
+
+  # Recursion exit case
+  if rolename is None:
+    return
+
+  # Add the role to the global dirty roles dictionary
+  _dirty_roles[repository_name].add(rolename)
+
+  # Check for the next role affected by the update of the current role
+  try:
+    # in case of top level roles, the rolenames are already known
+    # so look them up in the dictionaries
+    delegating_role = _delegating_role[rolename]
+    upper_level_role = _upper_level_role[rolename]
+  except KeyError:
+    # delegations
+    upper_level_role = 'snapshot'
+    delegating_role = \
+        _roledb_dict[repository_name][rolename].get('delegating_role')
+
+  if key_update:
+    # In case of a key update propagate the update to the delegating role
+    _propagate_dirty_roles(delegating_role, False, repository_name)
+
+  # Continue with the next level role
+  _propagate_dirty_roles(upper_level_role, False, repository_name)
 
 
 
