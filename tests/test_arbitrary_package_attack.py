@@ -81,7 +81,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     # etc.
     cls.SERVER_PORT = random.randint(30000, 45000)
     command = ['python', 'simple_server.py', str(cls.SERVER_PORT)]
-    cls.server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
+    cls.server_process = subprocess.Popen(command)
     logger.info('Server process started.')
     logger.info('Server process id: ' + str(cls.server_process.pid))
     logger.info('Serving on port: ' + str(cls.SERVER_PORT))

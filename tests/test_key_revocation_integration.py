@@ -83,7 +83,7 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     # key files, etc.
     cls.SERVER_PORT = random.randint(30000, 45000)
     command = ['python', 'simple_server.py', str(cls.SERVER_PORT)]
-    cls.server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
+    cls.server_process = subprocess.Popen(command)
     logger.info('\n\tServer process started.')
     logger.info('\tServer process id: '+str(cls.server_process.pid))
     logger.info('\tServing on port: '+str(cls.SERVER_PORT))

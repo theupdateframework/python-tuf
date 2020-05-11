@@ -66,9 +66,16 @@ class QuietHTTPRequestHandler(SimpleHTTPRequestHandler):
 
 # NOTE: On Windows/Python2 tests that use this simple_server.py in a
 # subprocesses hang after a certain amount of requests (~68), if a PIPE is
-# passed as Popen's stderr argument. As a simple workaround we silence the
-# server on those Windows/Py2 to not fill the buffer.
-if six.PY2 and platform.system() == 'Windows':
+# passed as Popen's stderr argument. This problem doesn't emerge if
+# we silence the HTTP messages.
+# If you decide to receive the HTTP messages, then this bug
+# could reappear.
+use_quiet_http_request_handler = True
+
+if len(sys.argv) > 2:
+  use_quiet_http_request_handler = sys.argv[2]
+
+if use_quiet_http_request_handler:
   handler = QuietHTTPRequestHandler
 else:
   handler = SimpleHTTPRequestHandler

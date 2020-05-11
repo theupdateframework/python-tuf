@@ -90,6 +90,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # temporary files are always removed, even when exceptions occur.
     cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
 
+    # Needed because in some tests simple_server.py cannot be found.
+    # The reason is that the current working directory
+    # has been changed when executing a subprocess.
+    cls.SIMPLE_SERVER_PATH = os.path.join(os.getcwd(), 'simple_server.py')
+
     # Launch a SimpleHTTPServer (serves files in the current directory).
     # Test cases will request metadata and target files that have been
     # pre-generated in 'tuf/tests/repository_data', which will be served
@@ -98,8 +103,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # as a delegated role 'targets/role1', three target files, five key files,
     # etc.
     cls.SERVER_PORT = random.randint(30000, 45000)
-    command = ['python', '-m', 'tests.simple_server', str(cls.SERVER_PORT)]
-    cls.server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
+    command = ['python', cls.SIMPLE_SERVER_PATH, str(cls.SERVER_PORT)]
+    cls.server_process = subprocess.Popen(command)
     logger.info('\n\tServer process started.')
     logger.info('\tServer process id: '+str(cls.server_process.pid))
     logger.info('\tServing on port: '+str(cls.SERVER_PORT))
@@ -1091,8 +1096,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # The SimpleHTTPServer started in the setupclass has a tendency to
     # timeout in Windows after a few tests.
     SERVER_PORT = random.randint(30000, 45000)
-    command = ['python', '-m', 'tests.simple_server', str(SERVER_PORT)]
-    server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
+    command = ['python', self.SIMPLE_SERVER_PATH, str(SERVER_PORT)]
+    server_process = subprocess.Popen(command)
 
     # NOTE: Following error is raised if a delay is not long enough:
     # <urlopen error [Errno 111] Connection refused>
@@ -1359,8 +1364,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # The SimpleHTTPServer started in the setupclass has a tendency to
     # timeout in Windows after a few tests.
     SERVER_PORT = random.randint(30000, 45000)
-    command = ['python', '-m', 'tests.simple_server', str(SERVER_PORT)]
-    server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
+    command = ['python', self.SIMPLE_SERVER_PATH, str(SERVER_PORT)]
+    server_process = subprocess.Popen(command)
 
     # NOTE: Following error is raised if a delay is not long enough to allow
     # the server process to set up and start listening:
@@ -1491,8 +1496,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # The SimpleHTTPServer started in the setupclass has a tendency to
     # timeout in Windows after a few tests.
     SERVER_PORT = random.randint(30000, 45000)
-    command = ['python', '-m', 'tests.simple_server', str(SERVER_PORT)]
-    server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
+    command = ['python', self.SIMPLE_SERVER_PATH, str(SERVER_PORT)]
+    server_process = subprocess.Popen(command)
 
     # NOTE: Following error is raised if a delay is not long enough to allow
     # the server process to set up and start listening:
@@ -1824,6 +1829,11 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     self.temporary_repository_root = self.make_temp_directory(directory=
         self.temporary_directory)
 
+    # Needed because in some tests simple_server.py cannot be found.
+    # The reason is that the current working directory
+    # has been changed when executing a subprocess.
+    self.SIMPLE_SERVER_PATH = os.path.join(os.getcwd(), 'simple_server.py')
+
     # The original repository, keystore, and client directories will be copied
     # for each test case.
     original_repository = os.path.join(original_repository_files, 'repository')
@@ -1875,17 +1885,17 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     self.SERVER_PORT = 30001
     self.SERVER_PORT2 = 30002
 
-    command = ['python', '-m', 'tests.simple_server', str(self.SERVER_PORT)]
-    command2 = ['python', '-m', 'tests.simple_server', str(self.SERVER_PORT2)]
+    command = ['python', self.SIMPLE_SERVER_PATH, str(self.SERVER_PORT)]
+    command2 = ['python', self.SIMPLE_SERVER_PATH, str(self.SERVER_PORT2)]
 
-    self.server_process = subprocess.Popen(command, stderr=subprocess.PIPE,
+    self.server_process = subprocess.Popen(command,
         cwd=self.repository_directory)
 
     logger.debug('Server process started.')
     logger.debug('Server process id: ' + str(self.server_process.pid))
     logger.debug('Serving on port: ' + str(self.SERVER_PORT))
 
-    self.server_process2 = subprocess.Popen(command2, stderr=subprocess.PIPE,
+    self.server_process2 = subprocess.Popen(command2,
         cwd=self.repository_directory2)
 
     logger.debug('Server process 2 started.')
