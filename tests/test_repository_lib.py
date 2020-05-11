@@ -845,11 +845,6 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     repo_lib.write_metadata_file(signable, root_file, 8, False)
 
-    # Attempt to load a repository that contains a compressed Root file.
-    repository = repo_tool.create_new_repository(repository_directory, repository_name)
-    filenames = repo_lib.get_metadata_filenames(metadata_directory)
-    repo_lib._load_top_level_metadata(repository, filenames, repository_name)
-
     filenames = repo_lib.get_metadata_filenames(metadata_directory)
     repository = repo_tool.create_new_repository(repository_directory, repository_name)
     repo_lib._load_top_level_metadata(repository, filenames, repository_name)
