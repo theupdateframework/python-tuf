@@ -1481,11 +1481,6 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   fileinfodict[TARGETS_FILENAME] = get_metadata_versioninfo(targets_filename,
       repository_name)
 
-  # We previously also stored the compressed versions of roles in
-  # snapshot.json, however, this is no longer needed as their hashes and
-  # lengths are not used and their version numbers match the uncompressed role
-  # files.
-
   # Search the metadata directory and generate the versioninfo of all the role
   # files found there.  This information is stored in the 'meta' field of
   # 'snapshot.json'.
@@ -1585,11 +1580,6 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date,
   snapshot_version = get_metadata_versioninfo('snapshot', repository_name)
   snapshot_fileinfo[SNAPSHOT_FILENAME] = \
     tuf.formats.make_fileinfo(length, hashes, version=snapshot_version['version'])
-
-  # We previously saved the versioninfo of the compressed versions of
-  # 'snapshot.json' in 'versioninfo'.  Since version numbers are now stored,
-  # the version numbers of compressed roles do not change and can thus be
-  # excluded.
 
   # Generate the timestamp metadata object.
   # Use generalized build_dict_conforming_to_schema func to produce a dict that
