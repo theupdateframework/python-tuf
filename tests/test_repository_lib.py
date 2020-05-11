@@ -819,7 +819,9 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       if role_file.endswith('.json') and not role_file.startswith('root'):
         role_filename = os.path.join(metadata_directory, role_file)
         os.remove(role_filename)
-    repo_lib._load_top_level_metadata(repository, filenames, repository_name)
+    self.assertRaises(tuf.exceptions.RepositoryError,
+        repo_lib._load_top_level_metadata, repository, filenames,
+        repository_name)
 
     # Remove the required Root file and verify that an exception is raised.
     os.remove(os.path.join(metadata_directory, 'root.json'))

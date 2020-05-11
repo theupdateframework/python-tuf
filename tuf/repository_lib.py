@@ -598,7 +598,8 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
         repository_name=repository_name)
 
   except securesystemslib.exceptions.StorageError:
-    logger.debug('Cannot load the Timestamp  file: ' + repr(timestamp_filename))
+    raise tuf.exceptions.RepositoryError('Cannot load the Timestamp file: '
+        + repr(timestamp_filename))
 
   # Load 'snapshot.json'.  A consistent snapshot.json must be calculated if
   # 'consistent_snapshot' is True.
@@ -637,7 +638,8 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
         repository_name=repository_name)
 
   except securesystemslib.exceptions.StorageError:
-    logger.debug('The Snapshot file cannot be loaded: ' + repr(snapshot_filename))
+    raise tuf.exceptions.RepositoryError('The Snapshot file cannot be loaded: '
+        + repr(snapshot_filename))
 
   # Load 'targets.json'.  A consistent snapshot of the Targets role must be
   # calculated if 'consistent_snapshot' is True.
@@ -701,7 +703,8 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
         pass
 
   except securesystemslib.exceptions.StorageError:
-    logger.debug('The Targets file can not be loaded: ' + repr(targets_filename))
+    raise tuf.exceptions.RepositoryError('The Targets file can not be loaded: '
+        + repr(targets_filename))
 
   return repository, consistent_snapshot
 

@@ -343,12 +343,15 @@ class TestRepository(unittest.TestCase):
     # loaded before writing consistent snapshot.
     repository.root.load_signing_key(root_privkey)
     repository.snapshot.load_signing_key(snapshot_privkey)
+    # Must also load targets signing key, because targets is re-signed when
+    # updating 'role1'.
+    repository.targets.load_signing_key(targets_privkey)
     repository.targets('role1').load_signing_key(role1_privkey)
 
     # Verify that a consistent snapshot can be written and loaded.  The roles
     # above must be marked as dirty, otherwise writeall() will not create a
     # consistent snapshot for them.
-    repository.mark_dirty(['role1', 'root', 'snapshot', 'timestamp'])
+    repository.mark_dirty(['role1', 'targets', 'root', 'snapshot', 'timestamp'])
     repository.writeall(consistent_snapshot=True)
 
     # Verify that the newly written consistent snapshot can be loaded
