@@ -153,7 +153,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
     metadata = generate_targets_metadata(targets_directory, roleinfo['paths'],
         roleinfo['version'], roleinfo['expires'], roleinfo['delegations'],
-        consistent_targets, use_existing_fileinfo)
+        consistent_targets, use_existing_fileinfo, storage_backend)
 
   # Before writing 'rolename' to disk, automatically increment its version
   # number (if 'increment_version_number' is True) so that the caller does not
@@ -271,50 +271,6 @@ def _metadata_is_partially_loaded(rolename, signable, repository_name):
 
   else:
     return False
-
-
-
-
-
-def _check_directory(directory, must_exist=True):
-  """
-  <Purpose>
-    Non-public function that ensures 'directory' is valid and it exists.  This
-    is not a security check, but a way for the caller to determine the cause of
-    an invalid directory provided by the user.  If the directory argument is
-    valid, it is returned normalized and as an absolute path.
-
-  <Arguments>
-    directory:
-      The directory to check.
-
-    must_exist:
-      A boolean indicating whether to check the directory exists.
-
-  <Exceptions>
-    securesystemslib.exceptions.Error, if 'directory' could not be validated.
-
-    securesystemslib.exceptions.FormatError, if 'directory' is not properly
-    formatted.
-
-  <Side Effects>
-    None.
-
-  <Returns>
-    The normalized absolutized path of 'directory'.
-  """
-
-  # Does 'directory' have the correct format?
-  # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.PATH_SCHEMA.check_match(directory)
-
-  # Check if the directory exists.
-  if must_exist and not os.path.isdir(directory):
-    raise securesystemslib.exceptions.Error(repr(directory) + ' directory does not exist.')
-
-  directory = os.path.abspath(directory)
-
-  return directory
 
 
 
@@ -915,7 +871,7 @@ def get_metadata_filenames(metadata_directory):
 
 
 
-def get_metadata_fileinfo(filename, custom=None):
+def get_metadata_fileinfo(filename, storage_backend, custom=None):
   """
   <Purpose>
     Retrieve the file information of 'filename'.  The object returned
@@ -934,11 +890,13 @@ def get_metadata_fileinfo(filename, custom=None):
     custom:
       An optional object providing additional information about the file.
 
+    storage_backend:
+      An object which implements
+      securesystemslib.storage.StorageBackendInterface.
+
   <Exceptions>
     securesystemslib.exceptions.FormatError, if 'filename' is improperly
     formatted.
-
-    securesystemslib.exceptions.Error, if 'filename' doesn't exist.
 
   <Side Effects>
     The file is opened and information about the file is generated,
@@ -958,17 +916,13 @@ def get_metadata_fileinfo(filename, custom=None):
   if custom is not None:
     tuf.formats.CUSTOM_SCHEMA.check_match(custom)
 
-  if not os.path.isfile(filename):
-    message = repr(filename) + ' is not a file.'
-    raise securesystemslib.exceptions.Error(message)
-
   # Note: 'filehashes' is a dictionary of the form
   # {'sha256': 1233dfba312, ...}.  'custom' is an optional
   # dictionary that a client might define to include additional
   # file information, such as the file's author, version/revision
   # numbers, etc.
   filesize, filehashes = securesystemslib.util.get_file_details(filename,
-      tuf.settings.FILE_HASH_ALGORITHMS)
+      tuf.settings.FILE_HASH_ALGORITHMS, storage_backend)
 
   return tuf.formats.make_fileinfo(filesize, filehashes, custom=custom)
 
@@ -1204,7 +1158,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
 
 def generate_targets_metadata(targets_directory, target_files, version,
     expiration_date, delegations=None, write_consistent_targets=False,
-    use_existing_fileinfo=False):
+    use_existing_fileinfo=False, storage_backend=None):
   """
   <Purpose>
     Generate the targets metadata object. The targets in 'target_files' must
@@ -1214,8 +1168,8 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
   <Arguments>
     targets_directory:
-      The directory containing the target files and directories of the
-      repository.
+      The absolute path to a directory containing the target files and
+      directories of the repository.
 
     target_files:
       The target files tracked by 'targets.json'.  'target_files' is a
@@ -1244,6 +1198,10 @@ def generate_targets_metadata(targets_directory, target_files, version,
       hashes, as already exists in the roledb (True) or whether to generate
       hashes (False).
 
+    storage_backend:
+      An object which implements
+      securesystemslib.storage.StorageBackendInterface.
+
   <Exceptions>
     securesystemslib.exceptions.FormatError, if an error occurred trying to
     generate the targets metadata object.
@@ -1258,8 +1216,8 @@ def generate_targets_metadata(targets_directory, target_files, version,
     write_consistent_targets are True.
 
   <Side Effects>
-    If use_existing_fileinfo is False, the target files are read and file
-    information generated about them.
+    If use_existing_fileinfo is False, the target files are read from storage
+    and file information about them is generated.
     If 'write_consistent_targets' is True, each target in 'target_files' will be
     copied to a file with a digest prepended to its filename. For example, if
     'some_file.txt' is one of the targets of 'target_files', consistent targets
@@ -1294,11 +1252,6 @@ def generate_targets_metadata(targets_directory, target_files, version,
   # targets metadata object returned.
   filedict = {}
 
-  # Ensure the user is aware of a non-existent 'target_directory', and convert
-  # it to its abosolute path, if it exists.
-  check_exists = not use_existing_fileinfo
-  targets_directory = _check_directory(targets_directory, check_exists)
-
   if use_existing_fileinfo:
     for target, fileinfo in six.iteritems(target_files):
 
@@ -1314,8 +1267,11 @@ def generate_targets_metadata(targets_directory, target_files, version,
       filedict[target] = fileinfo
 
   else:
+    if storage_backend is None:
+      storage_backend = securesystemslib.storage.FilesystemBackend()
+
     filedict = _generate_targets_fileinfo(target_files, targets_directory,
-        write_consistent_targets)
+        write_consistent_targets, storage_backend)
 
   # Generate the targets metadata object.
   # Use generalized build_dict_conforming_to_schema func to produce a dict that
@@ -1350,7 +1306,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
 
 def _generate_targets_fileinfo(target_files, targets_directory,
-    write_consistent_targets):
+    write_consistent_targets, storage_backend):
   """
   Iterate over target_files and:
     * ensure they exist in the targets_directory
@@ -1374,19 +1330,13 @@ def _generate_targets_fileinfo(target_files, targets_directory,
     # path separator (i.e., is treated as an absolute path).
     target_path = os.path.join(targets_directory, target.lstrip(os.sep))
 
-    # Ensure all target files listed in 'target_files' exist.  If just one of
-    # these files does not exist, raise an exception.
-    if not os.path.exists(target_path):
-      raise securesystemslib.exceptions.Error(repr(target_path) + ' cannot'
-          ' be read.  Unable to generate targets metadata.')
-
     # Add 'custom' if it has been provided.  Custom data about the target is
     # optional and will only be included in metadata (i.e., a 'custom' field in
     # the target's fileinfo dictionary) if specified here.
     custom_data = fileinfo.get('custom', None)
 
     filedict[relative_targetpath] = \
-        get_metadata_fileinfo(target_path, custom_data)
+        get_metadata_fileinfo(target_path, storage_backend, custom_data)
 
     # Copy 'target_path' to 'digest_target' if consistent hashing is enabled.
     if write_consistent_targets:

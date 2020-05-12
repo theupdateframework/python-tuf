@@ -245,17 +245,23 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     fileinfo = {'length': file_length, 'hashes': file_hashes}
     self.assertTrue(tuf.formats.FILEINFO_SCHEMA.matches(fileinfo))
 
-    self.assertEqual(fileinfo, repo_lib.get_metadata_fileinfo(test_filepath))
+    storage_backend = securesystemslib.storage.FilesystemBackend()
+
+    self.assertEqual(fileinfo, repo_lib.get_metadata_fileinfo(test_filepath,
+                                                              storage_backend))
 
 
     # Test improperly formatted argument.
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.get_metadata_fileinfo, 3)
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+                      repo_lib.get_metadata_fileinfo, 3,
+                      storage_backend)
 
 
     # Test non-existent file.
     nonexistent_filepath = os.path.join(temporary_directory, 'oops.txt')
-    self.assertRaises(securesystemslib.exceptions.Error, repo_lib.get_metadata_fileinfo,
-                      nonexistent_filepath)
+    self.assertRaises(securesystemslib.exceptions.Error,
+                      repo_lib.get_metadata_fileinfo,
+                      nonexistent_filepath, storage_backend)
 
 
 
@@ -674,13 +680,6 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Restore the metadata directory name in repo_lib.
     repo_lib.METADATA_DIRECTORY_NAME = metadata_directory_name
-
-
-
-  def test__check_directory(self):
-    # Test for non-existent directory.
-    self.assertRaises(securesystemslib.exceptions.Error,
-        repo_lib._check_directory, 'non-existent')
 
 
 
