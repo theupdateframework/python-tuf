@@ -145,7 +145,7 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
       roleinfo['paths'] = {}
       roleinfo['delegations'] = {'keys': {}, 'roles': []}
 
-    add_role(rolename, roleinfo, repository_name)
+    add_role(rolename, roleinfo, repository_name=repository_name)
 
 
 
@@ -241,7 +241,7 @@ def remove_roledb(repository_name):
 
 
 
-def add_role(rolename, roleinfo, repository_name='default'):
+def add_role(rolename, roleinfo, mark_role_as_dirty=False, repository_name='default'):
   """
   <Purpose>
     Add to the role database the 'roleinfo' associated with 'rolename'.
@@ -266,6 +266,12 @@ def add_role(rolename, roleinfo, repository_name='default'):
 
       The 'target' role has an additional 'paths' key.  Its value is a list of
       strings representing the path of the target file(s).
+
+    mark_role_as_dirty:
+      A boolean indicating whether the updated 'roleinfo' for 'rolename' should
+      be marked as dirty.  The caller might not want to mark 'rolename' as
+      dirty if it is loading metadata from disk and only wants to populate
+      roledb.py.
 
     repository_name:
       The name of the repository to store 'rolename'.  If not supplied,
@@ -296,10 +302,13 @@ def add_role(rolename, roleinfo, repository_name='default'):
   # Does 'roleinfo' have the correct object format?
   tuf.formats.ROLEDB_SCHEMA.check_match(roleinfo)
 
+  tuf.formats.BOOLEAN_SCHEMA.check_match(mark_role_as_dirty)
+
   # Is 'repository_name' correctly formatted?
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
   global _roledb_dict
+  global _dirty_roles
 
   # Raises securesystemslib.exceptions.InvalidNameError.
   _validate_rolename(rolename)
@@ -311,6 +320,9 @@ def add_role(rolename, roleinfo, repository_name='default'):
     raise tuf.exceptions.RoleAlreadyExistsError('Role already exists: ' + rolename)
 
   _roledb_dict[repository_name][rolename] = copy.deepcopy(roleinfo)
+
+  if mark_role_as_dirty:
+    _dirty_roles[repository_name].add(rolename)
 
 
 
@@ -347,9 +359,7 @@ def update_roleinfo(rolename, roleinfo, mark_role_as_dirty=True, repository_name
       A boolean indicating whether the updated 'roleinfo' for 'rolename' should
       be marked as dirty.  The caller might not want to mark 'rolename' as
       dirty if it is loading metadata from disk and only wants to populate
-      roledb.py.  Likewise, add_role() would support a similar boolean to allow
-      the repository tools to successfully load roles via load_repository()
-      without needing to mark these roles as dirty (default behavior).
+      roledb.py.
 
     repository_name:
       The name of the repository to update the roleinfo of 'rolename'.  If not

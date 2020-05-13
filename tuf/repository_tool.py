@@ -961,10 +961,7 @@ class Metadata(object):
         A boolean indicating whether the updated 'roleinfo' for 'rolename'
         should be marked as dirty.  The caller might not want to mark
         'rolename' as dirty if it is loading metadata from disk and only wants
-        to populate roledb.py.  Likewise, add_role() would support a similar
-        boolean to allow the repository tools to successfully load roles via
-        load_repository() without needing to mark these roles as dirty (default
-        behavior).
+        to populate roledb.py.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError, if the 'signature' argument is
@@ -1468,7 +1465,8 @@ class Root(Metadata):
                 'signatures': [], 'version': 0, 'consistent_snapshot': False,
                 'expires': expiration, 'partial_loaded': False}
     try:
-      tuf.roledb.add_role(self._rolename, roleinfo, self._repository_name)
+      tuf.roledb.add_role(self._rolename, roleinfo,
+          repository_name=self._repository_name)
 
     except tuf.exceptions.RoleAlreadyExistsError:
       pass
@@ -1537,7 +1535,8 @@ class Timestamp(Metadata):
                 'partial_loaded': False}
 
     try:
-      tuf.roledb.add_role(self.rolename, roleinfo, self._repository_name)
+      tuf.roledb.add_role(self.rolename, roleinfo,
+          repository_name=self._repository_name)
 
     except tuf.exceptions.RoleAlreadyExistsError:
       pass
@@ -1600,7 +1599,8 @@ class Snapshot(Metadata):
                 'partial_loaded': False}
 
     try:
-      tuf.roledb.add_role(self._rolename, roleinfo, self._repository_name)
+      tuf.roledb.add_role(self._rolename, roleinfo,
+          repository_name=self._repository_name)
 
     except tuf.exceptions.RoleAlreadyExistsError:
       pass
@@ -1708,7 +1708,8 @@ class Targets(Metadata):
 
     # Add the new role to the 'tuf.roledb'.
     try:
-      tuf.roledb.add_role(self.rolename, roleinfo, self._repository_name)
+      tuf.roledb.add_role(self.rolename, roleinfo,
+          repository_name=self._repository_name)
 
     except tuf.exceptions.RoleAlreadyExistsError:
       pass
@@ -3190,7 +3191,8 @@ def load_repository(repository_directory, repository_name='default',
       roleinfo['paths'].update({filepath: fileinfo.get('custom', {})})
     roleinfo['delegations'] = metadata_object['delegations']
 
-    tuf.roledb.add_role(metadata_name, roleinfo, repository_name)
+    tuf.roledb.add_role(metadata_name, roleinfo,
+        repository_name=repository_name)
     loaded_metadata.append(metadata_name)
 
     # Generate the Targets objects of the delegated roles of 'metadata_name'
