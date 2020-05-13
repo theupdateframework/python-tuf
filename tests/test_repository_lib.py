@@ -62,6 +62,8 @@ logger = logging.getLogger(__name__)
 
 repo_lib.disable_console_log_messages()
 
+TOP_LEVEL_METADATA_FILES = ['root.json', 'targets.json', 'timestamp.json',
+                            'snapshot.json']
 
 
 class TestRepositoryToolFunctions(unittest.TestCase):
@@ -251,7 +253,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     storage_backend = securesystemslib.storage.FilesystemBackend()
 
     self.assertEqual(fileinfo, repo_lib.get_metadata_fileinfo(test_filepath,
-                                                              storage_backend))
+                                                                      storage_backend))
 
 
     # Test improperly formatted argument.
@@ -436,7 +438,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
 
-  def test_generate_snapshot_metadata(self):
+  def _setup_generate_snapshot_metadata_test(self):
     # Test normal case.
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     original_repository_path = os.path.join('repository_data',
@@ -456,8 +458,11 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     storage_backend = securesystemslib.storage.FilesystemBackend()
     repository = repo_tool.Repository(repository_directory, metadata_directory,
                                       targets_directory, storage_backend)
-
     repository_junk = repo_tool.load_repository(repository_directory)
+
+    # Load a valid repository so that top-level roles exist in roledb and
+    # generate_snapshot_metadata() has roles to specify in snapshot metadata.
+    storage_backend = securesystemslib.storage.FilesystemBackend()
 
     # For testing purposes, store an invalid metadata file in the metadata directory
     # to verify that it isn't loaded by generate_snapshot_metadata().  Unknown
@@ -466,7 +471,15 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     with open(invalid_metadata_file, 'w') as file_object:
       file_object.write('bad extension on metadata file')
 
-    targets_filename = 'targets'
+    targets_filename = 'targets.json'
+
+    return metadata_directory, version, expiration_date, targets_filename, \
+      storage_backend
+
+
+  def test_generate_snapshot_metadata(self):
+    metadata_directory, version, expiration_date, targets_filename, \
+      storage_backend = self._setup_generate_snapshot_metadata_test()
 
     snapshot_metadata = \
       repo_lib.generate_snapshot_metadata(metadata_directory, version,
@@ -493,6 +506,103 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_snapshot_metadata,
                       metadata_directory, version, expiration_date,
                       targets_filename, 3, storage_backend)
+
+
+
+  def test_generate_snapshot_metadata_with_length(self):
+    metadata_directory, version, expiration_date, targets_filename, \
+      storage_backend = self._setup_generate_snapshot_metadata_test()
+
+    snapshot_metadata = \
+      repo_lib.generate_snapshot_metadata(metadata_directory, version,
+                                          expiration_date,
+                                          targets_filename,
+                                          storage_backend,
+                                          consistent_snapshot=False,
+                                          use_length=True)
+    self.assertTrue(tuf.formats.SNAPSHOT_SCHEMA.matches(snapshot_metadata))
+
+    metadata_files_info_dict = snapshot_metadata['meta']
+    for metadata_filename in sorted(os.listdir(metadata_directory), reverse=True):
+
+      # In the metadata_directory, there are files with format:
+      # 1.root.json. The prefix number should be removed.
+      stripped_filename, version = \
+        repo_lib._strip_version_number(metadata_filename,
+                                       consistent_snapshot=True)
+
+      # In the repository, the file "role_file.xml" have been added to make
+      # sure that non-json files aren't loaded. This file should be filtered.
+      if stripped_filename.endswith('.json'):
+        if stripped_filename not in TOP_LEVEL_METADATA_FILES:
+          # Check that length is not calculated but hashes is
+          self.assertIn('length', metadata_files_info_dict[stripped_filename])
+          self.assertNotIn('hashes', metadata_files_info_dict[stripped_filename])
+
+
+
+  def test_generate_snapshot_metadata_with_hashes(self):
+    metadata_directory, version, expiration_date, targets_filename, \
+      storage_backend = self._setup_generate_snapshot_metadata_test()
+
+    snapshot_metadata = \
+      repo_lib.generate_snapshot_metadata(metadata_directory, version,
+                                          expiration_date,
+                                          targets_filename,
+                                          storage_backend,
+                                          consistent_snapshot=False,
+                                          use_hashes=True)
+    self.assertTrue(tuf.formats.SNAPSHOT_SCHEMA.matches(snapshot_metadata))
+
+    metadata_files_info_dict = snapshot_metadata['meta']
+    for metadata_filename in sorted(os.listdir(metadata_directory), reverse=True):
+
+      # In the metadata_directory, there are files with format:
+      # 1.root.json. The prefix number should be removed.
+      stripped_filename, version = \
+        repo_lib._strip_version_number(metadata_filename,
+                                       consistent_snapshot=True)
+
+      # In the repository, the file "role_file.xml" have been added to make
+      # sure that non-json files aren't loaded. This file should be filtered.
+      if stripped_filename.endswith('.json'):
+        if stripped_filename not in TOP_LEVEL_METADATA_FILES:
+          # Check that hashes is not calculated but length is
+          self.assertNotIn('length', metadata_files_info_dict[stripped_filename])
+          self.assertIn('hashes', metadata_files_info_dict[stripped_filename])
+
+
+
+  def test_generate_snapshot_metadata_with_hashes_and_length(self):
+    metadata_directory, version, expiration_date, targets_filename, \
+      storage_backend = self._setup_generate_snapshot_metadata_test()
+
+    snapshot_metadata = \
+      repo_lib.generate_snapshot_metadata(metadata_directory, version,
+                                          expiration_date,
+                                          targets_filename,
+                                          storage_backend,
+                                          consistent_snapshot=False,
+                                          use_length=True,
+                                          use_hashes=True)
+    self.assertTrue(tuf.formats.SNAPSHOT_SCHEMA.matches(snapshot_metadata))
+
+    metadata_files_info_dict = snapshot_metadata['meta']
+    for metadata_filename in sorted(os.listdir(metadata_directory), reverse=True):
+
+      # In the metadata_directory, there are files with format:
+      # 1.root.json. The prefix number should be removed.
+      stripped_filename, version = \
+        repo_lib._strip_version_number(metadata_filename,
+                                       consistent_snapshot=True)
+
+      # In the repository, the file "role_file.xml" have been added to make
+      # sure that non-json files aren't loaded. This file should be filtered.
+      if stripped_filename.endswith('.json'):
+        if stripped_filename not in TOP_LEVEL_METADATA_FILES:
+          # Check that both length and hashes are not are not calculated
+          self.assertIn('length', metadata_files_info_dict[stripped_filename])
+          self.assertIn('hashes', metadata_files_info_dict[stripped_filename])
 
 
 

@@ -111,12 +111,12 @@ class TestRepository(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.Repository,
                       'repository_directory', 'metadata_directory', 3, storage_backend)
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.Repository,
-                  'repository_directory/', 'metadata_directory/', 'targets_directory/',
-                  storage_backend, repository_name, use_timestamp_length=3)
+                      'repository_directory/', 'metadata_directory/', 'targets_directory/',
+                      storage_backend, repository_name, use_timestamp_length=3)
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.Repository,
-                  'repository_directory/', 'metadata_directory/', 'targets_directory/',
-                  storage_backend, repository_name, use_timestamp_length=False,
-                  use_timestamp_hashes=3)
+                      'repository_directory/', 'metadata_directory/', 'targets_directory/',
+                      storage_backend, repository_name, use_timestamp_length=False,
+                      use_timestamp_hashes=3)
 
 
 
