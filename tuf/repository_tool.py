@@ -1665,7 +1665,8 @@ class Targets(Metadata):
   """
 
   def __init__(self, targets_directory, rolename='targets', roleinfo=None,
-               parent_targets_object=None, repository_name='default'):
+               parent_targets_object=None, mark_role_as_dirty=False,
+               repository_name='default'):
 
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
@@ -1708,7 +1709,7 @@ class Targets(Metadata):
 
     # Add the new role to the 'tuf.roledb'.
     try:
-      tuf.roledb.add_role(self.rolename, roleinfo,
+      tuf.roledb.add_role(self.rolename, roleinfo, mark_role_as_dirty,
           repository_name=self._repository_name)
 
     except tuf.exceptions.RoleAlreadyExistsError:
@@ -2234,6 +2235,7 @@ class Targets(Metadata):
     # The new targets object is added as an attribute to this Targets object.
     new_targets_object = Targets(self._targets_directory, rolename, roleinfo,
         parent_targets_object=self._parent_targets_object,
+        mark_role_as_dirty=True,
         repository_name=self._repository_name)
 
     return new_targets_object
