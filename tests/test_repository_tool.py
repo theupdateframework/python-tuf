@@ -719,10 +719,10 @@ class TestMetadata(unittest.TestCase):
                 'consistent_snapshot': False, 'expires': expiration,
                 'partial_loaded': False}
 
-    tuf.roledb.add_role('Root', roleinfo, 'test_repository')
-    tuf.roledb.add_role('Targets', roleinfo, 'test_repository')
-    tuf.roledb.add_role('Snapshot', roleinfo, 'test_repository')
-    tuf.roledb.add_role('Timestamp', roleinfo, 'test_repository')
+    tuf.roledb.add_role('Root', roleinfo, repository_name='test_repository')
+    tuf.roledb.add_role('Targets', roleinfo, repository_name='test_repository')
+    tuf.roledb.add_role('Snapshot', roleinfo, repository_name='test_repository')
+    tuf.roledb.add_role('Timestamp', roleinfo, repository_name='test_repository')
 
     # Test for different top-level role names.
     self.metadata._rolename = 'Targets'

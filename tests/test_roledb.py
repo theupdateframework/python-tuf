@@ -119,7 +119,7 @@ class TestRoledb(unittest.TestCase):
     repository_name = 'example_repository'
     self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.clear_roledb, repository_name)
     tuf.roledb.create_roledb(repository_name)
-    tuf.roledb.add_role(rolename, roleinfo, repository_name)
+    tuf.roledb.add_role(rolename, roleinfo, repository_name=repository_name)
     self.assertEqual(roleinfo['keyids'], tuf.roledb.get_role_keyids(rolename, repository_name))
     tuf.roledb.clear_roledb(repository_name)
     self.assertFalse(tuf.roledb.role_exists(rolename, repository_name))
@@ -151,7 +151,7 @@ class TestRoledb(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.clear_roledb,
                                             repository_name)
     tuf.roledb.create_roledb(repository_name)
-    tuf.roledb.add_role(rolename, roleinfo, repository_name)
+    tuf.roledb.add_role(rolename, roleinfo, repository_name=repository_name)
     self.assertEqual(roleinfo['keyids'], tuf.roledb.get_role_keyids(rolename,
                                          repository_name))
 
@@ -166,7 +166,8 @@ class TestRoledb(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.FormatError, tuf.roledb.add_role, rolename, None)
     self.assertRaises(securesystemslib.exceptions.FormatError, tuf.roledb.add_role, rolename, 123)
     self.assertRaises(securesystemslib.exceptions.FormatError, tuf.roledb.add_role, rolename, [''])
-    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.roledb.add_role, rolename, roleinfo, 123)
+    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.roledb.add_role, rolename, roleinfo, False, 123)
+    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.roledb.add_role, rolename, roleinfo, [])
 
 
     # Test condition where the rolename already exists in the role database.
@@ -175,7 +176,7 @@ class TestRoledb(unittest.TestCase):
 
     # Test where the repository name does not exist in the role database.
     self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.add_role,
-                      'new_role', roleinfo, 'non-existent')
+                      'new_role', roleinfo, repository_name='non-existent')
 
     # Test conditions for invalid rolenames.
     self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.add_role, ' badrole ',
@@ -206,7 +207,7 @@ class TestRoledb(unittest.TestCase):
 
     tuf.roledb.create_roledb(repository_name)
     self.assertEqual(False, tuf.roledb.role_exists(rolename, repository_name))
-    tuf.roledb.add_role(rolename, roleinfo, repository_name)
+    tuf.roledb.add_role(rolename, roleinfo, repository_name=repository_name)
     self.assertTrue(tuf.roledb.role_exists(rolename, repository_name))
 
     # Reset the roledb so that subsequent tests have access to the original,
@@ -251,7 +252,7 @@ class TestRoledb(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.remove_role, rolename, repository_name)
     tuf.roledb.create_roledb(repository_name)
 
-    tuf.roledb.add_role(rolename, roleinfo, repository_name)
+    tuf.roledb.add_role(rolename, roleinfo, repository_name=repository_name)
     self.assertEqual(roleinfo['keyids'], tuf.roledb.get_role_keyids(rolename, repository_name))
     self.assertEqual(None, tuf.roledb.remove_role(rolename, repository_name))
 
@@ -293,8 +294,8 @@ class TestRoledb(unittest.TestCase):
     repository_name = 'example_repository'
     self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.get_rolenames, repository_name)
     tuf.roledb.create_roledb(repository_name)
-    tuf.roledb.add_role(rolename, roleinfo, repository_name)
-    tuf.roledb.add_role(rolename2, roleinfo, repository_name)
+    tuf.roledb.add_role(rolename, roleinfo, repository_name=repository_name)
+    tuf.roledb.add_role(rolename2, roleinfo, repository_name=repository_name)
 
     self.assertEqual(set(['targets', 'role1']),
                      set(tuf.roledb.get_rolenames()))
@@ -328,7 +329,7 @@ class TestRoledb(unittest.TestCase):
                                             rolename, repository_name)
 
     tuf.roledb.create_roledb(repository_name)
-    tuf.roledb.add_role(rolename, roleinfo, repository_name)
+    tuf.roledb.add_role(rolename, roleinfo, repository_name=repository_name)
     self.assertEqual(roleinfo, tuf.roledb.get_roleinfo(rolename, repository_name))
 
     # Verify that a roleinfo cannot be retrieved for a non-existent repository
@@ -368,7 +369,7 @@ class TestRoledb(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.get_role_keyids,
                                             rolename, repository_name)
     tuf.roledb.create_roledb(repository_name)
-    tuf.roledb.add_role(rolename, roleinfo, repository_name)
+    tuf.roledb.add_role(rolename, roleinfo, repository_name=repository_name)
     self.assertEqual(['123'], tuf.roledb.get_role_keyids(rolename, repository_name))
 
     # Verify that rolekeyids cannot be retrieved from a non-existent repository
@@ -406,7 +407,7 @@ class TestRoledb(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.get_role_threshold,
                                             rolename, repository_name)
     tuf.roledb.create_roledb(repository_name)
-    tuf.roledb.add_role(rolename, roleinfo, repository_name)
+    tuf.roledb.add_role(rolename, roleinfo, repository_name=repository_name)
     self.assertEqual(roleinfo['threshold'], tuf.roledb.get_role_threshold(rolename, repository_name))
 
     # Verify that a role's threshold cannot be retrieved from a non-existent
@@ -445,7 +446,7 @@ class TestRoledb(unittest.TestCase):
                                             rolename, repository_name)
 
     tuf.roledb.create_roledb(repository_name)
-    tuf.roledb.add_role(rolename2, roleinfo2, repository_name)
+    tuf.roledb.add_role(rolename2, roleinfo2, repository_name=repository_name)
     self.assertEqual(roleinfo2['paths'], tuf.roledb.get_role_paths(rolename2,
                                          repository_name))
 
@@ -516,7 +517,7 @@ class TestRoledb(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.get_delegated_rolenames,
                                            rolename, repository_name)
     tuf.roledb.create_roledb(repository_name)
-    tuf.roledb.add_role(rolename, roleinfo, repository_name)
+    tuf.roledb.add_role(rolename, roleinfo, repository_name=repository_name)
     self.assertEqual(set(['django', 'tuf']),
                      set(tuf.roledb.get_delegated_rolenames(rolename, repository_name)))
 
@@ -635,7 +636,7 @@ class TestRoledb(unittest.TestCase):
     mark_role_as_dirty = True
     self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.clear_roledb, repository_name)
     tuf.roledb.create_roledb(repository_name)
-    tuf.roledb.add_role(rolename, roleinfo, repository_name)
+    tuf.roledb.add_role(rolename, roleinfo, repository_name=repository_name)
     tuf.roledb.update_roleinfo(rolename, roleinfo, mark_role_as_dirty, repository_name)
     self.assertEqual(roleinfo['keyids'], tuf.roledb.get_role_keyids(rolename, repository_name))
 
@@ -680,7 +681,7 @@ class TestRoledb(unittest.TestCase):
     # repository.
     repository_name = 'example_repository'
     tuf.roledb.create_roledb(repository_name)
-    tuf.roledb.add_role(rolename, roleinfo1, repository_name)
+    tuf.roledb.add_role(rolename, roleinfo1, repository_name=repository_name)
     tuf.roledb.update_roleinfo(rolename, roleinfo2, mark_role_as_dirty, repository_name)
     self.assertEqual([rolename], tuf.roledb.get_dirty_roles(repository_name))
 
