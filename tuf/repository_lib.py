@@ -812,7 +812,51 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
   return private_key
 
 
-def get_metadata_filenames(metadata_directory):
+
+def get_delegations_filenames(metadata_directory, consistent_snapshot,
+    storage_backend=None):
+  """
+  Return a dictionary containing all filenames in 'metadata_directory'
+  except the top-level roles.
+  """
+
+  filenames = {}
+  metadata_files = sorted(storage_backend.list_folder(metadata_directory),
+      reverse=True)
+  for metadata_role in metadata_files:
+    metadata_path = os.path.join(metadata_directory, metadata_role)
+    metadata_name = \
+      metadata_path[len(metadata_directory):].lstrip(os.path.sep)
+
+    # Strip the version number if 'consistent_snapshot' is True,
+    # or if 'metadata_role' is Root.
+    # Example:  '10.django.json' --> 'django.json'
+    consistent_snapshot = \
+      metadata_role.endswith('root.json') or consistent_snapshot == True
+    metadata_name, junk = _strip_version_number(metadata_name,
+      consistent_snapshot)
+
+    if metadata_name.endswith(METADATA_EXTENSION):
+      extension_length = len(METADATA_EXTENSION)
+      metadata_name = metadata_name[:-extension_length]
+
+    else:
+      logger.debug('Skipping file with unsupported metadata'
+          ' extension: ' + repr(metadata_path))
+      continue
+
+    # Skip top-level roles, only interested in delegated roles now that the
+    # top-level roles have already been loaded.
+    if metadata_name in ['root', 'snapshot', 'targets', 'timestamp']:
+      continue
+
+    filenames[metadata_name] = metadata_path
+
+  return filenames
+
+
+
+def get_metadata_filenames(metadata_directory=None):
   """
   <Purpose>
     Return a dictionary containing the filenames of the top-level roles.

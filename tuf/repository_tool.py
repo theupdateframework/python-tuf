@@ -2230,7 +2230,8 @@ class Targets(Metadata):
     roleinfo = {'name': rolename, 'keyids': keyids, 'signing_keyids': [],
                 'threshold': threshold, 'version': 0,
                 'expires': expiration, 'signatures': [], 'partial_loaded': False,
-                'paths': paths, 'delegations': {'keys': {}, 'roles': []}}
+                'paths': paths, 'delegations': {'keys': {}, 'roles': []},
+                'delegating_role': self.rolename}
 
     # The new targets object is added as an attribute to this Targets object.
     new_targets_object = Targets(self._targets_directory, rolename, roleinfo,
@@ -2414,7 +2415,7 @@ class Targets(Metadata):
       self._parent_targets_object.add_delegated_role(rolename,
           new_targets_object)
 
-    # Add 'new_targets_object' to the 'targets' role object (this object).
+    # Add 'new_targets_object' to the delegating role object (this object).
     self.add_delegated_role(rolename, new_targets_object)
 
     # Update the 'delegations' field of the current role.
@@ -3126,42 +3127,27 @@ def load_repository(repository_directory, repository_name='default',
   targets_objects = {}
   loaded_metadata = []
   targets_objects['targets'] = repository.targets
+  # A list of delegation pairs
+  delegations = []
 
-  metadata_files = sorted(storage_backend.list_folder(metadata_directory),
-      reverse=True)
-  for metadata_role in metadata_files:
+  # Top-level roles are already loaded, fetch targets and get its delegations
+  # Collect a list of delegation pairs delegated-delegating role.
+  roleinfo = tuf.roledb.get_roleinfo('targets', repository_name)
+  for delegation in roleinfo['delegations']['roles']:
+    delegations.append([delegation['name'], 'targets'])
 
-    metadata_path = os.path.join(metadata_directory, metadata_role)
-    metadata_name = \
-      metadata_path[len(metadata_directory):].lstrip(os.path.sep)
+  filenames = repo_lib.get_delegations_filenames(metadata_directory,
+      consistent_snapshot, storage_backend)
 
-    # Strip the version number if 'consistent_snapshot' is True,
-    # or if 'metadata_role' is Root.
-    # Example:  '10.django.json' --> 'django.json'
-    consistent_snapshot = \
-      metadata_role.endswith('root.json') or consistent_snapshot == True
-    metadata_name, junk = repo_lib._strip_version_number(metadata_name,
-      consistent_snapshot)
-
-    if metadata_name.endswith(METADATA_EXTENSION):
-      extension_length = len(METADATA_EXTENSION)
-      metadata_name = metadata_name[:-extension_length]
-
-    else:
-      logger.debug('Skipping file with unsupported metadata'
-          ' extension: ' + repr(metadata_path))
-      continue
-
-    # Skip top-level roles, only interested in delegated roles now that the
-    # top-level roles have already been loaded.
-    if metadata_name in ['root', 'snapshot', 'targets', 'timestamp']:
-      continue
-
+  # Load the delegated roles by starting from 'targets' and continuously
+  # adding the next level delegations to the list
+  for delegated_rolename, delegating_role in delegations:
+    metadata_path = filenames[delegated_rolename]
     # Keep a store of metadata previously loaded metadata to prevent re-loading
     # duplicate versions.  Duplicate versions may occur with
     # 'consistent_snapshot', where the same metadata may be available in
     # multiples files (the different hash is included in each filename.
-    if metadata_name in loaded_metadata:
+    if delegated_rolename in loaded_metadata:
       continue
 
     signable = None
@@ -3176,14 +3162,13 @@ def load_repository(repository_directory, repository_name='default',
 
     metadata_object = signable['signed']
 
-    # Extract the metadata attributes of 'metadata_name' and update its
+    # Extract the metadata attributes of 'delegated_rolename' and update its
     # corresponding roleinfo.
-    roleinfo = {'name': metadata_name,
+    roleinfo = {'name': delegated_rolename,
                 'signing_keyids': [],
                 'signatures': [],
                 'partial_loaded': False,
-                'paths': {},
-               }
+                'paths': {}}
 
     roleinfo['signatures'].extend(signable['signatures'])
     roleinfo['version'] = metadata_object['version']
@@ -3192,19 +3177,27 @@ def load_repository(repository_directory, repository_name='default',
     for filepath, fileinfo in six.iteritems(metadata_object['targets']):
       roleinfo['paths'].update({filepath: fileinfo.get('custom', {})})
     roleinfo['delegations'] = metadata_object['delegations']
+    roleinfo['delegating_role'] = delegating_role
 
-    tuf.roledb.add_role(metadata_name, roleinfo,
+    tuf.roledb.add_role(delegated_rolename, roleinfo,
         repository_name=repository_name)
-    loaded_metadata.append(metadata_name)
+    loaded_metadata.append(delegated_rolename)
 
-    # Generate the Targets objects of the delegated roles of 'metadata_name'
+    # Add the next level delegations to the list:
+    # the 'delegated' role become the 'delegating'
+    for delegation in metadata_object['delegations']['roles']:
+      delegations.append([delegation['name'], delegated_rolename])
+
+    # Generate the Targets objects of the delegated role
     # and add it to the top-level 'targets' object.
-    new_targets_object = Targets(targets_directory, metadata_name, roleinfo,
-        repository_name=repository_name)
-    targets_object = targets_objects['targets']
-    targets_objects[metadata_name] = new_targets_object
+    new_targets_object = Targets(targets_directory, delegated_rolename,
+         roleinfo, repository_name=repository_name)
 
-    targets_object._delegated_roles[(os.path.basename(metadata_name))] = \
+    targets_objects[delegated_rolename] = new_targets_object
+
+    targets_objects['targets']._delegated_roles[delegated_rolename] = \
+        new_targets_object
+    targets_objects[delegating_role]._delegated_roles[delegated_rolename] = \
         new_targets_object
 
     # Extract the keys specified in the delegations field of the Targets
@@ -3231,6 +3224,7 @@ def load_repository(repository_directory, repository_name='default',
 
       except tuf.exceptions.KeyAlreadyExistsError:
         pass
+
 
   return repository
 
