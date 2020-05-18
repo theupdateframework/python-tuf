@@ -811,6 +811,59 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
   return private_key
 
 
+
+def get_delegations_filenames(metadata_directory, consistent_snapshot,
+    storage_backend=None):
+  """
+  Return a dictionary containing all filenames in 'metadata_directory'
+  except the top-level roles.
+  If multiple versions of a file exist because of a consistent snapshot,
+  only the file with biggest version prefix is included.
+  """
+
+  filenames = {}
+  loaded_metadata = []
+  metadata_files = sorted(storage_backend.list_folder(metadata_directory),
+      reverse=True)
+  for metadata_role in metadata_files:
+    metadata_path = os.path.join(metadata_directory, metadata_role)
+
+    # Strip the version number if 'consistent_snapshot' is True,
+    # or if 'metadata_role' is Root.
+    # Example:  '10.django.json' --> 'django.json'
+    consistent_snapshot = \
+      metadata_role.endswith('root.json') or consistent_snapshot == True
+    metadata_name, junk = _strip_version_number(metadata_role,
+      consistent_snapshot)
+
+    if metadata_name.endswith(METADATA_EXTENSION):
+      extension_length = len(METADATA_EXTENSION)
+      metadata_name = metadata_name[:-extension_length]
+
+    else:
+      logger.debug('Skipping file with unsupported metadata'
+          ' extension: ' + repr(metadata_path))
+      continue
+
+    # Skip top-level roles, only interested in delegated roles now that the
+    # top-level roles have already been loaded.
+    if metadata_name in ['root', 'snapshot', 'targets', 'timestamp']:
+      continue
+
+    # Keep a store of metadata previously loaded metadata to prevent re-loading
+    # duplicate versions.  Duplicate versions may occur with
+    # 'consistent_snapshot', where the same metadata may be available in
+    # multiples files (the different hash is included in each filename).
+    if metadata_name in loaded_metadata:
+      continue
+
+    filenames[metadata_name] = metadata_path
+    loaded_metadata.append(metadata_name)
+
+  return filenames
+
+
+
 def get_metadata_filenames(metadata_directory):
   """
   <Purpose>
