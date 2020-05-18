@@ -284,9 +284,8 @@ class TestTutorial(unittest.TestCase):
       repository.dirty_roles()
       # Concat strings to avoid Python2/3 unicode prefix problems ('' vs. u'')
       mock_logger.info.assert_called_with(
-          "Dirty roles: " + str(['targets']))
+          "Dirty roles: " + str(['snapshot', 'targets', 'timestamp']))
 
-    repository.mark_dirty(['snapshot', 'timestamp'])
     repository.writeall()
 
 
@@ -326,9 +325,8 @@ class TestTutorial(unittest.TestCase):
       repository.dirty_roles()
       # Concat strings to avoid Python2/3 unicode prefix problems ('' vs. u'')
       mock_logger.info.assert_called_with(
-          "Dirty roles: " + str(['targets', 'unclaimed']))
+          "Dirty roles: " + str(['snapshot', 'targets', 'timestamp', 'unclaimed']))
 
-    repository.mark_dirty(["snapshot", "timestamp"])
     repository.writeall()
 
 
@@ -378,9 +376,8 @@ class TestTutorial(unittest.TestCase):
           '28-2f', '30-37', '38-3f', '40-47', '48-4f', '50-57', '58-5f',
           '60-67', '68-6f', '70-77', '78-7f', '80-87', '88-8f', '90-97',
           '98-9f', 'a0-a7', 'a8-af', 'b0-b7', 'b8-bf', 'c0-c7', 'c8-cf',
-          'd0-d7', 'd8-df', 'e0-e7', 'e8-ef', 'f0-f7', 'f8-ff', 'unclaimed']))
+          'd0-d7', 'd8-df', 'e0-e7', 'e8-ef', 'f0-f7', 'f8-ff', 'snapshot', 'timestamp', 'unclaimed']))
 
-    repository.mark_dirty(["snapshot", "timestamp"])
     repository.writeall()
 
     # ----- Tutorial Section: How to Perform an Update

@@ -668,14 +668,21 @@ class TestRoledb(unittest.TestCase):
   def test_get_dirty_roles(self):
     # Verify that the dirty roles of a role are returned.
     rolename = 'targets'
-    roleinfo1 = {'keyids': ['123'], 'threshold': 1}
-    tuf.roledb.add_role(rolename, roleinfo1)
-    roleinfo2 = {'keyids': ['123'], 'threshold': 2}
     mark_role_as_dirty = True
+
+    roleinfo1 = {'keyids': ['123'], 'threshold': 1}
+    tuf.roledb.add_role(rolename, roleinfo1, mark_role_as_dirty)
+    # new role added: targets -> snapshot -> timestamp
+    self.assertEqual(['snapshot', 'targets', 'timestamp'],
+        tuf.roledb.get_dirty_roles())
+
+    roleinfo2 = {'keyids': ['123'], 'threshold': 2}
     tuf.roledb.update_roleinfo(rolename, roleinfo2, mark_role_as_dirty)
     # Note: The 'default' repository is searched if the repository name is
     # not given to get_dirty_roles().
-    self.assertEqual([rolename], tuf.roledb.get_dirty_roles())
+    # update targets key: targets -> snapshot -> timestamp AND targets -> root
+    self.assertEqual(['root', 'snapshot', 'targets', 'timestamp'],
+        tuf.roledb.get_dirty_roles())
 
     # Verify that a list of dirty roles is returned for a non-default
     # repository.
@@ -683,17 +690,20 @@ class TestRoledb(unittest.TestCase):
     tuf.roledb.create_roledb(repository_name)
     tuf.roledb.add_role(rolename, roleinfo1, repository_name=repository_name)
     tuf.roledb.update_roleinfo(rolename, roleinfo2, mark_role_as_dirty, repository_name)
-    self.assertEqual([rolename], tuf.roledb.get_dirty_roles(repository_name))
+    self.assertEqual(['root', 'snapshot', 'targets', 'timestamp'],
+        tuf.roledb.get_dirty_roles(repository_name))
 
     # Verify that dirty roles are not returned for a non-existent repository.
-    self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.get_dirty_roles, 'non-existent')
+    self.assertRaises(securesystemslib.exceptions.InvalidNameError,
+        tuf.roledb.get_dirty_roles, 'non-existent')
 
     # Reset the roledb so that subsequent tests have access to a default
     # roledb.
     tuf.roledb.remove_roledb(repository_name)
 
     # Test for improperly formatted argument.
-    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.roledb.get_dirty_roles, 123)
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        tuf.roledb.get_dirty_roles, 123)
 
 
 
@@ -704,19 +714,31 @@ class TestRoledb(unittest.TestCase):
     tuf.roledb.add_role(rolename, roleinfo1)
     rolename2 = 'dirty_role'
     roleinfo2 = {'keyids': ['123'], 'threshold': 2}
+
     mark_role_as_dirty = True
     tuf.roledb.update_roleinfo(rolename, roleinfo1, mark_role_as_dirty)
     # Note: The 'default' repository is searched if the repository name is
     # not given to get_dirty_roles().
-    self.assertEqual([rolename], tuf.roledb.get_dirty_roles())
+    # targets -> snapshot -> timestamp
+    self.assertEqual(['snapshot', 'targets', 'timestamp'],
+        tuf.roledb.get_dirty_roles())
 
-    tuf.roledb.mark_dirty(['dirty_role'])
-    self.assertEqual([rolename2, rolename], tuf.roledb.get_dirty_roles())
+    # manually mark dirty: new role is added to the dirty list
+    tuf.roledb.mark_dirty([rolename2])
+    self.assertEqual([rolename2, 'snapshot', 'targets', 'timestamp'],
+        tuf.roledb.get_dirty_roles())
+
+    # targets' key update:
+    # targets -> snapshot -> timestamp AND targets -> root
+    tuf.roledb.unmark_dirty(tuf.roledb.get_dirty_roles())
+    tuf.roledb.update_roleinfo(rolename, roleinfo2, mark_role_as_dirty)
+    self.assertEqual(['root', 'snapshot', 'targets', 'timestamp'],
+        tuf.roledb.get_dirty_roles())
 
     # Verify that a role cannot be marked as dirty for a non-existent
     # repository.
-    self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.mark_dirty,
-                      ['dirty_role'], 'non-existent')
+    self.assertRaises(securesystemslib.exceptions.InvalidNameError,
+        tuf.roledb.mark_dirty, ['dirty_role'], 'non-existent')
 
 
 
@@ -728,16 +750,19 @@ class TestRoledb(unittest.TestCase):
     rolename2 = 'dirty_role'
     roleinfo2 = {'keyids': ['123'], 'threshold': 2}
     tuf.roledb.add_role(rolename2, roleinfo2)
+
     mark_role_as_dirty = True
     tuf.roledb.update_roleinfo(rolename, roleinfo1, mark_role_as_dirty)
     # Note: The 'default' repository is searched if the repository name is
     # not given to get_dirty_roles().
-    self.assertEqual([rolename], tuf.roledb.get_dirty_roles())
-    tuf.roledb.update_roleinfo(rolename2, roleinfo2, mark_role_as_dirty)
+    # update targets roleinfo marks as dirty also snapshot and timestamp
+    role_chain_list = ['snapshot', rolename, 'timestamp']
+    self.assertEqual(role_chain_list, tuf.roledb.get_dirty_roles())
 
-    tuf.roledb.unmark_dirty(['dirty_role'])
-    self.assertEqual([rolename], tuf.roledb.get_dirty_roles())
-    tuf.roledb.unmark_dirty(['targets'])
+    tuf.roledb.update_roleinfo(rolename2, roleinfo2, mark_role_as_dirty)
+    tuf.roledb.unmark_dirty([rolename2])
+    self.assertEqual(role_chain_list, tuf.roledb.get_dirty_roles())
+    tuf.roledb.unmark_dirty(role_chain_list)
     self.assertEqual([], tuf.roledb.get_dirty_roles())
 
     # What happens for a role that isn't dirty?  unmark_dirty() should just
@@ -746,8 +771,8 @@ class TestRoledb(unittest.TestCase):
 
     # Verify that a role cannot be unmarked as dirty for a non-existent
     # repository.
-    self.assertRaises(securesystemslib.exceptions.InvalidNameError, tuf.roledb.unmark_dirty,
-                      ['dirty_role'], 'non-existent')
+    self.assertRaises(securesystemslib.exceptions.InvalidNameError,
+        tuf.roledb.unmark_dirty, [rolename2], 'non-existent')
 
 
   def _test_rolename(self, test_function):

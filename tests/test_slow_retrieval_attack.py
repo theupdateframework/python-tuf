@@ -193,10 +193,11 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     targets_private = repo_tool.import_ed25519_privatekey_from_file(key_file,
                                                                   'password')
 
-    repository.targets.load_signing_key(targets_private)
-    repository.snapshot.load_signing_key(snapshot_private)
-    repository.timestamp.load_signing_key(timestamp_private)
-
+    # Mark roles as dirty to force metadata rewrite on writeall()
+    mark_dirty = True
+    repository.targets.load_signing_key(targets_private, mark_dirty)
+    repository.snapshot.load_signing_key(snapshot_private, mark_dirty)
+    repository.timestamp.load_signing_key(timestamp_private, mark_dirty)
     repository.writeall()
 
     # Move the staged metadata to the "live" metadata.

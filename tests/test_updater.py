@@ -813,7 +813,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     tuf.SPECIFICATION_VERSION = '0.9.0'
 
     repository = repo_tool.load_repository(self.repository_directory)
-    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+    repository.timestamp.load_signing_key(
+        self.role_keys['timestamp']['private'], True)
     repository.writeall()
 
     # Move the staged metadata to the "live" metadata.
@@ -1283,10 +1284,16 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # is now being set to true (i.e., the pre-generated repository isn't set
     # to support consistent snapshots.  A new version of targets.json is needed
     # to ensure <digest>.filename target files are written to disk.
-    repository.targets.load_signing_key(self.role_keys['targets']['private'])
-    repository.root.load_signing_key(self.role_keys['root']['private'])
-    repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
-    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+    # Mark roles as dirty to force metadata rewrite on writeall()
+    mark_role_as_dirty = True
+    repository.targets.load_signing_key(self.role_keys['targets']['private'],
+        mark_role_as_dirty)
+    repository.root.load_signing_key(self.role_keys['root']['private'],
+        mark_role_as_dirty)
+    repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'],
+        mark_role_as_dirty)
+    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'],
+        mark_role_as_dirty)
 
     repository.writeall(consistent_snapshot=True)
 
