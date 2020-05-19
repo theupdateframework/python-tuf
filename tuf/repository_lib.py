@@ -37,7 +37,6 @@ import time
 import logging
 import shutil
 import json
-import platform
 import tempfile
 
 import tuf
@@ -55,6 +54,8 @@ import securesystemslib.interface
 import securesystemslib.util
 import iso8601
 import six
+
+import securesystemslib.storage
 
 
 # See 'log.py' to learn how logging is handled in TUF.
@@ -92,9 +93,10 @@ SUPPORTED_KEY_TYPES = ['rsa', 'ed25519', 'ecdsa-sha2-nistp256']
 
 
 def _generate_and_write_metadata(rolename, metadata_filename,
-  targets_directory, metadata_directory, consistent_snapshot=False,
-  filenames=None, allow_partially_signed=False, increment_version_number=True,
-  repository_name='default', use_existing_fileinfo=False):
+  targets_directory, metadata_directory, storage_backend,
+  consistent_snapshot=False, filenames=None, allow_partially_signed=False,
+  increment_version_number=True, repository_name='default',
+  use_existing_fileinfo=False):
   """
   Non-public function that can generate and write the metadata for the
   specified 'rolename'.  It also increments the version number of 'rolename' if
@@ -124,7 +126,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
     targets_filename = TARGETS_FILENAME[:-len(METADATA_EXTENSION)]
     metadata = generate_snapshot_metadata(metadata_directory,
         roleinfo['version'], roleinfo['expires'], targets_filename,
-        consistent_snapshot, repository_name)
+        storage_backend, consistent_snapshot, repository_name)
 
 
     _log_warning_if_expires_soon(SNAPSHOT_FILENAME, roleinfo['expires'],
@@ -151,7 +153,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
     metadata = generate_targets_metadata(targets_directory, roleinfo['paths'],
         roleinfo['version'], roleinfo['expires'], roleinfo['delegations'],
-        consistent_targets, use_existing_fileinfo)
+        consistent_targets, use_existing_fileinfo, storage_backend)
 
   # Before writing 'rolename' to disk, automatically increment its version
   # number (if 'increment_version_number' is True) so that the caller does not
@@ -205,7 +207,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
       if rolename == 'root':
         consistent_snapshot = True
       filename = write_metadata_file(signable, metadata_filename,
-          metadata['version'], consistent_snapshot)
+          metadata['version'], consistent_snapshot, storage_backend)
 
     # 'signable' contains an invalid threshold of signatures.
     else:
@@ -231,11 +233,12 @@ def _generate_and_write_metadata(rolename, metadata_filename,
     # <version>.root.json and root.json).
     if rolename == 'root':
       filename = write_metadata_file(signable, metadata_filename,
-          metadata['version'], consistent_snapshot=True)
+          metadata['version'], consistent_snapshot=True,
+          storage_backend=storage_backend)
 
     else:
       filename = write_metadata_file(signable, metadata_filename,
-          metadata['version'], consistent_snapshot)
+          metadata['version'], consistent_snapshot, storage_backend)
 
   return signable, filename
 
@@ -268,50 +271,6 @@ def _metadata_is_partially_loaded(rolename, signable, repository_name):
 
   else:
     return False
-
-
-
-
-
-def _check_directory(directory, must_exist=True):
-  """
-  <Purpose>
-    Non-public function that ensures 'directory' is valid and it exists.  This
-    is not a security check, but a way for the caller to determine the cause of
-    an invalid directory provided by the user.  If the directory argument is
-    valid, it is returned normalized and as an absolute path.
-
-  <Arguments>
-    directory:
-      The directory to check.
-
-    must_exist:
-      A boolean indicating whether to check the directory exists.
-
-  <Exceptions>
-    securesystemslib.exceptions.Error, if 'directory' could not be validated.
-
-    securesystemslib.exceptions.FormatError, if 'directory' is not properly
-    formatted.
-
-  <Side Effects>
-    None.
-
-  <Returns>
-    The normalized absolutized path of 'directory'.
-  """
-
-  # Does 'directory' have the correct format?
-  # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.PATH_SCHEMA.check_match(directory)
-
-  # Check if the directory exists.
-  if must_exist and not os.path.isdir(directory):
-    raise securesystemslib.exceptions.Error(repr(directory) + ' directory does not exist.')
-
-  directory = os.path.abspath(directory)
-
-  return directory
 
 
 
@@ -394,7 +353,7 @@ def _remove_invalid_and_duplicate_signatures(signable, repository_name):
 
 
 def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
-    consistent_snapshot, repository_name):
+    consistent_snapshot, repository_name, storage_backend):
   """
   Non-public function that deletes metadata files marked as removed by
   'repository_tool.py'.  Revoked metadata files are not actually deleted until
@@ -410,71 +369,58 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
   # is stored (including delegated roles).  The 'django.json' role (e.g.,
   # delegated by Targets) would be located in the
   # '{repository_directory}/metadata/' directory.
-  if os.path.exists(metadata_directory) and os.path.isdir(metadata_directory):
-    for directory_path, junk, files in os.walk(metadata_directory):
+  metadata_files = sorted(storage_backend.list_folder(metadata_directory))
+  for metadata_role in metadata_files:
+    if metadata_role.endswith('root.json'):
+      continue
 
-      # 'files' here is a list of target file names.
-      for basename in files:
+    metadata_path = os.path.join(metadata_directory, metadata_role)
 
-        # If we encounter 'root.json', skip it.  We don't ever delete root.json
-        # files, since they should it always exist.
-        if basename.endswith('root.json'):
-          continue
+    # Strip the version number if 'consistent_snapshot' is True.  Example:
+    # '10.django.json' --> 'django.json'.  Consistent and non-consistent
+    # metadata might co-exist if write() and
+    # write(consistent_snapshot=True) are mixed, so ensure only
+    # '<version_number>.filename' metadata is stripped.
 
-        metadata_path = os.path.join(directory_path, basename)
-        # Strip the metadata dirname and the leading path separator.
-        # '{repository_directory}/metadata/django.json' -->
-        # 'django.json'
-        metadata_name = \
-          metadata_path[len(metadata_directory):].lstrip(os.path.sep)
+    # Should we check if 'consistent_snapshot' is True? It might have been
+    # set previously, but 'consistent_snapshot' can potentially be False
+    # now.  We'll proceed with the understanding that 'metadata_name' can
+    # have a prepended version number even though the repository is now
+    # a non-consistent one.
+    if metadata_role not in snapshot_metadata['meta']:
+      metadata_role, junk = _strip_version_number(metadata_role,
+          consistent_snapshot)
 
-        # Strip the version number if 'consistent_snapshot' is True.  Example:
-        # '10.django.json' --> 'django.json'.  Consistent and non-consistent
-        # metadata might co-exist if write() and
-        # write(consistent_snapshot=True) are mixed, so ensure only
-        # '<version_number>.filename' metadata is stripped.
-
-        # Should we check if 'consistent_snapshot' is True? It might have been
-        # set previously, but 'consistent_snapshot' can potentially be False
-        # now.  We'll proceed with the understanding that 'metadata_name' can
-        # have a prepended version number even though the repository is now
-        # a non-consistent one.
-        if metadata_name not in snapshot_metadata['meta']:
-          metadata_name, junk = _strip_version_number(metadata_name,
-            consistent_snapshot)
-
-        else:
-          logger.debug(repr(metadata_name) + ' found in the snapshot role.')
+    else:
+      logger.debug(repr(metadata_role) + ' found in the snapshot role.')
 
 
 
-        # Strip metadata extension from filename.  The role database does not
-        # include the metadata extension.
-        if metadata_name.endswith(METADATA_EXTENSION):
-          metadata_name = metadata_name[:-len(METADATA_EXTENSION)]
+    # Strip metadata extension from filename.  The role database does not
+    # include the metadata extension.
+    if metadata_role.endswith(METADATA_EXTENSION):
+      metadata_role = metadata_role[:-len(METADATA_EXTENSION)]
 
-        else:
-          logger.debug(repr(metadata_name) + ' does not match'
-            ' supported extension ' + repr(METADATA_EXTENSION))
+    else:
+      logger.debug(repr(metadata_role) + ' does not match'
+          ' supported extension ' + repr(METADATA_EXTENSION))
 
-        if metadata_name in ['root', 'targets', 'snapshot', 'timestamp']:
-          return
+    if metadata_role in ['root', 'targets', 'snapshot', 'timestamp']:
+      logger.debug('Not removing top-level metadata ' + repr(metadata_role))
+      return
 
-        # Delete the metadata file if it does not exist in 'tuf.roledb'.
-        # 'repository_tool.py' might have removed 'metadata_name,'
-        # but its metadata file is not actually deleted yet.  Do it now.
-        if not tuf.roledb.role_exists(metadata_name, repository_name):
-          logger.info('Removing outdated metadata: ' + repr(metadata_path))
-          os.remove(metadata_path)
+    # Delete the metadata file if it does not exist in 'tuf.roledb'.
+    # 'repository_tool.py' might have removed 'metadata_name,'
+    # but its metadata file is not actually deleted yet.  Do it now.
+    if not tuf.roledb.role_exists(metadata_role, repository_name):
+      logger.info('Removing outdated metadata: ' + repr(metadata_path))
+      storage_backend.remove(metadata_path)
 
-        else:
-          logger.debug('Not removing metadata: ' + repr(metadata_path))
+    else:
+      logger.debug('Not removing metadata: ' + repr(metadata_path))
 
-        # TODO: Should we delete outdated consistent snapshots, or does it make
-        # more sense for integrators to remove outdated consistent snapshots?
-
-  else:
-    logger.debug('Metadata directory does not exist: ' + repr(metadata_directory))
+      # TODO: Should we delete outdated consistent snapshots, or does it make
+      # more sense for integrators to remove outdated consistent snapshots?
 
 
 
@@ -540,8 +486,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
 
   # Load 'root.json'.  A Root role file without a version number is always
   # written.
-  if os.path.exists(root_filename):
-
+  try:
     # Initialize the key and role metadata of the top-level roles.
     signable = securesystemslib.util.load_json_file(root_filename)
     tuf.formats.check_signable_object_format(signable)
@@ -579,13 +524,13 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     # Ensure the 'consistent_snapshot' field is extracted.
     consistent_snapshot = root_metadata['consistent_snapshot']
 
-  else:
+  except securesystemslib.exceptions.StorageError:
     raise tuf.exceptions.RepositoryError('Cannot load the required'
-      ' root file: ' + repr(root_filename))
+        ' root file: ' + repr(root_filename))
 
   # Load 'timestamp.json'.  A Timestamp role file without a version number is
   # always written.
-  if os.path.exists(timestamp_filename):
+  try:
     signable = securesystemslib.util.load_json_file(timestamp_filename)
     timestamp_metadata = signable['signed']
     for signature in signable['signatures']:
@@ -608,8 +553,9 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     tuf.roledb.update_roleinfo('timestamp', roleinfo, mark_role_as_dirty=False,
         repository_name=repository_name)
 
-  else:
-    logger.debug('Cannot load the Timestamp  file: ' + repr(timestamp_filename))
+  except securesystemslib.exceptions.StorageError:
+    raise tuf.exceptions.RepositoryError('Cannot load the Timestamp file: '
+        + repr(timestamp_filename))
 
   # Load 'snapshot.json'.  A consistent snapshot.json must be calculated if
   # 'consistent_snapshot' is True.
@@ -622,7 +568,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     snapshot_filename = os.path.join(dirname,
         str(snapshot_version) + '.' + basename + METADATA_EXTENSION)
 
-  if os.path.exists(snapshot_filename):
+  try:
     signable = securesystemslib.util.load_json_file(snapshot_filename)
     tuf.formats.check_signable_object_format(signable)
     snapshot_metadata = signable['signed']
@@ -647,8 +593,9 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     tuf.roledb.update_roleinfo('snapshot', roleinfo, mark_role_as_dirty=False,
         repository_name=repository_name)
 
-  else:
-    logger.debug('The Snapshot file cannot be loaded: ' + repr(snapshot_filename))
+  except securesystemslib.exceptions.StorageError:
+    raise tuf.exceptions.RepositoryError('The Snapshot file cannot be loaded: '
+        + repr(snapshot_filename))
 
   # Load 'targets.json'.  A consistent snapshot of the Targets role must be
   # calculated if 'consistent_snapshot' is True.
@@ -657,7 +604,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     dirname, basename = os.path.split(targets_filename)
     targets_filename = os.path.join(dirname, str(targets_version) + '.' + basename)
 
-  if os.path.exists(targets_filename):
+  try:
     signable = securesystemslib.util.load_json_file(targets_filename)
     tuf.formats.check_signable_object_format(signable)
     targets_metadata = signable['signed']
@@ -711,8 +658,9 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
       except tuf.exceptions.KeyAlreadyExistsError:
         pass
 
-  else:
-    logger.debug('The Targets file cannot be loaded: ' + repr(targets_filename))
+  except securesystemslib.exceptions.StorageError:
+    raise tuf.exceptions.RepositoryError('The Targets file can not be loaded: '
+        + repr(targets_filename))
 
   return repository, consistent_snapshot
 
@@ -864,7 +812,7 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
   return private_key
 
 
-def get_metadata_filenames(metadata_directory=None):
+def get_metadata_filenames(metadata_directory):
   """
   <Purpose>
     Return a dictionary containing the filenames of the top-level roles.
@@ -895,9 +843,6 @@ def get_metadata_filenames(metadata_directory=None):
     metadata files, such as 'root.json' and 'snapshot.json'.
   """
 
-  if metadata_directory is None:
-    metadata_directory = os.getcwd()
-
   # Does 'metadata_directory' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
@@ -926,7 +871,7 @@ def get_metadata_filenames(metadata_directory=None):
 
 
 
-def get_metadata_fileinfo(filename, custom=None):
+def get_metadata_fileinfo(filename, storage_backend, custom=None):
   """
   <Purpose>
     Retrieve the file information of 'filename'.  The object returned
@@ -945,11 +890,13 @@ def get_metadata_fileinfo(filename, custom=None):
     custom:
       An optional object providing additional information about the file.
 
+    storage_backend:
+      An object which implements
+      securesystemslib.storage.StorageBackendInterface.
+
   <Exceptions>
     securesystemslib.exceptions.FormatError, if 'filename' is improperly
     formatted.
-
-    securesystemslib.exceptions.Error, if 'filename' doesn't exist.
 
   <Side Effects>
     The file is opened and information about the file is generated,
@@ -969,17 +916,13 @@ def get_metadata_fileinfo(filename, custom=None):
   if custom is not None:
     tuf.formats.CUSTOM_SCHEMA.check_match(custom)
 
-  if not os.path.isfile(filename):
-    message = repr(filename) + ' is not a file.'
-    raise securesystemslib.exceptions.Error(message)
-
   # Note: 'filehashes' is a dictionary of the form
   # {'sha256': 1233dfba312, ...}.  'custom' is an optional
   # dictionary that a client might define to include additional
   # file information, such as the file's author, version/revision
   # numbers, etc.
   filesize, filehashes = securesystemslib.util.get_file_details(filename,
-      tuf.settings.FILE_HASH_ALGORITHMS)
+      tuf.settings.FILE_HASH_ALGORITHMS, storage_backend)
 
   return tuf.formats.make_fileinfo(filesize, filehashes, custom=custom)
 
@@ -1215,7 +1158,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
 
 def generate_targets_metadata(targets_directory, target_files, version,
     expiration_date, delegations=None, write_consistent_targets=False,
-    use_existing_fileinfo=False):
+    use_existing_fileinfo=False, storage_backend=None):
   """
   <Purpose>
     Generate the targets metadata object. The targets in 'target_files' must
@@ -1225,8 +1168,8 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
   <Arguments>
     targets_directory:
-      The directory containing the target files and directories of the
-      repository.
+      The absolute path to a directory containing the target files and
+      directories of the repository.
 
     target_files:
       The target files tracked by 'targets.json'.  'target_files' is a
@@ -1255,6 +1198,10 @@ def generate_targets_metadata(targets_directory, target_files, version,
       hashes, as already exists in the roledb (True) or whether to generate
       hashes (False).
 
+    storage_backend:
+      An object which implements
+      securesystemslib.storage.StorageBackendInterface.
+
   <Exceptions>
     securesystemslib.exceptions.FormatError, if an error occurred trying to
     generate the targets metadata object.
@@ -1269,8 +1216,8 @@ def generate_targets_metadata(targets_directory, target_files, version,
     write_consistent_targets are True.
 
   <Side Effects>
-    If use_existing_fileinfo is False, the target files are read and file
-    information generated about them.
+    If use_existing_fileinfo is False, the target files are read from storage
+    and file information about them is generated.
     If 'write_consistent_targets' is True, each target in 'target_files' will be
     copied to a file with a digest prepended to its filename. For example, if
     'some_file.txt' is one of the targets of 'target_files', consistent targets
@@ -1305,11 +1252,6 @@ def generate_targets_metadata(targets_directory, target_files, version,
   # targets metadata object returned.
   filedict = {}
 
-  # Ensure the user is aware of a non-existent 'target_directory', and convert
-  # it to its abosolute path, if it exists.
-  check_exists = not use_existing_fileinfo
-  targets_directory = _check_directory(targets_directory, check_exists)
-
   if use_existing_fileinfo:
     for target, fileinfo in six.iteritems(target_files):
 
@@ -1325,8 +1267,11 @@ def generate_targets_metadata(targets_directory, target_files, version,
       filedict[target] = fileinfo
 
   else:
+    if storage_backend is None:
+      storage_backend = securesystemslib.storage.FilesystemBackend()
+
     filedict = _generate_targets_fileinfo(target_files, targets_directory,
-        write_consistent_targets)
+        write_consistent_targets, storage_backend)
 
   # Generate the targets metadata object.
   # Use generalized build_dict_conforming_to_schema func to produce a dict that
@@ -1361,7 +1306,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
 
 def _generate_targets_fileinfo(target_files, targets_directory,
-    write_consistent_targets):
+    write_consistent_targets, storage_backend):
   """
   Iterate over target_files and:
     * ensure they exist in the targets_directory
@@ -1385,19 +1330,13 @@ def _generate_targets_fileinfo(target_files, targets_directory,
     # path separator (i.e., is treated as an absolute path).
     target_path = os.path.join(targets_directory, target.lstrip(os.sep))
 
-    # Ensure all target files listed in 'target_files' exist.  If just one of
-    # these files does not exist, raise an exception.
-    if not os.path.exists(target_path):
-      raise securesystemslib.exceptions.Error(repr(target_path) + ' cannot'
-          ' be read.  Unable to generate targets metadata.')
-
     # Add 'custom' if it has been provided.  Custom data about the target is
     # optional and will only be included in metadata (i.e., a 'custom' field in
     # the target's fileinfo dictionary) if specified here.
     custom_data = fileinfo.get('custom', None)
 
     filedict[relative_targetpath] = \
-        get_metadata_fileinfo(target_path, custom_data)
+        get_metadata_fileinfo(target_path, storage_backend, custom_data)
 
     # Copy 'target_path' to 'digest_target' if consistent hashing is enabled.
     if write_consistent_targets:
@@ -1413,7 +1352,8 @@ def _generate_targets_fileinfo(target_files, targets_directory,
 
 
 def generate_snapshot_metadata(metadata_directory, version, expiration_date,
-    targets_filename, consistent_snapshot=False, repository_name='default'):
+    targets_filename, storage_backend, consistent_snapshot=False,
+    repository_name='default'):
   """
   <Purpose>
     Create the snapshot metadata.  The minimum metadata must exist (i.e.,
@@ -1438,6 +1378,10 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
     targets_filename:
       The filename of the top-level targets role.  The hash and file size of
       this file is listed in the snapshot role.
+
+    storage_backend:
+      An object which implements
+      securesystemslib.storage.StorageBackendInterface.
 
     consistent_snapshot:
       Boolean.  If True, a file digest is expected to be prepended to the
@@ -1473,24 +1417,19 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   securesystemslib.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
-  metadata_directory = _check_directory(metadata_directory)
-
   # Snapshot's 'fileinfodict' shall contain the version number of Root,
   # Targets, and all delegated roles fo the repository.
   fileinfodict = {}
   fileinfodict[TARGETS_FILENAME] = get_metadata_versioninfo(targets_filename,
       repository_name)
 
-  # We previously also stored the compressed versions of roles in
-  # snapshot.json, however, this is no longer needed as their hashes and
-  # lengths are not used and their version numbers match the uncompressed role
-  # files.
-
   # Search the metadata directory and generate the versioninfo of all the role
   # files found there.  This information is stored in the 'meta' field of
   # 'snapshot.json'.
 
-  for metadata_filename in sorted(os.listdir(metadata_directory), reverse=True):
+  metadata_files = sorted(storage_backend.list_folder(metadata_directory),
+      reverse=True)
+  for metadata_filename in metadata_files:
     # Strip the version number if 'consistent_snapshot' is True.
     # Example:  '10.django.json'  --> 'django.json'
     metadata_name, junk = _strip_version_number(metadata_filename,
@@ -1557,6 +1496,10 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date,
       The name of the repository.  If not supplied, 'rolename' is added to the
       'default' repository.
 
+    storage_backend:
+      An object which implements
+      securesystemslib.storage.StorageBackendInterface.
+
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the generated timestamp metadata
     object cannot be formatted correctly, or one of the arguments is improperly
@@ -1585,11 +1528,6 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date,
   snapshot_version = get_metadata_versioninfo('snapshot', repository_name)
   snapshot_fileinfo[SNAPSHOT_FILENAME] = \
     tuf.formats.make_fileinfo(length, hashes, version=snapshot_version['version'])
-
-  # We previously saved the versioninfo of the compressed versions of
-  # 'snapshot.json' in 'versioninfo'.  Since version numbers are now stored,
-  # the version numbers of compressed roles do not change and can thus be
-  # excluded.
 
   # Generate the timestamp metadata object.
   # Use generalized build_dict_conforming_to_schema func to produce a dict that
@@ -1698,7 +1636,8 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
 
 
 
-def write_metadata_file(metadata, filename, version_number, consistent_snapshot):
+def write_metadata_file(metadata, filename, version_number, consistent_snapshot,
+    storage_backend):
   """
   <Purpose>
     If necessary, write the 'metadata' signable object to 'filename'.
@@ -1719,6 +1658,10 @@ def write_metadata_file(metadata, filename, version_number, consistent_snapshot)
     consistent_snapshot:
       Boolean that determines whether the metadata file's digest should be
       prepended to the filename.
+
+    storage_backend:
+      An object which implements
+      securesystemslib.storage.StorageBackendInterface.
 
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the arguments are improperly
@@ -1745,11 +1688,8 @@ def write_metadata_file(metadata, filename, version_number, consistent_snapshot)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version_number)
   securesystemslib.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
 
-  # Verify the directory of 'filename', and convert 'filename' to its absolute
-  # path so that temporary files are moved to their expected destinations.
-  filename = os.path.abspath(filename)
-  written_filename = filename
-  _check_directory(os.path.dirname(filename))
+  if storage_backend is None:
+    storage_backend = securesystemslib.storage.FilesystemBackend()
 
   # Generate the actual metadata file content of 'metadata'.  Metadata is
   # saved as JSON and includes formatting, such as indentation and sorted
@@ -1772,7 +1712,7 @@ def write_metadata_file(metadata, filename, version_number, consistent_snapshot)
   file_object.write(file_content)
 
   if consistent_snapshot:
-    dirname, basename = os.path.split(written_filename)
+    dirname, basename = os.path.split(filename)
     basename = basename.split(METADATA_EXTENSION, 1)[0]
     version_and_filename = str(version_number) + '.' + basename + METADATA_EXTENSION
     written_consistent_filename = os.path.join(dirname, version_and_filename)
@@ -1781,50 +1721,27 @@ def write_metadata_file(metadata, filename, version_number, consistent_snapshot)
     # would always point to the current version.  Example: 1.root.json and
     # 2.root.json -> root.json.  If consistent snapshot is True, we should save
     # the consistent snapshot and point 'written_filename' to it.
-    logger.debug('Creating a consistent file for ' + repr(written_filename))
+    logger.debug('Creating a consistent file for ' + repr(filename))
     logger.debug('Saving ' + repr(written_consistent_filename))
-    securesystemslib.util.persist_temp_file(file_object, written_consistent_filename)
-
-    # For GitHub issue #374 https://github.com/theupdateframework/tuf/issues/374
-    # We provide the option of either (1) creating a link via os.link() to the
-    # consistent file or (2) creating a copy of the consistent file and saving
-    # to its expected filename (e.g., root.json).  The option of either
-    # creating a copy or link should be configurable in tuf.settings.py.
-    if tuf.settings.CONSISTENT_METHOD == 'copy' or platform.system() == 'Windows':
-      logger.debug('Pointing ' + repr(filename) + ' to the consistent'
-          ' file: ' + repr(written_consistent_filename))
-      shutil.copyfile(written_consistent_filename, written_filename)
-
-    elif tuf.settings.CONSISTENT_METHOD == 'hard_link':
-      logger.info('Hard linking ' + repr(written_consistent_filename))
-
-      # 'written_filename' must not exist, otherwise os.link() complains.
-      if os.path.exists(written_filename):
-        os.remove(written_filename)
-
-      else:
-        logger.debug(repr(written_filename) + ' does not exist.')
-
-      os.link(written_consistent_filename, written_filename)
-
-    else:
-      raise securesystemslib.exceptions.InvalidConfigurationError('The'
-        ' consistent method specified in tuf.settings.py is not supported, try'
-        ' either "copy" or "hard_link"')
+    securesystemslib.util.persist_temp_file(file_object,
+        written_consistent_filename, should_close=False)
 
   else:
-    logger.debug('Not creating a consistent snapshot for ' + repr(written_filename))
-    logger.debug('Saving ' + repr(written_filename))
-    securesystemslib.util.persist_temp_file(file_object, written_filename)
+    logger.debug('Not creating a consistent snapshot for ' + repr(filename))
 
-  return written_filename
+  logger.debug('Saving ' + repr(filename))
+  storage_backend.put(file_object, filename)
+
+  file_object.close()
+
+  return filename
 
 
 
 
 
 def _log_status_of_top_level_roles(targets_directory, metadata_directory,
-    repository_name):
+    repository_name, storage_backend):
   """
   Non-public function that logs whether any of the top-level roles contain an
   invalid number of public and private keys, or an insufficient threshold of
@@ -1877,7 +1794,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
   try:
     signable, root_filename = \
       _generate_and_write_metadata('root', root_filename, targets_directory,
-          metadata_directory, repository_name=repository_name)
+          metadata_directory, storage_backend, repository_name=repository_name)
     _log_status('root', signable, repository_name)
 
   # 'tuf.exceptions.UnsignedMetadataError' raised if metadata contains an
@@ -1904,7 +1821,8 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
   try:
     signable, targets_filename = \
       _generate_and_write_metadata('targets', targets_filename,
-          targets_directory, metadata_directory, repository_name=repository_name)
+          targets_directory, metadata_directory, storage_backend,
+          repository_name=repository_name)
     _log_status('targets', signable, repository_name)
 
   except tuf.exceptions.UnsignedMetadataError as e:
@@ -1929,8 +1847,8 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
   try:
     signable, snapshot_filename = \
       _generate_and_write_metadata('snapshot', snapshot_filename,
-          targets_directory, metadata_directory, False, filenames,
-          repository_name=repository_name)
+          targets_directory, metadata_directory, storage_backend, False,
+          filenames, repository_name=repository_name)
     _log_status('snapshot', signable, repository_name)
 
   except tuf.exceptions.UnsignedMetadataError as e:
@@ -1955,8 +1873,8 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
   try:
     signable, timestamp_filename = \
       _generate_and_write_metadata('timestamp', timestamp_filename,
-          targets_directory, metadata_directory, False, filenames,
-          repository_name=repository_name)
+          targets_directory, metadata_directory, storage_backend,
+          False, filenames, repository_name=repository_name)
     _log_status('timestamp', signable, repository_name)
 
   except tuf.exceptions.UnsignedMetadataError as e:

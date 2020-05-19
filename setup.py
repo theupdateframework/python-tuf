@@ -116,7 +116,7 @@ setup(
     'iso8601>=0.1.12',
     'requests>=2.19.1',
     'six>=1.11.0',
-    'securesystemslib>=0.12.0'
+    'securesystemslib>=0.15.0'
   ],
   tests_require = [
     'mock; python_version < "3.3"'

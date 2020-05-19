@@ -436,6 +436,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     repository.root.threshold = 2
     repository.root.load_signing_key(self.role_keys['root']['private'])
 
+    storage_backend = securesystemslib.storage.FilesystemBackend()
     # The client uses the threshold from the previous root file to verify the
     # new root. Thus we need to make two updates so that the threshold used for
     # verification becomes 2. I.e. we bump the version, sign twice with the
@@ -455,7 +456,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       # catch the unmet threshold.
       # We also skip writing to 'metadata.staged' and copying to 'metadata' and
       # instead write directly to 'metadata'
-      repo_lib.write_metadata_file(signed_metadata, live_root_path, info["version"], True)
+      repo_lib.write_metadata_file(signed_metadata, live_root_path,
+          info["version"], True, storage_backend)
 
 
     # Update from current '1.root.json' to '3.root.json' on client and assert

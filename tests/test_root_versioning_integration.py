@@ -41,6 +41,7 @@ import tuf.keydb
 import tuf.repository_tool as repo_tool
 
 import securesystemslib
+import securesystemslib.storage
 
 logger = logging.getLogger(__name__)
 
@@ -63,9 +64,11 @@ class TestRepository(unittest.TestCase):
 
   def test_init(self):
     # Test normal case.
+    storage_backend = securesystemslib.storage.FilesystemBackend()
     repository = repo_tool.Repository('repository_directory/',
                                       'metadata_directory/',
-                                      'targets_directory/')
+                                      'targets_directory/',
+                                      storage_backend)
     self.assertTrue(isinstance(repository.root, repo_tool.Root))
     self.assertTrue(isinstance(repository.snapshot, repo_tool.Snapshot))
     self.assertTrue(isinstance(repository.timestamp, repo_tool.Timestamp))
@@ -73,11 +76,11 @@ class TestRepository(unittest.TestCase):
 
     # Test improperly formatted arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.Repository, 3,
-                      'metadata_directory/', 'targets_directory')
+                      'metadata_directory/', 'targets_directory', storage_backend)
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.Repository,
-                      'repository_directory', 3, 'targets_directory')
+                      'repository_directory', 3, 'targets_directory', storage_backend)
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.Repository,
-                      'repository_directory', 'metadata_directory', 3)
+                      'repository_directory', 'metadata_directory', storage_backend, 3)
 
 
 

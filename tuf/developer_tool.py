@@ -501,8 +501,9 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
 
   if tuf.sig.verify(signable, rolename, repository_name) or write_partial:
     repo_lib._remove_invalid_and_duplicate_signatures(signable, repository_name)
+    storage_backend = securesystemslib.storage.FilesystemBackend()
     filename = repo_lib.write_metadata_file(signable, metadata_filename,
-        metadata['version'], False)
+        metadata['version'], False, storage_backend)
 
   # 'signable' contains an invalid threshold of signatures.
   else:

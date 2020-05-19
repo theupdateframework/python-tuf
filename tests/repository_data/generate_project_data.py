@@ -104,10 +104,6 @@ project('role1').load_signing_key(delegation_private)
 project.expiration = datetime.datetime(2030, 1, 1, 0, 0)
 project('role1').expiration = datetime.datetime(2030, 1, 1, 0, 0)
 
-# Compress the project role metadata so that the unit tests have a pre-generated
-# example of compressed metadata.
-project.compressions = ['gz']
-
 # Create the actual metadata files, which are saved to 'metadata.staged'.
 if not options.dry_run:
   project.write()

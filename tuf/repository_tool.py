@@ -32,7 +32,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
-import errno
 import time
 import datetime
 import logging
@@ -53,6 +52,8 @@ import securesystemslib.formats
 import securesystemslib.util
 import iso8601
 import six
+
+import securesystemslib.storage
 
 
 # Copy API
@@ -170,6 +171,10 @@ class Repository(object):
       downloaded.  Metadata files are similarly referenced in the top-level
       metadata.
 
+    storage_backend:
+      An object which implements
+      securesystemslib.storage.StorageBackendInterface.
+
     repository_name:
       The name of the repository.  If not supplied, 'rolename' is added to the
       'default' repository.
@@ -187,7 +192,7 @@ class Repository(object):
   """
 
   def __init__(self, repository_directory, metadata_directory,
-      targets_directory, repository_name='default'):
+      targets_directory, storage_backend, repository_name='default'):
 
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
@@ -202,6 +207,7 @@ class Repository(object):
     self._metadata_directory = metadata_directory
     self._targets_directory = targets_directory
     self._repository_name = repository_name
+    self._storage_backend = storage_backend
 
     try:
       tuf.roledb.create_roledb(repository_name)
@@ -294,7 +300,7 @@ class Repository(object):
           dirty_rolename + METADATA_EXTENSION)
       repo_lib._generate_and_write_metadata(dirty_rolename, dirty_filename,
           self._targets_directory, self._metadata_directory,
-          consistent_snapshot, filenames,
+          self._storage_backend, consistent_snapshot, filenames,
           repository_name=self._repository_name,
           use_existing_fileinfo=use_existing_fileinfo)
 
@@ -308,14 +314,14 @@ class Repository(object):
     if 'root' in dirty_rolenames or consistent_snapshot != old_consistent_snapshot:
       repo_lib._generate_and_write_metadata('root', filenames['root'],
           self._targets_directory, self._metadata_directory,
-          consistent_snapshot, filenames,
+          self._storage_backend, consistent_snapshot, filenames,
           repository_name=self._repository_name)
 
     # Generate the 'targets.json' metadata file.
     if 'targets' in dirty_rolenames:
       repo_lib._generate_and_write_metadata('targets', filenames['targets'],
           self._targets_directory, self._metadata_directory,
-          consistent_snapshot,
+          self._storage_backend, consistent_snapshot,
           repository_name=self._repository_name,
           use_existing_fileinfo=use_existing_fileinfo)
 
@@ -323,13 +329,15 @@ class Repository(object):
     if 'snapshot' in dirty_rolenames:
       snapshot_signable, junk = repo_lib._generate_and_write_metadata('snapshot',
           filenames['snapshot'], self._targets_directory,
-          self._metadata_directory, consistent_snapshot, filenames,
+          self._metadata_directory, self._storage_backend,
+          consistent_snapshot, filenames,
           repository_name=self._repository_name)
 
     # Generate the 'timestamp.json' metadata file.
     if 'timestamp' in dirty_rolenames:
       repo_lib._generate_and_write_metadata('timestamp', filenames['timestamp'],
-          self._targets_directory, self._metadata_directory, consistent_snapshot,
+          self._targets_directory, self._metadata_directory,
+          self._storage_backend, consistent_snapshot,
           filenames, repository_name=self._repository_name)
 
     tuf.roledb.unmark_dirty(dirty_rolenames, self._repository_name)
@@ -340,7 +348,8 @@ class Repository(object):
     # load them.
     if snapshot_signable is not None:
       repo_lib._delete_obsolete_metadata(self._metadata_directory,
-          snapshot_signable['signed'], consistent_snapshot, self._repository_name)
+          snapshot_signable['signed'], consistent_snapshot, self._repository_name,
+          self._storage_backend)
 
 
 
@@ -399,7 +408,8 @@ class Repository(object):
          'timestamp': os.path.join(self._metadata_directory, repo_lib.TIMESTAMP_FILENAME)}
 
     repo_lib._generate_and_write_metadata(rolename, rolename_filename,
-        self._targets_directory, self._metadata_directory, consistent_snapshot,
+        self._targets_directory, self._metadata_directory,
+        self._storage_backend, consistent_snapshot,
         filenames=filenames, allow_partially_signed=True,
         increment_version_number=increment_version_number,
         repository_name=self._repository_name,
@@ -451,7 +461,7 @@ class Repository(object):
 
       # Verify the top-level roles and log the results.
       repo_lib._log_status_of_top_level_roles(targets_directory,
-          metadata_directory, self._repository_name)
+          metadata_directory, self._repository_name, self._storage_backend)
 
     finally:
       shutil.rmtree(temp_repository_directory, ignore_errors=True)
@@ -2938,7 +2948,8 @@ def _find_bin_for_hash(path_hash, number_of_bins):
 
 
 
-def create_new_repository(repository_directory, repository_name='default'):
+def create_new_repository(repository_directory, repository_name='default',
+    storage_backend=None):
   """
   <Purpose>
     Create a new repository, instantiate barebones metadata for the top-level
@@ -2956,6 +2967,11 @@ def create_new_repository(repository_directory, repository_name='default'):
     repository_name:
       The name of the repository.  If not supplied, 'rolename' is added to the
       'default' repository.
+
+    storage_backend:
+      An object which implements
+      securesystemslib.storage.StorageBackendInterface. When no object is
+      passed a FilesystemBackend will be instantiated and used.
 
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the arguments are improperly
@@ -2976,25 +2992,18 @@ def create_new_repository(repository_directory, repository_name='default'):
   securesystemslib.formats.PATH_SCHEMA.check_match(repository_directory)
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
+  if storage_backend is None:
+    storage_backend = securesystemslib.storage.FilesystemBackend()
+
   # Set the repository, metadata, and targets directories.  These directories
   # are created if they do not exist.
   repository_directory = os.path.abspath(repository_directory)
   metadata_directory = None
   targets_directory = None
 
-  # Try to create 'repository_directory' if it does not exist.
-  try:
-    logger.info('Creating ' + repr(repository_directory))
-    os.makedirs(repository_directory)
-
-  # 'OSError' raised if the leaf directory already exists or cannot be created.
-  # Check for case where 'repository_directory' has already been created.
-  except OSError as e:
-    if e.errno == errno.EEXIST:
-      pass
-
-    else:
-      raise
+  # Ensure the 'repository_directory' exists
+  logger.info('Creating ' + repr(repository_directory))
+  storage_backend.create_folder(repository_directory)
 
   # Set the metadata and targets directories.  The metadata directory is a
   # staged one so that the "live" repository is not affected.  The
@@ -3004,37 +3013,19 @@ def create_new_repository(repository_directory, repository_name='default'):
       METADATA_STAGED_DIRECTORY_NAME)
   targets_directory = os.path.join(repository_directory, TARGETS_DIRECTORY_NAME)
 
-  # Try to create the metadata directory that will hold all of the metadata
-  # files, such as 'root.json' and 'snapshot.json'.
-  try:
-    logger.info('Creating ' + repr(metadata_directory))
-    os.mkdir(metadata_directory)
+  # Ensure the metadata directory exists
+  logger.info('Creating ' + repr(metadata_directory))
+  storage_backend.create_folder(metadata_directory)
 
-  # 'OSError' raised if the leaf directory already exists or cannot be created.
-  except OSError as e:
-    if e.errno == errno.EEXIST:
-      pass
-
-    else:
-      raise
-
-  # Try to create the targets directory that will hold all of the target files.
-  try:
-    logger.info('Creating ' + repr(targets_directory))
-    os.mkdir(targets_directory)
-
-  except OSError as e:
-    if e.errno == errno.EEXIST:
-      pass
-
-    else:
-      raise
+  # Ensure the targets directory exists
+  logger.info('Creating ' + repr(targets_directory))
+  storage_backend.create_folder(targets_directory)
 
   # Create the bare bones repository object, where only the top-level roles
   # have been set and contain default values (e.g., Root roles has a threshold
   # of 1, expires 1 year into the future, etc.)
   repository = Repository(repository_directory, metadata_directory,
-      targets_directory, repository_name)
+      targets_directory, storage_backend, repository_name)
 
   return repository
 
@@ -3042,7 +3033,8 @@ def create_new_repository(repository_directory, repository_name='default'):
 
 
 
-def load_repository(repository_directory, repository_name='default'):
+def load_repository(repository_directory, repository_name='default',
+    storage_backend=None):
   """
   <Purpose>
     Return a repository object containing the contents of metadata files loaded
@@ -3056,6 +3048,11 @@ def load_repository(repository_directory, repository_name='default'):
     repository_name:
       The name of the repository.  If not supplied, 'default' is used as the
       repository name.
+
+    storage_backend:
+      An object which implements
+      securesystemslib.storage.StorageBackendInterface. When no object is
+      passed a FilesystemBackend will be instantiated and used.
 
   <Exceptions>
     securesystemslib.exceptions.FormatError, if 'repository_directory' or any of
@@ -3077,6 +3074,9 @@ def load_repository(repository_directory, repository_name='default'):
   securesystemslib.formats.PATH_SCHEMA.check_match(repository_directory)
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
+  if storage_backend is None:
+    storage_backend = securesystemslib.storage.FilesystemBackend()
+
   repository_directory = os.path.abspath(repository_directory)
   metadata_directory = os.path.join(repository_directory,
       METADATA_STAGED_DIRECTORY_NAME)
@@ -3085,7 +3085,7 @@ def load_repository(repository_directory, repository_name='default'):
   # The Repository() object loaded (i.e., containing all the metadata roles
   # found) and returned.
   repository = Repository(repository_directory, metadata_directory,
-      targets_directory, repository_name)
+      targets_directory, storage_backend, repository_name)
 
   filenames = repo_lib.get_metadata_filenames(metadata_directory)
 
@@ -3106,7 +3106,9 @@ def load_repository(repository_directory, repository_name='default'):
   loaded_metadata = []
   targets_objects['targets'] = repository.targets
 
-  for metadata_role in sorted(os.listdir(metadata_directory), reverse=True):
+  metadata_files = sorted(storage_backend.list_folder(metadata_directory),
+      reverse=True)
+  for metadata_role in metadata_files:
 
     metadata_path = os.path.join(metadata_directory, metadata_role)
     metadata_name = \
