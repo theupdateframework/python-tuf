@@ -1805,130 +1805,64 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
   should be a directory in a temporary repository directory.
   """
 
+  _log_role_keys_status(repository_name)
+
   # The expected full filenames of the top-level roles needed to write them to
   # disk.
   filenames = get_metadata_filenames(metadata_directory)
-  root_filename = filenames[ROOT_FILENAME]
-  targets_filename = filenames[TARGETS_FILENAME]
-  snapshot_filename = filenames[SNAPSHOT_FILENAME]
-  timestamp_filename = filenames[TIMESTAMP_FILENAME]
 
-  # Verify that the top-level roles contain a valid number of public keys and
-  # that their corresponding private keys have been loaded.
+  # Do the top-level roles contain a valid threshold of signatures?  Top-level
+  # metadata is verified in Root -> Targets -> Snapshot -> Timestamp order.
+  # Verify the metadata of the Root role.
+  dirty_rolenames = tuf.roledb.get_dirty_roles(repository_name)
+  top_level_roles = ['root', 'targets', 'snapshot', 'timestamp']
+
+  for rolename in top_level_roles:
+    listed_filenames = None
+    if rolename == 'snapshot':
+      listed_filenames = {'root': filenames[ROOT_FILENAME],
+                          'targets': filenames[TARGETS_FILENAME]}
+    if rolename == 'timestamp':
+      listed_filenames = {'snapshot': filenames[SNAPSHOT_FILENAME]}
+
+    # Verify the metadata of the Timestamp role.
+    roleinfo = tuf.roledb.get_roleinfo(rolename, repository_name)
+    role_filename = filenames[rolename + METADATA_EXTENSION]
+
+    try:
+      signable, role_filename = \
+        _generate_and_write_metadata(rolename, role_filename,
+            targets_directory, metadata_directory, storage_backend,
+            filenames=listed_filenames,
+            repository_name=repository_name)
+      _log_status(rolename, signable, repository_name)
+
+    except tuf.exceptions.UnsignedMetadataError as e:
+      _log_status(rolename, e.signable, repository_name)
+      return
+
+    finally:
+      # recover the metadata state
+      tuf.roledb.unmark_dirty(top_level_roles, repository_name)
+      tuf.roledb.mark_dirty(dirty_rolenames, repository_name)
+      tuf.roledb.update_roleinfo(rolename, roleinfo,
+          mark_role_as_dirty=False, repository_name=repository_name)
+
+
+
+
+def _log_role_keys_status(repository_name):
+  """
+  Verifies that the top-level roles contain a valid number of public keys and
+  that their corresponding private keys have been loaded.
+  """
+
   for rolename in ['root', 'targets', 'snapshot', 'timestamp']:
     try:
       _check_role_keys(rolename, repository_name)
 
     except tuf.exceptions.InsufficientKeysError as e:
       logger.info(str(e))
-
-  # Do the top-level roles contain a valid threshold of signatures?  Top-level
-  # metadata is verified in Root -> Targets -> Snapshot -> Timestamp order.
-  # Verify the metadata of the Root role.
-  dirty_rolenames = tuf.roledb.get_dirty_roles(repository_name)
-
-  root_roleinfo = tuf.roledb.get_roleinfo('root', repository_name)
-  root_is_dirty = None
-  if 'root' in dirty_rolenames:
-    root_is_dirty = True
-
-  else:
-    root_is_dirty = False
-
-  try:
-    signable, root_filename = \
-      _generate_and_write_metadata('root', root_filename, targets_directory,
-          metadata_directory, storage_backend, repository_name=repository_name)
-    _log_status('root', signable, repository_name)
-
-  # 'tuf.exceptions.UnsignedMetadataError' raised if metadata contains an
-  # invalid threshold of signatures.  log the valid/threshold message, where
-  # valid < threshold.
-  except tuf.exceptions.UnsignedMetadataError as e:
-    _log_status('root', e.signable, repository_name)
-    return
-
-  finally:
-    tuf.roledb.unmark_dirty(['root'], repository_name)
-    tuf.roledb.update_roleinfo('root', root_roleinfo,
-        mark_role_as_dirty=root_is_dirty, repository_name=repository_name)
-
-  # Verify the metadata of the Targets role.
-  targets_roleinfo = tuf.roledb.get_roleinfo('targets', repository_name)
-  targets_is_dirty = None
-  if 'targets' in dirty_rolenames:
-    targets_is_dirty = True
-
-  else:
-    targets_is_dirty = False
-
-  try:
-    signable, targets_filename = \
-      _generate_and_write_metadata('targets', targets_filename,
-          targets_directory, metadata_directory, storage_backend,
-          repository_name=repository_name)
-    _log_status('targets', signable, repository_name)
-
-  except tuf.exceptions.UnsignedMetadataError as e:
-    _log_status('targets', e.signable, repository_name)
-    return
-
-  finally:
-    tuf.roledb.unmark_dirty(['targets'], repository_name)
-    tuf.roledb.update_roleinfo('targets', targets_roleinfo,
-        mark_role_as_dirty=targets_is_dirty, repository_name=repository_name)
-
-  # Verify the metadata of the snapshot role.
-  snapshot_roleinfo = tuf.roledb.get_roleinfo('snapshot', repository_name)
-  snapshot_is_dirty = None
-  if 'snapshot' in dirty_rolenames:
-    snapshot_is_dirty = True
-
-  else:
-    snapshot_is_dirty = False
-
-  filenames = {'root': root_filename, 'targets': targets_filename}
-  try:
-    signable, snapshot_filename = \
-      _generate_and_write_metadata('snapshot', snapshot_filename,
-          targets_directory, metadata_directory, storage_backend, False,
-          filenames, repository_name=repository_name)
-    _log_status('snapshot', signable, repository_name)
-
-  except tuf.exceptions.UnsignedMetadataError as e:
-    _log_status('snapshot', e.signable, repository_name)
-    return
-
-  finally:
-    tuf.roledb.unmark_dirty(['snapshot'], repository_name)
-    tuf.roledb.update_roleinfo('snapshot', snapshot_roleinfo,
-        mark_role_as_dirty=snapshot_is_dirty, repository_name=repository_name)
-
-  # Verify the metadata of the Timestamp role.
-  timestamp_roleinfo = tuf.roledb.get_roleinfo('timestamp', repository_name)
-  timestamp_is_dirty = None
-  if 'timestamp' in dirty_rolenames:
-    timestamp_is_dirty = True
-
-  else:
-    timestamp_is_dirty = False
-
-  filenames = {'snapshot': snapshot_filename}
-  try:
-    signable, timestamp_filename = \
-      _generate_and_write_metadata('timestamp', timestamp_filename,
-          targets_directory, metadata_directory, storage_backend,
-          False, filenames, repository_name=repository_name)
-    _log_status('timestamp', signable, repository_name)
-
-  except tuf.exceptions.UnsignedMetadataError as e:
-    _log_status('timestamp', e.signable, repository_name)
-    return
-
-  finally:
-    tuf.roledb.unmark_dirty(['timestamp'], repository_name)
-    tuf.roledb.update_roleinfo('timestamp', timestamp_roleinfo,
-        mark_role_as_dirty=timestamp_is_dirty, repository_name=repository_name)
 
 
 
