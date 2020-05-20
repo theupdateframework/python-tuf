@@ -175,7 +175,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
   else:
     logger.debug('Not incrementing ' + repr(rolename) + '\'s version number.')
 
-  if rolename in ['root', 'targets', 'snapshot', 'timestamp'] and not allow_partially_signed:
+  if rolename in tuf.roledb.TOP_LEVEL_ROLES and not allow_partially_signed:
     # Verify that the top-level 'rolename' is fully signed.  Only a delegated
     # role should not be written to disk without full verification of its
     # signature(s), since it can only be considered fully signed depending on
@@ -394,18 +394,15 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
     else:
       logger.debug(repr(metadata_role) + ' found in the snapshot role.')
 
-
-
     # Strip metadata extension from filename.  The role database does not
     # include the metadata extension.
     if metadata_role.endswith(METADATA_EXTENSION):
       metadata_role = metadata_role[:-len(METADATA_EXTENSION)]
-
     else:
       logger.debug(repr(metadata_role) + ' does not match'
           ' supported extension ' + repr(METADATA_EXTENSION))
 
-    if metadata_role in ['root', 'targets', 'snapshot', 'timestamp']:
+    if metadata_role in tuf.roledb.TOP_LEVEL_ROLES:
       logger.debug('Not removing top-level metadata ' + repr(metadata_role))
       return
 
@@ -847,7 +844,7 @@ def get_delegations_filenames(metadata_directory, consistent_snapshot,
 
     # Skip top-level roles, only interested in delegated roles now that the
     # top-level roles have already been loaded.
-    if metadata_name in ['root', 'snapshot', 'targets', 'timestamp']:
+    if metadata_name in tuf.roledb.TOP_LEVEL_ROLES:
       continue
 
     filenames[metadata_name] = metadata_path
@@ -1126,7 +1123,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
   # Extract the role, threshold, and keyid information of the top-level roles,
   # which Root stores in its metadata.  The necessary role metadata is generated
   # from this information.
-  for rolename in ['root', 'targets', 'snapshot', 'timestamp']:
+  for rolename in tuf.roledb.TOP_LEVEL_ROLES:
 
     # If a top-level role is missing from 'tuf.roledb.py', raise an exception.
     if not tuf.roledb.role_exists(rolename, repository_name):
@@ -1488,7 +1485,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       # snapshot and timestamp roles are not listed in snapshot.json, do not
       # list these roles found in the metadata directory.
       if tuf.roledb.role_exists(rolename, repository_name) and \
-          rolename not in ['root', 'snapshot', 'timestamp', 'targets']:
+          rolename not in tuf.roledb.TOP_LEVEL_ROLES:
         fileinfodict[metadata_name] = get_metadata_versioninfo(rolename,
             repository_name)
 
@@ -1815,9 +1812,9 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
   # metadata is verified in Root -> Targets -> Snapshot -> Timestamp order.
   # Verify the metadata of the Root role.
   dirty_rolenames = tuf.roledb.get_dirty_roles(repository_name)
-  top_level_roles = ['root', 'targets', 'snapshot', 'timestamp']
 
-  for rolename in top_level_roles:
+  for rolename in tuf.roledb.TOP_LEVEL_ROLES:
+
     listed_filenames = None
     if rolename == 'snapshot':
       listed_filenames = {'root': filenames[ROOT_FILENAME],
@@ -1843,7 +1840,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
 
     finally:
       # recover the metadata state
-      tuf.roledb.unmark_dirty(top_level_roles, repository_name)
+      tuf.roledb.unmark_dirty(tuf.roledb.TOP_LEVEL_ROLES, repository_name)
       tuf.roledb.mark_dirty(dirty_rolenames, repository_name)
       tuf.roledb.update_roleinfo(rolename, roleinfo,
           mark_role_as_dirty=False, repository_name=repository_name)
@@ -1857,7 +1854,9 @@ def _log_role_keys_status(repository_name):
   that their corresponding private keys have been loaded.
   """
 
-  for rolename in ['root', 'targets', 'snapshot', 'timestamp']:
+  # Verify that the top-level roles contain a valid number of public keys and
+  # that their corresponding private keys have been loaded.
+  for rolename in tuf.roledb.TOP_LEVEL_ROLES:
     try:
       _check_role_keys(rolename, repository_name)
 

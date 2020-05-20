@@ -293,7 +293,7 @@ class Repository(object):
     for dirty_rolename in dirty_rolenames:
 
       # Ignore top-level roles, they will be generated later in this method.
-      if dirty_rolename in ['root', 'targets', 'snapshot', 'timestamp']:
+      if dirty_rolename in tuf.roledb.TOP_LEVEL_ROLES:
         continue
 
       dirty_filename = os.path.join(self._metadata_directory,

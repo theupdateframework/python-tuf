@@ -88,6 +88,9 @@ _delegating_role = {'root': None,
                     'snapshot': 'root',
                     'targets': 'root'}
 
+TOP_LEVEL_ROLES = ['root', 'targets', 'snapshot', 'timestamp']
+
+
 def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
   """
   <Purpose>
