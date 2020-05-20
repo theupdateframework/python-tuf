@@ -232,7 +232,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
 
-  def test_get_metadata_fileinfo(self):
+  def test_get_targets_metadata_fileinfo(self):
     # Test normal case.
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     test_filepath = os.path.join(temporary_directory, 'file.txt')
@@ -241,31 +241,31 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       file_object.write('test file')
 
     # Generate test fileinfo object.  It is assumed SHA256 and SHA512 hashes
-    # are computed by get_metadata_fileinfo().
+    # are computed by get_targets_metadata_fileinfo().
     file_length = os.path.getsize(test_filepath)
     sha256_digest_object = securesystemslib.hash.digest_filename(test_filepath)
     sha512_digest_object = securesystemslib.hash.digest_filename(test_filepath, algorithm='sha512')
     file_hashes = {'sha256': sha256_digest_object.hexdigest(),
                    'sha512': sha512_digest_object.hexdigest()}
     fileinfo = {'length': file_length, 'hashes': file_hashes}
-    self.assertTrue(tuf.formats.FILEINFO_SCHEMA.matches(fileinfo))
+    self.assertTrue(tuf.formats.TARGETS_FILEINFO_SCHEMA.matches(fileinfo))
 
     storage_backend = securesystemslib.storage.FilesystemBackend()
 
-    self.assertEqual(fileinfo, repo_lib.get_metadata_fileinfo(test_filepath,
+    self.assertEqual(fileinfo, repo_lib.get_targets_metadata_fileinfo(test_filepath,
                                                                       storage_backend))
 
 
     # Test improperly formatted argument.
     self.assertRaises(securesystemslib.exceptions.FormatError,
-                      repo_lib.get_metadata_fileinfo, 3,
+                      repo_lib.get_targets_metadata_fileinfo, 3,
                       storage_backend)
 
 
     # Test non-existent file.
     nonexistent_filepath = os.path.join(temporary_directory, 'oops.txt')
     self.assertRaises(securesystemslib.exceptions.Error,
-                      repo_lib.get_metadata_fileinfo,
+                      repo_lib.get_targets_metadata_fileinfo,
                       nonexistent_filepath, storage_backend)
 
 

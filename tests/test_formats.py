@@ -119,10 +119,15 @@ class TestFormats(unittest.TestCase):
                          'keyval': {'public': 'pubkey',
                                     'private': 'privkey'}}),
 
-      'FILEINFO_SCHEMA': (tuf.formats.FILEINFO_SCHEMA,
-                          {'length': 1024,
-                           'hashes': {'sha256': 'A4582BCF323BCEF'},
-                           'custom': {'type': 'paintjob'}}),
+      'TARGETS_FILEINFO_SCHEMA': (tuf.formats.TARGETS_FILEINFO_SCHEMA,
+                                  {'length': 1024,
+                                  'hashes': {'sha256': 'A4582BCF323BCEF'},
+                                  'custom': {'type': 'paintjob'}}),
+
+      'METADATA_FILEINFO_SCHEMA': (tuf.formats.METADATA_FILEINFO_SCHEMA,
+                                   {'length': 1024,
+                                    'hashes': {'sha256': 'A4582BCF323BCEF'},
+                                    'version': 1}),
 
       'FILEDICT_SCHEMA': (tuf.formats.FILEDICT_SCHEMA,
                           {'metadata/root.json': {'length': 1024,
@@ -241,7 +246,8 @@ class TestFormats(unittest.TestCase):
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
          'meta': {'metadattimestamp.json': {'length': 1024,
-                                            'hashes': {'sha256': 'AB1245'}}}}),
+                                            'hashes': {'sha256': 'AB1245'},
+                                            'version': 1}}}),
 
       'MIRROR_SCHEMA': (tuf.formats.MIRROR_SCHEMA,
         {'url_prefix': 'http://localhost:8001',
@@ -394,7 +400,7 @@ class TestFormats(unittest.TestCase):
     length = 88
     hashes = {'sha256': '3c7fe3eeded4a34'}
     expires = '1985-10-21T13:20:00Z'
-    filedict = {'snapshot.json': {'length': length, 'hashes': hashes}}
+    filedict = {'snapshot.json': {'length': length, 'hashes': hashes, 'version': 1}}
 
 
     # Try with and without _type and spec_version, both of which are
@@ -797,28 +803,60 @@ class TestFormats(unittest.TestCase):
 
 
 
-  def test_make_fileinfo(self):
+  def test_make_targets_fileinfo(self):
     # Test conditions for valid arguments.
     length = 1024
     hashes = {'sha256': 'A4582BCF323BCEF', 'sha512': 'A4582BCF323BFEF'}
-    version = 8
     custom = {'type': 'paintjob'}
 
-    FILEINFO_SCHEMA = tuf.formats.FILEINFO_SCHEMA
-    make_fileinfo = tuf.formats.make_fileinfo
-    self.assertTrue(FILEINFO_SCHEMA.matches(make_fileinfo(length, hashes, version, custom)))
-    self.assertTrue(FILEINFO_SCHEMA.matches(make_fileinfo(length, hashes)))
+    TARGETS_FILEINFO_SCHEMA = tuf.formats.TARGETS_FILEINFO_SCHEMA
+    make_targets_fileinfo = tuf.formats.make_targets_fileinfo
+    self.assertTrue(TARGETS_FILEINFO_SCHEMA.matches(make_targets_fileinfo(length, hashes, custom)))
+    self.assertTrue(TARGETS_FILEINFO_SCHEMA.matches(make_targets_fileinfo(length, hashes)))
 
     # Test conditions for invalid arguments.
     bad_length = 'bad'
     bad_hashes = 'bad'
     bad_custom = 'bad'
 
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_fileinfo, bad_length, hashes, custom)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_fileinfo, length, bad_hashes, custom)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_fileinfo, length, hashes, bad_custom)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_fileinfo, bad_length, hashes)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_fileinfo, length, bad_hashes)
+    self.assertRaises(securesystemslib.exceptions.FormatError, make_targets_fileinfo,
+      bad_length, hashes, custom)
+    self.assertRaises(securesystemslib.exceptions.FormatError, make_targets_fileinfo,
+      length, bad_hashes, custom)
+    self.assertRaises(securesystemslib.exceptions.FormatError, make_targets_fileinfo,
+      length, hashes, bad_custom)
+    self.assertRaises(securesystemslib.exceptions.FormatError, make_targets_fileinfo,
+      bad_length, hashes)
+    self.assertRaises(securesystemslib.exceptions.FormatError, make_targets_fileinfo,
+      length, bad_hashes)
+
+
+
+  def test_make_metadata_fileinfo(self):
+    # Test conditions for valid arguments.
+    length = 1024
+    hashes = {'sha256': 'A4582BCF323BCEF', 'sha512': 'A4582BCF323BFEF'}
+    version = 8
+
+    METADATA_FILEINFO_SCHEMA = tuf.formats.METADATA_FILEINFO_SCHEMA
+    make_metadata_fileinfo = tuf.formats.make_metadata_fileinfo
+    self.assertTrue(METADATA_FILEINFO_SCHEMA.matches(make_metadata_fileinfo(
+        version, length, hashes)))
+    self.assertTrue(METADATA_FILEINFO_SCHEMA.matches(make_metadata_fileinfo(version)))
+
+    # Test conditions for invalid arguments.
+    bad_version = 'bad'
+    bad_length = 'bad'
+    bad_hashes = 'bad'
+
+    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata_fileinfo,
+        bad_version, length, hashes)
+    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata_fileinfo,
+        version, bad_length, hashes)
+    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata_fileinfo,
+        version, length, bad_hashes)
+    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata_fileinfo,
+        bad_version)
 
 
 

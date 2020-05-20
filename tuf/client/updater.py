@@ -2142,7 +2142,7 @@ class Updater(object):
         A dict object representing the new file information for
         'metadata_filename'.  'new_fileinfo' may be 'None' when
         updating 'root' without having 'snapshot' available.  This
-        dict conforms to 'tuf.formats.FILEINFO_SCHEMA' and has
+        dict conforms to 'tuf.formats.TARGETS_FILEINFO_SCHEMA' and has
         the form:
 
         {'length': 23423
@@ -2236,7 +2236,7 @@ class Updater(object):
     # to the fileinfo store.
     file_length, hashes = securesystemslib.util.get_file_details(
         current_filepath)
-    metadata_fileinfo = tuf.formats.make_fileinfo(file_length, hashes)
+    metadata_fileinfo = tuf.formats.make_targets_fileinfo(file_length, hashes)
     self.fileinfo[metadata_filename] = metadata_fileinfo
 
 

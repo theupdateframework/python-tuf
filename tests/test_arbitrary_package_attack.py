@@ -180,7 +180,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     client_target_path = os.path.join(self.client_directory, 'file1.txt')
     self.assertFalse(os.path.exists(client_target_path))
     length, hashes = securesystemslib.util.get_file_details(target_path)
-    fileinfo = tuf.formats.make_fileinfo(length, hashes)
+    fileinfo = tuf.formats.make_targets_fileinfo(length, hashes)
 
     url_prefix = self.repository_mirrors['mirror1']['url_prefix']
     url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
@@ -190,20 +190,20 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
 
     self.assertTrue(os.path.exists(client_target_path))
     length, hashes = securesystemslib.util.get_file_details(client_target_path)
-    download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+    download_fileinfo = tuf.formats.make_targets_fileinfo(length, hashes)
     self.assertEqual(fileinfo, download_fileinfo)
 
     # Test: Download a target file that has been modified by an attacker.
     with open(target_path, 'wt') as file_object:
       file_object.write('add malicious content.')
     length, hashes = securesystemslib.util.get_file_details(target_path)
-    malicious_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+    malicious_fileinfo = tuf.formats.make_targets_fileinfo(length, hashes)
 
     # On Windows, the URL portion should not contain back slashes.
     six.moves.urllib.request.urlretrieve(url_file.replace('\\', '/'), client_target_path)
 
     length, hashes = securesystemslib.util.get_file_details(client_target_path)
-    download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+    download_fileinfo = tuf.formats.make_targets_fileinfo(length, hashes)
 
     # Verify 'download_fileinfo' is unequal to the original trusted version.
     self.assertNotEqual(download_fileinfo, fileinfo)

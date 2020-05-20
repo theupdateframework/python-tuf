@@ -230,12 +230,19 @@ HASHDICT_SCHEMA = SCHEMA.DictOf(
 # Information about target files, like file length and file hash(es).  This
 # schema allows the storage of multiple hashes for the same file (e.g., sha256
 # and sha512 may be computed for the same file and stored).
-FILEINFO_SCHEMA = SCHEMA.Object(
-  object_name = 'FILEINFO_SCHEMA',
+TARGETS_FILEINFO_SCHEMA = SCHEMA.Object(
+  object_name = 'TARGETS_FILEINFO_SCHEMA',
+  length = LENGTH_SCHEMA,
+  hashes = HASHDICT_SCHEMA,
+  custom = SCHEMA.Optional(SCHEMA.Object()))
+
+# Information about snapshot and timestamp files. This schema allows for optional
+# length and hashes, but version is mandatory.
+METADATA_FILEINFO_SCHEMA = SCHEMA.Object(
+  object_name = 'METADATA_FILEINFO_SCHEMA',
   length = SCHEMA.Optional(LENGTH_SCHEMA),
   hashes = SCHEMA.Optional(HASHDICT_SCHEMA),
-  version = SCHEMA.Optional(METADATAVERSION_SCHEMA),
-  custom = SCHEMA.Optional(SCHEMA.Object()))
+  version = METADATAVERSION_SCHEMA)
 
 # A dict holding the version or file information for a particular metadata
 # role.  The dict keys hold the relative file paths, and the dict values the
@@ -243,20 +250,20 @@ FILEINFO_SCHEMA = SCHEMA.Object(
 FILEINFODICT_SCHEMA = SCHEMA.DictOf(
   key_schema = RELPATH_SCHEMA,
   value_schema = SCHEMA.OneOf([VERSIONINFO_SCHEMA,
-                              FILEINFO_SCHEMA]))
+                              METADATA_FILEINFO_SCHEMA]))
 
 # A dict holding the information for a particular target / file.  The dict keys
 # hold the relative file paths, and the dict values the corresponding file
 # information.
 FILEDICT_SCHEMA = SCHEMA.DictOf(
   key_schema = RELPATH_SCHEMA,
-  value_schema = FILEINFO_SCHEMA)
+  value_schema = TARGETS_FILEINFO_SCHEMA)
 
 # A dict holding a target info.
 TARGETINFO_SCHEMA = SCHEMA.Object(
   object_name = 'TARGETINFO_SCHEMA',
   filepath = RELPATH_SCHEMA,
-  fileinfo = FILEINFO_SCHEMA)
+  fileinfo = TARGETS_FILEINFO_SCHEMA)
 
 # A list of TARGETINFO_SCHEMA.
 TARGETINFOS_SCHEMA = SCHEMA.ListOf(TARGETINFO_SCHEMA)
@@ -298,14 +305,14 @@ DELEGATIONS_SCHEMA = SCHEMA.Object(
 NUMBINS_SCHEMA = SCHEMA.Integer(lo=1)
 
 # The fileinfo format of targets specified in the repository and
-# developer tools.  The fields match that of FILEINFO_SCHEMA, only all
+# developer tools.  The fields match that of TARGETS_FILEINFO_SCHEMA, only all
 # fields are optional.
 CUSTOM_SCHEMA = SCHEMA.DictOf(
   key_schema = SCHEMA.AnyString(),
   value_schema = SCHEMA.Any()
 )
-LOOSE_FILEINFO_SCHEMA = SCHEMA.Object(
-  object_name = "LOOSE_FILEINFO_SCHEMA",
+LOOSE_TARGETS_FILEINFO_SCHEMA = SCHEMA.Object(
+  object_name = "LOOSE_TARGETS_FILEINFO_SCHEMA",
   length = SCHEMA.Optional(LENGTH_SCHEMA),
   hashes = SCHEMA.Optional(HASHDICT_SCHEMA),
   version = SCHEMA.Optional(METADATAVERSION_SCHEMA),
@@ -314,7 +321,7 @@ LOOSE_FILEINFO_SCHEMA = SCHEMA.Object(
 
 PATH_FILEINFO_SCHEMA = SCHEMA.DictOf(
   key_schema = RELPATH_SCHEMA,
-  value_schema = LOOSE_FILEINFO_SCHEMA)
+  value_schema = LOOSE_TARGETS_FILEINFO_SCHEMA)
 
 # TUF roledb
 ROLEDB_SCHEMA = SCHEMA.Object(
@@ -376,7 +383,7 @@ TIMESTAMP_SCHEMA = SCHEMA.Object(
   spec_version = SPECIFICATION_VERSION_SCHEMA,
   version = METADATAVERSION_SCHEMA,
   expires = securesystemslib.formats.ISO8601_DATETIME_SCHEMA,
-  meta = FILEDICT_SCHEMA)
+  meta = FILEINFODICT_SCHEMA)
 
 
 # project.cfg file: stores information about the project in a json dictionary
@@ -508,7 +515,7 @@ def build_dict_conforming_to_schema(schema, **kwargs):
 
   <Arguments>
     schema
-      A schema.Object, like TIMESTAMP_SCHEMA, FILEINFO_SCHEMA,
+      A schema.Object, like TIMESTAMP_SCHEMA, TARGETS_FILEINFO_SCHEMA,
       securesystemslib.formats.SIGNATURE_SCHEMA, etc.
 
     **kwargs
@@ -759,11 +766,11 @@ def parse_base64(base64_string):
 
 
 
-def make_fileinfo(length, hashes, version=None, custom=None):
+def make_targets_fileinfo(length, hashes, custom=None):
   """
   <Purpose>
-    Create a dictionary conformant to 'FILEINFO_SCHEMA'.
-    This dict describes both metadata and target files.
+    Create a dictionary conformant to 'TARGETS_FILEINFO_SCHEMA'.
+    This dict describes a target file.
 
   <Arguments>
     length:
@@ -773,42 +780,68 @@ def make_fileinfo(length, hashes, version=None, custom=None):
       A dict of hashes in 'HASHDICT_SCHEMA' format, which has the form:
        {'sha256': 123df8a9b12, 'sha512': 324324dfc121, ...}
 
-    version:
-      An optional integer representing the version of the file.
-
     custom:
       An optional object providing additional information about the file.
 
   <Exceptions>
-    securesystemslib.exceptions.FormatError, if the 'FILEINFO_SCHEMA' to be
+    securesystemslib.exceptions.FormatError, if the 'TARGETS_FILEINFO_SCHEMA' to be
     returned does not have the correct format.
 
-  <Side Effects>
-    If any of the arguments are incorrectly formatted, the dict
-    returned will be checked for formatting errors, and if found,
-    will raise a 'securesystemslib.exceptions.FormatError' exception.
-
   <Returns>
-    A dictionary conformant to 'FILEINFO_SCHEMA', representing the file
-    information of a metadata or target file.
+    A dictionary conformant to 'TARGETS_FILEINFO_SCHEMA', representing the file
+    information of a target file.
   """
 
-  fileinfo = {}
-
-  if length is not None:
-    fileinfo['length'] = length
-
-  if hashes is not None:
-    fileinfo['hashes'] = hashes
-
-  if version is not None:
-    fileinfo['version'] = version
+  fileinfo = {'length' : length, 'hashes' : hashes}
 
   if custom is not None:
     fileinfo['custom'] = custom
 
   # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
-  FILEINFO_SCHEMA.check_match(fileinfo)
+  TARGETS_FILEINFO_SCHEMA.check_match(fileinfo)
+
+  return fileinfo
+
+
+
+def make_metadata_fileinfo(version, length=None, hashes=None):
+  """
+  <Purpose>
+    Create a dictionary conformant to 'METADATA_FILEINFO_SCHEMA'.
+    This dict describes one of the metadata files used for timestamp and
+    snapshot roles.
+
+  <Arguments>
+    version:
+      An integer representing the version of the file.
+
+    length:
+      An optional integer representing the size of the file.
+
+    hashes:
+      An optional dict of hashes in 'HASHDICT_SCHEMA' format, which has the form:
+       {'sha256': 123df8a9b12, 'sha512': 324324dfc121, ...}
+
+
+  <Exceptions>
+    securesystemslib.exceptions.FormatError, if the 'METADATA_FILEINFO_SCHEMA' to be
+    returned does not have the correct format.
+
+  <Returns>
+    A dictionary conformant to 'METADATA_FILEINFO_SCHEMA', representing the file
+    information of a metadata file.
+  """
+
+  fileinfo = {'version' : version}
+
+  if length:
+    fileinfo['length'] = length
+
+  if hashes:
+    fileinfo['hashes'] = hashes
+
+  # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
+  METADATA_FILEINFO_SCHEMA.check_match(fileinfo)
 
   return fileinfo
 
