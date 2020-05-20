@@ -175,7 +175,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
   else:
     logger.debug('Not incrementing ' + repr(rolename) + '\'s version number.')
 
-  if rolename in ['root', 'targets', 'snapshot', 'timestamp'] and not allow_partially_signed:
+  if rolename in tuf.roledb.TOP_LEVEL_ROLES and not allow_partially_signed:
     # Verify that the top-level 'rolename' is fully signed.  Only a delegated
     # role should not be written to disk without full verification of its
     # signature(s), since it can only be considered fully signed depending on
@@ -394,18 +394,15 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
     else:
       logger.debug(repr(metadata_role) + ' found in the snapshot role.')
 
-
-
     # Strip metadata extension from filename.  The role database does not
     # include the metadata extension.
     if metadata_role.endswith(METADATA_EXTENSION):
       metadata_role = metadata_role[:-len(METADATA_EXTENSION)]
-
     else:
       logger.debug(repr(metadata_role) + ' does not match'
           ' supported extension ' + repr(METADATA_EXTENSION))
 
-    if metadata_role in ['root', 'targets', 'snapshot', 'timestamp']:
+    if metadata_role in tuf.roledb.TOP_LEVEL_ROLES:
       logger.debug('Not removing top-level metadata ' + repr(metadata_role))
       return
 
@@ -850,7 +847,7 @@ def get_delegated_roles_metadata_filenames(metadata_directory,
       continue
 
     # Skip top-level roles, only interested in delegated roles.
-    if metadata_name in ['root', 'snapshot', 'targets', 'timestamp']:
+    if metadata_name in tuf.roledb.TOP_LEVEL_ROLES:
       continue
 
     # Prevent reloading duplicate versions if consistent_snapshot is True
@@ -1131,7 +1128,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
   # Extract the role, threshold, and keyid information of the top-level roles,
   # which Root stores in its metadata.  The necessary role metadata is generated
   # from this information.
-  for rolename in ['root', 'targets', 'snapshot', 'timestamp']:
+  for rolename in tuf.roledb.TOP_LEVEL_ROLES:
 
     # If a top-level role is missing from 'tuf.roledb.py', raise an exception.
     if not tuf.roledb.role_exists(rolename, repository_name):
@@ -1507,7 +1504,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       # snapshot and timestamp roles are not listed in snapshot.json, do not
       # list these roles found in the metadata directory.
       if tuf.roledb.role_exists(rolename, repository_name) and \
-          rolename not in ['root', 'snapshot', 'timestamp', 'targets']:
+          rolename not in tuf.roledb.TOP_LEVEL_ROLES:
         fileinfodict[metadata_name] = get_metadata_versioninfo(rolename,
             repository_name)
 
