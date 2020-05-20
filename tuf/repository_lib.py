@@ -1251,9 +1251,12 @@ def generate_targets_metadata(targets_directory, target_files, version,
   securesystemslib.formats.BOOLEAN_SCHEMA.check_match(write_consistent_targets)
   securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_existing_fileinfo)
 
+  # If the caller requested consistent targets *and* supplied their own fileinfo
+  # consistent versions of the targets can not be created, because target
+  # files and their storage are not accessed when using existing fileinfo.
   if write_consistent_targets and use_existing_fileinfo:
-    raise securesystemslib.exceptions.Error('Cannot support writing consistent'
-        ' targets and using existing fileinfo.')
+    logger.info('Consistent targets will not be created because targets '
+        'metadata is being generated from existing fileinfo.')
 
   if delegations is not None:
     tuf.formats.DELEGATIONS_SCHEMA.check_match(delegations)
