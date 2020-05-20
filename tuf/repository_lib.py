@@ -135,7 +135,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
   elif rolename == 'timestamp':
     snapshot_filename = filenames['snapshot']
     metadata = generate_timestamp_metadata(snapshot_filename, roleinfo['version'],
-        roleinfo['expires'], repository_name)
+        roleinfo['expires'], storage_backend, repository_name)
 
     _log_warning_if_expires_soon(TIMESTAMP_FILENAME, roleinfo['expires'],
         TIMESTAMP_EXPIRES_WARN_SECONDS)
@@ -1486,7 +1486,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
 
 
 def generate_timestamp_metadata(snapshot_filename, version, expiration_date,
-    repository_name):
+    storage_backend, repository_name):
   """
   <Purpose>
     Generate the timestamp metadata object.  The 'snapshot.json' file must
@@ -1506,13 +1506,13 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date,
       The expiration date of the metadata file, conformant to
       'securesystemslib.formats.ISO8601_DATETIME_SCHEMA'.
 
-    repository_name:
-      The name of the repository.  If not supplied, 'rolename' is added to the
-      'default' repository.
-
     storage_backend:
       An object which implements
       securesystemslib.storage.StorageBackendInterface.
+
+    repository_name:
+      The name of the repository.  If not supplied, 'rolename' is added to the
+      'default' repository.
 
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the generated timestamp metadata
@@ -1538,7 +1538,7 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date,
   # Retrieve the versioninfo of the Snapshot metadata file.
   snapshot_fileinfo = {}
   length, hashes = securesystemslib.util.get_file_details(snapshot_filename,
-      tuf.settings.FILE_HASH_ALGORITHMS)
+      tuf.settings.FILE_HASH_ALGORITHMS, storage_backend)
   snapshot_version = get_metadata_versioninfo('snapshot', repository_name)
   snapshot_fileinfo[SNAPSHOT_FILENAME] = \
     tuf.formats.make_fileinfo(length, hashes, version=snapshot_version['version'])
