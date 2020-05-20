@@ -1173,8 +1173,14 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
     target_files:
       The target files tracked by 'targets.json'.  'target_files' is a
-      dictionary of target paths that are relative to the targets directory and
-      a fileinfo dict matching tuf.formats.LOOSE_FILEINFO_SCHEMA
+      dictionary mapping target paths (relative to the targets directory) to
+      a dict matching tuf.formats.LOOSE_FILEINFO_SCHEMA.  LOOSE_FILEINFO_SCHEMA
+      can support multiple different value patterns:
+      1) an empty dictionary - for when fileinfo should be generated
+      2) a dictionary matching tuf.formats.CUSTOM_SCHEMA - for when fileinfo
+         should be generated, with the supplied custom metadata attached
+      3) a dictionary matching tuf.formats.FILEINFO_SCHEMA - for when full
+         fileinfo is provided in conjunction with use_existing_fileinfo
 
     version:
       The metadata version number.  Clients use the version number to
@@ -1192,11 +1198,16 @@ def generate_targets_metadata(targets_directory, target_files, version,
     write_consistent_targets:
       Boolean that indicates whether file digests should be prepended to the
       target files.
+      NOTE: when use_existing_fileinfo is True, this parameter will not cause
+      consistent targets to be written.  It is assumed that the consistent
+      targets already exist in the targets directory of the repository.
 
     use_existing_fileinfo:
       Boolean that indicates whether to use the complete fileinfo, including
       hashes, as already exists in the roledb (True) or whether to generate
       hashes (False).
+      NOTE: if write_consistent_targets is True, the caller is responsible for
+      ensuring the consistent files exist in the targets directory.
 
     storage_backend:
       An object which implements
@@ -1253,6 +1264,8 @@ def generate_targets_metadata(targets_directory, target_files, version,
   filedict = {}
 
   if use_existing_fileinfo:
+    # Use the provided fileinfo dicts, conforming to FILEINFO_SCHEMA, rather than
+    # generating fileinfo
     for target, fileinfo in six.iteritems(target_files):
 
       # Ensure all fileinfo entries in target_files have a non-empty hashes dict
@@ -1260,13 +1273,16 @@ def generate_targets_metadata(targets_directory, target_files, version,
         raise securesystemslib.exceptions.Error('use_existing_hashes option set'
             ' but no hashes exist in roledb for ' + repr(target))
 
-      if fileinfo.get('length', -1) < 0:
+      # and a non-empty, non-zero, length
+      if fileinfo.get('length', -1) < 1:
         raise securesystemslib.exceptions.Error('use_existing_hashes option set'
             ' but fileinfo\'s length is not set')
 
       filedict[target] = fileinfo
 
   else:
+    # Generate the fileinfo dicts by accessing the target files on storage.
+    # Default to accessing files on local storage.
     if storage_backend is None:
       storage_backend = securesystemslib.storage.FilesystemBackend()
 
