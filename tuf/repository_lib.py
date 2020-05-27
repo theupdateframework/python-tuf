@@ -1418,7 +1418,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
   # Snapshot's 'fileinfodict' shall contain the version number of Root,
-  # Targets, and all delegated roles fo the repository.
+  # Targets, and all delegated roles of the repository.
   fileinfodict = {}
   fileinfodict[TARGETS_FILENAME] = get_metadata_versioninfo(targets_filename,
       repository_name)
