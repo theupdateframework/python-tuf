@@ -1495,10 +1495,10 @@ class TestTargets(unittest.TestCase):
 
     # Add 'target1_filepath' and verify that the relative path of
     # 'target1_filepath' is added to the correct bin.
-    self.targets_object.add_target_to_bin(target1_filepath, 16)
+    rolename = self.targets_object.add_target_to_bin(target1_filepath, 16)
 
     for delegation in self.targets_object.delegations:
-      if delegation.rolename == '5':
+      if delegation.rolename == rolename:
         self.assertTrue('file1.txt' in delegation.target_files)
 
       else:
@@ -1513,7 +1513,7 @@ class TestTargets(unittest.TestCase):
                       target1_filepath, 16)
 
     # Test for a required hashed bin that does not exist.
-    self.targets_object.revoke('5')
+    self.targets_object.revoke(rolename)
     self.assertRaises(securesystemslib.exceptions.Error,
                       self.targets_object.add_target_to_bin,
                       target1_filepath, 16)
@@ -1523,10 +1523,11 @@ class TestTargets(unittest.TestCase):
     target2_fileinfo = tuf.formats.make_fileinfo(37, target2_hashes)
     target2_filepath = 'file2.txt'
 
-    self.targets_object.add_target_to_bin(target2_filepath, 16, fileinfo=target2_fileinfo)
+    rolename = self.targets_object.add_target_to_bin(target2_filepath, 16,
+        fileinfo=target2_fileinfo)
 
     for delegation in self.targets_object.delegations:
-      if delegation.rolename == '0':
+      if delegation.rolename == rolename:
         self.assertTrue(target2_filepath in delegation.target_files)
 
       else:
