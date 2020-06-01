@@ -2666,7 +2666,7 @@ class Targets(Metadata):
       object.
 
     <Returns>
-      None.
+      The name of the hashed bin that the target was added to.
     """
 
     # Do the arguments have the correct format?
@@ -2689,6 +2689,7 @@ class Targets(Metadata):
     self._delegated_roles[bin_name].add_target(target_filepath,
         fileinfo=fileinfo)
 
+    return bin_name
 
 
 
@@ -2727,7 +2728,7 @@ class Targets(Metadata):
       Targets object.
 
     <Returns>
-      None.
+      The name of the hashed bin that the target was added to.
     """
 
     # Do the arguments have the correct format?
@@ -2749,7 +2750,7 @@ class Targets(Metadata):
 
     self._delegated_roles[bin_name].remove_target(target_filepath)
 
-
+    return bin_name
 
 
   @property
