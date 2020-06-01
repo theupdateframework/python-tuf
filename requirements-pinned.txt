@@ -8,7 +8,7 @@ idna==2.9                 # via requests
 ipaddress==1.0.23         ; python_version < '3' # via cryptography
 iso8601==0.1.12
 pycparser==2.20           # via cffi
-pynacl==1.3.0             # via securesystemslib
+pynacl==1.4.0             # via securesystemslib
 python-dateutil==2.8.1    # via securesystemslib
 requests==2.23.0
 securesystemslib[colors,crypto,pynacl]==0.15.0
