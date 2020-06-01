@@ -83,6 +83,9 @@ class Handler(six.moves.BaseHTTPServer.BaseHTTPRequestHandler):
     except IOError as e:
       self.send_error(404, 'File Not Found!')
 
+  # Override log_request
+  def log_request(self, code='-', size='-'):
+    pass
 
 
 def get_random_port():
