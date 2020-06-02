@@ -375,8 +375,6 @@ def remove_console_handler():
     console_handler = None
     logger.debug('Removed a console handler.')
 
-  else:
-    logger.warning('We do not have a console handler.')
 
 
 
