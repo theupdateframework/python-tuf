@@ -36,10 +36,15 @@ from __future__ import unicode_literals
 import sys
 import random
 import platform
+import os
+import re
 
 import six
 from six.moves.SimpleHTTPServer import SimpleHTTPRequestHandler
 
+# We won't use the HTTPStatus codes from the http module
+# for backward compability with python 2.7
+FILE_NOT_FOUND = 404
 PORT = 0
 
 def _port_gen():
@@ -61,8 +66,27 @@ else:
 class QuietHTTPRequestHandler(SimpleHTTPRequestHandler):
   """A SimpleHTTPRequestHandler that does not write incoming requests to
   stderr. """
+
+  # Override the log_request function
   def log_request(self, code='-', size='-'):
     pass
+
+  # Override the log_error function
+  def log_error(self, format, *args):
+
+    file_not_found_name = os.path.basename(self.path)
+
+    # There are errors in the format "code 404, message File not found"
+    # when downloading \d*.root.json (match digits preffix before ".root.json":
+    # 1.root.json, 10.root.json, etc.) files.
+    # We don't want to show them because they are expected.
+    if len(args) > 0 and args[0] == FILE_NOT_FOUND and \
+        re.match("\d*.root.json", file_not_found_name):
+      pass
+    else:
+      SimpleHTTPRequestHandler.log_error(self, format, *args)
+
+
 
 # NOTE: On Windows/Python2 tests that use this simple_server.py in a
 # subprocesses hang after a certain amount of requests (~68), if a PIPE is
