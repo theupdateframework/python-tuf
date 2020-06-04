@@ -1416,13 +1416,13 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
       # Ensure all fileinfo entries in target_files have a non-empty hashes dict
       if not fileinfo.get('hashes', None):
-        raise securesystemslib.exceptions.Error('use_existing_hashes option set'
-            ' but no hashes exist in roledb for ' + repr(target))
+        raise securesystemslib.exceptions.Error('use_existing_fileinfo option'
+            ' set but no hashes exist in fileinfo for ' + repr(target))
 
       # and a non-empty length
       if fileinfo.get('length', -1) < 0:
-        raise securesystemslib.exceptions.Error('use_existing_hashes option set'
-            ' but fileinfo\'s length is not set')
+        raise securesystemslib.exceptions.Error('use_existing_fileinfo option'
+            ' set but no length exists in fileinfo for ' + repr(target))
 
       filedict[target] = fileinfo
 
