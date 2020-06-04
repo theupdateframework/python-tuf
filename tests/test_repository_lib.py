@@ -435,6 +435,39 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                       expiration_date)
 
 
+    # Test use of an existing fileinfo structures
+    target1_hashes = {'sha256': 'c2986576f5fdfd43944e2b19e775453b96748ec4fe2638a6d2f32f1310967095'}
+    target2_hashes = {'sha256': '517c0ce943e7274a2431fa5751e17cfd5225accd23e479bfaad13007751e87ef'}
+
+    # Test missing expected field, hashes, when use_existing_fileinfo
+    target_files = {'file.txt': {'length': 555}}
+    self.assertRaises(securesystemslib.exceptions.Error, repo_lib.generate_targets_metadata,
+                      targets_directory, target_files, version, expiration_date,
+                      use_existing_fileinfo=True)
+
+    # Test missing expected field, length, when use_existing_fileinfo
+    target_files = {'file.txt': {'hashes': target1_hashes}}
+    self.assertRaises(securesystemslib.exceptions.Error, repo_lib.generate_targets_metadata,
+                      targets_directory, target_files, version, expiration_date,
+                      use_existing_fileinfo=True)
+
+    # Test missing both expected fields when use_existing_fileinfo
+    target_files = {'file.txt': {}}
+    self.assertRaises(securesystemslib.exceptions.Error, repo_lib.generate_targets_metadata,
+                      targets_directory, target_files, version, expiration_date,
+                      use_existing_fileinfo=True)
+
+    target_files = {'file1.txt': {'custom': {'meta': 'foo'},
+                                  'hashes': target1_hashes,
+                                  'length': 555},
+                    'file2.txt': {'custom': {'meta': 'bar'},
+                                  'hashes': target2_hashes,
+                                  'length': 42}}
+    targets_metadata = \
+      repo_lib.generate_targets_metadata(targets_directory, target_files,
+                                         version, expiration_date, delegations,
+                                         False, use_existing_fileinfo=True)
+
 
   def test_generate_snapshot_metadata(self):
     # Test normal case.
