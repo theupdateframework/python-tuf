@@ -131,9 +131,8 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
 
   elif rolename == 'snapshot':
-    targets_filename = TARGETS_FILENAME[:-len(METADATA_EXTENSION)]
     metadata = generate_snapshot_metadata(metadata_directory,
-        roleinfo['version'], roleinfo['expires'], targets_filename,
+        roleinfo['version'], roleinfo['expires'], TARGETS_FILENAME,
         storage_backend, consistent_snapshot, repository_name,
         use_length=use_snapshot_length, use_hashes=use_snapshot_hashes)
 
@@ -1611,8 +1610,10 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   length = (use_length and length) or None
   hashes = (use_hashes and hashes) or None
 
-  targets_file_version = get_metadata_versioninfo(targets_filename,
-      repository_name)
+  targets_role = targets_filename[:-len(METADATA_EXTENSION)]
+
+  targets_file_version = get_metadata_versioninfo(targets_role,
+    repository_name)
 
   fileinfodict[TARGETS_FILENAME] = tuf.formats.make_fileinfo(
     length, hashes, version=targets_file_version['version'])
