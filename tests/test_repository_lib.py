@@ -447,9 +447,9 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     shutil.copytree(original_repository_path, repository_directory)
     metadata_directory = os.path.join(repository_directory,
                                       repo_lib.METADATA_STAGED_DIRECTORY_NAME)
+
     targets_directory = os.path.join(repository_directory, repo_lib.TARGETS_DIRECTORY_NAME)
-    targets_filename = os.path.join(metadata_directory,
-                                    repo_lib.TARGETS_FILENAME)
+
     version = 1
     expiration_date = '1985-10-21T13:20:00Z'
 
@@ -471,20 +471,17 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     with open(invalid_metadata_file, 'w') as file_object:
       file_object.write('bad extension on metadata file')
 
-    targets_filename = 'targets.json'
-
-    return metadata_directory, version, expiration_date, targets_filename, \
+    return metadata_directory, version, expiration_date, \
       storage_backend
 
 
   def test_generate_snapshot_metadata(self):
-    metadata_directory, version, expiration_date, targets_filename, \
-      storage_backend = self._setup_generate_snapshot_metadata_test()
+    metadata_directory, version, expiration_date, storage_backend = \
+        self._setup_generate_snapshot_metadata_test()
 
     snapshot_metadata = \
       repo_lib.generate_snapshot_metadata(metadata_directory, version,
                                           expiration_date,
-                                          targets_filename,
                                           storage_backend,
                                           consistent_snapshot=False)
     self.assertTrue(tuf.formats.SNAPSHOT_SCHEMA.matches(snapshot_metadata))
@@ -492,31 +489,27 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Test improperly formatted arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_snapshot_metadata,
-                      3, version, expiration_date,
-                      targets_filename, consistent_snapshot=False, storage_backend=storage_backend)
+                      3, version, expiration_date, consistent_snapshot=False,
+                      storage_backend=storage_backend)
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_snapshot_metadata,
-                      metadata_directory, '3', expiration_date,
-                      targets_filename, storage_backend, consistent_snapshot=False)
+                      metadata_directory, '3', expiration_date, storage_backend,
+                      consistent_snapshot=False)
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_snapshot_metadata,
-                      metadata_directory, version, '3',
-                      targets_filename, storage_backend, consistent_snapshot=False)
+                      metadata_directory, version, '3', storage_backend,
+                      consistent_snapshot=False)
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_snapshot_metadata,
-                      metadata_directory, version, expiration_date,
-                      3, storage_backend, consistent_snapshot=False)
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_snapshot_metadata,
-                      metadata_directory, version, expiration_date,
-                      targets_filename, 3, storage_backend)
+                      metadata_directory, version, expiration_date, 3,
+                      storage_backend)
 
 
 
   def test_generate_snapshot_metadata_with_length(self):
-    metadata_directory, version, expiration_date, targets_filename, \
-      storage_backend = self._setup_generate_snapshot_metadata_test()
+    metadata_directory, version, expiration_date, storage_backend = \
+        self._setup_generate_snapshot_metadata_test()
 
     snapshot_metadata = \
       repo_lib.generate_snapshot_metadata(metadata_directory, version,
                                           expiration_date,
-                                          targets_filename,
                                           storage_backend,
                                           consistent_snapshot=False,
                                           use_length=True)
@@ -542,13 +535,12 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
   def test_generate_snapshot_metadata_with_hashes(self):
-    metadata_directory, version, expiration_date, targets_filename, \
-      storage_backend = self._setup_generate_snapshot_metadata_test()
+    metadata_directory, version, expiration_date, storage_backend = \
+        self._setup_generate_snapshot_metadata_test()
 
     snapshot_metadata = \
       repo_lib.generate_snapshot_metadata(metadata_directory, version,
                                           expiration_date,
-                                          targets_filename,
                                           storage_backend,
                                           consistent_snapshot=False,
                                           use_hashes=True)
@@ -574,13 +566,12 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
   def test_generate_snapshot_metadata_with_hashes_and_length(self):
-    metadata_directory, version, expiration_date, targets_filename, \
-      storage_backend = self._setup_generate_snapshot_metadata_test()
+    metadata_directory, version, expiration_date, storage_backend = \
+        self._setup_generate_snapshot_metadata_test()
 
     snapshot_metadata = \
       repo_lib.generate_snapshot_metadata(metadata_directory, version,
                                           expiration_date,
-                                          targets_filename,
                                           storage_backend,
                                           consistent_snapshot=False,
                                           use_length=True,

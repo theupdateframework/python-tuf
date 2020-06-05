@@ -132,7 +132,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
   elif rolename == 'snapshot':
     metadata = generate_snapshot_metadata(metadata_directory,
-        roleinfo['version'], roleinfo['expires'], TARGETS_FILENAME,
+        roleinfo['version'], roleinfo['expires'],
         storage_backend, consistent_snapshot, repository_name,
         use_length=use_snapshot_length, use_hashes=use_snapshot_hashes)
 
@@ -1518,7 +1518,7 @@ def _generate_targets_fileinfo(target_files, targets_directory,
 
 
 def generate_snapshot_metadata(metadata_directory, version, expiration_date,
-    targets_filename, storage_backend, consistent_snapshot=False,
+    storage_backend, consistent_snapshot=False,
     repository_name='default', use_length=False, use_hashes=False):
   """
   <Purpose>
@@ -1540,10 +1540,6 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
     expiration_date:
       The expiration date of the metadata file.
       Conformant to 'securesystemslib.formats.ISO8601_DATETIME_SCHEMA'.
-
-    targets_filename:
-      The filename of the top-level targets role.  The hash and file size of
-      this file is listed in the snapshot role.
 
     storage_backend:
       An object which implements
@@ -1593,7 +1589,6 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   securesystemslib.formats.PATH_SCHEMA.check_match(metadata_directory)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   securesystemslib.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
-  securesystemslib.formats.PATH_SCHEMA.check_match(targets_filename)
   securesystemslib.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
   securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_length)
@@ -1604,13 +1599,13 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   fileinfodict = {}
 
   length, hashes = securesystemslib.util.get_file_details(
-      os.path.join(metadata_directory, targets_filename),
+      os.path.join(metadata_directory, TARGETS_FILENAME),
       tuf.settings.FILE_HASH_ALGORITHMS, storage_backend)
 
   length = (use_length and length) or None
   hashes = (use_hashes and hashes) or None
 
-  targets_role = targets_filename[:-len(METADATA_EXTENSION)]
+  targets_role = TARGETS_FILENAME[:-len(METADATA_EXTENSION)]
 
   targets_file_version = get_metadata_versioninfo(targets_role,
     repository_name)
