@@ -609,8 +609,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                       repo_lib.METADATA_STAGED_DIRECTORY_NAME)
     targets_directory = os.path.join(repository_directory, repo_lib.TARGETS_DIRECTORY_NAME)
 
-    snapshot_filename = os.path.join(metadata_directory,
-                                     repo_lib.SNAPSHOT_FILENAME)
+    snapshot_file_path = os.path.join(metadata_directory,
+                                      repo_lib.SNAPSHOT_FILENAME)
 
     # Set valid generate_timestamp_metadata() arguments.
     version = 1
@@ -625,15 +625,15 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     repository_junk = repo_tool.load_repository(repository_directory,
         repository_name)
 
-    return snapshot_filename, version, expiration_date, storage_backend, \
+    return snapshot_file_path, version, expiration_date, storage_backend, \
         repository_name
 
 
   def test_generate_timestamp_metadata(self):
-    snapshot_filename, version, expiration_date, storage_backend, \
+    snapshot_file_path, version, expiration_date, storage_backend, \
       repository_name = self._setup_generate_timestamp_metadata_test()
 
-    timestamp_metadata = repo_lib.generate_timestamp_metadata(snapshot_filename,
+    timestamp_metadata = repo_lib.generate_timestamp_metadata(snapshot_file_path,
         version, expiration_date, storage_backend, repository_name)
     self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches(timestamp_metadata))
 
@@ -643,19 +643,19 @@ class TestRepositoryToolFunctions(unittest.TestCase):
         repo_lib.generate_timestamp_metadata, 3, version, expiration_date,
         storage_backend, repository_name)
     self.assertRaises(securesystemslib.exceptions.FormatError,
-        repo_lib.generate_timestamp_metadata, snapshot_filename, '3',
+        repo_lib.generate_timestamp_metadata, snapshot_file_path, '3',
         expiration_date, storage_backend, repository_name)
     self.assertRaises(securesystemslib.exceptions.FormatError,
-        repo_lib.generate_timestamp_metadata, snapshot_filename, version, '3',
+        repo_lib.generate_timestamp_metadata, snapshot_file_path, version, '3',
         storage_backend, repository_name)
 
 
 
   def test_generate_timestamp_metadata_without_length(self):
-    snapshot_filename, version, expiration_date, storage_backend, \
+    snapshot_file_path, version, expiration_date, storage_backend, \
       repository_name = self._setup_generate_timestamp_metadata_test()
 
-    timestamp_metadata = repo_lib.generate_timestamp_metadata(snapshot_filename,
+    timestamp_metadata = repo_lib.generate_timestamp_metadata(snapshot_file_path,
         version, expiration_date, storage_backend, repository_name,
         use_length=False)
     self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches(timestamp_metadata))
@@ -669,10 +669,10 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
   def test_generate_timestamp_metadata_without_hashes(self):
-    snapshot_filename, version, expiration_date, storage_backend, \
+    snapshot_file_path, version, expiration_date, storage_backend, \
       repository_name = self._setup_generate_timestamp_metadata_test()
 
-    timestamp_metadata = repo_lib.generate_timestamp_metadata(snapshot_filename,
+    timestamp_metadata = repo_lib.generate_timestamp_metadata(snapshot_file_path,
         version, expiration_date, storage_backend, repository_name,
         use_hashes=False)
     self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches(timestamp_metadata))
@@ -686,10 +686,10 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
   def test_generate_timestamp_metadata_without_length_and_hashes(self):
-    snapshot_filename, version, expiration_date, storage_backend, \
+    snapshot_file_path, version, expiration_date, storage_backend, \
       repository_name = self._setup_generate_timestamp_metadata_test()
 
-    timestamp_metadata = repo_lib.generate_timestamp_metadata(snapshot_filename,
+    timestamp_metadata = repo_lib.generate_timestamp_metadata(snapshot_file_path,
         version, expiration_date, storage_backend, repository_name,
         use_hashes=False, use_length=False)
     self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches(timestamp_metadata))

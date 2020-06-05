@@ -141,8 +141,11 @@ def _generate_and_write_metadata(rolename, metadata_filename,
         SNAPSHOT_EXPIRES_WARN_SECONDS)
 
   elif rolename == 'timestamp':
-    snapshot_filename = filenames['snapshot']
-    metadata = generate_timestamp_metadata(snapshot_filename, roleinfo['version'],
+    # If filenames don't have "snapshot_filename" key, defaults to "snapshot.json"
+    snapshot_file_path = (filenames and filenames['snapshot']) \
+        or SNAPSHOT_FILENAME
+
+    metadata = generate_timestamp_metadata(snapshot_file_path, roleinfo['version'],
         roleinfo['expires'], storage_backend, repository_name,
         use_length=use_timestamp_length, use_hashes=use_timestamp_hashes)
 
@@ -160,9 +163,10 @@ def _generate_and_write_metadata(rolename, metadata_filename,
     # Don't hash-prefix consistent target files if they are handled out of band
     consistent_targets = consistent_snapshot and not use_existing_fileinfo
 
-    metadata = generate_targets_metadata(targets_directory, roleinfo['paths'],
-        roleinfo['version'], roleinfo['expires'], roleinfo['delegations'],
-        consistent_targets, use_existing_fileinfo, storage_backend)
+    metadata = generate_targets_metadata(targets_directory,
+        roleinfo['paths'], roleinfo['version'], roleinfo['expires'],
+        roleinfo['delegations'], consistent_targets, use_existing_fileinfo,
+        storage_backend)
 
   # Before writing 'rolename' to disk, automatically increment its version
   # number (if 'increment_version_number' is True) so that the caller does not
@@ -1675,7 +1679,8 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
 
 
 
-def generate_timestamp_metadata(snapshot_filename, version, expiration_date,
+
+def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
     storage_backend, repository_name, use_length=True, use_hashes=True):
   """
   <Purpose>
@@ -1683,8 +1688,8 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date,
     exist.
 
   <Arguments>
-    snapshot_filename:
-      The required filename of the snapshot metadata file.  The timestamp role
+    snapshot_file_path:
+      Path to the required snapshot metadata file.  The timestamp role
       needs to the calculate the file size and hash of this file.
 
     version:
@@ -1730,7 +1735,7 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date,
   # This check ensures arguments have the appropriate number of objects and
   # object types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
-  securesystemslib.formats.PATH_SCHEMA.check_match(snapshot_filename)
+  securesystemslib.formats.PATH_SCHEMA.check_match(snapshot_file_path)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   securesystemslib.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
@@ -1739,15 +1744,16 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date,
 
   snapshot_fileinfo = {}
 
-  length, hashes = securesystemslib.util.get_file_details(snapshot_filename,
+  length, hashes = securesystemslib.util.get_file_details(snapshot_file_path,
       tuf.settings.FILE_HASH_ALGORITHMS, storage_backend)
 
   length = (use_length and length) or None
   hashes = (use_hashes and hashes) or None
 
+  snapshot_filename = os.path.basename(snapshot_file_path)
   # Retrieve the versioninfo of the Snapshot metadata file.
   snapshot_version = get_metadata_versioninfo('snapshot', repository_name)
-  snapshot_fileinfo[SNAPSHOT_FILENAME] = \
+  snapshot_fileinfo[snapshot_filename] = \
       tuf.formats.make_metadata_fileinfo(snapshot_version['version'],
           length, hashes)
 
