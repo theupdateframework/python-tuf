@@ -512,6 +512,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     version = 1
     expiration_date = '1985-10-21T13:20:00Z'
 
+    storage_backend = securesystemslib.storage.FilesystemBackend()
     # Load a valid repository so that top-level roles exist in roledb and
     # generate_snapshot_metadata() has roles to specify in snapshot metadata.
     repository = repo_tool.Repository(repository_directory, metadata_directory,
@@ -521,20 +522,20 @@ class TestRepositoryToolFunctions(unittest.TestCase):
         repository_name)
 
     timestamp_metadata = repo_lib.generate_timestamp_metadata(snapshot_filename,
-        version, expiration_date, repository_name)
+        version, expiration_date, storage_backend, repository_name)
     self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches(timestamp_metadata))
 
 
     # Test improperly formatted arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError,
         repo_lib.generate_timestamp_metadata, 3, version, expiration_date,
-        repository_name)
+        storage_backend, repository_name)
     self.assertRaises(securesystemslib.exceptions.FormatError,
         repo_lib.generate_timestamp_metadata, snapshot_filename, '3',
-        expiration_date, repository_name)
+        expiration_date, storage_backend, repository_name)
     self.assertRaises(securesystemslib.exceptions.FormatError,
         repo_lib.generate_timestamp_metadata, snapshot_filename, version, '3',
-        repository_name)
+        storage_backend, repository_name)
 
 
 
