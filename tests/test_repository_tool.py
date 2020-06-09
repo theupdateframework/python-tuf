@@ -2073,6 +2073,22 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertTrue('file2.txt' in repository.targets.target_files)
     self.assertTrue('file3.txt' in repository.targets('role1').target_files)
 
+    # Test if targets file info is loaded correctly: read the JSON metadata
+    # files separately and then compare with the loaded repository data.
+    targets_path = os.path.join(metadata_directory, 'targets.json')
+    role1_path = os.path.join(metadata_directory, 'role1.json')
+
+    targets_object = securesystemslib.util.load_json_file(targets_path)
+    role1_object = securesystemslib.util.load_json_file(role1_path)
+
+    targets_fileinfo = targets_object['signed']['targets']
+    role1_fileinfo = role1_object['signed']['targets']
+
+    repository = repo_tool.load_repository(repository_directory)
+
+    self.assertEqual(targets_fileinfo, repository.targets.target_files)
+    self.assertEqual(role1_fileinfo, repository.targets('role1').target_files)
+
     # Test for a non-default repository name.
     repository = repo_tool.load_repository(repository_directory, 'my-repo')
 

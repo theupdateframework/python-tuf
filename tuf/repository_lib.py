@@ -614,8 +614,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
 
     # Update 'targets.json' in 'tuf.roledb.py'
     roleinfo = tuf.roledb.get_roleinfo('targets', repository_name)
-    for filepath, fileinfo in six.iteritems(targets_metadata['targets']):
-      roleinfo['paths'].update({filepath: fileinfo})
+    roleinfo['paths'] = targets_metadata['targets']
     roleinfo['version'] = targets_metadata['version']
     roleinfo['expires'] = targets_metadata['expires']
     roleinfo['delegations'] = targets_metadata['delegations']
