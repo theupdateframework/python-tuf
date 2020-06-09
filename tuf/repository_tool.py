@@ -3161,16 +3161,13 @@ def load_repository(repository_directory, repository_name='default',
     roleinfo = {'name': metadata_name,
                 'signing_keyids': [],
                 'signatures': [],
-                'partial_loaded': False,
-                'paths': {},
+                'partial_loaded': False
                }
 
     roleinfo['signatures'].extend(signable['signatures'])
     roleinfo['version'] = metadata_object['version']
     roleinfo['expires'] = metadata_object['expires']
-
-    for filepath, fileinfo in six.iteritems(metadata_object['targets']):
-      roleinfo['paths'].update({filepath: fileinfo.get('custom', {})})
+    roleinfo['paths'] = metadata_object['targets']
     roleinfo['delegations'] = metadata_object['delegations']
 
     tuf.roledb.add_role(metadata_name, roleinfo, repository_name)
