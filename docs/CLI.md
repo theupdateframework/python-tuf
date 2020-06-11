@@ -283,6 +283,11 @@ $ cd tufrepo/
 $ python -m SimpleHTTPServer 8001
 ```
 
+If running python 3:
+```Bash
+$ python3 -m http.server 8001
+```
+
 ```Bash
 Step (4)
 $ client.py --repo http://localhost:8001 README.txt
@@ -409,6 +414,11 @@ Serve the repo
 ```Bash
 $ cd tufrepo/
 $ python -m SimpleHTTPServer 8001
+```
+
+If running python 3:
+```Bash
+$ python3 -m http.server 8001
 ```
 
 Fetch the role x's README.txt
