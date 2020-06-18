@@ -10,7 +10,7 @@ iso8601==0.1.12
 pycparser==2.20           # via cffi
 pynacl==1.4.0             # via securesystemslib
 python-dateutil==2.8.1    # via securesystemslib
-requests==2.23.0
+requests==2.24.0
 securesystemslib[colors,crypto,pynacl]==0.15.0
 six==1.15.0
 subprocess32==3.5.4       ; python_version < '3' # via securesystemslib
