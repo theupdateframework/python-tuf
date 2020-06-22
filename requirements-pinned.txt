@@ -1,4 +1,4 @@
-certifi==2020.4.5.2       # via requests
+certifi==2020.6.20       # via requests
 cffi==1.14.0              # via cryptography, pynacl
 chardet==3.0.4            # via requests
 colorama==0.4.3           # via securesystemslib
