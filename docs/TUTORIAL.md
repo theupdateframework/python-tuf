@@ -65,15 +65,17 @@ updates.
 The repository tool supports multiple public-key algorithms, such as
 [RSA](https://en.wikipedia.org/wiki/RSA_%28cryptosystem%29) and
 [Ed25519](https://ed25519.cr.yp.to/), and multiple cryptography libraries.
-Which cryptography library to use is determined by the default, or user modified,
-settings in [settings.py](../tuf/settings.py).
 
 Using [RSA-PSS](https://tools.ietf.org/html/rfc8017#section-8.1) or
 [ECDSA](https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm)
 signatures requires the [cryptography](https://cryptography.io/) library. If
 generation of Ed25519 signatures is needed
-[PyNaCl](https://github.com/pyca/pynacl) library should be installed.
-Ed25519 and ECDSA keys are stored in JSON format and RSA keys are stored in PEM
+[PyNaCl](https://github.com/pyca/pynacl) library should be installed. This
+tutorial assumes both dependencies are installed: refer to
+[Installation Instructions](INSTALLATION.rst#install-with-more-cryptographic-flexibility)
+for details.
+
+The Ed25519 and ECDSA keys are stored in JSON format and RSA keys are stored in PEM
 format. Private keys are encrypted and passphrase-protected (strengthened with
 PBKDF2-HMAC-SHA256.)  Generating, importing, and loading cryptographic key
 files can be done with functions available in the repository tool.
@@ -81,7 +83,6 @@ files can be done with functions available in the repository tool.
 To start, a public and private RSA key pair is generated with the
 `generate_and_write_rsa_keypair()` function.  The keys generated next are
 needed to sign the repository metadata files created in upcoming sub-sections.
-
 
 Note:  In the instructions below, lines that start with `>>>` denote commands
 that should be entered by the reader, `#` begins the start of a comment, and
