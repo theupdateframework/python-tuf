@@ -40,12 +40,9 @@
   $ pip install .
 
   # Installing optional requirements (i.e., after installing tuf).
-  # The 'tools' optional requirement is currently supported, which enables
-  # fast and secure ed25519 key generation, and signature verification
-  # computations with PyNaCl+libsodium.  General-purpose cryptography is also
-  # provided.  'tools' is needed by the TUF repository tools.  Clients that
-  # require verification of RSASSA-PSS signatures must also install tuf[tools].
-  $ pip install tuf[tools]
+  # Support for creation of Ed25519 signatures and support for RSA and ECDSA
+  # signatures in general requires optional dependencies:
+  $ pip install securesystemslib[crypto,pynacl]
 
 
   Alternate installation options:
