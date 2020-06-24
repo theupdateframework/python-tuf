@@ -1643,12 +1643,18 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       if tuf.roledb.role_exists(rolename, repository_name) and \
           rolename not in tuf.roledb.TOP_LEVEL_ROLES:
 
-        length, hashes = securesystemslib.util.get_file_details(
-            os.path.join(metadata_directory, metadata_filename),
-            tuf.settings.FILE_HASH_ALGORITHMS)
+        length = None
+        hashes = None
+        # We want to make sure we are calculating length and hashes only when
+        # at least one of them is needed. Otherwise, for adoptors of tuf with
+        # lots of delegations, this will cause unnecessary overhead.
+        if use_length or use_hashes:
+          length, hashes = securesystemslib.util.get_file_details(
+              os.path.join(metadata_directory, metadata_filename),
+              tuf.settings.FILE_HASH_ALGORITHMS)
 
-        length = (use_length and length) or None
-        hashes = (use_hashes and hashes) or None
+          length = (use_length and length) or None
+          hashes = (use_hashes and hashes) or None
 
         file_version = get_metadata_versioninfo(rolename,
             repository_name)
