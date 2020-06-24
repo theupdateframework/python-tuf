@@ -3090,7 +3090,7 @@ def load_repository(repository_directory, repository_name='default',
   repository = Repository(repository_directory, metadata_directory,
       targets_directory, storage_backend, repository_name)
 
-  filenames = repo_lib.get_metadata_filenames(metadata_directory)
+  filenames = repo_lib.get_top_level_metadata_filenames(metadata_directory)
 
   # The Root file is always available without a version number (a consistent
   # snapshot) attached to the filename.  Store the 'consistent_snapshot' value
@@ -3102,7 +3102,7 @@ def load_repository(repository_directory, repository_name='default',
   repository, consistent_snapshot = repo_lib._load_top_level_metadata(repository,
     filenames, repository_name)
 
-  delegated_roles_filenames = repo_lib.get_delegations_filenames(
+  delegated_roles_filenames = repo_lib.get_delegated_roles_metadata_filenames(
       metadata_directory, consistent_snapshot, storage_backend)
 
   # Load the delegated targets metadata and their fileinfo.

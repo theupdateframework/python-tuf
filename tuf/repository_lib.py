@@ -812,8 +812,8 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
 
 
 
-def get_delegations_filenames(metadata_directory, consistent_snapshot,
-    storage_backend=None):
+def get_delegated_roles_metadata_filenames(metadata_directory,
+    consistent_snapshot, storage_backend=None):
   """
   Return a dictionary containing all filenames in 'metadata_directory'
   except the top-level roles.
@@ -861,7 +861,7 @@ def get_delegations_filenames(metadata_directory, consistent_snapshot,
 
 
 
-def get_metadata_filenames(metadata_directory):
+def get_top_level_metadata_filenames(metadata_directory):
   """
   <Purpose>
     Return a dictionary containing the filenames of the top-level roles.
@@ -1826,7 +1826,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
 
   # The expected full filenames of the top-level roles needed to write them to
   # disk.
-  filenames = get_metadata_filenames(metadata_directory)
+  filenames = get_top_level_metadata_filenames(metadata_directory)
   root_filename = filenames[ROOT_FILENAME]
   targets_filename = filenames[TARGETS_FILENAME]
   snapshot_filename = filenames[SNAPSHOT_FILENAME]
