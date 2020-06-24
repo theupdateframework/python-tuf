@@ -822,9 +822,13 @@ def get_delegations_filenames(metadata_directory, consistent_snapshot,
   """
 
   filenames = {}
-  loaded_metadata = []
   metadata_files = sorted(storage_backend.list_folder(metadata_directory),
       reverse=True)
+
+  # Iterate over role metadata files, sorted by their version-number prefix, with
+  # more recent versions first, and only add the most recent version of any
+  # (non top-level) metadata to the list of returned filenames. Note that there
+  # should only be one version of each file, if consistent_snapshot is False.
   for metadata_role in metadata_files:
     metadata_path = os.path.join(metadata_directory, metadata_role)
 
@@ -845,20 +849,13 @@ def get_delegations_filenames(metadata_directory, consistent_snapshot,
           ' extension: ' + repr(metadata_path))
       continue
 
-    # Skip top-level roles, only interested in delegated roles now that the
-    # top-level roles have already been loaded.
+    # Skip top-level roles, only interested in delegated roles.
     if metadata_name in ['root', 'snapshot', 'targets', 'timestamp']:
       continue
 
-    # Keep a store of metadata previously loaded metadata to prevent re-loading
-    # duplicate versions.  Duplicate versions may occur with
-    # 'consistent_snapshot', where the same metadata may be available in
-    # multiples files (the different hash is included in each filename).
-    if metadata_name in loaded_metadata:
-      continue
-
-    filenames[metadata_name] = metadata_path
-    loaded_metadata.append(metadata_name)
+    # Prevent reloading duplicate versions if consistent_snapshot is True
+    if metadata_name not in filenames:
+      filenames[metadata_name] = metadata_path
 
   return filenames
 
