@@ -101,10 +101,6 @@ tuf.log.set_console_log_level(logging.INFO)
 # through 2031 and beyond.
 DEFAULT_RSA_KEY_BITS=3072
 
-# The algorithm used by the repository to generate the path hash prefixes
-# of hashed bin delegations.  Please see delegate_hashed_bins()
-HASH_FUNCTION = tuf.settings.DEFAULT_HASH_ALGORITHM
-
 # The default number of hashed bin delegations
 DEFAULT_NUM_BINS=1024
 
@@ -2571,7 +2567,7 @@ class Targets(Metadata):
       # Determine the hash prefix of 'target_path' by computing the digest of
       # its path relative to the targets directory.
       # We must hash a target path as it appears in the metadata
-      hash_prefix = _get_hash(target_path)[:prefix_length]
+      hash_prefix = repo_lib.get_target_hash(target_path)[:prefix_length]
       ordered_roles[int(hash_prefix, 16) // bin_size]["target_paths"].append(target_path)
 
     keyids, keydict = _keys_to_keydict(keys_of_hashed_bins)
@@ -2678,7 +2674,7 @@ class Targets(Metadata):
 
     # TODO: check target_filepath is sane
 
-    path_hash = _get_hash(target_filepath)
+    path_hash = repo_lib.get_target_hash(target_filepath)
     bin_name = _find_bin_for_hash(path_hash, number_of_bins)
 
     # Ensure the Targets object has delegated to hashed bins
@@ -2740,7 +2736,7 @@ class Targets(Metadata):
 
     # TODO: check target_filepath is sane?
 
-    path_hash = _get_hash(target_filepath)
+    path_hash = repo_lib.get_target_hash(target_filepath)
     bin_name = _find_bin_for_hash(path_hash, number_of_bins)
 
     # Ensure the Targets object has delegated to hashed bins
@@ -2840,28 +2836,6 @@ def _keys_to_keydict(keys):
   return keyids, keydict
 
 
-
-
-
-
-def _get_hash(target_filepath):
-  """
-  <Purpose>
-    Generate a hash of target_filepath, a path to a file (not the file
-    itself), using HASH_FUNCTION
-
-  <Arguments>
-    target_filepath:
-      A path to a targetfile, relative to the targets directory
-
-  <Returns>
-    The hexdigest hash of the filepath.
-  """
-
-  # TODO: ensure target_filepath is relative to targets_directory?
-  digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
-  digest_object.update(target_filepath.encode('utf-8'))
-  return digest_object.hexdigest()
 
 
 

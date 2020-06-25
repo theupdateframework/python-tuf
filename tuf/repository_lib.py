@@ -91,6 +91,10 @@ TIMESTAMP_EXPIRES_WARN_SECONDS = 86400
 # Supported key types.
 SUPPORTED_KEY_TYPES = ['rsa', 'ed25519', 'ecdsa-sha2-nistp256']
 
+# The algorithm used by the repository to generate the path hash prefixes
+# of hashed bin delegations.  Please see delegate_hashed_bins()
+HASH_FUNCTION = tuf.settings.DEFAULT_HASH_ALGORITHM
+
 
 def _generate_and_write_metadata(rolename, metadata_filename,
   targets_directory, metadata_directory, storage_backend,
@@ -976,14 +980,12 @@ def get_metadata_versioninfo(rolename, repository_name):
 
 
 
-# TODO: Is this function needed? It does not seem used, also the same
-# function exists as private method in updater.Updater._get_target_hash.
 def get_target_hash(target_filepath):
   """
   <Purpose>
     Compute the hash of 'target_filepath'. This is useful in conjunction with
     the "path_hash_prefixes" attribute in a delegated targets role, which
-    tells us which paths it is implicitly responsible for.
+    tells us which paths a role is implicitly responsible for.
 
     The repository may optionally organize targets into hashed bins to ease
     target delegations and role metadata management.  The use of consistent
@@ -1006,17 +1008,9 @@ def get_target_hash(target_filepath):
   """
   tuf.formats.RELPATH_SCHEMA.check_match(target_filepath)
 
-  # Calculate the hash of the filepath to determine which bin to find the
-  # target.  The client currently assumes the repository uses
-  # 'tuf.settings.DEFAULT_HASH_ALGORITHM' to generate hashes and 'utf-8'.
-  digest_object = securesystemslib.hash.digest(
-      tuf.settings.DEFAULT_HASH_ALGORITHM)
-  encoded_target_filepath = target_filepath.encode('utf-8')
-  digest_object.update(encoded_target_filepath)
-  target_filepath_hash = digest_object.hexdigest()
-
-  return target_filepath_hash
-
+  digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
+  digest_object.update(target_filepath.encode('utf-8'))
+  return digest_object.hexdigest()
 
 
 
