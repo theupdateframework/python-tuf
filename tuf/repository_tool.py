@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 
 # Copyright 2013 - 2017, New York University and the TUF contributors
@@ -2529,7 +2530,7 @@ class Targets(Metadata):
     securesystemslib.formats.ANYKEYLIST_SCHEMA.check_match(keys_of_hashed_bins)
     tuf.formats.NUMBINS_SCHEMA.check_match(number_of_bins)
 
-    prefix_length, prefix_count, bin_size = _get_bin_numbers(number_of_bins)
+    prefix_length, prefix_count, bin_size = repo_lib.get_bin_numbers(number_of_bins)
 
     logger.info('Creating hashed bin delegations.\n' +
         repr(len(list_of_targets)) + ' total targets.\n' +
@@ -2543,7 +2544,7 @@ class Targets(Metadata):
     ordered_roles = []
     for idx in range(0, prefix_count, bin_size):
       high = idx + bin_size - 1
-      name = _create_bin_name(idx, high, prefix_length)
+      name = repo_lib.create_bin_name(idx, high, prefix_length)
       if bin_size == 1:
         target_hash_prefixes = [name]
       else:
@@ -2675,7 +2676,7 @@ class Targets(Metadata):
     # TODO: check target_filepath is sane
 
     path_hash = repo_lib.get_target_hash(target_filepath)
-    bin_name = _find_bin_for_hash(path_hash, number_of_bins)
+    bin_name = repo_lib.find_bin_for_target_hash(path_hash, number_of_bins)
 
     # Ensure the Targets object has delegated to hashed bins
     if not self._delegated_roles.get(bin_name, None):
@@ -2737,7 +2738,7 @@ class Targets(Metadata):
     # TODO: check target_filepath is sane?
 
     path_hash = repo_lib.get_target_hash(target_filepath)
-    bin_name = _find_bin_for_hash(path_hash, number_of_bins)
+    bin_name = repo_lib.find_bin_for_target_hash(path_hash, number_of_bins)
 
     # Ensure the Targets object has delegated to hashed bins
     if not self._delegated_roles.get(bin_name, None):
@@ -2834,90 +2835,6 @@ def _keys_to_keydict(keys):
     keyids.append(keyid)
 
   return keyids, keydict
-
-
-
-
-
-
-def _create_bin_name(low, high, prefix_len):
-  """
-  <Purpose>
-    Create a string name of a delegated hash bin, where name will be a range of
-    zero-padded (up to prefix_len) strings i.e. for low=00, high=07,
-    prefix_len=3 the returned name would be '000-007'.
-  """
-  if low == high:
-    return "{low:0{len}x}".format(low=low, len=prefix_len)
-
-  return "{low:0{len}x}-{high:0{len}x}".format(low=low, high=high,
-      len=prefix_len)
-
-
-
-
-
-def _get_bin_numbers(number_of_bins):
-  """
-  Given the desired number of bins (number_of_bins) calculate the prefix length
-  (prefix_length), total number of prefixes (prefix_count) and the number of
-  prefixes to be stored in each bin (bin_size).
-  Example: number_of_bins = 32
-    prefix_length = 2
-    prefix_count = 256
-    bin_size = 8
-  That is, each of the 32 hashed bins are responsible for 8 hash prefixes, i.e.
-  00-07, 08-0f, ..., f8-ff.
-  """
-  # Convert 'number_of_bins' to hexadecimal and determine the number of
-  # hexadecimal digits needed by each hash prefix
-  prefix_length = len("{:x}".format(number_of_bins - 1))
-  # Calculate the total number of hash prefixes (e.g., 000 - FFF total values)
-  prefix_count = 16 ** prefix_length
-  # Determine how many prefixes to assign to each bin
-  bin_size = prefix_count // number_of_bins
-
-  # For simplicity, ensure that 'prefix_count' (16 ^ n) can be evenly
-  # distributed over 'number_of_bins' (must be 2 ^ n).  Each bin will contain
-  # (prefix_count / number_of_bins) hash prefixes.
-  if prefix_count % number_of_bins != 0:
-    # Note: x % y != 0 does not guarantee that y is not a power of 2 for
-    # arbitrary x and y values. However, due to the relationship between
-    # number_of_bins and prefix_count, it is true for them.
-    raise securesystemslib.exceptions.Error('The "number_of_bins" argument'
-        ' must be a power of 2.')
-
-  return prefix_length, prefix_count, bin_size
-
-
-
-
-def _find_bin_for_hash(path_hash, number_of_bins):
-  """
-  <Purpose>
-    For a given hashed filename, path_hash, calculate the name of a hashed bin
-    into which this file would be delegated given number_of_bins bins are in
-    use.
-
-  <Arguments>
-    path_hash:
-      The hash of the target file's path
-
-    number_of_bins:
-      The number of hashed_bins in use
-
-  <Returns>
-    The name of the hashed bin path_hash would be binned into.
-  """
-
-  prefix_length, _, bin_size = _get_bin_numbers(number_of_bins)
-
-  prefix = int(path_hash[:prefix_length], 16)
-
-  low = prefix - (prefix % bin_size)
-  high = (low + bin_size - 1)
-
-  return _create_bin_name(low, high, prefix_length)
 
 
 
