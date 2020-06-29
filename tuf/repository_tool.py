@@ -3109,8 +3109,7 @@ def load_repository(repository_directory, repository_name='default',
   # The delegated targets roles form a tree/graph which is traversed in a
   # breadth-first-search manner starting from 'targets' in order to correctly
   # load the delegations hierarchy.
-  targets_objects = {}
-  targets_objects['targets'] = repository.targets
+  parent_targets_object = repository.targets
 
   # Keep the next delegations to be loaded in a deque structure which
   # has the properties of a list but is designed to have fast appends
@@ -3176,15 +3175,14 @@ def load_repository(repository_directory, repository_name='default',
     # add it to the top-level 'targets' object and to its
     # direct delegating role object.
     new_targets_object = Targets(targets_directory, rolename,
-         roleinfo, parent_targets_object=targets_objects['targets'],
+         roleinfo, parent_targets_object=parent_targets_object,
          repository_name=repository_name)
 
-    targets_objects[rolename] = new_targets_object
-
-    targets_objects['targets'].add_delegated_role(rolename,
+    parent_targets_object.add_delegated_role(rolename,
         new_targets_object)
-    targets_objects[delegating_role].add_delegated_role(rolename,
-        new_targets_object)
+    if delegating_role != 'targets':
+      parent_targets_object(delegating_role).add_delegated_role(rolename,
+          new_targets_object)
 
     # Append the next level delegations to the deque:
     # the 'delegated' role becomes the 'delegating'
