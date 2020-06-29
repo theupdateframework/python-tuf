@@ -755,7 +755,7 @@ class Updater(object):
 
     # Load current and previous metadata.
     for metadata_set in ['current', 'previous']:
-      for metadata_role in ['root', 'targets', 'snapshot', 'timestamp']:
+      for metadata_role in tuf.roledb.TOP_LEVEL_ROLES:
         self._load_metadata_from_file(metadata_set, metadata_role)
 
     # Raise an exception if the repository is missing the required 'root'
@@ -2435,7 +2435,7 @@ class Updater(object):
     # all roles available on the repository.
     delegated_targets = []
     for role in tuf.roledb.get_rolenames(self.repository_name):
-      if role in ['root', 'snapshot', 'targets', 'timestamp']:
+      if role in tuf.roledb.TOP_LEVEL_ROLES:
         continue
 
       else:

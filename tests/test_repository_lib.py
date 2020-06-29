@@ -201,7 +201,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
 
-  def test_get_metadata_filenames(self):
+  def test_get_top_level_metadata_filenames(self):
 
     # Test normal case.
     metadata_directory = os.path.join('metadata/')
@@ -210,7 +210,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                  'snapshot.json': metadata_directory + 'snapshot.json',
                  'timestamp.json': metadata_directory + 'timestamp.json'}
 
-    self.assertEqual(filenames, repo_lib.get_metadata_filenames('metadata/'))
+    self.assertEqual(filenames,
+        repo_lib.get_top_level_metadata_filenames('metadata/'))
 
     # If a directory argument is not specified, the current working directory
     # is used.
@@ -219,11 +220,13 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                  'targets.json': os.path.join(metadata_directory, 'targets.json'),
                  'snapshot.json': os.path.join(metadata_directory, 'snapshot.json'),
                  'timestamp.json': os.path.join(metadata_directory, 'timestamp.json')}
-    self.assertEqual(filenames, repo_lib.get_metadata_filenames(metadata_directory))
+    self.assertEqual(filenames,
+        repo_lib.get_top_level_metadata_filenames(metadata_directory))
 
 
     # Test improperly formatted argument.
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.get_metadata_filenames, 3)
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        repo_lib.get_top_level_metadata_filenames, 3)
 
 
 
@@ -797,7 +800,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     storage_backend = securesystemslib.storage.FilesystemBackend()
     repo_lib.write_metadata_file(signable, root_file, 8, False, storage_backend)
 
-    filenames = repo_lib.get_metadata_filenames(metadata_directory)
+    filenames = repo_lib.get_top_level_metadata_filenames(metadata_directory)
     repository = repo_tool.create_new_repository(repository_directory, repository_name)
     repo_lib._load_top_level_metadata(repository, filenames, repository_name)
 

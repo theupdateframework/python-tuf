@@ -2053,6 +2053,10 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     repository = repo_tool.load_repository(repository_directory)
     self.assertTrue(isinstance(repository, repo_tool.Repository))
+    self.assertTrue(isinstance(repository.targets('role1'),
+        repo_tool.Targets))
+    self.assertTrue(isinstance(repository.targets('role1')('role2'),
+        repo_tool.Targets))
 
     # Verify the expected roles have been loaded.  See
     # 'tuf/tests/repository_data/repository/'.
