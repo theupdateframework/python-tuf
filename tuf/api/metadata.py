@@ -19,6 +19,7 @@ from dateutil.relativedelta import relativedelta
 from securesystemslib.formats import encode_canonical
 from securesystemslib.keys import create_signature, verify_signature
 from securesystemslib.util import load_json_file
+import tuf.formats
 from tuf.repository_lib import (
     _get_written_metadata,
     _strip_version_number,
@@ -140,15 +141,28 @@ class Timestamp(Metadata):
 
 class Snapshot(Metadata):
     def __init__(self, consistent_snapshot: bool = True, expiration: relativedelta = relativedelta(days=1), keyring: Keyring = None, version: int = 1):
-        super().__init__(consistent_snapshot, expiration, relativedelta, keyring, version)
+        super().__init__(consistent_snapshot, expiration, keyring, version)
+        self.targets_fileinfo = {}
 
-    # FIXME
+    def read_from_json(self, filename: str) -> None:
+        super().read_from_json(filename)
+        meta = self.signed['meta']
+        for target_role in meta:
+            version = meta[target_role]['version']
+            length = meta[target_role].get('length')
+            hashes = meta[target_role].get('hashes')
+            self.targets_fileinfo[target_role] = tuf.formats.make_metadata_fileinfo(version, length, hashes)
+
     def signable(self):
-        return generate_snapshot_metadata()
+        # TODO: probably want to generalise this, a @property.getter in Metadata?
+        expires = self.expiration.replace(tzinfo=None).isoformat()+'Z'
+        return tuf.formats.build_dict_conforming_to_schema(
+            tuf.formats.SNAPSHOT_SCHEMA, version=self.version,
+            expires=expires, meta=self.targets_fileinfo)
 
     # Add or update metadata about the targets metadata.
     def update(self, rolename: str, version: int, length: Optional[int] = None, hashes: Optional[JsonDict] = None):
-        raise NotImplementedError()
+        self.targets_fileinfo[f'{rolename}.json'] = tuf.formats.make_metadata_fileinfo(version, length, hashes)
 
 class Targets(Metadata):
     def __init__(self, consistent_snapshot: bool = True, expiration: relativedelta = relativedelta(days=1), keyring: Keyring = None, version: int = 1):
