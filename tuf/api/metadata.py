@@ -69,6 +69,12 @@ class Metadata:
         """
         raise NotImplementedError()
 
+    def bump_version(self) -> None:
+        self.version = self.version + 1
+
+    def bump_expiration(self, delta: relativedelta = relativedelta(days=1)) -> None:
+        self.expiration = self.expiration + delta
+
     def signed(self) -> str:
         return encode_canonical(self.signable['signed']).encode('utf-8')
 
