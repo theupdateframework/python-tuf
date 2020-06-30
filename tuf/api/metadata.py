@@ -81,15 +81,16 @@ class Metadata:
     def signatures(self) -> List:
         return self.signable['signatures']
 
-    # TODO: We need to update the expiration timestamp using self.expiration.
-    # Oh, and bump the version number.
-    # And, oh, take care of consistent snapshot of metadata.
     def sign(self) -> JsonDict:
-        # TODO: not so simple. IDK why we don't index signatures by
-        # keyids,but we need to walk through the list to find any previous
-        # signature by the same keyid.
         def update_signature(signatures, keyid, signature):
-            raise NotImplementedError()
+            updated = False
+            keyid_signature = {'keyid':keyid, 'sig':signature}
+            for idx, keyid_sig in enumerate(signatures):
+                if keyid_sig['keyid'] == keyid:
+                    signatures[idx] = keyid_signature
+                    updated = True
+            if not updated:
+                signatures.append({'keyid':keyid, 'sig':signature})
 
         signed = self.signed
         signatures = self.signatures
@@ -98,7 +99,8 @@ class Metadata:
             signature = create_signature(keypair.private.obj, signed)
             keyid  = keypair.private.obj['keyid']    
             update_signature(signatures, keyid, signature)
-    
+
+        self.signatures = signatures
         return {'signed': signed, 'signatures': signatures}
 
     def verify(self) -> bool:
