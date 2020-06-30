@@ -91,6 +91,10 @@ TIMESTAMP_EXPIRES_WARN_SECONDS = 86400
 # Supported key types.
 SUPPORTED_KEY_TYPES = ['rsa', 'ed25519', 'ecdsa-sha2-nistp256']
 
+# The algorithm used by the repository to generate the path hash prefixes
+# of hashed bin delegations.  Please see delegate_hashed_bins()
+HASH_FUNCTION = tuf.settings.DEFAULT_HASH_ALGORITHM
+
 
 def _generate_and_write_metadata(rolename, metadata_filename,
   targets_directory, metadata_directory, storage_backend,
@@ -1023,14 +1027,120 @@ def get_metadata_versioninfo(rolename, repository_name):
 
 
 
-# TODO: Is this function needed? It does not seem used, also the same
-# function exists as private method in updater.Updater._get_target_hash.
+def create_bin_name(low, high, prefix_len):
+  """
+  <Purpose>
+    Create a string name of a delegated hash bin, where name will be a range of
+    zero-padded (up to prefix_len) strings i.e. for low=00, high=07,
+    prefix_len=3 the returned name would be '000-007'.
+
+  <Arguments>
+    low:
+      The low end of the prefix range to be binned
+
+    high:
+      The high end of the prefix range to be binned
+
+    prefix_len:
+      The length of the prefix range components
+
+  <Returns>
+    A string bin name, with each end of the range zero-padded up to prefix_len
+  """
+  if low == high:
+    return "{low:0{len}x}".format(low=low, len=prefix_len)
+
+  return "{low:0{len}x}-{high:0{len}x}".format(low=low, high=high,
+      len=prefix_len)
+
+
+
+
+
+def get_bin_numbers(number_of_bins):
+  """
+  <Purpose>
+    Given the desired number of bins (number_of_bins) calculate the prefix
+    length (prefix_length), total number of prefixes (prefix_count) and the
+    number of prefixes to be stored in each bin (bin_size).
+    Example: number_of_bins = 32
+      prefix_length = 2
+      prefix_count = 256
+      bin_size = 8
+    That is, each of the 32 hashed bins are responsible for 8 hash prefixes,
+    i.e. 00-07, 08-0f, ..., f8-ff.
+
+  <Arguments>
+    number_of_bins:
+      The number of hashed bins in use
+
+  <Returns>
+    A tuple of three values:
+      1. prefix_length: the length of each prefix
+      2. prefix_count: the total number of prefixes in use
+      3. bin_size: the number of hash prefixes to be stored in each bin
+  """
+  # Convert 'number_of_bins' to hexadecimal and determine the number of
+  # hexadecimal digits needed by each hash prefix
+  prefix_length = len("{:x}".format(number_of_bins - 1))
+  # Calculate the total number of hash prefixes (e.g., 000 - FFF total values)
+  prefix_count = 16 ** prefix_length
+  # Determine how many prefixes to assign to each bin
+  bin_size = prefix_count // number_of_bins
+
+  # For simplicity, ensure that 'prefix_count' (16 ^ n) can be evenly
+  # distributed over 'number_of_bins' (must be 2 ^ n).  Each bin will contain
+  # (prefix_count / number_of_bins) hash prefixes.
+  if prefix_count % number_of_bins != 0:
+    # Note: x % y != 0 does not guarantee that y is not a power of 2 for
+    # arbitrary x and y values. However, due to the relationship between
+    # number_of_bins and prefix_count, it is true for them.
+    raise securesystemslib.exceptions.Error('The "number_of_bins" argument'
+        ' must be a power of 2.')
+
+  return prefix_length, prefix_count, bin_size
+
+
+
+
+
+def find_bin_for_target_hash(target_hash, number_of_bins):
+  """
+  <Purpose>
+    For a given hashed filename, target_hash, calculate the name of a hashed bin
+    into which this file would be delegated given number_of_bins bins are in
+    use.
+
+  <Arguments>
+    target_hash:
+      The hash of the target file's path
+
+    number_of_bins:
+      The number of hashed_bins in use
+
+  <Returns>
+    The name of the hashed bin target_hash would be binned into
+  """
+
+  prefix_length, _, bin_size = get_bin_numbers(number_of_bins)
+
+  prefix = int(target_hash[:prefix_length], 16)
+
+  low = prefix - (prefix % bin_size)
+  high = (low + bin_size - 1)
+
+  return create_bin_name(low, high, prefix_length)
+
+
+
+
+
 def get_target_hash(target_filepath):
   """
   <Purpose>
     Compute the hash of 'target_filepath'. This is useful in conjunction with
     the "path_hash_prefixes" attribute in a delegated targets role, which
-    tells us which paths it is implicitly responsible for.
+    tells us which paths a role is implicitly responsible for.
 
     The repository may optionally organize targets into hashed bins to ease
     target delegations and role metadata management.  The use of consistent
@@ -1053,17 +1163,9 @@ def get_target_hash(target_filepath):
   """
   tuf.formats.RELPATH_SCHEMA.check_match(target_filepath)
 
-  # Calculate the hash of the filepath to determine which bin to find the
-  # target.  The client currently assumes the repository uses
-  # 'tuf.settings.DEFAULT_HASH_ALGORITHM' to generate hashes and 'utf-8'.
-  digest_object = securesystemslib.hash.digest(
-      tuf.settings.DEFAULT_HASH_ALGORITHM)
-  encoded_target_filepath = target_filepath.encode('utf-8')
-  digest_object.update(encoded_target_filepath)
-  target_filepath_hash = digest_object.hexdigest()
-
-  return target_filepath_hash
-
+  digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
+  digest_object.update(target_filepath.encode('utf-8'))
+  return digest_object.hexdigest()
 
 
 
