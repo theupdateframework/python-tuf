@@ -4,7 +4,7 @@ chardet==3.0.4            # via requests
 colorama==0.4.3           # via securesystemslib
 cryptography==2.9.2         # via securesystemslib
 enum34==1.1.6             ; python_version < '3' # via cryptography
-idna==2.9                 # via requests
+idna==2.10                 # via requests
 ipaddress==1.0.23         ; python_version < '3' # via cryptography
 iso8601==0.1.12
 pycparser==2.20           # via cffi
