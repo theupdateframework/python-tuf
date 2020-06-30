@@ -584,7 +584,7 @@ def create_new_project(project_name, metadata_directory,
   # Do the same for the location in the repo and the project name, we must
   # ensure they are valid pathnames.
   securesystemslib.formats.NAME_SCHEMA.check_match(project_name)
-  securesystemslib.formats.PATH_SCHEMA.check_match(location_in_repository)
+  securesystemslib.formats.ANY_STRING_SCHEMA.check_match(location_in_repository)
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
   # for the targets directory we do the same, but first, let's find out what
@@ -797,7 +797,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
   # Do the same for the prefix
-  securesystemslib.formats.PATH_SCHEMA.check_match(prefix)
+  securesystemslib.formats.ANY_STRING_SCHEMA.check_match(prefix)
 
   # Clear the role and key databases since we are loading in a new project.
   tuf.roledb.clear_roledb(clear_all=True)
