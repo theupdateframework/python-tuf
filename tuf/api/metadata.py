@@ -21,6 +21,7 @@ from securesystemslib.keys import create_signature, verify_signature
 from securesystemslib.util import load_json_file
 from tuf.repository_lib import (
     _get_written_metadata,
+    _strip_version_number,
     generate_snapshot_metadata,
     generate_targets_metadata,
     generate_timestamp_metadata,
@@ -47,11 +48,18 @@ class Metadata:
         signable = load_json_file(filename)
 
         # TODO: use some basic schema checks
-        signatures = signable['signatures']
-        signed = signable['signed']
+        self.signatures = signable['signatures']
+        self.signed = signable['signed']
 
         self.expiration = datetime.strptime(signed['expiration'], '%b %d %Y %I:%M%p')
-        self.version = signed['version']
+        self.version = self.signed['version']
+
+        fn, fn_ver = _strip_version_number(filename, True)
+        if fn_ver:
+            assert fn_ver == self.version, f'{fn_ver} != {self.version}'
+            self.consistent_snapshot = True
+        else:
+            self.consistent_snapshot = False
 
     @property
     def signable(self) -> JsonDict:
