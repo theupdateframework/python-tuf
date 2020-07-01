@@ -15,6 +15,7 @@ import json
 
 # 3rd-party.
 from dateutil.relativedelta import relativedelta
+import iso8601
 from securesystemslib.formats import encode_canonical
 from securesystemslib.keys import create_signature, verify_signature
 from securesystemslib.util import load_json_file
@@ -51,7 +52,8 @@ class Metadata:
         self.signatures = signable['signatures']
         self.signed = signable['signed']
 
-        self.expiration = datetime.strptime(signed['expiration'], '%b %d %Y %I:%M%p')
+        # TODO: replace with dateutil.parser.parse?
+        self.expiration = iso8601.parse_date(self.signed['expires'])
         self.version = self.signed['version']
 
         fn, fn_ver = _strip_version_number(filename, True)
