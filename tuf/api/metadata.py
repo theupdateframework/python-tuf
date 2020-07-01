@@ -40,7 +40,7 @@ class Metadata:
         self.keyring = keyring
         self.expiration = expiration
 
-        assert version > 1, f'{version} < 1'
+        assert version >= 1, f'{version} < 1'
         self.version = version
 
     # And you would use this method to populate it from a file.
