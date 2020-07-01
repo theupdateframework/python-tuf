@@ -1,10 +1,9 @@
 # 1st-party.
-from keys import (
+from tuf.api.keys import (
     Keyring,
     Threshold,
     get_private_keys_from_keyring,
     get_public_keys_from_keyring,
-    sorted_list_of_keyids,
     write_and_read_new_keys,
 )
 
