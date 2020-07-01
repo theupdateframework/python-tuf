@@ -1,11 +1,7 @@
+# Imports.
+
 # 1st-party.
-from tuf.api.keys import (
-    Keyring,
-    Threshold,
-    get_private_keys_from_keyring,
-    get_public_keys_from_keyring,
-    write_and_read_new_keys,
-)
+from tuf.api.keys import KeyRing
 
 # 2nd-party.
 from datetime import datetime
@@ -15,9 +11,7 @@ import json
 
 # 3rd-party.
 from dateutil.relativedelta import relativedelta
-import iso8601
 from securesystemslib.formats import encode_canonical
-from securesystemslib.keys import create_signature, verify_signature
 from securesystemslib.util import load_json_file
 import tuf.formats
 from tuf.repository_lib import (
@@ -28,14 +22,17 @@ from tuf.repository_lib import (
     generate_timestamp_metadata,
 )
 
+import iso8601
+
 # Types.
+
 JsonDict = Dict[str, Any]
 
 # Classes.
 
 class Metadata:
     # By default, a Metadata would be a rather empty one.
-    def __init__(self, consistent_snapshot: bool = True, expiration: relativedelta = relativedelta(), keyring: Optional[Keyring] = None, version: int = 1) -> None:
+    def __init__(self, consistent_snapshot: bool = True, expiration: relativedelta = relativedelta(), keyring: Optional[KeyRing] = None, version: int = 1) -> None:
         self.consistent_snapshot = consistent_snapshot
 
         self.keyring = keyring
@@ -80,7 +77,7 @@ class Metadata:
     def signed(self) -> str:
         return encode_canonical(self.signable['signed']).encode('utf-8')
 
-    def signatures(self) -> List:
+    def signatures(self) -> List[JsonDict]:
         return self.signable['signatures']
 
     def sign(self) -> JsonDict:
@@ -92,15 +89,14 @@ class Metadata:
                     signatures[idx] = keyid_signature
                     updated = True
             if not updated:
-                signatures.append({'keyid':keyid, 'sig':signature})
+                signatures.append(keyid_signature)
 
         signed = self.signed
         signatures = self.signatures
 
-        for keypair in self.keyring.keypairs:        
-            signature = create_signature(keypair.private.obj, signed)
-            keyid  = keypair.private.obj['keyid']    
-            update_signature(signatures, keyid, signature)
+        for key in self.keyring.keys:
+            signature = key.sign(signed)
+            update_signature(signatures, key.keyid, signature)
 
         self.signatures = signatures
         return {'signed': signed, 'signatures': signatures}
@@ -108,28 +104,30 @@ class Metadata:
     def verify(self) -> bool:
         signed = self.signed
         signatures = self.signatures
-        good_signatures = 0
+        verified_keyids = {}
 
-        for keypair in self.keyring.keypairs:
-            try:
-                keyid = keypair.public.obj['keyid']
-                for signature in signatures:
-                    if signature['keyid'] == keyid:
-                        if verify_signature(keypair.public.obj, signature, signed):
-                            good_signatures += 1
+        for signature in signatures:
+            for key in self.keyring.keys:
+                keyid = key.keyid
+                if keyid == signature['keyid']:
+                    try:
+                        verified = key.verify(signed, signature)
+                    except:
+                        logging.exception(f'Could not verify signature for key {keyid}')
+                        continue
+                    else:
+                        # Avoid https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-6174
+                        verified_keyids |= keyid
                         break
-            except:
-                logging.warning(f'Could not verify signature for key {keyid}')
-                continue
 
-        return good_signatures >= self.keyring.threshold.m
+        return len(verified_keyids) >= self.keyring.threshold.min
 
     def write_to_json(self, filename: str) -> None:
         with open(filename, 'r+b') as f:
             f.write(_get_written_metadata(self.sign()))
 
 class Timestamp(Metadata):
-    def __init__(self, consistent_snapshot: bool = True, expiration: relativedelta = relativedelta(days=1), keyring: Keyring = None, version: int = 1):
+    def __init__(self, consistent_snapshot: bool = True, expiration: relativedelta = relativedelta(days=1), keyring: KeyRing = None, version: int = 1):
         super().__init__(consistent_snapshot, expiration, keyring, version)
 
     def signable(self):
@@ -140,14 +138,14 @@ class Timestamp(Metadata):
             expires=expires, meta=filedict)
 
     # Update metadata about the snapshot metadata.
-    def update(self, rolename: str, version: int, length: int, hashes: JsonDict):
-        fileinfo = self.signed['meta'][f'{rolename}.json']
+    def update(self, version: int, length: int, hashes: JsonDict):
+        fileinfo = self.signed['meta']['snapshot.json']
         fileinfo['version'] = version
         fileinfo['length'] = length
         fileinfo['hashes'] = hashes
 
 class Snapshot(Metadata):
-    def __init__(self, consistent_snapshot: bool = True, expiration: relativedelta = relativedelta(days=1), keyring: Keyring = None, version: int = 1):
+    def __init__(self, consistent_snapshot: bool = True, expiration: relativedelta = relativedelta(days=1), keyring: KeyRing = None, version: int = 1):
         super().__init__(consistent_snapshot, expiration, keyring, version)
         self.targets_fileinfo = {}
 
@@ -172,7 +170,7 @@ class Snapshot(Metadata):
         self.targets_fileinfo[f'{rolename}.json'] = tuf.formats.make_metadata_fileinfo(version, length, hashes)
 
 class Targets(Metadata):
-    def __init__(self, consistent_snapshot: bool = True, expiration: relativedelta = relativedelta(days=1), keyring: Keyring = None, version: int = 1):
+    def __init__(self, consistent_snapshot: bool = True, expiration: relativedelta = relativedelta(days=1), keyring: KeyRing = None, version: int = 1):
         super().__init__(consistent_snapshot, expiration, relativedelta, keyring, version)
 
     # FIXME
