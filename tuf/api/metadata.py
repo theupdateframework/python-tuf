@@ -130,15 +130,21 @@ class Metadata:
 
 class Timestamp(Metadata):
     def __init__(self, consistent_snapshot: bool = True, expiration: relativedelta = relativedelta(days=1), keyring: Keyring = None, version: int = 1):
-        super().__init__(consistent_snapshot, expiration, relativedelta, keyring, version)
+        super().__init__(consistent_snapshot, expiration, keyring, version)
 
-    # FIXME
     def signable(self):
-        return generate_timestamp_metadata()
+        expires = self.expiration.replace(tzinfo=None).isoformat()+'Z'
+        filedict = self.signed['meta']
+        return tuf.formats.build_dict_conforming_to_schema(
+            tuf.formats.TIMESTAMP_SCHEMA, version=self.version,
+            expires=expires, meta=filedict)
 
     # Update metadata about the snapshot metadata.
     def update(self, rolename: str, version: int, length: int, hashes: JsonDict):
-        raise NotImplementedError()
+        fileinfo = self.signed['meta'][f'{rolename}.json']
+        fileinfo['version'] = version
+        fileinfo['length'] = length
+        fileinfo['hashes'] = hashes
 
 class Snapshot(Metadata):
     def __init__(self, consistent_snapshot: bool = True, expiration: relativedelta = relativedelta(days=1), keyring: Keyring = None, version: int = 1):
