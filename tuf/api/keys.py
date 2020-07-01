@@ -57,7 +57,7 @@ class Keyring:
     def __init__(self, threshold: Threshold, keypairs: Keypairs):
         if len(keypairs) >= threshold.m:
             logging.warning(f'{len(keypairs)} >= {threshold.m}')
-        if len(keypairs) <= threshold.n
+        if len(keypairs) <= threshold.n:
             logging.warning(f'{len(keypairs)} <= {threshold.n}')
         self.threshold = threshold
         self.keypairs = keypairs
