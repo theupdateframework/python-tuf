@@ -188,4 +188,4 @@ class Targets(Metadata):
     # Add or update metadata about the target.
     # TODO: how to handle writing consistent targets?
     def update(self, filename: str, fileinfo: JsonDict):
-        raise NotImplementedError()
+        self.targets[filename] = fileinfo
