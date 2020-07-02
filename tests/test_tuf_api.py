@@ -37,6 +37,7 @@ import errno
 import os
 
 from tuf.api import metadata
+from tuf.api import keys
 
 from dateutil.relativedelta import relativedelta
 import iso8601
@@ -56,6 +57,9 @@ class TestTufApi(unittest.TestCase):
     test_repo_data = os.path.join('repository_data', 'repository')
     cls.repo_dir = os.path.join(cls.temporary_directory, 'repository')
     shutil.copytree(test_repo_data, cls.repo_dir)
+    test_repo_keys = os.path.join('repository_data', 'keystore')
+    cls.keystore_dir = os.path.join(cls.temporary_directory, 'keystore')
+    shutil.copytree(test_repo_keys, cls.keystore_dir)
 
 
 
@@ -68,11 +72,32 @@ class TestTufApi(unittest.TestCase):
 
 
 
+  def _load_key_ring(self):
+    key_list = []
+    root_key = keys.read_key(os.path.join(self.keystore_dir, 'root_key'),
+                             'RSA', 'password')
+    key_list.append(root_key)
+
+    for key_file in os.listdir(self.keystore_dir):
+      if key_file.endswith('.pub'):
+        # ignore public keys
+        continue
+
+      if key_file.startswith('root_key'):
+        # root key is loaded
+        continue
+
+      key = keys.read_key(os.path.join(self.keystore_dir, key_file), 'ED25519',
+                          'password')
+      key_list.append(key)
+    threshold = keys.Threshold(1, 1)
+    return keys.KeyRing(threshold=threshold, keys=key_list)
+
   def test_metadata_base(self):
     # Use of Snapshot is arbitrary, we're just testing the base class features
     # with real data
-    md = metadata.Snapshot()
-    md.read_from_json(os.path.join(self.repo_dir, 'metadata.staged', 'snapshot.json'))
+    snapshot_path = os.path.join(self.repo_dir, 'metadata', 'snapshot.json')
+    md = metadata.Snapshot.read_from_json(snapshot_path)
 
     self.assertEqual(md.version, 1)
     md.bump_version()
@@ -86,8 +111,12 @@ class TestTufApi(unittest.TestCase):
 
 
   def test_metadata_snapshot(self):
-    snapshot = metadata.Snapshot()
-    snapshot.read_from_json(os.path.join(self.repo_dir, 'metadata.staged', 'snapshot.json'))
+    snapshot_path = os.path.join(self.repo_dir, 'metadata', 'snapshot.json')
+    snapshot = metadata.Snapshot.read_from_json(snapshot_path)
+
+    key_ring = self._load_key_ring()
+    snapshot.keyring = key_ring
+    snapshot.verify()
 
     # Create a dict representing what we expect the updated data to be
     fileinfo = snapshot.signed['meta']
@@ -97,10 +126,7 @@ class TestTufApi(unittest.TestCase):
     fileinfo['role1.json']['length'] = 123
 
     snapshot.update('role1', 2, 123, hashes)
-    # snapshot.sign()
-    # self.assertEqual(snapshot.signed['meta'], fileinfo)
-
-    # snapshot.update()
+    self.assertEqual(snapshot.signed['meta'], fileinfo)
 
     # snapshot.signable()
 
@@ -112,8 +138,12 @@ class TestTufApi(unittest.TestCase):
 
 
   def test_metadata_timestamp(self):
-    timestamp = metadata.Timestamp()
-    timestamp.read_from_json(os.path.join(self.repo_dir, 'metadata.staged', 'timestamp.json'))
+    timestamp_path = os.path.join(self.repo_dir, 'metadata', 'timestamp.json')
+    timestamp = metadata.Timestamp.read_from_json(timestamp_path)
+
+    key_ring = self._load_key_ring()
+    timestamp.keyring = key_ring
+    timestamp.verify()
 
     self.assertEqual(timestamp.version, 1)
     timestamp.bump_version()
@@ -130,8 +160,9 @@ class TestTufApi(unittest.TestCase):
     fileinfo['hashes'] = hashes
     fileinfo['version'] = 2
     fileinfo['length'] = 520
-    timestamp.update('snapshot', 2, 520, hashes)
+    timestamp.update(2, 520, hashes)
+    self.assertEqual(timestamp.signed['meta']['snapshot.json'], fileinfo)
+
     # timestamp.sign()
-    # self.assertEqual(timestamp.signed['meta'], fileinfo)
 
     # timestamp.write_to_json()
