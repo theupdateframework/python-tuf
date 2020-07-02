@@ -563,7 +563,13 @@ def build_dict_conforming_to_schema(schema, **kwargs):
   for key, element_type in schema._required: #pylint: disable=protected-access
 
     if key in dictionary:
-      # If the field has been provided, proceed normally.
+
+      # Skip a keyword if it is optional in the schema and the value passed in
+      # is set to None
+      if dictionary[key] is None and isinstance(element_type, SCHEMA.Optional):
+        dictionary.pop(key)
+
+      # else if the field has been provided, proceed normally.
       continue
 
     elif isinstance(element_type, SCHEMA.Optional):
