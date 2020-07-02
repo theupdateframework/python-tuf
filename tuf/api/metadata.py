@@ -70,6 +70,10 @@ class Metadata:
         """
         raise NotImplementedError()
 
+    @property
+    def expires(self) -> str:
+        return self.expiration.replace(tzinfo=None).isoformat()+'Z'
+
     def bump_version(self) -> None:
         self.version = self.version + 1
 
@@ -138,11 +142,10 @@ class Timestamp(Metadata):
         tuf.formats.TIMESTAMP_SCHEMA.check_match(self.signed)
 
     def signable(self):
-        expires = self.expiration.replace(tzinfo=None).isoformat()+'Z'
         filedict = self.signed['meta']
         return tuf.formats.build_dict_conforming_to_schema(
             tuf.formats.TIMESTAMP_SCHEMA, version=self.version,
-            expires=expires, meta=filedict)
+            expires=self.expires, meta=filedict)
 
     # Update metadata about the snapshot metadata.
     def update(self, version: int, length: int, hashes: JsonDict):
@@ -168,11 +171,9 @@ class Snapshot(Metadata):
             self.targets_fileinfo[target_role] = tuf.formats.make_metadata_fileinfo(version, length, hashes)
 
     def signable(self):
-        # TODO: probably want to generalise this, a @property.getter in Metadata?
-        expires = self.expiration.replace(tzinfo=None).isoformat()+'Z'
         return tuf.formats.build_dict_conforming_to_schema(
             tuf.formats.SNAPSHOT_SCHEMA, version=self.version,
-            expires=expires, meta=self.targets_fileinfo)
+            expires=self.expires, meta=self.targets_fileinfo)
 
     # Add or update metadata about the targets metadata.
     def update(self, rolename: str, version: int, length: Optional[int] = None, hashes: Optional[JsonDict] = None):
@@ -192,12 +193,10 @@ class Targets(Metadata):
         self.delegations = self.signed.get('delegations', None)
 
     def signable(self):
-        # TODO: probably want to generalise this, a @property.getter in Metadata?
-        expires = self.expiration.replace(tzinfo=None).isoformat()+'Z'
         return tuf.formats.build_dict_conforming_to_schema(
             tuf.formats.TARGETS_SCHEMA,
             version=self.version,
-            expires=expires,
+            expires=self.expires,
             targets=self.targets,
             delegations=self.delegations)
 
