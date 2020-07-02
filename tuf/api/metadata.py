@@ -45,15 +45,15 @@ class Metadata:
 
     # And you would use this method to populate it from a file.
     def read_from_json(self, filename: str, storage_backend: StorageBackendInterface = None) -> None:
-        signable = load_json_file(filename, storage_backend)
+        self._signable = load_json_file(filename, storage_backend)
         tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
 
-        self.signatures = signable['signatures']
-        self.signed = signable['signed']
+        self._signatures = signable['signatures']
+        self._signed = signable['signed']
 
         # TODO: replace with dateutil.parser.parse?
-        self.expiration = iso8601.parse_date(self.signed['expires'])
-        self.version = self.signed['version']
+        self.expiration = iso8601.parse_date(self._signed['expires'])
+        self.version = self._signed['version']
 
         fn, fn_ver = _strip_version_number(filename, True)
         if fn_ver:
@@ -71,6 +71,14 @@ class Metadata:
         raise NotImplementedError()
 
     @property
+    def signed(self) -> str:
+        return encode_canonical(self.signable['signed']).encode('utf-8')
+
+    @property
+    def signatures(self) -> List[JsonDict]:
+        return self.signable.get('signatures', {})
+
+    @property
     def expires(self) -> str:
         return self.expiration.replace(tzinfo=None).isoformat()+'Z'
 
@@ -79,12 +87,6 @@ class Metadata:
 
     def bump_expiration(self, delta: relativedelta = relativedelta(days=1)) -> None:
         self.expiration = self.expiration + delta
-
-    def signed(self) -> str:
-        return encode_canonical(self.signable['signed']).encode('utf-8')
-
-    def signatures(self) -> List[JsonDict]:
-        return self.signable['signatures']
 
     def sign(self) -> JsonDict:
         def update_signature(signatures, keyid, signature):
@@ -104,7 +106,7 @@ class Metadata:
             signature = key.sign(signed)
             update_signature(signatures, key.keyid, signature)
 
-        self.signatures = signatures
+        self._signatures = signatures
         return {'signed': signed, 'signatures': signatures}
 
     def verify(self) -> bool:
@@ -136,23 +138,26 @@ class Metadata:
 class Timestamp(Metadata):
     def __init__(self, consistent_snapshot: bool = True, expiration: relativedelta = relativedelta(days=1), keyring: KeyRing = None, version: int = 1):
         super().__init__(consistent_snapshot, expiration, keyring, version)
+        self.snapshot_fileinfo = {}
 
     def read_from_json(self, filename: str) -> None:
         super().read_from_json(filename)
+        self.snapshot_fileinfo = self._signed['meta']
         tuf.formats.TIMESTAMP_SCHEMA.check_match(self.signed)
 
-    def signable(self):
-        filedict = self.signed['meta']
+    @property
+    def signable(self) -> JsonDict:
         return tuf.formats.build_dict_conforming_to_schema(
             tuf.formats.TIMESTAMP_SCHEMA, version=self.version,
-            expires=self.expires, meta=filedict)
+            expires=self.expires, meta=self.snapshot_fileinfo)
 
     # Update metadata about the snapshot metadata.
     def update(self, version: int, length: int, hashes: JsonDict):
-        fileinfo = self.signed['meta']['snapshot.json']
+        fileinfo = self.snapshot_fileinfo.get('snapshot.json', {})
         fileinfo['version'] = version
         fileinfo['length'] = length
         fileinfo['hashes'] = hashes
+        self.snapshot_fileinfo['snapshot.json'] = fileinfo
 
 class Snapshot(Metadata):
     def __init__(self, consistent_snapshot: bool = True, expiration: relativedelta = relativedelta(days=1), keyring: KeyRing = None, version: int = 1):
@@ -161,15 +166,15 @@ class Snapshot(Metadata):
 
     def read_from_json(self, filename: str) -> None:
         super().read_from_json(filename)
-        tuf.formats.SNAPSHOT_SCHEMA.check_match(self.signed)
-
-        meta = self.signed['meta']
+        meta = self._signed['meta']
         for target_role in meta:
             version = meta[target_role]['version']
             length = meta[target_role].get('length')
             hashes = meta[target_role].get('hashes')
             self.targets_fileinfo[target_role] = tuf.formats.make_metadata_fileinfo(version, length, hashes)
+        tuf.formats.SNAPSHOT_SCHEMA.check_match(self.signed)
 
+    @property
     def signable(self):
         return tuf.formats.build_dict_conforming_to_schema(
             tuf.formats.SNAPSHOT_SCHEMA, version=self.version,
@@ -187,11 +192,11 @@ class Targets(Metadata):
 
     def read_from_json(self, filename: str) -> None:
         super().read_from_json(filename)
+        self.targets = self._signed['targets']
+        self.delegations = self._signed.get('delegations', {})
         tuf.formats.TARGETS_SCHEMA.check_match(self.signed)
 
-        self.targets = self.signed['targets']
-        self.delegations = self.signed.get('delegations', None)
-
+    @property
     def signable(self):
         return tuf.formats.build_dict_conforming_to_schema(
             tuf.formats.TARGETS_SCHEMA,
@@ -200,8 +205,6 @@ class Targets(Metadata):
             targets=self.targets,
             delegations=self.delegations)
 
-
     # Add or update metadata about the target.
-    # TODO: how to handle writing consistent targets?
     def update(self, filename: str, fileinfo: JsonDict):
         self.targets[filename] = fileinfo
