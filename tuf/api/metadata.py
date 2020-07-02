@@ -8,11 +8,13 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import json
+import tempfile
 
 # 3rd-party.
 from dateutil.relativedelta import relativedelta
 from securesystemslib.formats import encode_canonical
-from securesystemslib.util import load_json_file
+from securesystemslib.util import load_json_file, persist_temp_file
+from securesystemslib.storage import StorageBackendInterface
 import tuf.formats
 from tuf.repository_lib import (
     _get_written_metadata,
@@ -42,8 +44,8 @@ class Metadata:
         self.version = version
 
     # And you would use this method to populate it from a file.
-    def read_from_json(self, filename: str) -> None:
-        signable = load_json_file(filename)
+    def read_from_json(self, filename: str, storage_backend: StorageBackendInterface = None) -> None:
+        signable = load_json_file(filename, storage_backend)
         tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
 
         self.signatures = signable['signatures']
@@ -122,9 +124,10 @@ class Metadata:
 
         return len(verified_keyids) >= self.keyring.threshold.min
 
-    def write_to_json(self, filename: str) -> None:
-        with open(filename, 'r+b') as f:
+    def write_to_json(self, filename: str, storage_backend: StorageBackendInterface = None) -> None:
+         with tempfile.TemporaryFile() as f:
             f.write(_get_written_metadata(self.sign()))
+            persist_temp_file(f, filename, storage_backend)
 
 class Timestamp(Metadata):
     def __init__(self, consistent_snapshot: bool = True, expiration: relativedelta = relativedelta(days=1), keyring: KeyRing = None, version: int = 1):
