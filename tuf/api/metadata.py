@@ -44,8 +44,8 @@ class Metadata:
     # And you would use this method to populate it from a file.
     def read_from_json(self, filename: str) -> None:
         signable = load_json_file(filename)
+        tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
 
-        # TODO: use some basic schema checks
         self.signatures = signable['signatures']
         self.signed = signable['signed']
 
@@ -130,6 +130,10 @@ class Timestamp(Metadata):
     def __init__(self, consistent_snapshot: bool = True, expiration: relativedelta = relativedelta(days=1), keyring: KeyRing = None, version: int = 1):
         super().__init__(consistent_snapshot, expiration, keyring, version)
 
+    def read_from_json(self, filename: str) -> None:
+        super().read_from_json(filename)
+        tuf.formats.TIMESTAMP_SCHEMA.check_match(self.signed)
+
     def signable(self):
         expires = self.expiration.replace(tzinfo=None).isoformat()+'Z'
         filedict = self.signed['meta']
@@ -151,6 +155,8 @@ class Snapshot(Metadata):
 
     def read_from_json(self, filename: str) -> None:
         super().read_from_json(filename)
+        tuf.formats.SNAPSHOT_SCHEMA.check_match(self.signed)
+
         meta = self.signed['meta']
         for target_role in meta:
             version = meta[target_role]['version']
@@ -175,13 +181,13 @@ class Targets(Metadata):
         self.targets = {}
         self.delegations = {}
 
-
     def read_from_json(self, filename: str) -> None:
         super().read_from_json(filename)
+        tuf.formats.TARGETS_SCHEMA.check_match(self.signed)
+
         self.targets = self.signed['targets']
         self.delegations = self.signed.get('delegations', None)
 
-    # FIXME
     def signable(self):
         # TODO: probably want to generalise this, a @property.getter in Metadata?
         expires = self.expiration.replace(tzinfo=None).isoformat()+'Z'
