@@ -171,7 +171,15 @@ class Snapshot(Metadata):
 
 class Targets(Metadata):
     def __init__(self, consistent_snapshot: bool = True, expiration: relativedelta = relativedelta(days=1), keyring: KeyRing = None, version: int = 1):
-        super().__init__(consistent_snapshot, expiration, relativedelta, keyring, version)
+        super().__init__(consistent_snapshot, expiration, keyring, version)
+        self.targets = {}
+        self.delegations = {}
+
+
+    def read_from_json(self, filename: str) -> None:
+        super().read_from_json(filename)
+        self.targets = self.signed['targets']
+        self.delegations = self.signed.get('delegations', None)
 
     # FIXME
     def signable(self):
