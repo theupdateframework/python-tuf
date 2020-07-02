@@ -183,7 +183,26 @@ class Targets(Metadata):
 
     # FIXME
     def signable(self):
-        return generate_targets_metadata()
+        # TODO: probably want to generalise this, a @property.getter in Metadata?
+        expires = self.expiration.replace(tzinfo=None).isoformat()+'Z'
+        if self.delegations is not None:
+            return tuf.formats.build_dict_conforming_to_schema(
+                tuf.formats.TARGETS_SCHEMA,
+                version=self.version,
+                expires=expires,
+                targets=self.targets,
+                delegations=self.delegations)
+        else:
+            return tuf.formats.build_dict_conforming_to_schema(
+                tuf.formats.TARGETS_SCHEMA,
+                version=self.version,
+                expires=expires,
+                targets=self.targets)
+        # TODO: As an alternative to the odd if/else above where we decide whether or
+        #       not to include the delegations argument based on whether or not it is
+        #       None, consider instead adding a check in
+        #       build_dict_conforming_to_schema that skips a keyword if that keyword
+        #       is optional in the schema and the value passed in is set to None....
 
     # Add or update metadata about the target.
     # TODO: how to handle writing consistent targets?
