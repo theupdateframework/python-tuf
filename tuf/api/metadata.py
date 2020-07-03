@@ -77,19 +77,20 @@ class Metadata:
 
     @property
     def signable(self) -> JsonDict:
-        """
-        To be overridden by the inheriting class.
-        The idea is to serialize this object into the signable we expect.
-        """
-        raise NotImplementedError()
+        return {"signatures": self.signatures,
+                "signed": self.signed}
+
+    @property
+    def signed_bytes(self) -> bytes:
+        return encode_canonical(self.signed).encode('UTF-8')
 
     @property
     def signed(self) -> str:
-        return encode_canonical(self.signable['signed']).encode('utf-8')
+        raise NotImplementedError
 
     @property
     def signatures(self) -> List[JsonDict]:
-        return self.signable.get('signatures', {})
+        return self._signatures
 
     @property
     def expires(self) -> str:
@@ -112,27 +113,28 @@ class Metadata:
             if not updated:
                 signatures.append(keyid_signature)
 
-        signed = self.signed
+        signed_bytes = self.signed_bytes
         signatures = self._signatures
 
         for key in self.keyring.keys:
-            signature = key.sign(signed)
+            signature = key.sign(signed_bytes)
             update_signature(signatures, key.keyid, signature)
 
         self._signatures = signatures
-        return {'signed': signed, 'signatures': signatures}
+        return self.signable
 
     def verify(self) -> bool:
-        signed = self.signed
+        signed_bytes = self.signed_bytes
         signatures = self.signatures
         verified_keyids = {}
 
         for signature in signatures:
+            # TODO: handle an empty keyring
             for key in self.keyring.keys:
                 keyid = key.keyid
                 if keyid == signature['keyid']:
                     try:
-                        verified = key.verify(signed, signature)
+                        verified = key.verify(signed_bytes, signature)
                     except:
                         logging.exception(f'Could not verify signature for key {keyid}')
                         continue
@@ -145,7 +147,7 @@ class Metadata:
 
     def write_to_json(self, filename: str, storage_backend: StorageBackendInterface = None) -> None:
          with tempfile.TemporaryFile() as f:
-            f.write(_get_written_metadata(self.sign()))
+            f.write(_get_written_metadata(self.sign()).encode_canonical())
             persist_temp_file(f, filename, storage_backend)
 
 class Timestamp(Metadata):
@@ -163,7 +165,7 @@ class Timestamp(Metadata):
         return timestamp
 
     @property
-    def signable(self) -> JsonDict:
+    def signed(self) -> JsonDict:
         return tuf.formats.build_dict_conforming_to_schema(
             tuf.formats.TIMESTAMP_SCHEMA, version=self.version,
             expires=self.expires, meta=self.snapshot_fileinfo)
@@ -196,7 +198,7 @@ class Snapshot(Metadata):
         return snapshot
 
     @property
-    def signable(self):
+    def signed(self):
         return tuf.formats.build_dict_conforming_to_schema(
             tuf.formats.SNAPSHOT_SCHEMA, version=self.version,
             expires=self.expires, meta=self.targets_fileinfo)
@@ -221,7 +223,7 @@ class Targets(Metadata):
         return targets
 
     @property
-    def signable(self):
+    def signed(self):
         return tuf.formats.build_dict_conforming_to_schema(
             tuf.formats.TARGETS_SCHEMA,
             version=self.version,
