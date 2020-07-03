@@ -439,15 +439,13 @@ def import_privatekey_from_file(keypath, password=None):
   encrypted_key = None
 
   with open(keypath, 'rb') as file_object:
-    encrypted_key = file_object.read()
+    encrypted_key = file_object.read().decode('utf-8')
 
   # Decrypt the loaded key file, calling the 'cryptography' library to generate
   # the derived encryption key from 'password'.  Raise
   # 'securesystemslib.exceptions.CryptoError' if the decryption fails.
   try:
-
-    key_object = securesystemslib.keys.decrypt_key(encrypted_key.decode('utf-8'),
-        password)
+    key_object = securesystemslib.keys.decrypt_key(encrypted_key, password)
 
   except securesystemslib.exceptions.CryptoError:
     try:
