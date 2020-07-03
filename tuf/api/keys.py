@@ -3,7 +3,6 @@
 # 2nd-party.
 
 from abc import ABC, abstractmethod
-from enum import Enum, unique
 from typing import Any, List, Optional
 
 import logging
@@ -22,11 +21,11 @@ from securesystemslib.keys import (
 
 # Generic classes.
 
-@unique
-class Algorithm(Enum):
-    ECDSA = import_ecdsa_privatekey_from_file
-    ED25519 = import_ed25519_privatekey_from_file
-    RSA = import_rsa_privatekey_from_file
+Algorithm = {
+    'ECDSA': import_ecdsa_privatekey_from_file,
+    'ED25519': import_ed25519_privatekey_from_file,
+    'RSA': import_rsa_privatekey_from_file
+    }
 
 class Threshold:
 
