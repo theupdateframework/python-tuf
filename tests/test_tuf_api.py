@@ -166,3 +166,44 @@ class TestTufApi(unittest.TestCase):
     # timestamp.sign()
 
     # timestamp.write_to_json()
+
+def test_Threshold(self):
+  # test default values
+  keys.Threshold()
+  # test correct arguments
+  keys.Threshold(min_=4, max_=5)
+
+  # test incorrect input
+  # TODO raise sslib.FormatError or ValueError instead of AssertionErrors
+  self.assertRaises(AssertionError, keys.Threshold, 5, 4)
+  self.assertRaises(AssertionError, keys.Threshold, 0, 5)
+  self.assertRaises(AssertionError, keys.Threshold, 5, 0)
+
+
+def test_KeyRing(self):
+  key_list = []
+  root_key = keys.read_key(os.path.join(self.keystore_dir, 'root_key'),
+                            'RSA', 'password')
+  root_key2 = keys.read_key(os.path.join(self.keystore_dir, 'root_key2'),
+                                'ED25519', 'password')
+  key_list.append(root_key)
+  key_list.append(root_key2)
+  threshold = keys.Threshold()
+  keyring = keys.KeyRing(threshold, key_list)
+  self.assertEqual(keyring.threshold, threshold)
+  self.assertEqual(keyring.keys, key_list)
+
+
+def test_read_key(self):
+  filename = os.path.join(self.keystore_dir, 'root_key')
+  algorithm = 'RSA'
+  passphrase = 'password'
+
+  self.assertTrue(isinstance(keys.read_key(filename, algorithm, passphrase), keys.RAMKey))
+
+# TODO:
+# def test_RAMKey(self):
+
+# Run unit test.
+if __name__ == '__main__':
+  unittest.main()
