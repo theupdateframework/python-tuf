@@ -38,7 +38,7 @@ class Metadata:
         self.consistent_snapshot = consistent_snapshot
 
         self.keyring = keyring
-        self.expiration = expiration
+        self._expiration = expiration
 
         assert version >= 1, f'{version} < 1'
         self.version = version
@@ -55,8 +55,8 @@ class Metadata:
         signatures = signable['signatures']
         signed = signable['signed']
 
-        # TODO: replace with dateutil.parser.parse?
-        expiration = iso8601.parse_date(signed['expires'])
+        # We always intend times to be UTC
+        expiration = iso8601.parse_date(signed['expires']).replace(tzinfo=None)
         version = signed['version']
 
         fn, fn_ver = _strip_version_number(filename, True)
@@ -94,13 +94,23 @@ class Metadata:
 
     @property
     def expires(self) -> str:
-        return self.expiration.replace(tzinfo=None).isoformat()+'Z'
+        """The expiration property as a string"""
+        return self._expiration.isoformat()+'Z'
+
+    @property
+    def expiration(self) -> datetime:
+        return self._expiration
+
+    @expiration.setter
+    def expiration(self, datetime) -> None:
+        # We always treat dates as UTC
+        self._expiration = datetime.replace(tzinfo=None)
 
     def bump_version(self) -> None:
         self.version = self.version + 1
 
     def bump_expiration(self, delta: relativedelta = relativedelta(days=1)) -> None:
-        self.expiration = self.expiration + delta
+        self._expiration = self._expiration + delta
 
     def sign(self) -> JsonDict:
         def update_signature(signatures, keyid, signature):

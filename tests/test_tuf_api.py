@@ -103,11 +103,14 @@ class TestTufApi(unittest.TestCase):
     md.bump_version()
     self.assertEqual(md.version, 2)
 
-    self.assertEqual(md.expiration, iso8601.parse_date("2030-01-01T00:00:00Z"))
+    self.assertEqual(md.expiration,
+                     iso8601.parse_date("2030-01-01").replace(tzinfo=None))
     md.bump_expiration()
-    self.assertEqual(md.expiration, iso8601.parse_date("2030-01-02T00:00:00Z"))
+    self.assertEqual(md.expiration,
+                     iso8601.parse_date("2030-01-02").replace(tzinfo=None))
     md.bump_expiration(relativedelta(years=1))
-    self.assertEqual(md.expiration, iso8601.parse_date("2031-01-02T00:00:00Z"))
+    self.assertEqual(md.expiration,
+                     iso8601.parse_date("2031-01-02").replace(tzinfo=None))
 
 
   def test_metadata_snapshot(self):
@@ -149,11 +152,14 @@ class TestTufApi(unittest.TestCase):
     timestamp.bump_version()
     self.assertEqual(timestamp.version, 2)
 
-    self.assertEqual(timestamp.expiration, iso8601.parse_date("2030-01-01T00:00:00Z"))
+    self.assertEqual(timestamp.expiration,
+                     iso8601.parse_date("2030-01-01").replace(tzinfo=None))
     timestamp.bump_expiration()
-    self.assertEqual(timestamp.expiration, iso8601.parse_date("2030-01-02T00:00:00Z"))
+    self.assertEqual(timestamp.expiration,
+                     iso8601.parse_date("2030-01-02").replace(tzinfo=None))
     timestamp.bump_expiration(relativedelta(years=1))
-    self.assertEqual(timestamp.expiration, iso8601.parse_date("2031-01-02T00:00:00Z"))
+    self.assertEqual(timestamp.expiration,
+                     iso8601.parse_date("2031-01-02").replace(tzinfo=None))
 
     hashes = {'sha256': '0ae9664468150a9aa1e7f11feecb32341658eb84292851367fea2da88e8a58dc'}
     fileinfo = timestamp.signed['meta']['snapshot.json']
