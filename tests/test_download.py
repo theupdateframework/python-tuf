@@ -377,15 +377,6 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test__get_content_length(self):
-    content_length = \
-      tuf.download._get_content_length({'bad_connection_object': 8})
-    self.assertEqual(content_length, None)
-
-
-
-
-
 # TODO: Move this to a common test module (tests/common.py?)
 #       and strip it test_proxy_use.py and test_download.py.
 def popen_python(command_arg_list):
