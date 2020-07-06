@@ -4,14 +4,14 @@
 from tuf.api.keys import KeyRing
 
 # 2nd-party.
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 import json
 import tempfile
 
 # 3rd-party.
-from dateutil.relativedelta import relativedelta
+import iso8601
 from securesystemslib.formats import encode_canonical
 from securesystemslib.util import load_json_file, persist_temp_file
 from securesystemslib.storage import StorageBackendInterface
@@ -24,8 +24,6 @@ from tuf.repository_lib import (
     generate_timestamp_metadata,
 )
 
-import iso8601
-
 # Types.
 
 JsonDict = Dict[str, Any]
@@ -34,7 +32,7 @@ JsonDict = Dict[str, Any]
 
 class Metadata:
     # By default, a Metadata would be a rather empty one.
-    def __init__(self, consistent_snapshot: bool = True, expiration: relativedelta = relativedelta(), keyring: Optional[KeyRing] = None, version: int = 1) -> None:
+    def __init__(self, consistent_snapshot: bool = True, expiration: datetime = datetime.today(), keyring: Optional[KeyRing] = None, version: int = 1) -> None:
         self.consistent_snapshot = consistent_snapshot
 
         self.keyring = keyring
@@ -56,6 +54,8 @@ class Metadata:
         signed = signable['signed']
 
         # We always intend times to be UTC
+        # NOTE: we could do this with datetime.fromisoformat() but that is not
+        # available in Python 2.7's datetime
         expiration = iso8601.parse_date(signed['expires']).replace(tzinfo=None)
         version = signed['version']
 
@@ -109,7 +109,7 @@ class Metadata:
     def bump_version(self) -> None:
         self.version = self.version + 1
 
-    def bump_expiration(self, delta: relativedelta = relativedelta(days=1)) -> None:
+    def bump_expiration(self, delta: timedelta = timedelta(days=1)) -> None:
         self._expiration = self._expiration + delta
 
     def sign(self) -> JsonDict:
@@ -161,7 +161,7 @@ class Metadata:
             persist_temp_file(f, filename, storage_backend)
 
 class Timestamp(Metadata):
-    def __init__(self, consistent_snapshot: bool = True, expiration: relativedelta = relativedelta(days=1), keyring: KeyRing = None, version: int = 1):
+    def __init__(self, consistent_snapshot: bool = True, expiration: datetime = datetime.today(), keyring: KeyRing = None, version: int = 1):
         super().__init__(consistent_snapshot, expiration, keyring, version)
         self.snapshot_fileinfo = {}
 
@@ -189,7 +189,7 @@ class Timestamp(Metadata):
         self.snapshot_fileinfo['snapshot.json'] = fileinfo
 
 class Snapshot(Metadata):
-    def __init__(self, consistent_snapshot: bool = True, expiration: relativedelta = relativedelta(days=1), keyring: KeyRing = None, version: int = 1):
+    def __init__(self, consistent_snapshot: bool = True, expiration: datetime = datetime.today(), keyring: KeyRing = None, version: int = 1):
         super().__init__(consistent_snapshot, expiration, keyring, version)
         self.targets_fileinfo = {}
 
@@ -218,7 +218,7 @@ class Snapshot(Metadata):
         self.targets_fileinfo[f'{rolename}.json'] = tuf.formats.make_metadata_fileinfo(version, length, hashes)
 
 class Targets(Metadata):
-    def __init__(self, consistent_snapshot: bool = True, expiration: relativedelta = relativedelta(days=1), keyring: KeyRing = None, version: int = 1):
+    def __init__(self, consistent_snapshot: bool = True, expiration: datetime = datetime.today(), keyring: KeyRing = None, version: int = 1):
         super().__init__(consistent_snapshot, expiration, keyring, version)
         self.targets = {}
         self.delegations = {}

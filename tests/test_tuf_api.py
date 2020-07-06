@@ -35,11 +35,11 @@ import shutil
 import sys
 import errno
 import os
+from datetime import timedelta
 
 from tuf.api import metadata
 from tuf.api import keys
 
-from dateutil.relativedelta import relativedelta
 import iso8601
 import six
 
@@ -108,7 +108,7 @@ class TestTufApi(unittest.TestCase):
     md.bump_expiration()
     self.assertEqual(md.expiration,
                      iso8601.parse_date("2030-01-02").replace(tzinfo=None))
-    md.bump_expiration(relativedelta(years=1))
+    md.bump_expiration(timedelta(days=365))
     self.assertEqual(md.expiration,
                      iso8601.parse_date("2031-01-02").replace(tzinfo=None))
 
@@ -157,7 +157,7 @@ class TestTufApi(unittest.TestCase):
     timestamp.bump_expiration()
     self.assertEqual(timestamp.expiration,
                      iso8601.parse_date("2030-01-02").replace(tzinfo=None))
-    timestamp.bump_expiration(relativedelta(years=1))
+    timestamp.bump_expiration(timedelta(days=365))
     self.assertEqual(timestamp.expiration,
                      iso8601.parse_date("2031-01-02").replace(tzinfo=None))
 
