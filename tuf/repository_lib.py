@@ -836,10 +836,10 @@ def get_delegated_roles_metadata_filenames(metadata_directory,
     # Strip the version number if 'consistent_snapshot' is True,
     # or if 'metadata_role' is Root.
     # Example:  '10.django.json' --> 'django.json'
-    consistent_snapshot = \
+    consistent = \
       metadata_role.endswith('root.json') or consistent_snapshot == True
     metadata_name, junk = _strip_version_number(metadata_role,
-      consistent_snapshot)
+      consistent)
 
     if metadata_name.endswith(METADATA_EXTENSION):
       extension_length = len(METADATA_EXTENSION)
