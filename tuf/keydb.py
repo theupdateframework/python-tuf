@@ -122,7 +122,8 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
       # format_metadata_to_key() uses the provided keyid as the default keyid.
       # All other keyids returned are ignored.
 
-      key_dict, _ = securesystemslib.keys.format_metadata_to_key(key_metadata, keyid)
+      key_dict, _ = securesystemslib.keys.format_metadata_to_key(key_metadata,
+          keyid, keyid_hash_algorithms=key_metadata['keyid_hash_algorithms'])
 
       # Make sure to update key_dict['keyid'] to use one of the other valid
       # keyids, otherwise add_key() will have no reference to it.
