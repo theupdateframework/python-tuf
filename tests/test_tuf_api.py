@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2014 - 2017, New York University and the TUF contributors
+# Copyright 2020, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 """
@@ -36,6 +36,7 @@ import sys
 import errno
 import os
 from datetime import timedelta
+from dateutil.relativedelta import relativedelta
 
 from tuf.api import metadata
 from tuf.api import keys
@@ -160,6 +161,16 @@ class TestTufApi(unittest.TestCase):
     timestamp.bump_expiration(timedelta(days=365))
     self.assertEqual(timestamp.expiration,
                      iso8601.parse_date("2031-01-02").replace(tzinfo=None))
+
+    # Test whether dateutil.relativedelta works, this provides a much easier to
+    # use interface for callers
+    saved_expiration = timestamp.expiration
+    delta = relativedelta(days=1)
+    timestamp.bump_expiration(delta)
+    self.assertEqual(timestamp.expires, "2031-01-03T00:00:00Z")
+    delta = relativedelta(years=5)
+    timestamp.bump_expiration(delta)
+    self.assertEqual(timestamp.expires, "2036-01-03T00:00:00Z")
 
     hashes = {'sha256': '0ae9664468150a9aa1e7f11feecb32341658eb84292851367fea2da88e8a58dc'}
     fileinfo = timestamp.signed['meta']['snapshot.json']
