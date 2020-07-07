@@ -190,7 +190,7 @@ class Project(Targets):
     securesystemslib.formats.NAME_SCHEMA.check_match(project_name)
     securesystemslib.formats.PATH_SCHEMA.check_match(metadata_directory)
     securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
-    securesystemslib.formats.PATH_SCHEMA.check_match(file_prefix)
+    securesystemslib.formats.ANY_STRING_SCHEMA.check_match(file_prefix)
     securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
     self.metadata_directory = metadata_directory
