@@ -4,6 +4,7 @@
 from tuf.api.keys import KeyRing
 
 # 2nd-party.
+from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
@@ -11,11 +12,10 @@ import json
 import tempfile
 
 # 3rd-party.
-import iso8601
+
 from securesystemslib.formats import encode_canonical
 from securesystemslib.util import load_json_file, persist_temp_file
 from securesystemslib.storage import StorageBackendInterface
-import tuf.formats
 from tuf.repository_lib import (
     _get_written_metadata,
     _strip_version_number,
@@ -24,29 +24,32 @@ from tuf.repository_lib import (
     generate_timestamp_metadata,
 )
 
+import iso8601
+import tuf.formats
+
 # Types.
 
 JsonDict = Dict[str, Any]
 
 # Classes.
 
-class Metadata:
+class Metadata(ABC):
     # By default, a Metadata would be a rather empty one.
     def __init__(self, consistent_snapshot: bool = True, expiration: datetime = datetime.today(), keyring: Optional[KeyRing] = None, version: int = 1) -> None:
-        self.consistent_snapshot = consistent_snapshot
+        self.__consistent_snapshot = consistent_snapshot
 
-        self.keyring = keyring
-        self._expiration = expiration
+        self.__keyring = keyring
+        self.__expiration = expiration
 
         assert version >= 1, f'{version} < 1'
-        self.version = version
+        self.__version = version
 
-        self._signed = {}
-        self._signatures = []
+        self.__signed = {}
+        self.__signatures = []
 
     # And you would use this method to populate it from a file.
     @classmethod
-    def read_from_json(cls, filename: str, storage_backend: StorageBackendInterface = None) -> None:
+    def read_from_json(cls, filename: str, storage_backend: Optional[StorageBackendInterface] = None) -> Metadata:
         signable = load_json_file(filename, storage_backend)
         tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
 
@@ -61,7 +64,7 @@ class Metadata:
 
         fn, fn_ver = _strip_version_number(filename, True)
         if fn_ver:
-            assert fn_ver == self.version, f'{fn_ver} != {self.version}'
+            assert fn_ver == self.__version, f'{fn_ver} != {self.__version}'
             consistent_snapshot = True
         else:
             consistent_snapshot = False
@@ -85,52 +88,53 @@ class Metadata:
         return encode_canonical(self.signed).encode('UTF-8')
 
     @property
-    def signed(self) -> str:
+    @abstractmethod
+    def signed(self) -> JsonDict:
         raise NotImplementedError
 
     @property
     def signatures(self) -> List[JsonDict]:
-        return self._signatures
+        return self.__signatures
 
     @property
     def expires(self) -> str:
         """The expiration property as a string"""
-        return self._expiration.isoformat()+'Z'
+        return self.__expiration.isoformat()+'Z'
 
     @property
     def expiration(self) -> datetime:
-        return self._expiration
+        return self.__expiration
 
     @expiration.setter
     def expiration(self, datetime) -> None:
         # We always treat dates as UTC
-        self._expiration = datetime.replace(tzinfo=None)
+        self.__expiration = datetime.replace(tzinfo=None)
 
     def bump_version(self) -> None:
-        self.version = self.version + 1
+        self.__version = self.__version + 1
 
     def bump_expiration(self, delta: timedelta = timedelta(days=1)) -> None:
-        self._expiration = self._expiration + delta
+        self.__expiration = self.__expiration + delta
+
+    def __update_signature(self, signatures, keyid, signature):
+        updated = False
+        keyid_signature = {'keyid':keyid, 'sig':signature}
+        for idx, keyid_sig in enumerate(signatures):
+            if keyid_sig['keyid'] == keyid:
+                signatures[idx] = keyid_signature
+                updated = True
+        if not updated:
+            signatures.append(keyid_signature)
 
     def sign(self) -> JsonDict:
-        def update_signature(signatures, keyid, signature):
-            updated = False
-            keyid_signature = {'keyid':keyid, 'sig':signature}
-            for idx, keyid_sig in enumerate(signatures):
-                if keyid_sig['keyid'] == keyid:
-                    signatures[idx] = keyid_signature
-                    updated = True
-            if not updated:
-                signatures.append(keyid_signature)
-
         signed_bytes = self.signed_bytes
-        signatures = self._signatures
+        signatures = self.__signatures
 
-        for key in self.keyring.keys:
+        for key in self.__keyring.keys:
             signature = key.sign(signed_bytes)
-            update_signature(signatures, key.keyid, signature)
+            self.__update_signature(signatures, key.keyid, signature)
 
-        self._signatures = signatures
+        self.__signatures = signatures
         return self.signable
 
     def verify(self) -> bool:
@@ -140,7 +144,7 @@ class Metadata:
 
         for signature in signatures:
             # TODO: handle an empty keyring
-            for key in self.keyring.keys:
+            for key in self.__keyring.keys:
                 keyid = key.keyid
                 if keyid == signature['keyid']:
                     try:
@@ -153,7 +157,7 @@ class Metadata:
                         verified_keyids |= keyid
                         break
 
-        return len(verified_keyids) >= self.keyring.threshold.min
+        return len(verified_keyids) >= self.__keyring.threshold.least
 
     def write_to_json(self, filename: str, storage_backend: StorageBackendInterface = None) -> None:
          with tempfile.TemporaryFile() as f:
@@ -161,12 +165,12 @@ class Metadata:
             persist_temp_file(f, filename, storage_backend)
 
 class Timestamp(Metadata):
-    def __init__(self, consistent_snapshot: bool = True, expiration: datetime = datetime.today(), keyring: KeyRing = None, version: int = 1):
+    def __init__(self, consistent_snapshot: bool = True, expiration: datetime = datetime.today(), keyring: KeyRing = None, version: int = 1) -> None:
         super().__init__(consistent_snapshot, expiration, keyring, version)
         self.snapshot_fileinfo = {}
 
     @classmethod
-    def read_from_json(cls, filename: str) -> None:
+    def read_from_json(cls, filename: str) -> Metadata:
         md = Metadata.read_from_json(filename)
         timestamp = cls(md.consistent_snapshot, md.expiration, md.keyring, md.version)
         timestamp.snapshot_fileinfo = md._signed['meta']
@@ -177,11 +181,11 @@ class Timestamp(Metadata):
     @property
     def signed(self) -> JsonDict:
         return tuf.formats.build_dict_conforming_to_schema(
-            tuf.formats.TIMESTAMP_SCHEMA, version=self.version,
+            tuf.formats.TIMESTAMP_SCHEMA, version=self.__version,
             expires=self.expires, meta=self.snapshot_fileinfo)
 
     # Update metadata about the snapshot metadata.
-    def update(self, version: int, length: int, hashes: JsonDict):
+    def update(self, version: int, length: int, hashes: JsonDict) -> None:
         fileinfo = self.snapshot_fileinfo.get('snapshot.json', {})
         fileinfo['version'] = version
         fileinfo['length'] = length
@@ -189,12 +193,12 @@ class Timestamp(Metadata):
         self.snapshot_fileinfo['snapshot.json'] = fileinfo
 
 class Snapshot(Metadata):
-    def __init__(self, consistent_snapshot: bool = True, expiration: datetime = datetime.today(), keyring: KeyRing = None, version: int = 1):
+    def __init__(self, consistent_snapshot: bool = True, expiration: datetime = datetime.today(), keyring: KeyRing = None, version: int = 1) -> None:
         super().__init__(consistent_snapshot, expiration, keyring, version)
         self.targets_fileinfo = {}
 
     @classmethod
-    def read_from_json(cls, filename: str) -> None:
+    def read_from_json(cls, filename: str) -> Metadata:
         md = Metadata.read_from_json(filename)
         snapshot = cls(md.consistent_snapshot, md.expiration, md.keyring, md.version)
         meta = md._signed['meta']
@@ -208,39 +212,39 @@ class Snapshot(Metadata):
         return snapshot
 
     @property
-    def signed(self):
+    def signed(self) -> JsonDict:
         return tuf.formats.build_dict_conforming_to_schema(
-            tuf.formats.SNAPSHOT_SCHEMA, version=self.version,
+            tuf.formats.SNAPSHOT_SCHEMA, version=self.__version,
             expires=self.expires, meta=self.targets_fileinfo)
 
     # Add or update metadata about the targets metadata.
-    def update(self, rolename: str, version: int, length: Optional[int] = None, hashes: Optional[JsonDict] = None):
+    def update(self, rolename: str, version: int, length: Optional[int] = None, hashes: Optional[JsonDict] = None) -> None:
         self.targets_fileinfo[f'{rolename}.json'] = tuf.formats.make_metadata_fileinfo(version, length, hashes)
 
 class Targets(Metadata):
-    def __init__(self, consistent_snapshot: bool = True, expiration: datetime = datetime.today(), keyring: KeyRing = None, version: int = 1):
+    def __init__(self, consistent_snapshot: bool = True, expiration: datetime = datetime.today(), keyring: KeyRing = None, version: int = 1) -> None:
         super().__init__(consistent_snapshot, expiration, keyring, version)
         self.targets = {}
         self.delegations = {}
 
     @classmethod
-    def read_from_json(cls, filename: str) -> None:
+    def read_from_json(cls, filename: str) -> Metadata:
         targets = Metadata.read_from_json(filename)
-        targets.targets = self._signed['targets']
-        targets.delegations = self._signed.get('delegations', {})
+        targets.targets = self.__signed['targets']
+        targets.delegations = self.__signed.get('delegations', {})
         tuf.formats.TARGETS_SCHEMA.check_match(targets.signed)
         targets._signatures = md._signatures
         return targets
 
     @property
-    def signed(self):
+    def signed(self) -> JsonDict:
         return tuf.formats.build_dict_conforming_to_schema(
             tuf.formats.TARGETS_SCHEMA,
-            version=self.version,
+            version=self.__version,
             expires=self.expires,
             targets=self.targets,
             delegations=self.delegations)
 
     # Add or update metadata about the target.
-    def update(self, filename: str, fileinfo: JsonDict):
+    def update(self, filename: str, fileinfo: JsonDict) -> None:
         self.targets[filename] = fileinfo

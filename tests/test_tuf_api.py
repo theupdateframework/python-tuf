@@ -75,8 +75,8 @@ class TestTufApi(unittest.TestCase):
 
   def _load_key_ring(self):
     key_list = []
-    root_key = keys.read_key(os.path.join(self.keystore_dir, 'root_key'),
-                             'RSA', 'password')
+    root_key = keys.RAMKey.read_from_file(os.path.join(self.keystore_dir, 'root_key'),
+                                          'RSA', 'password')
     key_list.append(root_key)
 
     for key_file in os.listdir(self.keystore_dir):
@@ -88,8 +88,8 @@ class TestTufApi(unittest.TestCase):
         # root key is loaded
         continue
 
-      key = keys.read_key(os.path.join(self.keystore_dir, key_file), 'ED25519',
-                          'password')
+      key = keys.RAMKey.read_from_file(os.path.join(self.keystore_dir, key_file),
+                                                    'ED25519', 'password')
       key_list.append(key)
     threshold = keys.Threshold(1, 1)
     return keys.KeyRing(threshold=threshold, keys=key_list)
@@ -188,21 +188,20 @@ def test_Threshold(self):
   # test default values
   keys.Threshold()
   # test correct arguments
-  keys.Threshold(min_=4, max_=5)
+  keys.Threshold(least=4, most=5)
 
   # test incorrect input
-  # TODO raise sslib.FormatError or ValueError instead of AssertionErrors
-  self.assertRaises(AssertionError, keys.Threshold, 5, 4)
-  self.assertRaises(AssertionError, keys.Threshold, 0, 5)
-  self.assertRaises(AssertionError, keys.Threshold, 5, 0)
+  self.assertRaises(ValueError, keys.Threshold, 5, 4)
+  self.assertRaises(ValueError, keys.Threshold, 0, 5)
+  self.assertRaises(ValueError, keys.Threshold, 5, 0)
 
 
 def test_KeyRing(self):
   key_list = []
-  root_key = keys.read_key(os.path.join(self.keystore_dir, 'root_key'),
-                            'RSA', 'password')
-  root_key2 = keys.read_key(os.path.join(self.keystore_dir, 'root_key2'),
-                                'ED25519', 'password')
+  root_key = keys.RAMKey.read_from_file(os.path.join(self.keystore_dir, 'root_key'),
+                                        'RSA', 'password')
+  root_key2 = keys.RAMKey.read_from_file(os.path.join(self.keystore_dir, 'root_key2'),
+                                         'ED25519', 'password')
   key_list.append(root_key)
   key_list.append(root_key2)
   threshold = keys.Threshold()
@@ -211,12 +210,12 @@ def test_KeyRing(self):
   self.assertEqual(keyring.keys, key_list)
 
 
-def test_read_key(self):
+def test_RAMKey_read_from_file(self):
   filename = os.path.join(self.keystore_dir, 'root_key')
   algorithm = 'RSA'
   passphrase = 'password'
 
-  self.assertTrue(isinstance(keys.read_key(filename, algorithm, passphrase), keys.RAMKey))
+  self.assertTrue(isinstance(keys.RAMKey.read_from_file(filename, algorithm, passphrase), keys.RAMKey))
 
 # TODO:
 # def test_RAMKey(self):

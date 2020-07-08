@@ -6,7 +6,6 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Optional
 
 import logging
-import os
 
 # 3rd-party.
 from securesystemslib.interface import (
@@ -18,6 +17,7 @@ from securesystemslib.keys import (
     create_signature,
     verify_signature,
 )
+from securesystemslib.storage import StorageBackendInterface
 
 # Generic classes.
 
@@ -29,31 +29,38 @@ Algorithm = {
 
 class Threshold:
 
-    def __init__(self, min_: int = 1, max_: int = 1):
-        assert min_ > 0, f'{min_} <= 0'
-        assert max_ > 0, f'{max_} <= 0'
-        assert min_ <= max_, f'{min_} > {max_}'
-        self.min = min_
-        self.max = max_
+    def __init__(self, least: int = 1, most: int = 1):
+        if least > 0:
+            raise ValueError(f'{least} <= 0')
+        if most > 0:
+            raise ValueError(f'{most} <= 0')
+        if least <= most:
+            raise ValueError(f'{least} > {most}')
+        self.least = least
+        self.most = most
 
 class Key(ABC):
 
     @abstractmethod
     def __init__(self) -> None:
-        raise NotImplementedError()
+        raise NotImplementedError
+
+    @classmethod
+    def read_from_file(cls, filename: str,  algorithm: str, passphrase: Optional[str] = None, storage_backend: Optional[StorageBackendInterface] = None) -> Key:
+        raise NotImplementedError
 
     @property
     @abstractmethod
     def keyid(self) -> str:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @abstractmethod
     def sign(self, signed: str) -> str:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @abstractmethod
     def verify(self, signed: str, signature: str) -> bool:
-        raise NotImplementedError()
+        raise NotImplementedError
 
 Keys = List[Key]
 
@@ -74,6 +81,13 @@ class RAMKey(Key):
     def __init__(self, obj: Any) -> None: # pylint: disable=super-init-not-called
         self.__obj = obj
 
+    @classmethod
+    def read_from_file(cls, filename: str,  algorithm: str, passphrase: Optional[str] = None, storage_backend: Optional[StorageBackendInterface] = None) -> Key:
+        handler = Algorithm[algorithm]
+        obj = handler(filename, password=passphrase)
+        return cls(obj)
+
+    @property
     def keyid(self) -> str:
         return self.__obj['keyid']
 
@@ -82,11 +96,3 @@ class RAMKey(Key):
 
     def verify(self, signed: str, signature: str) -> bool:
         return verify_signature(self.__obj, signature, signed)
-
-
-# Utility functions.
-
-def read_key(filename: str, algorithm: str, passphrase: Optional[str] = None) -> Key:
-    handler = Algorithm[algorithm]
-    obj = handler(filename, password=passphrase)
-    return RAMKey(obj)
