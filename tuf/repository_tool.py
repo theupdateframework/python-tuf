@@ -3087,12 +3087,14 @@ def load_repository(repository_directory, repository_name='default',
   # [('role1', 'targets'), ('role2', 'targets'), ... ]
   roleinfo = tuf.roledb.get_roleinfo('targets', repository_name)
   for role in roleinfo['delegations']['roles']:
-    delegations.append((role['name'], 'targets'))
+    delegations.append((role, 'targets'))
 
   # Traverse the graph by appending the next delegation to the deque and
   # 'pop'-ing and loading the left-most element.
   while delegations:
-    rolename, delegating_role = delegations.popleft()
+    delegation_info, delegating_role = delegations.popleft()
+
+    rolename = delegation_info['name']
     if (rolename, delegating_role) in loaded_delegations:
       logger.warning('Detected cycle in the delegation graph: ' +
           repr(delegating_role) + ' -> ' +
@@ -3132,6 +3134,8 @@ def load_repository(repository_directory, repository_name='default',
     roleinfo['expires'] = metadata_object['expires']
     roleinfo['paths'] = metadata_object['targets']
     roleinfo['delegations'] = metadata_object['delegations']
+    roleinfo['threshold'] = delegation_info['threshold']
+    roleinfo['keyids'] = delegation_info['keyids']
 
     # Generate the Targets object of the delegated role,
     # add it to the top-level 'targets' object and to its
@@ -3149,7 +3153,7 @@ def load_repository(repository_directory, repository_name='default',
     # Append the next level delegations to the deque:
     # the 'delegated' role becomes the 'delegating'
     for delegation in metadata_object['delegations']['roles']:
-      delegations.append((delegation['name'], rolename))
+      delegations.append((delegation, rolename))
 
     # Extract the keys specified in the delegations field of the Targets
     # role.  Add 'key_object' to the list of recognized keys.  Keys may be
