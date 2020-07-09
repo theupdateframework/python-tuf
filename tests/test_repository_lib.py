@@ -36,6 +36,7 @@ import tempfile
 import json
 import shutil
 import unittest
+import copy
 
 import tuf
 import tuf.formats
@@ -352,26 +353,47 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     roleinfo = tuf.roledb.get_roleinfo('targets')
     delegations = roleinfo['delegations']
 
-    targets_metadata = \
-      repo_lib.generate_targets_metadata(targets_directory, target_files,
-                                         version, expiration_date, delegations,
-                                         False)
+    targets_metadata = repo_lib.generate_targets_metadata(targets_directory,
+        target_files, version, expiration_date, delegations, False)
     self.assertTrue(tuf.formats.TARGETS_SCHEMA.matches(targets_metadata))
 
     # Valid arguments with 'delegations' set to None.
-    targets_metadata = \
-      repo_lib.generate_targets_metadata(targets_directory, target_files,
-                                         version, expiration_date, None,
-                                         False)
+    targets_metadata = repo_lib.generate_targets_metadata(targets_directory,
+        target_files, version, expiration_date, None, False)
     self.assertTrue(tuf.formats.TARGETS_SCHEMA.matches(targets_metadata))
+
+    # Test update in targets' delegations
+    keystore_path = os.path.join('repository_data', 'keystore')
+    targets_public_keypath = os.path.join(keystore_path, 'targets_key.pub')
+    targets_public_key = securesystemslib.interface.\
+        import_ed25519_publickey_from_file(targets_public_keypath)
+
+    # Add new key and threshold to delegated role
+    repository.targets('role1').add_verification_key(targets_public_key)
+    repository.targets('role1').threshold = 2
+    role1_keyids = tuf.roledb.get_role_keyids('role1')
+    role1_threshold = tuf.roledb.get_role_threshold('role1')
+    roleinfo = tuf.roledb.get_roleinfo('targets')
+    delegations = roleinfo['delegations']
+    old_delegations = copy.deepcopy(delegations)
+
+    targets_metadata  = repo_lib.generate_targets_metadata(targets_directory,
+        target_files, version, expiration_date, delegations, False)
+    self.assertNotEqual(old_delegations, delegations)
+    self.assertEqual(role1_keyids,
+        targets_metadata['delegations']['roles'][0]['keyids'])
+    self.assertEqual(role1_threshold,
+        targets_metadata['delegations']['roles'][0]['threshold'])
+    for keyid in role1_keyids:
+      self.assertIn(keyid, targets_metadata['delegations']['keys'])
+
 
     # Verify that 'digest.filename' file is saved to 'targets_directory' if
     # the 'write_consistent_targets' argument is True.
     list_targets_directory = os.listdir(targets_directory)
-    targets_metadata = \
-      repo_lib.generate_targets_metadata(targets_directory, target_files,
-                                          version, expiration_date, delegations,
-                                          write_consistent_targets=True)
+    targets_metadata = repo_lib.generate_targets_metadata(targets_directory,
+        target_files, version, expiration_date, delegations,
+        write_consistent_targets=True)
     new_list_targets_directory = os.listdir(targets_directory)
 
     # Verify that 'targets_directory' contains only one extra item.
