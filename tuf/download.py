@@ -263,13 +263,6 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
     # Check response status.
     response.raise_for_status()
 
-    # We ask the server about how big it thinks this file should be.
-    reported_length = _get_content_length(response)
-
-    # Then, we check whether the required length matches the reported length.
-    _check_content_length(reported_length, required_length,
-                          STRICT_REQUIRED_LENGTH)
-
     # Download the contents of the URL, up to the required length, to a
     # temporary file, and get the total number of downloaded bytes.
     total_downloaded, average_download_speed = \
@@ -398,102 +391,6 @@ def _download_fixed_amount_of_data(response, temp_file, required_length):
 
   response.close()
   return number_of_bytes_received, average_download_speed
-
-
-
-
-
-def _get_content_length(response):
-  """
-  <Purpose>
-    A helper function that gets the purported file length from server.
-
-  <Arguments>
-    response:
-      The object for communicating with the server about the contents of a URL.
-
-  <Side Effects>
-    No known side effects.
-
-  <Exceptions>
-    Runtime exceptions will be suppressed but logged.
-
-  <Returns>
-    reported_length:
-      The total number of bytes reported by server. If the process fails, we
-      return None; otherwise we would return a nonnegative integer.
-  """
-
-  try:
-    # What is the length of this document according to the HTTP spec?
-    reported_length = response.headers.get('Content-Length')
-
-    # Try casting it as a decimal number.
-    reported_length = int(reported_length, 10)
-
-    # Make sure that it is a nonnegative integer.
-    if not reported_length > -1:
-      raise tuf.exceptions.Error('A non-positive length was reported.')
-
-  except Exception as e:
-    logger.exception('Could not get content length'
-        ' about ' + str(response) + ' from server: ' + str(e))
-    return None
-
-  return reported_length
-
-
-
-
-
-def _check_content_length(reported_length, required_length, strict_length=True):
-  """
-  <Purpose>
-    A helper function that checks whether the length reported by server is
-    equal to the length we expected.
-
-  <Arguments>
-    reported_length:
-      The total number of bytes reported by the server.
-
-    required_length:
-      The total number of bytes obtained from (possibly default) metadata.
-
-    strict_length:
-      Boolean that indicates whether the required length of the file is an
-      exact match, or an upper limit (e.g., downloading a Timestamp file).
-
-  <Side Effects>
-    No known side effects.
-
-  <Exceptions>
-    No known exceptions.
-
-  <Returns>
-    None.
-  """
-
-  logger.debug('The server reported a length of '+repr(reported_length)+' bytes.')
-  comparison_result = None
-
-  if reported_length < required_length:
-    comparison_result = 'less than'
-
-  elif reported_length > required_length:
-    comparison_result = 'greater than'
-
-  else:
-    comparison_result = 'equal to'
-
-  if strict_length:
-    logger.debug('The reported length is ' + comparison_result + ' the'
-      ' required length of '+repr(required_length)+' bytes.')
-
-  else:
-    logger.debug('The reported length is ' + comparison_result + ' the upper'
-      ' limit of ' + repr(required_length) + ' bytes.')
-
-
 
 
 
