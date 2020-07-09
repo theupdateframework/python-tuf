@@ -2377,7 +2377,7 @@ class Targets(Metadata):
 
     # Keep track of the valid keyids (added to the new Targets object) and
     # their keydicts (added to this Targets delegations).
-    keyids, keydict = _keys_to_keydict(public_keys)
+    keyids, keydict = repo_lib.keys_to_keydict(public_keys)
 
     # Ensure the paths of 'list_of_targets' are located in the repository's
     # targets directory.
@@ -2612,7 +2612,7 @@ class Targets(Metadata):
       hash_prefix = repo_lib.get_target_hash(target_path)[:prefix_length]
       ordered_roles[int(hash_prefix, 16) // bin_size]["target_paths"].append(target_path)
 
-    keyids, keydict = _keys_to_keydict(keys_of_hashed_bins)
+    keyids, keydict = repo_lib.keys_to_keydict(keys_of_hashed_bins)
 
     # A queue of roleinfo's that need to be updated in the roledb
     delegated_roleinfos = []
@@ -2853,30 +2853,6 @@ class Targets(Metadata):
       raise tuf.exceptions.InvalidNameError('Path ' + repr(pathname)
           + ' starts with a directory separator. All paths should be relative'
           '  to targets directory.')
-
-
-
-
-
-def _keys_to_keydict(keys):
-  """
-  Iterate over a list of keys and return a list of keyids and a dict mapping
-  keyid to key metadata
-  """
-  keyids = []
-  keydict = {}
-
-  for key in keys:
-    keyid = key['keyid']
-    key_metadata_format = securesystemslib.keys.format_keyval_to_metadata(
-        key['keytype'], key['scheme'], key['keyval'])
-
-    new_keydict = {keyid: key_metadata_format}
-    keydict.update(new_keydict)
-    keyids.append(keyid)
-
-  return keyids, keydict
-
 
 
 

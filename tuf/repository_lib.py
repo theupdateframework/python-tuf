@@ -1227,6 +1227,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
   # Conformant to 'ROLEDICT_SCHEMA' and 'KEYDICT_SCHEMA', respectively.
   roledict = {}
   keydict = {}
+  keylist = []
 
   # Extract the role, threshold, and keyid information of the top-level roles,
   # which Root stores in its metadata.  The necessary role metadata is generated
@@ -1238,43 +1239,11 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
       raise securesystemslib.exceptions.Error(repr(rolename) + ' not in'
           ' "tuf.roledb".')
 
-    # Keep track of the keys loaded to avoid duplicates.
-    keyids = []
-
-    # Generate keys for the keyids listed by the role being processed.
-    for keyid in tuf.roledb.get_role_keyids(rolename, repository_name):
+    # Collect keys from all roles in a list
+    keyids = tuf.roledb.get_role_keyids(rolename, repository_name)
+    for keyid in keyids:
       key = tuf.keydb.get_key(keyid, repository_name=repository_name)
-
-      # If 'key' is an RSA key, it would conform to
-      # 'securesystemslib.formats.RSAKEY_SCHEMA', and have the form:
-      # {'keytype': 'rsa',
-      #  'keyid': keyid,
-      #  'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
-      #             'private': '-----BEGIN RSA PRIVATE KEY----- ...'}}
-      keyid = key['keyid']
-      if keyid not in keydict:
-
-        # This appears to be a new keyid.  Generate the key for it.
-        if key['keytype'] in ['rsa', 'ed25519', 'ecdsa-sha2-nistp256']:
-          keytype = key['keytype']
-          keyval = key['keyval']
-          scheme = key['scheme']
-          keydict[keyid] = \
-            securesystemslib.keys.format_keyval_to_metadata(keytype,
-                scheme, keyval, private=False)
-
-        # This is not a recognized key.  Raise an exception.
-        else:
-          raise securesystemslib.exceptions.Error('Unsupported keytype:'
-          ' ' + key['keytype'])
-
-      # Do we have a duplicate?
-      if keyid in keyids:
-        raise securesystemslib.exceptions.Error('Same keyid listed twice:'
-          ' ' + keyid)
-
-      # Add the loaded keyid for the role being processed.
-      keyids.append(keyid)
+      keylist.append(key)
 
     # Generate the authentication information Root establishes for each
     # top-level role.
@@ -1284,6 +1253,9 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
         keyids=keyids,
         threshold=role_threshold)
     roledict[rolename] = role_metadata
+
+  # Create the root metadata 'keys' dictionary
+  _, keydict = keys_to_keydict(keylist)
 
   # Use generalized build_dict_conforming_to_schema func to produce a dict that
   # contains all the appropriate information for this type of metadata,
@@ -2250,6 +2222,39 @@ def disable_console_log_messages():
   """
 
   tuf.log.remove_console_handler()
+
+
+
+def keys_to_keydict(keys):
+  """
+  <Purpose>
+    Iterate over a list of keys and return a list of keyids and a dict mapping
+    keyid to key metadata
+
+  <Arguments>
+    keys:
+      A list of key objects conforming to
+      securesystemslib.formats.ANYKEYLIST_SCHEMA.
+
+  <Returns>
+    keyids:
+      A list of keyids conforming to securesystemslib.formats.KEYID_SCHEMA
+    keydict:
+      A dictionary conforming to securesystemslib.formats.KEYDICT_SCHEMA
+  """
+  keyids = []
+  keydict = {}
+
+  for key in keys:
+    keyid = key['keyid']
+    key_metadata_format = securesystemslib.keys.format_keyval_to_metadata(
+        key['keytype'], key['scheme'], key['keyval'])
+
+    new_keydict = {keyid: key_metadata_format}
+    keydict.update(new_keydict)
+    keyids.append(keyid)
+  return keyids, keydict
+
 
 
 
