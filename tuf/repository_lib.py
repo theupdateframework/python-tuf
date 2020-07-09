@@ -166,7 +166,13 @@ def _generate_and_write_metadata(rolename, metadata_filename,
     metadata = generate_targets_metadata(targets_directory,
         roleinfo['paths'], roleinfo['version'], roleinfo['expires'],
         roleinfo['delegations'], consistent_targets, use_existing_fileinfo,
-        storage_backend)
+        storage_backend, repository_name)
+
+    # Update roledb with the latest delegations info collected during
+    # generate_targets_metadata()
+    tuf.roledb.update_roleinfo(rolename, roleinfo,
+        repository_name=repository_name)
+
 
   # Before writing 'rolename' to disk, automatically increment its version
   # number (if 'increment_version_number' is True) so that the caller does not
@@ -1279,7 +1285,8 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
 
 def generate_targets_metadata(targets_directory, target_files, version,
     expiration_date, delegations=None, write_consistent_targets=False,
-    use_existing_fileinfo=False, storage_backend=None):
+    use_existing_fileinfo=False, storage_backend=None,
+    repository_name='default'):
   """
   <Purpose>
     Generate the targets metadata object. The targets in 'target_files' must
@@ -1332,6 +1339,10 @@ def generate_targets_metadata(targets_directory, target_files, version,
       An object which implements
       securesystemslib.storage.StorageBackendInterface.
 
+    repository_name:
+      The name of the repository.  If not supplied, 'default' repository
+      is used.
+
   <Exceptions>
     securesystemslib.exceptions.FormatError, if an error occurred trying to
     generate the targets metadata object.
@@ -1376,6 +1387,23 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
   if delegations is not None:
     tuf.formats.DELEGATIONS_SCHEMA.check_match(delegations)
+    # If targets role has delegations, collect the up-to-date 'keyids' and
+    # 'threshold' for each role. Update the delegations keys dictionary.
+    delegations_keys = []
+    # Update 'keyids' and 'threshold' for each delegated role
+    for role in delegations['roles']:
+      role['keyids'] = tuf.roledb.get_role_keyids(role['name'],
+          repository_name)
+      role['threshold'] = tuf.roledb.get_role_threshold(role['name'],
+          repository_name)
+
+      # Collect all delegations keys for generating the delegations keydict
+      for keyid in role['keyids']:
+        key = tuf.keydb.get_key(keyid, repository_name=repository_name)
+        delegations_keys.append(key)
+
+    _, delegations['keys'] = keys_to_keydict(delegations_keys)
+
 
   # Store the file attributes of targets in 'target_files'.  'filedict',
   # conformant to 'tuf.formats.FILEDICT_SCHEMA', is added to the
