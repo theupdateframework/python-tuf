@@ -1,3 +1,38 @@
+"""TUF role metadata model.
+
+This module provides container classes for TUF role metadata, including methods
+to read/serialize/write from and to JSON, perform TUF-compliant metadata
+updates, and create and verify signatures.
+
+TODO:
+
+ * Add docstrings
+
+ * Finalize/Document Verify/Sign functions (I am not fully sure about expected
+   behavior)
+
+ * Validation (some thoughts ...)
+   - Avoid schema, see secure-systems-lab/securesystemslib#183
+   - Provide methods to validate JSON representation (at user boundary)
+   - Fail on bad json metadata in read_from_json method
+   - Be lenient on bad/invalid metadata objects in memory, they might be
+     work in progress. E.g. it might be convenient to create empty metadata
+     and assign attributes later on.
+   - Fail on bad json metadata in write_to_json method, but with option to
+     disable check as there might be a justified reason to write WIP
+     metadata to json.
+
+ * It might be nice to have short-cuts on the Metadata class to methods and
+   attributes of the contained Signed object. If we do this, we should only do
+   it on common methods/attributes (e.g. version, bump_version, expires,
+   bump_expiration)
+
+ * Similarly, it might be nice to have a generic Metadata.read_from_json that
+   can load any TUF role metadata and instantiate the appropriate object based
+   on the json '_type' field.
+
+
+"""
 # Imports.
 
 # 1st-party.
@@ -33,88 +68,19 @@ JsonDict = Dict[str, Any]
 
 # Classes.
 
+
 class Metadata(ABC):
-    # By default, a Metadata would be a rather empty one.
-    def __init__(self, consistent_snapshot: bool = True, expiration: datetime = datetime.today(), keyring: Optional[KeyRing] = None, version: int = 1) -> None:
-        self.__consistent_snapshot = consistent_snapshot
+    def __init__(
+            self, signed: 'Signed' = None, signatures: list = None) -> None:
+        # TODO: How much init magic do we want?
+        self.signed = signed
+        self.signatures = signatures
 
-        self.__keyring = keyring
-        self.__expiration = expiration
-
-        assert version >= 1, f'{version} < 1'
-        self.__version = version
-
-        self.__signed = {}
-        self.__signatures = []
-
-    # And you would use this method to populate it from a file.
-    @classmethod
-    def read_from_json(cls, filename: str, storage_backend: Optional[StorageBackendInterface] = None) -> Metadata:
-        signable = load_json_file(filename, storage_backend)
-        tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
-
-        signatures = signable['signatures']
-        signed = signable['signed']
-
-        # We always intend times to be UTC
-        # NOTE: we could do this with datetime.fromisoformat() but that is not
-        # available in Python 2.7's datetime
-        expiration = iso8601.parse_date(signed['expires']).replace(tzinfo=None)
-        version = signed['version']
-
-        fn, fn_ver = _strip_version_number(filename, True)
-        if fn_ver:
-            assert fn_ver == self.__version, f'{fn_ver} != {self.__version}'
-            consistent_snapshot = True
-        else:
-            consistent_snapshot = False
-
-        metadata = cls(consistent_snapshot=consistent_snapshot,
-                       expiration=expiration,
-                       version=version)
-
-        metadata._signatures = signatures
-        metadata._signed = signed
-
-        return metadata
-
-    @property
-    def signable(self) -> JsonDict:
-        return {"signatures": self.signatures,
-                "signed": self.signed}
-
-    @property
-    def signed_bytes(self) -> bytes:
-        return encode_canonical(self.signed).encode('UTF-8')
-
-    @property
-    @abstractmethod
-    def signed(self) -> JsonDict:
-        raise NotImplementedError
-
-    @property
-    def signatures(self) -> List[JsonDict]:
-        return self.__signatures
-
-    @property
-    def expires(self) -> str:
-        """The expiration property as a string"""
-        return self.__expiration.isoformat()+'Z'
-
-    @property
-    def expiration(self) -> datetime:
-        return self.__expiration
-
-    @expiration.setter
-    def expiration(self, datetime) -> None:
-        # We always treat dates as UTC
-        self.__expiration = datetime.replace(tzinfo=None)
-
-    def bump_version(self) -> None:
-        self.__version = self.__version + 1
-
-    def bump_expiration(self, delta: timedelta = timedelta(days=1)) -> None:
-        self.__expiration = self.__expiration + delta
+    def as_dict(self) -> JsonDict:
+        return {
+            'signatures': self.signatures,
+            'signed': self.signed.as_dict()
+        }
 
     def __update_signature(self, signatures, keyid, signature):
         updated = False
@@ -126,25 +92,27 @@ class Metadata(ABC):
         if not updated:
             signatures.append(keyid_signature)
 
-    def sign(self) -> JsonDict:
+    def sign(self, key_ring: KeyRing) -> JsonDict:
+        # FIXME: Needs documentation of expected behavior
         signed_bytes = self.signed_bytes
         signatures = self.__signatures
 
-        for key in self.__keyring.keys:
-            signature = key.sign(signed_bytes)
+        for key in key_ring.keys:
+            signature = key.sign(self.signed_bytes)
             self.__update_signature(signatures, key.keyid, signature)
 
         self.__signatures = signatures
         return self.signable
 
-    def verify(self) -> bool:
-        signed_bytes = self.signed_bytes
+    def verify(self, key_ring: KeyRing) -> bool:
+        # FIXME: Needs documentation of expected behavior
+        signed_bytes = self.signed.signed_bytes
         signatures = self.signatures
-        verified_keyids = {}
+        verified_keyids = set()
 
         for signature in signatures:
             # TODO: handle an empty keyring
-            for key in self.__keyring.keys:
+            for key in key_ring.keys:
                 keyid = key.keyid
                 if keyid == signature['keyid']:
                     try:
@@ -154,96 +122,166 @@ class Metadata(ABC):
                         continue
                     else:
                         # Avoid https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-6174
-                        verified_keyids |= keyid
+                        verified_keyids.add(keyid)
+
                         break
 
-        return len(verified_keyids) >= self.__keyring.threshold.least
+        return len(verified_keyids) >= key_ring.threshold.least
 
-    def write_to_json(self, filename: str, storage_backend: StorageBackendInterface = None) -> None:
+    def write_to_json(
+            self, filename: str,
+            storage_backend: StorageBackendInterface = None) -> None:
          with tempfile.TemporaryFile() as f:
             f.write(_get_written_metadata(self.sign()).encode_canonical())
             persist_temp_file(f, filename, storage_backend)
 
-class Timestamp(Metadata):
-    def __init__(self, consistent_snapshot: bool = True, expiration: datetime = datetime.today(), keyring: KeyRing = None, version: int = 1) -> None:
-        super().__init__(consistent_snapshot, expiration, keyring, version)
-        self.snapshot_fileinfo = {}
 
-    @classmethod
-    def read_from_json(cls, filename: str) -> Metadata:
-        md = Metadata.read_from_json(filename)
-        timestamp = cls(md.consistent_snapshot, md.expiration, md.keyring, md.version)
-        timestamp.snapshot_fileinfo = md._signed['meta']
-        tuf.formats.TIMESTAMP_SCHEMA.check_match(timestamp.signed)
-        timestamp._signatures = md._signatures
-        return timestamp
+class Signed:
+    # NOTE: Signed is a stupid name, because this might not be signed yet, but
+    # we keep it to match spec terminology (I often refer to this as "payload",
+    # or "inner metadata")
+
+    # TODO: Re-think default values. It might be better to pass some things
+    # as args and not es kwargs. Then we'd need to pop those from
+    # signable["signed"] in read_from_json and pass them explicitly, which
+    # some say is better than implicit. :)
+    def __init__(
+            self, _type: str = None, version: int = 0,
+            spec_version: str = None, expires: datetime = None
+        ) -> None:
+        # TODO: How much init magic do we want?
+
+        self._type = _type
+        self.spec_version = spec_version
+
+        # We always intend times to be UTC
+        # NOTE: we could do this with datetime.fromisoformat() but that is not
+        # available in Python 2.7's datetime
+        # NOTE: Store as datetime object for convenient handling, use 'expires'
+        # property to get the TUF metadata format representation
+        self.__expiration = iso8601.parse_date(expires).replace(tzinfo=None)
+
+        if version < 0:
+            raise ValueError(f'version must be < 0, got {version}')
+        self.version = version
 
     @property
-    def signed(self) -> JsonDict:
-        return tuf.formats.build_dict_conforming_to_schema(
-            tuf.formats.TIMESTAMP_SCHEMA, version=self.__version,
-            expires=self.expires, meta=self.snapshot_fileinfo)
+    def signed_bytes(self) -> bytes:
+        return encode_canonical(self.as_dict()).encode('UTF-8')
+
+    @property
+    def expires(self) -> str:
+        """The expiration property in TUF metadata format."""
+        return self.__expiration.isoformat() + 'Z'
+
+    def bump_expiration(self, delta: timedelta = timedelta(days=1)) -> None:
+        self.__expiration = self.__expiration + delta
+
+    def bump_version(self) -> None:
+        self.version += 1
+
+    def as_dict(self) -> JsonDict:
+        # NOTE: The classes should be the single source of truth about metadata
+        # let's define the dict representation here and not in some dubious
+        # build_dict_conforming_to_schema
+        return {
+            '_type': self._type,
+            'version': self.version,
+            'spec_version': self.spec_version,
+            'expires': self.expires
+        }
+
+    @classmethod
+    def read_from_json(
+            cls, filename: str,
+            storage_backend: Optional[StorageBackendInterface] = None
+            ) -> Metadata:
+        signable = load_json_file(filename, storage_backend)
+
+        # FIXME: It feels dirty to access signable["signed"]["version"] here in
+        # order to do this check, and also a bit random (there are likely other
+        # things to check), but later we don't have the filename anymore. If we
+        # want to stick to the check, which seems reasonable, we should maybe
+        # think of a better place.
+        _, fn_prefix = _strip_version_number(filename, True)
+        if fn_prefix and fn_prefix != signable['signed']['version']:
+            raise ValueError(
+                f'version filename prefix ({fn_prefix}) must align with '
+                f'version in metadata ({signable["signed"]["version"]}).')
+
+        return Metadata(
+            signed=cls(**signable['signed']),
+            signatures=signable['signatures'])
+
+
+class Timestamp(Signed):
+    def __init__(self, meta: JsonDict = None, **kwargs) -> None:
+        super().__init__(**kwargs)
+        # TODO: How much init magic do we want?
+        # TODO: Is there merit in creating classes for dict fields?
+        self.meta = meta
+
+    def as_dict(self) -> JsonDict:
+        json_dict = super().as_dict()
+        json_dict.update({
+            'meta': self.meta
+        })
+        return json_dict
 
     # Update metadata about the snapshot metadata.
     def update(self, version: int, length: int, hashes: JsonDict) -> None:
-        fileinfo = self.snapshot_fileinfo.get('snapshot.json', {})
+        fileinfo = self.meta.get('snapshot.json', {})
         fileinfo['version'] = version
         fileinfo['length'] = length
         fileinfo['hashes'] = hashes
-        self.snapshot_fileinfo['snapshot.json'] = fileinfo
+        self.meta['snapshot.json'] = fileinfo
 
-class Snapshot(Metadata):
-    def __init__(self, consistent_snapshot: bool = True, expiration: datetime = datetime.today(), keyring: KeyRing = None, version: int = 1) -> None:
-        super().__init__(consistent_snapshot, expiration, keyring, version)
-        self.targets_fileinfo = {}
 
-    @classmethod
-    def read_from_json(cls, filename: str) -> Metadata:
-        md = Metadata.read_from_json(filename)
-        snapshot = cls(md.consistent_snapshot, md.expiration, md.keyring, md.version)
-        meta = md._signed['meta']
-        for target_role in meta:
-            version = meta[target_role]['version']
-            length = meta[target_role].get('length')
-            hashes = meta[target_role].get('hashes')
-            snapshot.targets_fileinfo[target_role] = tuf.formats.make_metadata_fileinfo(version, length, hashes)
-        tuf.formats.SNAPSHOT_SCHEMA.check_match(snapshot.signed)
-        snapshot._signatures = md._signatures
-        return snapshot
+class Snapshot(Signed):
+    def __init__(self, meta: JsonDict = None, **kwargs) -> None:
+        # TODO: How much init magic do we want?
+        # TODO: Is there merit in creating classes for dict fields?
+        super().__init__(**kwargs)
+        self.meta = meta
 
-    @property
-    def signed(self) -> JsonDict:
-        return tuf.formats.build_dict_conforming_to_schema(
-            tuf.formats.SNAPSHOT_SCHEMA, version=self.__version,
-            expires=self.expires, meta=self.targets_fileinfo)
+    def as_dict(self) -> JsonDict:
+        json_dict = super().as_dict()
+        json_dict.update({
+            'meta': self.meta
+        })
+        return json_dict
 
     # Add or update metadata about the targets metadata.
-    def update(self, rolename: str, version: int, length: Optional[int] = None, hashes: Optional[JsonDict] = None) -> None:
-        self.targets_fileinfo[f'{rolename}.json'] = tuf.formats.make_metadata_fileinfo(version, length, hashes)
+    def update(
+            self, rolename: str, version: int, length: Optional[int] = None,
+            hashes: Optional[JsonDict] = None) -> None:
+        metadata_fn = f'{rolename}.json'
 
-class Targets(Metadata):
-    def __init__(self, consistent_snapshot: bool = True, expiration: datetime = datetime.today(), keyring: KeyRing = None, version: int = 1) -> None:
-        super().__init__(consistent_snapshot, expiration, keyring, version)
-        self.targets = {}
-        self.delegations = {}
+        self.meta[metadata_fn] = {'version': version}
+        if length is not None:
+            self.meta[metadata_fn]['length'] = length
 
-    @classmethod
-    def read_from_json(cls, filename: str) -> Metadata:
-        targets = Metadata.read_from_json(filename)
-        targets.targets = self.__signed['targets']
-        targets.delegations = self.__signed.get('delegations', {})
-        tuf.formats.TARGETS_SCHEMA.check_match(targets.signed)
-        targets._signatures = md._signatures
-        return targets
+        if hashes is not None:
+            self.meta[metadata_fn]['hashes'] = hashes
 
-    @property
-    def signed(self) -> JsonDict:
-        return tuf.formats.build_dict_conforming_to_schema(
-            tuf.formats.TARGETS_SCHEMA,
-            version=self.__version,
-            expires=self.expires,
-            targets=self.targets,
-            delegations=self.delegations)
+
+class Targets(Signed):
+    def __init__(
+            self, targets: JsonDict = None, delegations: JsonDict = None,
+            **kwargs) -> None:
+        # TODO: How much init magic do we want?
+        # TODO: Is there merit in creating classes for dict fields?
+        super().__init__(**kwargs)
+        self.targets = targets
+        self.delegations = delegations
+
+    def as_dict(self) -> JsonDict:
+        json_dict = super().as_dict()
+        json_dict.update({
+            'targets': self.targets,
+            'delegations': self.delegations,
+        })
+        return json_dict
 
     # Add or update metadata about the target.
     def update(self, filename: str, fileinfo: JsonDict) -> None:
