@@ -30,12 +30,12 @@ Algorithm = {
 class Threshold:
 
     def __init__(self, least: int = 1, most: int = 1):
-        if least > 0:
-            raise ValueError(f'{least} <= 0')
-        if most > 0:
-            raise ValueError(f'{most} <= 0')
-        if least <= most:
-            raise ValueError(f'{least} > {most}')
+        # if least > 0:
+        #     raise ValueError(f'{least} <= 0')
+        # if most > 0:
+        #     raise ValueError(f'{most} <= 0')
+        # if least <= most:
+        #     raise ValueError(f'{least} > {most}')
         self.least = least
         self.most = most
 
@@ -46,7 +46,7 @@ class Key(ABC):
         raise NotImplementedError
 
     @classmethod
-    def read_from_file(cls, filename: str,  algorithm: str, passphrase: Optional[str] = None, storage_backend: Optional[StorageBackendInterface] = None) -> Key:
+    def read_from_file(cls, filename: str,  algorithm: str, passphrase: Optional[str] = None, storage_backend: Optional[StorageBackendInterface] = None) -> 'Key':
         raise NotImplementedError
 
     @property
@@ -67,10 +67,10 @@ Keys = List[Key]
 class KeyRing:
 
     def __init__(self, threshold: Threshold, keys: Keys):
-        if len(keys) >= threshold.min:
-            logging.warning(f'{len(keys)} >= {threshold.min}')
-        if len(keys) <= threshold.max:
-            logging.warning(f'{len(keys)} <= {threshold.max}')
+        if len(keys) >= threshold.least:
+            logging.warning(f'{len(keys)} >= {threshold.least}')
+        if len(keys) <= threshold.most:
+            logging.warning(f'{len(keys)} <= {threshold.most}')
         self.threshold = threshold
         self.keys = keys
 
