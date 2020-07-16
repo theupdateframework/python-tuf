@@ -31,6 +31,7 @@ from __future__ import unicode_literals
 import unittest
 import datetime
 import sys
+import os
 
 import tuf
 import tuf.formats
@@ -38,6 +39,7 @@ import tuf.formats
 import utils
 
 import securesystemslib
+import securesystemslib.util
 import six
 
 
@@ -778,20 +780,10 @@ class TestFormats(unittest.TestCase):
 
   def test_make_signable(self):
     # Test conditions for expected make_signable() behavior.
-    root = {'_type': 'root',
-            'spec_version': '1.0.0',
-            'version': 8,
-            'consistent_snapshot': False,
-            'expires': '1985-10-21T13:20:00Z',
-            'keys': {'123abc': {'keytype': 'rsa',
-                                'scheme': 'rsassa-pss-sha256',
-                                'keyval': {'public': 'pubkey',
-                                           'private': 'privkey'}}},
-            'roles': {'root': {'keyids': ['123abc'],
-                               'threshold': 1,
-                               'paths': ['path1/', 'path2']}}}
-
     SIGNABLE_SCHEMA = tuf.formats.SIGNABLE_SCHEMA
+    root_file = os.path.join('repository_data', 'repository', 'metadata',
+        'root.json')
+    root = securesystemslib.util.load_json_file(root_file)
     self.assertTrue(SIGNABLE_SCHEMA.matches(tuf.formats.make_signable(root)))
     signable = tuf.formats.make_signable(root)
     self.assertEqual('root', tuf.formats.check_signable_object_format(signable))
@@ -902,19 +894,9 @@ class TestFormats(unittest.TestCase):
 
   def test_check_signable_object_format(self):
     # Test condition for a valid argument.
-    root = {'_type': 'root',
-            'spec_version': '1.0.0',
-            'version': 8,
-            'consistent_snapshot': False,
-            'expires': '1985-10-21T13:20:00Z',
-            'keys': {'123abc': {'keytype': 'rsa',
-                                'scheme': 'rsassa-pss-sha256',
-                                'keyval': {'public': 'pubkey',
-                                           'private': 'privkey'}}},
-            'roles': {'root': {'keyids': ['123abc'],
-                               'threshold': 1,
-                               'paths': ['path1/', 'path2']}}}
-
+    root_file = os.path.join('repository_data', 'repository', 'metadata',
+        'root.json')
+    root = securesystemslib.util.load_json_file(root_file)
     root = tuf.formats.make_signable(root)
     self.assertEqual('root', tuf.formats.check_signable_object_format(root))
 
