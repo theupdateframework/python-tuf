@@ -357,10 +357,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_root_rotation_missing_keys(self):
     repository = repo_tool.load_repository(self.repository_directory)
 
-    # A partially written root.json (threshold = 1, and not signed in this
-    # case) causes an invalid root chain later.
+    # A partially written root.json (threshold = 2, and signed with only 1 key)
+    # causes an invalid root chain later.
+    repository.root.threshold = 2
+    repository.root.load_signing_key(self.role_keys['root']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+
     repository.write('root')
     repository.write('snapshot')
     repository.write('timestamp')
@@ -371,9 +374,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                     os.path.join(self.repository_directory, 'metadata'))
 
     # Create a new, valid root.json.
-    repository.root.threshold = 2
+    # Still not valid, because it is not written with a threshold of 2
+    # previous keys
     repository.root.add_verification_key(self.role_keys['role1']['public'])
-    repository.root.load_signing_key(self.role_keys['root']['private'])
     repository.root.load_signing_key(self.role_keys['role1']['private'])
 
     repository.writeall()
