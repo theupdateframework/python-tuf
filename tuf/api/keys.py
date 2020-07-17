@@ -30,12 +30,12 @@ Algorithm = {
 class Threshold:
 
     def __init__(self, least: int = 1, most: int = 1):
-        # if least > 0:
-        #     raise ValueError(f'{least} <= 0')
-        # if most > 0:
-        #     raise ValueError(f'{most} <= 0')
-        # if least <= most:
-        #     raise ValueError(f'{least} > {most}')
+        if least <= 0:
+            raise ValueError(f'{least} <= 0')
+        if most <= 0:
+            raise ValueError(f'{most} <= 0')
+        if least > most:
+            raise ValueError(f'{least} > {most}')
         self.least = least
         self.most = most
 
