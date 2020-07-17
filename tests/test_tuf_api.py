@@ -40,6 +40,7 @@ from dateutil.relativedelta import relativedelta
 
 from tuf.api import metadata
 from tuf.api import keys
+from tuf.api.keys import VaultKey
 
 import iso8601
 import six
@@ -48,6 +49,8 @@ logger = logging.getLogger(__name__)
 
 
 class TestTufApi(unittest.TestCase):
+  # TODO: Start Vault in a dev mode, and export VAULT_ADDR as well as VAULT_TOKEN.
+  # TODO: Enable the Vault Transit secrets engine.
   @classmethod
   def setUpClass(cls):
 
@@ -66,7 +69,7 @@ class TestTufApi(unittest.TestCase):
     shutil.copytree(os.path.join(test_repo_data, 'keystore'), cls.keystore_dir)
 
 
-
+  # TODO: Shut down Vault.
   @classmethod
   def tearDownClass(cls):
 
@@ -177,41 +180,101 @@ class TestTufApi(unittest.TestCase):
 
     # timestamp.write_to_json()
 
-def test_Threshold(self):
-  # test default values
-  keys.Threshold()
-  # test correct arguments
-  keys.Threshold(least=4, most=5)
+  def test_Threshold(self):
+    # test default values
+    keys.Threshold()
+    # test correct arguments
+    keys.Threshold(least=4, most=5)
 
-  # test incorrect input
-  self.assertRaises(ValueError, keys.Threshold, 5, 4)
-  self.assertRaises(ValueError, keys.Threshold, 0, 5)
-  self.assertRaises(ValueError, keys.Threshold, 5, 0)
-
-
-def test_KeyRing(self):
-  key_list = []
-  root_key = keys.RAMKey.read_from_file(os.path.join(self.keystore_dir, 'root_key'),
-                                        'RSA', 'password')
-  root_key2 = keys.RAMKey.read_from_file(os.path.join(self.keystore_dir, 'root_key2'),
-                                         'ED25519', 'password')
-  key_list.append(root_key)
-  key_list.append(root_key2)
-  threshold = keys.Threshold()
-  keyring = keys.KeyRing(threshold, key_list)
-  self.assertEqual(keyring.threshold, threshold)
-  self.assertEqual(keyring.keys, key_list)
+    # test incorrect input
+    self.assertRaises(ValueError, keys.Threshold, 5, 4)
+    self.assertRaises(ValueError, keys.Threshold, 0, 5)
+    self.assertRaises(ValueError, keys.Threshold, 5, 0)
 
 
-def test_RAMKey_read_from_file(self):
-  filename = os.path.join(self.keystore_dir, 'root_key')
-  algorithm = 'RSA'
-  passphrase = 'password'
+  def test_KeyRing(self):
+    key_list = []
+    root_key = keys.RAMKey.read_from_file(os.path.join(self.keystore_dir, 'root_key'),
+                                          'RSA', 'password')
+    root_key2 = keys.RAMKey.read_from_file(os.path.join(self.keystore_dir, 'root_key2'),
+                                          'ED25519', 'password')
+    key_list.append(root_key)
+    key_list.append(root_key2)
+    threshold = keys.Threshold()
+    keyring = keys.KeyRing(threshold, key_list)
+    self.assertEqual(keyring.threshold, threshold)
+    self.assertEqual(keyring.keys, key_list)
 
-  self.assertTrue(isinstance(keys.RAMKey.read_from_file(filename, algorithm, passphrase), keys.RAMKey))
 
-# TODO:
-# def test_RAMKey(self):
+  def test_RAMKey_read_from_file(self):
+    filename = os.path.join(self.keystore_dir, 'root_key')
+    algorithm = 'RSA'
+    passphrase = 'password'
+
+    self.assertTrue(isinstance(keys.RAMKey.read_from_file(filename, algorithm, passphrase), keys.RAMKey))
+
+
+  def test_VaultKey_Ed25519(self):
+    VAULT_ADDR = os.environ['VAULT_ADDR']
+    VAULT_TOKEN = os.environ['VAULT_TOKEN']
+    KEY_TYPE = VaultKey.KeyTypes.ED25519.value
+    NAME = f'test-{KEY_TYPE}-key'
+
+    for hash_algorithm in {h.value for h in VaultKey.HashAlgorithms}:
+      self.assertRaises(ValueError, VaultKey.create_key, VAULT_ADDR, VAULT_TOKEN, NAME, KEY_TYPE, hash_algorithm=hash_algorithm)
+
+    for marshaling_algorithm in {m.value for m in VaultKey.MarshalingAlgorithms}:
+      self.assertRaises(ValueError, VaultKey.create_key, VAULT_ADDR, VAULT_TOKEN, NAME, KEY_TYPE, marshaling_algorithm=marshaling_algorithm)
+
+    for signature_algorithm in {s.value for s in VaultKey.SignatureAlgorithms}:
+      self.assertRaises(ValueError, VaultKey.create_key, VAULT_ADDR, VAULT_TOKEN, NAME, KEY_TYPE, signature_algorithm=signature_algorithm)
+
+    key = VaultKey.create_key(VAULT_ADDR, VAULT_TOKEN, NAME, KEY_TYPE)
+    signed = f'Hello, {KEY_TYPE}!'
+    signature = key.sign(signed)
+    self.assertTrue(key.verify(signed, signature))
+
+
+  def test_VaultKey_ECDSA(self):
+    VAULT_ADDR = os.environ['VAULT_ADDR']
+    VAULT_TOKEN = os.environ['VAULT_TOKEN']
+    KEY_TYPE = VaultKey.KeyTypes.P_256.value
+    NAME = f'test-{KEY_TYPE}-key'
+
+    for hash_algorithm in {
+      VaultKey.HashAlgorithms.SHA2_224.value,
+      VaultKey.HashAlgorithms.SHA2_384.value,
+      VaultKey.HashAlgorithms.SHA2_512.value
+    }:
+      self.assertRaises(ValueError, VaultKey.create_key, VAULT_ADDR, VAULT_TOKEN, NAME, KEY_TYPE, hash_algorithm=hash_algorithm)
+
+    for signature_algorithm in {s.value for s in VaultKey.SignatureAlgorithms}:
+      self.assertRaises(ValueError, VaultKey.create_key, VAULT_ADDR, VAULT_TOKEN, NAME, KEY_TYPE, signature_algorithm=signature_algorithm)
+
+    for marshaling_algorithm in {m.value for m in VaultKey.MarshalingAlgorithms}:
+      key = VaultKey.create_key(VAULT_ADDR, VAULT_TOKEN, NAME, KEY_TYPE, hash_algorithm=VaultKey.HashAlgorithms.SHA2_256.value, marshaling_algorithm=marshaling_algorithm,)
+      signed = f'Hello, {KEY_TYPE}!'
+      signature = key.sign(signed)
+      self.assertTrue(key.verify(signed, signature))
+
+
+  def test_VaultKey_RSA(self):
+    VAULT_ADDR = os.environ['VAULT_ADDR']
+    VAULT_TOKEN = os.environ['VAULT_TOKEN']
+
+    for key_type in {VaultKey.KeyTypes.RSA_2048.value, VaultKey.KeyTypes.RSA_4096.value}:
+      NAME = f'test-{key_type}-key'
+
+      for signature_algorithm in {s.value for s in VaultKey.SignatureAlgorithms}:
+        for hash_algorithm in {VaultKey.HashAlgorithms.SHA2_224.value, VaultKey.HashAlgorithms.SHA2_384.value, VaultKey.HashAlgorithms.SHA2_512.value,}:
+          for marshaling_algorithm in {m.value for m in VaultKey.MarshalingAlgorithms}:
+            self.assertRaises(ValueError, VaultKey.create_key, VAULT_ADDR, VAULT_TOKEN, NAME, key_type, marshaling_algorithm=marshaling_algorithm,)
+
+          key = VaultKey.create_key(VAULT_ADDR, VAULT_TOKEN, NAME, key_type, hash_algorithm=hash_algorithm, signature_algorithm=signature_algorithm,)
+          signed = f'Hello, {key_type}!'
+          signature = key.sign(signed)
+          self.assertTrue(key.verify(signed, signature))
+
 
 # Run unit test.
 if __name__ == '__main__':
