@@ -354,7 +354,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # 'targets.json' are also loaded when the repository object is
     # instantiated.
 
-    self.assertEqual(number_of_root_keys * 2 + 2, len(tuf.keydb._keydb_dict[self.repository_name]))
+    self.assertEqual(number_of_root_keys + 1, len(tuf.keydb._keydb_dict[self.repository_name]))
 
     # Test: normal case.
     self.repository_updater._rebuild_key_and_role_db()
@@ -365,7 +365,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # _rebuild_key_and_role_db() will only rebuild the keys and roles specified
     # in the 'root.json' file, unlike __init__().  Instantiating an updater
     # object calls both _rebuild_key_and_role_db() and _import_delegations().
-    self.assertEqual(number_of_root_keys * 2, len(tuf.keydb._keydb_dict[self.repository_name]))
+    self.assertEqual(number_of_root_keys, len(tuf.keydb._keydb_dict[self.repository_name]))
 
     # Test: properly updated roledb and keydb dicts if the Root role changes.
     root_metadata = self.repository_updater.metadata['current']['root']
@@ -376,7 +376,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     root_roleinfo = tuf.roledb.get_roleinfo('root', self.repository_name)
     self.assertEqual(root_roleinfo['threshold'], 8)
-    self.assertEqual(number_of_root_keys * 2 - 2, len(tuf.keydb._keydb_dict[self.repository_name]))
+    self.assertEqual(number_of_root_keys - 1, len(tuf.keydb._keydb_dict[self.repository_name]))
 
 
 
@@ -560,7 +560,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Take into account the number of keyids algorithms supported by default,
     # which this test condition expects to be two (sha256 and sha512).
-    self.assertEqual(4 * 2, len(tuf.keydb._keydb_dict[repository_name]))
+    self.assertEqual(4, len(tuf.keydb._keydb_dict[repository_name]))
 
     # Test: pass a role without delegations.
     self.repository_updater._import_delegations('root')
@@ -569,8 +569,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # checking the number of elements in the dictionaries.
     self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 4)
     # Take into account the number of keyid hash algorithms, which this
-    # test condition expects to be two (for sha256 and sha512).
-    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 4 * 2)
+    # test condition expects to be one
+    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 4)
 
     # Test: normal case, first level delegation.
     self.repository_updater._import_delegations('targets')
@@ -578,7 +578,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 5)
     # The number of root keys (times the number of key hash algorithms) +
     # delegation's key (+1 for its sha512 keyid).
-    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 4 * 2 + 2)
+    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 4 + 1)
 
     # Verify that roledb dictionary was added.
     self.assertTrue('role1' in tuf.roledb._roledb_dict[repository_name])
