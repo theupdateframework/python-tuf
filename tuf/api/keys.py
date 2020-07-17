@@ -17,7 +17,6 @@ from securesystemslib.keys import (
     create_signature,
     verify_signature,
 )
-from securesystemslib.storage import StorageBackendInterface
 
 # Generic classes.
 
@@ -43,10 +42,6 @@ class Key(ABC):
 
     @abstractmethod
     def __init__(self) -> None:
-        raise NotImplementedError
-
-    @classmethod
-    def read_from_file(cls, filename: str,  algorithm: str, passphrase: Optional[str] = None, storage_backend: Optional[StorageBackendInterface] = None) -> 'Key':
         raise NotImplementedError
 
     @property
@@ -82,7 +77,7 @@ class RAMKey(Key):
         self.__obj = obj
 
     @classmethod
-    def read_from_file(cls, filename: str,  algorithm: str, passphrase: Optional[str] = None, storage_backend: Optional[StorageBackendInterface] = None) -> Key:
+    def read_from_file(cls, filename: str,  algorithm: str, passphrase: Optional[str] = None) -> Key:
         handler = Algorithm[algorithm]
         obj = handler(filename, password=passphrase)
         return cls(obj)
