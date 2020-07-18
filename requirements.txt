@@ -23,25 +23,12 @@
 # - Python version support is changed
 # - CI/CD build breaks due to updates (e.g. transitive dependency conflicts)
 #
-# 1. Use this script to create a pinned requirements file for each Python
-#    version
-# ```
-# for v in 2.7 3.5 3.6 3.7 3.8; do
-#   mkvirtualenv tuf-env-${v} -p python${v};
-#   pip install pip-tools;
-#   pip-compile --no-header -o requirements-${v}.txt requirements.txt;
-#   deactivate;
-#   rmvirtualenv tuf-env-${v};
-# done;
+# ./update-requirements.sh
 #
-# ```
-# 2. Use this command to merge per-version files
-#    `sort -o requirements-pinned.txt -u requirements-?.?.txt`
-# 2. Manually add environment markers to requirements-pinned.txt
-# 3. Use this command to remove per-version files
-#    `rm requirements-?.?.txt`
-#
-securesystemslib[colors, crypto, pynacl]
-requests
-six
+enum34; python_version < '3'
+hvac
+ipaddress; python_version < '3'
 iso8601
+requests
+securesystemslib[colors, crypto, pynacl]
+six
