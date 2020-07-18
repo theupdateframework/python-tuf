@@ -266,7 +266,7 @@ class TestTufApi(unittest.TestCase):
       NAME = f'test-{key_type}-key'
 
       for signature_algorithm in {s.value for s in VaultKey.SignatureAlgorithms}:
-        for hash_algorithm in {VaultKey.HashAlgorithms.SHA2_224.value, VaultKey.HashAlgorithms.SHA2_384.value, VaultKey.HashAlgorithms.SHA2_512.value,}:
+        for hash_algorithm in {h.value for h in VaultKey.HashAlgorithms}:
           for marshaling_algorithm in {m.value for m in VaultKey.MarshalingAlgorithms}:
             self.assertRaises(ValueError, VaultKey.create_key, VAULT_ADDR, VAULT_TOKEN, NAME, key_type, marshaling_algorithm=marshaling_algorithm,)
 
