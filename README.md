@@ -29,9 +29,9 @@ re-implement to fit their needs.
 
 TUF is hosted by the [Linux Foundation](https://www.linuxfoundation.org/) as
 part of the [Cloud Native Computing Foundation](https://www.cncf.io/) (CNCF)
-and its design is [used in production](docs/ADOPTERS.md) by companies such as Cloudflare,
-Datadog, Docker, Flynn, IBM, Kolide, LEAP, Microsoft, and RedHat. A variant of TUF
-called [Uptane](https://uptane.github.io/) is widely used to secure over-the-air
+and its design is [used in production](https://theupdateframework.io/adoptions/)
+by various tech companies and open source organizations. A variant of TUF
+called [Uptane](https://uptane.github.io/) is used to secure over-the-air
 updates in automobiles.
 
 Please see the [TUF Introduction](docs/OVERVIEW.rst) and
