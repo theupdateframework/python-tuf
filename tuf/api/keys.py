@@ -120,7 +120,9 @@ class VaultKey(Key):
     class KeyTypes(Enum):
         ED25519 = 'ed25519'
         P_256 = 'ecdsa-p256'
+        P_384 = 'ecdsa-p384'
         RSA_2048 = 'rsa-2048'
+        RSA_3072 = 'rsa-3072'
         RSA_4096 = 'rsa-4096'
 
     @unique
@@ -184,17 +186,20 @@ class VaultKey(Key):
                 raise ValueError(hash_algorithm)
             if key_type == self.KeyTypes.ED25519.value:
                 raise ValueError(hash_algorithm)
-            # P-256 only takes SHA2-256.
             # https://tools.ietf.org/html/rfc5656#section-6.2.1
+            # P-256 only takes SHA2-256.
             if  key_type == self.KeyTypes.P_256.value and hash_algorithm != self.HashAlgorithms.SHA2_256.value:
+                raise ValueError(hash_algorithm)
+            # P-384 only takes SHA2-384.
+            if  key_type == self.KeyTypes.P_384.value and hash_algorithm != self.HashAlgorithms.SHA2_384.value:
                 raise ValueError(hash_algorithm)
         self.__hash_algorithm = hash_algorithm
 
-        # A valid marshaling algorithm is only good for P-256.
+        # A valid marshaling algorithm is only good for P-256 and P-384.
         if  marshaling_algorithm is not None:
             if marshaling_algorithm not in {m.value for m in self.MarshalingAlgorithms}:
                 raise ValueError(marshaling_algorithm)
-            if key_type != self.KeyTypes.P_256.value:
+            if key_type not in {self.KeyTypes.P_256.value, self.KeyTypes.P_384.value}:
                 raise ValueError(marshaling_algorithm)
         self.__marshaling_algorithm = marshaling_algorithm
 
@@ -202,7 +207,7 @@ class VaultKey(Key):
         if  signature_algorithm is not None:
             if signature_algorithm not in {s.value for s in self.SignatureAlgorithms}:
                 raise ValueError(signature_algorithm)
-            if key_type not in {self.KeyTypes.RSA_2048.value, self.KeyTypes.RSA_4096.value}:
+            if key_type not in {self.KeyTypes.RSA_2048.value, self.KeyTypes.RSA_3072.value, self.KeyTypes.RSA_4096.value}:
                 raise ValueError(signature_algorithm)
         self.__signature_algorithm = signature_algorithm
 
@@ -224,10 +229,10 @@ class VaultKey(Key):
         if self.__key_type == self.KeyTypes.ED25519.value:
             keytype = self.__key_type
             scheme = keytype
-        elif self.__key_type == self.KeyTypes.P_256.value:
+        elif self.__key_type in {self.KeyTypes.P_256.value, self.KeyTypes.P_384.value}:
             keytype = 'ecdsa-sha2-nistp256'
             scheme = keytype
-        elif self.__key_type in {self.KeyTypes.RSA_2048.value, self.KeyTypes.RSA_4096.value}:
+        elif self.__key_type in {self.KeyTypes.RSA_2048.value, self.KeyTypes.RSA_3072.value, self.KeyTypes.RSA_4096.value}:
             keytype = 'rsa'
 
             if self.__signature_algorithm == self.SignatureAlgorithms.PSS.value:

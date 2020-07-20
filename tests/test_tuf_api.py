@@ -238,31 +238,38 @@ class TestTufApi(unittest.TestCase):
   def test_VaultKey_ECDSA(self):
     VAULT_ADDR = os.environ['VAULT_ADDR']
     VAULT_TOKEN = os.environ['VAULT_TOKEN']
-    KEY_TYPE = VaultKey.KeyTypes.P_256.value
-    NAME = f'test-{KEY_TYPE}-key'
 
-    for hash_algorithm in {
-      VaultKey.HashAlgorithms.SHA2_224.value,
-      VaultKey.HashAlgorithms.SHA2_384.value,
-      VaultKey.HashAlgorithms.SHA2_512.value
-    }:
-      self.assertRaises(ValueError, VaultKey.create_key, VAULT_ADDR, VAULT_TOKEN, NAME, KEY_TYPE, hash_algorithm=hash_algorithm)
+    def test(key_type, hash_algorithm, hash_algorithms):
+      NAME = f'test-{key_type}-key'
 
-    for signature_algorithm in {s.value for s in VaultKey.SignatureAlgorithms}:
-      self.assertRaises(ValueError, VaultKey.create_key, VAULT_ADDR, VAULT_TOKEN, NAME, KEY_TYPE, signature_algorithm=signature_algorithm)
+      for marshaling_algorithm in {m.value for m in VaultKey.MarshalingAlgorithms}:
+        key = VaultKey.create_key(VAULT_ADDR, VAULT_TOKEN, NAME, key_type, hash_algorithm=hash_algorithm, marshaling_algorithm=marshaling_algorithm,)
+        signed = f'Hello, {key_type}!'
+        signature = key.sign(signed)
+        self.assertTrue(key.verify(signed, signature))
 
-    for marshaling_algorithm in {m.value for m in VaultKey.MarshalingAlgorithms}:
-      key = VaultKey.create_key(VAULT_ADDR, VAULT_TOKEN, NAME, KEY_TYPE, hash_algorithm=VaultKey.HashAlgorithms.SHA2_256.value, marshaling_algorithm=marshaling_algorithm,)
-      signed = f'Hello, {KEY_TYPE}!'
-      signature = key.sign(signed)
-      self.assertTrue(key.verify(signed, signature))
+      for hash_algorithm in hash_algorithms:
+        self.assertRaises(ValueError, VaultKey.create_key, VAULT_ADDR, VAULT_TOKEN, NAME, key_type, hash_algorithm=hash_algorithm)
+
+      for signature_algorithm in {s.value for s in VaultKey.SignatureAlgorithms}:
+        self.assertRaises(ValueError, VaultKey.create_key, VAULT_ADDR, VAULT_TOKEN, NAME, key_type, signature_algorithm=signature_algorithm)
+
+
+    test(VaultKey.KeyTypes.P_256.value, VaultKey.HashAlgorithms.SHA2_256.value, {VaultKey.HashAlgorithms.SHA2_224.value, VaultKey.HashAlgorithms.SHA2_384.value, VaultKey.HashAlgorithms.SHA2_512.value})
+    # FIXME: https://github.com/hvac/hvac/issues/605
+    #test(VaultKey.KeyTypes.P_384.value, VaultKey.HashAlgorithms.SHA2_384.value, {VaultKey.HashAlgorithms.SHA2_224.value, VaultKey.HashAlgorithms.SHA2_256.value, VaultKey.HashAlgorithms.SHA2_512.value})
 
 
   def test_VaultKey_RSA(self):
     VAULT_ADDR = os.environ['VAULT_ADDR']
     VAULT_TOKEN = os.environ['VAULT_TOKEN']
 
-    for key_type in {VaultKey.KeyTypes.RSA_2048.value, VaultKey.KeyTypes.RSA_4096.value}:
+    for key_type in {
+      VaultKey.KeyTypes.RSA_2048.value,
+      # FIXME: https://github.com/hvac/hvac/issues/605
+      #VaultKey.KeyTypes.RSA_3072.value,
+      VaultKey.KeyTypes.RSA_4096.value
+    }:
       NAME = f'test-{key_type}-key'
 
       for signature_algorithm in {s.value for s in VaultKey.SignatureAlgorithms}:
