@@ -23,27 +23,30 @@
 # Help with Python 3 compatibility, where the print statement is a function, an
 # implicit relative import is invalid, and the '/' operator performs true
 # division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
-from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import print_function
 from __future__ import unicode_literals
 
-import unittest
 import logging
-import tempfile
-import shutil
-import sys
-import errno
 import os
+import shutil
+import tempfile
+import unittest
+
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 
-from tuf.api import metadata
-from tuf.api import keys
-from tuf.api.keys import VaultKey
-
-import iso8601
-import six
+from tuf.api.metadata import (
+  Snapshot,
+  Timestamp,
+)
+from tuf.api.keys import (
+  KeyRing,
+  RAMKey,
+  Threshold,
+  VaultKey,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -81,8 +84,8 @@ class TestTufApi(unittest.TestCase):
 
   def _load_key_ring(self):
     key_list = []
-    root_key = keys.RAMKey.read_from_file(os.path.join(self.keystore_dir, 'root_key'),
-                                          'RSA', 'password')
+    root_key = RAMKey.read_from_file(os.path.join(self.keystore_dir, 'root_key'),
+                                     'rsassa-pss-sha256', 'password')
     key_list.append(root_key)
 
     for key_file in os.listdir(self.keystore_dir):
@@ -94,17 +97,17 @@ class TestTufApi(unittest.TestCase):
         # root key is loaded
         continue
 
-      key = keys.RAMKey.read_from_file(os.path.join(self.keystore_dir, key_file),
-                                                    'ED25519', 'password')
+      key = RAMKey.read_from_file(os.path.join(self.keystore_dir, key_file),
+                                  'ed25519', 'password')
       key_list.append(key)
-    threshold = keys.Threshold(1, 1)
-    return keys.KeyRing(threshold=threshold, keys=key_list)
+    threshold = Threshold(1, 5)
+    return KeyRing(threshold=threshold, keys=key_list)
 
   def test_metadata_base(self):
     # Use of Snapshot is arbitrary, we're just testing the base class features
     # with real data
     snapshot_path = os.path.join(self.repo_dir, 'metadata', 'snapshot.json')
-    md = metadata.Snapshot.read_from_json(snapshot_path)
+    md = Snapshot.read_from_json(snapshot_path)
 
     self.assertEqual(md.signed.version, 1)
     md.signed.bump_version()
@@ -118,7 +121,7 @@ class TestTufApi(unittest.TestCase):
 
   def test_metadata_snapshot(self):
     snapshot_path = os.path.join(self.repo_dir, 'metadata', 'snapshot.json')
-    snapshot = metadata.Snapshot.read_from_json(snapshot_path)
+    snapshot = Snapshot.read_from_json(snapshot_path)
 
     key_ring = self._load_key_ring()
     snapshot.verify(key_ring)
@@ -144,7 +147,7 @@ class TestTufApi(unittest.TestCase):
 
   def test_metadata_timestamp(self):
     timestamp_path = os.path.join(self.repo_dir, 'metadata', 'timestamp.json')
-    timestamp = metadata.Timestamp.read_from_json(timestamp_path)
+    timestamp = Timestamp.read_from_json(timestamp_path)
 
     key_ring = self._load_key_ring()
     timestamp.verify(key_ring)
@@ -182,36 +185,28 @@ class TestTufApi(unittest.TestCase):
 
   def test_Threshold(self):
     # test default values
-    keys.Threshold()
+    Threshold()
     # test correct arguments
-    keys.Threshold(least=4, most=5)
+    Threshold(least=4, most=5)
 
     # test incorrect input
-    self.assertRaises(ValueError, keys.Threshold, 5, 4)
-    self.assertRaises(ValueError, keys.Threshold, 0, 5)
-    self.assertRaises(ValueError, keys.Threshold, 5, 0)
+    self.assertRaises(ValueError, Threshold, 5, 4)
+    self.assertRaises(ValueError, Threshold, 0, 5)
+    self.assertRaises(ValueError, Threshold, 5, 0)
 
 
   def test_KeyRing(self):
     key_list = []
-    root_key = keys.RAMKey.read_from_file(os.path.join(self.keystore_dir, 'root_key'),
-                                          'RSA', 'password')
-    root_key2 = keys.RAMKey.read_from_file(os.path.join(self.keystore_dir, 'root_key2'),
-                                          'ED25519', 'password')
+    root_key = RAMKey.read_from_file(os.path.join(self.keystore_dir, 'root_key'),
+                                     'rsassa-pss-sha256', 'password')
+    root_key2 = RAMKey.read_from_file(os.path.join(self.keystore_dir, 'root_key2'),
+                                      'ed25519', 'password')
     key_list.append(root_key)
     key_list.append(root_key2)
-    threshold = keys.Threshold()
-    keyring = keys.KeyRing(threshold, key_list)
+    threshold = Threshold(1, 2)
+    keyring = KeyRing(threshold, key_list)
     self.assertEqual(keyring.threshold, threshold)
     self.assertEqual(keyring.keys, key_list)
-
-
-  def test_RAMKey_read_from_file(self):
-    filename = os.path.join(self.keystore_dir, 'root_key')
-    algorithm = 'RSA'
-    passphrase = 'password'
-
-    self.assertTrue(isinstance(keys.RAMKey.read_from_file(filename, algorithm, passphrase), keys.RAMKey))
 
 
   def test_VaultKey_Ed25519(self):
@@ -221,13 +216,37 @@ class TestTufApi(unittest.TestCase):
     NAME = f'test-{KEY_TYPE}-key'
 
     for hash_algorithm in {h.value for h in VaultKey.HashAlgorithms}:
-      self.assertRaises(ValueError, VaultKey.create_key, VAULT_ADDR, VAULT_TOKEN, NAME, KEY_TYPE, hash_algorithm=hash_algorithm)
+      self.assertRaises(
+        ValueError,
+        VaultKey.create_key,
+        VAULT_ADDR,
+        VAULT_TOKEN,
+        NAME,
+        KEY_TYPE,
+        hash_algorithm=hash_algorithm,
+      )
 
     for marshaling_algorithm in {m.value for m in VaultKey.MarshalingAlgorithms}:
-      self.assertRaises(ValueError, VaultKey.create_key, VAULT_ADDR, VAULT_TOKEN, NAME, KEY_TYPE, marshaling_algorithm=marshaling_algorithm)
+      self.assertRaises(
+        ValueError,
+        VaultKey.create_key,
+        VAULT_ADDR,
+        VAULT_TOKEN,
+        NAME,
+        KEY_TYPE,
+        marshaling_algorithm=marshaling_algorithm,
+      )
 
     for signature_algorithm in {s.value for s in VaultKey.SignatureAlgorithms}:
-      self.assertRaises(ValueError, VaultKey.create_key, VAULT_ADDR, VAULT_TOKEN, NAME, KEY_TYPE, signature_algorithm=signature_algorithm)
+      self.assertRaises(
+        ValueError,
+        VaultKey.create_key,
+        VAULT_ADDR,
+        VAULT_TOKEN,
+        NAME,
+        KEY_TYPE,
+        signature_algorithm=signature_algorithm,
+      )
 
     key = VaultKey.create_key(VAULT_ADDR, VAULT_TOKEN, NAME, KEY_TYPE)
     signed = f'Hello, {KEY_TYPE}!'
@@ -243,21 +262,72 @@ class TestTufApi(unittest.TestCase):
       NAME = f'test-{key_type}-key'
 
       for marshaling_algorithm in {m.value for m in VaultKey.MarshalingAlgorithms}:
-        key = VaultKey.create_key(VAULT_ADDR, VAULT_TOKEN, NAME, key_type, hash_algorithm=hash_algorithm, marshaling_algorithm=marshaling_algorithm,)
+        key = VaultKey.create_key(
+          VAULT_ADDR,
+          VAULT_TOKEN,
+          NAME,
+          key_type,
+          hash_algorithm=hash_algorithm,
+          marshaling_algorithm=marshaling_algorithm,
+        )
         signed = f'Hello, {key_type}!'
         signature = key.sign(signed)
         self.assertTrue(key.verify(signed, signature))
 
       for hash_algorithm in hash_algorithms:
-        self.assertRaises(ValueError, VaultKey.create_key, VAULT_ADDR, VAULT_TOKEN, NAME, key_type, hash_algorithm=hash_algorithm)
+        self.assertRaises(
+          ValueError,
+          VaultKey.create_key,
+          VAULT_ADDR,
+          VAULT_TOKEN,
+          NAME,
+          key_type,
+          hash_algorithm=hash_algorithm
+        )
 
       for signature_algorithm in {s.value for s in VaultKey.SignatureAlgorithms}:
-        self.assertRaises(ValueError, VaultKey.create_key, VAULT_ADDR, VAULT_TOKEN, NAME, key_type, signature_algorithm=signature_algorithm)
+        self.assertRaises(
+          ValueError,
+          VaultKey.create_key,
+          VAULT_ADDR,
+          VAULT_TOKEN,
+          NAME,
+          key_type,
+          signature_algorithm=signature_algorithm
+        )
 
+    test(
+      VaultKey.KeyTypes.P_256.value,
+      VaultKey.HashAlgorithms.SHA2_256.value,
+      {
+        VaultKey.HashAlgorithms.SHA2_224.value,
+        VaultKey.HashAlgorithms.SHA2_384.value,
+        VaultKey.HashAlgorithms.SHA2_512.value
+      }
+    )
 
-    test(VaultKey.KeyTypes.P_256.value, VaultKey.HashAlgorithms.SHA2_256.value, {VaultKey.HashAlgorithms.SHA2_224.value, VaultKey.HashAlgorithms.SHA2_384.value, VaultKey.HashAlgorithms.SHA2_512.value})
-    # FIXME: https://github.com/hvac/hvac/issues/605
-    #test(VaultKey.KeyTypes.P_384.value, VaultKey.HashAlgorithms.SHA2_384.value, {VaultKey.HashAlgorithms.SHA2_224.value, VaultKey.HashAlgorithms.SHA2_256.value, VaultKey.HashAlgorithms.SHA2_512.value})
+    # FIXME: Unfortunately, py-TUF does not yet support P-384.
+    # test(
+    #   VaultKey.KeyTypes.P_384.value,
+    #   VaultKey.HashAlgorithms.SHA2_384.value,
+    #   {
+    #     VaultKey.HashAlgorithms.SHA2_224.value,
+    #     VaultKey.HashAlgorithms.SHA2_256.value,
+    #     VaultKey.HashAlgorithms.SHA2_512.value
+    #   }
+    # )
+
+    # FIXME: Unfortunately, py-TUF does not yet support P-521.
+    # https://github.com/hvac/hvac/pull/608
+    # test(
+    #   VaultKey.KeyTypes.P_521.value,
+    #   VaultKey.HashAlgorithms.SHA2_512.value,
+    #   {
+    #     VaultKey.HashAlgorithms.SHA2_224.value,
+    #     VaultKey.HashAlgorithms.SHA2_256.value,
+    #     VaultKey.HashAlgorithms.SHA2_384.value
+    #   }
+    # )
 
 
   def test_VaultKey_RSA(self):
@@ -275,9 +345,24 @@ class TestTufApi(unittest.TestCase):
       for signature_algorithm in {s.value for s in VaultKey.SignatureAlgorithms}:
         for hash_algorithm in {h.value for h in VaultKey.HashAlgorithms}:
           for marshaling_algorithm in {m.value for m in VaultKey.MarshalingAlgorithms}:
-            self.assertRaises(ValueError, VaultKey.create_key, VAULT_ADDR, VAULT_TOKEN, NAME, key_type, marshaling_algorithm=marshaling_algorithm,)
+            self.assertRaises(
+              ValueError,
+              VaultKey.create_key,
+              VAULT_ADDR,
+              VAULT_TOKEN,
+              NAME,
+              key_type,
+              marshaling_algorithm=marshaling_algorithm,
+            )
 
-          key = VaultKey.create_key(VAULT_ADDR, VAULT_TOKEN, NAME, key_type, hash_algorithm=hash_algorithm, signature_algorithm=signature_algorithm,)
+          key = VaultKey.create_key(
+            VAULT_ADDR,
+            VAULT_TOKEN,
+            NAME,
+            key_type,
+            hash_algorithm=hash_algorithm,
+            signature_algorithm=signature_algorithm,
+          )
           signed = f'Hello, {key_type}!'
           signature = key.sign(signed)
           self.assertTrue(key.verify(signed, signature))
