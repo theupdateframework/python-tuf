@@ -307,6 +307,7 @@ class TestTufApi(unittest.TestCase):
     )
 
     # FIXME: Unfortunately, py-TUF does not yet support P-384.
+    # https://github.com/hvac/hvac/pull/606
     # test(
     #   VaultKey.KeyTypes.P_384.value,
     #   VaultKey.HashAlgorithms.SHA2_384.value,
@@ -336,8 +337,8 @@ class TestTufApi(unittest.TestCase):
 
     for key_type in {
       VaultKey.KeyTypes.RSA_2048.value,
-      # FIXME: https://github.com/hvac/hvac/issues/605
-      #VaultKey.KeyTypes.RSA_3072.value,
+      # https://github.com/hvac/hvac/issues/605
+      VaultKey.KeyTypes.RSA_3072.value,
       VaultKey.KeyTypes.RSA_4096.value
     }:
       NAME = f'test-{key_type}-key'

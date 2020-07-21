@@ -308,8 +308,7 @@ class VaultKey(Key):
         if not self.__client.is_authenticated():
             raise self.AuthenticationError
 
-        # Guess why this isn't a requests.Response?
-        # https://github.com/hvac/hvac/pull/537#issuecomment-660304707
+        # https://github.com/hvac/hvac/issues/604
         response = self.__client.secrets.transit.read_key(name=name)
         self.__name = name
 
@@ -324,8 +323,6 @@ class VaultKey(Key):
         # NOTE: The documentation is not clear, but presumably the returned
         # keys are different versions of keys under the same name. Therefore,
         # we shall select the one with the latest version number.
-        # NOTE: We are also taking it for granted that Vault will generate
-        # public keys in formats TUF will recognize out of the box.
         keys = data['keys']
         latest_version = data['latest_version']
         key = keys.get(str(latest_version))
@@ -420,6 +417,7 @@ class VaultKey(Key):
             self.KeyTypes.RSA_3072.value,
             self.KeyTypes.RSA_4096.value
         } and self.__signature_algorithm == self.SignatureAlgorithms.PSS.value:
+            # https://github.com/secure-systems-lab/securesystemslib/pull/262
             return self.__ram_key._verify_rsa_signature(
                 signed,
                 signature,
