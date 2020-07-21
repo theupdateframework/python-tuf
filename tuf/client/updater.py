@@ -951,7 +951,7 @@ class Updater(object):
         # We specify the keyid to ensure that it's the correct keyid
         # for the key.
         try:
-          key, keyids = securesystemslib.keys.format_metadata_to_key(keyinfo, keyid)
+          key, _ = securesystemslib.keys.format_metadata_to_key(keyinfo, keyid)
 
           key['keyid'] = keyid
           tuf.keydb.add_key(key, keyid=None, repository_name=self.repository_name)

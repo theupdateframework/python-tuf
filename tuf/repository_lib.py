@@ -686,7 +686,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     for keyid, key_metadata in six.iteritems(targets_metadata['delegations']['keys']):
 
       # Use the keyid found in the delegation
-      key_object, keyids = securesystemslib.keys.format_metadata_to_key(key_metadata, keyid)
+      key_object, _ = securesystemslib.keys.format_metadata_to_key(key_metadata, keyid)
 
       # Add 'key_object' to the list of recognized keys.  Keys may be shared,
       # so do not raise an exception if 'key_object' has already been loaded.
