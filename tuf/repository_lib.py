@@ -695,7 +695,6 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
       # repository maintainer should have also been made aware of the duplicate
       # key when it was added.
       try:
-        key_object['keyid'] = keyid
         tuf.keydb.add_key(key_object, keyid=None, repository_name=repository_name)
 
       except tuf.exceptions.KeyAlreadyExistsError:
