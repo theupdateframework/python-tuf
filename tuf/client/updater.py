@@ -954,7 +954,7 @@ class Updater(object):
           key, _ = securesystemslib.keys.format_metadata_to_key(keyinfo, keyid)
 
           key['keyid'] = keyid
-          tuf.keydb.add_key(key, keyid=None, repository_name=self.repository_name)
+          tuf.keydb.add_key(key, repository_name=self.repository_name)
 
         except tuf.exceptions.KeyAlreadyExistsError:
           pass

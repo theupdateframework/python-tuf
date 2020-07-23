@@ -128,7 +128,7 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
       # keyids, otherwise add_key() will have no reference to it.
       try:
         key_dict['keyid'] = keyid
-        add_key(key_dict, keyid=None, repository_name=repository_name)
+        add_key(key_dict, repository_name=repository_name)
 
       # Although keyid duplicates should *not* occur (unique dict keys), log a
       # warning and continue.  However, 'key_dict' may have already been
