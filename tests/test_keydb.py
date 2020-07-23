@@ -374,11 +374,6 @@ class TestKeydb(unittest.TestCase):
     rsakey3['keytype'] = 'bad_keytype'
     keydict[keyid3] = rsakey3
 
-    # New key with a duplicate keyid
-    #rsakey4 = KEYS[1]
-    #keyid4 = KEYS[3]['keyid']
-    #keydict[keyid4] = rsakey4
-
     version = 8
     expires = '1985-10-21T01:21:00Z'
 
@@ -404,7 +399,6 @@ class TestKeydb(unittest.TestCase):
     self.assertEqual(test_key, tuf.keydb.get_key(keyid))
 
     self.assertRaises(tuf.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid3)
-    #self.assertRaises(tuf.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid4)
 
     # reset values
     rsakey3['keytype'] = 'rsa'
