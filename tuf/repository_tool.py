@@ -2880,7 +2880,8 @@ def _keys_to_keydict(keys):
 
 
 def create_new_repository(repository_directory, repository_name='default',
-    storage_backend=None):
+    storage_backend=None, use_timestamp_length=True, use_timestamp_hashes=True,
+    use_snapshot_length=False, use_snapshot_hashes=False):
   """
   <Purpose>
     Create a new repository, instantiate barebones metadata for the top-level
@@ -2903,6 +2904,30 @@ def create_new_repository(repository_directory, repository_name='default',
       An object which implements
       securesystemslib.storage.StorageBackendInterface. When no object is
       passed a FilesystemBackend will be instantiated and used.
+
+    use_timestamp_length:
+      Whether to include the optional length attribute of the snapshot
+      metadata file in the timestamp metadata.
+      Default is True.
+
+    use_timestamp_hashes:
+      Whether to include the optional hashes attribute of the snapshot
+      metadata file in the timestamp metadata.
+      Default is True.
+
+    use_snapshot_length:
+      Whether to include the optional length attribute for targets
+      metadata files in the snapshot metadata.
+      Default is False because of bandwidth considerations.
+      Read more here:
+      https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
+
+    use_snapshot_hashes:
+      Whether to include the optional hashes attribute for targets
+      metadata files in the snapshot metadata.
+      Default is False because of bandwidth considerations.
+      Read more here:
+      https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
 
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the arguments are improperly
@@ -2956,7 +2981,8 @@ def create_new_repository(repository_directory, repository_name='default',
   # have been set and contain default values (e.g., Root roles has a threshold
   # of 1, expires 1 year into the future, etc.)
   repository = Repository(repository_directory, metadata_directory,
-      targets_directory, storage_backend, repository_name)
+      targets_directory, storage_backend, repository_name, use_timestamp_length,
+      use_timestamp_hashes, use_snapshot_length, use_snapshot_hashes)
 
   return repository
 
@@ -2965,7 +2991,8 @@ def create_new_repository(repository_directory, repository_name='default',
 
 
 def load_repository(repository_directory, repository_name='default',
-    storage_backend=None):
+    storage_backend=None, use_timestamp_length=True, use_timestamp_hashes=True,
+    use_snapshot_length=False, use_snapshot_hashes=False):
   """
   <Purpose>
     Return a repository object containing the contents of metadata files loaded
@@ -2984,6 +3011,30 @@ def load_repository(repository_directory, repository_name='default',
       An object which implements
       securesystemslib.storage.StorageBackendInterface. When no object is
       passed a FilesystemBackend will be instantiated and used.
+
+    use_timestamp_length:
+      Whether to include the optional length attribute of the snapshot
+      metadata file in the timestamp metadata.
+      Default is True.
+
+    use_timestamp_hashes:
+      Whether to include the optional hashes attribute of the snapshot
+      metadata file in the timestamp metadata.
+      Default is True.
+
+    use_snapshot_length:
+      Whether to include the optional length attribute for targets
+      metadata files in the snapshot metadata.
+      Default is False because of bandwidth considerations.
+      Read more here:
+      https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
+
+    use_snapshot_hashes:
+      Whether to include the optional hashes attribute for targets
+      metadata files in the snapshot metadata.
+      Default is False because of bandwidth considerations.
+      Read more here:
+      https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
 
   <Exceptions>
     securesystemslib.exceptions.FormatError, if 'repository_directory' or any of
@@ -3016,7 +3067,8 @@ def load_repository(repository_directory, repository_name='default',
   # The Repository() object loaded (i.e., containing all the metadata roles
   # found) and returned.
   repository = Repository(repository_directory, metadata_directory,
-      targets_directory, storage_backend, repository_name)
+      targets_directory, storage_backend, repository_name, use_timestamp_length,
+      use_timestamp_hashes, use_snapshot_length, use_snapshot_hashes)
 
   filenames = repo_lib.get_top_level_metadata_filenames(metadata_directory)
 
