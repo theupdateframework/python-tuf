@@ -1561,14 +1561,16 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
     use_length:
       Whether to include the optional length attribute for targets
       metadata files in the snapshot metadata.
-      Default is False because of bandwidth considerations.
+      Default is False to save bandwidth but without losing security
+      from rollback attacks.
       Read more at section 5.6 from the Mercury paper:
       https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
 
     use_hashes:
       Whether to include the optional hashes attribute for targets
       metadata files in the snapshot metadata.
-      Default is False because of bandwidth considerations.
+      Default is False to save bandwidth but without losing security
+      from rollback attacks.
       Read more at section 5.6 from the Mercury paper:
       https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
 

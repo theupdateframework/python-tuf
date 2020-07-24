@@ -191,14 +191,16 @@ class Repository(object):
     use_snapshot_length:
       Whether to include the optional length attribute for targets
       metadata files in the snapshot metadata.
-      Default is False because of bandwidth considerations.
+      Default is False to save bandwidth but without losing security
+      from rollback attacks.
       Read more at section 5.6 from the Mercury paper:
       https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
 
     use_snapshot_hashes:
       Whether to include the optional hashes attribute for targets
       metadata files in the snapshot metadata.
-      Default is False because of bandwidth considerations.
+      Default is False to save bandwidth but without losing security
+      from rollback attacks.
       Read more at section 5.6 from the Mercury paper:
       https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
 
@@ -2918,15 +2920,17 @@ def create_new_repository(repository_directory, repository_name='default',
     use_snapshot_length:
       Whether to include the optional length attribute for targets
       metadata files in the snapshot metadata.
-      Default is False because of bandwidth considerations.
-      Read more here:
+      Default is False to save bandwidth but without losing security
+      from rollback attacks.
+      Read more at section 5.6 from the Mercury paper:
       https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
 
     use_snapshot_hashes:
       Whether to include the optional hashes attribute for targets
       metadata files in the snapshot metadata.
-      Default is False because of bandwidth considerations.
-      Read more here:
+      Default is False to save bandwidth but without losing security
+      from rollback attacks.
+      Read more at section 5.6 from the Mercury paper:
       https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
 
   <Exceptions>
@@ -3025,15 +3029,17 @@ def load_repository(repository_directory, repository_name='default',
     use_snapshot_length:
       Whether to include the optional length attribute for targets
       metadata files in the snapshot metadata.
-      Default is False because of bandwidth considerations.
-      Read more here:
+      Default is False to save bandwidth but without losing security
+      from rollback attacks.
+      Read more at section 5.6 from the Mercury paper:
       https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
 
     use_snapshot_hashes:
       Whether to include the optional hashes attribute for targets
       metadata files in the snapshot metadata.
-      Default is False because of bandwidth considerations.
-      Read more here:
+      Default is False to save bandwidth but without losing security
+      from rollback attacks.
+      Read more at section 5.6 from the Mercury paper:
       https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
 
   <Exceptions>
