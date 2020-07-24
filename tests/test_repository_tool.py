@@ -1993,6 +1993,19 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertTrue(os.path.exists(metadata_directory))
     self.assertTrue(os.path.exists(targets_directory))
 
+    # Test passing custom arguments to control the computation
+    # of length and hashes for timestamp and snapshot roles.
+    repository = repo_tool.create_new_repository(repository_directory,
+        repository_name, use_timestamp_length=True, use_timestamp_hashes=True,
+        use_snapshot_length=True, use_snapshot_hashes=True)
+
+    # Verify that the argument for optional hashes and length for
+    # snapshot and timestamp are properly set.
+    self.assertTrue(repository._use_timestamp_length)
+    self.assertTrue(repository._use_timestamp_hashes)
+    self.assertTrue(repository._use_snapshot_length)
+    self.assertTrue(repository._use_snapshot_hashes)
+
     # Test for a repository name that doesn't exist yet.  Note:
     # The 'test_repository' repository name is created in setup() before this
     # test case is run.
@@ -2104,6 +2117,19 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.FormatError,
         repo_tool.load_repository, 3)
 
+
+    # Test passing custom arguments to control the computation
+    # of length and hashes for timestamp and snapshot roles.
+    repository = repo_tool.load_repository(repository_directory,
+        'my-repo', use_timestamp_length=True, use_timestamp_hashes=True,
+        use_snapshot_length=True, use_snapshot_hashes=True)
+
+    # Verify that the argument for optional hashes and length for
+    # snapshot and timestamp are properly set.
+    self.assertTrue(repository._use_timestamp_length)
+    self.assertTrue(repository._use_timestamp_hashes)
+    self.assertTrue(repository._use_snapshot_length)
+    self.assertTrue(repository._use_snapshot_hashes)
 
     # Test for invalid 'repository_directory' (i.e., does not contain the
     # minimum required metadata.
