@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 
 # Generate the three keys to use in our test cases.
 KEYS = []
-for junk in range(4):
+for junk in range(3):
   rsa_key = securesystemslib.keys.generate_rsa_key(2048)
   rsa_key['keyid_hash_algorithms'] = securesystemslib.settings.HASH_ALGORITHMS
   KEYS.append(rsa_key)
@@ -390,7 +390,7 @@ class TestKeydb(unittest.TestCase):
     self.assertEqual(None, tuf.keydb.create_keydb_from_root_metadata(root_metadata))
 
     # Ensure only 'keyid2' and 'keyid' were added to the keydb database.
-    # 'keyid3' and 'keyid4' should not be stored.
+    # 'keyid3' should not be stored.
     self.maxDiff = None
     self.assertEqual(rsakey2, tuf.keydb.get_key(keyid2))
 
