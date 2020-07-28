@@ -245,8 +245,7 @@ def verify(signable, role, repository_name='default', threshold=None,
     NOTE:
     - Signatures with identical authorized keyids only count towards the
       threshold once.
-    - Signatures with different authorized keyids each count towards the
-      threshold, even if the keyids identify the same key.
+    - Signatures with the same key only count toward the threshold once.
 
   <Arguments>
     signable:
@@ -307,7 +306,12 @@ def verify(signable, role, repository_name='default', threshold=None,
   if threshold is None or threshold <= 0: #pragma: no cover
     raise securesystemslib.exceptions.Error("Invalid threshold: " + repr(threshold))
 
-  return len(set(good_sigs)) >= threshold
+  unique_keys = set()
+  for keyid in good_sigs:
+    key = tuf.keydb.get_key(keyid, repository_name)
+    unique_keys.add(key['keyval']['public'])
+
+  return len(unique_keys) >= threshold
 
 
 

@@ -436,9 +436,9 @@ class TestSig(unittest.TestCase):
     tuf.keydb.add_key(key_sha256)
     tuf.keydb.add_key(key_sha512)
 
-    # Assert that both keys count towards threshold although its the same key
+    # Assert that the key only counts toward the threshold once
     keyids = [key_sha256["keyid"], key_sha512["keyid"]]
-    self.assertTrue(
+    self.assertFalse(
         tuf.sig.verify(signable, "root", keyids=keyids, threshold=2))
 
     # Clean-up keydb
