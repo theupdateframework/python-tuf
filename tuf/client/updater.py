@@ -1151,12 +1151,12 @@ class Updater(object):
           # Otherwise, reraise the error, because it is not a simple HTTP
           # error.
           if neither_403_nor_404(mirror_error):
-            logging.exception('Misc error for root version '+str(next_version))
+            logger.exception('Misc error for root version '+str(next_version))
             raise
           else:
             # Calling this function should give us a detailed stack trace
             # including an HTTP error code, if any.
-            logging.exception('HTTP error for root version '+str(next_version))
+            logger.exception('HTTP error for root version '+str(next_version))
         # If we are here, then we ran into only 403 / 404 errors, which are
         # good reasons to suspect that the next root metadata file does not
         # exist.
