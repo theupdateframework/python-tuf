@@ -205,7 +205,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     # The fileinfo of the previous version is saved to verify that it is indeed
     # accepted by the non-TUF client.
     length, hashes = securesystemslib.util.get_file_details(backup_timestamp)
-    previous_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+    previous_fileinfo = tuf.formats.make_targets_fileinfo(length, hashes)
 
     # Modify the timestamp file on the remote repository.
     repository = repo_tool.load_repository(self.repository_directory)
@@ -227,7 +227,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     # Save the fileinfo of the new version generated to verify that it is
     # saved by the client.
     length, hashes = securesystemslib.util.get_file_details(timestamp_path)
-    new_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+    new_fileinfo = tuf.formats.make_targets_fileinfo(length, hashes)
 
     url_prefix = self.repository_mirrors['mirror1']['url_prefix']
     url_file = os.path.join(url_prefix, 'metadata', 'timestamp.json')
@@ -238,7 +238,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     six.moves.urllib.request.urlretrieve(url_file.replace('\\', '/'), client_timestamp_path)
 
     length, hashes = securesystemslib.util.get_file_details(client_timestamp_path)
-    download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+    download_fileinfo = tuf.formats.make_targets_fileinfo(length, hashes)
 
     # Verify 'download_fileinfo' is equal to the new version.
     self.assertEqual(download_fileinfo, new_fileinfo)
@@ -251,7 +251,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     six.moves.urllib.request.urlretrieve(url_file.replace('\\', '/'), client_timestamp_path)
 
     length, hashes = securesystemslib.util.get_file_details(client_timestamp_path)
-    download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+    download_fileinfo = tuf.formats.make_targets_fileinfo(length, hashes)
 
     # Verify 'download_fileinfo' is equal to the previous version.
     self.assertEqual(download_fileinfo, previous_fileinfo)
@@ -278,7 +278,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     # The fileinfo of the previous version is saved to verify that it is indeed
     # accepted by the non-TUF client.
     length, hashes = securesystemslib.util.get_file_details(backup_timestamp)
-    previous_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+    previous_fileinfo = tuf.formats.make_targets_fileinfo(length, hashes)
 
     # Modify the timestamp file on the remote repository.
     repository = repo_tool.load_repository(self.repository_directory)
@@ -300,7 +300,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     # Save the fileinfo of the new version generated to verify that it is
     # saved by the client.
     length, hashes = securesystemslib.util.get_file_details(timestamp_path)
-    new_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+    new_fileinfo = tuf.formats.make_targets_fileinfo(length, hashes)
 
     # Refresh top-level metadata, including 'timestamp.json'.  Installation of
     # new version of 'timestamp.json' is expected.
@@ -309,7 +309,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     client_timestamp_path = os.path.join(self.client_directory,
         self.repository_name, 'metadata', 'current', 'timestamp.json')
     length, hashes = securesystemslib.util.get_file_details(client_timestamp_path)
-    download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+    download_fileinfo = tuf.formats.make_targets_fileinfo(length, hashes)
 
     # Verify 'download_fileinfo' is equal to the new version.
     self.assertEqual(download_fileinfo, new_fileinfo)

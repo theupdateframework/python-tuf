@@ -178,6 +178,32 @@ class Repository(object):
       The name of the repository.  If not supplied, 'rolename' is added to the
       'default' repository.
 
+    use_timestamp_length:
+      Whether to include the optional length attribute of the snapshot
+      metadata file in the timestamp metadata.
+      Default is True.
+
+    use_timestamp_hashes:
+      Whether to include the optional hashes attribute of the snapshot
+      metadata file in the timestamp metadata.
+      Default is True.
+
+    use_snapshot_length:
+      Whether to include the optional length attribute for targets
+      metadata files in the snapshot metadata.
+      Default is False to save bandwidth but without losing security
+      from rollback attacks.
+      Read more at section 5.6 from the Mercury paper:
+      https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
+
+    use_snapshot_hashes:
+      Whether to include the optional hashes attribute for targets
+      metadata files in the snapshot metadata.
+      Default is False to save bandwidth but without losing security
+      from rollback attacks.
+      Read more at section 5.6 from the Mercury paper:
+      https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
+
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the arguments are improperly
     formatted.
@@ -191,7 +217,9 @@ class Repository(object):
   """
 
   def __init__(self, repository_directory, metadata_directory,
-      targets_directory, storage_backend, repository_name='default'):
+      targets_directory, storage_backend, repository_name='default',
+      use_timestamp_length=True, use_timestamp_hashes=True,
+      use_snapshot_length=False, use_snapshot_hashes=False):
 
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
@@ -201,12 +229,20 @@ class Repository(object):
     securesystemslib.formats.PATH_SCHEMA.check_match(metadata_directory)
     securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
     securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_timestamp_length)
+    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_timestamp_hashes)
+    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_snapshot_length)
+    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_snapshot_hashes)
 
     self._repository_directory = repository_directory
     self._metadata_directory = metadata_directory
     self._targets_directory = targets_directory
     self._repository_name = repository_name
     self._storage_backend = storage_backend
+    self._use_timestamp_length = use_timestamp_length
+    self._use_timestamp_hashes = use_timestamp_hashes
+    self._use_snapshot_length = use_snapshot_length
+    self._use_snapshot_hashes = use_snapshot_hashes
 
     try:
       tuf.roledb.create_roledb(repository_name)
@@ -330,14 +366,18 @@ class Repository(object):
           filenames['snapshot'], self._targets_directory,
           self._metadata_directory, self._storage_backend,
           consistent_snapshot, filenames,
-          repository_name=self._repository_name)
+          repository_name=self._repository_name,
+          use_snapshot_length=self._use_snapshot_length,
+          use_snapshot_hashes=self._use_snapshot_hashes)
 
     # Generate the 'timestamp.json' metadata file.
     if 'timestamp' in dirty_rolenames:
       repo_lib._generate_and_write_metadata('timestamp', filenames['timestamp'],
           self._targets_directory, self._metadata_directory,
           self._storage_backend, consistent_snapshot,
-          filenames, repository_name=self._repository_name)
+          filenames, repository_name=self._repository_name,
+          use_timestamp_length=self._use_timestamp_length,
+          use_timestamp_hashes=self._use_timestamp_hashes)
 
     tuf.roledb.unmark_dirty(dirty_rolenames, self._repository_name)
 
@@ -1958,11 +1998,10 @@ class Targets(Metadata):
 
       fileinfo:
         An optional fileinfo dictionary, conforming to
-        tuf.formats.FILEINFO_SCHEMA, providing full information about the
+        tuf.formats.TARGETS_FILEINFO_SCHEMA, providing full information about the
         file, i.e:
           { 'length': 101,
             'hashes': { 'sha256': '123EDF...' },
-            'version': 2, # optional
             'custom': { 'permissions': '600'} # optional
           }
         NOTE: if a custom value is passed, the fileinfo parameter must be None.
@@ -1992,7 +2031,7 @@ class Targets(Metadata):
           " custom or fileinfo, not both.")
 
     if fileinfo:
-      tuf.formats.FILEINFO_SCHEMA.check_match(fileinfo)
+      tuf.formats.TARGETS_FILEINFO_SCHEMA.check_match(fileinfo)
 
     if custom is None:
       custom = {}
@@ -2649,7 +2688,7 @@ class Targets(Metadata):
         Note: 'number_of_bins' must be a power of 2.
 
       fileinfo:
-        An optional fileinfo object, conforming to tuf.formats.FILEINFO_SCHEMA,
+        An optional fileinfo object, conforming to tuf.formats.TARGETS_FILEINFO_SCHEMA,
         providing full information about the file.
 
     <Exceptions>
@@ -2843,7 +2882,8 @@ def _keys_to_keydict(keys):
 
 
 def create_new_repository(repository_directory, repository_name='default',
-    storage_backend=None):
+    storage_backend=None, use_timestamp_length=True, use_timestamp_hashes=True,
+    use_snapshot_length=False, use_snapshot_hashes=False):
   """
   <Purpose>
     Create a new repository, instantiate barebones metadata for the top-level
@@ -2866,6 +2906,32 @@ def create_new_repository(repository_directory, repository_name='default',
       An object which implements
       securesystemslib.storage.StorageBackendInterface. When no object is
       passed a FilesystemBackend will be instantiated and used.
+
+    use_timestamp_length:
+      Whether to include the optional length attribute of the snapshot
+      metadata file in the timestamp metadata.
+      Default is True.
+
+    use_timestamp_hashes:
+      Whether to include the optional hashes attribute of the snapshot
+      metadata file in the timestamp metadata.
+      Default is True.
+
+    use_snapshot_length:
+      Whether to include the optional length attribute for targets
+      metadata files in the snapshot metadata.
+      Default is False to save bandwidth but without losing security
+      from rollback attacks.
+      Read more at section 5.6 from the Mercury paper:
+      https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
+
+    use_snapshot_hashes:
+      Whether to include the optional hashes attribute for targets
+      metadata files in the snapshot metadata.
+      Default is False to save bandwidth but without losing security
+      from rollback attacks.
+      Read more at section 5.6 from the Mercury paper:
+      https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
 
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the arguments are improperly
@@ -2919,7 +2985,8 @@ def create_new_repository(repository_directory, repository_name='default',
   # have been set and contain default values (e.g., Root roles has a threshold
   # of 1, expires 1 year into the future, etc.)
   repository = Repository(repository_directory, metadata_directory,
-      targets_directory, storage_backend, repository_name)
+      targets_directory, storage_backend, repository_name, use_timestamp_length,
+      use_timestamp_hashes, use_snapshot_length, use_snapshot_hashes)
 
   return repository
 
@@ -2928,7 +2995,8 @@ def create_new_repository(repository_directory, repository_name='default',
 
 
 def load_repository(repository_directory, repository_name='default',
-    storage_backend=None):
+    storage_backend=None, use_timestamp_length=True, use_timestamp_hashes=True,
+    use_snapshot_length=False, use_snapshot_hashes=False):
   """
   <Purpose>
     Return a repository object containing the contents of metadata files loaded
@@ -2947,6 +3015,32 @@ def load_repository(repository_directory, repository_name='default',
       An object which implements
       securesystemslib.storage.StorageBackendInterface. When no object is
       passed a FilesystemBackend will be instantiated and used.
+
+    use_timestamp_length:
+      Whether to include the optional length attribute of the snapshot
+      metadata file in the timestamp metadata.
+      Default is True.
+
+    use_timestamp_hashes:
+      Whether to include the optional hashes attribute of the snapshot
+      metadata file in the timestamp metadata.
+      Default is True.
+
+    use_snapshot_length:
+      Whether to include the optional length attribute for targets
+      metadata files in the snapshot metadata.
+      Default is False to save bandwidth but without losing security
+      from rollback attacks.
+      Read more at section 5.6 from the Mercury paper:
+      https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
+
+    use_snapshot_hashes:
+      Whether to include the optional hashes attribute for targets
+      metadata files in the snapshot metadata.
+      Default is False to save bandwidth but without losing security
+      from rollback attacks.
+      Read more at section 5.6 from the Mercury paper:
+      https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
 
   <Exceptions>
     securesystemslib.exceptions.FormatError, if 'repository_directory' or any of
@@ -2979,7 +3073,8 @@ def load_repository(repository_directory, repository_name='default',
   # The Repository() object loaded (i.e., containing all the metadata roles
   # found) and returned.
   repository = Repository(repository_directory, metadata_directory,
-      targets_directory, storage_backend, repository_name)
+      targets_directory, storage_backend, repository_name, use_timestamp_length,
+      use_timestamp_hashes, use_snapshot_length, use_snapshot_hashes)
 
   filenames = repo_lib.get_top_level_metadata_filenames(metadata_directory)
 

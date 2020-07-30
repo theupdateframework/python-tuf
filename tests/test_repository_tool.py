@@ -110,6 +110,13 @@ class TestRepository(unittest.TestCase):
                       'repository_directory', storage_backend, 3, 'targets_directory')
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.Repository,
                       'repository_directory', 'metadata_directory', 3, storage_backend)
+    self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.Repository,
+                      'repository_directory/', 'metadata_directory/', 'targets_directory/',
+                      storage_backend, repository_name, use_timestamp_length=3)
+    self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.Repository,
+                      'repository_directory/', 'metadata_directory/', 'targets_directory/',
+                      storage_backend, repository_name, use_timestamp_length=False,
+                      use_timestamp_hashes=3)
 
 
 
@@ -457,8 +464,8 @@ class TestRepository(unittest.TestCase):
     # Add target fileinfo
     target1_hashes = {'sha256': 'c2986576f5fdfd43944e2b19e775453b96748ec4fe2638a6d2f32f1310967095'}
     target2_hashes = {'sha256': '517c0ce943e7274a2431fa5751e17cfd5225accd23e479bfaad13007751e87ef'}
-    target1_fileinfo = tuf.formats.make_fileinfo(555, target1_hashes)
-    target2_fileinfo = tuf.formats.make_fileinfo(37, target2_hashes)
+    target1_fileinfo = tuf.formats.make_targets_fileinfo(555, target1_hashes)
+    target2_fileinfo = tuf.formats.make_targets_fileinfo(37, target2_hashes)
     target1 = 'file1.txt'
     target2 = 'file2.txt'
     repository.targets.add_target(target1, fileinfo=target1_fileinfo)
@@ -1688,7 +1695,7 @@ class TestTargets(unittest.TestCase):
 
     # Test adding a target with fileinfo
     target2_hashes = {'sha256': '517c0ce943e7274a2431fa5751e17cfd5225accd23e479bfaad13007751e87ef'}
-    target2_fileinfo = tuf.formats.make_fileinfo(37, target2_hashes)
+    target2_fileinfo = tuf.formats.make_targets_fileinfo(37, target2_hashes)
     target2_filepath = 'file2.txt'
 
     rolename = self.targets_object.add_target_to_bin(target2_filepath, 16,
@@ -1986,6 +1993,19 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertTrue(os.path.exists(metadata_directory))
     self.assertTrue(os.path.exists(targets_directory))
 
+    # Test passing custom arguments to control the computation
+    # of length and hashes for timestamp and snapshot roles.
+    repository = repo_tool.create_new_repository(repository_directory,
+        repository_name, use_timestamp_length=True, use_timestamp_hashes=True,
+        use_snapshot_length=True, use_snapshot_hashes=True)
+
+    # Verify that the argument for optional hashes and length for
+    # snapshot and timestamp are properly set.
+    self.assertTrue(repository._use_timestamp_length)
+    self.assertTrue(repository._use_timestamp_hashes)
+    self.assertTrue(repository._use_snapshot_length)
+    self.assertTrue(repository._use_snapshot_hashes)
+
     # Test for a repository name that doesn't exist yet.  Note:
     # The 'test_repository' repository name is created in setup() before this
     # test case is run.
@@ -2097,6 +2117,19 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.FormatError,
         repo_tool.load_repository, 3)
 
+
+    # Test passing custom arguments to control the computation
+    # of length and hashes for timestamp and snapshot roles.
+    repository = repo_tool.load_repository(repository_directory,
+        'my-repo', use_timestamp_length=True, use_timestamp_hashes=True,
+        use_snapshot_length=True, use_snapshot_hashes=True)
+
+    # Verify that the argument for optional hashes and length for
+    # snapshot and timestamp are properly set.
+    self.assertTrue(repository._use_timestamp_length)
+    self.assertTrue(repository._use_timestamp_hashes)
+    self.assertTrue(repository._use_snapshot_length)
+    self.assertTrue(repository._use_snapshot_hashes)
 
     # Test for invalid 'repository_directory' (i.e., does not contain the
     # minimum required metadata.

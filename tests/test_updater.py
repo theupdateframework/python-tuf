@@ -494,7 +494,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.assertTrue(tuf.formats.FILEDICT_SCHEMA.matches(fileinfo_dict))
       root_filepath = os.path.join(self.client_metadata_current, 'root.json')
       length, hashes = securesystemslib.util.get_file_details(root_filepath)
-      root_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+      root_fileinfo = tuf.formats.make_targets_fileinfo(length, hashes)
       self.assertTrue('root.json' in fileinfo_dict)
       self.assertEqual(fileinfo_dict['root.json'], root_fileinfo)
 
@@ -515,18 +515,18 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       #  Verify that the method returns 'False' if file info was not changed.
       root_filepath = os.path.join(self.client_metadata_current, 'root.json')
       length, hashes = securesystemslib.util.get_file_details(root_filepath)
-      root_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+      root_fileinfo = tuf.formats.make_targets_fileinfo(length, hashes)
       self.assertFalse(self.repository_updater._fileinfo_has_changed('root.json',
                                                              root_fileinfo))
 
       # Verify that the method returns 'True' if length or hashes were changed.
       new_length = 8
-      new_root_fileinfo = tuf.formats.make_fileinfo(new_length, hashes)
+      new_root_fileinfo = tuf.formats.make_targets_fileinfo(new_length, hashes)
       self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
                                                              new_root_fileinfo))
       # Hashes were changed.
       new_hashes = {'sha256': self.random_string()}
-      new_root_fileinfo = tuf.formats.make_fileinfo(length, new_hashes)
+      new_root_fileinfo = tuf.formats.make_targets_fileinfo(length, new_hashes)
       self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
                                                              new_root_fileinfo))
 
@@ -1260,7 +1260,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     length, hashes = \
       securesystemslib.util.get_file_details(download_filepath,
         securesystemslib.settings.HASH_ALGORITHMS)
-    download_targetfileinfo = tuf.formats.make_fileinfo(length, hashes)
+    download_targetfileinfo = tuf.formats.make_targets_fileinfo(length, hashes)
 
     # Add any 'custom' data from the repository's target fileinfo to the
     # 'download_targetfileinfo' object being tested.
