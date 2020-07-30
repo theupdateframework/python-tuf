@@ -118,6 +118,7 @@ file_handler = None
 # the standard pattern of logging.getLogger(__name__)
 logger = logging.getLogger('tuf')
 logger.setLevel(_DEFAULT_LOG_LEVEL)
+logger.addHandler(logging.NullHandler())
 
 # Set the built-in file handler.  Messages will be logged to
 # 'settings.LOG_FILENAME', and only those messages with a log level of
