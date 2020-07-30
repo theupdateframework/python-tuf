@@ -1370,12 +1370,12 @@ class Updater(object):
 
 
 
-  def _verify_uncompressed_metadata_file(self, metadata_file_object,
+  def _verify_metadata_file(self, metadata_file_object,
       metadata_role):
     """
     <Purpose>
-      Non-public method that verifies an uncompressed metadata file.  An
-      exception is raised if 'metadata_file_object is invalid.  There is no
+      Non-public method that verifies a metadata file.  An exception is
+      raised if 'metadata_file_object is invalid.  There is no
       return value.
 
     <Arguments>
@@ -1569,7 +1569,7 @@ class Updater(object):
           except KeyError:
             logger.info(metadata_role + ' not available locally.')
 
-        self._verify_uncompressed_metadata_file(file_object, metadata_role)
+        self._verify_metadata_file(file_object, metadata_role)
 
       except Exception as exception:
         # Remember the error from this mirror, and "reset" the target file.
