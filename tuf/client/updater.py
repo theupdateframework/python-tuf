@@ -1590,24 +1590,6 @@ class Updater(object):
 
 
 
-  def _verify_root_chain_link(self, rolename, current_root_metadata,
-    next_root_metadata):
-
-    if rolename != 'root':
-      return True
-
-    current_root_role = current_root_metadata['roles'][rolename]
-
-    # Verify next metadata with current keys/threshold
-    valid = tuf.sig.verify(next_root_metadata, rolename, self.repository_name,
-        current_root_role['threshold'], current_root_role['keyids'])
-
-    if not valid:
-      raise securesystemslib.exceptions.BadSignatureError('Root is not signed'
-          ' by previous threshold of keys.')
-
-
-
 
 
   def _get_file(self, filepath, verify_file_function, file_type, file_length,
@@ -1801,9 +1783,6 @@ class Updater(object):
     # stored for 'metadata_role'.
     updated_metadata_object = metadata_signable['signed']
     current_metadata_object = self.metadata['current'].get(metadata_role)
-
-    self._verify_root_chain_link(metadata_role, current_metadata_object,
-        metadata_signable)
 
     # Finally, update the metadata and fileinfo stores, and rebuild the
     # key and role info for the top-level roles if 'metadata_role' is root.
