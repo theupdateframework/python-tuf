@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.13.0
+* Revise requirements files to have layered requirements (#978, #982)
+* Update tutorial instructions (#981, #992) and documentation (#1054, #1001)
+* Fix broken CI (#985)
+* Add support for BLAKE hash functions (#993)
+* Replace hard-coded logger names (#989)
+* Don't list root metadata in snapshot metadata (#988)
+* Enable targets metadata to be generated without access to the target files (#1007, #1020)
+* Fix target file path hashing to ensure paths are hashed as they appear in targets metadata (#1007)
+* Refactor code handling hashed bins (#1007, #1013, #1040, #1058)
+* Improve performance when delegating to a large number of hashed bins (#1012)
+* Improve path handling consistency when adding targets and paths (#1008)
+* Clarify error message and docstring for custom parameter of add_target() (#1027)
+* Fix tests (#1029, #1064, #1067)
+* Implement support for abstract files and directories (#1024, #1034)
+* Fix loading of delegated targets during repository load (#1049, #1052, #1071)
+* Fix key loading in repo.py (#1066)
+* Remove redundant code in downloader (#1073)
+* Make lengths and hashes optional for timestamp and snapshot roles (#1031)
+* Fix alarming logging in updater (#1092)
+
 ## v0.12.2
 * Fix incorrect threshold signature computation (#974)
 * Drop support for python 3.4 (#966)
