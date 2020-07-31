@@ -26,7 +26,8 @@
 # ./update-requirements.sh
 #
 enum34; python_version < '3'
-hvac
+# https://github.com/hvac/hvac/releases/tag/v0.10.5
+hvac>=0.10.5
 ipaddress; python_version < '3'
 iso8601
 requests
