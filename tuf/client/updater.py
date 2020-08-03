@@ -940,7 +940,6 @@ class Updater(object):
       return
 
     # This could be quite slow with a large number of delegations.
-    keys_info = current_parent_metadata['delegations'].get('keys', {})
     roles_info = current_parent_metadata['delegations'].get('roles', [])
 
     logger.debug('Adding roles delegated from ' + repr(parent_role) + '.')
@@ -2501,7 +2500,7 @@ class Updater(object):
       roleinfo = tuf.roledb.get_roleinfo(rolename, self.repository_name)
       try:
         delegating_rolename = roleinfo['parent_role']
-      except:
+      except KeyError:
         delegating_rolename = 'root'
       self._update_metadata_if_changed(rolename,
             delegating_rolename=delegating_rolename)

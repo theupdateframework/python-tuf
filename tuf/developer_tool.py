@@ -259,7 +259,7 @@ class Project(Targets):
       roleinfo = tuf.roledb.get_roleinfo(delegated_rolename, self.repository_name)
       try:
         delegating_rolename = roleinfo['parent_role']
-      except:
+      except KeyError:
         delegating_rolename = 'root'
 
       # Ensure the parent directories of 'metadata_filepath' exist, otherwise an
@@ -384,7 +384,7 @@ class Project(Targets):
         roleinfo = tuf.roledb.get_roleinfo(delegated_role, self.repository_name)
         try:
           delegating_rolename = roleinfo['parent_role']
-        except:
+        except KeyError:
           delegating_rolename = 'root'
 
         try:

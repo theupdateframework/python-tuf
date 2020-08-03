@@ -444,7 +444,7 @@ def get_key(keyid, repository_name='default', delegating_rolename='root'):
       ' ' + repr(repository_name))
 
   # Return the key belonging to 'keyid', if found in the key database.
-  if delegating_rolename is not 'root':
+  if delegating_rolename != 'root':
     repository_name = repository_name + ' ' + delegating_rolename
   try:
     return copy.deepcopy(_keydb_dict[repository_name][keyid])

@@ -196,7 +196,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
     roleinfo = tuf.roledb.get_roleinfo(rolename, repository_name)
     try:
       delegating_rolename = roleinfo['parent_role']
-    except:
+    except KeyError:
       delegating_rolename = 'root'
     signable = sign_metadata(metadata, signing_keyids, metadata_filename,
         repository_name, delegating_rolename=delegating_rolename)
@@ -247,7 +247,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
     roleinfo = tuf.roledb.get_roleinfo(rolename, repository_name)
     try:
       delegating_rolename = roleinfo['parent_role']
-    except:
+    except KeyError:
       delegating_rolename = 'root'
     signable = sign_metadata(metadata, signing_keyids, metadata_filename,
         repository_name, delegating_rolename=delegating_rolename)

@@ -54,7 +54,6 @@ import securesystemslib.keys
 import securesystemslib.formats
 import securesystemslib.util
 import iso8601
-import six
 
 import securesystemslib.storage
 
