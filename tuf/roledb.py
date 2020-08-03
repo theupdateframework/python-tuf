@@ -35,10 +35,11 @@
           'signatures': ['abcd3452...'],
           'paths': ['role.json'],
           'path_hash_prefixes': ['ab34df13'],
-          'delegations': {'keys': {}, 'roles': {}}}
+          'delegations': {'keys': {}, 'roles': {},
+          'parent_role': 'parent_rolename'}}
 
-  The 'name', 'paths', 'path_hash_prefixes', and 'delegations' dict keys are
-  optional.
+  The 'name', 'paths', 'path_hash_prefixes', 'delegations', and 'parent_role'
+  dict keys are optional.
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
@@ -263,9 +264,10 @@ def add_role(rolename, roleinfo, repository_name='default'):
        'paths': ['path/to/target1', 'path/to/target2', ...],
        'path_hash_prefixes': ['a324fcd...', ...],
        'delegations': {'keys': }
+       'parent_role' " 'parent_rolename'}
 
-      The 'paths', 'path_hash_prefixes', and 'delegations' dict keys are
-      optional.
+      The 'paths', 'path_hash_prefixes', 'delegations', and 'parent_role'
+      dict keys are optional.
 
       The 'target' role has an additional 'paths' key.  Its value is a list of
       strings representing the path of the target file(s).
@@ -693,10 +695,11 @@ def get_roleinfo(rolename, repository_name='default'):
      'signatures': ['ab453bdf...', ...],
      'paths': ['path/to/target1', 'path/to/target2', ...],
      'path_hash_prefixes': ['a324fcd...', ...],
-     'delegations': {'keys': {}, 'roles': []}}
+     'delegations': {'keys': {}, 'roles': []}
+     'parent_role' : 'parent_rolename'}
 
-    The 'signatures', 'paths', 'path_hash_prefixes', and 'delegations' dict keys
-    are optional.
+    The 'signatures', 'paths', 'path_hash_prefixes', 'delegations', and
+    'parent_role' dict keys are optional.
 
   <Arguments>
     rolename:

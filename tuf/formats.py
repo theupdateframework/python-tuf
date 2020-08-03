@@ -137,7 +137,8 @@ ROLE_SCHEMA = SCHEMA.Object(
   threshold = THRESHOLD_SCHEMA,
   terminating = SCHEMA.Optional(securesystemslib.formats.BOOLEAN_SCHEMA),
   paths = SCHEMA.Optional(RELPATHS_SCHEMA),
-  path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA))
+  path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA),
+  parent_role = SCHEMA.Optional(ROLENAME_SCHEMA))
 
 # A dict of roles where the dict keys are role names and the dict values holding
 # the role data/information.

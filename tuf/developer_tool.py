@@ -897,7 +897,8 @@ def load_project(project_directory, prefix='', new_targets_location=None,
     roleinfo = {'name': role['name'], 'keyids': role['keyids'],
                 'threshold': role['threshold'],
                 'signing_keyids': [], 'signatures': [], 'partial_loaded':False,
-                'delegations': {'keys':{}, 'roles':[]}
+                'delegations': {'keys':{}, 'roles':[]},
+                'parent_role': targets_metadata['name']
                 }
     tuf.roledb.add_role(rolename, roleinfo, repository_name=repository_name)
 
@@ -980,7 +981,8 @@ def load_project(project_directory, prefix='', new_targets_location=None,
                     'signing_keyids': [], 'signatures': [],
                     'partial_loaded': False,
                     'delegations': {'keys': {},
-                                    'roles': []}}
+                                    'roles': []},
+                    'parent_role' : metadata_object['name']}
         tuf.roledb.add_role(rolename, roleinfo, repository_name=repository_name)
 
   if new_prefix:

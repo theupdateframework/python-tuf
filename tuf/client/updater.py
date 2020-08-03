@@ -962,7 +962,8 @@ class Updater(object):
         # is None.
         rolename = roleinfo.get('name')
         logger.debug('Adding delegated role: ' + str(rolename) + '.')
-        tuf.roledb.add_role(rolename, roleinfo, self.repository_name, parent_role)
+        roleinfo['parent_role'] = parent_role
+        tuf.roledb.add_role(rolename, roleinfo, self.repository_name)
 
       except tuf.exceptions.RoleAlreadyExistsError:
         logger.warning('Role already exists: ' + rolename)
