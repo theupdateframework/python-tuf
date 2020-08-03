@@ -3184,7 +3184,7 @@ def load_repository(repository_directory, repository_name='default',
     # duplicate key when it was added.
     try:
       tuf.keydb.create_keydb_from_targets_metadata(metadata_object['delegations'],
-          repository_name + ' ' + rolename)
+          repository_name, rolename)
     except tuf.exceptions.KeyAlreadyExistsError:
       pass
 

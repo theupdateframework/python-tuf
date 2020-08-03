@@ -193,8 +193,13 @@ def _generate_and_write_metadata(rolename, metadata_filename,
     # role should not be written to disk without full verification of its
     # signature(s), since it can only be considered fully signed depending on
     # the delegating role.
+    roleinfo = tuf.roledb.get_roleinfo(rolename, repository_name)
+    try:
+      delegating_rolename = roleinfo['parent_role']
+    except:
+      delegating_rolename = 'root'
     signable = sign_metadata(metadata, signing_keyids, metadata_filename,
-        repository_name, delegating_rolename)
+        repository_name, delegating_rolename=delegating_rolename)
 
 
     def should_write():
@@ -213,7 +218,8 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
 
     if should_write():
-      _remove_invalid_and_duplicate_signatures(signable, repository_name, rolename)
+      _remove_invalid_and_duplicate_signatures(signable, repository_name,
+            delegating_rolename=delegating_rolename)
 
       # Root should always be written as if consistent_snapshot is True (i.e.,
       # write <version>.root.json and root.json to disk).
@@ -238,9 +244,14 @@ def _generate_and_write_metadata(rolename, metadata_filename,
   # 'rolename' is a delegated role or a top-level role that is partially
   # signed, and thus its signatures should not be verified.
   else:
+    roleinfo = tuf.roledb.get_roleinfo(rolename, repository_name)
+    try:
+      delegating_rolename = roleinfo['parent_role']
+    except:
+      delegating_rolename = 'root'
     signable = sign_metadata(metadata, signing_keyids, metadata_filename,
-        repository_name, delegating_rolename)
-    _remove_invalid_and_duplicate_signatures(signable, repository_name, rolename)
+        repository_name, delegating_rolename=delegating_rolename)
+    _remove_invalid_and_duplicate_signatures(signable, repository_name, delegating_rolename=delegating_rolename)
 
     # Root should always be written as if consistent_snapshot is True (i.e.,
     # <version>.root.json and root.json).
@@ -277,7 +288,7 @@ def _metadata_is_partially_loaded(rolename, signable, repository_name, delegatin
   # The signature status lists the number of good signatures, including
   # bad, untrusted, unknown, etc.
   status = tuf.sig.get_signature_status(signable, rolename, repository_name,
-      delegating_rolename)
+      delegating_rolename=delegating_rolename)
 
   if len(status['good_sigs']) < status['threshold'] and \
                                                   len(status['good_sigs']) >= 0:
@@ -318,7 +329,8 @@ def _check_role_keys(rolename, repository_name):
 
 
 
-def _remove_invalid_and_duplicate_signatures(signable, repository_name, rolename):
+def _remove_invalid_and_duplicate_signatures(signable, repository_name,
+      delegating_rolename='root'):
   """
     Non-public function that removes invalid or duplicate signatures from
     'signable'.  'signable' may contain signatures (invalid) from previous
@@ -339,8 +351,8 @@ def _remove_invalid_and_duplicate_signatures(signable, repository_name, rolename
 
     # Remove 'signature' from 'signable' if the listed keyid does not exist
     # in 'tuf.keydb'.
-    if rolename not in tuf.roledb.TOP_LEVEL_ROLES:
-      repository_name = repository_name + ' ' + rolename
+    if delegating_rolename not in tuf.roledb.TOP_LEVEL_ROLES:
+      repository_name = repository_name + ' ' + delegating_rolename
     try:
       key = tuf.keydb.get_key(keyid, repository_name=repository_name)
 
@@ -646,8 +658,8 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
 
     # Create a keydb for the keys specified in the delegations field of the Targets
     # role. This keydb will be used for all delegations from the Target role.
-    create_keydb_from_targets_metadata(targets_metadata['delegations'],
-        repository_name + ' Targets')
+    tuf.keydb.create_keydb_from_targets_metadata(targets_metadata['delegations'],
+        repository_name, 'Targets')
 
   except securesystemslib.exceptions.StorageError:
     raise tuf.exceptions.RepositoryError('The Targets file can not be loaded: '
@@ -1766,7 +1778,8 @@ def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
 
 
 
-def sign_metadata(metadata_object, keyids, filename, repository_name, rolename='root'):
+def sign_metadata(metadata_object, keyids, filename, repository_name,
+    delegating_rolename='root'):
   """
   <Purpose>
     Sign a metadata object. If any of the keyids have already signed the file,
@@ -2119,7 +2132,7 @@ def _log_status(rolename, signable, repository_name, delegating_rolename='root')
   'rolename'.
   """
 
-  status = tuf.sig.get_signature_status(signable, rolename, repository_name, delegating_rolename)
+  status = tuf.sig.get_signature_status(signable, rolename, repository_name, delegating_rolename=delegating_rolename)
 
   logger.info(repr(rolename) + ' role contains ' + \
     repr(len(status['good_sigs'])) + ' / ' + repr(status['threshold']) + \

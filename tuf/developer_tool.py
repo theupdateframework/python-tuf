@@ -256,8 +256,11 @@ class Project(Targets):
       delegated_filename = os.path.join(self.metadata_directory,
           delegated_rolename + METADATA_EXTENSION)
 
-      roleinfo = tuf.roledb.get_roleinfo(delegated_rolename, repository_name)
-      delegating_rolename = roleinfo['delegating_rolename']
+      roleinfo = tuf.roledb.get_roleinfo(delegated_rolename, self.repository_name)
+      try:
+        delegating_rolename = roleinfo['parent_role']
+      except:
+        delegating_rolename = 'root'
 
       # Ensure the parent directories of 'metadata_filepath' exist, otherwise an
       # IO exception is raised if 'metadata_filepath' is written to a
@@ -266,7 +269,7 @@ class Project(Targets):
 
       _generate_and_write_metadata(delegated_rolename, delegated_filename,
           write_partial, self.targets_directory, prefix=self.prefix,
-          repository_name=self.repository_name, delegating_rolename)
+          repository_name=self.repository_name, delegating_rolename=delegating_rolename)
 
 
     # Generate the 'project_name' metadata file.
@@ -379,14 +382,18 @@ class Project(Targets):
           continue
 
         roleinfo = tuf.roledb.get_roleinfo(delegated_role, self.repository_name)
-        delegating_rolename = roleinfo['delegating_rolename']
+        try:
+          delegating_rolename = roleinfo['parent_role']
+        except:
+          delegating_rolename = 'root'
 
         try:
           signable = _generate_and_write_metadata(delegated_role,
               filenames['targets'], False, targets_directory, False,
-              repository_name=self.repository_name, delegating_rolename)
+              repository_name=self.repository_name,
+              delegating_rolename=delegating_rolename)
           self._log_status(delegated_role, signable[0], self.repository_name,
-              delegating_rolename)
+              delegating_rolename=delegating_rolename)
 
         except securesystemslib.exceptions.Error:
           insufficient_signatures.append(delegated_role)
@@ -436,7 +443,7 @@ class Project(Targets):
     'rolename'.
     """
 
-    status = tuf.sig.get_signature_status(signable, rolename, repository_name, delegating_rolename)
+    status = tuf.sig.get_signature_status(signable, rolename, repository_name, delegating_rolename=delegating_rolename)
 
     message = repr(rolename) + ' role contains ' +\
       repr(len(status['good_sigs'])) + ' / ' + repr(status['threshold']) +\
@@ -479,7 +486,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
       del(metadata['targets'][element])
 
   signable = repo_lib.sign_metadata(metadata, roleinfo['signing_keyids'],
-      metadata_filename, repository_name, delegating_rolename)
+      metadata_filename, repository_name, delegating_rolename=delegating_rolename)
 
   # Check if the version number of 'rolename' may be automatically incremented,
   # depending on whether if partial metadata is loaded or if the metadata is
@@ -487,28 +494,29 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   # Increment the version number if this is the first partial write.
   if write_partial:
     temp_signable = repo_lib.sign_metadata(metadata, [], metadata_filename,
-        repository_name, delegating_rolename)
+        repository_name, delegating_rolename=delegating_rolename)
     temp_signable['signatures'].extend(roleinfo['signatures'])
     status = tuf.sig.get_signature_status(temp_signable, rolename,
-        repository_name, delegating_rolename)
+        repository_name, delegating_rolename=delegating_rolename)
     if len(status['good_sigs']) == 0:
       metadata['version'] = metadata['version'] + 1
       signable = repo_lib.sign_metadata(metadata, roleinfo['signing_keyids'],
-          metadata_filename, repository_name, delegating_rolename)
+          metadata_filename, repository_name, delegating_rolename=delegating_rolename)
 
   # non-partial write()
   else:
-    if tuf.sig.verify(signable, rolename, repository_name, delegating_rolename):
+    if tuf.sig.verify(signable, rolename, repository_name,
+          delegating_rolename=delegating_rolename):
       metadata['version'] = metadata['version'] + 1
       signable = repo_lib.sign_metadata(metadata, roleinfo['signing_keyids'],
-          metadata_filename, repository_name, delegating_rolename)
+          metadata_filename, repository_name, delegating_rolename=delegating_rolename)
 
   # Write the metadata to file if contains a threshold of signatures.
   signable['signatures'].extend(roleinfo['signatures'])
 
-  if tuf.sig.verify(signable, rolename, repository_name, delegating_rolename)
-      or write_partial:
-    repo_lib._remove_invalid_and_duplicate_signatures(signable, repository_name)
+  if tuf.sig.verify(signable, rolename, repository_name,
+        delegating_rolename=delegating_rolename) or write_partial:
+    repo_lib._remove_invalid_and_duplicate_signatures(signable, repository_name, delegating_rolename=delegating_rolename)
     storage_backend = securesystemslib.storage.FilesystemBackend()
     filename = repo_lib.write_metadata_file(signable, metadata_filename,
         metadata['version'], False, storage_backend)
@@ -890,7 +898,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
       repository_name=repository_name)
 
   tuf.keydb.create_keydb_from_targets_metadata(targets_metadata['delegations'],
-      repository_name + ' Targets')
+      repository_name, 'Targets')
 
   for role in targets_metadata['delegations']['roles']:
     rolename = role['name']
@@ -898,7 +906,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
                 'threshold': role['threshold'],
                 'signing_keyids': [], 'signatures': [], 'partial_loaded':False,
                 'delegations': {'keys':{}, 'roles':[]},
-                'parent_role': targets_metadata['name']
+                'parent_role': 'Targets'
                 }
     tuf.roledb.add_role(rolename, roleinfo, repository_name=repository_name)
 
@@ -969,7 +977,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
       # Add the keys specified in the delegations field of the Targets role.
       try:
         tuf.keydb.create_keydb_from_targets_metadata(metadata_object['delegations'],
-            repository_name + ' ' + metadata_name)
+            repository_name, metadata_name)
 
       except tuf.exceptions.KeyAlreadyExistsError:
         pass
@@ -982,7 +990,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
                     'partial_loaded': False,
                     'delegations': {'keys': {},
                                     'roles': []},
-                    'parent_role' : metadata_object['name']}
+                    'parent_role' : metadata_name}
         tuf.roledb.add_role(rolename, roleinfo, repository_name=repository_name)
 
   if new_prefix:

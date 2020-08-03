@@ -947,11 +947,11 @@ class Updater(object):
 
     # Iterate the keys of the delegated roles of 'parent_role' and load them.
     try:
-      tuf.keydb.create_keydb_from_targets_metadata(parent_role, self.repository_name)
+      tuf.keydb.create_keydb_from_targets_metadata(current_parent_metadata['delegations'],
+          self.repository_name, parent_role)
     except tuf.exceptions.KeyAlreadyExistsError:
       pass
     except (securesystemslib.exceptions.FormatError, securesystemslib.exceptions.Error):
-      logger.exception('Invalid key for keyid: ' + repr(keyid) + '.')
       logger.error('Aborting role delegation for parent role ' + parent_role + '.')
       raise
 
@@ -1422,7 +1422,7 @@ class Updater(object):
 
     # Verify the signature on the downloaded metadata object.
     valid = tuf.sig.verify(metadata_signable, metadata_role,
-        self.repository_name, delegating_rolename)
+        self.repository_name, delegating_rolename=delegating_rolename)
 
     if not valid:
       raise securesystemslib.exceptions.BadSignatureError(metadata_role)
@@ -1558,7 +1558,7 @@ class Updater(object):
             logger.info(metadata_role + ' not available locally.')
 
         self._verify_uncompressed_metadata_file(file_object, metadata_role,
-            delegating_metadata)
+            delegating_rolename=delegating_rolename)
 
       except Exception as exception:
         # Remember the error from this mirror, and "reset" the target file.
@@ -1690,7 +1690,7 @@ class Updater(object):
 
 
   def _update_metadata(self, metadata_role, upperbound_filelength, version=None,
-      delegating_metadata='root'):
+      delegating_rolename='root'):
     """
     <Purpose>
       Non-public method that downloads, verifies, and 'installs' the metadata
@@ -1760,7 +1760,7 @@ class Updater(object):
 
     metadata_file_object = \
       self._get_metadata_file(metadata_role, remote_filename,
-        upperbound_filelength, version, delegating_metadata)
+        upperbound_filelength, version, delegating_rolename=delegating_rolename)
 
     # The metadata has been verified. Move the metadata file into place.
     # First, move the 'current' metadata file to the 'previous' directory
@@ -1925,7 +1925,7 @@ class Updater(object):
 
     try:
       self._update_metadata(metadata_role, upperbound_filelength,
-          expected_versioninfo['version'], delegating_rolename)
+          expected_versioninfo['version'], delegating_rolename=delegating_rolename)
 
     except Exception:
       # The current metadata we have is not current but we couldn't get new
@@ -2499,8 +2499,12 @@ class Updater(object):
       self._load_metadata_from_file('current', rolename)
 
       roleinfo = tuf.roledb.get_roleinfo(rolename, self.repository_name)
-      delegating_rolename = roleinfo['delegating_rolename']
-      self._update_metadata_if_changed(rolename, delegating_rolename)
+      try:
+        delegating_rolename = roleinfo['parent_role']
+      except:
+        delegating_rolename = 'root'
+      self._update_metadata_if_changed(rolename,
+            delegating_rolename=delegating_rolename)
 
 
 

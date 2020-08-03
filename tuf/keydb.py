@@ -152,7 +152,8 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
 
 
 
-def create_keydb_from_targets_metadata(delegations_metadata, repository_name):
+def create_keydb_from_targets_metadata(delegations_metadata, repository_name,
+      delegating_rolename):
   """
   <Purpose>
     Populate the key database with the unique keys found in 'delegations_metadata'.
@@ -194,6 +195,8 @@ def create_keydb_from_targets_metadata(delegations_metadata, repository_name):
 
   # Does 'repository_name' have the correct format?
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+
+  repository_name = repository_name + ' ' + delegating_rolename
 
   # Clear the key database for 'repository_name', or create it if non-existent.
   if repository_name in _keydb_dict:
