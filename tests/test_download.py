@@ -48,6 +48,8 @@ import tuf.log
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.exceptions
 
+import utils
+
 import requests.exceptions
 
 import securesystemslib
@@ -81,13 +83,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     junk, rel_target_filepath = os.path.split(target_filepath)
     self.url = 'http://localhost:'+str(self.PORT)+'/'+rel_target_filepath
 
-    # Provide a delay long enough to allow the HTTPS servers to start.
-    # Encountered an error on one test system at delay value of 0.2s, so
-    # increasing to 0.5s.  Further increasing to 2s due to occasional failures
-    # in other tests in similar circumstances on AppVeyor.
-    # Expect to see "Connection refused" if this delay is not long enough
-    # (though other issues could cause that).
-    time.sleep(2)
+    utils.wait_for_server('localhost', self.PORT)
 
     # Computing hash of target file data.
     m = hashlib.md5()
@@ -279,12 +275,8 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     expd_https_server_proc = popen_python(
         ['simple_https_server.py', port4, expired_cert_fname])
 
-    # Provide a delay long enough to allow the four HTTPS servers to start.
-    # Have encountered errors at 0.2s, 0.5s, and 2s, primarily on AppVeyor.
-    # Increasing to 4s for this test.
-    # Expect to see "Connection refused" if this delay is not long enough
-    # (though other issues could cause that).
-    time.sleep(3)
+    for port in range(self.PORT + 1, self.PORT + 5):
+      utils.wait_for_server('localhost', port)
 
     relative_target_fpath = os.path.basename(target_filepath)
     good_https_url = 'https://localhost:' + port1 + '/' + relative_target_fpath

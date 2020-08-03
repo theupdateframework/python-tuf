@@ -63,6 +63,8 @@ import tuf.unittest_toolbox as unittest_toolbox
 import tuf.client.updater as updater
 import tuf.settings
 
+import utils
+
 import securesystemslib
 import six
 
@@ -96,9 +98,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     logger.info('\tServing on port: '+str(cls.SERVER_PORT))
     cls.url = 'http://localhost:'+str(cls.SERVER_PORT) + os.path.sep
 
-    # NOTE: Following error is raised if a delay is not applied:
-    # <urlopen error [Errno 111] Connection refused>
-    time.sleep(1)
+    utils.wait_for_server('localhost', cls.SERVER_PORT)
+
 
 
 

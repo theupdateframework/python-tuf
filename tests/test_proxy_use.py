@@ -50,6 +50,8 @@ import tuf.log
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.exceptions
 
+import utils
+
 import requests.exceptions
 
 import securesystemslib
@@ -118,15 +120,10 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     # the type of connection used with the target server.
     cls.https_proxy_addr = 'https://127.0.0.1:' + str(cls.https_proxy_port)
 
-    # Give the HTTP server and proxy server processes a little bit of time to
-    # start listening before allowing tests to begin, lest we get "Connection
-    # refused" errors. On the first test system. 0.1s was too short and 0.15s
-    # was long enough. Use 0.5s to be safe, and if issues arise, increase it.
-    # Observed occasional failures at 0.1s, 0.15s, 0.5s, and 2s, primarily on
-    # AppVeyor.  Increasing to 4s.  This setup runs once for the module.
-    time.sleep(4)
-
-
+    utils.wait_for_server('127.0.0.1', cls.http_port)
+    utils.wait_for_server('127.0.0.1', cls.https_port)
+    utils.wait_for_server('127.0.0.1', cls.http_proxy_port)
+    utils.wait_for_server('127.0.0.1', cls.https_proxy_port)
 
 
 
