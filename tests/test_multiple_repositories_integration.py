@@ -191,19 +191,17 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     if self.server_process.returncode is None:
       logger.info('Server process ' + str(self.server_process.pid) + ' terminated.')
       self.server_process.kill()
+      self.server_process.wait()
 
     if self.server_process2.returncode is None:
       logger.info('Server 2 process ' + str(self.server_process2.pid) + ' terminated.')
       self.server_process2.kill()
+      self.server_process2.wait()
 
     # updater.Updater() populates the roledb with the name "test_repository1"
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 
-    # Remove the temporary repository directory, which should contain all the
-    # metadata, targets, and key files generated of all the test cases.
-    # sleep for a bit to allow the kill'd server processes to terminate.
-    time.sleep(.3)
     shutil.rmtree(self.temporary_directory)
 
 

@@ -148,6 +148,8 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
       if proc.returncode is None:
         logger.info('\tTerminating process ' + str(proc.pid) + ' in cleanup.')
         proc.kill()
+        # Drop return values of communicate()
+        proc.communicate()
 
 
 

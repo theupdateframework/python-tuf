@@ -112,6 +112,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     if cls.server_process.returncode is None:
       logger.info('Server process '+str(cls.server_process.pid)+' terminated.')
       cls.server_process.kill()
+      cls.server_process.wait()
 
 
 

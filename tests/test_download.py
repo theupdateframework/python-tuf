@@ -102,6 +102,8 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     if self.server_proc.returncode is None:
       logger.info('\tServer process '+str(self.server_proc.pid)+' terminated.')
       self.server_proc.kill()
+      # Drop return values of communicate()
+      self.server_proc.communicate()
     self.target_fileobj.close()
 
 
@@ -372,6 +374,8 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
         if proc.returncode is None:
           logger.info('Terminating server process ' + str(proc.pid))
           proc.kill()
+          # drop return values
+          proc.communicate()
 
 
 
