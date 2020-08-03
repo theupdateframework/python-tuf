@@ -301,7 +301,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
   def test_1__load_metadata_from_file(self):
-
     # Setup
     # Get the 'role1.json' filepath.  Manually load the role metadata, and
     # compare it against the loaded metadata by '_load_metadata_from_file()'.
@@ -320,6 +319,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(len(self.repository_updater.metadata['current']), 5)
 
     # Verify that the content of root metadata is valid.
+    # load_json_file does not set 'parent_role'
+    role1_meta['signed']['delegations']['roles'][0]['parent_role'] = 'role1'
     self.assertEqual(self.repository_updater.metadata['current']['role1'],
                      role1_meta['signed'])
 
@@ -353,13 +354,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     self.assertEqual(root_roleinfo['threshold'], root_threshold)
 
-    # Ensure we add 2 to the number of root keys (actually, the number of root
-    # keys multiplied by the number of keyid hash algorithms), to include the
-    # delegated targets key (+1 for its sha512 keyid).  The delegated roles of
-    # 'targets.json' are also loaded when the repository object is
-    # instantiated.
+    # Verify that the keydb for root contains only keys for top level roles
 
-    self.assertEqual(number_of_root_keys * 2 + 2, len(tuf.keydb._keydb_dict[self.repository_name]))
+    self.assertEqual(number_of_root_keys * 2, len(tuf.keydb._keydb_dict[self.repository_name]))
+
+    # Ensure that the delegated targets keys are stored in their own keydb.
+    # The delegated roles of 'targets.json' are also loaded when the repository
+    # object is instantiated.
+    self.assertEqual(2, len(tuf.keydb._keydb_dict[self.repository_name + ' targets']))
 
     # Test: normal case.
     self.repository_updater._rebuild_key_and_role_db()
@@ -583,9 +585,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater._import_delegations('targets')
 
     self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 5)
-    # The number of root keys (times the number of key hash algorithms) +
-    # delegation's key (+1 for its sha512 keyid).
-    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 4 * 2 + 2)
+    # The number of root keys (times the number of key hash algorithms)
+    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 4 * 2)
+    # The delegation's key (+1 for its sha512 keyid).
+    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name + ' targets']), 2)
 
     # Verify that roledb dictionary was added.
     self.assertTrue('role1' in tuf.roledb._roledb_dict[repository_name])
@@ -599,7 +602,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       keyids.append(signature['keyid'])
 
     for keyid in keyids:
-      self.assertTrue(keyid in tuf.keydb._keydb_dict[repository_name])
+      self.assertTrue(keyid in tuf.keydb._keydb_dict[repository_name] or keyid in tuf.keydb._keydb_dict[repository_name + ' targets'])
 
     # Verify that _import_delegations() ignores invalid keytypes in the 'keys'
     # field of parent role's 'delegations'.
@@ -2117,6 +2120,7 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     # verify that get_valid_targetinfo() raises an UnknownTargetError
     # despite both repos signing for file1.txt.
     multi_repo_updater.map_file['mapping'][0]['threshold'] = 2
+    print(multi_repo_updater.get_valid_targetinfo('file1.txt'))
     self.assertRaises(tuf.exceptions.UnknownTargetError,
         multi_repo_updater.get_valid_targetinfo, 'file1.txt')
 
