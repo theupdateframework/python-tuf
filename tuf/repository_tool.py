@@ -3182,25 +3182,11 @@ def load_repository(repository_directory, repository_name='default',
     # log a warning here as there may be many such duplicate key warnings.
     # The repository maintainer should have also been made aware of the
     # duplicate key when it was added.
-    for key_metadata in six.itervalues(metadata_object['delegations']['keys']):
-
-      # The repo may have used hashing algorithms for the generated keyids
-      # that doesn't match the client's set of hash algorithms.  Make sure
-      # to only used the repo's selected hashing algorithms.
-      hash_algorithms = securesystemslib.settings.HASH_ALGORITHMS
-      securesystemslib.settings.HASH_ALGORITHMS = \
-          key_metadata['keyid_hash_algorithms']
-      key_object, keyids = \
-          securesystemslib.keys.format_metadata_to_key(key_metadata)
-      securesystemslib.settings.HASH_ALGORITHMS = hash_algorithms
-      try:
-        for keyid in keyids: # pragma: no branch
-          key_object['keyid'] = keyid
-          tuf.keydb.add_key(key_object, keyid=None,
-              repository_name=repository_name)
-
-      except tuf.exceptions.KeyAlreadyExistsError:
-        pass
+    try:
+      tuf.keydb.create_keydb_from_targets_metadata(metadata_object['delegations'],
+          repository_name + ' ' + rolename)
+    except tuf.exceptions.KeyAlreadyExistsError:
+      pass
 
   return repository
 

@@ -67,7 +67,7 @@ iso8601_logger.disabled = True
 
 
 def get_signature_status(signable, role=None, repository_name='default',
-    threshold=None, keyids=None):
+    threshold=None, keyids=None, delegating_rolename='root'):
   """
   <Purpose>
     Return a dictionary representing the status of the signatures listed in
@@ -163,7 +163,7 @@ def get_signature_status(signable, role=None, repository_name='default',
 
     # Does the signature use an unrecognized key?
     try:
-      key = tuf.keydb.get_key(keyid, repository_name)
+      key = tuf.keydb.get_key(keyid, repository_name, delegating_rolename)
 
     except tuf.exceptions.UnknownKeyError:
       unknown_sigs.append(keyid)
@@ -233,7 +233,7 @@ def get_signature_status(signable, role=None, repository_name='default',
 
 
 def verify(signable, role, repository_name='default', threshold=None,
-    keyids=None):
+    keyids=None, delegating_rolename='root'):
   """
   <Purpose>
     Verify that 'signable' has a valid threshold of authorized signatures
@@ -293,7 +293,8 @@ def verify(signable, role, repository_name='default', threshold=None,
   # tuf.exceptions.UnknownRoleError
   # securesystemslib.exceptions.FormatError.  'threshold' and 'keyids' are also
   # validated.
-  status = get_signature_status(signable, role, repository_name, threshold, keyids)
+  status = get_signature_status(signable, role, repository_name, threshold, keyids,
+      delegating_rolename)
 
   # Retrieve the role's threshold and the authorized keys of 'status'
   threshold = status['threshold']

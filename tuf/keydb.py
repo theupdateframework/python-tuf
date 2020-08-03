@@ -152,6 +152,96 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
 
 
 
+def create_keydb_from_targets_metadata(delegations_metadata, repository_name):
+  """
+  <Purpose>
+    Populate the key database with the unique keys found in 'delegations_metadata'.
+    The database dictionary will conform to
+    'tuf.formats.KEYDB_SCHEMA' and have the form: {keyid: key,
+    ...}.  The 'keyid' conforms to 'securesystemslib.formats.KEYID_SCHEMA' and
+    'key' to its respective type.  In the case of RSA keys, this object would
+    match 'RSAKEY_SCHEMA'.
+
+  <Arguments>
+    targets_metadata:
+      A dictionary conformant to 'tuf.formats.DELEGATIONS_SCHEMA'.  The keys found
+      in the 'keys' field of 'delegations_metadata' are needed by this function.
+
+    repository_name:
+      The name of the repository to store the key information.
+
+  <Exceptions>
+    securesystemslib.exceptions.FormatError, if 'delegations_metadata' does not have the correct format.
+
+    securesystemslib.exceptions.InvalidNameError, if 'repository_name' does not exist in the key
+    database.
+
+  <Side Effects>
+    A function to add the key to the database is called.  In the case of RSA
+    keys, this function is add_key().
+
+    The old keydb key database is replaced.
+
+  <Returns>
+    None.
+  """
+
+  # Does 'delegations_metadata' have the correct format?
+  # This check will ensure 'delegations_metadata' has the appropriate number of objects
+  # and object types, and that all dict keys are properly named.
+  # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
+  tuf.formats.DELEGATIONS_SCHEMA.check_match(delegations_metadata)
+
+  # Does 'repository_name' have the correct format?
+  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+
+  # Clear the key database for 'repository_name', or create it if non-existent.
+  if repository_name in _keydb_dict:
+    _keydb_dict[repository_name].clear()
+
+  else:
+    create_keydb(repository_name)
+
+  # Iterate the keys found in 'delegations_metadata' by converting them to
+  # 'RSAKEY_SCHEMA' if their type is 'rsa', and then adding them to the
+  # key database.
+  for junk, key_metadata in six.iteritems(delegations_metadata['keys']):
+    if key_metadata['keytype'] in _SUPPORTED_KEY_TYPES:
+      # 'key_metadata' is stored in 'KEY_SCHEMA' format.  Call
+      # create_from_metadata_format() to get the key in 'RSAKEY_SCHEMA' format,
+      # which is the format expected by 'add_key()'.  Note: The 'keyids'
+      # returned by format_metadata_to_key() include keyids in addition to the
+      # default keyid listed in 'key_dict'.  The additional keyids are
+      # generated according to securesystemslib.settings.HASH_ALGORITHMS.
+
+      # The repo may have used hashing algorithms for the generated keyids that
+      # doesn't match the client's set of hash algorithms.  Make sure to only
+      # used the repo's selected hashing algorithms.
+      hash_algorithms = securesystemslib.settings.HASH_ALGORITHMS
+      securesystemslib.settings.HASH_ALGORITHMS = key_metadata['keyid_hash_algorithms']
+      key_dict, keyids = securesystemslib.keys.format_metadata_to_key(key_metadata)
+      securesystemslib.settings.HASH_ALGORITHMS = hash_algorithms
+
+      try:
+        for keyid in keyids:
+          # Make sure to update key_dict['keyid'] to use one of the other valid
+          # keyids, otherwise add_key() will have no reference to it.
+          key_dict['keyid'] = keyid
+          add_key(key_dict, keyid=None, repository_name=repository_name)
+
+      # Although keyid duplicates should *not* occur (unique dict keys), log a
+      # warning and continue.  However, 'key_dict' may have already been
+      # adding to the keydb elsewhere.
+      except tuf.exceptions.KeyAlreadyExistsError as e: # pragma: no cover
+        logger.warning(e)
+        continue
+
+    else:
+      logger.warning('Root Metadata file contains a key with an invalid keytype.')
+
+
+
+
 def create_keydb(repository_name):
   """
   <Purpose>
@@ -303,7 +393,7 @@ def add_key(key_dict, keyid=None, repository_name='default'):
 
 
 
-def get_key(keyid, repository_name='default'):
+def get_key(keyid, repository_name='default', delegating_rolename='root'):
   """
   <Purpose>
     Return the key belonging to 'keyid'.
@@ -316,6 +406,10 @@ def get_key(keyid, repository_name='default'):
     repository_name:
       The name of the repository to get the key.  If not supplied, the key is
       retrieved from the 'default' repository.
+
+    delegating_rolename:
+      The name of the delegating role to determine which keydb to access. If
+      not supplied, the key is retrieved from root.
 
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the arguments do not have the correct format.
@@ -347,6 +441,8 @@ def get_key(keyid, repository_name='default'):
       ' ' + repr(repository_name))
 
   # Return the key belonging to 'keyid', if found in the key database.
+  if delegating_rolename is not 'root':
+    repository_name = repository_name + ' ' + delegating_rolename
   try:
     return copy.deepcopy(_keydb_dict[repository_name][keyid])
 

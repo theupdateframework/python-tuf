@@ -194,7 +194,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
     # signature(s), since it can only be considered fully signed depending on
     # the delegating role.
     signable = sign_metadata(metadata, signing_keyids, metadata_filename,
-        repository_name)
+        repository_name, delegating_rolename)
 
 
     def should_write():
@@ -213,7 +213,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
 
     if should_write():
-      _remove_invalid_and_duplicate_signatures(signable, repository_name)
+      _remove_invalid_and_duplicate_signatures(signable, repository_name, rolename)
 
       # Root should always be written as if consistent_snapshot is True (i.e.,
       # write <version>.root.json and root.json to disk).
@@ -239,8 +239,8 @@ def _generate_and_write_metadata(rolename, metadata_filename,
   # signed, and thus its signatures should not be verified.
   else:
     signable = sign_metadata(metadata, signing_keyids, metadata_filename,
-        repository_name)
-    _remove_invalid_and_duplicate_signatures(signable, repository_name)
+        repository_name, delegating_rolename)
+    _remove_invalid_and_duplicate_signatures(signable, repository_name, rolename)
 
     # Root should always be written as if consistent_snapshot is True (i.e.,
     # <version>.root.json and root.json).
@@ -259,7 +259,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
 
 
-def _metadata_is_partially_loaded(rolename, signable, repository_name):
+def _metadata_is_partially_loaded(rolename, signable, repository_name, delegating_rolename='root'):
   """
   Non-public function that determines whether 'rolename' is loaded with
   at least zero good signatures, but an insufficient threshold (which means
@@ -276,7 +276,8 @@ def _metadata_is_partially_loaded(rolename, signable, repository_name):
 
   # The signature status lists the number of good signatures, including
   # bad, untrusted, unknown, etc.
-  status = tuf.sig.get_signature_status(signable, rolename, repository_name)
+  status = tuf.sig.get_signature_status(signable, rolename, repository_name,
+      delegating_rolename)
 
   if len(status['good_sigs']) < status['threshold'] and \
                                                   len(status['good_sigs']) >= 0:
@@ -317,7 +318,7 @@ def _check_role_keys(rolename, repository_name):
 
 
 
-def _remove_invalid_and_duplicate_signatures(signable, repository_name):
+def _remove_invalid_and_duplicate_signatures(signable, repository_name, rolename):
   """
     Non-public function that removes invalid or duplicate signatures from
     'signable'.  'signable' may contain signatures (invalid) from previous
@@ -338,6 +339,8 @@ def _remove_invalid_and_duplicate_signatures(signable, repository_name):
 
     # Remove 'signature' from 'signable' if the listed keyid does not exist
     # in 'tuf.keydb'.
+    if rolename not in tuf.roledb.TOP_LEVEL_ROLES:
+      repository_name = repository_name + ' ' + rolename
     try:
       key = tuf.keydb.get_key(keyid, repository_name=repository_name)
 
@@ -641,31 +644,10 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     tuf.roledb.update_roleinfo('targets', roleinfo, mark_role_as_dirty=False,
         repository_name=repository_name)
 
-    # Add the keys specified in the delegations field of the Targets role.
-    for key_metadata in six.itervalues(targets_metadata['delegations']['keys']):
-
-      # The repo may have used hashing algorithms for the generated keyids
-      # that doesn't match the client's set of hash algorithms.  Make sure
-      # to only used the repo's selected hashing algorithms.
-      hash_algorithms = securesystemslib.settings.HASH_ALGORITHMS
-      securesystemslib.settings.HASH_ALGORITHMS = key_metadata['keyid_hash_algorithms']
-      key_object, keyids = securesystemslib.keys.format_metadata_to_key(key_metadata)
-      securesystemslib.settings.HASH_ALGORITHMS = hash_algorithms
-
-      # Add 'key_object' to the list of recognized keys.  Keys may be shared,
-      # so do not raise an exception if 'key_object' has already been loaded.
-      # In contrast to the methods that may add duplicate keys, do not log
-      # a warning as there may be many such duplicate key warnings.  The
-      # repository maintainer should have also been made aware of the duplicate
-      # key when it was added.
-      try:
-        for keyid in keyids: #pragma: no branch
-          key_object['keyid'] = keyid
-          tuf.keydb.add_key(key_object, keyid=None,
-              repository_name=repository_name)
-
-      except tuf.exceptions.KeyAlreadyExistsError:
-        pass
+    # Create a keydb for the keys specified in the delegations field of the Targets
+    # role. This keydb will be used for all delegations from the Target role.
+    create_keydb_from_targets_metadata(targets_metadata['delegations'],
+        repository_name + ' Targets')
 
   except securesystemslib.exceptions.StorageError:
     raise tuf.exceptions.RepositoryError('The Targets file can not be loaded: '
@@ -1784,7 +1766,7 @@ def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
 
 
 
-def sign_metadata(metadata_object, keyids, filename, repository_name):
+def sign_metadata(metadata_object, keyids, filename, repository_name, rolename='root'):
   """
   <Purpose>
     Sign a metadata object. If any of the keyids have already signed the file,
@@ -1808,6 +1790,10 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
     repository_name:
       The name of the repository.  If not supplied, 'rolename' is added to the
       'default' repository.
+
+    rolename:
+      The name of the signing role. This is used to find the correct keydb.
+      If not supplied, keys from 'root' are used.
 
   <Exceptions>
     securesystemslib.exceptions.FormatError, if a valid 'signable' object could
@@ -1837,6 +1823,9 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
   # of signing the 'signed' field of 'metadata' with each
   # keyid of 'keyids'.
   signable = tuf.formats.make_signable(metadata_object)
+
+  if delegating_rolename is not 'root':
+    repository_name = repository_name + ' ' + delegating_rolename
 
   # Sign the metadata with each keyid in 'keyids'.  'signable' should have
   # zero signatures (metadata_object contained none).
@@ -2124,13 +2113,13 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
 
 
 
-def _log_status(rolename, signable, repository_name):
+def _log_status(rolename, signable, repository_name, delegating_rolename='root'):
   """
   Non-public function logs the number of (good/threshold) signatures of
   'rolename'.
   """
 
-  status = tuf.sig.get_signature_status(signable, rolename, repository_name)
+  status = tuf.sig.get_signature_status(signable, rolename, repository_name, delegating_rolename)
 
   logger.info(repr(rolename) + ' role contains ' + \
     repr(len(status['good_sigs'])) + ' / ' + repr(status['threshold']) + \
