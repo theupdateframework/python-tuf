@@ -308,13 +308,13 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
       # trusting the good certs (trusting the bad cert instead). Expect failure
       # because even though the server's cert file is otherwise OK, we don't
       # trust it.
-      print('Trying HTTPS download of target file: ' + good_https_url)
+      logger.info('Trying HTTPS download of target file: ' + good_https_url)
       with self.assertRaises(requests.exceptions.SSLError):
         download.safe_download(good_https_url, target_data_length)
       with self.assertRaises(requests.exceptions.SSLError):
         download.unsafe_download(good_https_url, target_data_length)
 
-      print('Trying HTTPS download of target file: ' + good2_https_url)
+      logger.info('Trying HTTPS download of target file: ' + good2_https_url)
       with self.assertRaises(requests.exceptions.SSLError):
         download.safe_download(good2_https_url, target_data_length)
       with self.assertRaises(requests.exceptions.SSLError):
