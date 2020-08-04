@@ -289,7 +289,7 @@ class Project(Targets):
 
 
 
-  def add_verification_key(self, key, expires=None):
+  def add_verification_key(self, key, expires=None, delegating_rolename='root'):
     """
       <Purpose>
         Function as a thin wrapper call for the project._targets call
@@ -322,7 +322,7 @@ class Project(Targets):
     if len(self.keys) > 0:
       raise securesystemslib.exceptions.Error("This project already contains a key.")
 
-    super(Project, self).add_verification_key(key, expires)
+    super(Project, self).add_verification_key(key, expires, delegating_rolename)
 
 
 

@@ -1171,8 +1171,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     repository.targets('role4').add_target(foo_package)
 
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
-    repository.targets('role3').load_signing_key(self.role_keys['targets']['private'])
-    repository.targets('role4').load_signing_key(self.role_keys['targets']['private'])
+    repository.targets('role3').load_signing_key(self.role_keys['targets']['private'], 'targets')
+    repository.targets('role4').load_signing_key(self.role_keys['targets']['private'], 'targets')
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
     repository.writeall()

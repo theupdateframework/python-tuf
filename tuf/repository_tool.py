@@ -682,7 +682,7 @@ class Metadata(object):
     self._repository_name = None
 
 
-  def add_verification_key(self, key, expires=None):
+  def add_verification_key(self, key, expires=None, delegating_rolename='root'):
     """
     <Purpose>
       Add 'key' to the role.  Adding a key, which should contain only the
@@ -727,6 +727,12 @@ class Metadata(object):
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
     securesystemslib.formats.ANYKEY_SCHEMA.check_match(key)
+
+    # top level roles go in the default keydb, delegated roles go in the keydb
+    # of their parent role
+    repository_name = self._repository_name
+    if delegating_rolename != 'root':
+      repository_name = repository_name + ' ' + delegating_rolename
 
     # If 'expires' is unset, choose a default expiration for 'key'.  By
     # default, Root, Targets, Snapshot, and Timestamp keys are set to expire
@@ -779,7 +785,7 @@ class Metadata(object):
     # Keys may be shared, so do not raise an exception if 'key' has already
     # been loaded.
     try:
-      tuf.keydb.add_key(key, repository_name=self._repository_name)
+      tuf.keydb.add_key(key, repository_name=repository_name)
 
     except tuf.exceptions.KeyAlreadyExistsError:
       logger.warning('Adding a verification key that has already been used.')
@@ -797,7 +803,7 @@ class Metadata(object):
       roleinfo['keyids'].append(keyid)
       roleinfo['previous_keyids'] = previous_keyids
 
-      tuf.roledb.update_roleinfo(self._rolename, roleinfo,
+      tuf.roledb.update_roleinfo(self.rolename, roleinfo,
           repository_name=self._repository_name)
 
 
@@ -2251,7 +2257,8 @@ class Targets(Metadata):
     roleinfo = {'name': rolename, 'keyids': keyids, 'signing_keyids': [],
                 'threshold': threshold, 'version': 0,
                 'expires': expiration, 'signatures': [], 'partial_loaded': False,
-                'paths': paths, 'delegations': {'keys': {}, 'roles': []}}
+                'paths': paths, 'delegations': {'keys': {}, 'roles': []},
+                'parent_role' : self._parent_targets_object.rolename}
 
     # The new targets object is added as an attribute to this Targets object.
     new_targets_object = Targets(self._targets_directory, rolename, roleinfo,
@@ -2425,8 +2432,13 @@ class Targets(Metadata):
       del roleinfo['paths']
 
     # Update the public keys of 'new_targets_object'.
+    try:
+      tuf.keydb.create_keydb(self._repository_name + ' ' + self._rolename)
+    except securesystemslib.exceptions.InvalidNameError:
+      # keydb already created
+      pass
     for key in public_keys:
-      new_targets_object.add_verification_key(key)
+      new_targets_object.add_verification_key(key, delegating_rolename=self._rolename)
 
     # Add the new delegation to the top-level 'targets' role object (i.e.,
     # 'repository.targets()').  For example, 'django', which was delegated by
