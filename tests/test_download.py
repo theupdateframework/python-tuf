@@ -127,8 +127,8 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     # the server-reported length of the file does not match the
     # required_length.  'updater.py' *does* verify the hashes of downloaded
     # content.
-    download.safe_download(self.url, self.target_data_length - 4)
-    download.unsafe_download(self.url, self.target_data_length - 4)
+    download.safe_download(self.url, self.target_data_length - 4).close()
+    download.unsafe_download(self.url, self.target_data_length - 4).close()
 
     # We catch 'tuf.exceptions.DownloadLengthMismatchError' for safe_download()
     # because it will not download more bytes than requested (in this case, a
@@ -138,7 +138,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
     # Calling unsafe_download() with a mismatched length should not raise an
     # exception.
-    download.unsafe_download(self.url, self.target_data_length + 1)
+    download.unsafe_download(self.url, self.target_data_length + 1).close()
 
 
 
