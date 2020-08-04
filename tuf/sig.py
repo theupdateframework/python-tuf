@@ -309,7 +309,7 @@ def verify(signable, role, repository_name='default', threshold=None,
 
   unique_keys = set()
   for keyid in good_sigs:
-    key = tuf.keydb.get_key(keyid, repository_name)
+    key = tuf.keydb.get_key(keyid, repository_name, delegating_rolename)
     unique_keys.add(key['keyval']['public'])
 
   return len(unique_keys) >= threshold
