@@ -2120,7 +2120,6 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     # verify that get_valid_targetinfo() raises an UnknownTargetError
     # despite both repos signing for file1.txt.
     multi_repo_updater.map_file['mapping'][0]['threshold'] = 2
-    print(multi_repo_updater.get_valid_targetinfo('file1.txt'))
     self.assertRaises(tuf.exceptions.UnknownTargetError,
         multi_repo_updater.get_valid_targetinfo, 'file1.txt')
 

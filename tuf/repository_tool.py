@@ -853,7 +853,7 @@ class Metadata(object):
 
 
 
-  def load_signing_key(self, key):
+  def load_signing_key(self, key, delegating_rolename='root'):
     """
     <Purpose>
       Load the role key, which must contain the private portion, so that role
@@ -897,11 +897,15 @@ class Metadata(object):
     # Has the key, with the private portion included, been added to the keydb?
     # The public version of the key may have been previously added.
     try:
-      tuf.keydb.add_key(key, repository_name=self._repository_name)
+      if delegating_rolename != 'root':
+        repository_name = self._repository_name + ' ' + delegating_rolename
+      else:
+        repository_name = self._repository_name
+      tuf.keydb.add_key(key, repository_name=repository_name)
 
     except tuf.exceptions.KeyAlreadyExistsError:
-      tuf.keydb.remove_key(key['keyid'], self._repository_name)
-      tuf.keydb.add_key(key, repository_name=self._repository_name)
+      tuf.keydb.remove_key(key['keyid'], repository_name)
+      tuf.keydb.add_key(key, repository_name=repository_name)
 
     # Update the role's 'signing_keys' field in 'tuf.roledb.py'.
     roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)

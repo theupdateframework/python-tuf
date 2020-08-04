@@ -375,7 +375,7 @@ class TestProject(unittest.TestCase):
 
 
     # Load_signing_keys.
-    project('delegation').load_signing_key(delegation_private_key)
+    project('delegation').load_signing_key(delegation_private_key, 'targets')
 
     project.status()
 
