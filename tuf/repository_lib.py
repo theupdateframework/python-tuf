@@ -659,7 +659,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     # Create a keydb for the keys specified in the delegations field of the Targets
     # role. This keydb will be used for all delegations from the Target role.
     tuf.keydb.create_keydb_from_targets_metadata(targets_metadata['delegations'],
-        repository_name, 'Targets')
+        repository_name, 'targets')
 
   except securesystemslib.exceptions.StorageError:
     raise tuf.exceptions.RepositoryError('The Targets file can not be loaded: '
@@ -1837,7 +1837,7 @@ def sign_metadata(metadata_object, keyids, filename, repository_name,
   # keyid of 'keyids'.
   signable = tuf.formats.make_signable(metadata_object)
 
-  if delegating_rolename is not 'root':
+  if delegating_rolename != 'root':
     repository_name = repository_name + ' ' + delegating_rolename
 
   # Sign the metadata with each keyid in 'keyids'.  'signable' should have

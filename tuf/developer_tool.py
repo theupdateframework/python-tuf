@@ -898,7 +898,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
       repository_name=repository_name)
 
   tuf.keydb.create_keydb_from_targets_metadata(targets_metadata['delegations'],
-      repository_name, 'Targets')
+      repository_name, 'targets')
 
   for role in targets_metadata['delegations']['roles']:
     rolename = role['name']
@@ -906,7 +906,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
                 'threshold': role['threshold'],
                 'signing_keyids': [], 'signatures': [], 'partial_loaded':False,
                 'delegations': {'keys':{}, 'roles':[]},
-                'parent_role': 'Targets'
+                'parent_role': 'targets'
                 }
     tuf.roledb.add_role(rolename, roleinfo, repository_name=repository_name)
 
