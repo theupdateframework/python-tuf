@@ -78,7 +78,7 @@ with open('README.md') as file_object:
 
 setup(
   name = 'tuf',
-  version = '0.12.2', # If updating version, also update it in tuf/__init__.py
+  version = '0.13.0', # If updating version, also update it in tuf/__init__.py
   description = 'A secure updater framework for Python',
   long_description = long_description,
   long_description_content_type='text/markdown',
@@ -108,6 +108,10 @@ setup(
     'Topic :: Security',
     'Topic :: Software Development'
   ],
+  project_urls={
+    'Source': 'https://github.com/theupdateframework/tuf',
+    'Issues': 'https://github.com/theupdateframework/tuf/issues'
+  },
   python_requires=">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4",
   install_requires = [
     'iso8601>=0.1.12',
