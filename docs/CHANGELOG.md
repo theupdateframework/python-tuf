@@ -1,7 +1,7 @@
 # Changelog
 
 ## v0.13.0
-### Added
+### Added
 * Add support for BLAKE hash functions (#993)
 * Don't list root metadata in snapshot metadata, per latest spec (#988)
 * Enable targets metadata to be generated without access to the target files (#1007, #1020)
@@ -19,7 +19,7 @@
 * Clarify error message and docstring for custom parameter of add_target() (#1027)
 * Ensure each key applies to signature threshold only once (#1091)
 
-## Fixed
+### Fixed
 * Fix broken CI (#985)
 * Fix tests (#1029, #1064, #1067)
 * Fix loading of delegated targets during repository load (#1049, #1052, #1071)
