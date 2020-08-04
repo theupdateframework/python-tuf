@@ -13,7 +13,8 @@
 * Create a PR with updated CHANGELOG.md and version bumps
 * Once the PR is merged, pull the updated `develop` branch locally
 * Create a signed tag matching the updated version number on the merge commit
-  `git tag --sign vA.B.C`
+  `git tag --sign vA.B.C -m "vA.B.C"`
+  * Push the tag to GitHub `git push origin vA.B.C`
 * Create a new release on GitHub, copying the CHANGELOG.md entries for the release
 * Create a package for the formal release
   * Remove existing dist build dirs
