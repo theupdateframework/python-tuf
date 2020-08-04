@@ -2412,7 +2412,8 @@ class Targets(Metadata):
                 'keyids': keyids,
                 'threshold': threshold,
                 'terminating': terminating,
-                'paths': list(relative_targetpaths.keys())}
+                'paths': list(relative_targetpaths.keys()),
+                'parent_role' : self._rolename}
 
     if paths:
       roleinfo['paths'] = paths
