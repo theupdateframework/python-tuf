@@ -25,7 +25,9 @@ from securesystemslib.keys import (
     verify_signature,
 )
 from securesystemslib.rsa_keys import (
-    SaltLength,
+    HashSaltLengthType,
+    MaxSaltLengthType,
+    SaltLengthType,
     verify_rsa_signature,
 )
 from securesystemslib.storage import StorageBackendInterface
@@ -143,7 +145,7 @@ class RAMKey(Key):
         self,
         signed: BytesOrStr,
         signature: Dict,
-        salt_length: int = SaltLength.PSSSaltLengthEqualsHash
+        salt_length_type: SaltLengthType = HashSaltLengthType
     ) -> bool:
         sig = signature['sig']
         sig = binascii.unhexlify(sig.encode('utf-8'))
@@ -155,7 +157,7 @@ class RAMKey(Key):
             scheme,
             public,
             signed_bytes,
-            salt_length=salt_length
+            salt_length_type=salt_length_type
         )
 
     def verify(self, signed: BytesOrStr, signature: Dict) -> bool:
@@ -421,7 +423,7 @@ class VaultKey(Key):
             return self.__ram_key._verify_rsa_signature(
                 signed,
                 signature,
-                salt_length=SaltLength.PSSSaltLengthAuto
+                salt_length_type=MaxSaltLengthType
             )
         else:
             return self.__ram_key.verify(signed, signature)
