@@ -2288,7 +2288,7 @@ def keys_to_keydict(keys):
 
 if __name__ == '__main__':
   # The interactive sessions of the documentation strings can
-  # be tested by running repository_tool.py as a standalone module:
+  # be tested by running repository_lib.py as a standalone module:
   # $ python repository_lib.py.
   import doctest
   doctest.testmod()
