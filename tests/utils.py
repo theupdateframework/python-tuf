@@ -46,7 +46,7 @@ except NameError:
 # but the current blocking connect() seems to work fast on Linux and seems
 # to at least work on Windows (ECONNREFUSED unfortunately has a 2 second
 # timeout on Windows)
-def wait_for_server(host, port, timeout=5):
+def wait_for_server(host, port, timeout=10):
   start = time.time()
   remaining_timeout = timeout
   succeeded = False
