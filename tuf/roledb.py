@@ -76,7 +76,7 @@ _dirty_roles['default'] = set()
 TOP_LEVEL_ROLES = ['root', 'targets', 'snapshot', 'timestamp']
 
 
-def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
+def create_roledb_from_root_metadata(root_metadata, repository_name='default', targets_map_file = None):
   """
   <Purpose>
     Create a role database containing all of the unique roles found in
@@ -139,6 +139,11 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
       roleinfo['expires'] = root_metadata['expires']
       roleinfo['previous_keyids'] = roleinfo['keyids']
       roleinfo['previous_threshold'] = roleinfo['threshold']
+
+    if rolename == 'targets' and targets_map_file is not None:
+      roleinfo['keyids'] = []
+      for keyid, _ in targets_map_file['keys']:
+        roleinfo['keyids'].append(keyid)
 
     roleinfo['signatures'] = []
     roleinfo['signing_keyids'] = []

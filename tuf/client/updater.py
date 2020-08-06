@@ -626,7 +626,7 @@ class Updater(object):
     http://www.python.org/dev/peps/pep-0008/#method-names-and-instance-variables
   """
 
-  def __init__(self, repository_name, repository_mirrors):
+  def __init__(self, repository_name, repository_mirrors, targets_map_file = None):
     """
     <Purpose>
       Constructor.  Instantiating an updater object causes all the metadata
@@ -694,6 +694,23 @@ class Updater(object):
     # Save the validated arguments.
     self.repository_name = repository_name
     self.mirrors = repository_mirrors
+    self.targets_map_file = None
+
+    if targets_map_file is not None:
+      # Is 'targets_map_file' a path?  If not, raise
+      # 'securesystemslib.exceptions.FormatError'.  The actual content of the map
+      # file is validated later on in this method.
+      securesystemslib.formats.PATH_SCHEMA.check_match(targets_map_file)
+
+      try:
+        self.targets_map_file = securesystemslib.util.load_json_file(targets_map_file)
+
+      except (securesystemslib.exceptions.Error) as e:
+        raise tuf.exceptions.Error('Cannot load the targets map file: ' + str(e))
+
+      # Raise securesystemslib.exceptions.FormatError if the targets map file is
+      # improperly formatted.
+      tuf.formats.TARGETS_MAPFILE_SCHEMA.check_match(self.targets_map_file)
 
     # Store the trusted metadata read from disk.
     self.metadata = {}
@@ -822,7 +839,12 @@ class Updater(object):
 
     # Save and construct the full metadata path.
     metadata_directory = self.metadata_directory[metadata_set]
-    metadata_filename = metadata_role + '.json'
+    # For top-level targets, the targets map file may overwrite the
+    # targets metadata on the repository
+    if metadata_role == 'targets' and self.targets_map_file is not None:
+      metadata_filename = self.targets_map_file['targets_filename'] + '.json'
+    else:
+      metadata_filename = metadata_role + '.json'
     metadata_filepath = os.path.join(metadata_directory, metadata_filename)
 
     # Ensure the metadata path is valid/exists, else ignore the call.
@@ -900,10 +922,10 @@ class Updater(object):
     # repository is first instantiated.  Due to this setup, reloading delegated
     # roles is not required here.
     tuf.keydb.create_keydb_from_root_metadata(self.metadata['current']['root'],
-        self.repository_name)
+        self.repository_name, self.targets_map_file)
 
     tuf.roledb.create_roledb_from_root_metadata(self.metadata['current']['root'],
-        self.repository_name)
+        self.repository_name, self.targets_map_file)
 
 
 
@@ -1785,7 +1807,10 @@ class Updater(object):
 
     # Construct the metadata filename as expected by the download/mirror
     # modules.
-    metadata_filename = metadata_role + '.json'
+    if self.targets_map_file is not None and metadata_role == 'targets':
+      metadata_filename = self.targets_map_file['targets_filename'] + '.json'
+    else:
+      metadata_filename = metadata_role + '.json'
 
     # Attempt a file download from each mirror until the file is downloaded and
     # verified.  If the signature of the downloaded file is valid, proceed,
