@@ -1,0 +1,16 @@
+{
+ "targets_filename": "role1",
+ "keys":{
+  "c8022fa1e9b9cb239a6b362bbdffa9649e61ad2cb699d2e4bc4fdf7930a0e64a": {
+   "keyid_hash_algorithms": [
+    "sha256",
+    "sha512"
+   ],
+   "keytype": "ed25519",
+   "keyval": {
+    "public": "fcf224e55fa226056adf113ef1eb3d55e308b75b321c8c8316999d8c4fd9e0d9"
+   },
+   "scheme": "ed25519"
+  }
+ }
+}

@@ -142,7 +142,7 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default', t
 
     if rolename == 'targets' and targets_map_file is not None:
       roleinfo['keyids'] = []
-      for keyid, _ in targets_map_file['keys']:
+      for keyid in targets_map_file['keys']:
         roleinfo['keyids'].append(keyid)
 
     roleinfo['signatures'] = []

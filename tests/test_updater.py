@@ -1801,6 +1801,23 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         targets=targets, skip_refresh=False)
 
 
+  def test_15__targets_map_file(self):
+    targets_map_file = os.path.join(self.client_directory, 'targets_map.json')
+    # Creating a repository instance using the targets map file. The test cases
+    # will use this client updater to refresh metadata, fetch target files, etc.
+    self.repository_updater = updater.Updater(self.repository_name,
+        self.repository_mirrors, targets_map_file)
+
+    all_targets = self.repository_updater.all_targets()
+    self.assertEqual(len(all_targets), 1)
+
+
+
+
+
+
+
+
 
 
 class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
