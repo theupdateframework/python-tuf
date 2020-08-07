@@ -186,6 +186,10 @@ class MultiRepoUpdater(object):
       The path of the map file.  The map file is needed to determine which
       repositories to query given a target file.
 
+    targets_map_filename:
+      The path of the targets map file. This targets map file
+      will be used by all repositories.
+
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the map file is improperly
     formatted.
@@ -595,6 +599,9 @@ class Updater(object):
     self.repository_name:
       The name of the updater instance.
 
+    self.targets_map_file:
+      The contents of the targets map file.
+
   <Updater Methods>
     refresh():
       This method downloads, verifies, and loads metadata for the top-level
@@ -673,6 +680,10 @@ class Updater(object):
                                           'metadata_path': 'metadata',
                                           'targets_path': 'targets',
                                           'confined_target_dirs': ['']}}
+      targets_map_file:
+        The name of the targets map file. If one is not provided,
+        self.targets_map_file will be set to None and the top-level
+        targets metadata from the repository will be used.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError:

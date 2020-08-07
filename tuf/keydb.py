@@ -79,6 +79,11 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default', ta
       The name of the repository to store the key information.  If not supplied,
       the key database is populated for the 'default' repository.
 
+    targets_map_file:
+      The contents of the targets map file. The keys from the targets map file
+      will be added to the keydb. If not provided the keys from the default
+      targets files will be used.
+
   <Exceptions>
     securesystemslib.exceptions.FormatError, if 'root_metadata' does not have the correct format.
 

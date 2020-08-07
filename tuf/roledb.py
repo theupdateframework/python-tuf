@@ -92,6 +92,10 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default', t
       The name of the repository to store 'root_metadata'.  If not supplied,
       'rolename' is added to the 'default' repository.
 
+    targets_map_file:
+      The contents of the targets map file. This will be used to add the keys
+      to the targets role. If not provided, the default targets keys will be used.
+
   <Exceptions>
     securesystemslib.exceptions.FormatError, if 'root_metadata' does not have
     the correct object format.

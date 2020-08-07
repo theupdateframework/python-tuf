@@ -2161,12 +2161,6 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     map_file = os.path.join(self.client_directory, 'map.json')
     multi_repo_updater = updater.MultiRepoUpdater(map_file, self.targets_map_file)
 
-    #self.assertTrue('targets_map.json' in multi_repo_updater.targets_map_filename)
-
-    print(multi_repo_updater.map_file)
-    print(multi_repo_updater.repository_names_to_mirrors)
-    print(multi_repo_updater.repository_names_to_updaters)
-
     # Does the repository use the targets map file?
     repository_updater = multi_repo_updater.get_updater('test_repository2')
 
