@@ -1813,7 +1813,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # set the correct map file
     targets_map_file = os.path.join(self.client_directory, 'targets_map.json')
 
-    # Creating a repository instance using the targets map file. 
+    # Creating a repository instance using the targets map file.
     self.repository_updater = updater.Updater(self.repository_name,
         self.repository_mirrors, targets_map_file)
 
@@ -1860,6 +1860,7 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     original_client = os.path.join(original_repository_files, 'client', 'test_repository1')
     original_keystore = os.path.join(original_repository_files, 'keystore')
     original_map_file = os.path.join(original_repository_files, 'map.json')
+    original_targets_map_file = os.path.join(original_repository_files, 'targets_map.json')
 
     # Save references to the often-needed client repository directories.
     # Test cases need these references to access metadata and target files.
@@ -1884,6 +1885,7 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
         'keystore')
     self.map_file = os.path.join(self.client_directory, 'map.json')
     self.map_file2 = os.path.join(self.client_directory2, 'map.json')
+    self.targets_map_file = os.path.join(self.temporary_repository_root, 'targets_map_file')
 
     # Copy the original 'repository', 'client', and 'keystore' directories
     # to the temporary repository the test cases can use.
@@ -1894,6 +1896,7 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     shutil.copyfile(original_map_file, self.map_file)
     shutil.copyfile(original_map_file, self.map_file2)
     shutil.copytree(original_keystore, self.keystore_directory)
+    shutil.copyfile(original_targets_map_file, self.targets_map_file)
 
     # Launch a SimpleHTTPServer (serves files in the current directory).
     # Test cases will request metadata and target files that have been
@@ -2149,6 +2152,25 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     # Test for a repository that doesn't exist.
     multi_repo_updater.map_file['repositories']['bad_repo_name'] = ['https://bogus:30002']
     self.assertEqual(None, multi_repo_updater.get_updater('bad_repo_name'))
+
+
+
+
+
+  def test_targets_map_file(self):
+    map_file = os.path.join(self.client_directory, 'map.json')
+    multi_repo_updater = updater.MultiRepoUpdater(map_file, self.targets_map_file)
+
+    #self.assertTrue('targets_map.json' in multi_repo_updater.targets_map_filename)
+
+    print(multi_repo_updater.map_file)
+    print(multi_repo_updater.repository_names_to_mirrors)
+    print(multi_repo_updater.repository_names_to_updaters)
+
+    # Does the repository use the targets map file?
+    repository_updater = multi_repo_updater.get_updater('test_repository2')
+
+    self.assertEqual(repository_updater.targets_map_file['targets_filename'], 'role1')
 
 
 

@@ -199,7 +199,7 @@ class MultiRepoUpdater(object):
     None.
   """
 
-  def __init__(self, map_file):
+  def __init__(self, map_file, targets_map_filename=None):
     # Is 'map_file' a path?  If not, raise
     # 'securesystemslib.exceptions.FormatError'.  The actual content of the map
     # file is validated later on in this method.
@@ -228,6 +228,14 @@ class MultiRepoUpdater(object):
     #  }
     self.repository_names_to_mirrors = self.map_file['repositories']
 
+    self.targets_map_filename = None
+
+    if targets_map_filename is not None:
+      # Is 'targets_map_file' a path?  If not, raise
+      # 'securesystemslib.exceptions.FormatError'.  The actual content of the map
+      # file is validated later on in this method.
+      securesystemslib.formats.PATH_SCHEMA.check_match(targets_map_filename)
+      self.targets_map_filename = targets_map_filename
 
 
   def get_valid_targetinfo(self, target_filename, match_custom_field=True):
@@ -517,7 +525,7 @@ class MultiRepoUpdater(object):
           # NOTE: State (e.g., keys) should NOT be shared across different
           # updater instances.
           logger.debug('Adding updater for ' + repr(repository_name))
-          updater = tuf.client.updater.Updater(repository_name, mirrors)
+          updater = tuf.client.updater.Updater(repository_name, mirrors, self.targets_map_filename)
 
         except Exception:
           return None
