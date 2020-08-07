@@ -1802,19 +1802,32 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
   def test_15__targets_map_file(self):
+    # test badly formed targets map file
+    self.assertRaises(tuf.exceptions.Error, updater.Updater, self.repository_name,
+        self.repository_mirrors, 'no_file')
+
+    targets_map_file = os.path.join(self.repository_directory, 'metadata', 'root.json')
+    self.assertRaises(securesystemslib.exceptions.FormatError, updater.Updater,
+        self.repository_name, self.repository_mirrors, targets_map_file)
+
+    # set the correct map file
     targets_map_file = os.path.join(self.client_directory, 'targets_map.json')
-    # Creating a repository instance using the targets map file. The test cases
-    # will use this client updater to refresh metadata, fetch target files, etc.
+
+    # Creating a repository instance using the targets map file. 
     self.repository_updater = updater.Updater(self.repository_name,
         self.repository_mirrors, targets_map_file)
 
+    #ensure the map file was set
+    self.assertEqual('role1', self.repository_updater.targets_map_file['targets_filename'])
+
+    # ensure that only targets in the targets map file are loaded
     all_targets = self.repository_updater.all_targets()
     self.assertEqual(len(all_targets), 1)
 
-
-
-
-
+    # ensure the targets map file replaces the targets role
+    self.repository_updater._load_metadata_from_file('current', 'targets')
+    self.assertRaises(tuf.exceptions.UnknownRoleError,
+                      self.repository_updater._targets_of_role, 'role1')
 
 
 
