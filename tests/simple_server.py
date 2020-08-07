@@ -35,7 +35,6 @@ from __future__ import unicode_literals
 
 import sys
 import random
-import platform
 
 import six
 from six.moves.SimpleHTTPServer import SimpleHTTPRequestHandler

@@ -52,7 +52,6 @@ import shutil
 import json
 import subprocess
 import logging
-import sys
 import unittest
 
 import tuf.formats

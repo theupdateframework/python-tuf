@@ -39,7 +39,6 @@ import os
 import random
 import subprocess
 import sys
-import time
 import unittest
 
 import tuf
@@ -53,7 +52,6 @@ import utils
 import requests.exceptions
 
 import securesystemslib
-import six
 
 logger = logging.getLogger(__name__)
 

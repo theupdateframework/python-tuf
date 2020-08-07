@@ -22,13 +22,10 @@
 """
 
 import os
-import time
-import datetime
 import unittest
 import logging
 import tempfile
 import shutil
-import unittest
 
 import tuf
 import tuf.log

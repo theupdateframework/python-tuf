@@ -30,12 +30,10 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
-import sys
 import tempfile
 import random
 import subprocess
 import logging
-import time
 import shutil
 import unittest
 import json
@@ -45,7 +43,6 @@ import tuf.log
 import tuf.roledb
 import tuf.client.updater as updater
 import tuf.settings
-import securesystemslib
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.repository_tool as repo_tool
 

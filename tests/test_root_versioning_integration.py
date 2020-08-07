@@ -29,7 +29,6 @@ import os
 import logging
 import tempfile
 import shutil
-import sys
 import unittest
 
 import tuf

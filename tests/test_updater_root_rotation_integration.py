@@ -42,14 +42,11 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
-import time
 import shutil
-import copy
 import tempfile
 import logging
 import random
 import subprocess
-import sys
 import unittest
 import filecmp
 

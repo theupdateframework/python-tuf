@@ -30,7 +30,6 @@ from __future__ import unicode_literals
 
 import unittest
 
-import tuf
 import tuf.mirrors as mirrors
 import tuf.unittest_toolbox as unittest_toolbox
 

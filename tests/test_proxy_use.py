@@ -35,13 +35,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import hashlib
 import logging
 import os
 import random
 import subprocess
 import sys
-import time
 import unittest
 
 import tuf
@@ -52,9 +50,6 @@ import tuf.exceptions
 
 import utils
 
-import requests.exceptions
-
-import securesystemslib
 import six
 
 logger = logging.getLogger(__name__)

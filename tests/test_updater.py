@@ -57,7 +57,6 @@ import tempfile
 import logging
 import random
 import subprocess
-import sys
 import errno
 import unittest
 

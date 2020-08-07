@@ -41,13 +41,10 @@ from __future__ import unicode_literals
 import os
 import tempfile
 import random
-import time
 import datetime
 import shutil
-import json
 import subprocess
 import logging
-import sys
 import unittest
 
 import tuf.formats
