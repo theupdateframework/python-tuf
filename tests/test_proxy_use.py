@@ -78,6 +78,10 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
 
     unittest_toolbox.Modified_TestCase.setUpClass()
 
+    if not six.PY2:
+      raise NotImplementedError("TestWithProxies only works with Python 2"
+                                " (proxy_server.py is Python2 only)")
+
     # Launch a simple HTTP server (serves files in the current dir).
     cls.http_port = random.randint(30000, 45000)
     cls.http_server_proc = popen_python(
