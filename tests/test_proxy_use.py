@@ -118,12 +118,12 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
         os.path.join('ssl_certs', 'ssl_cert.crt')])
     # Note that the HTTPS proxy server's address uses https://, regardless of
     # the type of connection used with the target server.
-    cls.https_proxy_addr = 'https://127.0.0.1:' + str(cls.https_proxy_port)
+    cls.https_proxy_addr = 'https://localhost:' + str(cls.https_proxy_port)
 
-    utils.wait_for_server('127.0.0.1', cls.http_port)
-    utils.wait_for_server('127.0.0.1', cls.https_port)
-    utils.wait_for_server('127.0.0.1', cls.http_proxy_port)
-    utils.wait_for_server('127.0.0.1', cls.https_proxy_port)
+    utils.wait_for_server('localhost', cls.http_port)
+    utils.wait_for_server('localhost', cls.https_port)
+    utils.wait_for_server('localhost', cls.http_proxy_port)
+    utils.wait_for_server('localhost', cls.https_proxy_port)
 
 
 

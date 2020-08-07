@@ -466,7 +466,7 @@ def test(HandlerClass=ProxyRequestHandler, ServerClass=ThreadingHTTPServer, prot
         port = int(sys.argv[1])
     else:
         port = 8080
-    server_address = ('127.0.0.1', port) # MODIFIED: changed from '::1'
+    server_address = ('localhost', port)
 
     # MODIFIED: Argument added, conditional below added to control INTERCEPT
     # setting.
