@@ -2281,7 +2281,8 @@ class Targets(Metadata):
 
 
   def delegate(self, rolename, public_keys, paths, threshold=1,
-      terminating=False, list_of_targets=None, path_hash_prefixes=None):
+      terminating=False, list_of_targets=None, path_hash_prefixes=None,
+      succinct_hash_delegations=None):
     """
     <Purpose>
       Create a new delegation, where 'rolename' is a child delegation of this
@@ -2375,6 +2376,9 @@ class Targets(Metadata):
     if path_hash_prefixes is not None:
       tuf.formats.PATH_HASH_PREFIXES_SCHEMA.check_match(path_hash_prefixes)
 
+    if succinct_hash_delegations is not None:
+      tuf.formats.SUCCINCT_HASH_DELEGATIONS_SCHEMA.check_match(succinct_hash_delegations)
+
     # Keep track of the valid keyids (added to the new Targets object) and
     # their keydicts (added to this Targets delegations).
     keyids, keydict = repo_lib.keys_to_keydict(public_keys)
@@ -2414,7 +2418,12 @@ class Targets(Metadata):
     if paths:
       roleinfo['paths'] = paths
 
-    if path_hash_prefixes:
+    if succinct_hash_delegations:
+      roleinfo['succinct_hash_delegations'] = succinct_hash_delegations
+      del roleinfo['paths']
+    # If a delegation contains both `succinct_hash_delegations` and
+    # `path_hash_prefixes`, `succinct_hash_delegations` is used.
+    elif path_hash_prefixes:
       roleinfo['path_hash_prefixes'] = path_hash_prefixes
       # A role in a delegations must list either 'path_hash_prefixes'
       # or 'paths'.
@@ -2503,7 +2512,7 @@ class Targets(Metadata):
 
 
   def delegate_hashed_bins(self, list_of_targets, keys_of_hashed_bins,
-      number_of_bins=DEFAULT_NUM_BINS):
+      number_of_bins=DEFAULT_NUM_BINS, succinct=False):
     """
     <Purpose>
       Distribute a large number of target files over multiple delegated roles
@@ -2579,25 +2588,39 @@ class Targets(Metadata):
         repr(prefix_count) + ' total hash prefixes.\n' +
         'Each bin ranges over ' + repr(bin_size) + ' hash prefixes.')
 
+    keyids, keydict = repo_lib.keys_to_keydict(keys_of_hashed_bins)
+
     # Generate a list of bin names, the range of prefixes to be delegated to
     # that bin, along with the corresponding full list of target prefixes
     # to be delegated to that bin
     ordered_roles = []
-    for idx in range(0, prefix_count, bin_size):
-      high = idx + bin_size - 1
-      name = repo_lib.create_bin_name(idx, high, prefix_length)
-      if bin_size == 1:
-        target_hash_prefixes = [name]
-      else:
-        target_hash_prefixes = []
-        for idy in range(idx, idx+bin_size):
-          target_hash_prefixes.append("{prefix:0{len}x}".format(prefix=idy,
-              len=prefix_length))
+    if succinct:
+      # For succinct hased bin delegations, these metadata files will still
+      # be created, but they will not all be listed in the delegation
+      for idx in range(0, number_of_bins):
+        name = self.rolename + ".hbd-" + "{num:0{len}x}".format(num=idx, len=prefix_length)
+        role = {"name":name,
+            "keyids": keyids,
+            "threshold": 1,
+            "terminating": False
+            "target_paths" []}
+        ordered_roles.append(role)
+    else:
+      for idx in range(0, prefix_count, bin_size):
+        high = idx + bin_size - 1
+        name = repo_lib.create_bin_name(idx, high, prefix_length)
+        if bin_size == 1:
+          target_hash_prefixes = [name]
+        else:
+          target_hash_prefixes = []
+          for idy in range(idx, idx+bin_size):
+            target_hash_prefixes.append("{prefix:0{len}x}".format(prefix=idy,
+                len=prefix_length))
 
-      role = {"name": name,
-          "target_paths": [],
-          "target_hash_prefixes": target_hash_prefixes}
-      ordered_roles.append(role)
+        role = {"name": name,
+            "target_paths": [],
+            "target_hash_prefixes": target_hash_prefixes}
+        ordered_roles.append(role)
 
     for target_path in list_of_targets:
       # Check if the target path is relative or raise an exception. File's
@@ -2611,8 +2634,6 @@ class Targets(Metadata):
       # We must hash a target path as it appears in the metadata
       hash_prefix = repo_lib.get_target_hash(target_path)[:prefix_length]
       ordered_roles[int(hash_prefix, 16) // bin_size]["target_paths"].append(target_path)
-
-    keyids, keydict = repo_lib.keys_to_keydict(keys_of_hashed_bins)
 
     # A queue of roleinfo's that need to be updated in the roledb
     delegated_roleinfos = []
@@ -2639,26 +2660,36 @@ class Targets(Metadata):
       target = self._create_delegated_target(bin_role['name'], keyids, 1,
           relative_paths)
 
-      roleinfo = {'name': bin_role['name'],
-                  'keyids': keyids,
-                  'threshold': 1,
-                  'terminating': False,
-                  'path_hash_prefixes': bin_role['target_hash_prefixes']}
-      delegated_roleinfos.append(roleinfo)
-
       for key in keys_of_hashed_bins:
         target.add_verification_key(key)
 
-      # Add the new delegation to the top-level 'targets' role object (i.e.,
-      # 'repository.targets()').
-      if self.rolename != 'targets':
-        self._parent_targets_object.add_delegated_role(bin_role['name'],
-            target)
+      if not succinct:
+        roleinfo = {'name': bin_role['name'],
+                    'keyids': keyids,
+                    'threshold': 1,
+                    'terminating': False,
+                    'path_hash_prefixes': bin_role['target_hash_prefixes']}
+        delegated_roleinfos.append(roleinfo)
 
-      # Add 'new_targets_object' to the 'targets' role object (this object).
-      self.add_delegated_role(bin_role['name'], target)
-      logger.debug('Delegated from ' + repr(self.rolename) + ' to ' + repr(bin_role))
+        # Add the new delegation to the top-level 'targets' role object (i.e.,
+        # 'repository.targets()').
+        if self.rolename != 'targets':
+          self._parent_targets_object.add_delegated_role(bin_role['name'],
+              target)
 
+        # Add 'new_targets_object' to the 'targets' role object (this object).
+        self.add_delegated_role(bin_role['name'], target)
+        logger.debug('Delegated from ' + repr(self.rolename) + ' to ' + repr(bin_role))
+
+    if succinct:
+      roleinfo = {'name': self.rolename + '.hbd',
+                  'keyids': keyids,
+                  'threshold': 1,
+                  'terminating': False,
+                  'succinct_hash_delegations': prefix_length}
+      delegated_roleinfos.append(roleinfo)
+
+      delegate(self.rolename + '.hbd', keys_of_hashed_bins, [''], succinct_hash_delegations=prefix_length)
 
     self._update_roledb_delegations(keydict, delegated_roleinfos)
 
@@ -2666,7 +2697,7 @@ class Targets(Metadata):
 
 
   def add_target_to_bin(self, target_filepath, number_of_bins=DEFAULT_NUM_BINS,
-      fileinfo=None):
+      fileinfo=None, succinct=False):
     """
     <Purpose>
       Add the fileinfo of 'target_filepath' to the expected hashed bin, if the
@@ -2717,7 +2748,9 @@ class Targets(Metadata):
     # TODO: check target_filepath is sane
 
     path_hash = repo_lib.get_target_hash(target_filepath)
-    bin_name = repo_lib.find_bin_for_target_hash(path_hash, number_of_bins)
+    bin_name = repo_lib.find_bin_for_target_hash(path_hash, number_of_bins, succinct)
+    if succinct:
+      bin_name = self.rolename + bin_name
 
     # Ensure the Targets object has delegated to hashed bins
     if not self._delegated_roles.get(bin_name, None):

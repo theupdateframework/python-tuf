@@ -1112,7 +1112,7 @@ def get_bin_numbers(number_of_bins):
 
 
 
-def find_bin_for_target_hash(target_hash, number_of_bins):
+def find_bin_for_target_hash(target_hash, number_of_bins, succinct):
   """
   <Purpose>
     For a given hashed filename, target_hash, calculate the name of a hashed bin
@@ -1137,6 +1137,8 @@ def find_bin_for_target_hash(target_hash, number_of_bins):
   low = prefix - (prefix % bin_size)
   high = (low + bin_size - 1)
 
+  if succinct:
+    return ".hbd-" + {num:0{len}x}.format(num=low/bin_size, len=prefix_length)
   return create_bin_name(low, high, prefix_length)
 
 
