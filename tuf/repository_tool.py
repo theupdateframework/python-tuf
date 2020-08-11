@@ -326,7 +326,6 @@ class Repository(object):
     dirty_rolenames = tuf.roledb.get_dirty_roles(self._repository_name)
 
     for dirty_rolename in dirty_rolenames:
-
       # Ignore top-level roles, they will be generated later in this method.
       if dirty_rolename in tuf.roledb.TOP_LEVEL_ROLES:
         continue
@@ -338,6 +337,7 @@ class Repository(object):
           self._storage_backend, consistent_snapshot, filenames,
           repository_name=self._repository_name,
           use_existing_fileinfo=use_existing_fileinfo)
+
 
     # Metadata should be written in (delegated targets -> root -> targets ->
     # snapshot -> timestamp) order.  Begin by generating the 'root.json'
@@ -851,6 +851,42 @@ class Metadata(object):
 
     else:
       raise securesystemslib.exceptions.Error('Verification key not found.')
+
+
+
+  def load_signing_key_succinct_delegations(self, key):
+    """
+    Load the role key for all succinct delegations. All succinct delegations
+    use the same role key
+    """
+    # Does 'key' have the correct format?
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.  Raise
+    # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
+    securesystemslib.formats.ANYKEY_SCHEMA.check_match(key)
+
+    # Ensure the private portion of the key is available, otherwise signatures
+    # cannot be generated when the metadata file is written to disk.
+    if 'private' not in key['keyval'] or not len(key['keyval']['private']):
+      raise securesystemslib.exceptions.Error('This is not a private key.')
+
+    # Has the key, with the private portion included, been added to the keydb?
+    # The public version of the key may have been previously added.
+    try:
+      tuf.keydb.add_key(key, repository_name=self._repository_name)
+
+    except tuf.exceptions.KeyAlreadyExistsError:
+      tuf.keydb.remove_key(key['keyid'], self._repository_name)
+      tuf.keydb.add_key(key, repository_name=self._repository_name)
+
+    for delegation in self._succinct_delegations:
+      roleinfo = tuf.roledb.get_roleinfo(delegation, self._repository_name)
+      if key['keyid'] not in roleinfo['signing_keyids']:
+        roleinfo['signing_keyids'].append(key['keyid'])
+
+        tuf.roledb.update_roleinfo(delegation, roleinfo,
+            repository_name=self._repository_name)
+
 
 
 
@@ -2680,8 +2716,15 @@ class Targets(Metadata):
       else:
         roleinfo = {'name': bin_role['name'],
                     'keyids': keyids,
+                    'signing_keyids': [],
+                    'version':1,
                     'threshold': 1,
-                    'terminating': False}
+                    'terminating': False,
+                    'paths': []}
+        # update roleinfo and ensure roles are marked as dirty
+        #tuf.roledb.update_roleinfo(roleinfo['name'], roleinfo,
+                                 #repository_name=self._repository_name)
+
 
       # Add the new delegation to the top-level 'targets' role object (i.e.,
       # 'repository.targets()').
@@ -2700,8 +2743,16 @@ class Targets(Metadata):
                   'keyids': keyids,
                   'threshold': 1,
                   'terminating': False,
-                  'succinct_hash_delegations': {'prefix_bit_length':prefix_length}}
+                  'succinct_hash_delegations': {'prefix_bit_length':prefix_length},
+                  'paths': []}
       delegated_roleinfos.append(roleinfo)
+
+      target = self._create_delegated_target(self.rolename + '.hbd', keyids, 1, [])
+      for key in keys_of_hashed_bins:
+        target.add_verification_key(key)
+
+      self.add_delegated_role(self.rolename + '.hbd', target)
+
 
     self._update_roledb_delegations(keydict, delegated_roleinfos)
 
@@ -3153,6 +3204,7 @@ def load_repository(repository_directory, repository_name='default',
     # from the same delegating role an infinite loop is avoided.
     loaded_delegations.add((rolename, delegating_role))
 
+    print(rolename)
     metadata_path = delegated_roles_filenames[rolename]
     signable = None
 

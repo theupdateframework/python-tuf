@@ -833,6 +833,7 @@ def get_delegated_roles_metadata_filenames(metadata_directory,
   filenames = {}
   metadata_files = sorted(storage_backend.list_folder(metadata_directory),
       reverse=True)
+  print(metadata_files)
 
   # Iterate over role metadata files, sorted by their version-number prefix, with
   # more recent versions first, and only add the most recent version of any

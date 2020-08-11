@@ -292,6 +292,17 @@ class TestRepository(unittest.TestCase):
     tuf.roledb.update_roleinfo('role1', role1_roleinfo,
         repository_name=repository_name)
 
+    # Test if succinct delegations are written on writeall
+    list_of_targets = [target1, target2]
+    repository.targets.delegate_hashed_bins(list_of_targets, [role1_pubkey],
+                                            4, True)
+    repository.targets.load_signing_key_succinct_delegations(role1_privkey)
+    repository.writeall()
+
+    delegation_filepath = os.path.join(metadata_directory, 'targets.hbd-1.json')
+    delegation_signable = securesystemslib.util.load_json_file(delegation_filepath)
+    tuf.formats.check_signable_object_format(delegation_signable)
+
     # Verify status() does not raise 'tuf.exceptions.UnsignedMetadataError' if any of the
     # the top-level roles. Test that 'root' is improperly signed.
     repository.root.unload_signing_key(root_privkey)
@@ -555,6 +566,7 @@ class TestRepository(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.Error, repo.get_filepaths_in_directory,
                       nonexistent_directory, recursive_walk=False,
                       followlinks=False)
+
 
 
 
