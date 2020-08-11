@@ -1704,6 +1704,7 @@ class Targets(Metadata):
     self._rolename = rolename
     self._target_files = []
     self._delegated_roles = {}
+    self._succinct_delegations = {}
     self._parent_targets_object = self
     self._repository_name = repository_name
 
@@ -1777,7 +1778,7 @@ class Targets(Metadata):
 
 
 
-  def add_delegated_role(self, rolename, targets_object):
+  def add_delegated_role(self, rolename, targets_object, succinct=False):
     """
     <Purpose>
       Add 'targets_object' to this Targets object's list of known delegated
@@ -1814,12 +1815,18 @@ class Targets(Metadata):
       raise securesystemslib.exceptions.FormatError(repr(targets_object) + ' is'
           ' not a Targets object.')
 
-
-    if rolename in self._delegated_roles:
-      logger.debug(repr(rolename) + ' already exists.')
+    if succinct:
+      if rolename in self._succinct_delegations:
+        logger.debug(repr(rolename) + ' already exists.')
+      else:
+        self._succinct_delegations[rolename] = targets_object
 
     else:
-      self._delegated_roles[rolename] = targets_object
+      if rolename in self._delegated_roles:
+        logger.debug(repr(rolename) + ' already exists.')
+
+      else:
+        self._delegated_roles[rolename] = targets_object
 
 
 
@@ -2602,8 +2609,8 @@ class Targets(Metadata):
         role = {"name":name,
             "keyids": keyids,
             "threshold": 1,
-            "terminating": False
-            "target_paths" []}
+            "terminating": False,
+            "target_paths": []}
         ordered_roles.append(role)
     else:
       for idx in range(0, prefix_count, bin_size):
@@ -2670,26 +2677,31 @@ class Targets(Metadata):
                     'terminating': False,
                     'path_hash_prefixes': bin_role['target_hash_prefixes']}
         delegated_roleinfos.append(roleinfo)
+      else:
+        roleinfo = {'name': bin_role['name'],
+                    'keyids': keyids,
+                    'threshold': 1,
+                    'terminating': False}
 
-        # Add the new delegation to the top-level 'targets' role object (i.e.,
-        # 'repository.targets()').
-        if self.rolename != 'targets':
-          self._parent_targets_object.add_delegated_role(bin_role['name'],
-              target)
+      # Add the new delegation to the top-level 'targets' role object (i.e.,
+      # 'repository.targets()').
+      if self.rolename != 'targets':
+        self._parent_targets_object.add_delegated_role(bin_role['name'],
+            target, succinct)
 
-        # Add 'new_targets_object' to the 'targets' role object (this object).
-        self.add_delegated_role(bin_role['name'], target)
-        logger.debug('Delegated from ' + repr(self.rolename) + ' to ' + repr(bin_role))
+      # Add 'new_targets_object' to the 'targets' role object (this object).
+      self.add_delegated_role(bin_role['name'], target, succinct)
+      logger.debug('Delegated from ' + repr(self.rolename) + ' to ' + repr(bin_role))
 
     if succinct:
+      # For succinct delegations, each bin is not added, so add a single
+      # succinct delegation
       roleinfo = {'name': self.rolename + '.hbd',
                   'keyids': keyids,
                   'threshold': 1,
                   'terminating': False,
-                  'succinct_hash_delegations': prefix_length}
+                  'succinct_hash_delegations': {'prefix_bit_length':prefix_length}}
       delegated_roleinfos.append(roleinfo)
-
-      delegate(self.rolename + '.hbd', keys_of_hashed_bins, [''], succinct_hash_delegations=prefix_length)
 
     self._update_roledb_delegations(keydict, delegated_roleinfos)
 

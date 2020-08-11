@@ -1484,6 +1484,7 @@ class TestTargets(unittest.TestCase):
     threshold = 1
     paths = ['*']
     path_hash_prefixes = ['e3a3', '8fae', 'd543']
+    succinct_hash_delegations = {'prefix_bit_length': 2}
 
     self.targets_object.delegate(rolename, public_keys, paths,
         threshold, terminating=False, list_of_targets=list_of_targets,
@@ -1491,6 +1492,15 @@ class TestTargets(unittest.TestCase):
 
     self.assertEqual(self.targets_object.get_delegated_rolenames(),
                      ['tuf'])
+
+    # Tests succinct hashed bin delegations
+    rolename = 'succinct'
+    self.targets_object.delegate(rolename, public_keys, paths,
+        threshold, terminating=False, list_of_targets=list_of_targets,
+        succinct_hash_delegations=succinct_hash_delegations)
+
+    self.assertEqual(self.targets_object.get_delegated_rolenames(),
+                    ['tuf', 'succinct'])
 
     # Test for delegated paths that do not exist.
     # An exception should not be raised for non-existent delegated paths, since
@@ -1506,6 +1516,7 @@ class TestTargets(unittest.TestCase):
     self.targets_object.delegate(rolename, public_keys, [], threshold,
         terminating=False, list_of_targets=['non-existent.txt'],
         path_hash_prefixes=path_hash_prefixes)
+
 
     # Test improperly formatted arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError,
@@ -1531,6 +1542,10 @@ class TestTargets(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.FormatError,
         self.targets_object.delegate, rolename, public_keys, paths, threshold,
         list_of_targets, 3)
+
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        self.targets_object.delegate, rolename, public_keys, paths, threshold,
+        list_of_targets, None, succinct_hash_delegations=5)
 
     # Test invalid arguments (e.g., already delegated 'rolename', non-existent
     # files, etc.).
@@ -1577,7 +1592,7 @@ class TestTargets(unittest.TestCase):
       have_prefixes = False
 
       for delegated_role in roleinfo['delegations']['roles']:
-        if len(delegated_role['path_hash_prefixes']) > 0:
+        if '.hbd' not in delegated_role['name'] and len(delegated_role['path_hash_prefixes']) > 0:
           rolename = delegated_role['name']
           prefixes = delegated_role['path_hash_prefixes']
           have_prefixes = True
@@ -1605,6 +1620,29 @@ class TestTargets(unittest.TestCase):
     self.assertEqual(sorted(self.targets_object.get_delegated_rolenames()),
                      sorted(delegated_rolenames))
     check_prefixes_match_range()
+
+
+    # Test succinct hashed bin delegations
+    self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
+                                            number_of_bins=16, succinct=True)
+
+    delegated_rolename = self.targets_object.rolename + '.hbd'
+
+    bin_names = [delegated_rolename + '-0', delegated_rolename + '-1',
+                delegated_rolename + '-2', delegated_rolename + '-3',
+                delegated_rolename + '-4', delegated_rolename + '-5',
+                delegated_rolename + '-6', delegated_rolename + '-7',
+                delegated_rolename + '-8', delegated_rolename + '-9',
+                delegated_rolename + '-a', delegated_rolename + '-b',
+                delegated_rolename + '-c', delegated_rolename + '-d',
+                delegated_rolename + '-e', delegated_rolename + '-f']
+
+    delegated_rolenames.append(delegated_rolename)
+
+    self.assertEqual(sorted(self.targets_object.get_delegated_rolenames()),
+                    sorted(delegated_rolenames))
+    self.assertEqual(sorted(self.targets_object._succinct_delegations),
+                    sorted(bin_names))
 
     # For testing / coverage purposes, try to create delegated bins that
     # hold a range of hash prefixes (e.g., bin name: 000-003).
