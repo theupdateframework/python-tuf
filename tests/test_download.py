@@ -105,13 +105,11 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
   def test_download_url_to_tempfileobj(self):
 
     download_file = download.safe_download
-
-    temp_fileobj = download_file(self.url, self.target_data_length)
-    temp_fileobj.seek(0)
-    temp_file_data = temp_fileobj.read().decode('utf-8')
-    self.assertEqual(self.target_data, temp_file_data)
-    self.assertEqual(self.target_data_length, len(temp_file_data))
-    temp_fileobj.close()
+    with download_file(self.url, self.target_data_length) as temp_fileobj:
+      temp_fileobj.seek(0)
+      temp_file_data = temp_fileobj.read().decode('utf-8')
+      self.assertEqual(self.target_data, temp_file_data)
+      self.assertEqual(self.target_data_length, len(temp_file_data))
 
 
 
@@ -344,16 +342,16 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
       # TODO: Confirm necessity of this session clearing and lay out mechanics.
       tuf.download._sessions = {}
       logger.info('Trying HTTPS download of target file: ' + good_https_url)
-      download.safe_download(good_https_url, target_data_length)
-      download.unsafe_download(good_https_url, target_data_length)
+      download.safe_download(good_https_url, target_data_length).close()
+      download.unsafe_download(good_https_url, target_data_length).close()
 
       os.environ['REQUESTS_CA_BUNDLE'] = good2_cert_fname
       # Clear sessions to ensure that the certificate we just specified is used.
       # TODO: Confirm necessity of this session clearing and lay out mechanics.
       tuf.download._sessions = {}
       logger.info('Trying HTTPS download of target file: ' + good2_https_url)
-      download.safe_download(good2_https_url, target_data_length)
-      download.unsafe_download(good2_https_url, target_data_length)
+      download.safe_download(good2_https_url, target_data_length).close()
+      download.unsafe_download(good2_https_url, target_data_length).close()
 
     finally:
       for proc in [
