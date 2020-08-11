@@ -3183,7 +3183,19 @@ def load_repository(repository_directory, repository_name='default',
   # [('role1', 'targets'), ('role2', 'targets'), ... ]
   roleinfo = tuf.roledb.get_roleinfo('targets', repository_name)
   for role in roleinfo['delegations']['roles']:
-    delegations.append((role, 'targets'))
+    if role['name'].endswith('.hbd'):
+      prefix_len = role['succinct_hash_delegations']['prefix_bit_length']
+      num_bins = 2 ** prefix_len
+      for i in range(num_bins):
+        bin_name = role['name'] + '-' + "{num:0{len}x}".format(num=i, len=prefix_len)
+        succinct_role = {'name': bin_name,
+                'keyids': role['keyids'],
+                'threshold': role['threshold'],
+                'terminating': role['terminating']}
+
+        delegations.append((succinct_role, 'succinct'))
+    else:
+      delegations.append((role, 'targets'))
 
   # Traverse the graph by appending the next delegation to the deque and
   # 'pop'-ing and loading the left-most element.
@@ -3204,7 +3216,6 @@ def load_repository(repository_directory, repository_name='default',
     # from the same delegating role an infinite loop is avoided.
     loaded_delegations.add((rolename, delegating_role))
 
-    print(rolename)
     metadata_path = delegated_roles_filenames[rolename]
     signable = None
 
@@ -3241,11 +3252,15 @@ def load_repository(repository_directory, repository_name='default',
          roleinfo, parent_targets_object=parent_targets_object,
          repository_name=repository_name)
 
-    parent_targets_object.add_delegated_role(rolename,
-        new_targets_object)
-    if delegating_role != 'targets':
-      parent_targets_object(delegating_role).add_delegated_role(rolename,
+    if delegating_role == 'succinct':
+      parent_targets_object.add_delegated_role(rolename,
+          new_targets_object, True)
+    else:
+      parent_targets_object.add_delegated_role(rolename,
           new_targets_object)
+      if delegating_role != 'targets':
+        parent_targets_object(delegating_role).add_delegated_role(rolename,
+            new_targets_object)
 
     # Append the next level delegations to the deque:
     # the 'delegated' role becomes the 'delegating'
