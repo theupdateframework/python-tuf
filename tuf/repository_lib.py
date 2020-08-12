@@ -833,7 +833,6 @@ def get_delegated_roles_metadata_filenames(metadata_directory,
   filenames = {}
   metadata_files = sorted(storage_backend.list_folder(metadata_directory),
       reverse=True)
-  print(metadata_files)
 
   # Iterate over role metadata files, sorted by their version-number prefix, with
   # more recent versions first, and only add the most recent version of any
@@ -1126,6 +1125,11 @@ def find_bin_for_target_hash(target_hash, number_of_bins, succinct=False):
 
     number_of_bins:
       The number of hashed_bins in use
+
+    succinct:
+      Whether the bins are created using succinct hashed bin delegations.
+      If true, the returned bin name will be formatted using the hashed
+      bin delegation scheme.
 
   <Returns>
     The name of the hashed bin target_hash would be binned into

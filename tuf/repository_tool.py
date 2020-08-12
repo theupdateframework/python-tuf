@@ -326,6 +326,7 @@ class Repository(object):
     dirty_rolenames = tuf.roledb.get_dirty_roles(self._repository_name)
 
     for dirty_rolename in dirty_rolenames:
+
       # Ignore top-level roles, they will be generated later in this method.
       if dirty_rolename in tuf.roledb.TOP_LEVEL_ROLES:
         continue
@@ -337,7 +338,6 @@ class Repository(object):
           self._storage_backend, consistent_snapshot, filenames,
           repository_name=self._repository_name,
           use_existing_fileinfo=use_existing_fileinfo)
-
 
     # Metadata should be written in (delegated targets -> root -> targets ->
     # snapshot -> timestamp) order.  Begin by generating the 'root.json'
@@ -851,41 +851,6 @@ class Metadata(object):
 
     else:
       raise securesystemslib.exceptions.Error('Verification key not found.')
-
-
-
-  def load_signing_key_succinct_delegations(self, key):
-    """
-    Load the role key for all succinct delegations. All succinct delegations
-    use the same role key
-    """
-    # Does 'key' have the correct format?
-    # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.  Raise
-    # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    securesystemslib.formats.ANYKEY_SCHEMA.check_match(key)
-
-    # Ensure the private portion of the key is available, otherwise signatures
-    # cannot be generated when the metadata file is written to disk.
-    if 'private' not in key['keyval'] or not len(key['keyval']['private']):
-      raise securesystemslib.exceptions.Error('This is not a private key.')
-
-    # Has the key, with the private portion included, been added to the keydb?
-    # The public version of the key may have been previously added.
-    try:
-      tuf.keydb.add_key(key, repository_name=self._repository_name)
-
-    except tuf.exceptions.KeyAlreadyExistsError:
-      tuf.keydb.remove_key(key['keyid'], self._repository_name)
-      tuf.keydb.add_key(key, repository_name=self._repository_name)
-
-    for delegation in self._succinct_delegations:
-      roleinfo = tuf.roledb.get_roleinfo(delegation, self._repository_name)
-      if key['keyid'] not in roleinfo['signing_keyids']:
-        roleinfo['signing_keyids'].append(key['keyid'])
-
-        tuf.roledb.update_roleinfo(delegation, roleinfo,
-            repository_name=self._repository_name)
 
 
 
@@ -1814,6 +1779,63 @@ class Targets(Metadata):
 
 
 
+
+  def load_signing_key_succinct_delegations(self, key):
+    """
+    <Purpose>
+      Load the role key for all succinct delegations. All succinct delegations
+      use the same role key
+
+    <Arguments>
+      key:
+        The role key fpr all succinct delegations associated with this role,
+        conformant to 'securesystemslib.formats.ANYKEY_SCHEMA'.
+        It must contain the private key, so that role signatures may be
+        generated when writeall() or write() is eventually called to generate
+        valid metadata files.
+
+    <Exceptions>
+      securesystemslib.exceptions.FormatError, if 'key' is improperly formatted.
+
+      securesystemslib.exceptions.Error, if the private key is not found in 'key'.
+
+    <Side Effects>
+      Updates the keydb and roledb entries for all succinct delegations
+
+    <Returns>
+      None.
+
+    """
+    # Does 'key' have the correct format?
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.  Raise
+    # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
+    securesystemslib.formats.ANYKEY_SCHEMA.check_match(key)
+
+    # Ensure the private portion of the key is available, otherwise signatures
+    # cannot be generated when the metadata file is written to disk.
+    if 'private' not in key['keyval'] or not len(key['keyval']['private']):
+      raise securesystemslib.exceptions.Error('This is not a private key.')
+
+    # Has the key, with the private portion included, been added to the keydb?
+    # The public version of the key may have been previously added.
+    try:
+      tuf.keydb.add_key(key, repository_name=self._repository_name)
+
+    except tuf.exceptions.KeyAlreadyExistsError:
+      tuf.keydb.remove_key(key['keyid'], self._repository_name)
+      tuf.keydb.add_key(key, repository_name=self._repository_name)
+
+    for delegation in self._succinct_delegations:
+      roleinfo = tuf.roledb.get_roleinfo(delegation, self._repository_name)
+      if key['keyid'] not in roleinfo['signing_keyids']:
+        roleinfo['signing_keyids'].append(key['keyid'])
+
+        tuf.roledb.update_roleinfo(delegation, roleinfo,
+            repository_name=self._repository_name)
+
+
+
   def add_delegated_role(self, rolename, targets_object, succinct=False):
     """
     <Purpose>
@@ -1829,6 +1851,11 @@ class Targets(Metadata):
 
       targets_object:
         A Targets() object.
+
+      succinct:
+        Whether the delegated role is used by succinct hashed bin delegations.
+        If succinct delegations are used, the role is added to '_succinct_delegations'
+        instead of '_delegated_roles'.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError, if the arguments are improperly
@@ -2385,6 +2412,9 @@ class Targets(Metadata):
         hashed bin delegations.  Targets may be located and stored in hashed
         bins by calculating the target path's hash prefix.
 
+      succinct:
+        If the delegation is to bins using succinct hashed bin delegations.
+
     <Exceptions>
       securesystemslib.exceptions.FormatError, if any of the arguments are
       improperly formatted.
@@ -2597,6 +2627,12 @@ class Targets(Metadata):
         from [000]... - [003]..., where the series of digits in brackets is
         considered the hash prefix).
 
+      succinct:
+        Whether the hashed bins should use succinct hashed bin delegations.
+
+      succinct:
+        Whether the hashed bins should use succinct hashed bin delegations.
+
     <Exceptions>
       securesystemslib.exceptions.FormatError, if the arguments are improperly
       formatted.
@@ -2784,6 +2820,9 @@ class Targets(Metadata):
       fileinfo:
         An optional fileinfo object, conforming to tuf.formats.TARGETS_FILEINFO_SCHEMA,
         providing full information about the file.
+
+      succinct:
+        Whether the bins use succinct hashed bin delegations.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError, if 'target_filepath' is
