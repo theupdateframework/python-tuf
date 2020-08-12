@@ -1734,6 +1734,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(self.repository_updater._visit_child_role(child_role,
         '/target.exe'), child_role['name'])
 
+    # Test getting succinct hash bin delegation filename
+    child_role['succinct_hash_delegations'] = {'prefix_bit_length': 4}
+    succinct_rolename = child_role['name'] + '-8'
+    self.assertEqual(self.repository_updater._visit_child_role(child_role,
+        '/file3.txt'), succinct_rolename)
+
+    child_role['succinct_hash_delegations'] = None
+
     # Test for a valid path hash prefix...
     child_role['path_hash_prefixes'] = ['8baf']
     self.assertEqual(self.repository_updater._visit_child_role(child_role,
