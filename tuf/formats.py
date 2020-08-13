@@ -366,6 +366,12 @@ TARGETS_SCHEMA = SCHEMA.Object(
   targets = FILEDICT_SCHEMA,
   delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA))
 
+SNAPSHOT_MERKLE_SCHEMA = SCHEMA.Object(
+  leaf_contents = SCHEMA.OneOf([VERSIONINFO_SCHEMA,
+                              METADATA_FILEINFO_SCHEMA]),
+  merkle_path = SCHEMA.ListOf(HASH_SCHEMA),
+  path_directions = SCHEMA.ListOf(SCHEMA.Integer()))
+
 # Snapshot role: indicates the latest versions of all metadata (except
 # timestamp).
 SNAPSHOT_SCHEMA = SCHEMA.Object(
@@ -375,6 +381,12 @@ SNAPSHOT_SCHEMA = SCHEMA.Object(
   expires = securesystemslib.formats.ISO8601_DATETIME_SCHEMA,
   spec_version = SPECIFICATION_VERSION_SCHEMA,
   meta = FILEINFODICT_SCHEMA)
+
+MERKLE_TIMESTAMP_SCHEMA = SCHEMA.Object(
+  spec_version = SPECIFICATION_VERSION_SCHEMA,
+  version = METADATAVERSION_SCHEMA,
+  expires = securesystemslib.formats.ISO8601_DATETIME_SCHEMA,
+  merkle_root = HASH_SCHEMA)
 
 # Timestamp role: indicates the latest version of the snapshot file.
 TIMESTAMP_SCHEMA = SCHEMA.Object(

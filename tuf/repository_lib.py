@@ -1549,9 +1549,131 @@ def _get_hashes_and_length_if_needed(use_length, use_hashes, full_file_path,
 
 
 
+class Node():
+  _parent = None
+  _hash = None
+
+  @property
+  def parent(self):
+    return self._parent
+
+  def set_parent(self, parent):
+    _parent = parent
+
+  def hash(self):
+    return self._hash
+
+
+
+class InternalNode(Node):
+  # Intenal Merkle Tree node
+  _left = None
+  _right = None
+
+  def __init__(self, left, right):
+    self._left = left
+    self._right = right
+
+    left.set_parent(self)
+    right.set_parent(self)
+    digest_object = securesystemslib.hash.digest()
+
+    #Append a 1 for internal nodes for reverse preimage protection
+    digest_object.update (left + right + '\1')
+
+    self._hash = digest_object.digest()
+
+  def left(self):
+    return self._left
+
+  def right(self):
+    return self._right
+
+
+
+class Leaf(Node):
+  # Merkle Tree leaf
+  _contents = None
+  _name = None
+
+  def __init__(self, name, contents, digest = None):
+    self._contents = contents
+    self._name = name
+
+    if digest:
+      self._hash = digest
+    else:
+      digest_object = securesystemslib.hash.digest()
+      digest_object.update(contents + '\0')
+      self._hash = digest_object.digest()
+
+
+
+
+def build_merkle_tree(fileinfodict, storage_backend):
+  """
+  Create a Merkle tree from the snapshot fileinfo and writes it to individual snapshot files
+
+  Returns the root hash
+  """
+
+  leaves = []
+  nodes = []
+  for name, contents in fileinfodict:
+    leaves.append(Leaf(name, contents))
+
+  current_nodes = leaves
+
+  while(len(current_nodes) > 1):
+    new_nodes = []
+    for i in range(0, len(current_nodes), 2):
+      # odd number of nodes
+      if i + 1 > len(current_nodes):
+        new_nodes.append(current_nodes[i])
+      else:
+        n = Node(current_nodes[i], current_nodes[i+1])
+        new_nodes.append(n)
+        nodes.append(n)
+    current_nodes = new_nodes
+
+  root = current_nodes[0]
+
+  # build path for each leaf
+  for l in leaves:
+    merkle_path = []
+    current_node = l
+    path_directions = []
+
+    while(current_node != root):
+      next_node = current_node.parent()
+      # TODO: determine left or right upon node creation
+      h_left = next_node.left().hash()
+      h_right = next_node.right().hash()
+      if current_node.hash() == h_left:
+        merkle_path.append(h_right)
+        path_directions.append(-1)
+      elif current_node.hash() == h_right:
+        merkle_path.append(h_left)
+        path_directions.append(1)
+      else:
+        # error
+        pass
+
+      current_node = next_node
+
+    file_contents = {'leaf_contents':l.contents(), 'merkle_path': merkle_path,
+                    'path_directions': path_directions}
+    write_metadata_file(file_contents, l.name() + '.json', 1, False, storage_backend)
+
+  return root.hash()
+
+
+
+
+
 def generate_snapshot_metadata(metadata_directory, version, expiration_date,
     storage_backend, consistent_snapshot=False,
-    repository_name='default', use_length=False, use_hashes=False):
+    repository_name='default', use_length=False, use_hashes=False, snapshot_merkle=False):
   """
   <Purpose>
     Create the snapshot metadata.  The minimum metadata must exist (i.e.,
@@ -1682,6 +1804,9 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       logger.debug('Metadata file has an unsupported file'
           ' extension: ' + metadata_filename)
 
+  if snapshot_merkle:
+    return build_merkle_tree(fileinfodict, storage_backend)
+
   # Generate the Snapshot metadata object.
   # Use generalized build_dict_conforming_to_schema func to produce a dict that
   # contains all the appropriate information for snapshot metadata,
@@ -1703,7 +1828,8 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
 
 
 def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
-    storage_backend, repository_name, use_length=True, use_hashes=True):
+    storage_backend, repository_name, use_length=True, use_hashes=True,
+    merkle_root=None):
   """
   <Purpose>
     Generate the timestamp metadata object.  The 'snapshot.json' file must
@@ -1776,6 +1902,13 @@ def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
       tuf.formats.make_metadata_fileinfo(snapshot_version['version'],
           length, hashes)
 
+  if merkle_root is not None:
+    return tuf.formats.build_dict_conforming_to_schema(
+        tuf.formats.TIMESTAMP_SCHEMA,
+        version=version,
+        expires=expiration_date,
+        merkle_root=merkle_root)
+
   # Generate the timestamp metadata object.
   # Use generalized build_dict_conforming_to_schema func to produce a dict that
   # contains all the appropriate information for timestamp metadata,
@@ -1786,7 +1919,7 @@ def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
   #       metadata, possibly rolling that upwards into the calling function.
   #       There are very few things that really need to be done differently.
   return tuf.formats.build_dict_conforming_to_schema(
-      tuf.formats.TIMESTAMP_SCHEMA,
+      tuf.formats.MERKLE_TIMESTAMP_SCHEMA,
       version=version,
       expires=expiration_date,
       meta=snapshot_fileinfo)
