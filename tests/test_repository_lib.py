@@ -467,6 +467,56 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                          False, use_existing_fileinfo=True)
 
 
+  def test_build_merkle_tree(self):
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+    storage_backend = securesystemslib.storage.FilesystemBackend()
+
+    test_nodes = {}
+    test_nodes['file1'] = tuf.formats.make_metadata_fileinfo(5, None, None)
+
+    root_1 = repo_lib.build_merkle_tree(test_nodes, storage_backend,
+        temporary_directory)
+
+    file_path = os.path.join(temporary_directory, 'file1.json')
+    self.assertTrue(os.path.exists(file_path))
+
+    test_nodes['file2'] = tuf.formats.make_metadata_fileinfo(5, None, None)
+
+    root_2 = repo_lib.build_merkle_tree(test_nodes, storage_backend,
+        temporary_directory)
+
+    digest_object = securesystemslib.hash.digest()
+    digest_object.update((root_1 + root_1).encode('utf-8'))
+
+    self.assertEqual(root_2, digest_object.hexdigest())
+
+    test_nodes['file3'] = tuf.formats.make_metadata_fileinfo(5, None, None)
+    test_nodes['file4'] = tuf.formats.make_metadata_fileinfo(5, None, None)
+
+    root_3 = repo_lib.build_merkle_tree(test_nodes, storage_backend,
+        temporary_directory)
+
+    digest_object = securesystemslib.hash.digest()
+    digest_object.update((root_2 + root_2).encode('utf-8'))
+
+    self.assertEqual(root_3, digest_object.hexdigest())
+
+    test_nodes['file5'] = tuf.formats.make_metadata_fileinfo(5, None, None)
+
+    root_4 = repo_lib.build_merkle_tree(test_nodes, storage_backend,
+        temporary_directory)
+
+    digest_object = securesystemslib.hash.digest()
+    digest_object.update((root_3 + root_1).encode('utf-8'))
+
+    self.assertEqual(root_4, digest_object.hexdigest())
+
+    file_path = os.path.join(temporary_directory, 'file1.json')
+
+    self.assertTrue(os.path.exists(file_path))
+
+
+
   def _setup_generate_snapshot_metadata_test(self):
     # Test normal case.
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
