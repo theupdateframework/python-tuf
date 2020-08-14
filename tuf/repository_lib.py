@@ -98,7 +98,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
   increment_version_number=True, repository_name='default',
   use_existing_fileinfo=False, use_timestamp_length=True,
   use_timestamp_hashes=True, use_snapshot_length=False,
-  use_snapshot_hashes=False):
+  use_snapshot_hashes=False, snapshot_merkle=False):
   """
   Non-public function that can generate and write the metadata for the
   specified 'rolename'.  It also increments the version number of 'rolename' if
@@ -125,10 +125,25 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
 
   elif rolename == 'snapshot':
-    metadata = generate_snapshot_metadata(metadata_directory,
-        roleinfo['version'], roleinfo['expires'],
-        storage_backend, consistent_snapshot, repository_name,
-        use_length=use_snapshot_length, use_hashes=use_snapshot_hashes)
+    if (snapshot_merkle):
+      root, leaves, metadata = generate_snapshot_metadata(metadata_directory,
+          roleinfo['version'], roleinfo['expires'],
+          storage_backend, consistent_snapshot, repository_name,
+          use_length=use_snapshot_length, use_hashes=use_snapshot_hashes,
+          snapshot_merkle=True)
+
+      # Add the merkle tree root hash to the timestamp roleinfo
+      timestamp_roleinfo = tuf.roledb.get_roleinfo('timestamp', repository_name)
+      timestamp_roleinfo['merkle_root'] = root.hash()
+
+      tuf.roledb.update_roleinfo('timestamp', timestamp_roleinfo,
+          repository_name=repository_name)
+
+    else:
+      metadata = generate_snapshot_metadata(metadata_directory,
+          roleinfo['version'], roleinfo['expires'],
+          storage_backend, consistent_snapshot, repository_name,
+          use_length=use_snapshot_length, use_hashes=use_snapshot_hashes)
 
 
     _log_warning_if_expires_soon(SNAPSHOT_FILENAME, roleinfo['expires'],
@@ -141,7 +156,8 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
     metadata = generate_timestamp_metadata(snapshot_file_path, roleinfo['version'],
         roleinfo['expires'], storage_backend, repository_name,
-        use_length=use_timestamp_length, use_hashes=use_timestamp_hashes)
+        use_length=use_timestamp_length, use_hashes=use_timestamp_hashes,
+        roleinfo=roleinfo)
 
     _log_warning_if_expires_soon(TIMESTAMP_FILENAME, roleinfo['expires'],
         TIMESTAMP_EXPIRES_WARN_SECONDS)
@@ -221,6 +237,8 @@ def _generate_and_write_metadata(rolename, metadata_filename,
         consistent_snapshot = True
       filename = write_metadata_file(signable, metadata_filename,
           metadata['version'], consistent_snapshot, storage_backend)
+      if snapshot_merkle and rolename == 'snapshot':
+        write_merkle_paths(root, leaves, storage_backend, metadata_directory)
 
     # 'signable' contains an invalid threshold of signatures.
     else:
@@ -1549,9 +1567,15 @@ def _get_hashes_and_length_if_needed(use_length, use_hashes, full_file_path,
 
 
 
-class Node():
+class Node(object):
+  """
+  Merkle tree node that keeps track of the node hash and the parent node.
+  """
   _parent = None
   _hash = None
+
+  def __init__(self):
+    return
 
   def parent(self):
     return self._parent
@@ -1565,11 +1589,18 @@ class Node():
 
 
 class InternalNode(Node):
-  # Intenal Merkle Tree node
+  """
+  An internal Merkle tree node that keeps track of a left and a right
+  child. Upon creation, this node takes in a left and right Node
+  and computes the hash of (left + right). In addition, the constructor
+  sets the parent node of left and right to this node to allow for
+  traversal of the tree.
+  """
   _left = None
   _right = None
 
   def __init__(self, left, right):
+    super(InternalNode, self).__init__()
     self._left = left
     self._right = right
 
@@ -1587,14 +1618,27 @@ class InternalNode(Node):
   def right(self):
     return self._right
 
+  def isLeaf(self):
+    return False
+
 
 
 class Leaf(Node):
+  """
+  This Merkle tree leaf node keeps track of the node contents and name.
+  The name should correspond with a metadata file and the contents should
+  contain the snapshot information for that metadata file.
+
+  The constructor takes in a name and contents and computes the hash
+  of the contents. The hash may be provided to save computation time
+  if it has already been computed.
+  """
   # Merkle Tree leaf
   _contents = None
   _name = None
 
   def __init__(self, name, contents, digest = None):
+    super(Leaf, self).__init__()
     self._contents = contents
     self._name = name
 
@@ -1612,38 +1656,68 @@ class Leaf(Node):
   def contents(self):
     return self._contents
 
+  def isLeaf(self):
+    return True
 
 
 
-def build_merkle_tree(fileinfodict, storage_backend, merkle_directory):
+
+def build_merkle_tree(fileinfodict):
   """
   Create a Merkle tree from the snapshot fileinfo and writes it to individual snapshot files
 
-  Returns the root hash
+  Returns the root and leaves
   """
 
+  # We will build the merkle tree starting with the leaf nodes. Each
+  # leaf contains snapshot information for a single metadata file.
   leaves = []
   nodes = []
   for name, contents in fileinfodict.items():
     leaves.append(Leaf(name, contents))
 
+  # Starting with the leaves, combine pairs of nodes to build the tree.
+  # For each pair of nodes, set the first to a left child and the second
+  # as a right child. Add the resulting parent node to new_nodes. On
+  # the next iteration, pair the nodes in new_nodes. In order to handle
+  # an odd number of nodes on any iteration, if this is the last node
+  # in an odd numbered list (there is no next node), add this node to
+  # new_nodes. End the loop when there is one remaining current_node
+  # This last node will be the root of the tree.
   current_nodes = leaves
 
   while(len(current_nodes) > 1):
     new_nodes = []
     for i in range(0, len(current_nodes), 2):
-      # odd number of nodes
+      # If there are an odd number of nodes and this is the last
+      # node, add this node to the next level.
       if i + 1 >= len(current_nodes):
         new_nodes.append(current_nodes[i])
+      # Otherwise, use the next two nodes to build a new node.
       else:
         n = InternalNode(current_nodes[i], current_nodes[i+1])
+        # Add this node to the next level, and to a list of all nodes
         new_nodes.append(n)
         nodes.append(n)
     current_nodes = new_nodes
 
+  # The only node remaining in current_nodes will be the root node.
   root = current_nodes[0]
 
-  # build path for each leaf
+  # Return the root node and the leaves. The root hash must be used along with the
+  # path to verify the tree. The root hash should be securely sent to
+  # each client. To do so, we will add it to the timestamp metadata.
+  # The leaves will be used to find the path to each leaf and send
+  # this path to the client for verification
+  return root, leaves
+
+def write_merkle_paths(root, leaves, storage_backend, merkle_directory):
+  # The root and leaves must be part of the same fully constructed
+  # Merkle tree. Create a path from
+  # Each leaf to the root node. This path will be downloaded by
+  # the client and used for verification of the tree. For each
+  # step in the path, keep track of both the sibling node and
+  # Whether this is a left or a right child.
   for l in leaves:
     merkle_path = []
     current_node = l
@@ -1651,7 +1725,9 @@ def build_merkle_tree(fileinfodict, storage_backend, merkle_directory):
 
     while(current_node != root):
       next_node = current_node.parent()
-      # TODO: determine left or right upon node creation
+      # TODO: determine left or right upon node creation.
+      # This currently determines which sibling to use by
+      # finding the sibling that does not match the current hash.
       h_left = next_node.left().hash()
       h_right = next_node.right().hash()
       if current_node.hash() == h_left:
@@ -1666,9 +1742,7 @@ def build_merkle_tree(fileinfodict, storage_backend, merkle_directory):
 
       current_node = next_node
 
-    #file_contents = {'leaf_contents':l.contents(), 'merkle_path': merkle_path,
-                    #'path_directions': path_directions}
-
+    # Write the path to the merkle_directory
     file_contents = tuf.formats.build_dict_conforming_to_schema(
         tuf.formats.SNAPSHOT_MERKLE_SCHEMA,
         leaf_contents=l.contents(),
@@ -1683,8 +1757,29 @@ def build_merkle_tree(fileinfodict, storage_backend, merkle_directory):
     storage_backend.put(file_object, filename)
     file_object.close()
 
-  return root.hash()
 
+
+
+def _print_merkle_tree(node, level):
+  """
+  Recursive function used by print_merkle_tree
+  """
+  print('--'* level + node.hash())
+  if not node.isLeaf():
+    _print_merkle_tree(node.left(), level + 1)
+    _print_merkle_tree(node.right(), level + 1)
+  else:
+    print('--' * (level+1) + node.name())
+
+
+
+def print_merkle_tree(root):
+  """
+  Helper function to print merkle tree contents for demos and verification
+  of the Merkle tree contents
+  """
+  print('')
+  _print_merkle_tree(root, 0)
 
 
 
@@ -1822,9 +1917,6 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       logger.debug('Metadata file has an unsupported file'
           ' extension: ' + metadata_filename)
 
-  if snapshot_merkle:
-    return build_merkle_tree(fileinfodict, storage_backend, metadata_directory)
-
   # Generate the Snapshot metadata object.
   # Use generalized build_dict_conforming_to_schema func to produce a dict that
   # contains all the appropriate information for snapshot metadata,
@@ -1834,11 +1926,16 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   #       generate_root_metadata, etc. with one function that generates
   #       metadata, possibly rolling that upwards into the calling function.
   #       There are very few things that really need to be done differently.
-  return tuf.formats.build_dict_conforming_to_schema(
+  metadata = tuf.formats.build_dict_conforming_to_schema(
       tuf.formats.SNAPSHOT_SCHEMA,
       version=version,
       expires=expiration_date,
       meta=fileinfodict)
+
+  if snapshot_merkle:
+    root, leaves = build_merkle_tree(fileinfodict)
+    return root, leaves, metadata
+  return metadata
 
 
 
@@ -1847,7 +1944,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
 
 def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
     storage_backend, repository_name, use_length=True, use_hashes=True,
-    merkle_root=None):
+    roleinfo=None):
   """
   <Purpose>
     Generate the timestamp metadata object.  The 'snapshot.json' file must
@@ -1920,12 +2017,17 @@ def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
       tuf.formats.make_metadata_fileinfo(snapshot_version['version'],
           length, hashes)
 
-  if merkle_root is not None:
-    return tuf.formats.build_dict_conforming_to_schema(
-        tuf.formats.MERKLE_TIMESTAMP_SCHEMA,
-        version=version,
-        expires=expiration_date,
-        merkle_root=merkle_root)
+  if(roleinfo):
+    try:
+      merkle_root = roleinfo['merkle_root']
+      return tuf.formats.build_dict_conforming_to_schema(
+          tuf.formats.MERKLE_TIMESTAMP_SCHEMA,
+          version=version,
+          expires=expiration_date,
+          meta=snapshot_fileinfo,
+          merkle_root=merkle_root)
+    except KeyError:
+      pass
 
   # Generate the timestamp metadata object.
   # Use generalized build_dict_conforming_to_schema func to produce a dict that

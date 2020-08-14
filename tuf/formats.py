@@ -395,7 +395,8 @@ TIMESTAMP_SCHEMA = SCHEMA.Object(
   spec_version = SPECIFICATION_VERSION_SCHEMA,
   version = METADATAVERSION_SCHEMA,
   expires = securesystemslib.formats.ISO8601_DATETIME_SCHEMA,
-  meta = FILEINFODICT_SCHEMA)
+  meta = FILEINFODICT_SCHEMA,
+  merkle_root = SCHEMA.Optional(HASH_SCHEMA))
 
 
 # project.cfg file: stores information about the project in a json dictionary
