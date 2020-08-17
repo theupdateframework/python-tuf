@@ -35,10 +35,7 @@ import logging
 import tempfile
 import json
 import shutil
-import stat
-import sys
 import unittest
-import platform
 
 import tuf
 import tuf.formats

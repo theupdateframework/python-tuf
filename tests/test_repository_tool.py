@@ -35,8 +35,6 @@ import unittest
 import logging
 import tempfile
 import shutil
-import sys
-import errno
 
 import tuf
 import tuf.log
@@ -49,7 +47,6 @@ import securesystemslib.exceptions
 
 import securesystemslib
 import securesystemslib.storage
-import six
 
 logger = logging.getLogger(__name__)
 

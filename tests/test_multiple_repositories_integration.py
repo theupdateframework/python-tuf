@@ -30,12 +30,10 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
-import sys
 import tempfile
 import random
 import subprocess
 import logging
-import time
 import shutil
 import unittest
 import json
@@ -45,9 +43,10 @@ import tuf.log
 import tuf.roledb
 import tuf.client.updater as updater
 import tuf.settings
-import securesystemslib
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.repository_tool as repo_tool
+
+import utils
 
 import six
 import securesystemslib
@@ -153,13 +152,8 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     self.url = 'http://localhost:' + str(self.SERVER_PORT) + os.path.sep
     self.url2 = 'http://localhost:' + str(self.SERVER_PORT2) + os.path.sep
 
-    # NOTE: Following error is raised if a delay is not long enough:
-    # <urlopen error [Errno 111] Connection refused>
-    # or, on Windows:
-    # Failed to establish a new connection: [Errno 111] Connection refused'
-    # 0.3s led to occasional failures in automated builds, primarily on
-    # AppVeyor, so increasing this to 2s, sadly.
-    time.sleep(2)
+    utils.wait_for_server('localhost', self.SERVER_PORT)
+    utils.wait_for_server('localhost', self.SERVER_PORT2)
 
     url_prefix = 'http://localhost:' + str(self.SERVER_PORT)
     url_prefix2 = 'http://localhost:' + str(self.SERVER_PORT2)
@@ -191,19 +185,17 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     if self.server_process.returncode is None:
       logger.info('Server process ' + str(self.server_process.pid) + ' terminated.')
       self.server_process.kill()
+      self.server_process.wait()
 
     if self.server_process2.returncode is None:
       logger.info('Server 2 process ' + str(self.server_process2.pid) + ' terminated.')
       self.server_process2.kill()
+      self.server_process2.wait()
 
     # updater.Updater() populates the roledb with the name "test_repository1"
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 
-    # Remove the temporary repository directory, which should contain all the
-    # metadata, targets, and key files generated of all the test cases.
-    # sleep for a bit to allow the kill'd server processes to terminate.
-    time.sleep(.3)
     shutil.rmtree(self.temporary_directory)
 
 

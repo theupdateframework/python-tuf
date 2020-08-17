@@ -123,6 +123,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     if server_process.returncode is None:
       logger.info('Server process '+str(server_process.pid)+' terminated.')
       server_process.kill()
+      server_process.wait()
 
 
 

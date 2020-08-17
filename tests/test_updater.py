@@ -57,7 +57,6 @@ import tempfile
 import logging
 import random
 import subprocess
-import sys
 import errno
 import unittest
 
@@ -71,6 +70,8 @@ import tuf.repository_tool as repo_tool
 import tuf.repository_lib as repo_lib
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.client.updater as updater
+
+import utils
 
 import securesystemslib
 import six
@@ -110,14 +111,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     logger.info('\tServing on port: '+str(cls.SERVER_PORT))
     cls.url = 'http://localhost:'+str(cls.SERVER_PORT) + os.path.sep
 
-    # NOTE: Following error is raised if a delay is not long enough to allow
-    # the server process to set up and start listening:
-    #     <urlopen error [Errno 111] Connection refused>
-    # or, on Windows:
-    #     Failed to establish a new connection: [Errno 111] Connection refused'
-    # While 0.3s has consistently worked on Travis and local builds, it led to
-    # occasional failures in AppVeyor builds, so increasing this to 2s, sadly.
-    time.sleep(2)
+    utils.wait_for_server('localhost', cls.SERVER_PORT)
 
 
 
@@ -130,11 +124,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     if cls.server_process.returncode is None:
       logger.info('\tServer process ' + str(cls.server_process.pid) + ' terminated.')
       cls.server_process.kill()
+      cls.server_process.wait()
 
     # Remove the temporary repository directory, which should contain all the
-    # metadata, targets, and key files generated for the test cases.  sleep
-    # for a bit to allow the kill'd server process to terminate.
-    time.sleep(.3)
+    # metadata, targets, and key files generated for the test cases
     shutil.rmtree(cls.temporary_directory)
 
 
@@ -1101,13 +1094,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     command = ['python', self.SIMPLE_SERVER_PATH, str(SERVER_PORT)]
     server_process = subprocess.Popen(command)
 
-    # NOTE: Following error is raised if a delay is not long enough:
-    # <urlopen error [Errno 111] Connection refused>
-    # or, on Windows:
-    # Failed to establish a new connection: [Errno 111] Connection refused'
-    # While 0.3s has consistently worked on Travis and local builds, it led to
-    # occasional failures in AppVeyor builds, so increasing this to 2s, sadly.
-    time.sleep(2)
+    utils.wait_for_server('localhost', SERVER_PORT)
 
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
     repository_basepath = self.repository_directory[len(os.getcwd()):]
@@ -1231,6 +1218,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         '/foo/foo1.1.tar.gz')
 
     server_process.kill()
+    server_process.wait()
 
 
 
@@ -1368,15 +1356,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     SERVER_PORT = random.randint(30000, 45000)
     command = ['python', self.SIMPLE_SERVER_PATH, str(SERVER_PORT)]
     server_process = subprocess.Popen(command)
-
-    # NOTE: Following error is raised if a delay is not long enough to allow
-    # the server process to set up and start listening:
-    #     <urlopen error [Errno 111] Connection refused>
-    # or, on Windows:
-    #     Failed to establish a new connection: [Errno 111] Connection refused'
-    # While 0.3s has consistently worked on Travis and local builds, it led to
-    # occasional failures in AppVeyor builds, so increasing this to 2s, sadly.
-    time.sleep(2)
+    utils.wait_for_server('localhost', SERVER_PORT)
 
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
     repository_basepath = self.repository_directory[len(os.getcwd()):]
@@ -1488,6 +1468,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(len(updated_targets), 1)
 
     server_process.kill()
+    server_process.wait()
 
 
 
@@ -1500,15 +1481,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     SERVER_PORT = random.randint(30000, 45000)
     command = ['python', self.SIMPLE_SERVER_PATH, str(SERVER_PORT)]
     server_process = subprocess.Popen(command)
-
-    # NOTE: Following error is raised if a delay is not long enough to allow
-    # the server process to set up and start listening:
-    #     <urlopen error [Errno 111] Connection refused>
-    # or, on Windows:
-    #     Failed to establish a new connection: [Errno 111] Connection refused'
-    # While 0.3s has consistently worked on Travis and local builds, it led to
-    # occasional failures in AppVeyor builds, so increasing this to 2s, sadly.
-    time.sleep(2)
+    utils.wait_for_server('localhost', SERVER_PORT)
 
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
     repository_basepath = self.repository_directory[len(os.getcwd()):]
@@ -1597,6 +1570,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater.remove_obsolete_targets(destination_directory)
 
     server_process.kill()
+    server_process.wait()
 
 
 
@@ -1906,14 +1880,8 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     self.url = 'http://localhost:' + str(self.SERVER_PORT) + os.path.sep
     self.url2 = 'http://localhost:' + str(self.SERVER_PORT2) + os.path.sep
 
-    # NOTE: Following error is raised if a delay is not long enough to allow
-    # the server process to set up and start listening:
-    #     <urlopen error [Errno 111] Connection refused>
-    # or, on Windows:
-    #     Failed to establish a new connection: [Errno 111] Connection refused'
-    # While 0.3s has consistently worked on Travis and local builds, it led to
-    # occasional failures in AppVeyor builds, so increasing this to 2s, sadly.
-    time.sleep(2)
+    utils.wait_for_server('localhost', self.SERVER_PORT)
+    utils.wait_for_server('localhost', self.SERVER_PORT2)
 
     url_prefix = 'http://localhost:' + str(self.SERVER_PORT)
     url_prefix2 = 'http://localhost:' + str(self.SERVER_PORT2)
@@ -1953,19 +1921,19 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     if self.server_process.returncode is None:
       logger.info('Server process ' + str(self.server_process.pid) + ' terminated.')
       self.server_process.kill()
+      self.server_process.wait()
 
     if self.server_process2.returncode is None:
       logger.info('Server 2 process ' + str(self.server_process2.pid) + ' terminated.')
       self.server_process2.kill()
+      self.server_process2.wait()
 
     # updater.Updater() populates the roledb with the name "test_repository1"
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 
     # Remove the temporary repository directory, which should contain all the
-    # metadata, targets, and key files generated of all the test cases.  sleep
-    # for a bit to allow the kill'd server processes to terminate.
-    time.sleep(.3)
+    # metadata, targets, and key files generated of all the test cases
     shutil.rmtree(self.temporary_directory)
 
 

@@ -35,7 +35,6 @@ from __future__ import unicode_literals
 
 import sys
 import random
-import platform
 
 import six
 from six.moves.SimpleHTTPServer import SimpleHTTPRequestHandler
@@ -80,6 +79,9 @@ if use_quiet_http_request_handler:
 else:
   handler = SimpleHTTPRequestHandler
 
+# Allow re-use so you can re-run tests as often as you want even if the
+# tests re-use ports. Otherwise TCP TIME-WAIT prevents reuse for ~1 minute
+six.moves.socketserver.TCPServer.allow_reuse_address = True
 httpd = six.moves.socketserver.TCPServer(('', PORT), handler)
 
 httpd.serve_forever()

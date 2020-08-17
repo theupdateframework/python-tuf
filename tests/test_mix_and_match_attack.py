@@ -41,12 +41,9 @@ from __future__ import unicode_literals
 import os
 import tempfile
 import random
-import time
 import shutil
-import json
 import subprocess
 import logging
-import sys
 import unittest
 
 import tuf.exceptions
@@ -57,7 +54,8 @@ import tuf.unittest_toolbox as unittest_toolbox
 import tuf.roledb
 import tuf.keydb
 
-import securesystemslib
+import utils
+
 import six
 
 # The repository tool is imported and logs console messages by default.
@@ -94,9 +92,7 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
     logger.info('Serving on port: '+str(cls.SERVER_PORT))
     cls.url = 'http://localhost:'+str(cls.SERVER_PORT) + os.path.sep
 
-    # NOTE: Following error is raised if a delay is not applied:
-    # <urlopen error [Errno 111] Connection refused>
-    time.sleep(.8)
+    utils.wait_for_server('localhost', cls.SERVER_PORT)
 
 
 
@@ -113,6 +109,8 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
     if cls.server_process.returncode is None:
       logger.info('Server process '+str(cls.server_process.pid)+' terminated.')
       cls.server_process.kill()
+      cls.server_process.wait()
+
 
 
 

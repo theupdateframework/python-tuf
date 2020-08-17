@@ -52,7 +52,6 @@ import shutil
 import json
 import subprocess
 import logging
-import sys
 import unittest
 
 import tuf.formats
@@ -63,6 +62,8 @@ import tuf.unittest_toolbox as unittest_toolbox
 import tuf.roledb
 import tuf.keydb
 import tuf.exceptions
+
+import utils
 
 import securesystemslib
 import six
@@ -100,13 +101,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     logger.info('Serving on port: '+str(cls.SERVER_PORT))
     cls.url = 'http://localhost:'+str(cls.SERVER_PORT) + os.path.sep
 
-    # Provide a delay long enough to allow the HTTP server to start.
-    # Encountered an error on one test system at delay value of 0.2s, so
-    # increasing to 0.5s.  Further increasing to 2s due to occasional failures
-    # in other tests in similar circumstances on AppVeyor.
-    # Expect to see "Connection refused" if this delay is not long enough
-    # (though other issues could cause that).
-    time.sleep(2)
+    utils.wait_for_server('localhost', cls.SERVER_PORT)
 
 
 
@@ -123,6 +118,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     if cls.server_process.returncode is None:
       logger.info('Server process '+str(cls.server_process.pid)+' terminated.')
       cls.server_process.kill()
+      cls.server_process.wait()
 
 
 

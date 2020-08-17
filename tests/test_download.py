@@ -39,7 +39,6 @@ import os
 import random
 import subprocess
 import sys
-import time
 import unittest
 
 import tuf
@@ -48,10 +47,11 @@ import tuf.log
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.exceptions
 
+import utils
+
 import requests.exceptions
 
 import securesystemslib
-import six
 
 logger = logging.getLogger(__name__)
 
@@ -81,13 +81,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     junk, rel_target_filepath = os.path.split(target_filepath)
     self.url = 'http://localhost:'+str(self.PORT)+'/'+rel_target_filepath
 
-    # Provide a delay long enough to allow the HTTPS servers to start.
-    # Encountered an error on one test system at delay value of 0.2s, so
-    # increasing to 0.5s.  Further increasing to 2s due to occasional failures
-    # in other tests in similar circumstances on AppVeyor.
-    # Expect to see "Connection refused" if this delay is not long enough
-    # (though other issues could cause that).
-    time.sleep(2)
+    utils.wait_for_server('localhost', self.PORT)
 
     # Computing hash of target file data.
     m = hashlib.md5()
@@ -102,6 +96,8 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     if self.server_proc.returncode is None:
       logger.info('\tServer process '+str(self.server_proc.pid)+' terminated.')
       self.server_proc.kill()
+      # Drop return values of communicate()
+      self.server_proc.communicate()
     self.target_fileobj.close()
 
 
@@ -129,8 +125,8 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     # the server-reported length of the file does not match the
     # required_length.  'updater.py' *does* verify the hashes of downloaded
     # content.
-    download.safe_download(self.url, self.target_data_length - 4)
-    download.unsafe_download(self.url, self.target_data_length - 4)
+    download.safe_download(self.url, self.target_data_length - 4).close()
+    download.unsafe_download(self.url, self.target_data_length - 4).close()
 
     # We catch 'tuf.exceptions.DownloadLengthMismatchError' for safe_download()
     # because it will not download more bytes than requested (in this case, a
@@ -140,7 +136,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
     # Calling unsafe_download() with a mismatched length should not raise an
     # exception.
-    download.unsafe_download(self.url, self.target_data_length + 1)
+    download.unsafe_download(self.url, self.target_data_length + 1).close()
 
 
 
@@ -277,12 +273,8 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     expd_https_server_proc = popen_python(
         ['simple_https_server.py', port4, expired_cert_fname])
 
-    # Provide a delay long enough to allow the four HTTPS servers to start.
-    # Have encountered errors at 0.2s, 0.5s, and 2s, primarily on AppVeyor.
-    # Increasing to 4s for this test.
-    # Expect to see "Connection refused" if this delay is not long enough
-    # (though other issues could cause that).
-    time.sleep(3)
+    for port in range(self.PORT + 1, self.PORT + 5):
+      utils.wait_for_server('localhost', port)
 
     relative_target_fpath = os.path.basename(target_filepath)
     good_https_url = 'https://localhost:' + port1 + '/' + relative_target_fpath
@@ -314,13 +306,13 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
       # trusting the good certs (trusting the bad cert instead). Expect failure
       # because even though the server's cert file is otherwise OK, we don't
       # trust it.
-      print('Trying HTTPS download of target file: ' + good_https_url)
+      logger.info('Trying HTTPS download of target file: ' + good_https_url)
       with self.assertRaises(requests.exceptions.SSLError):
         download.safe_download(good_https_url, target_data_length)
       with self.assertRaises(requests.exceptions.SSLError):
         download.unsafe_download(good_https_url, target_data_length)
 
-      print('Trying HTTPS download of target file: ' + good2_https_url)
+      logger.info('Trying HTTPS download of target file: ' + good2_https_url)
       with self.assertRaises(requests.exceptions.SSLError):
         download.safe_download(good2_https_url, target_data_length)
       with self.assertRaises(requests.exceptions.SSLError):
@@ -372,6 +364,8 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
         if proc.returncode is None:
           logger.info('Terminating server process ' + str(proc.pid))
           proc.kill()
+          # drop return values
+          proc.communicate()
 
 
 

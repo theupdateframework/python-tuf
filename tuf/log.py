@@ -450,6 +450,7 @@ def disable_file_logging():
 
   if file_handler:
     logger.removeHandler(file_handler)
+    file_handler.close()
     file_handler = None
     logger.debug('Removed the file handler.')
 

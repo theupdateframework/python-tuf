@@ -35,13 +35,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import hashlib
 import logging
 import os
 import random
 import subprocess
 import sys
-import time
 import unittest
 
 import tuf
@@ -50,9 +48,8 @@ import tuf.log
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.exceptions
 
-import requests.exceptions
+import utils
 
-import securesystemslib
 import six
 
 logger = logging.getLogger(__name__)
@@ -75,6 +72,10 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     """
 
     unittest_toolbox.Modified_TestCase.setUpClass()
+
+    if not six.PY2:
+      raise NotImplementedError("TestWithProxies only works with Python 2"
+                                " (proxy_server.py is Python2 only)")
 
     # Launch a simple HTTP server (serves files in the current dir).
     cls.http_port = random.randint(30000, 45000)
@@ -116,17 +117,12 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
         os.path.join('ssl_certs', 'ssl_cert.crt')])
     # Note that the HTTPS proxy server's address uses https://, regardless of
     # the type of connection used with the target server.
-    cls.https_proxy_addr = 'https://127.0.0.1:' + str(cls.https_proxy_port)
+    cls.https_proxy_addr = 'https://localhost:' + str(cls.https_proxy_port)
 
-    # Give the HTTP server and proxy server processes a little bit of time to
-    # start listening before allowing tests to begin, lest we get "Connection
-    # refused" errors. On the first test system. 0.1s was too short and 0.15s
-    # was long enough. Use 0.5s to be safe, and if issues arise, increase it.
-    # Observed occasional failures at 0.1s, 0.15s, 0.5s, and 2s, primarily on
-    # AppVeyor.  Increasing to 4s.  This setup runs once for the module.
-    time.sleep(4)
-
-
+    utils.wait_for_server('localhost', cls.http_port)
+    utils.wait_for_server('localhost', cls.https_port)
+    utils.wait_for_server('localhost', cls.http_proxy_port)
+    utils.wait_for_server('localhost', cls.https_proxy_port)
 
 
 
@@ -148,6 +144,8 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
       if proc.returncode is None:
         logger.info('\tTerminating process ' + str(proc.pid) + ' in cleanup.')
         proc.kill()
+        # Drop return values of communicate()
+        proc.communicate()
 
 
 
