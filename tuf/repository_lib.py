@@ -139,6 +139,8 @@ def _generate_and_write_metadata(rolename, metadata_filename,
       tuf.roledb.update_roleinfo('timestamp', timestamp_roleinfo,
           repository_name=repository_name)
 
+      write_merkle_paths(root, leaves, storage_backend, metadata_directory)
+
     else:
       metadata = generate_snapshot_metadata(metadata_directory,
           roleinfo['version'], roleinfo['expires'],
@@ -237,8 +239,6 @@ def _generate_and_write_metadata(rolename, metadata_filename,
         consistent_snapshot = True
       filename = write_metadata_file(signable, metadata_filename,
           metadata['version'], consistent_snapshot, storage_backend)
-      if snapshot_merkle and rolename == 'snapshot':
-        write_merkle_paths(root, leaves, storage_backend, metadata_directory)
 
     # 'signable' contains an invalid threshold of signatures.
     else:
@@ -1647,7 +1647,8 @@ class Leaf(Node):
     else:
       digest_object = securesystemslib.hash.digest()
       # Append a 0 for reverse preimage protection
-      digest_object.update((str(contents) + '0').encode('utf-8'))
+      # Include the name to ensure the hash differs between elements
+      digest_object.update((name + str(contents) + '0').encode('utf-8'))
       self._hash = digest_object.hexdigest()
 
   def name(self):
@@ -1753,7 +1754,8 @@ def write_merkle_paths(root, leaves, storage_backend, merkle_directory):
     file_content = _get_written_metadata(file_contents)
     file_object = tempfile.TemporaryFile()
     file_object.write(file_content)
-    filename = os.path.join(merkle_directory, l.name() + '.json')
+    filename = os.path.join(merkle_directory, l.name() + '-snapshot.json')
+    print(filename)
     storage_backend.put(file_object, filename)
     file_object.close()
 
@@ -2021,7 +2023,7 @@ def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
     try:
       merkle_root = roleinfo['merkle_root']
       return tuf.formats.build_dict_conforming_to_schema(
-          tuf.formats.MERKLE_TIMESTAMP_SCHEMA,
+          tuf.formats.TIMESTAMP_SCHEMA,
           version=version,
           expires=expiration_date,
           meta=snapshot_fileinfo,

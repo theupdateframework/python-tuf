@@ -471,35 +471,30 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     storage_backend = securesystemslib.storage.FilesystemBackend()
 
+    # Test building the tree one node at a time with identical nodes
+    # to verify the hashes
+
     test_nodes = {}
     test_nodes['file1'] = tuf.formats.make_metadata_fileinfo(5, None, None)
 
     root_1, leaves = repo_lib.build_merkle_tree(test_nodes)
-
     repo_lib.write_merkle_paths(root_1, leaves, storage_backend,
         temporary_directory)
 
-    file_path = os.path.join(temporary_directory, 'file1.json')
+    file_path = os.path.join(temporary_directory, 'file1-snapshot.json')
     self.assertTrue(os.path.exists(file_path))
 
     test_nodes['file2'] = tuf.formats.make_metadata_fileinfo(5, None, None)
-
     root_2, leaves = repo_lib.build_merkle_tree(test_nodes)
 
-    digest_object = securesystemslib.hash.digest()
-    digest_object.update((root_1.hash() + root_1.hash()).encode('utf-8'))
-
-    self.assertEqual(root_2.hash(), digest_object.hexdigest())
+    self.assertEqual(root_2.left().hash(), root_1.hash())
 
     test_nodes['file3'] = tuf.formats.make_metadata_fileinfo(5, None, None)
     test_nodes['file4'] = tuf.formats.make_metadata_fileinfo(5, None, None)
 
     root_3, leaves = repo_lib.build_merkle_tree(test_nodes)
 
-    digest_object = securesystemslib.hash.digest()
-    digest_object.update((root_2.hash()+ root_2.hash()).encode('utf-8'))
-
-    self.assertEqual(root_3.hash(), digest_object.hexdigest())
+    self.assertEqual(root_3.left().hash(), root_2.hash())
 
     test_nodes['file5'] = tuf.formats.make_metadata_fileinfo(5, None, None)
 
@@ -508,16 +503,22 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     repo_lib.write_merkle_paths(root_4, leaves, storage_backend,
         temporary_directory)
 
-    digest_object = securesystemslib.hash.digest()
-    digest_object.update((root_3.hash() + root_1.hash()).encode('utf-8'))
+    self.assertEqual(root_4.left().hash(), root_3.hash())
 
-    self.assertEqual(root_4.hash(), digest_object.hexdigest())
-
-    file_path = os.path.join(temporary_directory, 'file1.json')
+    # Ensure that the paths are written to the directory
+    file_path = os.path.join(temporary_directory, 'file1-snapshot.json')
 
     self.assertTrue(os.path.exists(file_path))
 
-    repo_lib.print_merkle_tree(root_4)
+    # repo_lib.print_merkle_tree(root_4)
+
+    test_nodes = {}
+    test_nodes['targets'] = tuf.formats.make_metadata_fileinfo(1, None, None)
+    test_nodes['role1'] = tuf.formats.make_metadata_fileinfo(1, None, None)
+    test_nodes['role2'] = tuf.formats.make_metadata_fileinfo(1, None, None)
+
+    root, leaves = repo_lib.build_merkle_tree(test_nodes)
+
 
 
 
@@ -991,6 +992,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
         storage_backend)
     self.assertFalse(os.path.exists(metadata_directory + 'obsolete_role.json'))
     shutil.copyfile(targets_metadata, obsolete_metadata)
+
 
 
 
