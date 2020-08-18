@@ -1,0 +1,13 @@
+{
+ "leaf_contents": {
+  "version": 1
+ },
+ "merkle_path": {
+  "0": "abcfdd2bed858c5d7e8866a21bbdee0ca94cc03fd61f9a8c7ccbe4e50a78044a",
+  "1": "d5d4546f9bfcce78a079fff48828b922091b5be9e874d5d2ce075e314dd19e13"
+ },
+ "path_directions": {
+  "0": 1,
+  "1": -1
+ }
+}
