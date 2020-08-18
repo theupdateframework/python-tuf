@@ -1370,12 +1370,51 @@ class Updater(object):
 
 
 
-  def _verify_uncompressed_metadata_file(self, metadata_file_object,
+  def _verify_root_self_signed(self, signable):
+    """
+    Verify the root metadata in signable is signed by a threshold of keys,
+    where the threshold and valid keys are defined by itself
+    """
+    threshold = signable['signed']['roles']['root']['threshold']
+    keyids = signable['signed']['roles']['root']['keyids']
+    keys = signable['signed']['keys']
+    signatures = signable['signatures']
+    signed = securesystemslib.formats.encode_canonical(
+        signable['signed']).encode('utf-8')
+    validated = 0
+
+    for signature in signatures:
+      keyid = signature['keyid']
+
+      # At this point we are verifying that the root metadata is signed by a
+      # threshold of keys listed in the current root role, therefore skip
+      # keys with a keyid that is not listed in the current root role.
+      if keyid not in keyids:
+        continue
+
+      key = keys[keyid]
+      # The ANYKEY_SCHEMA check in verify_signature expects the keydict to
+      # include a keyid
+      key['keyid'] = keyid
+      valid_sig = securesystemslib.keys.verify_signature(key, signature, signed)
+
+      if valid_sig:
+        validated = validated + 1
+
+    if validated >= threshold:
+      return True
+    return False
+
+
+
+
+
+  def _verify_metadata_file(self, metadata_file_object,
       metadata_role):
     """
     <Purpose>
-      Non-public method that verifies an uncompressed metadata file.  An
-      exception is raised if 'metadata_file_object is invalid.  There is no
+      Non-public method that verifies a metadata file.  An exception is
+      raised if 'metadata_file_object is invalid.  There is no
       return value.
 
     <Arguments>
@@ -1438,6 +1477,20 @@ class Updater(object):
 
     if not valid:
       raise securesystemslib.exceptions.BadSignatureError(metadata_role)
+
+    # For root metadata, verify the downloaded root metadata object with the
+    # new threshold of new signatures contained within the downloaded root
+    # metadata object
+    # NOTE: we perform the checks on root metadata here because this enables
+    # us to perform the check before the tempfile is persisted. Furthermore,
+    # by checking here we can easily perform the check for each download
+    # mirror. Whereas if we check after _verify_metadata_file we may be
+    # persisting invalid files and we cannot try copies of the file from other
+    # mirrors.
+    if valid and metadata_role == 'root':
+      valid = self._verify_root_self_signed(metadata_signable)
+      if not valid:
+        raise securesystemslib.exceptions.BadSignatureError(metadata_role)
 
 
 
@@ -1569,7 +1622,7 @@ class Updater(object):
           except KeyError:
             logger.info(metadata_role + ' not available locally.')
 
-        self._verify_uncompressed_metadata_file(file_object, metadata_role)
+        self._verify_metadata_file(file_object, metadata_role)
 
       except Exception as exception:
         # Remember the error from this mirror, and "reset" the target file.
@@ -1587,24 +1640,6 @@ class Updater(object):
       logger.error('Failed to update ' + repr(remote_filename) + ' from all'
         ' mirrors: ' + repr(file_mirror_errors))
       raise tuf.exceptions.NoWorkingMirrorError(file_mirror_errors)
-
-
-
-  def _verify_root_chain_link(self, rolename, current_root_metadata,
-    next_root_metadata):
-
-    if rolename != 'root':
-      return True
-
-    current_root_role = current_root_metadata['roles'][rolename]
-
-    # Verify next metadata with current keys/threshold
-    valid = tuf.sig.verify(next_root_metadata, rolename, self.repository_name,
-        current_root_role['threshold'], current_root_role['keyids'])
-
-    if not valid:
-      raise securesystemslib.exceptions.BadSignatureError('Root is not signed'
-          ' by previous threshold of keys.')
 
 
 
@@ -1801,9 +1836,6 @@ class Updater(object):
     # stored for 'metadata_role'.
     updated_metadata_object = metadata_signable['signed']
     current_metadata_object = self.metadata['current'].get(metadata_role)
-
-    self._verify_root_chain_link(metadata_role, current_metadata_object,
-        metadata_signable)
 
     # Finally, update the metadata and fileinfo stores, and rebuild the
     # key and role info for the top-level roles if 'metadata_role' is root.

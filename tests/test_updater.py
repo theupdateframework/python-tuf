@@ -1728,38 +1728,19 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_11__verify_uncompressed_metadata_file(self):
+  def test_11__verify_metadata_file(self):
     # Test for invalid metadata content.
     metadata_file_object = tempfile.TemporaryFile()
     metadata_file_object.write(b'X')
     metadata_file_object.seek(0)
 
     self.assertRaises(tuf.exceptions.InvalidMetadataJSONError,
-        self.repository_updater._verify_uncompressed_metadata_file,
+        self.repository_updater._verify_metadata_file,
         metadata_file_object, 'root')
 
 
 
-  def test_12__verify_root_chain_link(self):
-    # Test for an invalid signature in the chain link.
-    # current = (i.e., 1.root.json)
-    # next = signable for the next metadata in the chain (i.e., 2.root.json)
-    rolename = 'root'
-    current_root = self.repository_updater.metadata['current']['root']
-
-    targets_path = os.path.join(self.repository_directory, 'metadata', 'targets.json')
-
-    # 'next_invalid_root' is a Targets signable, as written to disk.
-    # We use the Targets metadata here to ensure the signatures are invalid.
-    next_invalid_root = securesystemslib.util.load_json_file(targets_path)
-
-    self.assertRaises(securesystemslib.exceptions.BadSignatureError,
-        self.repository_updater._verify_root_chain_link, rolename, current_root,
-        next_invalid_root)
-
-
-
-  def test_13__get_file(self):
+  def test_12__get_file(self):
     # Test for an "unsafe" download, where the file is downloaded up to
     # a required length (and no more).  The "safe" download approach
     # downloads an exact required length.
@@ -1779,7 +1760,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater._get_file('targets.json', verify_target_file,
         file_type, file_size, download_safely=False)
 
-  def test_14__targets_of_role(self):
+  def test_13__targets_of_role(self):
     # Test case where a list of targets is given.  By default, the 'targets'
     # parameter is None.
     targets = [{'filepath': 'file1.txt', 'fileinfo': {'length': 1, 'hashes': {'sha256': 'abc'}}}]

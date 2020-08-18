@@ -217,6 +217,68 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
+  def test_verify_root_with_current_keyids_and_threshold(self):
+     """
+     Each root file is signed by the current root threshold of keys as well
+     as the previous root threshold of keys. Test that a root file which is
+     not 'self-signed' with the current root threshold of keys causes the
+     update to fail
+     """
+     # Load repository with root.json == 1.root.json (available on client)
+     # Signing key: "root", Threshold: 1
+     repository = repo_tool.load_repository(self.repository_directory)
+
+     # Rotate keys and update root: 1.root.json --> 2.root.json
+     # Signing key: "root" (previous) and "root2" (current)
+     # Threshold (for both): 1
+     repository.root.load_signing_key(self.role_keys['root']['private'])
+     repository.root.add_verification_key(self.role_keys['root2']['public'])
+     repository.root.load_signing_key(self.role_keys['root2']['private'])
+     # Remove the previous "root" key from the list of current
+     # verification keys
+     repository.root.remove_verification_key(self.role_keys['root']['public'])
+     repository.writeall()
+
+     # Move staged metadata to "live" metadata
+     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+         os.path.join(self.repository_directory, 'metadata'))
+
+     # Intercept 2.root.json and tamper with "root2" (current) key signature
+     root2_path_live = os.path.join(
+         self.repository_directory, 'metadata', '2.root.json')
+     root2 = securesystemslib.util.load_json_file(root2_path_live)
+
+     for idx, sig in enumerate(root2['signatures']):
+       if sig['keyid'] == self.role_keys['root2']['public']['keyid']:
+         sig_len = len(root2['signatures'][idx]['sig'])
+         root2['signatures'][idx]['sig'] = "deadbeef".ljust(sig_len, '0')
+
+     roo2_fobj = tempfile.TemporaryFile()
+     roo2_fobj.write(tuf.repository_lib._get_written_metadata(root2))
+     securesystemslib.util.persist_temp_file(roo2_fobj, root2_path_live)
+
+     # Update 1.root.json -> 2.root.json
+     # Signature verification with current keys should fail because we replaced
+     with self.assertRaises(tuf.exceptions.NoWorkingMirrorError) as cm:
+       self.repository_updater.refresh()
+
+     for mirror_url, mirror_error in six.iteritems(cm.exception.mirror_errors):
+       self.assertTrue(mirror_url.endswith('/2.root.json'))
+       self.assertTrue(isinstance(mirror_error,
+           securesystemslib.exceptions.BadSignatureError))
+
+     # Assert that the current 'root.json' on the client side is the verified one
+     self.assertTrue(filecmp.cmp(
+       os.path.join(self.repository_directory, 'metadata', '1.root.json'),
+       os.path.join(self.client_metadata_current, 'root.json')))
+
+
+
+
+
+
+
   def test_root_rotation_full(self):
     """Test that a client whose root is outdated by multiple versions and who
     has none of the latest nor next-to-latest root keys can still update and
@@ -340,22 +402,26 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
 
-    try:
+    with self.assertRaises(tuf.exceptions.NoWorkingMirrorError) as cm:
       self.repository_updater.refresh()
 
-    except tuf.exceptions.NoWorkingMirrorError as exception:
-      for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
-        url_prefix = self.repository_mirrors['mirror1']['url_prefix']
-        url_file = os.path.join(url_prefix, 'metadata', '2.root.json')
-
-        # Verify that '2.root.json' is the culprit.
-        self.assertEqual(url_file.replace('\\', '/'), mirror_url)
-        self.assertTrue(isinstance(mirror_error,
+    for mirror_url, mirror_error in six.iteritems(cm.exception.mirror_errors):
+      self.assertTrue(mirror_url.endswith('/2.root.json'))
+      self.assertTrue(isinstance(mirror_error,
           securesystemslib.exceptions.BadSignatureError))
 
+    # Assert that the current 'root.json' on the client side is the verified one
+    self.assertTrue(filecmp.cmp(
+        os.path.join(self.repository_directory, 'metadata', '1.root.json'),
+        os.path.join(self.client_metadata_current, 'root.json')))
 
 
-  def test_root_rotation_unmet_threshold(self):
+
+
+  def test_root_rotation_unmet_last_version_threshold(self):
+    """Test that client detects a root.json version that is not signed
+     by a previous threshold of signatures """
+
     repository = repo_tool.load_repository(self.repository_directory)
 
     # Add verification keys
@@ -411,8 +477,100 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # The following refresh should fail because root must be signed by the
     # previous self.role_keys['root'] key, which wasn't loaded.
-    self.assertRaises(tuf.exceptions.NoWorkingMirrorError,
-        self.repository_updater.refresh)
+    with self.assertRaises(tuf.exceptions.NoWorkingMirrorError) as cm:
+      self.repository_updater.refresh()
+
+    for mirror_url, mirror_error in six.iteritems(cm.exception.mirror_errors):
+      self.assertTrue(mirror_url.endswith('/3.root.json'))
+      self.assertTrue(isinstance(mirror_error,
+          securesystemslib.exceptions.BadSignatureError))
+
+    # Assert that the current 'root.json' on the client side is the verified one
+    self.assertTrue(filecmp.cmp(
+        os.path.join(self.repository_directory, 'metadata', '2.root.json'),
+        os.path.join(self.client_metadata_current, 'root.json')))
+
+
+
+  def test_root_rotation_unmet_new_threshold(self):
+    """Test that client detects a root.json version that is not signed
+     by a current threshold of signatures """
+    repository = repo_tool.load_repository(self.repository_directory)
+
+    # Create a new, valid root.json.
+    repository.root.threshold = 2
+    repository.root.load_signing_key(self.role_keys['root']['private'])
+    repository.root.add_verification_key(self.role_keys['root2']['public'])
+    repository.root.load_signing_key(self.role_keys['root2']['private'])
+
+    repository.writeall()
+
+    # Increase the threshold and add a new verification key without
+    # actually loading the signing key
+    repository.root.threshold = 3
+    repository.root.add_verification_key(self.role_keys['root3']['public'])
+
+    # writeall fails as expected since the third signature is missing
+    self.assertRaises(tuf.exceptions.UnsignedMetadataError, repository.writeall)
+    # write an invalid '3.root.json' as partially signed
+    repository.write('root')
+
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                  os.path.join(self.repository_directory, 'metadata'))
+
+
+   # The following refresh should fail because root must be signed by the
+   # current self.role_keys['root3'] key, which wasn't loaded.
+    with self.assertRaises(tuf.exceptions.NoWorkingMirrorError) as cm:
+      self.repository_updater.refresh()
+
+    for mirror_url, mirror_error in six.iteritems(cm.exception.mirror_errors):
+      self.assertTrue(mirror_url.endswith('/3.root.json'))
+      self.assertTrue(isinstance(mirror_error,
+          securesystemslib.exceptions.BadSignatureError))
+
+    # Assert that the current 'root.json' on the client side is the verified one
+    self.assertTrue(filecmp.cmp(
+        os.path.join(self.repository_directory, 'metadata', '2.root.json'),
+        os.path.join(self.client_metadata_current, 'root.json')))
+
+
+
+  def test_root_rotation_discard_untrusted_version(self):
+    """Test that client discards root.json version that failed the
+    signature verification """
+    repository = repo_tool.load_repository(self.repository_directory)
+
+    # Rotate the root key without signing with the previous version key 'root'
+    repository.root.remove_verification_key(self.role_keys['root']['public'])
+    repository.root.add_verification_key(self.role_keys['root2']['public'])
+    repository.root.load_signing_key(self.role_keys['root2']['private'])
+
+    # 2.root.json
+    repository.writeall()
+
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                  os.path.join(self.repository_directory, 'metadata'))
+
+    # Refresh on the client side should fail because 2.root.json is not signed
+    # with a threshold of prevous keys
+    with self.assertRaises(tuf.exceptions.NoWorkingMirrorError) as cm:
+      self.repository_updater.refresh()
+
+    for mirror_url, mirror_error in six.iteritems(cm.exception.mirror_errors):
+      self.assertTrue(mirror_url.endswith('/2.root.json'))
+      self.assertTrue(isinstance(mirror_error,
+          securesystemslib.exceptions.BadSignatureError))
+
+    # Assert that the current 'root.json' on the client side is the trusted one
+    # and 2.root.json is discarded
+    self.assertTrue(filecmp.cmp(
+        os.path.join(self.repository_directory, 'metadata', '1.root.json'),
+        os.path.join(self.client_metadata_current, 'root.json')))
 
 
 
