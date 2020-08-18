@@ -709,6 +709,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
+
   def test_3__update_metadata(self):
     # Setup
     # _update_metadata() downloads, verifies, and installs the specified
@@ -848,7 +849,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
           'Expected a failure to verify metadata when the metadata had a '
           'specification version number that was unexpected.  '
           'No error was raised.')
-
 
 
 
@@ -1775,6 +1775,26 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     targets = [{'filepath': 'file1.txt', 'fileinfo': {'length': 1, 'hashes': {'sha256': 'abc'}}}]
     self.repository_updater._targets_of_role('targets',
         targets=targets, skip_refresh=False)
+
+
+
+
+  def test_snapshot_merkle(self):
+    # replace timestamp with a merkle timestamp and create the updater
+    merkle_timestamp = os.path.join(self.repository_directory, 'metadata', 'timestamp-merkle.json')
+    timestamp = os.path.join(self.repository_directory, 'metadata', 'timestamp.json')
+
+    shutil.move(merkle_timestamp, timestamp)
+
+    repository_updater = updater.Updater(self.repository_name,
+                                      self.repository_mirrors)
+    repository_updater.refresh()
+
+    # Test verify merkle path
+    snapshot_info = repository_updater._verify_merkle_path('targets')
+
+    self.assertEqual(snapshot_info['version'], 1)
+
 
 
 

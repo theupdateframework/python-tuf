@@ -1081,8 +1081,13 @@ class Updater(object):
     # require strict checks on its required length.
     self._update_metadata('timestamp', DEFAULT_TIMESTAMP_UPPERLENGTH)
 
-    self._update_metadata_if_changed('snapshot',
-        referenced_metadata='timestamp')
+    try:
+      # If merkle root is set, do not update snapshot metadata. Instead,
+      # download the relevant merkle path when downloading a target.
+      self.metadata['current']['timestamp']['merkle_root']
+    except KeyError:
+      self._update_metadata_if_changed('snapshot',
+          referenced_metadata='timestamp')
     self._update_metadata_if_changed('targets')
 
 
@@ -1460,9 +1465,8 @@ class Updater(object):
 
 
 
-
   def _get_metadata_file(self, metadata_role, remote_filename,
-    upperbound_filelength, expected_version):
+    upperbound_filelength, expected_version, snapshot_merkle=False):
     """
     <Purpose>
       Non-public method that tries downloading, up to a certain length, a
@@ -1517,6 +1521,11 @@ class Updater(object):
         # uncompressed version).
         metadata_signable = \
           securesystemslib.util.load_json_string(file_object.read().decode('utf-8'))
+
+
+        # If this is a merkle tree snapshot, it will not be signed.
+        if snapshot_merkle:
+          return file_object
 
         # Determine if the specification version number is supported.  It is
         # assumed that "spec_version" is in (major.minor.fix) format, (for
@@ -1613,7 +1622,8 @@ class Updater(object):
 
 
 
-  def _update_metadata(self, metadata_role, upperbound_filelength, version=None):
+  def _update_metadata(self, metadata_role, upperbound_filelength, version=None,
+      snapshot_merkle=False):
     """
     <Purpose>
       Non-public method that downloads, verifies, and 'installs' the metadata
@@ -1683,7 +1693,7 @@ class Updater(object):
 
     metadata_file_object = \
       self._get_metadata_file(metadata_role, remote_filename,
-        upperbound_filelength, version)
+        upperbound_filelength, version, snapshot_merkle)
 
     # The metadata has been verified. Move the metadata file into place.
     # First, move the 'current' metadata file to the 'previous' directory
@@ -1712,7 +1722,10 @@ class Updater(object):
     # Extract the metadata object so we can store it to the metadata store.
     # 'current_metadata_object' set to 'None' if there is not an object
     # stored for 'metadata_role'.
-    updated_metadata_object = metadata_signable['signed']
+    if snapshot_merkle:
+      updated_metadata_object=metadata_signable
+    else:
+      updated_metadata_object = metadata_signable['signed']
     current_metadata_object = self.metadata['current'].get(metadata_role)
 
     # Finally, update the metadata and fileinfo stores, and rebuild the
@@ -1722,7 +1735,82 @@ class Updater(object):
     logger.debug('Updated ' + repr(current_filepath) + '.')
     self.metadata['previous'][metadata_role] = current_metadata_object
     self.metadata['current'][metadata_role] = updated_metadata_object
-    self._update_versioninfo(metadata_filename)
+    if not snapshot_merkle:
+      self._update_versioninfo(metadata_filename)
+
+
+
+
+
+  def _verify_merkle_path(self, metadata_role, referenced_metadata='snapshot'):
+    """
+    Download the merkle path associated with metadata_role and verify the hashes.
+    Returns the snapshot information about metadata role.
+    """
+    merkle_root = self.metadata['current']['timestamp']['merkle_root']
+
+    # Download Merkle path
+    self._update_metadata(metadata_role + '-snapshot', 1000, snapshot_merkle=True)
+    metadata_directory = self.metadata_directory['current']
+    metadata_filename = metadata_role + '-snapshot.json'
+    metadata_filepath = os.path.join(metadata_directory, metadata_filename)
+    # Ensure the metadata path is valid/exists, else ignore the call.
+    if os.path.exists(metadata_filepath):
+      try:
+        snapshot_merkle = securesystemslib.util.load_json_file(
+            metadata_filepath)
+
+      # Although the metadata file may exist locally, it may not
+      # be a valid json file.  On the next refresh cycle, it will be
+      # updated as required.  If Root if cannot be loaded from disk
+      # successfully, an exception should be raised by the caller.
+      except securesystemslib.exceptions.Error:
+        return
+
+      # verify the Merkle path
+      tuf.formats.SNAPSHOT_MERKLE_SCHEMA.check_match(snapshot_merkle)
+
+      # hash the contents to determine the leaf hash in the merkle tree
+      contents = snapshot_merkle['leaf_contents']
+      digest_object = securesystemslib.hash.digest()
+      digest_object.update((metadata_role + str(contents) + '0').encode('utf-8'))
+      node_hash = digest_object.hexdigest()
+
+      # For each hash in the merkle_path, determine if the current node is
+      # a left of a right node using the path_directions, then combine
+      # the hash from merkle_path with the current node_hash to determine
+      # the next node_hash. At the end, the node_hash should match the hash
+      # in merkle_root
+      merkle_path = snapshot_merkle['merkle_path']
+      path_directions = snapshot_merkle['path_directions']
+
+      # If merkle_path and path_directions have different lengths,
+      # the verification will not be possible
+      if len(merkle_path) != len(path_directions):
+        # error
+        return
+
+      for index in range(len(merkle_path)):
+        i = str(index)
+        if path_directions[i] < 0:
+          digest_object = securesystemslib.hash.digest()
+          digest_object.update((node_hash + merkle_path[i]).encode('utf-8'))
+        else:
+          digest_object = securesystemslib.hash.digest()
+          digest_object.update((merkle_path[i] + node_hash).encode('utf-8'))
+        node_hash = digest_object.hexdigest()
+
+      # Does the result match the merkle root?
+      if node_hash != merkle_root:
+        # error
+        return 1
+
+      # return the verified snapshot contents
+      return contents
+
+    else:
+      # No merkle path found, error?
+      return 2
 
 
 
@@ -1809,12 +1897,19 @@ class Updater(object):
         repr(referenced_metadata)+ '.  ' + repr(metadata_role) +
         ' may be updated.')
 
-    # Simply return if the metadata for 'metadata_role' has not been updated,
-    # according to the uncompressed metadata provided by the referenced
-    # metadata.  The metadata is considered updated if its version number is
-    # strictly greater than its currently trusted version number.
-    expected_versioninfo = self.metadata['current'][referenced_metadata] \
-        ['meta'][metadata_filename]
+    if 'merkle_root' in self.metadata['current'][referenced_metadata]:
+      # Download version information from merkle tree
+      contents = self._verify_merkle_path(metadata_filename,
+          referenced_metadata=referenced_metadata)
+      expected_versioninfo = contents
+
+    else:
+      # Simply return if the metadata for 'metadata_role' has not been updated,
+      # according to the uncompressed metadata provided by the referenced
+      # metadata.  The metadata is considered updated if its version number is
+      # strictly greater than its currently trusted version number.
+      expected_versioninfo = self.metadata['current'][referenced_metadata] \
+          ['meta'][metadata_filename]
 
     if not self._versioninfo_has_been_updated(metadata_filename,
         expected_versioninfo):
