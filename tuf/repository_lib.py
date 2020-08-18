@@ -1513,6 +1513,28 @@ def _generate_targets_fileinfo(target_files, targets_directory,
 
 
 
+def _get_hashes_and_length_if_needed(use_length, use_hashes, full_file_path,
+    storage_backend):
+  """
+  Calculate length and hashes only if they are required,
+  otherwise, for adopters of tuf with lots of delegations,
+  this will cause unnecessary overhead.
+  """
+
+  length = None
+  hashes = None
+  if use_length:
+    length = securesystemslib.util.get_file_length(full_file_path,
+        storage_backend)
+
+  if use_hashes:
+    hashes = securesystemslib.util.get_file_hashes(full_file_path,
+        tuf.settings.FILE_HASH_ALGORITHMS, storage_backend)
+
+  return length, hashes
+
+
+
 def generate_snapshot_metadata(metadata_directory, version, expiration_date,
     storage_backend, consistent_snapshot=False,
     repository_name='default', use_length=False, use_hashes=False):
@@ -1596,12 +1618,8 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   # Targets, and all delegated roles of the repository.
   fileinfodict = {}
 
-  length, hashes = securesystemslib.util.get_file_details(
-      os.path.join(metadata_directory, TARGETS_FILENAME),
-      tuf.settings.FILE_HASH_ALGORITHMS, storage_backend)
-
-  length = (use_length and length) or None
-  hashes = (use_hashes and hashes) or None
+  length, hashes = _get_hashes_and_length_if_needed(use_length, use_hashes,
+      os.path.join(metadata_directory, TARGETS_FILENAME), storage_backend)
 
   targets_role = TARGETS_FILENAME[:-len(METADATA_EXTENSION)]
 
@@ -1637,18 +1655,8 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       if tuf.roledb.role_exists(rolename, repository_name) and \
           rolename not in tuf.roledb.TOP_LEVEL_ROLES:
 
-        length = None
-        hashes = None
-        # We want to make sure we are calculating length and hashes only when
-        # at least one of them is needed. Otherwise, for adoptors of tuf with
-        # lots of delegations, this will cause unnecessary overhead.
-        if use_length or use_hashes:
-          length, hashes = securesystemslib.util.get_file_details(
-              os.path.join(metadata_directory, metadata_filename),
-              tuf.settings.FILE_HASH_ALGORITHMS)
-
-          length = (use_length and length) or None
-          hashes = (use_hashes and hashes) or None
+        length, hashes = _get_hashes_and_length_if_needed(use_length, use_hashes,
+            os.path.join(metadata_directory, metadata_filename), storage_backend)
 
         file_version = get_metadata_versioninfo(rolename,
             repository_name)
@@ -1744,11 +1752,8 @@ def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
 
   snapshot_fileinfo = {}
 
-  length, hashes = securesystemslib.util.get_file_details(snapshot_file_path,
-      tuf.settings.FILE_HASH_ALGORITHMS, storage_backend)
-
-  length = (use_length and length) or None
-  hashes = (use_hashes and hashes) or None
+  length, hashes = _get_hashes_and_length_if_needed(use_length, use_hashes,
+      snapshot_file_path, storage_backend)
 
   snapshot_filename = os.path.basename(snapshot_file_path)
   # Retrieve the versioninfo of the Snapshot metadata file.
