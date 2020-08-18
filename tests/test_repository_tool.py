@@ -260,7 +260,7 @@ class TestRepository(unittest.TestCase):
     repository.writeall(snapshot_merkle=True)
 
     targets_snapshot_filepath = os.path.join(metadata_directory,
-        'targets.json-snapshot.json')
+        'targets-snapshot.json')
     targets_snapshot = securesystemslib.util.load_json_file(targets_snapshot_filepath)
     tuf.formats.SNAPSHOT_MERKLE_SCHEMA.check_match(targets_snapshot)
 

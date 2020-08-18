@@ -132,6 +132,8 @@ def _generate_and_write_metadata(rolename, metadata_filename,
           use_length=use_snapshot_length, use_hashes=use_snapshot_hashes,
           snapshot_merkle=True)
 
+      print_merkle_tree(root)
+
       # Add the merkle tree root hash to the timestamp roleinfo
       timestamp_roleinfo = tuf.roledb.get_roleinfo('timestamp', repository_name)
       timestamp_roleinfo['merkle_root'] = root.hash()
@@ -403,6 +405,8 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
   metadata_files = sorted(storage_backend.list_folder(metadata_directory))
   for metadata_role in metadata_files:
     if metadata_role.endswith('root.json'):
+      continue
+    if metadata_role.endswith('-snapshot.json'):
       continue
 
     metadata_path = os.path.join(metadata_directory, metadata_role)
@@ -1675,6 +1679,8 @@ def build_merkle_tree(fileinfodict):
   leaves = []
   nodes = []
   for name, contents in fileinfodict.items():
+    if name.endswith(".json"):
+      name = os.path.splitext(name)[0]
     leaves.append(Leaf(name, contents))
 
   # Starting with the leaves, combine pairs of nodes to build the tree.
@@ -1720,9 +1726,11 @@ def write_merkle_paths(root, leaves, storage_backend, merkle_directory):
   # step in the path, keep track of both the sibling node and
   # Whether this is a left or a right child.
   for l in leaves:
-    merkle_path = []
+    merkle_path = {}
     current_node = l
-    path_directions = []
+    path_directions = {}
+
+    index = 0
 
     while(current_node != root):
       next_node = current_node.parent()
@@ -1732,14 +1740,15 @@ def write_merkle_paths(root, leaves, storage_backend, merkle_directory):
       h_left = next_node.left().hash()
       h_right = next_node.right().hash()
       if current_node.hash() == h_left:
-        merkle_path.append(h_right)
-        path_directions.append(-1)
+        merkle_path[str(index)] = h_right
+        path_directions[str(index)] = -1
       elif current_node.hash() == h_right:
-        merkle_path.append(h_left)
-        path_directions.append(1)
+        merkle_path[str(index)] = h_left
+        path_directions[str(index)] = 1
       else:
         # error
         pass
+      index = index + 1
 
       current_node = next_node
 
@@ -1755,7 +1764,6 @@ def write_merkle_paths(root, leaves, storage_backend, merkle_directory):
     file_object = tempfile.TemporaryFile()
     file_object.write(file_content)
     filename = os.path.join(merkle_directory, l.name() + '-snapshot.json')
-    print(filename)
     storage_backend.put(file_object, filename)
     file_object.close()
 

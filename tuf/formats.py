@@ -369,8 +369,8 @@ TARGETS_SCHEMA = SCHEMA.Object(
 SNAPSHOT_MERKLE_SCHEMA = SCHEMA.Object(
   leaf_contents = SCHEMA.OneOf([VERSIONINFO_SCHEMA,
                               METADATA_FILEINFO_SCHEMA]),
-  merkle_path = SCHEMA.ListOf(HASH_SCHEMA),
-  path_directions = SCHEMA.ListOf(SCHEMA.Integer()))
+  merkle_path = SCHEMA.DictOf(key_schema=SCHEMA.AnyString(), value_schema=HASH_SCHEMA),
+  path_directions = SCHEMA.DictOf(key_schema=SCHEMA.AnyString(), value_schema=SCHEMA.Integer()))
 
 # Snapshot role: indicates the latest versions of all metadata (except
 # timestamp).
