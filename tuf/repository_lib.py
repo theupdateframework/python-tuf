@@ -132,8 +132,6 @@ def _generate_and_write_metadata(rolename, metadata_filename,
           use_length=use_snapshot_length, use_hashes=use_snapshot_hashes,
           snapshot_merkle=True)
 
-      print_merkle_tree(root)
-
       # Add the merkle tree root hash to the timestamp roleinfo
       timestamp_roleinfo = tuf.roledb.get_roleinfo('timestamp', repository_name)
       timestamp_roleinfo['merkle_root'] = root.hash()
@@ -2027,17 +2025,14 @@ def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
       tuf.formats.make_metadata_fileinfo(snapshot_version['version'],
           length, hashes)
 
-  if(roleinfo):
-    try:
-      merkle_root = roleinfo['merkle_root']
-      return tuf.formats.build_dict_conforming_to_schema(
-          tuf.formats.TIMESTAMP_SCHEMA,
-          version=version,
-          expires=expiration_date,
-          meta=snapshot_fileinfo,
-          merkle_root=merkle_root)
-    except KeyError:
-      pass
+  if roleinfo and 'merkle_root' in roleinfo:
+    merkle_root = roleinfo['merkle_root']
+    return tuf.formats.build_dict_conforming_to_schema(
+        tuf.formats.TIMESTAMP_SCHEMA,
+        version=version,
+        expires=expiration_date,
+        meta=snapshot_fileinfo,
+        merkle_root=merkle_root)
 
   # Generate the timestamp metadata object.
   # Use generalized build_dict_conforming_to_schema func to produce a dict that

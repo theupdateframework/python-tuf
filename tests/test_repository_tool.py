@@ -259,10 +259,16 @@ class TestRepository(unittest.TestCase):
     repository.mark_dirty(['role1', 'targets', 'root', 'snapshot', 'timestamp'])
     repository.writeall(snapshot_merkle=True)
 
+    # Were the merkle snapshots written?
     targets_snapshot_filepath = os.path.join(metadata_directory,
         'targets-snapshot.json')
     targets_snapshot = securesystemslib.util.load_json_file(targets_snapshot_filepath)
     tuf.formats.SNAPSHOT_MERKLE_SCHEMA.check_match(targets_snapshot)
+
+    # Does timestamp have the root hash?
+    timestamp_filepath = os.path.join(metadata_directory, 'timestamp.json')
+    timestamp = securesystemslib.util.load_json_file(timestamp_filepath)
+    timestamp['signed']['merkle_root']
 
     # Verify that status() does not raise
     # 'tuf.exceptions.InsufficientKeysError' if a top-level role

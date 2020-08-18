@@ -1081,11 +1081,9 @@ class Updater(object):
     # require strict checks on its required length.
     self._update_metadata('timestamp', DEFAULT_TIMESTAMP_UPPERLENGTH)
 
-    try:
+    if 'merkle_root' not in self.metadata['current']['timestamp']:
       # If merkle root is set, do not update snapshot metadata. Instead,
       # download the relevant merkle path when downloading a target.
-      self.metadata['current']['timestamp']['merkle_root']
-    except KeyError:
       self._update_metadata_if_changed('snapshot',
           referenced_metadata='timestamp')
     self._update_metadata_if_changed('targets')
@@ -1723,6 +1721,7 @@ class Updater(object):
     # 'current_metadata_object' set to 'None' if there is not an object
     # stored for 'metadata_role'.
     if snapshot_merkle:
+      # Snaphot merkle files are not signed
       updated_metadata_object=metadata_signable
     else:
       updated_metadata_object = metadata_signable['signed']
@@ -1742,9 +1741,16 @@ class Updater(object):
 
 
 
-  def _verify_merkle_path(self, metadata_role, referenced_metadata='snapshot'):
+  def _verify_merkle_path(self, metadata_role):
     """
-    Download the merkle path associated with metadata_role and verify the hashes.
+    <Purpose>
+      Download the merkle path associated with metadata_role and verify the hashes.
+    <Arguments>
+      metadata_role:
+        The name of the metadata role. This should not include a file extension.
+    <Exceptions>
+      tuf.exceptions.RepositoryError:
+        If the snapshot merkle file is invalid or the verification fails
     Returns the snapshot information about metadata role.
     """
     merkle_root = self.metadata['current']['timestamp']['merkle_root']
@@ -1787,30 +1793,33 @@ class Updater(object):
       # If merkle_path and path_directions have different lengths,
       # the verification will not be possible
       if len(merkle_path) != len(path_directions):
-        # error
-        return
+        raise tuf.exceptions.RepositoryError('Invalid merkle path for ' +
+            metadata_role)
 
       for index in range(len(merkle_path)):
         i = str(index)
         if path_directions[i] < 0:
+          # The current node is a left node
           digest_object = securesystemslib.hash.digest()
           digest_object.update((node_hash + merkle_path[i]).encode('utf-8'))
         else:
+          # The current node is a right node
           digest_object = securesystemslib.hash.digest()
           digest_object.update((merkle_path[i] + node_hash).encode('utf-8'))
         node_hash = digest_object.hexdigest()
 
       # Does the result match the merkle root?
       if node_hash != merkle_root:
-        # error
-        return 1
+        raise tuf.exceptions.RepositoryError('The merkle root does not match ' +
+            'the hash for ' + metadata_role)
 
       # return the verified snapshot contents
       return contents
 
     else:
-      # No merkle path found, error?
-      return 2
+      # No merkle path found
+      raise tuf.exceptions.RepositoryError('No snapshot merkle file for ' +
+          metadata_role)
 
 
 
@@ -1897,10 +1906,9 @@ class Updater(object):
         repr(referenced_metadata)+ '.  ' + repr(metadata_role) +
         ' may be updated.')
 
-    if 'merkle_root' in self.metadata['current'][referenced_metadata]:
+    if 'merkle_root' in self.metadata['current']['timestamp']:
       # Download version information from merkle tree
-      contents = self._verify_merkle_path(metadata_filename,
-          referenced_metadata=referenced_metadata)
+      contents = self._verify_merkle_path(metadata_role)
       expected_versioninfo = contents
 
     else:

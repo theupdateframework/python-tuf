@@ -471,8 +471,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     storage_backend = securesystemslib.storage.FilesystemBackend()
 
-    # Test building the tree one node at a time with identical nodes
-    # to verify the hashes
+    # Test building the tree one node at a time to verify the hashes
 
     test_nodes = {}
     test_nodes['file1'] = tuf.formats.make_metadata_fileinfo(5, None, None)
