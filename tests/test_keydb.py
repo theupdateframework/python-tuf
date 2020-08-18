@@ -365,6 +365,7 @@ class TestKeydb(unittest.TestCase):
     tuf.keydb.clear_keydb()
 
     # 'keyid' does not match 'rsakey2'.
+    # In this case, the key will be added to the keydb
     keydict[keyid] = rsakey2
 
     # Key with invalid keytype.
@@ -372,6 +373,7 @@ class TestKeydb(unittest.TestCase):
     keyid3 = KEYS[2]['keyid']
     rsakey3['keytype'] = 'bad_keytype'
     keydict[keyid3] = rsakey3
+
     version = 8
     expires = '1985-10-21T01:21:00Z'
 
@@ -387,12 +389,20 @@ class TestKeydb(unittest.TestCase):
 
     self.assertEqual(None, tuf.keydb.create_keydb_from_root_metadata(root_metadata))
 
-    # Ensure only 'keyid2' was added to the keydb database.  'keyid' and
+    # Ensure only 'keyid2' and 'keyid' were added to the keydb database.
     # 'keyid3' should not be stored.
+    self.maxDiff = None
     self.assertEqual(rsakey2, tuf.keydb.get_key(keyid2))
-    self.assertRaises(tuf.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid)
+
+    test_key = rsakey2
+    test_key['keyid'] = keyid
+    self.assertEqual(test_key, tuf.keydb.get_key(keyid))
+
     self.assertRaises(tuf.exceptions.UnknownKeyError, tuf.keydb.get_key, keyid3)
+
+    # reset values
     rsakey3['keytype'] = 'rsa'
+    rsakey2['keyid'] = keyid2
 
 
 

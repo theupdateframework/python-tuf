@@ -113,30 +113,21 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
 
   # Iterate the keys found in 'root_metadata' by converting them to
   # 'RSAKEY_SCHEMA' if their type is 'rsa', and then adding them to the
-  # key database.
-  for junk, key_metadata in six.iteritems(root_metadata['keys']):
+  # key database using the provided keyid.
+  for keyid, key_metadata in six.iteritems(root_metadata['keys']):
     if key_metadata['keytype'] in _SUPPORTED_KEY_TYPES:
       # 'key_metadata' is stored in 'KEY_SCHEMA' format.  Call
       # create_from_metadata_format() to get the key in 'RSAKEY_SCHEMA' format,
-      # which is the format expected by 'add_key()'.  Note: The 'keyids'
-      # returned by format_metadata_to_key() include keyids in addition to the
-      # default keyid listed in 'key_dict'.  The additional keyids are
-      # generated according to securesystemslib.settings.HASH_ALGORITHMS.
+      # which is the format expected by 'add_key()'.  Note: This call to
+      # format_metadata_to_key() uses the provided keyid as the default keyid.
+      # All other keyids returned are ignored.
 
-      # The repo may have used hashing algorithms for the generated keyids that
-      # doesn't match the client's set of hash algorithms.  Make sure to only
-      # used the repo's selected hashing algorithms.
-      hash_algorithms = securesystemslib.settings.HASH_ALGORITHMS
-      securesystemslib.settings.HASH_ALGORITHMS = key_metadata['keyid_hash_algorithms']
-      key_dict, keyids = securesystemslib.keys.format_metadata_to_key(key_metadata)
-      securesystemslib.settings.HASH_ALGORITHMS = hash_algorithms
+      key_dict, _ = securesystemslib.keys.format_metadata_to_key(key_metadata, keyid)
 
+      # Make sure to update key_dict['keyid'] to use one of the other valid
+      # keyids, otherwise add_key() will have no reference to it.
       try:
-        for keyid in keyids:
-          # Make sure to update key_dict['keyid'] to use one of the other valid
-          # keyids, otherwise add_key() will have no reference to it.
-          key_dict['keyid'] = keyid
-          add_key(key_dict, keyid=None, repository_name=repository_name)
+        add_key(key_dict, repository_name=repository_name)
 
       # Although keyid duplicates should *not* occur (unique dict keys), log a
       # warning and continue.  However, 'key_dict' may have already been
