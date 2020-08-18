@@ -6,6 +6,7 @@
 
 """
 
+import json
 import sys
 import logging
 import os
@@ -27,8 +28,10 @@ def setUpModule():
 # Since setUpModule is called after imports we need to import conditionally.
 if IS_PY_VERSION_SUPPORTED:
     from tuf.api.metadata import (
+        Metadata,
         Snapshot,
         Timestamp,
+        Targets
     )
 
 
@@ -89,6 +92,37 @@ class TestMetadata(unittest.TestCase):
 
     #     threshold = Threshold(1, 5)
     #     return KeyRing(threshold=threshold, keys=key_list)
+
+    def test_generic_read(self):
+        for metadata, inner_metadata_cls in [
+                ("snapshot", Snapshot),
+                ("timestamp", Timestamp),
+                ("targets", Targets)]:
+
+            path = os.path.join(self.repo_dir, 'metadata', metadata + '.json')
+            metadata_obj = Metadata.read_from_json(path)
+
+            # Assert that generic method ...
+            # ... instantiates the right inner class for each metadata type
+            self.assertTrue(
+                    isinstance(metadata_obj.signed, inner_metadata_cls))
+            # ... and reads the same metadata file as the corresponding method
+            # on the inner class would do (compare their dict representation)
+            self.assertDictEqual(
+                    metadata_obj.as_dict(),
+                    inner_metadata_cls.read_from_json(path).as_dict())
+
+        # Assert that it chokes correctly on an unknown metadata type
+        bad_metadata_path = 'bad-metadata.json'
+        bad_metadata = {'signed': {'_type': 'bad-metadata'}}
+        with open(bad_metadata_path, 'wb') as f:
+            f.write(json.dumps(bad_metadata).encode('utf-8'))
+
+        with self.assertRaises(ValueError):
+            Metadata.read_from_json(bad_metadata_path)
+
+        os.remove(bad_metadata_path)
+
 
     def test_metadata_base(self):
         # Use of Snapshot is arbitrary, we're just testing the base class features

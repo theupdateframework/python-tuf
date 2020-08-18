@@ -23,10 +23,6 @@ TODO:
      disable check as there might be a justified reason to write WIP
      metadata to json.
 
- * It might be nice to have a generic Metadata.read_from_json that
-   can load any TUF role metadata and instantiate the appropriate object based
-   on the json '_type' field.
-
  * Add Root metadata class
 
 """
@@ -116,6 +112,50 @@ class Metadata():
     #                     break
 
     #     return len(verified_keyids) >= key_ring.threshold.least
+    @classmethod
+    def read_from_json(
+            cls, filename: str,
+            storage_backend: Optional[StorageBackendInterface] = None
+            ) -> 'Metadata':
+        """Loads JSON-formatted TUF metadata from a file storage.
+
+        Arguments:
+            filename: The path to read the file from.
+            storage_backend: An object that implements
+                securesystemslib.storage.StorageBackendInterface. Per default
+                a (local) FilesystemBackend is used.
+
+        Raises:
+            securesystemslib.exceptions.StorageError: The file cannot be read.
+            securesystemslib.exceptions.Error, ValueError: The metadata cannot
+                be parsed.
+
+        Returns:
+            A TUF Metadata object.
+
+        """
+        signable = load_json_file(filename, storage_backend)
+
+        # TODO: Should we use constants?
+        # And/or maybe a dispatch table? (<-- maybe too much magic)
+        _type = signable['signed']['_type']
+
+        if _type == 'targets':
+            inner_cls = Targets
+        elif _type == 'snapshot':
+            inner_cls = Snapshot
+        elif _type == 'timestamp':
+            inner_cls = Timestamp
+        elif _type == 'root':
+            # TODO: implement Root class
+            raise NotImplementedError('Root not yet implemented')
+        else:
+            raise ValueError(f'unrecognized metadata type "{_type}"')
+
+        return Metadata(
+                signed=inner_cls(**signable['signed']),
+                signatures=signable['signatures'])
+
 
     def write_to_json(
             self, filename: str,
