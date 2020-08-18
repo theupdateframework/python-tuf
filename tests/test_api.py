@@ -3,7 +3,10 @@
 # Copyright 2020, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 """ Unit tests for api/metdata.py
+
 """
+
+import sys
 import logging
 import os
 import shutil
@@ -13,10 +16,21 @@ import unittest
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 
-from tuf.api.metadata import (
-    Snapshot,
-    Timestamp,
-)
+# TODO: Remove case handling when fully dropping support for versions >= 3.6
+IS_PY_VERSION_SUPPORTED = sys.version_info >= (3, 6)
+
+# Use setUpModule to tell unittest runner to skip this test module gracefully.
+def setUpModule():
+    if not IS_PY_VERSION_SUPPORTED:
+        raise unittest.SkipTest("requires Python 3.6 or higher")
+
+# Since setUpModule is called after imports we need to import conditionally.
+if IS_PY_VERSION_SUPPORTED:
+    from tuf.api.metadata import (
+        Snapshot,
+        Timestamp,
+    )
+
 
 logger = logging.getLogger(__name__)
 
