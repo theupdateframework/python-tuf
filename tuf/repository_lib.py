@@ -1676,7 +1676,7 @@ def build_merkle_tree(fileinfodict):
   # leaf contains snapshot information for a single metadata file.
   leaves = []
   nodes = []
-  for name, contents in fileinfodict.items():
+  for name, contents in sorted(fileinfodict.items()):
     if name.endswith(".json"):
       name = os.path.splitext(name)[0]
     leaves.append(Leaf(name, contents))
