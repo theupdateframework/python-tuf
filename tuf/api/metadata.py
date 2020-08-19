@@ -39,7 +39,6 @@ from securesystemslib.formats import encode_canonical
 from securesystemslib.util import load_json_file, persist_temp_file
 from securesystemslib.storage import StorageBackendInterface
 from tuf.repository_lib import (
-    _get_written_metadata,
     _strip_version_number
 )
 
@@ -66,6 +65,14 @@ class Metadata():
             'signatures': self.signatures,
             'signed': self.signed.as_dict()
         }
+
+    def as_json(self, compact: bool = False) -> None:
+        """Returns the optionally compacted JSON representation. """
+        return json.dumps(
+                self.as_dict(),
+                indent=(None if compact else 1),
+                separators=((',', ':') if compact else (',', ': ')),
+                sort_keys=True)
 
     # def __update_signature(self, signatures, keyid, signature):
     #     updated = False
@@ -156,12 +163,25 @@ class Metadata():
                 signed=inner_cls(**signable['signed']),
                 signatures=signable['signatures'])
 
-
     def write_to_json(
-            self, filename: str,
+            self, filename: str, compact: bool = False,
             storage_backend: StorageBackendInterface = None) -> None:
-         with tempfile.TemporaryFile() as f:
-            f.write(_get_written_metadata(self.sign()).encode_canonical())
+        """Writes the JSON representation of the instance to file storage.
+
+        Arguments:
+            filename: The path to write the file to.
+            compact: A boolean indicating if the JSON string should be compact
+                    by excluding whitespace.
+            storage_backend: An object that implements
+                securesystemslib.storage.StorageBackendInterface. Per default
+                a (local) FilesystemBackend is used.
+        Raises:
+            securesystemslib.exceptions.StorageError:
+                The file cannot be written.
+
+        """
+        with tempfile.TemporaryFile() as f:
+            f.write(self.as_json(compact).encode('utf-8'))
             persist_temp_file(f, filename, storage_backend)
 
 

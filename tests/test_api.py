@@ -123,6 +123,29 @@ class TestMetadata(unittest.TestCase):
 
         os.remove(bad_metadata_path)
 
+    def test_compact_json(self):
+        path = os.path.join(self.repo_dir, 'metadata', 'targets.json')
+        metadata_obj = Metadata.read_from_json(path)
+        self.assertTrue(
+                len(metadata_obj.as_json(compact=True)) <
+                len(metadata_obj.as_json()))
+
+
+    def test_read_write_read_compare(self):
+        for metadata in ["snapshot", "timestamp", "targets"]:
+            path = os.path.join(self.repo_dir, 'metadata', metadata + '.json')
+            metadata_obj = Metadata.read_from_json(path)
+
+            path_2 = path + '.tmp'
+            metadata_obj.write_to_json(path_2)
+            metadata_obj_2 = Metadata.read_from_json(path_2)
+
+            self.assertDictEqual(
+                    metadata_obj.as_dict(),
+                    metadata_obj_2.as_dict())
+
+            os.remove(path_2)
+
 
     def test_metadata_base(self):
         # Use of Snapshot is arbitrary, we're just testing the base class features
