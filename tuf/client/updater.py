@@ -1810,8 +1810,8 @@ class Updater(object):
 
       # Does the result match the merkle root?
       if node_hash != merkle_root:
-        raise tuf.exceptions.RepositoryError('The merkle root does not match ' +
-            'the hash for ' + metadata_role)
+        raise tuf.exceptions.RepositoryError('The merkle root ' + merkle_root +
+            ' does not match the hash ' + node_hash + ' for ' + metadata_role)
 
       # return the verified snapshot contents
       return contents
