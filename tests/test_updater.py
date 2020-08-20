@@ -1792,7 +1792,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Test verify merkle path
     snapshot_info = repository_updater._verify_merkle_path('targets')
+    self.assertEqual(snapshot_info['version'], 1)
 
+    snapshot_info = repository_updater._verify_merkle_path('role1')
     self.assertEqual(snapshot_info['version'], 1)
 
     # verify merkle path with invalid role

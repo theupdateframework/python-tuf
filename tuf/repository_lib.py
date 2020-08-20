@@ -1608,7 +1608,7 @@ class InternalNode(Node):
 
     left.set_parent(self)
     right.set_parent(self)
-    digest_object = securesystemslib.hash.digest()
+    digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
 
     digest_object.update((left.hash() + right.hash()).encode('utf-8'))
 
@@ -1641,16 +1641,19 @@ class Leaf(Node):
 
   def __init__(self, name, contents, digest = None):
     super(Leaf, self).__init__()
+    # Include the name to ensure the hash differs between elements and cannot be replayed
+    contents["name"] = name
     self._contents = contents
     self._name = name
 
     if digest:
       self._hash = digest
     else:
-      digest_object = securesystemslib.hash.digest()
-      # Append a 0 for reverse preimage protection
-      # Include the name to ensure the hash differs between elements
-      digest_object.update((name + str(contents) + '0').encode('utf-8'))
+      digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
+      # Hash the canonical json form of the data to ensure consistency
+      json_contents = securesystemslib.formats.encode_canonical(contents)
+
+      digest_object.update(json_contents.encode('utf-8'))
       self._hash = digest_object.hexdigest()
 
   def name(self):

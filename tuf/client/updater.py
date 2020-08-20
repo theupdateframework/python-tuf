@@ -1778,8 +1778,9 @@ class Updater(object):
 
       # hash the contents to determine the leaf hash in the merkle tree
       contents = snapshot_merkle['leaf_contents']
+      json_contents = securesystemslib.formats.encode_canonical(contents)
       digest_object = securesystemslib.hash.digest()
-      digest_object.update((metadata_role + str(contents) + '0').encode('utf-8'))
+      digest_object.update((json_contents).encode('utf-8'))
       node_hash = digest_object.hexdigest()
 
       # For each hash in the merkle_path, determine if the current node is

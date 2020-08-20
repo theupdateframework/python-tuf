@@ -1,13 +1,12 @@
 {
  "leaf_contents": {
+  "name": "targets",
   "version": 1
  },
  "merkle_path": {
-  "0": "4d9f52a07628625e664bfd96868b69d5b4e81debf3f00ed3940e00cd8dc3da70",
-  "1": "d5d4546f9bfcce78a079fff48828b922091b5be9e874d5d2ce075e314dd19e13"
+  "0": "30e11c75a8fa88fd36cc2a4796c5c9f405c9ae52b7adf4180d1c351141e5037a"
  },
  "path_directions": {
-  "0": -1,
-  "1": -1
+  "0": 1
  }
 }

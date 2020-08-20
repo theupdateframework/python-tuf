@@ -1,10 +1,11 @@
 {
  "leaf_contents": {
+  "name": "role2",
   "version": 1
  },
  "merkle_path": {
-  "0": "abcfdd2bed858c5d7e8866a21bbdee0ca94cc03fd61f9a8c7ccbe4e50a78044a",
-  "1": "d5d4546f9bfcce78a079fff48828b922091b5be9e874d5d2ce075e314dd19e13"
+  "0": "9a8cf4b3e3cf611d339867f295792c3105d3d8ebfcd559607f9528ba7511e52a",
+  "1": "70304860310d2c6f0a05f2ccbfb49a4a6d6d3c7a9ff9c93e0b91b2e0ab7fff97"
  },
  "path_directions": {
   "0": 1,

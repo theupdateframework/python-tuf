@@ -1,11 +1,14 @@
 {
  "leaf_contents": {
+  "name": "role1",
   "version": 1
  },
  "merkle_path": {
-  "0": "d0657b1fe8cd74976421241692e36b86ebd8f923a3f71ec99dbcacac319a11eb"
+  "0": "3bd2912d01accd816767dcde96a2b470dc5bb51cefe3b3aeb3aca7fdc1704d6b",
+  "1": "70304860310d2c6f0a05f2ccbfb49a4a6d6d3c7a9ff9c93e0b91b2e0ab7fff97"
  },
  "path_directions": {
-  "0": 1
+  "0": -1,
+  "1": -1
  }
 }
