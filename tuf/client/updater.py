@@ -232,14 +232,13 @@ class MultiRepoUpdater(object):
     #  }
     self.repository_names_to_mirrors = self.map_file['repositories']
 
-    self.targets_map_filename = None
-
+    # If there is a targets_map_file, set self.targets_map_filename.
+    # This map file will be used with all repositories in place of the
+    # top level targets file.
     if targets_map_filename is not None:
-      # Is 'targets_map_file' a path?  If not, raise
-      # 'securesystemslib.exceptions.FormatError'.  The actual content of the map
-      # file is validated later on in this method.
       securesystemslib.formats.PATH_SCHEMA.check_match(targets_map_filename)
-      self.targets_map_filename = targets_map_filename
+
+    self.targets_map_filename = targets_map_filename
 
 
   def get_valid_targetinfo(self, target_filename, match_custom_field=True):
@@ -641,7 +640,8 @@ class Updater(object):
     http://www.python.org/dev/peps/pep-0008/#method-names-and-instance-variables
   """
 
-  def __init__(self, repository_name, repository_mirrors, targets_map_file = None):
+  def __init__(self, repository_name, repository_mirrors,
+      targets_map_filename=None):
     """
     <Purpose>
       Constructor.  Instantiating an updater object causes all the metadata
@@ -680,7 +680,7 @@ class Updater(object):
                                           'metadata_path': 'metadata',
                                           'targets_path': 'targets',
                                           'confined_target_dirs': ['']}}
-      targets_map_file:
+      targets_map_filename:
         The name of the targets map file. If one is not provided,
         self.targets_map_file will be set to None and the top-level
         targets metadata from the repository will be used.
@@ -715,14 +715,13 @@ class Updater(object):
     self.mirrors = repository_mirrors
     self.targets_map_file = None
 
-    if targets_map_file is not None:
-      # Is 'targets_map_file' a path?  If not, raise
-      # 'securesystemslib.exceptions.FormatError'.  The actual content of the map
-      # file is validated later on in this method.
-      securesystemslib.formats.PATH_SCHEMA.check_match(targets_map_file)
+    # If targets_map_filename is provided, load the targets_map_file.
+    if targets_map_filename is not None:
+      securesystemslib.formats.PATH_SCHEMA.check_match(targets_map_filename)
 
       try:
-        self.targets_map_file = securesystemslib.util.load_json_file(targets_map_file)
+        self.targets_map_file = securesystemslib.util.load_json_file(
+            targets_map_filename)
 
       except (securesystemslib.exceptions.Error) as e:
         raise tuf.exceptions.Error('Cannot load the targets map file: ' + str(e))
@@ -859,7 +858,9 @@ class Updater(object):
     # Save and construct the full metadata path.
     metadata_directory = self.metadata_directory[metadata_set]
     # For top-level targets, the targets map file may overwrite the
-    # targets metadata on the repository
+    # targets metadata on the repository. If this is the case, ignore
+    # the 'targets.json' file on the repository and instead load
+    # the targets metadata indicated by the targets map file.
     if metadata_role == 'targets' and self.targets_map_file is not None:
       metadata_filename = self.targets_map_file['targets_filename'] + '.json'
     else:
@@ -913,7 +914,9 @@ class Updater(object):
       This private method is called when a new/updated 'root' metadata file is
       loaded or when updater.refresh() is called.  This method will only store
       the role information of the top-level roles (i.e., 'root', 'targets',
-      'snapshot', 'timestamp').
+      'snapshot', 'timestamp'). If a targets map file is used, this will
+      additionally load the key and role information from the targets map
+      file.
 
     <Arguments>
       None.

@@ -60,7 +60,8 @@ _keydb_dict = {}
 _keydb_dict['default'] = {}
 
 
-def create_keydb_from_root_metadata(root_metadata, repository_name='default', targets_map_file = None):
+def create_keydb_from_root_metadata(root_metadata, repository_name='default',
+    targets_map_file=None):
   """
   <Purpose>
     Populate the key database with the unique keys found in 'root_metadata'.
@@ -116,48 +117,20 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default', ta
   else:
     create_keydb(repository_name)
 
+  keys_to_add = root_metadata['keys']
 
   if targets_map_file is not None:
     tuf.formats.TARGETS_MAPFILE_SCHEMA.check_match(targets_map_file)
 
-    for junk, key_metadata in six.iteritems(targets_map_file['keys']):
-      if key_metadata['keytype'] in _SUPPORTED_KEY_TYPES:
-        # 'key_metadata' is stored in 'KEY_SCHEMA' format.  Call
-        # create_from_metadata_format() to get the key in 'RSAKEY_SCHEMA' format,
-        # which is the format expected by 'add_key()'.  Note: The 'keyids'
-        # returned by format_metadata_to_key() include keyids in addition to the
-        # default keyid listed in 'key_dict'.  The additional keyids are
-        # generated according to securesystemslib.settings.HASH_ALGORITHMS.
+    # If any keyids from root metadata match those from targets_map_metadata,
+    # only the root metadata keys will be added. Add all keys to keys_to_add
+    keys_to_add = targets_map_file['keys'].copy()
+    keys_to_add.update(root_metadata['keys'])
 
-        # The repo may have used hashing algorithms for the generated keyids that
-        # doesn't match the client's set of hash algorithms.  Make sure to only
-        # used the repo's selected hashing algorithms.
-        hash_algorithms = securesystemslib.settings.HASH_ALGORITHMS
-        securesystemslib.settings.HASH_ALGORITHMS = key_metadata['keyid_hash_algorithms']
-        key_dict, keyids = securesystemslib.keys.format_metadata_to_key(key_metadata)
-        securesystemslib.settings.HASH_ALGORITHMS = hash_algorithms
-
-        try:
-          for keyid in keyids:
-            # Make sure to update key_dict['keyid'] to use one of the other valid
-            # keyids, otherwise add_key() will have no reference to it.
-            key_dict['keyid'] = keyid
-            add_key(key_dict, keyid=None, repository_name=repository_name)
-
-        # Although keyid duplicates should *not* occur (unique dict keys), log a
-        # warning and continue.  However, 'key_dict' may have already been
-        # adding to the keydb elsewhere.
-        except tuf.exceptions.KeyAlreadyExistsError as e: # pragma: no cover
-          logger.warning(e)
-          continue
-
-      else:
-        logger.warning('Root Metadata file contains a key with an invalid keytype.')
-
-  # Iterate the keys found in 'root_metadata' by converting them to
-  # 'RSAKEY_SCHEMA' if their type is 'rsa', and then adding them to the
-  # key database using the provided keyid.
-  for keyid, key_metadata in six.iteritems(root_metadata['keys']):
+  # Iterate the keys found in 'root_metadata' and 'targets_map_file' by
+  # converting them to 'RSAKEY_SCHEMA' if their type is 'rsa', and then adding
+  # them to the key database using the provided keyid.
+  for keyid, key_metadata in six.iteritems(keys_to_add):
     if key_metadata['keytype'] in _SUPPORTED_KEY_TYPES:
       # 'key_metadata' is stored in 'KEY_SCHEMA' format.  Call
       # create_from_metadata_format() to get the key in 'RSAKEY_SCHEMA' format,
