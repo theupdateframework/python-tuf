@@ -279,11 +279,11 @@ class Timestamp(Signed):
 
     # Update metadata about the snapshot metadata.
     def update(self, version: int, length: int, hashes: JsonDict) -> None:
-        fileinfo = self.meta.get('snapshot.json', {})
-        fileinfo['version'] = version
-        fileinfo['length'] = length
-        fileinfo['hashes'] = hashes
-        self.meta['snapshot.json'] = fileinfo
+        self.meta['snapshot.json'] = {
+            'version': version,
+            'length': length,
+            'hashes': hashes
+        }
 
 
 class Snapshot(Signed):
