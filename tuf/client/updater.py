@@ -1487,6 +1487,11 @@ class Updater(object):
         The expected and required version number of the 'metadata_role' file
         downloaded.  'expected_version' is an integer.
 
+      snapshot_merkle:
+        Is the metadata file a snapshot merkle file? Snapshot merkle files
+        are not signed and so should skip some of the verification steps here.
+        Instead, they must be verified using _verify_merkle_path.
+
     <Exceptions>
       tuf.exceptions.NoWorkingMirrorError:
         The metadata could not be fetched. This is raised only when all known
@@ -1644,6 +1649,11 @@ class Updater(object):
       version:
         The expected and required version number of the 'metadata_role' file
         downloaded.  'expected_version' is an integer.
+
+      snapshot_merkle:
+        Is the metadata to be updated for a snapshot merkle file?
+        Snapshot merkle metadata does not contain a signature, but must
+        instead be verified using _verify_merkle_path.
 
     <Exceptions>
       tuf.exceptions.NoWorkingMirrorError:

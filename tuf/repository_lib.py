@@ -1848,6 +1848,11 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       Read more at section 5.6 from the Mercury paper:
       https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
 
+    snapshot_merkle:
+      Whether to generate snapshot merkle files in addition to snapshot.json
+      metadata. If this is true, this function will return the root and leaves
+      of the merkle tree in addition to the snapshot metadata.
+
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the arguments are improperly
     formatted.
@@ -1992,6 +1997,10 @@ def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
       Whether to include the optional hashes attribute of the snapshot
       metadata file in the timestamp metadata.
       Default is True.
+
+    roleinfo:
+      The roleinfo for the timestamp role. This is used when a snapshot
+      merkle tree is used to access the merkle tree's root hash.
 
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the generated timestamp metadata

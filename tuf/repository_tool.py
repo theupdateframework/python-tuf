@@ -296,6 +296,10 @@ class Repository(object):
         written as-is (True) or whether hashes should be generated (False,
         requires access to the targets files on-disk).
 
+      snapshot_merkle:
+        Whether to generate snapshot merkle metadata in addition to snapshot
+        metadata.
+
     <Exceptions>
       tuf.exceptions.UnsignedMetadataError, if any of the top-level
       and delegated roles do not have the minimum threshold of signatures.
