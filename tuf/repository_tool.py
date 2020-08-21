@@ -2630,9 +2630,6 @@ class Targets(Metadata):
       succinct:
         Whether the hashed bins should use succinct hashed bin delegations.
 
-      succinct:
-        Whether the hashed bins should use succinct hashed bin delegations.
-
     <Exceptions>
       securesystemslib.exceptions.FormatError, if the arguments are improperly
       formatted.
@@ -3226,7 +3223,8 @@ def load_repository(repository_directory, repository_name='default',
       prefix_len = role['succinct_hash_delegations']['prefix_bit_length']
       num_bins = 2 ** prefix_len
       for i in range(num_bins):
-        bin_name = role['name'] + '-' + "{num:0{len}x}".format(num=i, len=prefix_len)
+        bin_name = "{name}-{num:0{len}x}".format(name=role['name'], num=i,
+            len=prefix_len)
         succinct_role = {'name': bin_name,
                 'keyids': role['keyids'],
                 'threshold': role['threshold'],

@@ -1640,14 +1640,9 @@ class TestTargets(unittest.TestCase):
 
     delegated_rolename = self.targets_object.rolename + '.hbd'
 
-    bin_names = [delegated_rolename + '-0', delegated_rolename + '-1',
-                delegated_rolename + '-2', delegated_rolename + '-3',
-                delegated_rolename + '-4', delegated_rolename + '-5',
-                delegated_rolename + '-6', delegated_rolename + '-7',
-                delegated_rolename + '-8', delegated_rolename + '-9',
-                delegated_rolename + '-a', delegated_rolename + '-b',
-                delegated_rolename + '-c', delegated_rolename + '-d',
-                delegated_rolename + '-e', delegated_rolename + '-f']
+    # Create a list of hex-suffixed names from "<name>-0" to "<name>-f"
+    bin_names = ["{}-{:x}".format(delegated_rolename,
+        i) for i in range(0, 16)]
 
     delegated_rolenames.append(delegated_rolename)
 
