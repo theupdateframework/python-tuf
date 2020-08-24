@@ -1585,9 +1585,10 @@ class Updater(object):
                 str(metadata_spec_version) +
                 ". The update will continue as the major versions match.")
 
-        except (ValueError, TypeError):
-          raise securesystemslib.exceptions.FormatError('Improperly'
-            ' formatted spec_version, which must be in major.minor.fix format')
+        except (ValueError, TypeError) as error:
+          six.raise_from(securesystemslib.exceptions.FormatError('Improperly'
+              ' formatted spec_version, which must be in major.minor.fix format'),
+              error)
 
         # If the version number is unspecified, ensure that the version number
         # downloaded is greater than the currently trusted version number for
