@@ -1788,7 +1788,7 @@ class Targets(Metadata):
 
     <Arguments>
       key:
-        The role key fpr all succinct delegations associated with this role,
+        The role key for all succinct delegations associated with this role,
         conformant to 'securesystemslib.formats.ANYKEY_SCHEMA'.
         It must contain the private key, so that role signatures may be
         generated when writeall() or write() is eventually called to generate
@@ -1855,7 +1855,10 @@ class Targets(Metadata):
       succinct:
         Whether the delegated role is used by succinct hashed bin delegations.
         If succinct delegations are used, the role is added to '_succinct_delegations'
-        instead of '_delegated_roles'.
+        instead of '_delegated_roles'. When the metadata is written, a metadata
+        file is created for each delegation in '_succinct_delegations', but these
+        files are not listed in the delegating metadata. Instead, the client will
+        find these metadata files using the succinct hashed bin delgation.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError, if the arguments are improperly
