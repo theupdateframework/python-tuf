@@ -341,8 +341,8 @@ def get_key(keyid, repository_name='default'):
   try:
     return copy.deepcopy(_keydb_dict[repository_name][keyid])
 
-  except KeyError:
-    raise tuf.exceptions.UnknownKeyError('Key: ' + keyid)
+  except KeyError as error:
+    six.raise_from(tuf.exceptions.UnknownKeyError('Key: ' + keyid), error)
 
 
 

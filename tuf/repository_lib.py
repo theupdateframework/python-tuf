@@ -534,9 +534,9 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     # Ensure the 'consistent_snapshot' field is extracted.
     consistent_snapshot = root_metadata['consistent_snapshot']
 
-  except securesystemslib.exceptions.StorageError:
-    raise tuf.exceptions.RepositoryError('Cannot load the required'
-        ' root file: ' + repr(root_filename))
+  except securesystemslib.exceptions.StorageError as error:
+    six.raise_from(tuf.exceptions.RepositoryError('Cannot load the required'
+        ' root file: ' + repr(root_filename)), error)
 
   # Load 'timestamp.json'.  A Timestamp role file without a version number is
   # always written.
@@ -563,9 +563,9 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     tuf.roledb.update_roleinfo('timestamp', roleinfo, mark_role_as_dirty=False,
         repository_name=repository_name)
 
-  except securesystemslib.exceptions.StorageError:
-    raise tuf.exceptions.RepositoryError('Cannot load the Timestamp file: '
-        + repr(timestamp_filename))
+  except securesystemslib.exceptions.StorageError as error:
+    six.raise_from(tuf.exceptions.RepositoryError('Cannot load the Timestamp '
+        'file: ' + repr(timestamp_filename)), error)
 
   # Load 'snapshot.json'.  A consistent snapshot.json must be calculated if
   # 'consistent_snapshot' is True.
@@ -603,9 +603,9 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     tuf.roledb.update_roleinfo('snapshot', roleinfo, mark_role_as_dirty=False,
         repository_name=repository_name)
 
-  except securesystemslib.exceptions.StorageError:
-    raise tuf.exceptions.RepositoryError('The Snapshot file cannot be loaded: '
-        + repr(snapshot_filename))
+  except securesystemslib.exceptions.StorageError as error:
+    six.raise_from(tuf.exceptions.RepositoryError('The Snapshot file '
+        'cannot be loaded: '+ repr(snapshot_filename)), error)
 
   # Load 'targets.json'.  A consistent snapshot of the Targets role must be
   # calculated if 'consistent_snapshot' is True.
@@ -659,9 +659,9 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
       except tuf.exceptions.KeyAlreadyExistsError:
         pass
 
-  except securesystemslib.exceptions.StorageError:
-    raise tuf.exceptions.RepositoryError('The Targets file can not be loaded: '
-        + repr(targets_filename))
+  except securesystemslib.exceptions.StorageError as error:
+    six.raise_from(tuf.exceptions.RepositoryError('The Targets file '
+        'can not be loaded: ' + repr(targets_filename)), error)
 
   return repository, consistent_snapshot
 

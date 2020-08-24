@@ -954,15 +954,16 @@ def check_signable_object_format(signable):
   try:
     role_type = signable['signed']['_type']
 
-  except (KeyError, TypeError):
-    raise securesystemslib.exceptions.FormatError('Untyped signable object.')
+  except (KeyError, TypeError) as error:
+    six.raise_from(securesystemslib.exceptions.FormatError(
+        'Untyped signable object.'), error)
 
   try:
     schema = SCHEMAS_BY_TYPE[role_type]
 
-  except KeyError:
-    raise securesystemslib.exceptions.FormatError('Unrecognized'
-      ' type ' + repr(role_type))
+  except KeyError as error:
+    six.raise_from(securesystemslib.exceptions.FormatError(
+        'Unrecognized type ' + repr(role_type)), error)
 
   # 'securesystemslib.exceptions.FormatError' raised if 'signable' does not
   # have a properly formatted role schema.
