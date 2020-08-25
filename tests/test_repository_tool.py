@@ -1604,7 +1604,7 @@ class TestTargets(unittest.TestCase):
       have_prefixes = False
 
       for delegated_role in roleinfo['delegations']['roles']:
-        if '.hbd' not in delegated_role['name'] and len(delegated_role['path_hash_prefixes']) > 0:
+        if 'delegation_hash_prefix_len' not in delegated_role and len(delegated_role['path_hash_prefixes']) > 0:
           rolename = delegated_role['name']
           prefixes = delegated_role['path_hash_prefixes']
           have_prefixes = True
@@ -1638,10 +1638,10 @@ class TestTargets(unittest.TestCase):
     self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
                                             number_of_bins=16, succinct=True)
 
-    delegated_rolename = self.targets_object.rolename + '.hbd'
+    delegated_rolename = self.targets_object.rolename + '.hbd-'
 
     # Create a list of hex-suffixed names from "<name>-0" to "<name>-f"
-    bin_names = ["{}-{:x}".format(delegated_rolename,
+    bin_names = ["{}{:x}".format(delegated_rolename,
         i) for i in range(0, 16)]
 
     delegated_rolenames.append(delegated_rolename)
@@ -1650,6 +1650,21 @@ class TestTargets(unittest.TestCase):
                     sorted(delegated_rolenames))
     self.assertEqual(sorted(self.targets_object._succinct_delegations),
                     sorted(bin_names))
+
+    # Test succinct hashed bin delegation with a custom prefix
+    self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
+                            number_of_bins=2, succinct=True, prefix='prefix')
+
+    delegated_rolename = "prefix-"
+
+    bin_names.append("prefix-0")
+    bin_names.append("prefix-1")
+    delegated_rolenames.append(delegated_rolename)
+
+    self.assertEqual(sorted(self.targets_object.get_delegated_rolenames()),
+                  sorted(delegated_rolenames))
+    self.assertEqual(sorted(self.targets_object._succinct_delegations),
+                  sorted(bin_names))
 
     # For testing / coverage purposes, try to create delegated bins that
     # hold a range of hash prefixes (e.g., bin name: 000-003).
