@@ -2453,7 +2453,8 @@ class Targets(Metadata):
       tuf.formats.PATH_HASH_PREFIXES_SCHEMA.check_match(path_hash_prefixes)
 
     if succinct_hash_delegations is not None:
-      tuf.formats.SUCCINCT_HASH_DELEGATIONS_SCHEMA.check_match(succinct_hash_delegations)
+      tuf.formats.DELEGATION_HASH_PREFIX_LEN_SCHEMA.check_match(
+          succinct_hash_delegations)
 
     # Keep track of the valid keyids (added to the new Targets object) and
     # their keydicts (added to this Targets delegations).
@@ -2495,10 +2496,10 @@ class Targets(Metadata):
       roleinfo['paths'] = paths
 
     if succinct_hash_delegations:
-      roleinfo['succinct_hash_delegations'] = succinct_hash_delegations
+      roleinfo['delegation_hash_prefix_len'] = succinct_hash_delegations
       del roleinfo['paths']
-    # If a delegation contains both `succinct_hash_delegations` and
-    # `path_hash_prefixes`, `succinct_hash_delegations` is used.
+    # If a delegation contains both `delegation_hash_prefix_len` and
+    # `path_hash_prefixes`, `delegation_hash_prefix_len` is used.
     elif path_hash_prefixes:
       roleinfo['path_hash_prefixes'] = path_hash_prefixes
       # A role in a delegations must list either 'path_hash_prefixes'
@@ -2779,7 +2780,7 @@ class Targets(Metadata):
                   'keyids': keyids,
                   'threshold': 1,
                   'terminating': False,
-                  'succinct_hash_delegations': {'prefix_bit_length':prefix_length},
+                  'delegation_hash_prefix_len' : prefix_length,
                   'paths': []}
       delegated_roleinfos.append(roleinfo)
 
@@ -3223,7 +3224,7 @@ def load_repository(repository_directory, repository_name='default',
   roleinfo = tuf.roledb.get_roleinfo('targets', repository_name)
   for role in roleinfo['delegations']['roles']:
     if role['name'].endswith('.hbd'):
-      prefix_len = role['succinct_hash_delegations']['prefix_bit_length']
+      prefix_len = role['delegation_hash_prefix_len']
       num_bins = 2 ** prefix_len
       for i in range(num_bins):
         bin_name = "{name}-{num:0{len}x}".format(name=role['name'], num=i,

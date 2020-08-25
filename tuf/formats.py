@@ -126,8 +126,7 @@ PATH_HASH_PREFIX_SCHEMA = HEX_SCHEMA
 # A list of path hash prefixes.
 PATH_HASH_PREFIXES_SCHEMA = SCHEMA.ListOf(PATH_HASH_PREFIX_SCHEMA)
 
-SUCCINCT_HASH_DELEGATIONS_SCHEMA = SCHEMA.Object(
-  prefix_bit_length = SCHEMA.Integer(lo=0, hi=32))
+DELEGATION_HASH_PREFIX_LEN_SCHEMA = SCHEMA.Integer(lo=0, hi=32)
 
 # Role object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1,
 # 'paths':[filepaths..]} format.
@@ -141,7 +140,7 @@ ROLE_SCHEMA = SCHEMA.Object(
   terminating = SCHEMA.Optional(securesystemslib.formats.BOOLEAN_SCHEMA),
   paths = SCHEMA.Optional(RELPATHS_SCHEMA),
   path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA),
-  succinct_hash_delegations = SCHEMA.Optional(SUCCINCT_HASH_DELEGATIONS_SCHEMA))
+  delegation_hash_prefix_len = SCHEMA.Optional(DELEGATION_HASH_PREFIX_LEN_SCHEMA))
 
 # A dict of roles where the dict keys are role names and the dict values holding
 # the role data/information.
@@ -340,7 +339,7 @@ ROLEDB_SCHEMA = SCHEMA.Object(
   signatures = SCHEMA.Optional(securesystemslib.formats.SIGNATURES_SCHEMA),
   paths = SCHEMA.Optional(SCHEMA.OneOf([RELPATHS_SCHEMA, PATH_FILEINFO_SCHEMA])),
   path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA),
-  succinct_hash_delegations = SCHEMA.Optional(SUCCINCT_HASH_DELEGATIONS_SCHEMA),
+  delegation_hash_prefix_len = SCHEMA.Optional(DELEGATION_HASH_PREFIX_LEN_SCHEMA),
   delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA),
   partial_loaded = SCHEMA.Optional(BOOLEAN_SCHEMA))
 

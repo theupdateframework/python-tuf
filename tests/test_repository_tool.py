@@ -1496,7 +1496,7 @@ class TestTargets(unittest.TestCase):
     threshold = 1
     paths = ['*']
     path_hash_prefixes = ['e3a3', '8fae', 'd543']
-    succinct_hash_delegations = {'prefix_bit_length': 2}
+    succinct_hash_delegations = 2
 
     self.targets_object.delegate(rolename, public_keys, paths,
         threshold, terminating=False, list_of_targets=list_of_targets,

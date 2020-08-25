@@ -35,10 +35,10 @@
           'signatures': ['abcd3452...'],
           'paths': ['role.json'],
           'path_hash_prefixes': ['ab34df13'],
-          'succinct_hash_delegations': 6,
+          'delegation_hash_prefix_len': 6,
           'delegations': {'keys': {}, 'roles': {}}}
 
-  The 'name', 'paths', 'path_hash_prefixes', 'succinct_hash_delegations', and
+  The 'name', 'paths', 'path_hash_prefixes', 'delegation_hash_prefix_len', and
   'delegations' dict keys are optional.
 """
 
@@ -263,10 +263,10 @@ def add_role(rolename, roleinfo, repository_name='default'):
        'signatures': ['ab23dfc32']
        'paths': ['path/to/target1', 'path/to/target2', ...],
        'path_hash_prefixes': ['a324fcd...', ...],
-       'succinct_hash_delegations': 6,
+       'delegation_hash_prefix_len': 6,
        'delegations': {'keys': }
 
-      The 'paths', 'path_hash_prefixes', 'succinct_hash_delegations' and
+      The 'paths', 'path_hash_prefixes', 'delegation_hash_prefix_len' and
       'delegations' dict keys are optional.
 
       The 'target' role has an additional 'paths' key.  Its value is a list of
@@ -342,9 +342,9 @@ def update_roleinfo(rolename, roleinfo, mark_role_as_dirty=True, repository_name
        'threshold': 1,
        'paths': ['path/to/target1', 'path/to/target2', ...],
        'path_hash_prefixes': ['a324fcd...', ...],
-       'succinct_hash_delegations': 6}
+       'delegation_hash_prefix_len': 6}
 
-      The 'name', 'paths', 'path_hash_prefixes', and `succinct_hash_delegations'
+      The 'name', 'paths', 'path_hash_prefixes', and `delegation_hash_prefix_len'
       dict keys are optional.
 
       The 'target' role has an additional 'paths' key.  Its value is a list of
@@ -697,10 +697,10 @@ def get_roleinfo(rolename, repository_name='default'):
      'signatures': ['ab453bdf...', ...],
      'paths': ['path/to/target1', 'path/to/target2', ...],
      'path_hash_prefixes': ['a324fcd...', ...],
-     'succinct_hash_delegations': 6,
+     'delegation_hash_prefix_len': 6,
      'delegations': {'keys': {}, 'roles': []}}
 
-    The 'signatures', 'paths', 'path_hash_prefixes', 'succinct_hash_delegations'
+    The 'signatures', 'paths', 'path_hash_prefixes', 'delegation_hash_prefix_len'
     and 'delegations' dict keys are optional.
 
   <Arguments>
