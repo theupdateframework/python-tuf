@@ -2971,12 +2971,13 @@ class Updater(object):
     child_role_name = child_role['name']
     child_role_paths = child_role.get('paths')
     child_role_path_hash_prefixes = child_role.get('path_hash_prefixes')
-    child_role_succinct_delegations = child_role.get('succinct_hash_delegations')
+    child_role_delegation_hash_prefix_len = child_role.get(
+        'delegation_hash_prefix_len')
 
-    if child_role_succinct_delegations is not None:
+    if child_role_delegation_hash_prefix_len is not None:
       target_filepath_hash = self._get_target_hash(target_filepath)
       # Find the bin associated with this hash and return the bin name
-      prefix_bits= child_role_succinct_delegations['prefix_bit_length']
+      prefix_bits = child_role_delegation_hash_prefix_len
       number_of_bins = 2 ** prefix_bits
       prefix_length = len("{:x}".format(number_of_bins - 1))
       bin_size = 16 ** prefix_length // number_of_bins
@@ -2984,7 +2985,7 @@ class Updater(object):
 
       bin_num = (prefix - (prefix % bin_size)) / bin_size
 
-      bin_name = child_role_name + '-' + "{num:0{len}x}".format(num=int(bin_num), len=prefix_length)
+      bin_name = child_role_name + "{num:0{len}x}".format(num=int(bin_num), len=prefix_length)
       return bin_name
 
     elif child_role_path_hash_prefixes is not None:
