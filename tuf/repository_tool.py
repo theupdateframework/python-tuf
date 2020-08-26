@@ -3187,12 +3187,8 @@ def load_repository(repository_directory, repository_name='default',
       # The repo may have used hashing algorithms for the generated keyids
       # that doesn't match the client's set of hash algorithms.  Make sure
       # to only used the repo's selected hashing algorithms.
-      hash_algorithms = securesystemslib.settings.HASH_ALGORITHMS
-      securesystemslib.settings.HASH_ALGORITHMS = \
-          key_metadata['keyid_hash_algorithms']
-      key_object, keyids = \
-          securesystemslib.keys.format_metadata_to_key(key_metadata)
-      securesystemslib.settings.HASH_ALGORITHMS = hash_algorithms
+      key_object, keyids = securesystemslib.keys.format_metadata_to_key(key_metadata,
+          keyid_hash_algorithms=key_metadata['keyid_hash_algorithms'])
       try:
         for keyid in keyids: # pragma: no branch
           key_object['keyid'] = keyid
