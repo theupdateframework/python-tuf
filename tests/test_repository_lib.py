@@ -36,6 +36,7 @@ import tempfile
 import json
 import shutil
 import unittest
+import copy
 
 import tuf
 import tuf.formats
@@ -310,11 +311,6 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # securesystemslib.exceptions.Error exception is raised for duplicate keyids.
     tuf.keydb._keydb_dict['default'][root_keyids[0]]['keytype'] = 'rsa'
 
-    # Add duplicate keyid to root's roleinfo.
-    tuf.roledb._roledb_dict['default']['root']['keyids'].append(root_keyids[0])
-    self.assertRaises(securesystemslib.exceptions.Error, repo_lib.generate_root_metadata, 1,
-                      expires, consistent_snapshot=False)
-
     # Test improperly formatted arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_root_metadata,
                       '3', expires, False)
@@ -349,48 +345,55 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     file_permissions = oct(os.stat(file1_path).st_mode)[4:]
     target_files = {'file.txt': {'custom': {'file_permission': file_permissions}}}
 
-    delegations = {"keys": {
-      "a394c28384648328b16731f81440d72243c77bb44c07c040be99347f0df7d7bf": {
-       "keytype": "ed25519",
-       "keyval": {
-        "public": "3eb81026ded5af2c61fb3d4b272ac53cd1049a810ee88f4df1fc35cdaf918157"
-       }
-      }
-     },
-     "roles": [
-      {
-       "keyids": [
-        "a394c28384648328b16731f81440d72243c77bb44c07c040be99347f0df7d7bf"
-       ],
-       "name": "targets/warehouse",
-       "paths": [
-        "/file1.txt", "/README.txt", '/warehouse/'
-       ],
-       "threshold": 1
-      }
-     ]
-    }
+    # Delegations data must be loaded into roledb since
+    # generate_targets_metadata tries to update delegations keyids
+    # and threshold
+    repository_path = os.path.join('repository_data', 'repository')
+    repository = repo_tool.load_repository(repository_path)
+    roleinfo = tuf.roledb.get_roleinfo('targets')
+    delegations = roleinfo['delegations']
 
-    targets_metadata = \
-      repo_lib.generate_targets_metadata(targets_directory, target_files,
-                                         version, expiration_date, delegations,
-                                         False)
+    targets_metadata = repo_lib.generate_targets_metadata(targets_directory,
+        target_files, version, expiration_date, delegations, False)
     self.assertTrue(tuf.formats.TARGETS_SCHEMA.matches(targets_metadata))
 
     # Valid arguments with 'delegations' set to None.
-    targets_metadata = \
-      repo_lib.generate_targets_metadata(targets_directory, target_files,
-                                         version, expiration_date, None,
-                                         False)
+    targets_metadata = repo_lib.generate_targets_metadata(targets_directory,
+        target_files, version, expiration_date, None, False)
     self.assertTrue(tuf.formats.TARGETS_SCHEMA.matches(targets_metadata))
+
+    # Test update in targets' delegations
+    keystore_path = os.path.join('repository_data', 'keystore')
+    targets_public_keypath = os.path.join(keystore_path, 'targets_key.pub')
+    targets_public_key = securesystemslib.interface.\
+        import_ed25519_publickey_from_file(targets_public_keypath)
+
+    # Add new key and threshold to delegated role
+    repository.targets('role1').add_verification_key(targets_public_key)
+    repository.targets('role1').threshold = 2
+    role1_keyids = tuf.roledb.get_role_keyids('role1')
+    role1_threshold = tuf.roledb.get_role_threshold('role1')
+    roleinfo = tuf.roledb.get_roleinfo('targets')
+    delegations = roleinfo['delegations']
+    old_delegations = copy.deepcopy(delegations)
+
+    targets_metadata  = repo_lib.generate_targets_metadata(targets_directory,
+        target_files, version, expiration_date, delegations, False)
+    self.assertNotEqual(old_delegations, delegations)
+    self.assertEqual(role1_keyids,
+        targets_metadata['delegations']['roles'][0]['keyids'])
+    self.assertEqual(role1_threshold,
+        targets_metadata['delegations']['roles'][0]['threshold'])
+    for keyid in role1_keyids:
+      self.assertIn(keyid, targets_metadata['delegations']['keys'])
+
 
     # Verify that 'digest.filename' file is saved to 'targets_directory' if
     # the 'write_consistent_targets' argument is True.
     list_targets_directory = os.listdir(targets_directory)
-    targets_metadata = \
-      repo_lib.generate_targets_metadata(targets_directory, target_files,
-                                          version, expiration_date, delegations,
-                                          write_consistent_targets=True)
+    targets_metadata = repo_lib.generate_targets_metadata(targets_directory,
+        target_files, version, expiration_date, delegations,
+        write_consistent_targets=True)
     new_list_targets_directory = os.listdir(targets_directory)
 
     # Verify that 'targets_directory' contains only one extra item.
@@ -957,6 +960,21 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     filenames = repo_lib.get_top_level_metadata_filenames(metadata_directory)
     repository = repo_tool.create_new_repository(repository_directory, repository_name)
     repo_lib._load_top_level_metadata(repository, filenames, repository_name)
+
+    # Manually add targets delegations to roledb since
+    # repository.write('targets') will try to update its delegations
+    targets_filepath = os.path.join('repository_data', 'repository',
+                                 'metadata', 'targets.json')
+    targets_signable = securesystemslib.util.load_json_file(targets_filepath)
+    delegations = targets_signable['signed']['delegations']
+
+    roleinfo = {}
+    roleinfo['name'] = delegations['roles'][0]['name']
+    roleinfo['keyids'] = delegations['roles'][0]['keyids']
+    roleinfo['threshold'] = delegations['roles'][0]['threshold']
+    roleinfo['version'] = 1
+    tuf.roledb.add_role('role1', roleinfo, repository_name)
+
 
     # Partially write all top-level roles (we increase the threshold of each
     # top-level role so that they are flagged as partially written.

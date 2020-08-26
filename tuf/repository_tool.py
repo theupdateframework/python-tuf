@@ -2377,7 +2377,7 @@ class Targets(Metadata):
 
     # Keep track of the valid keyids (added to the new Targets object) and
     # their keydicts (added to this Targets delegations).
-    keyids, keydict = _keys_to_keydict(public_keys)
+    keyids, keydict = repo_lib.keys_to_keydict(public_keys)
 
     # Ensure the paths of 'list_of_targets' are located in the repository's
     # targets directory.
@@ -2612,7 +2612,7 @@ class Targets(Metadata):
       hash_prefix = repo_lib.get_target_hash(target_path)[:prefix_length]
       ordered_roles[int(hash_prefix, 16) // bin_size]["target_paths"].append(target_path)
 
-    keyids, keydict = _keys_to_keydict(keys_of_hashed_bins)
+    keyids, keydict = repo_lib.keys_to_keydict(keys_of_hashed_bins)
 
     # A queue of roleinfo's that need to be updated in the roledb
     delegated_roleinfos = []
@@ -2857,30 +2857,6 @@ class Targets(Metadata):
 
 
 
-
-def _keys_to_keydict(keys):
-  """
-  Iterate over a list of keys and return a list of keyids and a dict mapping
-  keyid to key metadata
-  """
-  keyids = []
-  keydict = {}
-
-  for key in keys:
-    keyid = key['keyid']
-    key_metadata_format = securesystemslib.keys.format_keyval_to_metadata(
-        key['keytype'], key['scheme'], key['keyval'])
-
-    new_keydict = {keyid: key_metadata_format}
-    keydict.update(new_keydict)
-    keyids.append(keyid)
-
-  return keyids, keydict
-
-
-
-
-
 def create_new_repository(repository_directory, repository_name='default',
     storage_backend=None, use_timestamp_length=True, use_timestamp_hashes=True,
     use_snapshot_length=False, use_snapshot_hashes=False):
@@ -3111,12 +3087,14 @@ def load_repository(repository_directory, repository_name='default',
   # [('role1', 'targets'), ('role2', 'targets'), ... ]
   roleinfo = tuf.roledb.get_roleinfo('targets', repository_name)
   for role in roleinfo['delegations']['roles']:
-    delegations.append((role['name'], 'targets'))
+    delegations.append((role, 'targets'))
 
   # Traverse the graph by appending the next delegation to the deque and
   # 'pop'-ing and loading the left-most element.
   while delegations:
-    rolename, delegating_role = delegations.popleft()
+    delegation_info, delegating_role = delegations.popleft()
+
+    rolename = delegation_info['name']
     if (rolename, delegating_role) in loaded_delegations:
       logger.warning('Detected cycle in the delegation graph: ' +
           repr(delegating_role) + ' -> ' +
@@ -3156,6 +3134,8 @@ def load_repository(repository_directory, repository_name='default',
     roleinfo['expires'] = metadata_object['expires']
     roleinfo['paths'] = metadata_object['targets']
     roleinfo['delegations'] = metadata_object['delegations']
+    roleinfo['threshold'] = delegation_info['threshold']
+    roleinfo['keyids'] = delegation_info['keyids']
 
     # Generate the Targets object of the delegated role,
     # add it to the top-level 'targets' object and to its
@@ -3173,7 +3153,7 @@ def load_repository(repository_directory, repository_name='default',
     # Append the next level delegations to the deque:
     # the 'delegated' role becomes the 'delegating'
     for delegation in metadata_object['delegations']['roles']:
-      delegations.append((delegation['name'], rolename))
+      delegations.append((delegation, rolename))
 
     # Extract the keys specified in the delegations field of the Targets
     # role.  Add 'key_object' to the list of recognized keys.  Keys may be

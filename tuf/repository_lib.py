@@ -166,7 +166,13 @@ def _generate_and_write_metadata(rolename, metadata_filename,
     metadata = generate_targets_metadata(targets_directory,
         roleinfo['paths'], roleinfo['version'], roleinfo['expires'],
         roleinfo['delegations'], consistent_targets, use_existing_fileinfo,
-        storage_backend)
+        storage_backend, repository_name)
+
+    # Update roledb with the latest delegations info collected during
+    # generate_targets_metadata()
+    tuf.roledb.update_roleinfo(rolename, roleinfo,
+        repository_name=repository_name)
+
 
   # Before writing 'rolename' to disk, automatically increment its version
   # number (if 'increment_version_number' is True) so that the caller does not
@@ -1228,6 +1234,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
   # Conformant to 'ROLEDICT_SCHEMA' and 'KEYDICT_SCHEMA', respectively.
   roledict = {}
   keydict = {}
+  keylist = []
 
   # Extract the role, threshold, and keyid information of the top-level roles,
   # which Root stores in its metadata.  The necessary role metadata is generated
@@ -1239,43 +1246,11 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
       raise securesystemslib.exceptions.Error(repr(rolename) + ' not in'
           ' "tuf.roledb".')
 
-    # Keep track of the keys loaded to avoid duplicates.
-    keyids = []
-
-    # Generate keys for the keyids listed by the role being processed.
-    for keyid in tuf.roledb.get_role_keyids(rolename, repository_name):
+    # Collect keys from all roles in a list
+    keyids = tuf.roledb.get_role_keyids(rolename, repository_name)
+    for keyid in keyids:
       key = tuf.keydb.get_key(keyid, repository_name=repository_name)
-
-      # If 'key' is an RSA key, it would conform to
-      # 'securesystemslib.formats.RSAKEY_SCHEMA', and have the form:
-      # {'keytype': 'rsa',
-      #  'keyid': keyid,
-      #  'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
-      #             'private': '-----BEGIN RSA PRIVATE KEY----- ...'}}
-      keyid = key['keyid']
-      if keyid not in keydict:
-
-        # This appears to be a new keyid.  Generate the key for it.
-        if key['keytype'] in ['rsa', 'ed25519', 'ecdsa-sha2-nistp256']:
-          keytype = key['keytype']
-          keyval = key['keyval']
-          scheme = key['scheme']
-          keydict[keyid] = \
-            securesystemslib.keys.format_keyval_to_metadata(keytype,
-                scheme, keyval, private=False)
-
-        # This is not a recognized key.  Raise an exception.
-        else:
-          raise securesystemslib.exceptions.Error('Unsupported keytype:'
-          ' ' + key['keytype'])
-
-      # Do we have a duplicate?
-      if keyid in keyids:
-        raise securesystemslib.exceptions.Error('Same keyid listed twice:'
-          ' ' + keyid)
-
-      # Add the loaded keyid for the role being processed.
-      keyids.append(keyid)
+      keylist.append(key)
 
     # Generate the authentication information Root establishes for each
     # top-level role.
@@ -1285,6 +1260,9 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
         keyids=keyids,
         threshold=role_threshold)
     roledict[rolename] = role_metadata
+
+  # Create the root metadata 'keys' dictionary
+  _, keydict = keys_to_keydict(keylist)
 
   # Use generalized build_dict_conforming_to_schema func to produce a dict that
   # contains all the appropriate information for this type of metadata,
@@ -1308,7 +1286,8 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
 
 def generate_targets_metadata(targets_directory, target_files, version,
     expiration_date, delegations=None, write_consistent_targets=False,
-    use_existing_fileinfo=False, storage_backend=None):
+    use_existing_fileinfo=False, storage_backend=None,
+    repository_name='default'):
   """
   <Purpose>
     Generate the targets metadata object. The targets in 'target_files' must
@@ -1361,6 +1340,10 @@ def generate_targets_metadata(targets_directory, target_files, version,
       An object which implements
       securesystemslib.storage.StorageBackendInterface.
 
+    repository_name:
+      The name of the repository.  If not supplied, 'default' repository
+      is used.
+
   <Exceptions>
     securesystemslib.exceptions.FormatError, if an error occurred trying to
     generate the targets metadata object.
@@ -1405,6 +1388,23 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
   if delegations is not None:
     tuf.formats.DELEGATIONS_SCHEMA.check_match(delegations)
+    # If targets role has delegations, collect the up-to-date 'keyids' and
+    # 'threshold' for each role. Update the delegations keys dictionary.
+    delegations_keys = []
+    # Update 'keyids' and 'threshold' for each delegated role
+    for role in delegations['roles']:
+      role['keyids'] = tuf.roledb.get_role_keyids(role['name'],
+          repository_name)
+      role['threshold'] = tuf.roledb.get_role_threshold(role['name'],
+          repository_name)
+
+      # Collect all delegations keys for generating the delegations keydict
+      for keyid in role['keyids']:
+        key = tuf.keydb.get_key(keyid, repository_name=repository_name)
+        delegations_keys.append(key)
+
+    _, delegations['keys'] = keys_to_keydict(delegations_keys)
+
 
   # Store the file attributes of targets in 'target_files'.  'filedict',
   # conformant to 'tuf.formats.FILEDICT_SCHEMA', is added to the
@@ -2254,9 +2254,42 @@ def disable_console_log_messages():
 
 
 
+def keys_to_keydict(keys):
+  """
+  <Purpose>
+    Iterate over a list of keys and return a list of keyids and a dict mapping
+    keyid to key metadata
+
+  <Arguments>
+    keys:
+      A list of key objects conforming to
+      securesystemslib.formats.ANYKEYLIST_SCHEMA.
+
+  <Returns>
+    keyids:
+      A list of keyids conforming to securesystemslib.formats.KEYID_SCHEMA
+    keydict:
+      A dictionary conforming to securesystemslib.formats.KEYDICT_SCHEMA
+  """
+  keyids = []
+  keydict = {}
+
+  for key in keys:
+    keyid = key['keyid']
+    key_metadata_format = securesystemslib.keys.format_keyval_to_metadata(
+        key['keytype'], key['scheme'], key['keyval'])
+
+    new_keydict = {keyid: key_metadata_format}
+    keydict.update(new_keydict)
+    keyids.append(keyid)
+  return keyids, keydict
+
+
+
+
 if __name__ == '__main__':
   # The interactive sessions of the documentation strings can
-  # be tested by running repository_tool.py as a standalone module:
+  # be tested by running repository_lib.py as a standalone module:
   # $ python repository_lib.py.
   import doctest
   doctest.testmod()
