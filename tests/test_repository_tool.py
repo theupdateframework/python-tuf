@@ -1604,7 +1604,7 @@ class TestTargets(unittest.TestCase):
       have_prefixes = False
 
       for delegated_role in roleinfo['delegations']['roles']:
-        if 'delegation_hash_prefix_len' not in delegated_role and len(delegated_role['path_hash_prefixes']) > 0:
+        if 'delegation_hash_prefix_len' not in delegated_role and len(delegated_role['path_hash_prefixes']) > 0 and not delegated_role['name'].startswith('pre'):
           rolename = delegated_role['name']
           prefixes = delegated_role['path_hash_prefixes']
           have_prefixes = True
@@ -1633,6 +1633,17 @@ class TestTargets(unittest.TestCase):
                      sorted(delegated_rolenames))
     check_prefixes_match_range()
 
+    # Test delegate_hashed_bins with a custom prefix
+    self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
+                                  number_of_bins=4, prefix="pre")
+
+    delegated_rolenames.append("pre-0-3")
+    delegated_rolenames.append("pre-4-7")
+    delegated_rolenames.append("pre-8-b")
+    delegated_rolenames.append("pre-c-f")
+
+    self.assertEqual(sorted(self.targets_object.get_delegated_rolenames()),
+                     sorted(delegated_rolenames))
 
     # Test succinct hashed bin delegations
     self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
