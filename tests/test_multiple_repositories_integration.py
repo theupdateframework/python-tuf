@@ -150,8 +150,6 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     logger.debug('Server process 2 started.')
     logger.debug('Server 2 process id: ' + str(self.server_process2.pid))
     logger.debug('Serving 2 on port: ' + str(self.SERVER_PORT2))
-    self.url = 'http://localhost:' + str(self.SERVER_PORT) + os.path.sep
-    self.url2 = 'http://localhost:' + str(self.SERVER_PORT2) + os.path.sep
 
     utils.wait_for_server('localhost', self.SERVER_PORT)
     utils.wait_for_server('localhost', self.SERVER_PORT2)

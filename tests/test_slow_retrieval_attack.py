@@ -107,7 +107,6 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     logger.info('Slow Retrieval Server process started.')
     logger.info('Server process id: '+str(server_process.pid))
     logger.info('Serving on port: '+str(self.SERVER_PORT))
-    url = 'http://localhost:'+str(self.SERVER_PORT) + os.path.sep
 
     # NOTE: Following error is raised if a delay is not long enough:
     # <urlopen error [Errno 111] Connection refused>

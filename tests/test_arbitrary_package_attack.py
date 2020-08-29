@@ -86,7 +86,6 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     logger.info('Server process started.')
     logger.info('Server process id: ' + str(cls.server_process.pid))
     logger.info('Serving on port: ' + str(cls.SERVER_PORT))
-    cls.url = 'http://localhost:' + str(cls.SERVER_PORT) + os.path.sep
 
     utils.wait_for_server('localhost', cls.SERVER_PORT)
 

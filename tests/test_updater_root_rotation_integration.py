@@ -94,7 +94,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     logger.info('\n\tServer process started.')
     logger.info('\tServer process id: '+str(cls.server_process.pid))
     logger.info('\tServing on port: '+str(cls.SERVER_PORT))
-    cls.url = 'http://localhost:'+str(cls.SERVER_PORT) + os.path.sep
 
     utils.wait_for_server('localhost', cls.SERVER_PORT)
 
