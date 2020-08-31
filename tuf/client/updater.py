@@ -1967,7 +1967,10 @@ class Updater(object):
       None.
     """
 
-    metadata_filename = metadata_role + '.json'
+    if self.targets_map_file is not None and metadata_role == 'targets':
+      metadata_filename = self.targets_map_file['targets_filename'] + '.json'
+    else:
+      metadata_filename = metadata_role + '.json'
     expected_versioninfo = None
 
     # Ensure the referenced metadata has been loaded.  The 'root' role may be
