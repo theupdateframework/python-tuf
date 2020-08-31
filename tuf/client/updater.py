@@ -1905,7 +1905,9 @@ class Updater(object):
 
     # Ensure the referenced metadata has been loaded.  The 'root' role may be
     # updated without having 'snapshot' available.
-    if referenced_metadata not in self.metadata['current']:
+    # When snapshot merkle trees are used, there will not be a snapshot file.
+    # Instead, if the snapshot merkle file is missing, this will error below.
+    if 'merkle_root' not in self.metadata['current']['timestamp'] and referenced_metadata not in self.metadata['current']:
       raise tuf.exceptions.RepositoryError('Cannot update'
         ' ' + repr(metadata_role) + ' because ' + referenced_metadata + ' is'
         ' missing.')
@@ -2499,7 +2501,11 @@ class Updater(object):
 
     roles_to_update = []
 
-    if rolename + '.json' in self.metadata['current']['snapshot']['meta']:
+    # Add the role if it is listed in snapshot. If snapshot merkle
+    # trees are used, the snaphot check will be done later when
+    # the merkle tree is verified
+    if 'merkle_root' in self.metadata['current']['timestamp'] or
+        rolename + '.json' in self.metadata['current']['snapshot']['meta']:
       roles_to_update.append(rolename)
 
     if refresh_all_delegated_roles:
