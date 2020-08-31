@@ -23,7 +23,7 @@ IS_PY_VERSION_SUPPORTED = sys.version_info >= (3, 6)
 # Use setUpModule to tell unittest runner to skip this test module gracefully.
 def setUpModule():
     if not IS_PY_VERSION_SUPPORTED:
-        raise unittest.SkipTest("requires Python 3.6 or higher")
+        raise unittest.SkipTest('requires Python 3.6 or higher')
 
 # Since setUpModule is called after imports we need to import conditionally.
 if IS_PY_VERSION_SUPPORTED:
@@ -34,19 +34,22 @@ if IS_PY_VERSION_SUPPORTED:
         Targets
     )
 
+    from securesystemslib.interface import (
+        import_ed25519_publickey_from_file,
+        import_ed25519_privatekey_from_file
+    )
 
 logger = logging.getLogger(__name__)
 
 
 class TestMetadata(unittest.TestCase):
-    # TODO: Start Vault in a dev mode, and export VAULT_ADDR as well as VAULT_TOKEN.
-    # TODO: Enable the Vault Transit secrets engine.
+
     @classmethod
     def setUpClass(cls):
-
-        # Create a temporary directory to store the repository, metadata, and target
-        # files.  'temporary_directory' must be deleted in TearDownClass() so that
-        # temporary files are always removed, even when exceptions occur.
+        # Create a temporary directory to store the repository, metadata, and
+        # target files.  'temporary_directory' must be deleted in
+        # TearDownClass() so that temporary files are always removed, even when
+        # exceptions occur.
         cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
 
         test_repo_data = os.path.join(
@@ -72,43 +75,18 @@ class TestMetadata(unittest.TestCase):
             }
 
 
-    # TODO: Shut down Vault.
     @classmethod
     def tearDownClass(cls):
-
-        # Remove the temporary repository directory, which should contain all the
-        # metadata, targets, and key files generated for the test cases.
+        # Remove the temporary repository directory, which should contain all
+        # the metadata, targets, and key files generated for the test cases.
         shutil.rmtree(cls.temporary_directory)
 
 
-
-    # def _load_key_ring(self):
-    #     key_list = []
-    #     root_key = RAMKey.read_from_file(os.path.join(self.keystore_dir, 'root_key'),
-    #                                    'rsassa-pss-sha256', 'password')
-    #     key_list.append(root_key)
-
-    #     for key_file in os.listdir(self.keystore_dir):
-    #         if key_file.endswith('.pub'):
-    #             # ignore public keys
-    #             continue
-
-    #         if key_file.startswith('root_key'):
-    #             # root key is loaded
-    #         continue
-
-    #         key = RAMKey.read_from_file(os.path.join(self.keystore_dir, key_file),
-    #                                 'ed25519', 'password')
-    #         key_list.append(key)
-
-    #     threshold = Threshold(1, 5)
-    #     return KeyRing(threshold=threshold, keys=key_list)
-
     def test_generic_read(self):
         for metadata, inner_metadata_cls in [
-                ("snapshot", Snapshot),
-                ("timestamp", Timestamp),
-                ("targets", Targets)]:
+                ('snapshot', Snapshot),
+                ('timestamp', Timestamp),
+                ('targets', Targets)]:
 
             path = os.path.join(self.repo_dir, 'metadata', metadata + '.json')
             metadata_obj = Metadata.read_from_json(path)
@@ -134,6 +112,7 @@ class TestMetadata(unittest.TestCase):
 
         os.remove(bad_metadata_path)
 
+
     def test_compact_json(self):
         path = os.path.join(self.repo_dir, 'metadata', 'targets.json')
         metadata_obj = Metadata.read_from_json(path)
@@ -143,7 +122,7 @@ class TestMetadata(unittest.TestCase):
 
 
     def test_read_write_read_compare(self):
-        for metadata in ["snapshot", "timestamp", "targets"]:
+        for metadata in ['snapshot', 'timestamp', 'targets']:
             path = os.path.join(self.repo_dir, 'metadata', metadata + '.json')
             metadata_obj = Metadata.read_from_json(path)
 
@@ -223,9 +202,6 @@ class TestMetadata(unittest.TestCase):
                 self.repo_dir, 'metadata', 'snapshot.json')
         snapshot = Snapshot.read_from_json(snapshot_path)
 
-        # key_ring = self._load_key_ring()
-        # snapshot.verify(key_ring)
-
         # Create a dict representing what we expect the updated data to be
         fileinfo = snapshot.signed.meta
         hashes = {'sha256': 'c2986576f5fdfd43944e2b19e775453b96748ec4fe2638a6d2f32f1310967095'}
@@ -236,22 +212,11 @@ class TestMetadata(unittest.TestCase):
         snapshot.signed.update('role1', 2, 123, hashes)
         self.assertEqual(snapshot.signed.meta, fileinfo)
 
-        # snapshot.signable()
-
-        # snapshot.sign()
-
-        # snapshot.verify()
-
-        # snapshot.write_to_json(os.path.join(cls.temporary_directory, 'api_snapshot.json'))
-
 
     def test_metadata_timestamp(self):
         timestamp_path = os.path.join(
                 self.repo_dir, 'metadata', 'timestamp.json')
         timestamp = Timestamp.read_from_json(timestamp_path)
-
-        # key_ring = self._load_key_ring()
-        # timestamp.verify(key_ring)
 
         self.assertEqual(timestamp.signed.version, 1)
         timestamp.signed.bump_version()
@@ -279,10 +244,6 @@ class TestMetadata(unittest.TestCase):
         fileinfo['length'] = 520
         timestamp.signed.update(2, 520, hashes)
         self.assertEqual(timestamp.signed.meta['snapshot.json'], fileinfo)
-
-        # timestamp.sign()
-
-        # timestamp.write_to_json()
 
 
 # Run unit test.
