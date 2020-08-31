@@ -5,11 +5,6 @@ to read/serialize/write from and to JSON, perform TUF-compliant metadata
 updates, and create and verify signatures.
 
 TODO:
-
- * Finalize/Document Verify/Sign functions (I am not fully sure about expected
-   behavior). See
-   https://github.com/theupdateframework/tuf/pull/1060#issuecomment-660056376
-
  * Validation (some thoughts ...)
    - Avoid schema, see secure-systems-lab/securesystemslib#183
    - Provide methods to validate JSON representation (at user boundary)
@@ -36,6 +31,7 @@ import tempfile
 from securesystemslib.formats import encode_canonical
 from securesystemslib.util import load_json_file, persist_temp_file
 from securesystemslib.storage import StorageBackendInterface
+from securesystemslib.keys import create_signature, verify_signature
 from tuf.repository_lib import (
     _strip_version_number
 )
@@ -94,51 +90,69 @@ class Metadata():
                 separators=((',', ':') if compact else (',', ': ')),
                 sort_keys=True)
 
-    # def __update_signature(self, signatures, keyid, signature):
-    #     updated = False
-    #     keyid_signature = {'keyid':keyid, 'sig':signature}
-    #     for idx, keyid_sig in enumerate(signatures):
-    #         if keyid_sig['keyid'] == keyid:
-    #             signatures[idx] = keyid_signature
-    #             updated = True
-    #     if not updated:
-    #         signatures.append(keyid_signature)
+    def sign(self, key: JsonDict, append: bool = False) -> JsonDict:
+        """Creates signature over 'signed' and assigns it to 'signatures'.
 
-    # def sign(self, key_ring: ???) -> JsonDict:
-    #     # FIXME: Needs documentation of expected behavior
-    #     signed_bytes = self.signed_bytes
-    #     signatures = self.__signatures
+        Arguments:
+            key: A securesystemslib-style private key object used for signing.
+            append: A boolean indicating if the signature should be appended to
+                the list of signatures or replace any existing signatures. The
+                default behavior is to replace signatures.
 
-    #     for key in key_ring.keys:
-    #         signature = key.sign(self.signed_bytes)
-    #         self.__update_signature(signatures, key.keyid, signature)
+        Raises:
+            securesystemslib.exceptions.FormatError: Key argument is malformed.
+            securesystemslib.exceptions.CryptoError, \
+                    securesystemslib.exceptions.UnsupportedAlgorithmError:
+                Signing errors.
 
-    #     self.__signatures = signatures
-    #     return self.signable
+        Returns:
+            A securesystemslib-style signature object.
 
-    # def verify(self, key_ring: ???) -> bool:
-    #     # FIXME: Needs documentation of expected behavior
-    #     signed_bytes = self.signed.signed_bytes
-    #     signatures = self.signatures
-    #     verified_keyids = set()
+        """
+        signature = create_signature(key, self.signed.signed_bytes)
 
-    #     for signature in signatures:
-    #         # TODO: handle an empty keyring
-    #         for key in key_ring.keys:
-    #             keyid = key.keyid
-    #             if keyid == signature['keyid']:
-    #                 try:
-    #                     verified = key.verify(signed_bytes, signature)
-    #                 except:
-    #                     logging.exception(f'Could not verify signature for key {keyid}')
-    #                     continue
-    #                 else:
-    #                     # Avoid https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-6174
-    #                     verified_keyids.add(keyid)
+        if append:
+            self.signatures.append(signature)
+        else:
+            self.signatures = [signature]
 
-    #                     break
+        return signature
 
-    #     return len(verified_keyids) >= key_ring.threshold.least
+    def verify(self, key: JsonDict) -> bool:
+        """Verifies 'signatures' over 'signed' that match the passed key by id.
+
+        Arguments:
+            key: A securesystemslib-style public key object.
+
+        Raises:
+            securesystemslib.exceptions.FormatError: Key argument is malformed.
+            securesystemslib.exceptions.CryptoError, \
+                    securesystemslib.exceptions.UnsupportedAlgorithmError:
+                Signing errors.
+
+        Returns:
+            A boolean indicating if all identified signatures are valid. False
+            if no signature was found for the keyid or any of the found
+            signatures is invalid.
+
+            FIXME: Is this behavior expected? An alternative approach would be
+            to raise an exception if no signature is found for the keyid,
+            and/or if more than one sigantures are found for the keyid.
+
+        """
+        signatures_for_keyid = list(filter(
+                lambda sig: sig['keyid'] == key['keyid'], self.signatures))
+
+        if not signatures_for_keyid:
+            return False
+
+        for signature in signatures_for_keyid:
+            if not verify_signature(key, signature, self.signed.signed_bytes):
+                return False
+
+        return True
+
+
     @classmethod
     def read_from_json(
             cls, filename: str,
@@ -462,7 +476,6 @@ class Targets(Signed):
                 ...
                 ]
             }
-
 
     """
     def __init__(

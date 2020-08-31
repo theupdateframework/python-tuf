@@ -60,6 +60,17 @@ class TestMetadata(unittest.TestCase):
         shutil.copytree(
                 os.path.join(test_repo_data, 'keystore'), cls.keystore_dir)
 
+        # Load keys into memory
+        cls.keystore = {}
+        for role in ['delegation', 'snapshot', 'targets', 'timestamp']:
+            cls.keystore[role] = {
+                'private': import_ed25519_privatekey_from_file(
+                        os.path.join(cls.keystore_dir, role + '_key'),
+                        password="password"),
+                'public': import_ed25519_publickey_from_file(
+                        os.path.join(cls.keystore_dir, role + '_key.pub'))
+            }
+
 
     # TODO: Shut down Vault.
     @classmethod
@@ -145,6 +156,49 @@ class TestMetadata(unittest.TestCase):
                     metadata_obj_2.as_dict())
 
             os.remove(path_2)
+
+
+    def test_sign_verify(self):
+        # Load sample metadata (targets) and assert ...
+        path = os.path.join(self.repo_dir, 'metadata', 'targets.json')
+        metadata_obj = Metadata.read_from_json(path)
+
+        # ... it has a single existing signature,
+        self.assertTrue(len(metadata_obj.signatures) == 1)
+        # ... valid for the correct key, but
+        self.assertTrue(metadata_obj.verify(
+                self.keystore['targets']['public']))
+        # ... invalid for an unrelated key.
+        self.assertFalse(metadata_obj.verify(
+                self.keystore['snapshot']['public']))
+
+        # Append a new signature with the unrelated key and assert that ...
+        metadata_obj.sign(self.keystore['snapshot']['private'], append=True)
+        # ... there are now two signatures, and
+        self.assertTrue(len(metadata_obj.signatures) == 2)
+        # ... both are valid for the corresponding keys.
+        self.assertTrue(metadata_obj.verify(
+                self.keystore['targets']['public']))
+        self.assertTrue(metadata_obj.verify(
+                self.keystore['snapshot']['public']))
+
+        # Create and assign (don't append) a new signature and assert that ...
+        metadata_obj.sign(self.keystore['timestamp']['private'], append=False)
+        # ... there now is only one signature,
+        self.assertTrue(len(metadata_obj.signatures) == 1)
+        # ... valid for that key.
+        self.assertTrue(metadata_obj.verify(
+                self.keystore['timestamp']['public']))
+
+
+        # Update the metadata, invalidating the existing signature, append
+        # a new signature with the same key, and assert that ...
+        metadata_obj.signed.bump_version()
+        metadata_obj.sign(self.keystore['timestamp']['private'], append=True)
+        # ... verify returns False, because all signatures identified by a
+        # keyid must be valid
+        self.assertFalse(metadata_obj.verify(
+                self.keystore['timestamp']['public']))
 
 
     def test_metadata_base(self):
