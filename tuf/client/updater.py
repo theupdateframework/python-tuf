@@ -2504,8 +2504,7 @@ class Updater(object):
     # Add the role if it is listed in snapshot. If snapshot merkle
     # trees are used, the snaphot check will be done later when
     # the merkle tree is verified
-    if 'merkle_root' in self.metadata['current']['timestamp'] or
-        rolename + '.json' in self.metadata['current']['snapshot']['meta']:
+    if 'merkle_root' in self.metadata['current']['timestamp'] or rolename + '.json' in self.metadata['current']['snapshot']['meta']:
       roles_to_update.append(rolename)
 
     if refresh_all_delegated_roles:
