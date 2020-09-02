@@ -1112,7 +1112,7 @@ def get_bin_numbers(number_of_bins):
 
 
 
-def find_bin_for_target_hash(target_hash, number_of_bins, succinct=False):
+def find_bin_for_target_hash(target_hash, number_of_bins):
   """
   <Purpose>
     For a given hashed filename, target_hash, calculate the name of a hashed bin
@@ -1126,11 +1126,6 @@ def find_bin_for_target_hash(target_hash, number_of_bins, succinct=False):
     number_of_bins:
       The number of hashed_bins in use
 
-    succinct:
-      Whether the bins are created using succinct hashed bin delegations.
-      If true, the returned bin name will be formatted using the hashed
-      bin delegation scheme.
-
   <Returns>
     The name of the hashed bin target_hash would be binned into
   """
@@ -1140,11 +1135,8 @@ def find_bin_for_target_hash(target_hash, number_of_bins, succinct=False):
   prefix = int(target_hash[:prefix_length], 16)
 
   low = prefix - (prefix % bin_size)
-  high = (low + bin_size - 1)
 
-  if succinct:
-    return "{num:0{len}x}".format(num=low/bin_size, len=prefix_length)
-  return create_bin_name(low, high, prefix_length)
+  return "{num:0{len}x}".format(num=int(low/bin_size), len=prefix_length)
 
 
 

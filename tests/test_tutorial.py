@@ -370,15 +370,14 @@ class TestTutorial(unittest.TestCase):
 
     # NOTE: The tutorial does not call dirty_roles anymore due to #964 and
     # #958. We still call it here to see if roles are dirty as expected.
+    expected_dirty_roles = ["{}{:0{len}x}".format('unclaimed.hbd-',
+        i, len=2) for i in range(0, 32)]
+    expected_dirty_roles.insert(0, 'unclaimed')
     with mock.patch("tuf.repository_tool.logger") as mock_logger:
       repository.dirty_roles()
       # Concat strings to avoid Python2/3 unicode prefix problems ('' vs. u'')
       mock_logger.info.assert_called_with(
-          "Dirty roles: " + str(['00-07', '08-0f', '10-17', '18-1f', '20-27',
-          '28-2f', '30-37', '38-3f', '40-47', '48-4f', '50-57', '58-5f',
-          '60-67', '68-6f', '70-77', '78-7f', '80-87', '88-8f', '90-97',
-          '98-9f', 'a0-a7', 'a8-af', 'b0-b7', 'b8-bf', 'c0-c7', 'c8-cf',
-          'd0-d7', 'd8-df', 'e0-e7', 'e8-ef', 'f0-f7', 'f8-ff', 'unclaimed']))
+          "Dirty roles: " + str(expected_dirty_roles))
 
     repository.mark_dirty(["snapshot", "timestamp"])
     repository.writeall()

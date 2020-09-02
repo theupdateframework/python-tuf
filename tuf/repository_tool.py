@@ -854,7 +854,6 @@ class Metadata(object):
 
 
 
-
   def load_signing_key(self, key):
     """
     <Purpose>
@@ -2636,8 +2635,7 @@ class Targets(Metadata):
 
       prefix:
         The filename prefix used for bin names. If None, the default of
-        rolename.hbd-* will be used for succinct delegations, and
-        lo-hi will be used for non-succinct hashed bin delegations.
+        rolename.hbd-* will be used.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError, if the arguments are improperly
@@ -2669,10 +2667,8 @@ class Targets(Metadata):
     # default prefix
     if prefix:
       name_prefix = prefix + '-'
-    elif succinct:
-      name_prefix = self.rolename + '.hbd-'
     else:
-      name_prefix = ''
+      name_prefix = self.rolename + '.hbd-'
 
     prefix_length, prefix_count, bin_size = repo_lib.get_bin_numbers(number_of_bins)
 
@@ -2688,33 +2684,28 @@ class Targets(Metadata):
     # that bin, along with the corresponding full list of target prefixes
     # to be delegated to that bin
     ordered_roles = []
-    if succinct:
+    for idx in range(0, number_of_bins):
+      name = name_prefix + "{num:0{len}x}".format(num=idx, len=prefix_length)
+      if succinct:
       # For succinct hased bin delegations, these metadata files will still
       # be created, but they will not all be listed in the delegation
-      for idx in range(0, number_of_bins):
-        name = name_prefix + "{num:0{len}x}".format(num=idx, len=prefix_length)
         role = {"name":name,
             "keyids": keyids,
             "threshold": 1,
             "terminating": False,
             "target_paths": []}
         ordered_roles.append(role)
-    else:
-      for idx in range(0, prefix_count, bin_size):
-        high = idx + bin_size - 1
-        name = name_prefix + repo_lib.create_bin_name(idx, high, prefix_length)
-        if bin_size == 1:
-          target_hash_prefixes = [name]
-        else:
-          target_hash_prefixes = []
-          for idy in range(idx, idx+bin_size):
-            target_hash_prefixes.append("{prefix:0{len}x}".format(prefix=idy,
-                len=prefix_length))
+      else:
+        target_hash_prefixes = []
+        for idy in range((idx*prefix_count), (idx*prefix_count)+bin_size):
+          target_hash_prefixes.append("{prefix:0{len}x}".format(prefix=idy,
+              len=prefix_length))
 
         role = {"name": name,
             "target_paths": [],
             "target_hash_prefixes": target_hash_prefixes}
-        ordered_roles.append(role)
+
+      ordered_roles.append(role)
 
     for target_path in list_of_targets:
       # Check if the target path is relative or raise an exception. File's
@@ -2772,10 +2763,6 @@ class Targets(Metadata):
                     'threshold': 1,
                     'terminating': False,
                     'paths': []}
-        # update roleinfo and ensure roles are marked as dirty
-        #tuf.roledb.update_roleinfo(roleinfo['name'], roleinfo,
-                                 #repository_name=self._repository_name)
-
 
       # Add the new delegation to the top-level 'targets' role object (i.e.,
       # 'repository.targets()').
@@ -2811,7 +2798,7 @@ class Targets(Metadata):
 
 
   def add_target_to_bin(self, target_filepath, number_of_bins=DEFAULT_NUM_BINS,
-      fileinfo=None, succinct=False, prefix=None):
+      fileinfo=None, prefix=None):
     """
     <Purpose>
       Add the fileinfo of 'target_filepath' to the expected hashed bin, if the
@@ -2836,13 +2823,9 @@ class Targets(Metadata):
         An optional fileinfo object, conforming to tuf.formats.TARGETS_FILEINFO_SCHEMA,
         providing full information about the file.
 
-      succinct:
-        Whether the bins use succinct hashed bin delegations.
-
       prefix:
         The filename prefix used for bin names. If None, the default of
-        rolename.hbd-* will be used for succinct delegations, and
-        lo-hi will be used for non-succinct hashed bin delegations.
+        rolename.hbd-* will be used
 
     <Exceptions>
       securesystemslib.exceptions.FormatError, if 'target_filepath' is
@@ -2871,13 +2854,11 @@ class Targets(Metadata):
 
     if prefix:
       bin_name = prefix + '-'
-    elif succinct:
-      bin_name = self.rolename + ".hbd-"
     else:
-      bin_name = ''
+      bin_name = self.rolename + ".hbd-"
 
     path_hash = repo_lib.get_target_hash(target_filepath)
-    bin_name = bin_name + repo_lib.find_bin_for_target_hash(path_hash, number_of_bins, succinct)
+    bin_name = bin_name + repo_lib.find_bin_for_target_hash(path_hash, number_of_bins)
 
     # Ensure the Targets object has delegated to hashed bins
     if not self._delegated_roles.get(bin_name, None):
@@ -2892,7 +2873,7 @@ class Targets(Metadata):
 
 
   def remove_target_from_bin(self, target_filepath,
-      number_of_bins=DEFAULT_NUM_BINS):
+      number_of_bins=DEFAULT_NUM_BINS, prefix=None):
     """
     <Purpose>
       Remove the fileinfo of 'target_filepath' from the expected hashed bin, if
@@ -2912,6 +2893,10 @@ class Targets(Metadata):
       number_of_bins:
         The number of delegated roles, or hashed bins, in use by the repository.
         Note: 'number_of_bins' must be a power of 2.
+
+      prefix:
+        The filename prefix used for bin names. If None, the default of
+        rolename.hbd-* will be used
 
     <Exceptions>
       securesystemslib.exceptions.FormatError, if 'target_filepath' is
@@ -2938,8 +2923,13 @@ class Targets(Metadata):
 
     # TODO: check target_filepath is sane?
 
+    if prefix:
+      bin_name = prefix + '-'
+    else:
+      bin_name = self.rolename + '.hbd-'
+
     path_hash = repo_lib.get_target_hash(target_filepath)
-    bin_name = repo_lib.find_bin_for_target_hash(path_hash, number_of_bins)
+    bin_name = bin_name + repo_lib.find_bin_for_target_hash(path_hash, number_of_bins)
 
     # Ensure the Targets object has delegated to hashed bins
     if not self._delegated_roles.get(bin_name, None):
