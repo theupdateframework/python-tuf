@@ -32,9 +32,6 @@ from securesystemslib.formats import encode_canonical
 from securesystemslib.util import load_json_file, persist_temp_file
 from securesystemslib.storage import StorageBackendInterface
 from securesystemslib.keys import create_signature, verify_signature
-from tuf.repository_lib import (
-    _strip_version_number
-)
 
 import iso8601
 import tuf.formats
@@ -287,46 +284,6 @@ class Signed:
             'spec_version': self.spec_version,
             'expires': self.expires
         }
-
-    @classmethod
-    def read_from_json(
-            cls, filename: str,
-            storage_backend: Optional[StorageBackendInterface] = None
-            ) -> Metadata:
-        signable = load_json_file(filename, storage_backend)
-        """Loads corresponding JSON-formatted metadata from file storage.
-
-        Arguments:
-            filename: The path to read the file from.
-            storage_backend: An object that implements
-                securesystemslib.storage.StorageBackendInterface. Per default
-                a (local) FilesystemBackend is used.
-
-        Raises:
-            securesystemslib.exceptions.StorageError: The file cannot be read.
-            securesystemslib.exceptions.Error, ValueError: The metadata cannot
-                be parsed.
-
-        Returns:
-            A TUF Metadata object whose signed attribute contains an object
-            of this class.
-
-        """
-        # FIXME: It feels dirty to access signable["signed"]["version"] here in
-        # order to do this check, and also a bit random (there are likely other
-        # things to check), but later we don't have the filename anymore. If we
-        # want to stick to the check, which seems reasonable, we should maybe
-        # think of a better place.
-        _, fn_prefix = _strip_version_number(filename, True)
-        if fn_prefix and fn_prefix != signable['signed']['version']:
-            raise ValueError(
-                f'version filename prefix ({fn_prefix}) must align with '
-                f'version in metadata ({signable["signed"]["version"]}).')
-
-        return Metadata(
-            signed=cls(**signable['signed']),
-            signatures=signable['signatures'])
-
 
 class Timestamp(Signed):
     """A container for the signed part of timestamp metadata.
