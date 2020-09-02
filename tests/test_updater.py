@@ -1291,6 +1291,39 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater.download_target(targetinfo2,
                                             destination_directory)
 
+    # Checks if the file has been successfully downloaded
+    download_filepath = os.path.join(destination_directory, target_filepath2)
+    self.assertTrue(os.path.exists(download_filepath))
+
+    # Removes the file so that it can be downloaded again in the next test
+    os.remove(download_filepath)
+
+    # Test downloading with consistent snapshot enabled, but without adding
+    # the hash of the file as a prefix to its name.
+
+    file1_path = targetinfo2['filepath']
+    file1_hashes = securesystemslib.util.get_file_hashes(
+        os.path.join(self.repository_directory, 'targets', file1_path),
+        hash_algorithms=['sha256', 'sha512'])
+
+    # Currently in the repository directory, those three files exists:
+    # "file1.txt", "<sha256_hash>.file1.txt" and "<sha512_hash>.file1.txt"
+    # where both sha256 and sha512 hashes are for file file1.txt.
+    # Remove the files with the hash digest prefix to ensure that
+    # the served target file is not prefixed.
+    os.remove(os.path.join(self.repository_directory, 'targets',
+        file1_hashes['sha256'] + '.' + file1_path))
+    os.remove(os.path.join(self.repository_directory, 'targets',
+        file1_hashes['sha512'] + '.' + file1_path))
+
+
+    self.repository_updater.download_target(targetinfo2,
+                                            destination_directory,
+                                            prefix_filename_with_hash=False)
+
+    # Checks if the file has been successfully downloaded
+    self.assertTrue(os.path.exists(download_filepath))
+
     # Test for a destination that cannot be written to (apart from a target
     # file that already exists at the destination) and which raises an
     # exception.

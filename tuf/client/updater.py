@@ -1315,7 +1315,8 @@ class Updater(object):
 
 
 
-  def _get_target_file(self, target_filepath, file_length, file_hashes):
+  def _get_target_file(self, target_filepath, file_length, file_hashes,
+      prefix_filename_with_hash):
     """
     <Purpose>
       Non-public method that safely (i.e., the file length and hash are
@@ -1333,6 +1334,13 @@ class Updater(object):
 
       file_hashes:
         The expected hashes of the target file.
+
+      prefix_filename_with_hash:
+        Whether to prefix the targets file names with their hash when using
+        consistent snapshot.
+        This should be set to False when the served target filenames are not
+        prefixed with hashes (in this case the server uses other means
+        to ensure snapshot consistency).
 
     <Exceptions>
       tuf.exceptions.NoWorkingMirrorError:
@@ -1357,7 +1365,7 @@ class Updater(object):
       self._hard_check_file_length(target_file_object, file_length)
       self._check_hashes(target_file_object, file_hashes)
 
-    if self.consistent_snapshot:
+    if self.consistent_snapshot and prefix_filename_with_hash:
       # Note: values() does not return a list in Python 3.  Use list()
       # on values() for Python 2+3 compatibility.
       target_digest = list(file_hashes.values()).pop()
@@ -3217,7 +3225,8 @@ class Updater(object):
 
 
 
-  def download_target(self, target, destination_directory):
+  def download_target(self, target, destination_directory,
+      prefix_filename_with_hash=True):
     """
     <Purpose>
       Download 'target' and verify it is trusted.
@@ -3233,6 +3242,14 @@ class Updater(object):
 
       destination_directory:
         The directory to save the downloaded target file.
+
+      prefix_filename_with_hash:
+        Whether to prefix the targets file names with their hash when using
+        consistent snapshot.
+        This should be set to False when the served target filenames are not
+        prefixed with hashes (in this case the server uses other means
+        to ensure snapshot consistency).
+        Default is True.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError:
@@ -3268,7 +3285,7 @@ class Updater(object):
     # '_get_target_file()' checks every mirror and returns the first target
     # that passes verification.
     target_file_object = self._get_target_file(target_filepath, trusted_length,
-        trusted_hashes)
+        trusted_hashes, prefix_filename_with_hash)
 
     # We acquired a target file object from a mirror.  Move the file into place
     # (i.e., locally to 'destination_directory').  Note: join() discards
