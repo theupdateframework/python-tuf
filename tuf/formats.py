@@ -382,12 +382,6 @@ SNAPSHOT_SCHEMA = SCHEMA.Object(
   spec_version = SPECIFICATION_VERSION_SCHEMA,
   meta = FILEINFODICT_SCHEMA)
 
-MERKLE_TIMESTAMP_SCHEMA = SCHEMA.Object(
-  spec_version = SPECIFICATION_VERSION_SCHEMA,
-  version = METADATAVERSION_SCHEMA,
-  expires = securesystemslib.formats.ISO8601_DATETIME_SCHEMA,
-  merkle_root = HASH_SCHEMA)
-
 # Timestamp role: indicates the latest version of the snapshot file.
 TIMESTAMP_SCHEMA = SCHEMA.Object(
   object_name = 'TIMESTAMP_SCHEMA',
