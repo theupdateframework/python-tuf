@@ -18,9 +18,12 @@ TODO:
 
  * Add Root metadata class
 
+ * Add classes for other complex metadata attributes, see 'signatures' (in
+   Metadata) 'meta'/'targets' (in Timestamp, Snapshot, Targets), 'delegations'
+   (in Targets), 'keys'/'roles' (in not yet existent 'Delegation'), ...
+
 """
 # Imports
-
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
@@ -42,12 +45,10 @@ import tuf.formats
 
 
 # Types
-
 JsonDict = Dict[str, Any]
 
 
 # Classes.
-
 class Metadata():
     """A container for signed TUF metadata.
 
@@ -74,126 +75,8 @@ class Metadata():
         self.signed = signed
         self.signatures = signatures
 
-    def to_dict(self) -> JsonDict:
-        """Returns the JSON-serializable dictionary representation of self. """
-        return {
-            'signatures': self.signatures,
-            'signed': self.signed.to_dict()
-        }
 
-    @classmethod
-    def from_json(cls, metadata_json: str) -> 'Metadata':
-        """Loads JSON-formatted TUF metadata from a string.
-
-        Arguments:
-            metadata_json: TUF metadata in JSON-string representation.
-
-        Raises:
-            securesystemslib.exceptions.Error, ValueError, KeyError: The
-                metadata cannot be parsed.
-
-        Returns:
-            A TUF Metadata object.
-
-        """
-        return cls.from_dict(load_json_string(metadata_json))
-
-
-    def to_json(self, compact: bool = False) -> None:
-        """Returns the optionally compacted JSON representation of self. """
-        return json.dumps(
-                self.to_dict(),
-                indent=(None if compact else 1),
-                separators=((',', ':') if compact else (',', ': ')),
-                sort_keys=True)
-
-    def sign(self, key: JsonDict, append: bool = False) -> JsonDict:
-        """Creates signature over 'signed' and assigns it to 'signatures'.
-
-        Arguments:
-            key: A securesystemslib-style private key object used for signing.
-            append: A boolean indicating if the signature should be appended to
-                the list of signatures or replace any existing signatures. The
-                default behavior is to replace signatures.
-
-        Raises:
-            securesystemslib.exceptions.FormatError: Key argument is malformed.
-            securesystemslib.exceptions.CryptoError, \
-                    securesystemslib.exceptions.UnsupportedAlgorithmError:
-                Signing errors.
-
-        Returns:
-            A securesystemslib-style signature object.
-
-        """
-        signature = create_signature(key, self.signed.to_canonical_bytes())
-
-        if append:
-            self.signatures.append(signature)
-        else:
-            self.signatures = [signature]
-
-        return signature
-
-    def verify(self, key: JsonDict) -> bool:
-        """Verifies 'signatures' over 'signed' that match the passed key by id.
-
-        Arguments:
-            key: A securesystemslib-style public key object.
-
-        Raises:
-            securesystemslib.exceptions.FormatError: Key argument is malformed.
-            securesystemslib.exceptions.CryptoError, \
-                    securesystemslib.exceptions.UnsupportedAlgorithmError:
-                Signing errors.
-
-        Returns:
-            A boolean indicating if all identified signatures are valid. False
-            if no signature was found for the keyid or any of the found
-            signatures is invalid.
-
-            FIXME: Is this behavior expected? An alternative approach would be
-            to raise an exception if no signature is found for the keyid,
-            and/or if more than one sigantures are found for the keyid.
-
-        """
-        signatures_for_keyid = list(filter(
-                lambda sig: sig['keyid'] == key['keyid'], self.signatures))
-
-        if not signatures_for_keyid:
-            return False
-
-        for signature in signatures_for_keyid:
-            if not verify_signature(
-                    key, signature, self.signed.to_canonical_bytes()):
-                return False
-
-        return True
-
-    @classmethod
-    def from_json_file(
-            cls, filename: str,
-            storage_backend: Optional[StorageBackendInterface] = None
-            ) -> 'Metadata':
-        """Loads JSON-formatted TUF metadata from file storage.
-
-        Arguments:
-            filename: The path to read the file from.
-            storage_backend: An object that implements
-                securesystemslib.storage.StorageBackendInterface. Per default
-                a (local) FilesystemBackend is used.
-
-        Raises:
-            securesystemslib.exceptions.StorageError: The file cannot be read.
-            securesystemslib.exceptions.Error, ValueError, KeyError: The
-                metadata cannot be parsed.
-
-        Returns:
-            A TUF Metadata object.
-
-        """
-        return cls.from_dict(load_json_file(filename, storage_backend))
-
+    # Deserialization (factories).
     @classmethod
     def from_dict(cls, metadata: JsonDict) -> 'Metadata':
         """Creates Metadata object from its JSON/dict representation.
@@ -237,6 +120,67 @@ class Metadata():
                 signatures=metadata['signatures'])
 
 
+    @classmethod
+    def from_json(cls, metadata_json: str) -> 'Metadata':
+        """Loads JSON-formatted TUF metadata from a string.
+
+        Arguments:
+            metadata_json: TUF metadata in JSON-string representation.
+
+        Raises:
+            securesystemslib.exceptions.Error, ValueError, KeyError: The
+                metadata cannot be parsed.
+
+        Returns:
+            A TUF Metadata object.
+
+        """
+        return cls.from_dict(load_json_string(metadata_json))
+
+
+    @classmethod
+    def from_json_file(
+            cls, filename: str,
+            storage_backend: Optional[StorageBackendInterface] = None
+            ) -> 'Metadata':
+        """Loads JSON-formatted TUF metadata from file storage.
+
+        Arguments:
+            filename: The path to read the file from.
+            storage_backend: An object that implements
+                securesystemslib.storage.StorageBackendInterface. Per default
+                a (local) FilesystemBackend is used.
+
+        Raises:
+            securesystemslib.exceptions.StorageError: The file cannot be read.
+            securesystemslib.exceptions.Error, ValueError, KeyError: The
+                metadata cannot be parsed.
+
+        Returns:
+            A TUF Metadata object.
+
+        """
+        return cls.from_dict(load_json_file(filename, storage_backend))
+
+
+    # Serialization.
+    def to_dict(self) -> JsonDict:
+        """Returns the JSON-serializable dictionary representation of self. """
+        return {
+            'signatures': self.signatures,
+            'signed': self.signed.to_dict()
+        }
+
+
+    def to_json(self, compact: bool = False) -> None:
+        """Returns the optionally compacted JSON representation of self. """
+        return json.dumps(
+                self.to_dict(),
+                indent=(None if compact else 1),
+                separators=((',', ':') if compact else (',', ': ')),
+                sort_keys=True)
+
+
     def to_json_file(
             self, filename: str, compact: bool = False,
             storage_backend: StorageBackendInterface = None) -> None:
@@ -257,6 +201,73 @@ class Metadata():
         with tempfile.TemporaryFile() as f:
             f.write(self.to_json(compact).encode('utf-8'))
             persist_temp_file(f, filename, storage_backend)
+
+
+    # Signatures.
+    def sign(self, key: JsonDict, append: bool = False) -> JsonDict:
+        """Creates signature over 'signed' and assigns it to 'signatures'.
+
+        Arguments:
+            key: A securesystemslib-style private key object used for signing.
+            append: A boolean indicating if the signature should be appended to
+                the list of signatures or replace any existing signatures. The
+                default behavior is to replace signatures.
+
+        Raises:
+            securesystemslib.exceptions.FormatError: Key argument is malformed.
+            securesystemslib.exceptions.CryptoError, \
+                    securesystemslib.exceptions.UnsupportedAlgorithmError:
+                Signing errors.
+
+        Returns:
+            A securesystemslib-style signature object.
+
+        """
+        signature = create_signature(key, self.signed.to_canonical_bytes())
+
+        if append:
+            self.signatures.append(signature)
+        else:
+            self.signatures = [signature]
+
+        return signature
+
+
+    def verify(self, key: JsonDict) -> bool:
+        """Verifies 'signatures' over 'signed' that match the passed key by id.
+
+        Arguments:
+            key: A securesystemslib-style public key object.
+
+        Raises:
+            securesystemslib.exceptions.FormatError: Key argument is malformed.
+            securesystemslib.exceptions.CryptoError, \
+                    securesystemslib.exceptions.UnsupportedAlgorithmError:
+                Signing errors.
+
+        Returns:
+            A boolean indicating if all identified signatures are valid. False
+            if no signature was found for the keyid or any of the found
+            signatures is invalid.
+
+            FIXME: Is this behavior expected? An alternative approach would be
+            to raise an exception if no signature is found for the keyid,
+            and/or if more than one sigantures are found for the keyid.
+
+        """
+        signatures_for_keyid = list(filter(
+                lambda sig: sig['keyid'] == key['keyid'], self.signatures))
+
+        if not signatures_for_keyid:
+            return False
+
+        for signature in signatures_for_keyid:
+            if not verify_signature(
+                    key, signature, self.signed.to_canonical_bytes()):
+                return False
+
+        return True
+
 
 class Signed:
     """A base class for the signed part of TUF metadata.
@@ -292,6 +303,8 @@ class Signed:
             raise ValueError(f'version must be < 0, got {version}')
         self.version = version
 
+
+    # Deserialization (factories).
     @classmethod
     def from_dict(cls, signed_dict: JsonDict) -> 'Signed':
         """Creates Signed object from its JSON/dict representation. """
@@ -313,17 +326,12 @@ class Signed:
         # that subclass (see e.g. Metadata.from_dict).
         return cls(**signed_dict)
 
+
+    # Serialization.
     def to_canonical_bytes(self) -> bytes:
         """Returns the UTF-8 encoded canonical JSON representation of self. """
         return encode_canonical(self.to_dict()).encode('UTF-8')
 
-    def bump_expiration(self, delta: timedelta = timedelta(days=1)) -> None:
-        """Increments the expires attribute by the passed timedelta. """
-        self.expires += delta
-
-    def bump_version(self) -> None:
-        """Increments the metadata version number by 1."""
-        self.version += 1
 
     def to_dict(self) -> JsonDict:
         """Returns the JSON-serializable dictionary representation of self. """
@@ -333,6 +341,18 @@ class Signed:
             'spec_version': self.spec_version,
             'expires': self.expires.isoformat() + 'Z'
         }
+
+
+    # Modification.
+    def bump_expiration(self, delta: timedelta = timedelta(days=1)) -> None:
+        """Increments the expires attribute by the passed timedelta. """
+        self.expires += delta
+
+
+    def bump_version(self) -> None:
+        """Increments the metadata version number by 1."""
+        self.version += 1
+
 
 class Timestamp(Signed):
     """A container for the signed part of timestamp metadata.
@@ -360,6 +380,8 @@ class Timestamp(Signed):
         # TODO: Add class for meta
         self.meta = meta
 
+
+    # Serialization.
     def to_dict(self) -> JsonDict:
         """Returns the JSON-serializable dictionary representation of self. """
         json_dict = super().to_dict()
@@ -368,6 +390,8 @@ class Timestamp(Signed):
         })
         return json_dict
 
+
+    # Modification.
     def update(self, version: int, length: int, hashes: JsonDict) -> None:
         """Assigns passed info about snapshot metadata to meta dict. """
         self.meta['snapshot.json'] = {
@@ -410,6 +434,7 @@ class Snapshot(Signed):
         # TODO: Add class for meta
         self.meta = meta
 
+    # Serialization.
     def to_dict(self) -> JsonDict:
         """Returns the JSON-serializable dictionary representation of self. """
         json_dict = super().to_dict()
@@ -418,7 +443,8 @@ class Snapshot(Signed):
         })
         return json_dict
 
-    # Add or update metadata about the targets metadata.
+
+    # Modification.
     def update(
             self, rolename: str, version: int, length: Optional[int] = None,
             hashes: Optional[JsonDict] = None) -> None:
@@ -496,6 +522,7 @@ class Targets(Signed):
         self.delegations = delegations
 
 
+    # Serialization.
     def to_dict(self) -> JsonDict:
         """Returns the JSON-serializable dictionary representation of self. """
         json_dict = super().to_dict()
@@ -505,7 +532,7 @@ class Targets(Signed):
         })
         return json_dict
 
-    # Add or update metadata about the target.
+    # Modification.
     def update(self, filename: str, fileinfo: JsonDict) -> None:
         """Assigns passed target file info to meta dict. """
         self.targets[filename] = fileinfo
