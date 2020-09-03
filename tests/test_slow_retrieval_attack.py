@@ -49,7 +49,6 @@ import tempfile
 import random
 import time
 import shutil
-import subprocess
 import logging
 import unittest
 import sys
@@ -102,11 +101,11 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     # the pre-generated metadata files have a specific structure, such
     # as a delegated role 'targets/role1', three target files, five key files,
     # etc.
-    command = ['python', 'slow_retrieval_server.py', str(self.SERVER_PORT), mode]
-    server_process = subprocess.Popen(command)
+    self.server_process_handler = utils.TestServerProcess(log=logger,
+        server='slow_retrieval_server.py', port=self.SERVER_PORT,
+        timeout=0, extra_cmd_args=[mode])
+
     logger.info('Slow Retrieval Server process started.')
-    logger.info('Server process id: '+str(server_process.pid))
-    logger.info('Serving on port: '+str(self.SERVER_PORT))
 
     # NOTE: Following error is raised if a delay is not long enough:
     # <urlopen error [Errno 111] Connection refused>
@@ -116,17 +115,12 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     # increasing this to 3s, sadly.
     time.sleep(3)
 
-    return server_process
 
 
-
-  def _stop_slow_server(self, server_process):
-    # Kill the SimpleHTTPServer process.
-    if server_process.returncode is None:
-      logger.info('Server process '+str(server_process.pid)+' terminated.')
-      server_process.kill()
-      server_process.wait()
-
+  def _stop_slow_server(self):
+    # Logs stdout and stderr from the server subprocess and then it
+    # kills it and closes the temp file used for logging.
+    self.server_process_handler.clean()
 
 
   def setUp(self):
@@ -246,12 +240,14 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     tuf.keydb.clear_keydb(clear_all=True)
 
 
+
+
   def test_with_tuf_mode_1(self):
     # Simulate a slow retrieval attack.
     # 'mode_1': When download begins,the server blocks the download for a long
     # time by doing nothing before it sends the first byte of data.
 
-    server_process = self._start_slow_server('mode_1')
+    self._start_slow_server('mode_1')
 
     # Verify that the TUF client detects replayed metadata and refuses to
     # continue the update process.
@@ -275,7 +271,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
       self.fail('TUF did not prevent a slow retrieval attack.')
 
     finally:
-      self._stop_slow_server(server_process)
+      self._stop_slow_server()
 
 
 
@@ -291,7 +287,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     # 'mode_2': During the download process, the server blocks the download
     # by sending just several characters every few seconds.
 
-    server_process = self._start_slow_server('mode_2')
+    self._start_slow_server('mode_2')
     client_filepath = os.path.join(self.client_directory, 'file1.txt')
     original_average_download_speed = tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED
     tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED = 3
@@ -319,7 +315,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
       self.fail('TUF did not prevent a slow retrieval attack.')
 
     finally:
-      self._stop_slow_server(server_process)
+      self._stop_slow_server()
       tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED = original_average_download_speed
 
 

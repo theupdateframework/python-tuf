@@ -36,8 +36,6 @@ from __future__ import unicode_literals
 import hashlib
 import logging
 import os
-import random
-import subprocess
 import sys
 import unittest
 
@@ -73,15 +71,11 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     self.target_data_length = len(self.target_data)
 
     # Launch a SimpleHTTPServer (serves files in the current dir).
-    self.PORT = random.randint(30000, 45000)
-    self.server_proc = popen_python(['simple_server.py', str(self.PORT)])
-    logger.info('\n\tServer process started.')
-    logger.info('\tServer process id: ' + str(self.server_proc.pid))
-    logger.info('\tServing on port: ' + str(self.PORT))
-    junk, rel_target_filepath = os.path.split(target_filepath)
-    self.url = 'http://localhost:'+str(self.PORT)+'/'+rel_target_filepath
+    self.server_process_handler = utils.TestServerProcess(log=logger)
 
-    utils.wait_for_server('localhost', self.PORT)
+    rel_target_filepath = os.path.basename(target_filepath)
+    self.url = 'http://localhost:' \
+        + str(self.server_process_handler.port) + '/' + rel_target_filepath
 
     # Computing hash of target file data.
     m = hashlib.md5()
@@ -93,11 +87,11 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
   # Stop server process and perform clean up.
   def tearDown(self):
     unittest_toolbox.Modified_TestCase.tearDown(self)
-    if self.server_proc.returncode is None:
-      logger.info('\tServer process '+str(self.server_proc.pid)+' terminated.')
-      self.server_proc.kill()
-      # Drop return values of communicate()
-      self.server_proc.communicate()
+
+    # Logs stdout and stderr from the server subprocess and then it
+    # kills it and closes the temp file used for logging.
+    self.server_process_handler.clean()
+
     self.target_fileobj.close()
 
 
@@ -176,14 +170,17 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
                       download_file,
                       self.random_string(), self.target_data_length)
 
+    url = 'http://localhost:' \
+        + str(self.server_process_handler.port) + '/' + self.random_string()
     self.assertRaises(requests.exceptions.HTTPError,
                       download_file,
-                      'http://localhost:' + str(self.PORT) + '/' + self.random_string(),
+                      url,
                       self.target_data_length)
-
+    url1 = 'http://localhost:' \
+      + str(self.server_process_handler.port + 1) + '/' + self.random_string()
     self.assertRaises(requests.exceptions.ConnectionError,
                       download_file,
-                      'http://localhost:' + str(self.PORT+1) + '/' + self.random_string(),
+                      url1,
                       self.target_data_length)
 
     # Specify an unsupported URI scheme.
@@ -258,27 +255,30 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     # 3: run with an HTTPS certificate with an unexpected hostname
     # 4: run with an HTTPS certificate that is expired
     # Be sure to offset from the port used in setUp to avoid collision.
-    port1 = str(self.PORT + 1)
-    port2 = str(self.PORT + 2)
-    port3 = str(self.PORT + 3)
-    port4 = str(self.PORT + 4)
-    good_https_server_proc = popen_python(
-        ['simple_https_server.py', port1, good_cert_fname])
-    good2_https_server_proc = popen_python(
-        ['simple_https_server.py', port2, good2_cert_fname])
-    bad_https_server_proc = popen_python(
-        ['simple_https_server.py', port3, bad_cert_fname])
-    expd_https_server_proc = popen_python(
-        ['simple_https_server.py', port4, expired_cert_fname])
 
-    for port in range(self.PORT + 1, self.PORT + 5):
-      utils.wait_for_server('localhost', port)
+    port1 = self.server_process_handler.port + 1
+    port2 = self.server_process_handler.port + 2
+    port3 = self.server_process_handler.port + 3
+    port4 = self.server_process_handler.port + 4
 
-    relative_target_fpath = os.path.basename(target_filepath)
-    good_https_url = 'https://localhost:' + port1 + '/' + relative_target_fpath
-    good2_https_url = good_https_url.replace(':' + port1, ':' + port2)
-    bad_https_url = good_https_url.replace(':' + port1, ':' + port3)
-    expired_https_url = good_https_url.replace(':' + port1, ':' + port4)
+    good_https_server_handler = utils.TestServerProcess(log=logger,
+        server='simple_https_server.py', port=port1,
+        extra_cmd_args=[good_cert_fname])
+    good2_https_server_handler = utils.TestServerProcess(log=logger,
+        server='simple_https_server.py', port=port2,
+        extra_cmd_args=[good2_cert_fname])
+    bad_https_server_handler = utils.TestServerProcess(log=logger,
+        server='simple_https_server.py', port=port3,
+        extra_cmd_args=[bad_cert_fname])
+    expd_https_server_handler = utils.TestServerProcess(log=logger,
+        server='simple_https_server.py', port=port4,
+        extra_cmd_args=[expired_cert_fname])
+
+    suffix = '/' +  os.path.basename(target_filepath)
+    good_https_url = 'https://localhost:' + str(port1) + suffix
+    good2_https_url = 'https://localhost:' + str(port2) + suffix
+    bad_https_url = 'https://localhost:' + str(port3) + suffix
+    expired_https_url = 'https://localhost:' + str(port4) + suffix
 
     # Download the target file using an HTTPS connection.
 
@@ -354,36 +354,15 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
       download.unsafe_download(good2_https_url, target_data_length).close()
 
     finally:
-      for proc in [
-          good_https_server_proc,
-          good2_https_server_proc,
-          bad_https_server_proc,
-          expd_https_server_proc]:
-        if proc.returncode is None:
-          logger.info('Terminating server process ' + str(proc.pid))
-          proc.kill()
-          # drop return values
-          proc.communicate()
+      for proc_handler in [
+          good_https_server_handler,
+          good2_https_server_handler,
+          bad_https_server_handler,
+          expd_https_server_handler]:
 
-
-
-
-
-# TODO: Move this to a common test module (tests/common.py?)
-#       and strip it test_proxy_use.py and test_download.py.
-def popen_python(command_arg_list):
-  """
-  Run subprocess.Popen() to produce a process running a Python interpreter.
-  Uses the same Python interpreter that the current process is using, via
-  sys.executable.
-  """
-  assert sys.executable, 'Test cannot function: unable to determine ' \
-      'current Python interpreter via sys.executable.'
-
-  return subprocess.Popen(
-      [sys.executable] + command_arg_list, stderr=subprocess.PIPE)
-
-
+        # Logs stdout and stderr from the server subprocess and then it
+        # kills it and closes the temp file used for logging.
+        proc_handler.clean()
 
 
 

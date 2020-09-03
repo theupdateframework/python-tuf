@@ -40,10 +40,8 @@ from __future__ import unicode_literals
 
 import os
 import tempfile
-import random
 import datetime
 import shutil
-import subprocess
 import logging
 import unittest
 import sys
@@ -85,14 +83,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     # the pre-generated metadata files have a specific structure, such
     # as a delegated role 'targets/role1', three target files, five key files,
     # etc.
-    cls.SERVER_PORT = random.randint(30000, 45000)
-    command = ['python', 'simple_server.py', str(cls.SERVER_PORT)]
-    cls.server_process = subprocess.Popen(command)
-    logger.info('Server process started.')
-    logger.info('Server process id: '+str(cls.server_process.pid))
-    logger.info('Serving on port: '+str(cls.SERVER_PORT))
-
-    utils.wait_for_server('localhost', cls.SERVER_PORT)
+    cls.server_process_handler = utils.TestServerProcess(log=logger)
 
 
 
@@ -105,11 +96,8 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     # metadata, targets, and key files generated of all the test cases.
     shutil.rmtree(cls.temporary_directory)
 
-    # Kill the SimpleHTTPServer process.
-    if cls.server_process.returncode is None:
-      logger.info('Server process '+str(cls.server_process.pid)+' terminated.')
-      cls.server_process.kill()
-      cls.server_process.wait()
+    # Kills the server subprocess and closes the temp file used for logging.
+    cls.server_process_handler.clean()
 
 
 
@@ -148,8 +136,8 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     # Set the url prefix required by the 'tuf/client/updater.py' updater.
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
     repository_basepath = self.repository_directory[len(os.getcwd()):]
-    url_prefix = \
-      'http://localhost:' + str(self.SERVER_PORT) + repository_basepath
+    url_prefix = 'http://localhost:' \
+      + str(self.server_process_handler.port) + repository_basepath
 
     # Setting 'tuf.settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
@@ -171,6 +159,10 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     unittest_toolbox.Modified_TestCase.tearDown(self)
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
+
+    # Logs stdout and stderr from the sever subprocess.
+    self.server_process_handler.flush_log()
+
 
 
   def test_without_tuf(self):

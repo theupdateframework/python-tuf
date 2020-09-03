@@ -55,8 +55,6 @@ import shutil
 import copy
 import tempfile
 import logging
-import random
-import subprocess
 import errno
 import sys
 import unittest
@@ -104,14 +102,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # assume the pre-generated metadata files have a specific structure, such
     # as a delegated role 'targets/role1', three target files, five key files,
     # etc.
-    cls.SERVER_PORT = random.randint(30000, 45000)
-    command = ['python', cls.SIMPLE_SERVER_PATH, str(cls.SERVER_PORT)]
-    cls.server_process = subprocess.Popen(command)
-    logger.info('\n\tServer process started.')
-    logger.info('\tServer process id: '+str(cls.server_process.pid))
-    logger.info('\tServing on port: '+str(cls.SERVER_PORT))
-
-    utils.wait_for_server('localhost', cls.SERVER_PORT)
+    cls.server_process_handler = utils.TestServerProcess(log=logger,
+        server=cls.SIMPLE_SERVER_PATH)
 
 
 
@@ -120,16 +112,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # tearDownModule() is called after all the tests have run.
     # http://docs.python.org/2/library/unittest.html#class-and-module-fixtures
 
-    # Kill the SimpleHTTPServer process.
-    if cls.server_process.returncode is None:
-      logger.info('\tServer process ' + str(cls.server_process.pid) + ' terminated.')
-      cls.server_process.kill()
-      cls.server_process.wait()
-
     # Remove the temporary repository directory, which should contain all the
     # metadata, targets, and key files generated for the test cases
     shutil.rmtree(cls.temporary_directory)
 
+    # Kills the server subprocess and closes the temp file used for logging.
+    cls.server_process_handler.clean()
 
 
   def setUp(self):
@@ -177,8 +165,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
     repository_basepath = self.repository_directory[len(os.getcwd()):]
-    url_prefix = \
-      'http://localhost:' + str(self.SERVER_PORT) + repository_basepath
+    url_prefix = 'http://localhost:' \
+        + str(self.server_process_handler.port) + repository_basepath
 
     # Setting 'tuf.settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
@@ -207,7 +195,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 
-
+    # Logs stdout and stderr from the sever subprocess.
+    self.server_process_handler.flush_log()
 
 
   # UNIT TESTS.
@@ -1090,16 +1079,15 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Unlike some of the other tests, start up a fresh server here.
     # The SimpleHTTPServer started in the setupclass has a tendency to
     # timeout in Windows after a few tests.
-    SERVER_PORT = random.randint(30000, 45000)
-    command = ['python', self.SIMPLE_SERVER_PATH, str(SERVER_PORT)]
-    server_process = subprocess.Popen(command)
 
-    utils.wait_for_server('localhost', SERVER_PORT)
+    # Creates a subprocess running server and uses temp file for logging.
+    server_process_handler = utils.TestServerProcess(log=logger,
+        server=self.SIMPLE_SERVER_PATH)
 
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
     repository_basepath = self.repository_directory[len(os.getcwd()):]
-    url_prefix = \
-      'http://localhost:' + str(SERVER_PORT) + repository_basepath
+    url_prefix = 'http://localhost:' \
+        + str(self.server_process_handler.port) + repository_basepath
 
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
         'metadata_path': 'metadata', 'targets_path': 'targets',
@@ -1217,8 +1205,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         self.repository_updater.get_one_valid_targetinfo,
         '/foo/foo1.1.tar.gz')
 
-    server_process.kill()
-    server_process.wait()
+    # Kills the server subprocess and closes the temp file used for logging.
+    server_process_handler.clean()
 
 
 
@@ -1386,15 +1374,15 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Unlike some of the other tests, start up a fresh server here.
     # The SimpleHTTPServer started in the setupclass has a tendency to
     # timeout in Windows after a few tests.
-    SERVER_PORT = random.randint(30000, 45000)
-    command = ['python', self.SIMPLE_SERVER_PATH, str(SERVER_PORT)]
-    server_process = subprocess.Popen(command)
-    utils.wait_for_server('localhost', SERVER_PORT)
+
+    # Creates a subprocess running server and uses temp file for logging.
+    server_process_handler = utils.TestServerProcess(log=logger,
+        server=self.SIMPLE_SERVER_PATH)
 
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
     repository_basepath = self.repository_directory[len(os.getcwd()):]
-    url_prefix = \
-      'http://localhost:' + str(SERVER_PORT) + repository_basepath
+    url_prefix = 'http://localhost:' \
+        + str(self.server_process_handler.port) + repository_basepath
 
     # Setting 'tuf.settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
@@ -1500,8 +1488,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.repository_updater.updated_targets(all_targets, destination_directory)
     self.assertEqual(len(updated_targets), 1)
 
-    server_process.kill()
-    server_process.wait()
+    # Kills the server subprocess and closes the temp file used for logging.
+    server_process_handler.clean()
 
 
 
@@ -1511,15 +1499,15 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Unlike some of the other tests, start up a fresh server here.
     # The SimpleHTTPServer started in the setupclass has a tendency to
     # timeout in Windows after a few tests.
-    SERVER_PORT = random.randint(30000, 45000)
-    command = ['python', self.SIMPLE_SERVER_PATH, str(SERVER_PORT)]
-    server_process = subprocess.Popen(command)
-    utils.wait_for_server('localhost', SERVER_PORT)
+
+    # Creates a subprocess running server and uses temp file for logging.
+    server_process_handler = utils.TestServerProcess(log=logger,
+        server=self.SIMPLE_SERVER_PATH)
 
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
     repository_basepath = self.repository_directory[len(os.getcwd()):]
-    url_prefix = \
-      'http://localhost:' + str(SERVER_PORT) + repository_basepath
+    url_prefix = 'http://localhost:' \
+        + str(self.server_process_handler.port) + repository_basepath
 
     # Setting 'tuf.settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
@@ -1602,8 +1590,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     del self.repository_updater.metadata['previous']['targets']
     self.repository_updater.remove_obsolete_targets(destination_directory)
 
-    server_process.kill()
-    server_process.wait()
+    # Kills the server subprocess and closes the temp file used for logging.
+    server_process_handler.clean()
 
 
 
@@ -1871,28 +1859,25 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     # the pre-generated metadata files have a specific structure, such
     # as a delegated role 'targets/role1', three target files, five key files,
     # etc.
+
+    # The ports are harcoded because the urls to the repositories are harcoded
+    # in map.json.
     self.SERVER_PORT = 30001
     self.SERVER_PORT2 = 30002
 
-    command = ['python', self.SIMPLE_SERVER_PATH, str(self.SERVER_PORT)]
-    command2 = ['python', self.SIMPLE_SERVER_PATH, str(self.SERVER_PORT2)]
-
-    self.server_process = subprocess.Popen(command,
-        cwd=self.repository_directory)
+    # Creates a subprocess running server and uses temp file for logging.
+    self.server_process_handler = utils.TestServerProcess(log=logger,
+        server=self.SIMPLE_SERVER_PATH, port=self.SERVER_PORT,
+        popen_cwd=self.repository_directory)
 
     logger.debug('Server process started.')
-    logger.debug('Server process id: ' + str(self.server_process.pid))
-    logger.debug('Serving on port: ' + str(self.SERVER_PORT))
 
-    self.server_process2 = subprocess.Popen(command2,
-        cwd=self.repository_directory2)
+    # Creates a subprocess running server and uses temp file for logging.
+    self.server_process_handler2 = utils.TestServerProcess(log=logger,
+        server=self.SIMPLE_SERVER_PATH, port=self.SERVER_PORT2,
+        popen_cwd=self.repository_directory2)
 
     logger.debug('Server process 2 started.')
-    logger.debug('Server 2 process id: ' + str(self.server_process2.pid))
-    logger.debug('Serving 2 on port: ' + str(self.SERVER_PORT2))
-
-    utils.wait_for_server('localhost', self.SERVER_PORT)
-    utils.wait_for_server('localhost', self.SERVER_PORT2)
 
     url_prefix = 'http://localhost:' + str(self.SERVER_PORT)
     url_prefix2 = 'http://localhost:' + str(self.SERVER_PORT2)
@@ -1928,16 +1913,10 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
 
-    # Kill the SimpleHTTPServer process.
-    if self.server_process.returncode is None:
-      logger.info('Server process ' + str(self.server_process.pid) + ' terminated.')
-      self.server_process.kill()
-      self.server_process.wait()
-
-    if self.server_process2.returncode is None:
-      logger.info('Server 2 process ' + str(self.server_process2.pid) + ' terminated.')
-      self.server_process2.kill()
-      self.server_process2.wait()
+    # Logs stdout and stderr from the server subprocesses and then it
+    # kills them and closes the temp files used for logging.
+    self.server_process_handler.clean()
+    self.server_process_handler2.clean()
 
     # updater.Updater() populates the roledb with the name "test_repository1"
     tuf.roledb.clear_roledb(clear_all=True)

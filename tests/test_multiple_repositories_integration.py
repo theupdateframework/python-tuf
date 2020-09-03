@@ -32,7 +32,6 @@ from __future__ import unicode_literals
 import os
 import tempfile
 import random
-import subprocess
 import logging
 import shutil
 import unittest
@@ -133,26 +132,19 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     # has been changed when executing a subprocess.
     SIMPLE_SERVER_PATH = os.path.join(os.getcwd(), 'simple_server.py')
 
-    command = ['python', SIMPLE_SERVER_PATH, str(self.SERVER_PORT)]
-    command2 = ['python', SIMPLE_SERVER_PATH, str(self.SERVER_PORT2)]
-
-    self.server_process = subprocess.Popen(command,
-        cwd=self.repository_directory)
+    # Creates a subprocess running server and uses temp file for logging.
+    self.server_process_handler = utils.TestServerProcess(log=logger,
+        port=self.SERVER_PORT, server=SIMPLE_SERVER_PATH,
+        popen_cwd=self.repository_directory)
 
     logger.debug('Server process started.')
-    logger.debug('Server process id: ' + str(self.server_process.pid))
-    logger.debug('Serving on port: ' + str(self.SERVER_PORT))
 
-    self.server_process2 = subprocess.Popen(command2,
-        cwd=self.repository_directory2)
-
+    # Creates a subprocess running server and uses temp file for logging.
+    self.server_process_handler2 = utils.TestServerProcess(log=logger,
+        port=self.SERVER_PORT2, server=SIMPLE_SERVER_PATH,
+        popen_cwd=self.repository_directory2)
 
     logger.debug('Server process 2 started.')
-    logger.debug('Server 2 process id: ' + str(self.server_process2.pid))
-    logger.debug('Serving 2 on port: ' + str(self.SERVER_PORT2))
-
-    utils.wait_for_server('localhost', self.SERVER_PORT)
-    utils.wait_for_server('localhost', self.SERVER_PORT2)
 
     url_prefix = 'http://localhost:' + str(self.SERVER_PORT)
     url_prefix2 = 'http://localhost:' + str(self.SERVER_PORT2)
@@ -180,23 +172,16 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
 
-    # Kill the SimpleHTTPServer process.
-    if self.server_process.returncode is None:
-      logger.info('Server process ' + str(self.server_process.pid) + ' terminated.')
-      self.server_process.kill()
-      self.server_process.wait()
-
-    if self.server_process2.returncode is None:
-      logger.info('Server 2 process ' + str(self.server_process2.pid) + ' terminated.')
-      self.server_process2.kill()
-      self.server_process2.wait()
+    # Logs stdout and stderr from the server subprocesses and then it
+    # kills them and closes the temp files used for logging.
+    self.server_process_handler.clean()
+    self.server_process_handler2.clean()
 
     # updater.Updater() populates the roledb with the name "test_repository1"
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 
     shutil.rmtree(self.temporary_directory)
-
 
 
   def test_update(self):
