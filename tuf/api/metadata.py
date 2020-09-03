@@ -66,9 +66,7 @@ class Metadata():
             ]
 
     """
-    def __init__(
-            self, signed: 'Signed' = None, signatures: list = None) -> None:
-        # TODO: How much init magic do we want?
+    def __init__(self, signed: 'Signed', signatures: list) -> None:
         self.signed = signed
         self.signatures = signatures
 
@@ -165,18 +163,37 @@ class Metadata():
 
         Raises:
             securesystemslib.exceptions.StorageError: The file cannot be read.
-            securesystemslib.exceptions.Error, ValueError: The metadata cannot
-                be parsed.
+            securesystemslib.exceptions.Error, ValueError, KeyError: The
+                metadata cannot be parsed.
 
         Returns:
             A TUF Metadata object.
 
         """
-        signable = load_json_file(filename, storage_backend)
+        return cls.from_dict(load_json_file(filename, storage_backend))
 
-        # TODO: Should we use constants?
-        # And/or maybe a dispatch table? (<-- maybe too much magic)
-        _type = signable['signed']['_type']
+    @classmethod
+    def from_dict(cls, metadata: JsonDict) -> 'Metadata':
+        """Creates Metadata object from its JSON/dict representation.
+
+        Calls 'from_dict' for any complex metadata attribute represented by a
+        class also that has a 'from_dict' factory method. (Currently this is
+        only the signed attribute.)
+
+        Arguments:
+            metadata: TUF metadata in JSON/dict representation, as e.g.
+            returned by 'json.loads'.
+
+        Raises:
+            KeyError: The metadata dict format is invalid.
+            ValueError: The metadata has an unrecognized signed._type field.
+
+        Returns:
+            A TUF Metadata object.
+
+        """
+        # Dispatch to contained metadata class on metadata _type field.
+        _type = metadata['signed']['_type']
 
         if _type == 'targets':
             inner_cls = Targets
@@ -190,9 +207,13 @@ class Metadata():
         else:
             raise ValueError(f'unrecognized metadata type "{_type}"')
 
-        return Metadata(
-                signed=inner_cls(**signable['signed']),
-                signatures=signable['signatures'])
+        # NOTE: If Signature becomes a class, we should iterate over
+        # metadata['signatures'], call Signature.from_dict for each item, and
+        # pass a list of Signature objects to the Metadata constructor intead.
+        return cls(
+                signed=inner_cls.from_dict(metadata['signed']),
+                signatures=metadata['signatures'])
+
 
     def to_json_file(
             self, filename: str, compact: bool = False,
@@ -235,41 +256,48 @@ class Signed:
     # we keep it to match spec terminology (I often refer to this as "payload",
     # or "inner metadata")
 
-    # TODO: Re-think default values. It might be better to pass some things
-    # as args and not es kwargs. Then we'd need to pop those from
-    # signable["signed"] in read_from_json and pass them explicitly, which
-    # some say is better than implicit. :)
     def __init__(
-            self, _type: str = None, version: int = 0,
-            spec_version: str = None, expires: datetime = None
-        ) -> None:
-        # TODO: How much init magic do we want?
+            self, _type: str, version: int, spec_version: str,
+            expires: datetime) -> None:
 
         self._type = _type
+        self.version = version
         self.spec_version = spec_version
+        self.expires = expires
 
-        # We always intend times to be UTC
-        # NOTE: we could do this with datetime.fromisoformat() but that is not
-        # available in Python 2.7's datetime
-        # NOTE: Store as datetime object for convenient handling, use 'expires'
-        # property to get the TUF metadata format representation
-        self.__expiration = iso8601.parse_date(expires).replace(tzinfo=None)
-
+        # TODO: Should we separate data validation from constructor?
         if version < 0:
             raise ValueError(f'version must be < 0, got {version}')
         self.version = version
 
+    @classmethod
+    def from_dict(cls, signed_dict: JsonDict) -> 'Signed':
+        """Creates Signed object from its JSON/dict representation. """
 
-    @property
-    def expires(self) -> str:
-        return self.__expiration.isoformat() + 'Z'
+        # Convert 'expires' TUF metadata string to a datetime object, which is
+        # what the constructor expects and what we store. The inverse operation
+        # is implemented in 'to_dict'.
+        signed_dict['expires'] = iso8601.parse_date(
+                signed_dict['expires']).replace(tzinfo=None)
+        # NOTE: We write the converted 'expires' back into 'signed_dict' above
+        # so that we can pass it to the constructor as  '**signed_dict' below,
+        # along with other fields that belong to Signed subclasses.
+        # Any 'from_dict'(-like) conversions of fields that correspond to a
+        # subclass should be performed in the 'from_dict' method of that
+        # subclass and also be written back into 'signed_dict' before calling
+        # super().from_dict.
+
+        # NOTE: cls might be a subclass of Signed, if 'from_dict' was called on
+        # that subclass (see e.g. Metadata.from_dict).
+        return cls(**signed_dict)
+
     def to_canonical_bytes(self) -> bytes:
         """Returns the UTF-8 encoded canonical JSON representation of self. """
         return encode_canonical(self.to_dict()).encode('UTF-8')
 
     def bump_expiration(self, delta: timedelta = timedelta(days=1)) -> None:
         """Increments the expires attribute by the passed timedelta. """
-        self.__expiration = self.__expiration + delta
+        self.expires += delta
 
     def bump_version(self) -> None:
         """Increments the metadata version number by 1."""
@@ -281,7 +309,7 @@ class Signed:
             '_type': self._type,
             'version': self.version,
             'spec_version': self.spec_version,
-            'expires': self.expires
+            'expires': self.expires.isoformat() + 'Z'
         }
 
 class Timestamp(Signed):
@@ -303,10 +331,11 @@ class Timestamp(Signed):
             }
 
     """
-    def __init__(self, meta: JsonDict = None, **kwargs) -> None:
-        super().__init__(**kwargs)
-        # TODO: How much init magic do we want?
-        # TODO: Is there merit in creating classes for dict fields?
+    def __init__(
+            self, _type: str, version: int, spec_version: str,
+            expires: datetime, meta: JsonDict) -> None:
+        super().__init__(_type, version, spec_version, expires)
+        # TODO: Add class for meta
         self.meta = meta
 
     def to_dict(self) -> JsonDict:
@@ -352,10 +381,11 @@ class Snapshot(Signed):
             }
 
     """
-    def __init__(self, meta: JsonDict = None, **kwargs) -> None:
-        # TODO: How much init magic do we want?
-        # TODO: Is there merit in creating classes for dict fields?
-        super().__init__(**kwargs)
+    def __init__(
+            self, _type: str, version: int, spec_version: str,
+            expires: datetime, meta: JsonDict) -> None:
+        super().__init__(_type, version, spec_version, expires)
+        # TODO: Add class for meta
         self.meta = meta
 
     def to_dict(self) -> JsonDict:
@@ -435,13 +465,14 @@ class Targets(Signed):
 
     """
     def __init__(
-            self, targets: JsonDict = None, delegations: JsonDict = None,
-            **kwargs) -> None:
-        # TODO: How much init magic do we want?
-        # TODO: Is there merit in creating classes for dict fields?
-        super().__init__(**kwargs)
+            self, _type: str, version: int, spec_version: str,
+            expires: datetime, targets: JsonDict, delegations: JsonDict
+            ) -> None:
+        super().__init__(_type, version, spec_version, expires)
+        # TODO: Add class for meta
         self.targets = targets
         self.delegations = delegations
+
 
     def to_dict(self) -> JsonDict:
         """Returns the JSON-serializable dictionary representation of self. """

@@ -14,7 +14,7 @@ import shutil
 import tempfile
 import unittest
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
 # TODO: Remove case handling when fully dropping support for versions >= 3.6
@@ -185,11 +185,11 @@ class TestMetadata(unittest.TestCase):
         self.assertEqual(md.signed.version, 1)
         md.signed.bump_version()
         self.assertEqual(md.signed.version, 2)
-        self.assertEqual(md.signed.expires, '2030-01-01T00:00:00Z')
+        self.assertEqual(md.signed.expires, datetime(2030, 1, 1, 0, 0))
         md.signed.bump_expiration()
-        self.assertEqual(md.signed.expires, '2030-01-02T00:00:00Z')
+        self.assertEqual(md.signed.expires, datetime(2030, 1, 2, 0, 0))
         md.signed.bump_expiration(timedelta(days=365))
-        self.assertEqual(md.signed.expires, '2031-01-02T00:00:00Z')
+        self.assertEqual(md.signed.expires, datetime(2031, 1, 2, 0, 0))
 
 
     def test_metadata_snapshot(self):
@@ -217,20 +217,20 @@ class TestMetadata(unittest.TestCase):
         timestamp.signed.bump_version()
         self.assertEqual(timestamp.signed.version, 2)
 
-        self.assertEqual(timestamp.signed.expires, '2030-01-01T00:00:00Z')
+        self.assertEqual(timestamp.signed.expires, datetime(2030, 1, 1, 0, 0))
         timestamp.signed.bump_expiration()
-        self.assertEqual(timestamp.signed.expires, '2030-01-02T00:00:00Z')
+        self.assertEqual(timestamp.signed.expires, datetime(2030, 1, 2, 0, 0))
         timestamp.signed.bump_expiration(timedelta(days=365))
-        self.assertEqual(timestamp.signed.expires, '2031-01-02T00:00:00Z')
+        self.assertEqual(timestamp.signed.expires, datetime(2031, 1, 2, 0, 0))
 
         # Test whether dateutil.relativedelta works, this provides a much
         # easier to use interface for callers
         delta = relativedelta(days=1)
         timestamp.signed.bump_expiration(delta)
-        self.assertEqual(timestamp.signed.expires, '2031-01-03T00:00:00Z')
+        self.assertEqual(timestamp.signed.expires, datetime(2031, 1, 3, 0, 0))
         delta = relativedelta(years=5)
         timestamp.signed.bump_expiration(delta)
-        self.assertEqual(timestamp.signed.expires, '2036-01-03T00:00:00Z')
+        self.assertEqual(timestamp.signed.expires, datetime(2036, 1, 3, 0, 0))
 
         hashes = {'sha256': '0ae9664468150a9aa1e7f11feecb32341658eb84292851367fea2da88e8a58dc'}
         fileinfo = timestamp.signed.meta['snapshot.json']
