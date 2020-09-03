@@ -29,7 +29,11 @@ import logging
 import tempfile
 
 from securesystemslib.formats import encode_canonical
-from securesystemslib.util import load_json_file, persist_temp_file
+from securesystemslib.util import (
+    load_json_file,
+    load_json_string,
+    persist_temp_file
+)
 from securesystemslib.storage import StorageBackendInterface
 from securesystemslib.keys import create_signature, verify_signature
 
@@ -76,6 +80,24 @@ class Metadata():
             'signatures': self.signatures,
             'signed': self.signed.to_dict()
         }
+
+    @classmethod
+    def from_json(cls, metadata_json: str) -> 'Metadata':
+        """Loads JSON-formatted TUF metadata from a string.
+
+        Arguments:
+            metadata_json: TUF metadata in JSON-string representation.
+
+        Raises:
+            securesystemslib.exceptions.Error, ValueError, KeyError: The
+                metadata cannot be parsed.
+
+        Returns:
+            A TUF Metadata object.
+
+        """
+        return cls.from_dict(load_json_string(metadata_json))
+
 
     def to_json(self, compact: bool = False) -> None:
         """Returns the optionally compacted JSON representation of self. """

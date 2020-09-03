@@ -88,13 +88,25 @@ class TestMetadata(unittest.TestCase):
                 ('timestamp', Timestamp),
                 ('targets', Targets)]:
 
+            # Load JSON-formatted metdata of each supported type from file
+            # and from out-of-band read JSON string
             path = os.path.join(self.repo_dir, 'metadata', metadata + '.json')
             metadata_obj = Metadata.from_json_file(path)
+            with open(path, 'rb') as f:
+                metadata_str = f.read()
+            metadata_obj2 = Metadata.from_json(metadata_str)
 
-            # Assert that generic method instantiates the right inner class for
-            # each metadata type
+            # Assert that both methods instantiate the right inner class for
+            # each metadata type and ...
             self.assertTrue(
                     isinstance(metadata_obj.signed, inner_metadata_cls))
+            self.assertTrue(
+                    isinstance(metadata_obj2.signed, inner_metadata_cls))
+
+            # ... and return the same object (compared by dict representation)
+            self.assertDictEqual(
+                    metadata_obj.to_dict(), metadata_obj2.to_dict())
+
 
         # Assert that it chokes correctly on an unknown metadata type
         bad_metadata_path = 'bad-metadata.json'
