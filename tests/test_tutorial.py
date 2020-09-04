@@ -350,7 +350,7 @@ class TestTutorial(unittest.TestCase):
     # of calls or rather its call arguments.
     with mock.patch("tuf.repository_tool.logger") as mock_logger:
       repository.targets('unclaimed').delegate_hashed_bins(
-          targets, [public_unclaimed_key], 32)
+          targets, [public_unclaimed_key], 32, prefix='unclaimed.hbd-')
 
       self.assertListEqual([
             "Creating hashed bin delegations.\n"

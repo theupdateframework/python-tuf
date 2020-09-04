@@ -295,7 +295,7 @@ class TestRepository(unittest.TestCase):
     # Test if succinct delegations are written on writeall
     list_of_targets = [target1, target2]
     repository.targets.delegate_hashed_bins(list_of_targets, [role1_pubkey],
-                                            4, True)
+                                            4, True, prefix='targets.hbd-')
     repository.targets.load_signing_key_succinct_delegations(role1_privkey)
     repository.writeall()
 
@@ -1623,7 +1623,7 @@ class TestTargets(unittest.TestCase):
     # Test delegate_hashed_bins() and verify that 16 hashed bins have
     # been delegated in the parent's roleinfo.
     self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
-                                             number_of_bins=16, prefix='bin')
+                                             number_of_bins=16, prefix='bin-')
 
     # The expected child rolenames, since 'number_of_bins' = 16
     delegated_rolenames = ["{}{:x}".format('bin-',
@@ -1635,7 +1635,7 @@ class TestTargets(unittest.TestCase):
 
     # Test delegate_hashed_bins with a custom prefix
     self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
-                                  number_of_bins=4, prefix="pre")
+                                  number_of_bins=4, prefix="pre-")
 
     delegated_rolenames.append("pre-0")
     delegated_rolenames.append("pre-1")
@@ -1646,10 +1646,10 @@ class TestTargets(unittest.TestCase):
                      sorted(delegated_rolenames))
 
     # Test succinct hashed bin delegations
-    self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
-                                            number_of_bins=16, succinct=True)
-
     delegated_rolename = self.targets_object.rolename + '.hbd-'
+
+    self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
+        number_of_bins=16, succinct=True, prefix=delegated_rolename)
 
     # Create a list of hex-suffixed names from "<name>-0" to "<name>-f"
     bin_names = ["{}{:x}".format(delegated_rolename,
@@ -1664,7 +1664,7 @@ class TestTargets(unittest.TestCase):
 
     # Test succinct hashed bin delegation with a custom prefix
     self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
-                            number_of_bins=2, succinct=True, prefix='prefix')
+                            number_of_bins=2, succinct=True, prefix='prefix-')
 
     delegated_rolename = "prefix-"
 

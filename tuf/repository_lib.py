@@ -1109,7 +1109,7 @@ def get_bin_numbers(number_of_bins):
 
 
 
-def find_bin_for_target_hash(target_hash, number_of_bins, prefix):
+def find_bin_for_target_hash(target_hash, number_of_bins, name_prefix):
   """
   <Purpose>
     For a given hashed filename, target_hash, calculate the name of a hashed bin
@@ -1123,7 +1123,7 @@ def find_bin_for_target_hash(target_hash, number_of_bins, prefix):
     number_of_bins:
       The number of hashed_bins in use
 
-    prefix:
+    name_prefix:
       The bin name prefix
 
   <Returns>
@@ -1136,7 +1136,7 @@ def find_bin_for_target_hash(target_hash, number_of_bins, prefix):
 
   low = prefix - (prefix % bin_size)
 
-  return "{pre}{num:0{len}x}".format(pre=prefix, num=int(low/bin_size),
+  return "{pre}{num:0{len}x}".format(pre=name_prefix, num=int(low/bin_size),
       len=prefix_length)
 
 
