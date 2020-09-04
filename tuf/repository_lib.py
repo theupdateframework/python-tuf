@@ -1035,31 +1035,28 @@ def get_metadata_versioninfo(rolename, repository_name):
 
 
 
-def create_bin_name(low, high, prefix_len):
+def create_bin_name(bin_num, bin_num_length, prefix=''):
   """
   <Purpose>
-    Create a string name of a delegated hash bin, where name will be a range of
-    zero-padded (up to prefix_len) strings i.e. for low=00, high=07,
-    prefix_len=3 the returned name would be '000-007'.
+    Create a string name of a delegated hash bin, where name will be
+    prefix-NUM where NUM will be a
+    zero-padded (up to prefix_len) string i.e. for bin_num=0, bin_num_length=2
+    prefix="pre", the name will be pre-00
 
   <Arguments>
-    low:
-      The low end of the prefix range to be binned
+    bin_num:
+      The bin number
 
-    high:
-      The high end of the prefix range to be binned
+    bin_num_length:
+      The length of the bin number, used to determine zero padding
 
-    prefix_len:
-      The length of the prefix range components
+    prefix:
+      The prefix for the bin name
 
   <Returns>
-    A string bin name, with each end of the range zero-padded up to prefix_len
+    A string bin name
   """
-  if low == high:
-    return "{low:0{len}x}".format(low=low, len=prefix_len)
-
-  return "{low:0{len}x}-{high:0{len}x}".format(low=low, high=high,
-      len=prefix_len)
+  return '{pre}{num:0{len}x}'.format(pre=prefix, num=bin_num, len=bin_num_length)
 
 
 
@@ -1112,7 +1109,7 @@ def get_bin_numbers(number_of_bins):
 
 
 
-def find_bin_for_target_hash(target_hash, number_of_bins):
+def find_bin_for_target_hash(target_hash, number_of_bins, prefix):
   """
   <Purpose>
     For a given hashed filename, target_hash, calculate the name of a hashed bin
@@ -1126,6 +1123,9 @@ def find_bin_for_target_hash(target_hash, number_of_bins):
     number_of_bins:
       The number of hashed_bins in use
 
+    prefix:
+      The bin name prefix
+
   <Returns>
     The name of the hashed bin target_hash would be binned into
   """
@@ -1136,7 +1136,8 @@ def find_bin_for_target_hash(target_hash, number_of_bins):
 
   low = prefix - (prefix % bin_size)
 
-  return "{num:0{len}x}".format(num=int(low/bin_size), len=prefix_length)
+  return "{pre}{num:0{len}x}".format(pre=prefix, num=int(low/bin_size),
+      len=prefix_length)
 
 
 

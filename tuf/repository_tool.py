@@ -2588,7 +2588,7 @@ class Targets(Metadata):
 
 
   def delegate_hashed_bins(self, list_of_targets, keys_of_hashed_bins,
-      number_of_bins=DEFAULT_NUM_BINS, succinct=False, prefix=None):
+      number_of_bins=DEFAULT_NUM_BINS, succinct=False, prefix=''):
     """
     <Purpose>
       Distribute a large number of target files over multiple delegated roles
@@ -2663,13 +2663,6 @@ class Targets(Metadata):
     securesystemslib.formats.ANYKEYLIST_SCHEMA.check_match(keys_of_hashed_bins)
     tuf.formats.NUMBINS_SCHEMA.check_match(number_of_bins)
 
-    # determine the prefix for each bin. If one is not provided, use the
-    # default prefix
-    if prefix:
-      name_prefix = prefix + '-'
-    else:
-      name_prefix = self.rolename + '.hbd-'
-
     prefix_length, prefix_count, bin_size = repo_lib.get_bin_numbers(number_of_bins)
 
     logger.info('Creating hashed bin delegations.\n' +
@@ -2685,7 +2678,7 @@ class Targets(Metadata):
     # to be delegated to that bin
     ordered_roles = []
     for idx in range(0, number_of_bins):
-      name = name_prefix + "{num:0{len}x}".format(num=idx, len=prefix_length)
+      name = repo_lib.create_bin_name(idx, prefix_length, prefix)
       if succinct:
       # For succinct hased bin delegations, these metadata files will still
       # be created, but they will not all be listed in the delegation
@@ -2777,7 +2770,7 @@ class Targets(Metadata):
     if succinct:
       # For succinct delegations, each bin is not added, so add a single
       # succinct delegation
-      roleinfo = {'name': name_prefix,
+      roleinfo = {'name': prefix,
                   'keyids': keyids,
                   'threshold': 1,
                   'terminating': False,
@@ -2785,11 +2778,11 @@ class Targets(Metadata):
                   'paths': []}
       delegated_roleinfos.append(roleinfo)
 
-      target = self._create_delegated_target(name_prefix, keyids, 1, [])
+      target = self._create_delegated_target(prefix, keyids, 1, [])
       for key in keys_of_hashed_bins:
         target.add_verification_key(key)
 
-      self.add_delegated_role(name_prefix, target)
+      self.add_delegated_role(prefix, target)
 
 
     self._update_roledb_delegations(keydict, delegated_roleinfos)
@@ -2798,7 +2791,7 @@ class Targets(Metadata):
 
 
   def add_target_to_bin(self, target_filepath, number_of_bins=DEFAULT_NUM_BINS,
-      fileinfo=None, prefix=None):
+      fileinfo=None, prefix=''):
     """
     <Purpose>
       Add the fileinfo of 'target_filepath' to the expected hashed bin, if the
@@ -2824,8 +2817,7 @@ class Targets(Metadata):
         providing full information about the file.
 
       prefix:
-        The filename prefix used for bin names. If None, the default of
-        rolename.hbd-* will be used
+        The filename prefix used for bin names.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError, if 'target_filepath' is
@@ -2852,13 +2844,9 @@ class Targets(Metadata):
 
     # TODO: check target_filepath is sane
 
-    if prefix:
-      bin_name = prefix + '-'
-    else:
-      bin_name = self.rolename + ".hbd-"
-
     path_hash = repo_lib.get_target_hash(target_filepath)
-    bin_name = bin_name + repo_lib.find_bin_for_target_hash(path_hash, number_of_bins)
+    bin_name = repo_lib.find_bin_for_target_hash(path_hash, number_of_bins,
+        prefix)
 
     # Ensure the Targets object has delegated to hashed bins
     if not self._delegated_roles.get(bin_name, None):
@@ -2873,7 +2861,7 @@ class Targets(Metadata):
 
 
   def remove_target_from_bin(self, target_filepath,
-      number_of_bins=DEFAULT_NUM_BINS, prefix=None):
+      number_of_bins=DEFAULT_NUM_BINS, prefix=''):
     """
     <Purpose>
       Remove the fileinfo of 'target_filepath' from the expected hashed bin, if
@@ -2895,8 +2883,7 @@ class Targets(Metadata):
         Note: 'number_of_bins' must be a power of 2.
 
       prefix:
-        The filename prefix used for bin names. If None, the default of
-        rolename.hbd-* will be used
+        The filename prefix used for bin names.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError, if 'target_filepath' is
@@ -2923,13 +2910,9 @@ class Targets(Metadata):
 
     # TODO: check target_filepath is sane?
 
-    if prefix:
-      bin_name = prefix + '-'
-    else:
-      bin_name = self.rolename + '.hbd-'
-
     path_hash = repo_lib.get_target_hash(target_filepath)
-    bin_name = bin_name + repo_lib.find_bin_for_target_hash(path_hash, number_of_bins)
+    bin_name = repo_lib.find_bin_for_target_hash(path_hash, number_of_bins,
+        prefix)
 
     # Ensure the Targets object has delegated to hashed bins
     if not self._delegated_roles.get(bin_name, None):
@@ -3241,8 +3224,7 @@ def load_repository(repository_directory, repository_name='default',
       prefix_len = role['delegation_hash_prefix_len']
       num_bins = 2 ** prefix_len
       for i in range(num_bins):
-        bin_name = "{name}{num:0{len}x}".format(name=role['name'], num=i,
-            len=prefix_len)
+        bin_name = repo_lib.create_bin_name(i, prefix_len, role['name'])
         succinct_role = {'name': bin_name,
                 'keyids': role['keyids'],
                 'threshold': role['threshold'],
