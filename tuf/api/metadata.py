@@ -42,6 +42,7 @@ from securesystemslib.keys import create_signature, verify_signature
 
 import iso8601
 import tuf.formats
+import tuf.exceptions
 
 
 # Types
@@ -240,33 +241,33 @@ class Metadata():
             key: A securesystemslib-style public key object.
 
         Raises:
+            # TODO: Revise exception taxonomy
+            tuf.exceptions.Error: None or multiple signatures found for key.
             securesystemslib.exceptions.FormatError: Key argument is malformed.
             securesystemslib.exceptions.CryptoError, \
                     securesystemslib.exceptions.UnsupportedAlgorithmError:
                 Signing errors.
 
         Returns:
-            A boolean indicating if all identified signatures are valid. False
-            if no signature was found for the keyid or any of the found
-            signatures is invalid.
-
-            FIXME: Is this behavior expected? An alternative approach would be
-            to raise an exception if no signature is found for the keyid,
-            and/or if more than one sigantures are found for the keyid.
+            A boolean indicating if the signature is valid for the passed key.
 
         """
         signatures_for_keyid = list(filter(
                 lambda sig: sig['keyid'] == key['keyid'], self.signatures))
 
         if not signatures_for_keyid:
-            return False
+            raise tuf.exceptions.Error(
+                    f'no signature for key {key["keyid"]}.')
 
-        for signature in signatures_for_keyid:
-            if not verify_signature(
-                    key, signature, self.signed.to_canonical_bytes()):
-                return False
+        elif len(signatures_for_keyid) > 1:
+            raise tuf.exceptions.Error(
+                    f'{len(signatures_for_keyid)} signatures for key '
+                    f'{key["keyid"]}, not sure which one to verify.')
+        else:
+            return verify_signature(
+                    key, signatures_for_keyid[0],
+                    self.signed.to_canonical_bytes())
 
-        return True
 
 
 class Signed:

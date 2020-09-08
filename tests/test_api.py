@@ -27,6 +27,7 @@ def setUpModule():
 
 # Since setUpModule is called after imports we need to import conditionally.
 if IS_PY_VERSION_SUPPORTED:
+    import tuf.exceptions
     from tuf.api.metadata import (
         Metadata,
         Snapshot,
@@ -151,12 +152,9 @@ class TestMetadata(unittest.TestCase):
 
         # ... it has a single existing signature,
         self.assertTrue(len(metadata_obj.signatures) == 1)
-        # ... valid for the correct key, but
+        # ... which is valid for the correct key.
         self.assertTrue(metadata_obj.verify(
                 self.keystore['targets']['public']))
-        # ... invalid for an unrelated key.
-        self.assertFalse(metadata_obj.verify(
-                self.keystore['snapshot']['public']))
 
         # Append a new signature with the unrelated key and assert that ...
         metadata_obj.sign(self.keystore['snapshot']['private'], append=True)
@@ -176,15 +174,20 @@ class TestMetadata(unittest.TestCase):
         self.assertTrue(metadata_obj.verify(
                 self.keystore['timestamp']['public']))
 
-
-        # Update the metadata, invalidating the existing signature, append
-        # a new signature with the same key, and assert that ...
-        metadata_obj.signed.bump_version()
+        # Assert exception if there are more than one signatures for a key
         metadata_obj.sign(self.keystore['timestamp']['private'], append=True)
-        # ... verify returns False, because all signatures identified by a
-        # keyid must be valid
-        self.assertFalse(metadata_obj.verify(
-                self.keystore['timestamp']['public']))
+        with self.assertRaises(tuf.exceptions.Error) as ctx:
+            metadata_obj.verify(self.keystore['timestamp']['public'])
+        self.assertTrue(
+                '2 signatures for key' in str(ctx.exception),
+                str(ctx.exception))
+
+        # Assert exception if there is no signature for a key
+        with self.assertRaises(tuf.exceptions.Error) as ctx:
+            metadata_obj.verify(self.keystore['targets']['public'])
+        self.assertTrue(
+                'no signature for' in str(ctx.exception),
+                str(ctx.exception))
 
 
     def test_metadata_base(self):
