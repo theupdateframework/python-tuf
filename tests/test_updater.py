@@ -83,8 +83,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   @classmethod
   def setUpClass(cls):
-    # setUpClass() is called before tests in an individual class are executed.
-
     # Create a temporary directory to store the repository, metadata, and target
     # files.  'temporary_directory' must be deleted in TearDownModule() so that
     # temporary files are always removed, even when exceptions occur.
@@ -109,9 +107,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   @classmethod
   def tearDownClass(cls):
-    # tearDownModule() is called after all the tests have run.
-    # http://docs.python.org/2/library/unittest.html#class-and-module-fixtures
-
     # Remove the temporary repository directory, which should contain all the
     # metadata, targets, and key files generated for the test cases
     shutil.rmtree(cls.temporary_directory)

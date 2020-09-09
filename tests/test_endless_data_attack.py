@@ -66,8 +66,6 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
 
   @classmethod
   def setUpClass(cls):
-    # setUpClass() is called before any of the test cases are executed.
-
     # Create a temporary directory to store the repository, metadata, and target
     # files.  'temporary_directory' must be deleted in TearDownModule() so that
     # temporary files are always removed, even when exceptions occur.
@@ -86,9 +84,6 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
 
   @classmethod
   def tearDownClass(cls):
-    # tearDownModule() is called after all the test cases have run.
-    # http://docs.python.org/2/library/unittest.html#class-and-module-fixtures
-
     # Remove the temporary repository directory, which should contain all the
     # metadata, targets, and key files generated of all the test cases.
     shutil.rmtree(cls.temporary_directory)

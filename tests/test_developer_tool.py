@@ -55,13 +55,11 @@ class TestProject(unittest.TestCase):
   def setUpClass(cls):
     cls.tmp_dir = tempfile.mkdtemp(dir = os.getcwd())
 
+
   @classmethod
   def tearDownClass(cls):
     shutil.rmtree(cls.tmp_dir)
 
-  def setUp(self):
-    # called before every test case
-    pass
 
   def tearDown(self):
     # called after every test case
