@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.14.0
+### Added
+* Added a mechanism to the Updater to disable the hash prefix for target files
+  even when `consistent_snapshot` is enabled for a repository (#1102)
+
+### Changed
+* Updater now uses keyids provided in the metadata, rather than re-calculating
+  keyids using `keyid_hash_algorithms` (#1014, #1121)
+* When loading an existing repository the keyids provided in the metadata will
+  be used, rather than re-calculating keyids using `keyid_hash_algorithms` (#1014, #1121)
+* Improve reliability and performance of tests by removing sleep calls, instead
+  use polling to check whether the simple_server is ready to accept
+  connections (#1096)
+* Only calculate lengths and hashes of files listed by timestamp and snapshot
+  metadata when those lengths and hashes will be included in the metadata (#1097)
+* Re-raise chained exceptions explicitly per PEP 3134 (#1116)
+* Remove use of `securesystemslib.settings.HASH_ALGORITHMS`, instead pass
+  desired algorithms explicitly to securesystemslib's
+  `keys.format_metadata_to_key` (#1016)
+
+### Fixed
+* Better adhere to the detailed client workflow in the specification by
+  ensuring that a newly downloaded root metadata file is verified with a
+  threshold of its own signatures (#1101)
+* Update a delegating role's metadata when adding a new verification key to a
+  delegated role (#1037)
+
 ## v0.13.0
 ### Added
 * Add support for BLAKE hash functions (#993)
