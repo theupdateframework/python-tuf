@@ -72,17 +72,17 @@ class Metadata():
         self.signed = signed
         self.signatures = signatures
 
-    def as_dict(self) -> JsonDict:
+    def to_dict(self) -> JsonDict:
         """Returns the JSON-serializable dictionary representation of self. """
         return {
             'signatures': self.signatures,
-            'signed': self.signed.as_dict()
+            'signed': self.signed.to_dict()
         }
 
-    def as_json(self, compact: bool = False) -> None:
+    def to_json(self, compact: bool = False) -> None:
         """Returns the optionally compacted JSON representation of self. """
         return json.dumps(
-                self.as_dict(),
+                self.to_dict(),
                 indent=(None if compact else 1),
                 separators=((',', ':') if compact else (',', ': ')),
                 sort_keys=True)
@@ -106,7 +106,7 @@ class Metadata():
             A securesystemslib-style signature object.
 
         """
-        signature = create_signature(key, self.signed.signed_bytes)
+        signature = create_signature(key, self.signed.to_canonical_bytes())
 
         if append:
             self.signatures.append(signature)
@@ -144,14 +144,14 @@ class Metadata():
             return False
 
         for signature in signatures_for_keyid:
-            if not verify_signature(key, signature, self.signed.signed_bytes):
+            if not verify_signature(
+                    key, signature, self.signed.to_canonical_bytes()):
                 return False
 
         return True
 
-
     @classmethod
-    def read_from_json(
+    def from_json_file(
             cls, filename: str,
             storage_backend: Optional[StorageBackendInterface] = None
             ) -> 'Metadata':
@@ -194,7 +194,7 @@ class Metadata():
                 signed=inner_cls(**signable['signed']),
                 signatures=signable['signatures'])
 
-    def write_to_json(
+    def to_json_file(
             self, filename: str, compact: bool = False,
             storage_backend: StorageBackendInterface = None) -> None:
         """Writes the JSON representation of self to file storage.
@@ -212,9 +212,8 @@ class Metadata():
 
         """
         with tempfile.TemporaryFile() as f:
-            f.write(self.as_json(compact).encode('utf-8'))
+            f.write(self.to_json(compact).encode('utf-8'))
             persist_temp_file(f, filename, storage_backend)
-
 
 class Signed:
     """A base class for the signed part of TUF metadata.
@@ -229,7 +228,7 @@ class Signed:
         spec_version: The TUF specification version number (semver) the
             metadata format adheres to.
         expires: The metadata expiration datetime object.
-        signed_bytes: The UTF-8 encoded canonical JSON representation of self.
+
 
     """
     # NOTE: Signed is a stupid name, because this might not be signed yet, but
@@ -260,13 +259,13 @@ class Signed:
             raise ValueError(f'version must be < 0, got {version}')
         self.version = version
 
-    @property
-    def signed_bytes(self) -> bytes:
-        return encode_canonical(self.as_dict()).encode('UTF-8')
 
     @property
     def expires(self) -> str:
         return self.__expiration.isoformat() + 'Z'
+    def to_canonical_bytes(self) -> bytes:
+        """Returns the UTF-8 encoded canonical JSON representation of self. """
+        return encode_canonical(self.to_dict()).encode('UTF-8')
 
     def bump_expiration(self, delta: timedelta = timedelta(days=1)) -> None:
         """Increments the expires attribute by the passed timedelta. """
@@ -276,7 +275,7 @@ class Signed:
         """Increments the metadata version number by 1."""
         self.version += 1
 
-    def as_dict(self) -> JsonDict:
+    def to_dict(self) -> JsonDict:
         """Returns the JSON-serializable dictionary representation of self. """
         return {
             '_type': self._type,
@@ -310,9 +309,9 @@ class Timestamp(Signed):
         # TODO: Is there merit in creating classes for dict fields?
         self.meta = meta
 
-    def as_dict(self) -> JsonDict:
+    def to_dict(self) -> JsonDict:
         """Returns the JSON-serializable dictionary representation of self. """
-        json_dict = super().as_dict()
+        json_dict = super().to_dict()
         json_dict.update({
             'meta': self.meta
         })
@@ -359,9 +358,9 @@ class Snapshot(Signed):
         super().__init__(**kwargs)
         self.meta = meta
 
-    def as_dict(self) -> JsonDict:
+    def to_dict(self) -> JsonDict:
         """Returns the JSON-serializable dictionary representation of self. """
-        json_dict = super().as_dict()
+        json_dict = super().to_dict()
         json_dict.update({
             'meta': self.meta
         })
@@ -444,9 +443,9 @@ class Targets(Signed):
         self.targets = targets
         self.delegations = delegations
 
-    def as_dict(self) -> JsonDict:
+    def to_dict(self) -> JsonDict:
         """Returns the JSON-serializable dictionary representation of self. """
-        json_dict = super().as_dict()
+        json_dict = super().to_dict()
         json_dict.update({
             'targets': self.targets,
             'delegations': self.delegations,
