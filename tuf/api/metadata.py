@@ -22,7 +22,6 @@ from securesystemslib.util import (
 from securesystemslib.storage import StorageBackendInterface
 from securesystemslib.keys import create_signature, verify_signature
 
-import iso8601
 import tuf.formats
 import tuf.exceptions
 
@@ -295,8 +294,9 @@ class Signed:
         # Convert 'expires' TUF metadata string to a datetime object, which is
         # what the constructor expects and what we store. The inverse operation
         # is implemented in 'to_dict'.
-        signed_dict['expires'] = iso8601.parse_date(
-                signed_dict['expires']).replace(tzinfo=None)
+        signed_dict['expires'] = datetime.strptime(
+                signed_dict['expires'],
+                "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=None)
         # NOTE: We write the converted 'expires' back into 'signed_dict' above
         # so that we can pass it to the constructor as  '**signed_dict' below,
         # along with other fields that belong to Signed subclasses.
