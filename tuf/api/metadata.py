@@ -4,24 +4,6 @@ This module provides container classes for TUF role metadata, including methods
 to read/serialize/write from and to JSON, perform TUF-compliant metadata
 updates, and create and verify signatures.
 
-TODO:
- * Validation (some thoughts ...)
-   - Avoid schema, see secure-systems-lab/securesystemslib#183
-   - Provide methods to validate JSON representation (at user boundary)
-   - Fail on bad json metadata in read_from_json method
-   - Be lenient on bad/invalid metadata objects in memory, they might be
-     work in progress. E.g. it might be convenient to create empty metadata
-     and assign attributes later on.
-   - Fail on bad json metadata in write_to_json method, but with option to
-     disable check as there might be a justified reason to write WIP
-     metadata to json.
-
- * Add Root metadata class
-
- * Add classes for other complex metadata attributes, see 'signatures' (in
-   Metadata) 'meta'/'targets' (in Timestamp, Snapshot, Targets), 'delegations'
-   (in Targets), 'keys'/'roles' (in not yet existent 'Delegation'), ...
-
 """
 # Imports
 from datetime import datetime, timedelta
