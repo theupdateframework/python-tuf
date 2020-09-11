@@ -125,7 +125,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
 
   elif rolename == 'snapshot':
-    if (snapshot_merkle):
+    if snapshot_merkle:
       root, leaves, metadata = generate_snapshot_metadata(metadata_directory,
           roleinfo['version'], roleinfo['expires'],
           storage_backend, consistent_snapshot, repository_name,
@@ -134,12 +134,12 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
       # Add the merkle tree root hash to the timestamp roleinfo
       timestamp_roleinfo = tuf.roledb.get_roleinfo('timestamp', repository_name)
-      timestamp_roleinfo['merkle_root'] = root.hash()
+      timestamp_roleinfo['merkle_root'] = root.digest
 
       tuf.roledb.update_roleinfo('timestamp', timestamp_roleinfo,
           repository_name=repository_name)
 
-      write_merkle_paths(root, leaves, storage_backend, metadata_directory)
+      _write_merkle_paths(root, leaves, storage_backend, metadata_directory)
 
     else:
       metadata = generate_snapshot_metadata(metadata_directory,
@@ -1571,22 +1571,17 @@ def _get_hashes_and_length_if_needed(use_length, use_hashes, full_file_path,
 
 class Node(object):
   """
-  Merkle tree node that keeps track of the node hash and the parent node.
+  Merkle tree node that keeps track of the node digest and the parent node.
   """
-  _parent = None
-  _hash = None
+  parent = None
+  digest = None
 
   def __init__(self):
     return
 
-  def parent(self):
-    return self._parent
+  def is_leaf(self):
+    return False
 
-  def set_parent(self, parent):
-    self._parent = parent
-
-  def hash(self):
-    return self._hash
 
 
 
@@ -1594,34 +1589,26 @@ class InternalNode(Node):
   """
   An internal Merkle tree node that keeps track of a left and a right
   child. Upon creation, this node takes in a left and right Node
-  and computes the hash of (left + right). In addition, the constructor
+  and computes the digest of (left + right). In addition, the constructor
   sets the parent node of left and right to this node to allow for
   traversal of the tree.
   """
-  _left = None
-  _right = None
+  left = None
+  right = None
 
   def __init__(self, left, right):
     super(InternalNode, self).__init__()
-    self._left = left
-    self._right = right
+    self.left = left
+    self.right = right
 
-    left.set_parent(self)
-    right.set_parent(self)
+    left.parent = self
+    right.parent = self
     digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
 
-    digest_object.update((left.hash() + right.hash()).encode('utf-8'))
+    digest_object.update((left.digest + right.digest).encode('utf-8'))
 
-    self._hash = digest_object.hexdigest()
+    self.digest = digest_object.hexdigest()
 
-  def left(self):
-    return self._left
-
-  def right(self):
-    return self._right
-
-  def isLeaf(self):
-    return False
 
 
 
@@ -1631,44 +1618,38 @@ class Leaf(Node):
   The name should correspond with a metadata file and the contents should
   contain the snapshot information for that metadata file.
 
-  The constructor takes in a name and contents and computes the hash
-  of the contents. The hash may be provided to save computation time
+  The constructor takes in a name and contents and computes the digest
+  of the contents. The digest may be provided to save computation time
   if it has already been computed.
   """
   # Merkle Tree leaf
-  _contents = None
-  _name = None
+  contents = None
+  name = None
 
-  def __init__(self, name, contents, digest = None):
+  def __init__(self, name, contents, digest=None):
     super(Leaf, self).__init__()
-    # Include the name to ensure the hash differs between elements and cannot be replayed
+    # Include the name to ensure the digest differs between elements and cannot be replayed
     contents["name"] = name
-    self._contents = contents
-    self._name = name
+    self.contents = contents
+    self.name = name
 
     if digest:
-      self._hash = digest
+      self.digest = digest
     else:
       digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
       # Hash the canonical json form of the data to ensure consistency
       json_contents = securesystemslib.formats.encode_canonical(contents)
 
       digest_object.update(json_contents.encode('utf-8'))
-      self._hash = digest_object.hexdigest()
+      self.digest = digest_object.hexdigest()
 
-  def name(self):
-    return self._name
-
-  def contents(self):
-    return self._contents
-
-  def isLeaf(self):
+  def is_leaf(self):
     return True
 
 
 
 
-def build_merkle_tree(fileinfodict):
+def _build_merkle_tree(fileinfodict):
   """
   Create a Merkle tree from the snapshot fileinfo and writes it to individual snapshot files
 
@@ -1719,7 +1700,7 @@ def build_merkle_tree(fileinfodict):
   # this path to the client for verification
   return root, leaves
 
-def write_merkle_paths(root, leaves, storage_backend, merkle_directory):
+def _write_merkle_paths(root, leaves, storage_backend, merkle_directory):
   # The root and leaves must be part of the same fully constructed
   # Merkle tree. Create a path from
   # Each leaf to the root node. This path will be downloaded by
@@ -1734,16 +1715,16 @@ def write_merkle_paths(root, leaves, storage_backend, merkle_directory):
     index = 0
 
     while(current_node != root):
-      next_node = current_node.parent()
+      next_node = current_node.parent
       # TODO: determine left or right upon node creation.
       # This currently determines which sibling to use by
-      # finding the sibling that does not match the current hash.
-      h_left = next_node.left().hash()
-      h_right = next_node.right().hash()
-      if current_node.hash() == h_left:
+      # finding the sibling that does not match the current digest.
+      h_left = next_node.left.digest
+      h_right = next_node.right.digest
+      if current_node.digest == h_left:
         merkle_path[str(index)] = h_right
         path_directions[str(index)] = -1
-      elif current_node.hash() == h_right:
+      elif current_node.digest== h_right:
         merkle_path[str(index)] = h_left
         path_directions[str(index)] = 1
       else:
@@ -1756,7 +1737,7 @@ def write_merkle_paths(root, leaves, storage_backend, merkle_directory):
     # Write the path to the merkle_directory
     file_contents = tuf.formats.build_dict_conforming_to_schema(
         tuf.formats.SNAPSHOT_MERKLE_SCHEMA,
-        leaf_contents=l.contents(),
+        leaf_contents=l.contents,
         merkle_path=merkle_path,
         path_directions=path_directions)
     if storage_backend is None:
@@ -1764,7 +1745,7 @@ def write_merkle_paths(root, leaves, storage_backend, merkle_directory):
     file_content = _get_written_metadata(file_contents)
     file_object = tempfile.TemporaryFile()
     file_object.write(file_content)
-    filename = os.path.join(merkle_directory, l.name() + '-snapshot.json')
+    filename = os.path.join(merkle_directory, l.name + '-snapshot.json')
     storage_backend.put(file_object, filename)
     file_object.close()
 
@@ -1775,12 +1756,12 @@ def _print_merkle_tree(node, level):
   """
   Recursive function used by print_merkle_tree
   """
-  print('--'* level + node.hash())
-  if not node.isLeaf():
-    _print_merkle_tree(node.left(), level + 1)
-    _print_merkle_tree(node.right(), level + 1)
+  print('--'* level + node.digest)
+  if not node.is_leaf():
+    _print_merkle_tree(node.left, level + 1)
+    _print_merkle_tree(node.right, level + 1)
   else:
-    print('--' * (level+1) + node.name())
+    print('--' * (level+1) + node.name)
 
 
 
@@ -1949,7 +1930,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       meta=fileinfodict)
 
   if snapshot_merkle:
-    root, leaves = build_merkle_tree(fileinfodict)
+    root, leaves = _build_merkle_tree(fileinfodict)
     return root, leaves, metadata
   return metadata
 
