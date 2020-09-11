@@ -833,7 +833,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     upperbound_filelength = tuf.settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
     try:
       self.repository_updater._get_metadata_file('timestamp', 'timestamp.json',
-      upperbound_filelength, 1)
+      upperbound_filelength, 1, self.repository_updater.signable_verification)
 
     except tuf.exceptions.NoWorkingMirrorError as e:
       # Note that this test provides a piece of metadata which would fail to
