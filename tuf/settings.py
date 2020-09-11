@@ -74,6 +74,8 @@ DEFAULT_SNAPSHOT_REQUIRED_LENGTH = 2000000 #bytes
 # download Targets metadata.
 DEFAULT_TARGETS_REQUIRED_LENGTH = 5000000 #bytes
 
+MERKLE_FILELENGTH = 10000
+
 # Set a timeout value in seconds (float) for non-blocking socket operations.
 SOCKET_TIMEOUT = 4 #seconds
 

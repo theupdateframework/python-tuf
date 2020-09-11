@@ -1083,7 +1083,8 @@ class Updater(object):
 
     if 'merkle_root' not in self.metadata['current']['timestamp']:
       # If merkle root is set, do not update snapshot metadata. Instead,
-      # download the relevant merkle path when downloading a target.
+      # we will download the relevant merkle path later when downloading
+      # a target.
       self._update_metadata_if_changed('snapshot',
           referenced_metadata='timestamp')
     self._update_metadata_if_changed('targets')
@@ -1630,8 +1631,124 @@ class Updater(object):
 
 
 
-  def _update_metadata(self, metadata_role, upperbound_filelength, version=None,
-      snapshot_merkle=False):
+  def _update_merkle_metadata(self, merkle_filename, upperbound_filelength,
+      version=None):
+    """
+    <Purpose>
+      Non-public method that downloads, verifies, and 'installs' the merkle
+      metadata belonging to 'merkle_filename'.  Calling this method implies
+      that the 'merkle_filename' on the repository is newer than the client's,
+      and thus needs to be re-downloaded.  The current and previous metadata
+      stores are updated if the newly downloaded metadata is successfully
+      downloaded and verified.  This method also assumes that the store of
+      top-level metadata is the latest and exists.
+
+    <Arguments>
+      merkle_filename:
+        The name of the metadata. This is a merkle tree file and should
+        not end in '.json'.  Examples: 'role1-merkle', 'targets-merkle'
+
+      upperbound_filelength:
+        The expected length, or upper bound, of the metadata file to be
+        downloaded.
+
+      version:
+        The expected and required version number of the 'merkle_filename' file
+        downloaded.  'expected_version' is an integer.
+
+    <Exceptions>
+      tuf.exceptions.NoWorkingMirrorError:
+        The metadata cannot be updated. This is not specific to a single
+        failure but rather indicates that all possible ways to update the
+        metadata have been tried and failed.
+
+    <Side Effects>
+      The metadata file belonging to 'merkle_filenaem' is downloaded from a
+      repository mirror.  If the metadata is valid, it is stored in the
+      metadata store.
+
+    <Returns>
+      None.
+    """
+
+    # Construct the metadata filename as expected by the download/mirror
+    # modules.
+    metadata_filename = merkle_filename + '.json'
+
+    # Attempt a file download from each mirror until the file is downloaded and
+    # verified.  If the signature of the downloaded file is valid, proceed,
+    # otherwise log a warning and try the next mirror.  'metadata_file_object'
+    # is the file-like object returned by 'download.py'.  'metadata_signable'
+    # is the object extracted from 'metadata_file_object'.  Metadata saved to
+    # files are regarded as 'signable' objects, conformant to
+    # 'tuf.formats.SIGNABLE_SCHEMA'.
+    #
+    # Some metadata (presently timestamp) will be downloaded "unsafely", in the
+    # sense that we can only estimate its true length and know nothing about
+    # its version.  This is because not all metadata will have other metadata
+    # for it; otherwise we will have an infinite regress of metadata signing
+    # for each other. In this case, we will download the metadata up to the
+    # best length we can get for it, not request a specific version, but
+    # perform the rest of the checks (e.g., signature verification).
+
+    remote_filename = metadata_filename
+    filename_version = ''
+
+    if self.consistent_snapshot and version:
+      filename_version = version
+      dirname, basename = os.path.split(remote_filename)
+      remote_filename = os.path.join(
+          dirname, str(filename_version) + '.' + basename)
+
+    verification_fn = None
+
+    metadata_file_object = \
+      self._get_metadata_file(merkle_filename, remote_filename,
+        upperbound_filelength, version, verification_fn)
+
+    # The metadata has been verified. Move the metadata file into place.
+    # First, move the 'current' metadata file to the 'previous' directory
+    # if it exists.
+    current_filepath = os.path.join(self.metadata_directory['current'],
+                metadata_filename)
+    current_filepath = os.path.abspath(current_filepath)
+    securesystemslib.util.ensure_parent_dir(current_filepath)
+
+    previous_filepath = os.path.join(self.metadata_directory['previous'],
+        metadata_filename)
+    previous_filepath = os.path.abspath(previous_filepath)
+
+    if os.path.exists(current_filepath):
+      # Previous metadata might not exist, say when delegations are added.
+      securesystemslib.util.ensure_parent_dir(previous_filepath)
+      shutil.move(current_filepath, previous_filepath)
+
+    # Next, move the verified updated metadata file to the 'current' directory.
+    metadata_file_object.seek(0)
+    updated_metadata_object = \
+      securesystemslib.util.load_json_string(metadata_file_object.read().decode('utf-8'))
+
+    securesystemslib.util.persist_temp_file(metadata_file_object, current_filepath)
+
+    # Extract the metadata object so we can store it to the metadata store.
+    # 'current_metadata_object' set to 'None' if there is not an object
+    # stored for 'merkle_filename'.
+    current_metadata_object = self.metadata['current'].get(merkle_filename)
+
+    # Finally, update the metadata and fileinfo stores, and rebuild the
+    # key and role info for the top-level roles if 'merkle_filename' is root.
+    # Rebuilding the key and role info is required if the newly-installed
+    # root metadata has revoked keys or updated any top-level role information.
+    logger.debug('Updated ' + repr(current_filepath) + '.')
+    self.metadata['previous'][merkle_filename] = current_metadata_object
+    self.metadata['current'][merkle_filename] = updated_metadata_object
+
+
+
+
+
+
+  def _update_metadata(self, metadata_role, upperbound_filelength, version=None):
     """
     <Purpose>
       Non-public method that downloads, verifies, and 'installs' the metadata
@@ -1654,11 +1771,6 @@ class Updater(object):
       version:
         The expected and required version number of the 'metadata_role' file
         downloaded.  'expected_version' is an integer.
-
-      snapshot_merkle:
-        Is the metadata to be updated for a snapshot merkle file?
-        Snapshot merkle metadata does not contain a signature, but must
-        instead be verified using _verify_merkle_path.
 
     <Exceptions>
       tuf.exceptions.NoWorkingMirrorError:
@@ -1704,9 +1816,7 @@ class Updater(object):
       remote_filename = os.path.join(
           dirname, str(filename_version) + '.' + basename)
 
-    verification_fn = None
-    if not snapshot_merkle:
-      verification_fn = self.signable_verification
+    verification_fn = self.signable_verification
 
     metadata_file_object = \
       self._get_metadata_file(metadata_role, remote_filename,
@@ -1739,11 +1849,7 @@ class Updater(object):
     # Extract the metadata object so we can store it to the metadata store.
     # 'current_metadata_object' set to 'None' if there is not an object
     # stored for 'metadata_role'.
-    if snapshot_merkle:
-      # Snaphot merkle files are not signed
-      updated_metadata_object = metadata_signable
-    else:
-      updated_metadata_object = metadata_signable['signed']
+    updated_metadata_object = metadata_signable['signed']
     current_metadata_object = self.metadata['current'].get(metadata_role)
 
     # Finally, update the metadata and fileinfo stores, and rebuild the
@@ -1753,8 +1859,7 @@ class Updater(object):
     logger.debug('Updated ' + repr(current_filepath) + '.')
     self.metadata['previous'][metadata_role] = current_metadata_object
     self.metadata['current'][metadata_role] = updated_metadata_object
-    if not snapshot_merkle:
-      self._update_versioninfo(metadata_filename)
+    self._update_versioninfo(metadata_filename)
 
 
 
@@ -1770,76 +1875,81 @@ class Updater(object):
     <Exceptions>
       tuf.exceptions.RepositoryError:
         If the snapshot merkle file is invalid or the verification fails
-    Returns the snapshot information about metadata role.
+    <Returns>
+      A dictionary containing the snapshot information about metadata role,
+      conforming to VERSIONINFO_SCHEMA or METADATA_FILEINFO_SCHEMA
     """
     merkle_root = self.metadata['current']['timestamp']['merkle_root']
 
+    metadata_rolename = metadata_role + '-snapshot'
+
     # Download Merkle path
-    self._update_metadata(metadata_role + '-snapshot', 1000, snapshot_merkle=True)
+    upperbound_filelength = tuf.settings.MERKLE_FILELENGTH
+    self._update_merkle_metadata(metadata_rolename, upperbound_filelength)
     metadata_directory = self.metadata_directory['current']
-    metadata_filename = metadata_role + '-snapshot.json'
+    metadata_filename = metadata_rolename + '.json'
     metadata_filepath = os.path.join(metadata_directory, metadata_filename)
+
     # Ensure the metadata path is valid/exists, else ignore the call.
-    if os.path.exists(metadata_filepath):
-      try:
-        snapshot_merkle = securesystemslib.util.load_json_file(
-            metadata_filepath)
-
-      # Although the metadata file may exist locally, it may not
-      # be a valid json file.  On the next refresh cycle, it will be
-      # updated as required.  If Root if cannot be loaded from disk
-      # successfully, an exception should be raised by the caller.
-      except securesystemslib.exceptions.Error:
-        return
-
-      # verify the Merkle path
-      tuf.formats.SNAPSHOT_MERKLE_SCHEMA.check_match(snapshot_merkle)
-
-      # hash the contents to determine the leaf hash in the merkle tree
-      contents = snapshot_merkle['leaf_contents']
-      json_contents = securesystemslib.formats.encode_canonical(contents)
-      digest_object = securesystemslib.hash.digest()
-      digest_object.update((json_contents).encode('utf-8'))
-      node_hash = digest_object.hexdigest()
-
-      # For each hash in the merkle_path, determine if the current node is
-      # a left of a right node using the path_directions, then combine
-      # the hash from merkle_path with the current node_hash to determine
-      # the next node_hash. At the end, the node_hash should match the hash
-      # in merkle_root
-      merkle_path = snapshot_merkle['merkle_path']
-      path_directions = snapshot_merkle['path_directions']
-
-      # If merkle_path and path_directions have different lengths,
-      # the verification will not be possible
-      if len(merkle_path) != len(path_directions):
-        raise tuf.exceptions.RepositoryError('Invalid merkle path for ' +
-            metadata_role)
-
-      for index in range(len(merkle_path)):
-        i = str(index)
-        if path_directions[i] < 0:
-          # The current node is a left node
-          digest_object = securesystemslib.hash.digest()
-          digest_object.update((node_hash + merkle_path[i]).encode('utf-8'))
-        else:
-          # The current node is a right node
-          digest_object = securesystemslib.hash.digest()
-          digest_object.update((merkle_path[i] + node_hash).encode('utf-8'))
-        node_hash = digest_object.hexdigest()
-
-      # Does the result match the merkle root?
-      if node_hash != merkle_root:
-        raise tuf.exceptions.RepositoryError('The merkle root ' + merkle_root +
-            ' does not match the hash ' + node_hash + ' for ' + metadata_role)
-
-      # return the verified snapshot contents
-      return contents
-
-    else:
+    if not os.path.exists(metadata_filepath):
       # No merkle path found
       raise tuf.exceptions.RepositoryError('No snapshot merkle file for ' +
           metadata_role)
+    try:
+      snapshot_merkle = securesystemslib.util.load_json_file(
+          metadata_filepath)
+
+    # Although the metadata file may exist locally, it may not
+    # be a valid json file.  On the next refresh cycle, it will be
+    # updated as required.  If Root if cannot be loaded from disk
+    # successfully, an exception should be raised by the caller.
+    except securesystemslib.exceptions.Error:
+      return
+
+    # verify the Merkle path
+    tuf.formats.SNAPSHOT_MERKLE_SCHEMA.check_match(snapshot_merkle)
+
+    # hash the contents to determine the leaf hash in the merkle tree
+    contents = snapshot_merkle['leaf_contents']
+    json_contents = securesystemslib.formats.encode_canonical(contents)
+    digest_object = securesystemslib.hash.digest()
+    digest_object.update((json_contents).encode('utf-8'))
+    node_hash = digest_object.hexdigest()
+
+    # For each hash in the merkle_path, determine if the current node is
+    # a left of a right node using the path_directions, then combine
+    # the hash from merkle_path with the current node_hash to determine
+    # the next node_hash. At the end, the node_hash should match the hash
+    # in merkle_root
+    merkle_path = snapshot_merkle['merkle_path']
+    path_directions = snapshot_merkle['path_directions']
+
+    # If merkle_path and path_directions have different lengths,
+    # the verification will not be possible
+    if len(merkle_path) != len(path_directions):
+      raise tuf.exceptions.RepositoryError('Invalid merkle path for ' +
+          metadata_role)
+
+    for index in range(len(merkle_path)):
+      i = str(index)
+      if path_directions[i] < 0:
+        # The current node is a left node
+        digest_object = securesystemslib.hash.digest()
+        digest_object.update((node_hash + merkle_path[i]).encode('utf-8'))
+      else:
+        # The current node is a right node
+        digest_object = securesystemslib.hash.digest()
+        digest_object.update((merkle_path[i] + node_hash).encode('utf-8'))
+      node_hash = digest_object.hexdigest()
+
+    # Does the result match the merkle root?
+    if node_hash != merkle_root:
+      raise tuf.exceptions.RepositoryError('The merkle root ' + merkle_root +
+          ' does not match the hash ' + node_hash + ' for ' + metadata_role)
+
+    # return the verified snapshot contents
+    return contents
+
 
 
 
@@ -2511,7 +2621,7 @@ class Updater(object):
     roles_to_update = []
 
     # Add the role if it is listed in snapshot. If snapshot merkle
-    # trees are used, the snaphot check will be done later when
+    # trees are used, the snapshot check will be done later when
     # the merkle tree is verified
     if 'merkle_root' in self.metadata['current']['timestamp'] or rolename + '.json' in self.metadata['current']['snapshot']['meta']:
       roles_to_update.append(rolename)
