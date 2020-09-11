@@ -1654,7 +1654,6 @@ def _build_merkle_tree(fileinfodict):
   # We will build the merkle tree starting with the leaf nodes. Each
   # leaf contains snapshot information for a single metadata file.
   leaves = []
-  nodes = []
   for name, contents in sorted(fileinfodict.items()):
     if name.endswith(".json"):
       name = os.path.splitext(name)[0]
@@ -1680,9 +1679,8 @@ def _build_merkle_tree(fileinfodict):
       # Otherwise, use the next two nodes to build a new node.
       else:
         n = InternalNode(current_nodes[i], current_nodes[i+1])
-        # Add this node to the next level, and to a list of all nodes
+        # Add this node to the next level
         new_nodes.append(n)
-        nodes.append(n)
     current_nodes = new_nodes
 
   # The only node remaining in current_nodes will be the root node.
