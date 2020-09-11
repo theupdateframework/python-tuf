@@ -125,12 +125,13 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
 
   elif rolename == 'snapshot':
+    metadata, fileinfodict = generate_snapshot_metadata(metadata_directory,
+        roleinfo['version'], roleinfo['expires'],
+        storage_backend, consistent_snapshot, repository_name,
+        use_length=use_snapshot_length, use_hashes=use_snapshot_hashes)
+
     if snapshot_merkle:
-      root, leaves, metadata = generate_snapshot_metadata(metadata_directory,
-          roleinfo['version'], roleinfo['expires'],
-          storage_backend, consistent_snapshot, repository_name,
-          use_length=use_snapshot_length, use_hashes=use_snapshot_hashes,
-          snapshot_merkle=True)
+      root, leaves = _build_merkle_tree(fileinfodict)
 
       # Add the merkle tree root hash to the timestamp roleinfo
       timestamp_roleinfo = tuf.roledb.get_roleinfo('timestamp', repository_name)
@@ -140,12 +141,6 @@ def _generate_and_write_metadata(rolename, metadata_filename,
           repository_name=repository_name)
 
       _write_merkle_paths(root, leaves, storage_backend, metadata_directory)
-
-    else:
-      metadata = generate_snapshot_metadata(metadata_directory,
-          roleinfo['version'], roleinfo['expires'],
-          storage_backend, consistent_snapshot, repository_name,
-          use_length=use_snapshot_length, use_hashes=use_snapshot_hashes)
 
 
     _log_warning_if_expires_soon(SNAPSHOT_FILENAME, roleinfo['expires'],
@@ -1707,6 +1702,12 @@ def _write_merkle_paths(root, leaves, storage_backend, merkle_directory):
   # the client and used for verification of the tree. For each
   # step in the path, keep track of both the sibling node and
   # Whether this is a left or a right child.
+
+  # Before writing each leaf, make sure the storage_backend
+  # is instantiated
+  if storage_backend is None:
+    storage_backend = securesystemslib.storage.FilesystemBackend()
+
   for l in leaves:
     merkle_path = {}
     current_node = l
@@ -1740,8 +1741,6 @@ def _write_merkle_paths(root, leaves, storage_backend, merkle_directory):
         leaf_contents=l.contents,
         merkle_path=merkle_path,
         path_directions=path_directions)
-    if storage_backend is None:
-      storage_backend = securesystemslib.storage.FilesystemBackend()
     file_content = _get_written_metadata(file_contents)
     file_object = tempfile.TemporaryFile()
     file_object.write(file_content)
@@ -1778,7 +1777,7 @@ def print_merkle_tree(root):
 
 def generate_snapshot_metadata(metadata_directory, version, expiration_date,
     storage_backend, consistent_snapshot=False,
-    repository_name='default', use_length=False, use_hashes=False, snapshot_merkle=False):
+    repository_name='default', use_length=False, use_hashes=False):
   """
   <Purpose>
     Create the snapshot metadata.  The minimum metadata must exist (i.e.,
@@ -1828,11 +1827,6 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       from rollback attacks.
       Read more at section 5.6 from the Mercury paper:
       https://www.usenix.org/conference/atc17/technical-sessions/presentation/kuppusamy
-
-    snapshot_merkle:
-      Whether to generate snapshot merkle files in addition to snapshot.json
-      metadata. If this is true, this function will return the root and leaves
-      of the merkle tree in addition to the snapshot metadata.
 
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the arguments are improperly
@@ -1929,10 +1923,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       expires=expiration_date,
       meta=fileinfodict)
 
-  if snapshot_merkle:
-    root, leaves = _build_merkle_tree(fileinfodict)
-    return root, leaves, metadata
-  return metadata
+  return metadata, fileinfodict
 
 
 
