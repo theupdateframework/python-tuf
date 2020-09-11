@@ -476,33 +476,33 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     test_nodes = {}
     test_nodes['file1'] = tuf.formats.make_metadata_fileinfo(5, None, None)
 
-    root_1, leaves = repo_lib.build_merkle_tree(test_nodes)
-    repo_lib.write_merkle_paths(root_1, leaves, storage_backend,
+    root_1, leaves = repo_lib._build_merkle_tree(test_nodes)
+    repo_lib._write_merkle_paths(root_1, leaves, storage_backend,
         temporary_directory)
 
     file_path = os.path.join(temporary_directory, 'file1-snapshot.json')
     self.assertTrue(os.path.exists(file_path))
 
     test_nodes['file2'] = tuf.formats.make_metadata_fileinfo(5, None, None)
-    root_2, leaves = repo_lib.build_merkle_tree(test_nodes)
+    root_2, leaves = repo_lib._build_merkle_tree(test_nodes)
 
-    self.assertEqual(root_2.left().hash(), root_1.hash())
+    self.assertEqual(root_2.left.digest, root_1.digest)
 
     test_nodes['file3'] = tuf.formats.make_metadata_fileinfo(5, None, None)
     test_nodes['file4'] = tuf.formats.make_metadata_fileinfo(5, None, None)
 
-    root_3, leaves = repo_lib.build_merkle_tree(test_nodes)
+    root_3, leaves = repo_lib._build_merkle_tree(test_nodes)
 
-    self.assertEqual(root_3.left().hash(), root_2.hash())
+    self.assertEqual(root_3.left.digest, root_2.digest)
 
     test_nodes['file5'] = tuf.formats.make_metadata_fileinfo(5, None, None)
 
-    root_4, leaves = repo_lib.build_merkle_tree(test_nodes)
+    root_4, leaves = repo_lib._build_merkle_tree(test_nodes)
 
-    repo_lib.write_merkle_paths(root_4, leaves, storage_backend,
+    repo_lib._write_merkle_paths(root_4, leaves, storage_backend,
         temporary_directory)
 
-    self.assertEqual(root_4.left().hash(), root_3.hash())
+    self.assertEqual(root_4.left.digest, root_3.digest)
 
     # Ensure that the paths are written to the directory
     file_path = os.path.join(temporary_directory, 'file1-snapshot.json')
@@ -516,7 +516,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     test_nodes['role1'] = tuf.formats.make_metadata_fileinfo(1, None, None)
     test_nodes['role2'] = tuf.formats.make_metadata_fileinfo(1, None, None)
 
-    root, leaves = repo_lib.build_merkle_tree(test_nodes)
+    root, leaves = repo_lib._build_merkle_tree(test_nodes)
 
 
 
@@ -566,7 +566,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       repo_lib.generate_snapshot_metadata(metadata_directory, version,
                                           expiration_date,
                                           storage_backend,
-                                          consistent_snapshot=False)
+                                          consistent_snapshot=False)[0]
     self.assertTrue(tuf.formats.SNAPSHOT_SCHEMA.matches(snapshot_metadata))
 
 
@@ -595,7 +595,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                           expiration_date,
                                           storage_backend,
                                           consistent_snapshot=False,
-                                          use_length=True)
+                                          use_length=True)[0]
     self.assertTrue(tuf.formats.SNAPSHOT_SCHEMA.matches(snapshot_metadata))
 
     metadata_files_info_dict = snapshot_metadata['meta']
@@ -610,7 +610,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       # In the repository, the file "role_file.xml" have been added to make
       # sure that non-json files aren't loaded. This file should be filtered.
       if stripped_filename.endswith('.json'):
-        if stripped_filename not in TOP_LEVEL_METADATA_FILES:
+        if stripped_filename not in TOP_LEVEL_METADATA_FILES and \
+            not stripped_filename.endswith('-snapshot.json'):
           # Check that length is not calculated but hashes is
           self.assertIn('length', metadata_files_info_dict[stripped_filename])
           self.assertNotIn('hashes', metadata_files_info_dict[stripped_filename])
@@ -626,7 +627,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                           expiration_date,
                                           storage_backend,
                                           consistent_snapshot=False,
-                                          use_hashes=True)
+                                          use_hashes=True)[0]
     self.assertTrue(tuf.formats.SNAPSHOT_SCHEMA.matches(snapshot_metadata))
 
     metadata_files_info_dict = snapshot_metadata['meta']
@@ -641,7 +642,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       # In the repository, the file "role_file.xml" have been added to make
       # sure that non-json files aren't loaded. This file should be filtered.
       if stripped_filename.endswith('.json'):
-        if stripped_filename not in TOP_LEVEL_METADATA_FILES:
+        if stripped_filename not in TOP_LEVEL_METADATA_FILES and \
+            not stripped_filename.endswith('-snapshot.json'):
           # Check that hashes is not calculated but length is
           self.assertNotIn('length', metadata_files_info_dict[stripped_filename])
           self.assertIn('hashes', metadata_files_info_dict[stripped_filename])
@@ -658,7 +660,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                           storage_backend,
                                           consistent_snapshot=False,
                                           use_length=True,
-                                          use_hashes=True)
+                                          use_hashes=True)[0]
     self.assertTrue(tuf.formats.SNAPSHOT_SCHEMA.matches(snapshot_metadata))
 
     metadata_files_info_dict = snapshot_metadata['meta']
@@ -673,7 +675,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       # In the repository, the file "role_file.xml" have been added to make
       # sure that non-json files aren't loaded. This file should be filtered.
       if stripped_filename.endswith('.json'):
-        if stripped_filename not in TOP_LEVEL_METADATA_FILES:
+        if stripped_filename not in TOP_LEVEL_METADATA_FILES and \
+            not stripped_filename.endswith('-snapshot.json'):
           # Check that both length and hashes are not are not calculated
           self.assertIn('length', metadata_files_info_dict[stripped_filename])
           self.assertIn('hashes', metadata_files_info_dict[stripped_filename])
