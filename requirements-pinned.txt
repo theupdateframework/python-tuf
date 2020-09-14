@@ -6,7 +6,7 @@ cryptography==3.1         # via securesystemslib
 enum34==1.1.6             ; python_version < '3' # via cryptography
 idna==2.10                 # via requests
 ipaddress==1.0.23         ; python_version < '3' # via cryptography
-iso8601==0.1.12
+iso8601==0.1.13
 pycparser==2.20           # via cffi
 pynacl==1.4.0             # via securesystemslib
 python-dateutil==2.8.1    # via securesystemslib
