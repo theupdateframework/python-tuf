@@ -52,7 +52,7 @@ except NameError:
 # but the current blocking connect() seems to work fast on Linux and seems
 # to at least work on Windows (ECONNREFUSED unfortunately has a 2 second
 # timeout on Windows)
-def wait_for_server(host, port, timeout=10):
+def wait_for_server(host, server, port, timeout=10):
   start = time.time()
   remaining_timeout = timeout
   succeeded = False
@@ -77,7 +77,8 @@ def wait_for_server(host, port, timeout=10):
       remaining_timeout = timeout - (time.time() - start)
 
   if not succeeded:
-    raise TimeoutError
+    raise TimeoutError("Could not connect to the " + server \
+        + " on port " + str(port) + " !")
 
 
 def configure_test_logging(argv):
@@ -167,10 +168,8 @@ class TestServerProcess():
 
     if timeout > 0:
       try:
-        wait_for_server('localhost', self.port, timeout)
+        wait_for_server('localhost', self.server, self.port, timeout)
       except Exception as e:
-        self.__logger.error(
-            "Error while waiting for the server to start: " + repr(e))
         # Make sure that errors from the server side will be logged.
         self.flush_log()
         raise e
