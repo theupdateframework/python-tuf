@@ -960,8 +960,8 @@ class Updater(object):
           pass
 
         except (securesystemslib.exceptions.FormatError, securesystemslib.exceptions.Error):
-          logger.exception('Invalid key for keyid: ' + repr(keyid) + '.')
-          logger.error('Aborting role delegation for parent role ' + parent_role + '.')
+          logger.warning('Invalid key: ' + repr(keyid) + '. Aborting role ' +
+              'delegation for parent role \'' + parent_role + '\'.')
           raise
 
       else:
@@ -981,7 +981,7 @@ class Updater(object):
         logger.warning('Role already exists: ' + rolename)
 
       except Exception:
-        logger.exception('Failed to add delegated role: ' + repr(rolename) + '.')
+        logger.warning('Failed to add delegated role: ' + repr(rolename) + '.')
         raise
 
 
@@ -1142,12 +1142,10 @@ class Updater(object):
           # Otherwise, reraise the error, because it is not a simple HTTP
           # error.
           if neither_403_nor_404(mirror_error):
-            logger.exception('Misc error for root version '+str(next_version))
+            logger.info('Misc error for root version ' + str(next_version))
             raise
           else:
-            # Calling this function should give us a detailed stack trace
-            # including an HTTP error code, if any.
-            logger.exception('HTTP error for root version '+str(next_version))
+            logger.debug('HTTP error for root version ' + str(next_version))
         # If we are here, then we ran into only 403 / 404 errors, which are
         # good reasons to suspect that the next root metadata file does not
         # exist.
@@ -1635,7 +1633,7 @@ class Updater(object):
 
       except Exception as exception:
         # Remember the error from this mirror, and "reset" the target file.
-        logger.exception('Update failed from ' + file_mirror + '.')
+        logger.debug('Update failed from ' + file_mirror + '.')
         file_mirror_errors[file_mirror] = exception
         file_object = None
 
@@ -1646,7 +1644,7 @@ class Updater(object):
       return file_object
 
     else:
-      logger.error('Failed to update ' + repr(remote_filename) + ' from all'
+      logger.debug('Failed to update ' + repr(remote_filename) + ' from all'
         ' mirrors: ' + repr(file_mirror_errors))
       raise tuf.exceptions.NoWorkingMirrorError(file_mirror_errors)
 
@@ -1725,7 +1723,7 @@ class Updater(object):
 
       except Exception as exception:
         # Remember the error from this mirror, and "reset" the target file.
-        logger.exception('Update failed from ' + file_mirror + '.')
+        logger.debug('Update failed from ' + file_mirror + '.')
         file_mirror_errors[file_mirror] = exception
         file_object = None
 
@@ -1736,7 +1734,7 @@ class Updater(object):
       return file_object
 
     else:
-      logger.error('Failed to update ' + repr(filepath) + ' from'
+      logger.debug('Failed to update ' + repr(filepath) + ' from'
           ' all mirrors: ' + repr(file_mirror_errors))
       raise tuf.exceptions.NoWorkingMirrorError(file_mirror_errors)
 
@@ -1988,7 +1986,7 @@ class Updater(object):
       # need to, but we need to check the trust implications of the current
       # implementation.
       self._delete_metadata(metadata_role)
-      logger.error('Metadata for ' + repr(metadata_role) + ' cannot'
+      logger.warning('Metadata for ' + repr(metadata_role) + ' cannot'
           ' be updated.')
       raise
 
@@ -2404,8 +2402,6 @@ class Updater(object):
     if expires_timestamp < current_time:
       message = 'Metadata '+repr(metadata_rolename)+' expired on ' + \
         expires_datetime.ctime() + ' (UTC).'
-      logger.error(message)
-
       raise tuf.exceptions.ExpiredMetadataError(message)
 
 
@@ -2755,7 +2751,6 @@ class Updater(object):
 
     # Raise an exception if the target information could not be retrieved.
     if target is None:
-      logger.error(repr(target_filepath) + ' not found.')
       raise tuf.exceptions.UnknownTargetError(repr(target_filepath) + ' not'
           ' found.')
 
@@ -3111,7 +3106,7 @@ class Updater(object):
                     ' removed.')
 
                 else:
-                  logger.error(str(e))
+                  logger.warning('Failed to remove obsolete target: ' + str(e) )
 
             else:
               logger.debug('Skipping: ' + repr(target) + '.  It is still'
