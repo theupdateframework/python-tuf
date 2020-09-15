@@ -37,6 +37,7 @@ import json
 import shutil
 import unittest
 import copy
+import sys
 
 import tuf
 import tuf.formats
@@ -48,6 +49,8 @@ import tuf.settings
 
 import tuf.repository_lib as repo_lib
 import tuf.repository_tool as repo_tool
+
+import utils
 
 import securesystemslib
 import securesystemslib.exceptions
@@ -1057,4 +1060,5 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 # Run the test cases.
 if __name__ == '__main__':
+  utils.configure_test_logging(sys.argv)
   unittest.main()

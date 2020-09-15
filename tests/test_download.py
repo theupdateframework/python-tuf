@@ -391,4 +391,5 @@ def popen_python(command_arg_list):
 
 # Run unit test.
 if __name__ == '__main__':
+  utils.configure_test_logging(sys.argv)
   unittest.main()

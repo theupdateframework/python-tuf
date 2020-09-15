@@ -17,6 +17,8 @@ import unittest
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
+import utils
+
 # TODO: Remove case handling when fully dropping support for versions >= 3.6
 IS_PY_VERSION_SUPPORTED = sys.version_info >= (3, 6)
 
@@ -258,4 +260,5 @@ class TestMetadata(unittest.TestCase):
 
 # Run unit test.
 if __name__ == '__main__':
+    utils.configure_test_logging(sys.argv)
     unittest.main()

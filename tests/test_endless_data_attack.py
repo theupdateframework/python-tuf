@@ -47,6 +47,7 @@ import json
 import subprocess
 import logging
 import unittest
+import sys
 
 import tuf
 import tuf.formats
@@ -290,4 +291,5 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
 
 
 if __name__ == '__main__':
+  utils.configure_test_logging(sys.argv)
   unittest.main()

@@ -32,6 +32,7 @@ from __future__ import unicode_literals
 import unittest
 import logging
 import copy
+import sys
 
 import tuf
 import tuf.log
@@ -40,6 +41,8 @@ import tuf.keydb
 import tuf.roledb
 import tuf.sig
 import tuf.exceptions
+
+import utils
 
 import securesystemslib
 import securesystemslib.keys
@@ -547,4 +550,5 @@ class TestSig(unittest.TestCase):
 
 # Run unit test.
 if __name__ == '__main__':
+  utils.configure_test_logging(sys.argv)
   unittest.main()

@@ -52,6 +52,7 @@ import shutil
 import subprocess
 import logging
 import unittest
+import sys
 
 import tuf.log
 import tuf.client.updater as updater
@@ -59,6 +60,8 @@ import tuf.unittest_toolbox as unittest_toolbox
 import tuf.repository_tool as repo_tool
 import tuf.roledb
 import tuf.keydb
+
+import utils
 
 import six
 
@@ -322,4 +325,5 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
 
 
 if __name__ == '__main__':
+  utils.configure_test_logging(sys.argv)
   unittest.main()

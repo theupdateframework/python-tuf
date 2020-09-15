@@ -58,6 +58,7 @@ import logging
 import random
 import subprocess
 import errno
+import sys
 import unittest
 
 import tuf
@@ -2178,4 +2179,5 @@ def _load_role_keys(keystore_directory):
 
 
 if __name__ == '__main__':
+  utils.configure_test_logging(sys.argv)
   unittest.main()

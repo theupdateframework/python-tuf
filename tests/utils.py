@@ -20,10 +20,13 @@
   Provide common utilities for TUF tests
 """
 
+import argparse
 import errno
 import logging
 import socket
 import time
+
+import tuf.log
 
 logger = logging.getLogger(__name__)
 
@@ -74,3 +77,23 @@ def wait_for_server(host, port, timeout=10):
     raise TimeoutError
 
 
+def configure_test_logging(argv):
+  # parse arguments but only handle '-v': argv may contain 
+  # other things meant for unittest argument parser
+  parser = argparse.ArgumentParser(add_help=False)
+  parser.add_argument('-v', '--verbose', action='count', default=0)
+  args, _ = parser.parse_known_args(argv)
+  
+  if args.verbose <= 1:
+    # 0 and 1 both mean ERROR: this way '-v' makes unittest print test
+    # names without increasing log level
+    loglevel = logging.ERROR
+  elif args.verbose == 2:
+    loglevel = logging.WARNING
+  elif args.verbose == 3:
+    loglevel = logging.INFO
+  else:
+    loglevel = logging.DEBUG
+
+  logging.basicConfig()
+  tuf.log.set_log_level(loglevel)

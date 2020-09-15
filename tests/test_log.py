@@ -24,6 +24,7 @@ import logging
 import unittest
 import os
 import shutil
+import sys
 
 import tuf
 import tuf.log
@@ -31,6 +32,8 @@ import tuf.settings
 
 import securesystemslib
 import securesystemslib.util
+
+import utils
 
 from six.moves import reload_module
 
@@ -46,10 +49,15 @@ log_levels = [logging.CRITICAL, logging.ERROR, logging.WARNING,
 
 class TestLog(unittest.TestCase):
 
+  def setUp(self):
+    # store the current log level so it can be restored after the test
+    self._initial_level = logging.getLogger('tuf').level
 
   def tearDown(self):
     tuf.log.remove_console_handler()
     tuf.log.disable_file_logging()
+    logging.getLogger('tuf').level = self._initial_level
+
 
 
 
@@ -198,4 +206,5 @@ class TestLog(unittest.TestCase):
 
 # Run unit test.
 if __name__ == '__main__':
+  utils.configure_test_logging(sys.argv)
   unittest.main()

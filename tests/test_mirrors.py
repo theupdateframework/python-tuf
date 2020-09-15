@@ -29,9 +29,12 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import unittest
+import sys
 
 import tuf.mirrors as mirrors
 import tuf.unittest_toolbox as unittest_toolbox
+
+import utils
 
 import securesystemslib
 import securesystemslib.util
@@ -111,4 +114,5 @@ class TestMirrors(unittest_toolbox.Modified_TestCase):
 
 # Run the unittests
 if __name__ == '__main__':
+  utils.configure_test_logging(sys.argv)
   unittest.main()

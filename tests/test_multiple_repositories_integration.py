@@ -37,6 +37,7 @@ import logging
 import shutil
 import unittest
 import json
+import sys
 
 import tuf
 import tuf.log
@@ -301,4 +302,5 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
 
 
 if __name__ == '__main__':
+  utils.configure_test_logging(sys.argv)
   unittest.main()
