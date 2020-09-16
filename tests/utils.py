@@ -95,5 +95,5 @@ def configure_test_logging(argv):
   else:
     loglevel = logging.DEBUG
 
-  logging.basicConfig()
+  logging.basicConfig(level=loglevel)
   tuf.log.set_log_level(loglevel)
