@@ -403,8 +403,8 @@ PROJECT_CFG_SCHEMA = SCHEMA.Object(
 MIRROR_SCHEMA = SCHEMA.Object(
   object_name = 'MIRROR_SCHEMA',
   url_prefix = securesystemslib.formats.URL_SCHEMA,
-  metadata_path = RELPATH_SCHEMA,
-  targets_path = RELPATH_SCHEMA,
+  metadata_path = SCHEMA.Optional(RELPATH_SCHEMA),
+  targets_path = SCHEMA.Optional(RELPATH_SCHEMA),
   confined_target_dirs = RELPATHS_SCHEMA,
   custom = SCHEMA.Optional(SCHEMA.Object()))
 
