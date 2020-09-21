@@ -693,6 +693,11 @@ class Updater(object):
         If there is an error with the updater's repository files, such
         as a missing 'root.json' file.
 
+    tuf.exceptions.Error:
+      If the targets map file cannot be loaded. This may be due to a
+      securesystemslib.exceptions.Error if the targets map filename
+      cannot be parsed, or and IOError in the case of runtime exceptions.
+
     <Side Effects>
       Th metadata files (e.g., 'root.json', 'targets.json') for the top- level
       roles are read from disk and stored in dictionaries.  In addition, the
