@@ -248,14 +248,10 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
 
     # Get the requests.Response object for this URL.
     #
-    # Always stream to control how requests are downloaded:
-    # http://docs.python-requests.org/en/master/user/advanced/#body-content-workflow
-    #
+    # Defer downloading the response body with stream=True.
     # Always set the timeout. This timeout value is interpreted by requests as:
     #  - connect timeout (max delay before first byte is received)
     #  - read (gap) timeout (max delay between bytes received)
-    # These are NOT overall/total, wall-clock timeouts for any single read.
-    # http://docs.python-requests.org/en/master/user/advanced/#timeouts
     with session.get(url, stream=True,
         timeout=tuf.settings.SOCKET_TIMEOUT) as response:
 
