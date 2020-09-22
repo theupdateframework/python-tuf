@@ -1627,12 +1627,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_10__hard_check_file_length(self):
     # Test for exception if file object is not equal to trusted file length.
-    temp_file_object = tempfile.TemporaryFile()
-    temp_file_object.write(b'X')
-    temp_file_object.seek(0)
-    self.assertRaises(tuf.exceptions.DownloadLengthMismatchError,
-                     self.repository_updater._hard_check_file_length,
-                     temp_file_object, 10)
+    with tempfile.TemporaryFile() as temp_file_object:
+      temp_file_object.write(b'X')
+      temp_file_object.seek(0)
+      self.assertRaises(tuf.exceptions.DownloadLengthMismatchError,
+                      self.repository_updater._hard_check_file_length,
+                      temp_file_object, 10)
 
 
 
@@ -1640,19 +1640,19 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_10__soft_check_file_length(self):
     # Test for exception if file object is not equal to trusted file length.
-    temp_file_object = tempfile.TemporaryFile()
-    temp_file_object.write(b'XXX')
-    temp_file_object.seek(0)
-    self.assertRaises(tuf.exceptions.DownloadLengthMismatchError,
-                     self.repository_updater._soft_check_file_length,
-                     temp_file_object, 1)
+    with tempfile.TemporaryFile() as temp_file_object:
+      temp_file_object.write(b'XXX')
+      temp_file_object.seek(0)
+      self.assertRaises(tuf.exceptions.DownloadLengthMismatchError,
+                      self.repository_updater._soft_check_file_length,
+                      temp_file_object, 1)
 
-    # Verify that an exception is not raised if the file length <= the observed
-    # file length.
-    temp_file_object.seek(0)
-    self.repository_updater._soft_check_file_length(temp_file_object, 3)
-    temp_file_object.seek(0)
-    self.repository_updater._soft_check_file_length(temp_file_object, 4)
+      # Verify that an exception is not raised if the file length <= the observed
+      # file length.
+      temp_file_object.seek(0)
+      self.repository_updater._soft_check_file_length(temp_file_object, 3)
+      temp_file_object.seek(0)
+      self.repository_updater._soft_check_file_length(temp_file_object, 4)
 
 
 
@@ -1763,14 +1763,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_11__verify_metadata_file(self):
     # Test for invalid metadata content.
-    metadata_file_object = tempfile.TemporaryFile()
-    metadata_file_object.write(b'X')
-    metadata_file_object.seek(0)
+    with tempfile.TemporaryFile() as metadata_file_object:
+      metadata_file_object.write(b'X')
+      metadata_file_object.seek(0)
 
-    self.assertRaises(tuf.exceptions.InvalidMetadataJSONError,
-        self.repository_updater._verify_metadata_file,
-        metadata_file_object, 'root')
-
+      self.assertRaises(tuf.exceptions.InvalidMetadataJSONError,
+          self.repository_updater._verify_metadata_file,
+          metadata_file_object, 'root')
 
 
   def test_12__get_file(self):
@@ -1788,10 +1787,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.repository_updater._check_hashes(targets_path, file_hashes)
 
     self.repository_updater._get_file('targets.json', verify_target_file,
-        file_type, file_size, download_safely=True)
+        file_type, file_size, download_safely=True).close()
 
     self.repository_updater._get_file('targets.json', verify_target_file,
-        file_type, file_size, download_safely=False)
+        file_type, file_size, download_safely=False).close()
 
   def test_13__targets_of_role(self):
     # Test case where a list of targets is given.  By default, the 'targets'

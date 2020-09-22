@@ -248,27 +248,20 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
 
     # Get the requests.Response object for this URL.
     #
-    # Always stream to control how requests are downloaded:
-    # http://docs.python-requests.org/en/master/user/advanced/#body-content-workflow
-    #
-    # We will always manually close Responses, so no need for a context
-    # manager.
-    #
+    # Defer downloading the response body with stream=True.
     # Always set the timeout. This timeout value is interpreted by requests as:
     #  - connect timeout (max delay before first byte is received)
     #  - read (gap) timeout (max delay between bytes received)
-    # These are NOT overall/total, wall-clock timeouts for any single read.
-    # http://docs.python-requests.org/en/master/user/advanced/#timeouts
-    response = session.get(
-        url, stream=True, timeout=tuf.settings.SOCKET_TIMEOUT)
+    with session.get(url, stream=True,
+        timeout=tuf.settings.SOCKET_TIMEOUT) as response:
 
-    # Check response status.
-    response.raise_for_status()
+      # Check response status.
+      response.raise_for_status()
 
-    # Download the contents of the URL, up to the required length, to a
-    # temporary file, and get the total number of downloaded bytes.
-    total_downloaded, average_download_speed = \
-      _download_fixed_amount_of_data(response, temp_file, required_length)
+      # Download the contents of the URL, up to the required length, to a
+      # temporary file, and get the total number of downloaded bytes.
+      total_downloaded, average_download_speed = \
+        _download_fixed_amount_of_data(response, temp_file, required_length)
 
     # Does the total number of downloaded bytes match the required length?
     _check_downloaded_length(total_downloaded, required_length,
@@ -382,16 +375,8 @@ def _download_fixed_amount_of_data(response, temp_file, required_length):
         break
 
   except urllib3.exceptions.ReadTimeoutError as e:
-    # Whatever happens, make sure that we always close the connection.
-    response.close()
     raise tuf.exceptions.SlowRetrievalError(str(e))
 
-  except:
-    # Whatever happens, make sure that we always close the connection.
-    response.close()
-    raise
-
-  response.close()
   return number_of_bytes_received, average_download_speed
 
 

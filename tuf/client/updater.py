@@ -1637,7 +1637,9 @@ class Updater(object):
         # Remember the error from this mirror, and "reset" the target file.
         logger.exception('Update failed from ' + file_mirror + '.')
         file_mirror_errors[file_mirror] = exception
-        file_object = None
+        if file_object:
+          file_object.close()
+          file_object = None
 
       else:
         break
@@ -3281,15 +3283,9 @@ class Updater(object):
     trusted_length = target['fileinfo']['length']
     trusted_hashes = target['fileinfo']['hashes']
 
-    # '_get_target_file()' checks every mirror and returns the first target
-    # that passes verification.
-    target_file_object = self._get_target_file(target_filepath, trusted_length,
-        trusted_hashes, prefix_filename_with_hash)
-
-    # We acquired a target file object from a mirror.  Move the file into place
-    # (i.e., locally to 'destination_directory').  Note: join() discards
-    # 'destination_directory' if 'target_path' contains a leading path
-    # separator (i.e., is treated as an absolute path).
+    # Build absolute 'destination' file path.
+    # Note: join() discards 'destination_directory' if 'target_path' contains
+    # a leading path separator (i.e., is treated as an absolute path).
     destination = os.path.join(destination_directory,
         target_filepath.lstrip(os.sep))
     destination = os.path.abspath(destination)
@@ -3309,5 +3305,10 @@ class Updater(object):
 
       else:
         raise
+
+    # '_get_target_file()' checks every mirror and returns the first target
+    # that passes verification.
+    target_file_object = self._get_target_file(target_filepath, trusted_length,
+        trusted_hashes, prefix_filename_with_hash)
 
     securesystemslib.util.persist_temp_file(target_file_object, destination)
