@@ -30,6 +30,7 @@ import logging
 import tempfile
 import shutil
 import unittest
+import sys
 
 import tuf
 import tuf.log
@@ -38,6 +39,8 @@ import tuf.exceptions
 import tuf.roledb
 import tuf.keydb
 import tuf.repository_tool as repo_tool
+
+import utils
 
 import securesystemslib
 import securesystemslib.storage
@@ -227,4 +230,5 @@ class TestRepository(unittest.TestCase):
 
 
 if __name__ == '__main__':
+  utils.configure_test_logging(sys.argv)
   unittest.main()

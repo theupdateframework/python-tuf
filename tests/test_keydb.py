@@ -30,6 +30,7 @@ from __future__ import unicode_literals
 
 import unittest
 import logging
+import sys
 
 import tuf
 import tuf.formats
@@ -37,6 +38,8 @@ import securesystemslib.keys
 import securesystemslib.settings
 import tuf.keydb
 import tuf.log
+
+import utils
 
 logger = logging.getLogger(__name__)
 
@@ -408,4 +411,5 @@ class TestKeydb(unittest.TestCase):
 
 # Run unit test.
 if __name__ == '__main__':
+  utils.configure_test_logging(sys.argv)
   unittest.main()

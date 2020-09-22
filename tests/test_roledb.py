@@ -30,12 +30,15 @@ from __future__ import unicode_literals
 
 import unittest
 import logging
+import sys
 
 import tuf
 import tuf.formats
 import tuf.roledb
 import tuf.exceptions
 import tuf.log
+
+import utils
 
 import securesystemslib
 import securesystemslib.keys
@@ -788,4 +791,5 @@ def tearDownModule():
 
 # Run the unit tests.
 if __name__ == '__main__':
+  utils.configure_test_logging(sys.argv)
   unittest.main()

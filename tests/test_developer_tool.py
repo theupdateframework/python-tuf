@@ -26,6 +26,7 @@ import unittest
 import logging
 import tempfile
 import shutil
+import sys
 
 import tuf
 import tuf.log
@@ -39,6 +40,8 @@ import securesystemslib.exceptions
 
 from tuf.developer_tool import METADATA_DIRECTORY_NAME
 from tuf.developer_tool import TARGETS_DIRECTORY_NAME
+
+import utils
 
 logger = logging.getLogger(__name__)
 
@@ -423,4 +426,5 @@ class TestProject(unittest.TestCase):
 
 
 if __name__ == '__main__':
+  utils.configure_test_logging(sys.argv)
   unittest.main()

@@ -35,17 +35,19 @@ import unittest
 import logging
 import tempfile
 import shutil
+import sys
 
 import tuf
 import tuf.log
 import tuf.formats
 import tuf.roledb
 import tuf.keydb
-
 import tuf.repository_tool as repo_tool
-import securesystemslib.exceptions
+
+import utils
 
 import securesystemslib
+import securesystemslib.exceptions
 import securesystemslib.storage
 
 logger = logging.getLogger(__name__)
@@ -2194,4 +2196,5 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 # Run the test cases.
 if __name__ == '__main__':
+  utils.configure_test_logging(sys.argv)
   unittest.main()

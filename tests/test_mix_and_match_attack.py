@@ -45,6 +45,7 @@ import shutil
 import subprocess
 import logging
 import unittest
+import sys
 
 import tuf.exceptions
 import tuf.log
@@ -255,4 +256,5 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
 
 
 if __name__ == '__main__':
+  utils.configure_test_logging(sys.argv)
   unittest.main()

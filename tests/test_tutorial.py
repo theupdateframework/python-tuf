@@ -44,6 +44,8 @@ else:
 
 from tuf.repository_tool import *   # part of TUTORIAL.md
 
+import utils
+
 import securesystemslib.exceptions
 
 from securesystemslib.formats import encode_canonical # part of TUTORIAL.md
@@ -416,4 +418,5 @@ class TestTutorial(unittest.TestCase):
 
 # Run unit test.
 if __name__ == '__main__':
+  utils.configure_test_logging(sys.argv)
   unittest.main()

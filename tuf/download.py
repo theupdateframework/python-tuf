@@ -271,7 +271,7 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
   except Exception:
     # Close 'temp_file'.  Any written data is lost.
     temp_file.close()
-    logger.exception('Could not download URL: ' + repr(url))
+    logger.debug('Could not download URL: ' + repr(url))
     raise
 
   else:
@@ -435,7 +435,7 @@ def _check_downloaded_length(total_downloaded, required_length,
     # What we downloaded is not equal to the required length, but did we ask
     # for strict checking of required length?
     if STRICT_REQUIRED_LENGTH:
-      logger.error('Downloaded ' + str(total_downloaded) + ' bytes, but'
+      logger.info('Downloaded ' + str(total_downloaded) + ' bytes, but'
         ' expected ' + str(required_length) + ' bytes. There is a difference'
         ' of ' + str(difference_in_bytes) + ' bytes.')
 

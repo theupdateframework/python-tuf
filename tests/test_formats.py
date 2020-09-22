@@ -30,9 +30,12 @@ from __future__ import unicode_literals
 
 import unittest
 import datetime
+import sys
 
 import tuf
 import tuf.formats
+
+import utils
 
 import securesystemslib
 import six
@@ -968,4 +971,5 @@ class TestFormats(unittest.TestCase):
 
 # Run unit test.
 if __name__ == '__main__':
+  utils.configure_test_logging(sys.argv)
   unittest.main()

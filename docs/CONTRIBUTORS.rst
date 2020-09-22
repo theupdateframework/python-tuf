@@ -116,6 +116,14 @@ dependencies must already be installed (see above).
     $ cd tests
     $ python aggregate_tests.py
 
+Individual tests can also be executed. Optional '-v' flags can be added to
+increase log level up to DEBUG ('-vvvv').
+::
+
+    $ python test_updater.py # run a specific test file
+    $ python test_updater.py TestUpdater.test_4_refresh # run a specific test
+    $ python test_updater.py -vvvv TestUpdater.test_4_refresh # run test with DEBUG log level
+
 
 To run the tests and measure their code coverage, the aggregation script can be
 invoked with the ``coverage`` tool (requires installation of ``coverage``, e.g.
