@@ -1039,9 +1039,9 @@ def create_bin_name(bin_num, bin_num_length, prefix=''):
   """
   <Purpose>
     Create a string name of a delegated hash bin, where name will be
-    prefix-NUM where NUM will be a
+    prefixNUM where NUM will be a
     zero-padded (up to prefix_len) string i.e. for bin_num=0, bin_num_length=2
-    prefix="pre", the name will be pre-00
+    prefix="pre-", the name will be pre-00
 
   <Arguments>
     bin_num:

@@ -2414,8 +2414,9 @@ class Targets(Metadata):
         hashed bin delegations.  Targets may be located and stored in hashed
         bins by calculating the target path's hash prefix.
 
-      succinct:
-        If the delegation is to bins using succinct hashed bin delegations.
+      succinct_hash_delegations:
+        The number of bins for succinct_hash_delegations. If this
+        is None, the delegation will not use succinct_hash_delegations.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError, if any of the arguments are
