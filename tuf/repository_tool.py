@@ -1813,7 +1813,7 @@ class Targets(Metadata):
 
     # Ensure the private portion of the key is available, otherwise signatures
     # cannot be generated when the metadata file is written to disk.
-    if 'private' not in key['keyval'] or not len(key['keyval']['private']):
+    if not key['keyval'].get('private'):
       raise securesystemslib.exceptions.Error('This is not a private key.')
 
     # Has the key, with the private portion included, been added to the keydb?
@@ -1881,17 +1881,10 @@ class Targets(Metadata):
           ' not a Targets object.')
 
     if succinct:
-      if rolename in self._succinct_delegations:
-        logger.debug(repr(rolename) + ' already exists.')
-      else:
-        self._succinct_delegations[rolename] = targets_object
+      self._succinct_delegations[rolename] = targets_object
 
     else:
-      if rolename in self._delegated_roles:
-        logger.debug(repr(rolename) + ' already exists.')
-
-      else:
-        self._delegated_roles[rolename] = targets_object
+      self._delegated_roles[rolename] = targets_object
 
 
 
@@ -2685,10 +2678,7 @@ class Targets(Metadata):
       # be created, but they will not all be listed in the delegation
         role = {"name":name,
             "keyids": keyids,
-            "threshold": 1,
-            "terminating": False,
             "target_paths": []}
-        ordered_roles.append(role)
       else:
         target_hash_prefixes = []
         for idy in range((idx*prefix_count), (idx*prefix_count)+bin_size):
@@ -2749,14 +2739,6 @@ class Targets(Metadata):
                     'terminating': False,
                     'path_hash_prefixes': bin_role['target_hash_prefixes']}
         delegated_roleinfos.append(roleinfo)
-      else:
-        roleinfo = {'name': bin_role['name'],
-                    'keyids': keyids,
-                    'signing_keyids': [],
-                    'version':1,
-                    'threshold': 1,
-                    'terminating': False,
-                    'paths': []}
 
       # Add the new delegation to the top-level 'targets' role object (i.e.,
       # 'repository.targets()').
