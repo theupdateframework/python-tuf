@@ -2985,7 +2985,8 @@ class Updater(object):
 
       bin_num = (prefix - (prefix % bin_size)) / bin_size
 
-      bin_name = child_role_name + "{num:0{len}x}".format(num=int(bin_num), len=prefix_length)
+      bin_name = "{role_name}{num:0{len}x}".format(
+          role_name=child_role_name, num=int(bin_num), len=prefix_length)
       return bin_name
 
     elif child_role_path_hash_prefixes is not None:
