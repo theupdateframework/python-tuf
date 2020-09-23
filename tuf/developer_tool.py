@@ -855,7 +855,12 @@ def load_project(project_directory, prefix='', new_targets_location=None,
   targets_metadata_path = os.path.join(project_directory, metadata_directory,
       project_filename)
   signable = securesystemslib.util.load_json_file(targets_metadata_path)
-  tuf.formats.check_signable_object_format(signable)
+  try:
+    tuf.formats.check_signable_object_format(signable)
+  except tuf.exceptions.UnsignedMetadataError:
+    # Downgrade the error to a warning because a use case exists where
+    # metadata may be generated unsigned on one machine and signed on another.
+    logger.warning('Unsigned metadata object: ' + repr(signable))
   targets_metadata = signable['signed']
 
   # Remove the prefix from the metadata.
