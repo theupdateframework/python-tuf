@@ -125,6 +125,26 @@ increase log level up to DEBUG ('-vvvv').
     $ python test_updater.py -vvvv TestUpdater.test_4_refresh # run test with DEBUG log level
 
 
+All of the log levels and the corresponding options that could be used for testing are:
+
+.. list-table::
+   :widths: 20 25
+   :header-rows: 1
+
+   * - Option
+     - Log Level
+   * - default (no argument passed)
+     - ERROR (test names are not printed)
+   * - `-v`
+     - ERROR (test names are printed at this level and above)
+   * - `-vv`
+     - WARNING
+   * - `-vvv`
+     - INFO
+   * - `-vvvv`
+     - DEBUG
+
+
 To run the tests and measure their code coverage, the aggregation script can be
 invoked with the ``coverage`` tool (requires installation of ``coverage``, e.g.
 via PyPI).
