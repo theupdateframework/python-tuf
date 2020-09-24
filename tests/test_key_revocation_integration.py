@@ -83,12 +83,13 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
 
   @classmethod
   def tearDownClass(cls):
+    # Kills the server subprocess and closes the temp file used for logging.
+    cls.server_process_handler.clean()
+
     # Remove the temporary repository directory, which should contain all the
     # metadata, targets, and key files generated for the test cases.
     shutil.rmtree(cls.temporary_directory)
 
-    # Kills the server subprocess and closes the temp file used for logging.
-    cls.server_process_handler.clean()
 
 
 
