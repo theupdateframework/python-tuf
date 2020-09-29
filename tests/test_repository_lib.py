@@ -470,6 +470,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
   def test_build_merkle_tree(self):
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     storage_backend = securesystemslib.storage.FilesystemBackend()
+    version = 1
 
     # Test building the tree one node at a time to verify the hashes
 
@@ -478,9 +479,12 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     root_1, leaves = repo_lib._build_merkle_tree(test_nodes)
     repo_lib._write_merkle_paths(root_1, leaves, storage_backend,
-        temporary_directory)
+        temporary_directory, version)
 
     file_path = os.path.join(temporary_directory, 'file1-snapshot.json')
+    self.assertTrue(os.path.exists(file_path))
+
+    file_path = os.path.join(temporary_directory, '1.file1-snapshot.json')
     self.assertTrue(os.path.exists(file_path))
 
     test_nodes['file2'] = tuf.formats.make_metadata_fileinfo(5, None, None)
@@ -500,13 +504,15 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     root_4, leaves = repo_lib._build_merkle_tree(test_nodes)
 
     repo_lib._write_merkle_paths(root_4, leaves, storage_backend,
-        temporary_directory)
+        temporary_directory, version + 1)
 
     self.assertEqual(root_4.left.digest, root_3.digest)
 
     # Ensure that the paths are written to the directory
     file_path = os.path.join(temporary_directory, 'file1-snapshot.json')
+    self.assertTrue(os.path.exists(file_path))
 
+    file_path = os.path.join(temporary_directory, '2.file1-snapshot.json')
     self.assertTrue(os.path.exists(file_path))
 
     # repo_lib.print_merkle_tree(root_4)

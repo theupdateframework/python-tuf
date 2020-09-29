@@ -140,7 +140,6 @@ def _generate_and_write_metadata(rolename, metadata_filename,
       tuf.roledb.update_roleinfo('timestamp', timestamp_roleinfo,
           repository_name=repository_name)
 
-      _write_merkle_paths(root, leaves, storage_backend, metadata_directory)
 
 
     _log_warning_if_expires_soon(SNAPSHOT_FILENAME, roleinfo['expires'],
@@ -200,6 +199,9 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
   else:
     logger.debug('Not incrementing ' + repr(rolename) + '\'s version number.')
+
+  if rolename == 'snapshot' and snapshot_merkle:
+    _write_merkle_paths(root, leaves, storage_backend, metadata_directory, metadata['version'])
 
   if rolename in tuf.roledb.TOP_LEVEL_ROLES and not allow_partially_signed:
     # Verify that the top-level 'rolename' is fully signed.  Only a delegated
@@ -1693,7 +1695,7 @@ def _build_merkle_tree(fileinfodict):
   # this path to the client for verification
   return root, leaves
 
-def _write_merkle_paths(root, leaves, storage_backend, merkle_directory):
+def _write_merkle_paths(root, leaves, storage_backend, merkle_directory, version):
   # The root and leaves must be part of the same fully constructed
   # Merkle tree. Create a path from
   # Each leaf to the root node. This path will be downloaded by
@@ -1743,6 +1745,13 @@ def _write_merkle_paths(root, leaves, storage_backend, merkle_directory):
     file_object = tempfile.TemporaryFile()
     file_object.write(file_content)
     filename = os.path.join(merkle_directory, l.name + '-snapshot.json')
+
+    # Also write with consistent snapshots for auditing and client verification
+    consistent_filename = os.path.join(merkle_directory, str(version) + '.'
+        + l.name + '-snapshot.json')
+    securesystemslib.util.persist_temp_file(file_object, consistent_filename,
+        should_close=False)
+
     storage_backend.put(file_object, filename)
     file_object.close()
 
