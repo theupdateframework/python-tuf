@@ -32,10 +32,6 @@ A number of older releases were packaged by Vladimir V Diaz:
 
 In no particular order...
 
-- [ ] Provide protection against a class of slow retrieval attacks using long
-inter-byte delays, without sacrificing the use of clean, modern,
-production-quality HTTP libraries (requests currently).
-
 - [ ] Support ASN.1 metadata: loading, writing, signing, and verification.
 
 - [x] [CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1351) badge.
