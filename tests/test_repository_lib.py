@@ -70,9 +70,6 @@ TOP_LEVEL_METADATA_FILES = ['root.json', 'targets.json', 'timestamp.json',
 class TestRepositoryToolFunctions(unittest.TestCase):
   @classmethod
   def setUpClass(cls):
-
-    # setUpClass() is called before tests in an individual class are executed.
-
     # Create a temporary directory to store the repository, metadata, and target
     # files.  'temporary_directory' must be deleted in TearDownClass() so that
     # temporary files are always removed, even when exceptions occur.
@@ -84,10 +81,6 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
   @classmethod
   def tearDownClass(cls):
-
-    # tearDownModule() is called after all the tests have run.
-    # http://docs.python.org/2/library/unittest.html#class-and-module-fixtures
-
     # Remove the temporary repository directory, which should contain all the
     # metadata, targets, and key files generated for the test cases.
     tuf.roledb.clear_roledb(clear_all=True)

@@ -48,20 +48,11 @@ PORT = 0
 keyfile = os.path.join('ssl_certs', 'ssl_cert.key')
 certfile = os.path.join('ssl_certs', 'ssl_cert.crt')
 
-def _generate_random_port():
-  return random.randint(30000, 45000)
-
 if len(sys.argv) > 1:
-  try:
-    PORT = int(sys.argv[1])
-    if PORT < 30000 or PORT > 45000:
-      raise ValueError
-
-  except ValueError:
-    PORT = _generate_random_port()
+  PORT = int(sys.argv[1])
 
 else:
-  PORT = _generate_random_port()
+  PORT = random.randint(30000, 45000)
 
 if len(sys.argv) > 2:
 

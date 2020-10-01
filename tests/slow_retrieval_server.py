@@ -85,12 +85,6 @@ class Handler(six.moves.BaseHTTPServer.BaseHTTPRequestHandler):
 
 
 
-def get_random_port():
-  port = random.randint(30000, 45000)
-  return port
-
-
-
 def run(port, test_mode):
   server_address = ('localhost', port)
   httpd = HTTPServer_Test(server_address, Handler, test_mode)
