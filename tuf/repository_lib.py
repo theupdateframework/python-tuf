@@ -505,7 +505,13 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
   try:
     # Initialize the key and role metadata of the top-level roles.
     signable = securesystemslib.util.load_json_file(root_filename)
-    tuf.formats.check_signable_object_format(signable)
+    try:
+      tuf.formats.check_signable_object_format(signable)
+    except tuf.exceptions.UnsignedMetadataError:
+      # Downgrade the error to a warning because a use case exists where
+      # metadata may be generated unsigned on one machine and signed on another.
+      logger.warning('Unsigned metadata object: ' + repr(signable))
+
     root_metadata = signable['signed']
     tuf.keydb.create_keydb_from_root_metadata(root_metadata, repository_name)
     tuf.roledb.create_roledb_from_root_metadata(root_metadata, repository_name)
@@ -586,7 +592,13 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
 
   try:
     signable = securesystemslib.util.load_json_file(snapshot_filename)
-    tuf.formats.check_signable_object_format(signable)
+    try:
+      tuf.formats.check_signable_object_format(signable)
+    except tuf.exceptions.UnsignedMetadataError:
+      # Downgrade the error to a warning because a use case exists where
+      # metadata may be generated unsigned on one machine and signed on another.
+      logger.warning('Unsigned metadata object: ' + repr(signable))
+
     snapshot_metadata = signable['signed']
 
     for signature in signable['signatures']:
@@ -622,7 +634,13 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
 
   try:
     signable = securesystemslib.util.load_json_file(targets_filename)
-    tuf.formats.check_signable_object_format(signable)
+    try:
+      tuf.formats.check_signable_object_format(signable)
+    except tuf.exceptions.UnsignedMetadataError:
+      # Downgrade the error to a warning because a use case exists where
+      # metadata may be generated unsigned on one machine and signed on another.
+      logger.warning('Unsigned metadata object: ' + repr(signable))
+
     targets_metadata = signable['signed']
 
     for signature in signable['signatures']:
@@ -1862,7 +1880,13 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
 
   # Raise 'securesystemslib.exceptions.FormatError' if the resulting 'signable'
   # is not formatted correctly.
-  tuf.formats.check_signable_object_format(signable)
+  try:
+    tuf.formats.check_signable_object_format(signable)
+  except tuf.exceptions.UnsignedMetadataError:
+    # Downgrade the error to a warning because a use case exists where
+    # metadata may be generated unsigned on one machine and signed on another.
+    logger.warning('Unsigned metadata object: ' + repr(signable))
+
 
   return signable
 

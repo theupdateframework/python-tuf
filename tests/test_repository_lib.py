@@ -885,6 +885,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # (specifically 'snapshot') and keys to be available in 'tuf.roledb'.
     tuf.roledb.create_roledb_from_root_metadata(root_signable['signed'],
         repository_name)
+    tuf.keydb.create_keydb_from_root_metadata(root_signable['signed'],
+        repository_name)
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     targets_directory = os.path.join(temporary_directory, 'targets')
     os.mkdir(targets_directory)
@@ -897,6 +899,14 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     securesystemslib.util.ensure_parent_dir(obsolete_metadata)
     shutil.copyfile(targets_metadata, obsolete_metadata)
 
+    keystore_path = os.path.join('repository_data', 'keystore')
+    targets_private_keypath = os.path.join(keystore_path, 'targets_key')
+    targets_private_key = repo_lib.import_ed25519_privatekey_from_file(targets_private_keypath,
+        'password')
+    tuf.keydb.remove_key(targets_private_key['keyid'],
+        repository_name=repository_name)
+    tuf.keydb.add_key(targets_private_key, repository_name=repository_name)
+
     # Verify that obsolete metadata (a metadata file exists on disk, but the
     # role is unavailable in 'tuf.roledb').  First add the obsolete
     # role to 'tuf.roledb' so that its metadata file can be written to disk.
@@ -906,6 +916,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       tuf.formats.unix_timestamp_to_datetime(int(time.time() + 86400))
     expiration = expiration.isoformat() + 'Z'
     targets_roleinfo['expires'] = expiration
+    targets_roleinfo['signing_keyids'] = targets_roleinfo['keyids']
     tuf.roledb.add_role('obsolete_role', targets_roleinfo,
         repository_name=repository_name)
 
@@ -1004,6 +1015,16 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     roleinfo['version'] = 1
     tuf.roledb.add_role('role1', roleinfo, repository_name)
 
+    keystore_path = os.path.join('repository_data', 'keystore')
+    root_privkey_path = os.path.join(keystore_path, 'root_key')
+    targets_privkey_path = os.path.join(keystore_path, 'targets_key')
+    snapshot_privkey_path = os.path.join(keystore_path, 'snapshot_key')
+    timestamp_privkey_path = os.path.join(keystore_path, 'timestamp_key')
+
+    repository.root.load_signing_key(repo_lib.import_rsa_privatekey_from_file(root_privkey_path, 'password'))
+    repository.targets.load_signing_key(repo_lib.import_ed25519_privatekey_from_file(targets_privkey_path, 'password'))
+    repository.snapshot.load_signing_key(repo_lib.import_ed25519_privatekey_from_file(snapshot_privkey_path, 'password'))
+    repository.timestamp.load_signing_key(repo_lib.import_ed25519_privatekey_from_file(timestamp_privkey_path, 'password'))
 
     # Partially write all top-level roles (we increase the threshold of each
     # top-level role so that they are flagged as partially written.
@@ -1011,7 +1032,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     repository.snapshot.threshold = repository.snapshot.threshold + 1
     repository.targets.threshold = repository.targets.threshold + 1
     repository.timestamp.threshold = repository.timestamp.threshold + 1
-    repository.write('root', )
+    repository.write('root')
     repository.write('snapshot')
     repository.write('targets')
     repository.write('timestamp')

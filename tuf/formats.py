@@ -938,6 +938,9 @@ def check_signable_object_format(signable):
     securesystemslib.exceptions.FormatError, if 'signable' does not have the
     correct format.
 
+    tuf.exceptions.UnsignedMetadataError, if 'signable' does not have any
+    signatures
+
   <Side Effects>
     None.
 
@@ -964,6 +967,10 @@ def check_signable_object_format(signable):
   except KeyError as error:
     six.raise_from(securesystemslib.exceptions.FormatError(
         'Unrecognized type ' + repr(role_type)), error)
+
+  if not signable['signatures']:
+    raise tuf.exceptions.UnsignedMetadataError('Signable object of type ' +
+        repr(role_type) + ' has no signatures ', signable)
 
   # 'securesystemslib.exceptions.FormatError' raised if 'signable' does not
   # have a properly formatted role schema.
