@@ -261,6 +261,12 @@ class TestFormats(unittest.TestCase):
          'confined_target_dirs': ['path1/', 'path2/'],
          'custom': {'type': 'mirror'}}),
 
+      'MIRROR_SCHEMA_NO_CONFINED_TARGETS': (tuf.formats.MIRROR_SCHEMA,
+        {'url_prefix': 'http://localhost:8001',
+         'metadata_path': 'metadata/',
+         'targets_path': 'targets/',
+         'custom': {'type': 'mirror'}}),
+
       'MIRRORDICT_SCHEMA': (tuf.formats.MIRRORDICT_SCHEMA,
         {'mirror1': {'url_prefix': 'http://localhost:8001',
          'metadata_path': 'metadata/',

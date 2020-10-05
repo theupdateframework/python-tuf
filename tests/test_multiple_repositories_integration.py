@@ -151,13 +151,11 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
 
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
-                                           'targets_path': 'targets',
-                                           'confined_target_dirs': ['']}}
+                                           'targets_path': 'targets'}}
 
     self.repository_mirrors2 = {'mirror1': {'url_prefix': url_prefix2,
                                            'metadata_path': 'metadata',
-                                           'targets_path': 'targets',
-                                           'confined_target_dirs': ['']}}
+                                           'targets_path': 'targets'}}
 
     # Create the repository instances.  The test cases will use these client
     # updaters to refresh metadata, fetch target files, etc.

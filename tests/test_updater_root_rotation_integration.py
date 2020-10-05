@@ -149,8 +149,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
-                                           'targets_path': 'targets',
-                                           'confined_target_dirs': ['']}}
+                                           'targets_path': 'targets'}}
 
     # Creating a repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.

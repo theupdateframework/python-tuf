@@ -117,8 +117,7 @@ def update_client(parsed_arguments):
   # Set the repository mirrors.  This dictionary is needed by the Updater
   # class of updater.py.
   repository_mirrors = {'mirror': {'url_prefix': parsed_arguments.repo,
-      'metadata_path': 'metadata', 'targets_path': 'targets',
-      'confined_target_dirs': ['']}}
+      'metadata_path': 'metadata', 'targets_path': 'targets'}}
 
   # Create the repository object using the repository name 'repository'
   # and the repository mirrors defined above.

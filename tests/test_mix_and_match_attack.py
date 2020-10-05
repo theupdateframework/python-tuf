@@ -140,8 +140,7 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
     tuf.settings.repositories_directory = self.client_directory
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
-                                           'targets_path': 'targets',
-                                           'confined_target_dirs': ['']}}
+                                           'targets_path': 'targets'}}
 
     # Create the repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.

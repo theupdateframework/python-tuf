@@ -50,8 +50,7 @@ class TestMirrors(unittest_toolbox.Modified_TestCase):
     self.mirrors = \
     {'mirror1': {'url_prefix' : 'http://mirror1.com',
                  'metadata_path' : 'metadata',
-                 'targets_path' : 'targets',
-                 'confined_target_dirs' : ['']},
+                 'targets_path' : 'targets'},
      'mirror2': {'url_prefix' : 'http://mirror2.com',
                  'metadata_path' : 'metadata',
                  'targets_path' : 'targets',
