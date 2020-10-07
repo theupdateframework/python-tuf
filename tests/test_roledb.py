@@ -33,9 +33,6 @@ import logging
 import sys
 
 import tuf
-import tuf.formats
-import tuf.roledb
-import tuf.exceptions
 import tuf.log
 
 import utils

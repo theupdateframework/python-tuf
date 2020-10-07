@@ -48,11 +48,9 @@ import unittest
 import sys
 
 import tuf
-import tuf.formats
 import tuf.log
-import tuf.client.updater as updater
-import tuf.unittest_toolbox as unittest_toolbox
-import tuf.roledb
+from tuf.client import updater
+from tuf import unittest_toolbox
 
 import utils
 

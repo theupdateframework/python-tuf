@@ -41,10 +41,9 @@ import unittest
 import sys
 
 import tuf
-import tuf.download as download
 import tuf.log
-import tuf.unittest_toolbox as unittest_toolbox
-import tuf.exceptions
+from tuf import download
+from tuf import unittest_toolbox
 
 import utils
 

@@ -36,11 +36,6 @@ import sys
 
 import tuf
 import tuf.log
-import tuf.formats
-import tuf.keydb
-import tuf.roledb
-import tuf.sig
-import tuf.exceptions
 
 import utils
 

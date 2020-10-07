@@ -34,11 +34,7 @@ import sys
 
 import tuf
 import tuf.log
-import tuf.formats
-import tuf.exceptions
-import tuf.roledb
-import tuf.keydb
-import tuf.repository_tool as repo_tool
+from tuf import repository_tool as repo_tool
 
 import utils
 

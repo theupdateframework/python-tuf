@@ -28,7 +28,6 @@ import sys
 
 import tuf
 import tuf.log
-import tuf.settings
 
 import securesystemslib
 import securesystemslib.util

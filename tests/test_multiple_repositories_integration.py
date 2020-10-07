@@ -40,11 +40,9 @@ import sys
 
 import tuf
 import tuf.log
-import tuf.roledb
-import tuf.client.updater as updater
-import tuf.settings
-import tuf.unittest_toolbox as unittest_toolbox
-import tuf.repository_tool as repo_tool
+from tuf.client import updater
+from tuf import unittest_toolbox
+from tuf import repository_tool as repo_tool
 
 import utils
 

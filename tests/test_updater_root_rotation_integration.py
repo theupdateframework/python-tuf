@@ -51,13 +51,9 @@ import sys
 
 import tuf
 import tuf.log
-import tuf.keydb
-import tuf.roledb
-import tuf.exceptions
-import tuf.repository_tool as repo_tool
-import tuf.unittest_toolbox as unittest_toolbox
-import tuf.client.updater as updater
-import tuf.settings
+from tuf import repository_tool as repo_tool
+from tuf import unittest_toolbox
+from tuf.client import updater
 
 import utils
 

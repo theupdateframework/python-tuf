@@ -37,7 +37,7 @@ import tempfile
 import sys
 
 if sys.version_info >= (3, 3):
-  import unittest.mock as mock
+  from unittest import mock
 
 else:
   import mock

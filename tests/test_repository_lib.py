@@ -40,15 +40,9 @@ import copy
 import sys
 
 import tuf
-import tuf.formats
 import tuf.log
-import tuf.formats
-import tuf.roledb
-import tuf.keydb
-import tuf.settings
-
-import tuf.repository_lib as repo_lib
-import tuf.repository_tool as repo_tool
+from tuf import repository_lib as repo_lib
+from tuf import repository_tool as repo_tool
 
 import utils
 

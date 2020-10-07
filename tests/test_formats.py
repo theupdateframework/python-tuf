@@ -34,7 +34,6 @@ import sys
 import os
 
 import tuf
-import tuf.formats
 
 import utils
 

@@ -31,8 +31,8 @@ from __future__ import unicode_literals
 import unittest
 import sys
 
-import tuf.mirrors as mirrors
-import tuf.unittest_toolbox as unittest_toolbox
+from tuf import mirrors
+from tuf import unittest_toolbox
 
 import utils
 

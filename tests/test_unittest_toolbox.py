@@ -33,7 +33,7 @@ import logging
 import shutil
 import sys
 
-import tuf.unittest_toolbox as unittest_toolbox
+from tuf import unittest_toolbox
 
 import utils
 

@@ -30,10 +30,7 @@ import sys
 
 import tuf
 import tuf.log
-import tuf.roledb
-import tuf.keydb
-import tuf.developer_tool as developer_tool
-import tuf.exceptions
+from tuf import developer_tool
 
 import securesystemslib
 import securesystemslib.exceptions

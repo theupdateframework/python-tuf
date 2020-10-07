@@ -29,7 +29,7 @@ def setUpModule():
 
 # Since setUpModule is called after imports we need to import conditionally.
 if IS_PY_VERSION_SUPPORTED:
-    import tuf.exceptions
+    import tuf
     from tuf.api.metadata import (
         Metadata,
         Snapshot,

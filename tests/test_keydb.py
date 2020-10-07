@@ -33,11 +33,8 @@ import logging
 import sys
 
 import tuf
-import tuf.formats
 import securesystemslib.keys
 import securesystemslib.settings
-import tuf.keydb
-import tuf.log
 
 import utils
 
