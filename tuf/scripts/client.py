@@ -72,8 +72,7 @@ import argparse
 import logging
 
 import tuf
-import tuf.client.updater
-import tuf.settings
+from tuf import client
 import tuf.log
 
 # See 'log.py' to learn how logging is handled in TUF.
@@ -122,7 +121,7 @@ def update_client(parsed_arguments):
 
   # Create the repository object using the repository name 'repository'
   # and the repository mirrors defined above.
-  updater = tuf.client.updater.Updater('tufrepo', repository_mirrors)
+  updater = client.updater.Updater('tufrepo', repository_mirrors)
 
   # The local destination directory to save the target files.
   destination_directory = './tuftargets'

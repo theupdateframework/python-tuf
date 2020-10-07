@@ -39,13 +39,8 @@ import tempfile
 import json
 
 import tuf
-import tuf.formats
-import tuf.keydb
-import tuf.roledb
-import tuf.sig
 import tuf.log
-import tuf.repository_lib as repo_lib
-import tuf.repository_tool
+from tuf import repository_lib as repo_lib
 
 import securesystemslib
 import securesystemslib.util

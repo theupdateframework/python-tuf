@@ -33,7 +33,6 @@ from __future__ import unicode_literals
 import os
 
 import tuf
-import tuf.formats
 
 import securesystemslib
 import six

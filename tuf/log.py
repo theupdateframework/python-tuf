@@ -73,8 +73,6 @@ import logging
 import time
 
 import tuf
-import tuf.settings
-import tuf.exceptions
 
 import securesystemslib.formats
 

@@ -44,7 +44,7 @@ from __future__ import unicode_literals
 import logging
 import copy
 
-import tuf.formats
+import tuf
 
 import six
 import securesystemslib

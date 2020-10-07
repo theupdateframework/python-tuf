@@ -22,8 +22,7 @@ from securesystemslib.util import (
 from securesystemslib.storage import StorageBackendInterface
 from securesystemslib.keys import create_signature, verify_signature
 
-import tuf.formats
-import tuf.exceptions
+import tuf
 
 
 # Types

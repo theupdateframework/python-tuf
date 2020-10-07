@@ -43,9 +43,6 @@ import securesystemslib
 import securesystemslib.util
 import six
 
-import tuf.exceptions
-import tuf.formats
-
 import urllib3.exceptions
 
 # See 'log.py' to learn how logging is handled in TUF.

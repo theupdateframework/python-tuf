@@ -40,13 +40,7 @@ import json
 import tempfile
 
 import tuf
-import tuf.formats
-import tuf.exceptions
-import tuf.keydb
-import tuf.roledb
-import tuf.sig
 import tuf.log
-import tuf.settings
 
 import securesystemslib
 import securesystemslib.hash

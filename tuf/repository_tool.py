@@ -43,12 +43,8 @@ import json
 from collections import deque
 
 import tuf
-import tuf.formats
-import tuf.roledb
-import tuf.sig
 import tuf.log
-import tuf.exceptions
-import tuf.repository_lib as repo_lib
+from tuf import repository_lib as repo_lib
 
 import securesystemslib.keys
 import securesystemslib.formats

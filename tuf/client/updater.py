@@ -54,11 +54,12 @@
   # The client first imports the 'updater.py' module, the only module the
   # client is required to import.  The client will utilize a single class
   # from this module.
-  import tuf.client.updater
+  from tuf import client
 
   # The only other module the client interacts with is 'tuf.settings'.  The
   # client accesses this module solely to set the repository directory.
   # This directory will hold the files downloaded from a remote repository.
+  import tuf
   tuf.settings.repositories_directory = 'local-repository'
 
   # Next, the client creates a dictionary object containing the repository
@@ -82,7 +83,7 @@
   # is called with two arguments.  The first argument assigns a name to this
   # particular updater and the second argument the repository mirrors defined
   # above.
-  updater = tuf.client.updater.Updater('updater', repository_mirrors)
+  updater = client.updater.Updater('updater', repository_mirrors)
 
   # The client next calls the refresh() method to ensure it has the latest
   # copies of the metadata files.
@@ -130,15 +131,7 @@ import copy
 import warnings
 
 import tuf
-import tuf.download
-import tuf.formats
-import tuf.settings
-import tuf.keydb
-import tuf.log
-import tuf.mirrors
-import tuf.roledb
-import tuf.sig
-import tuf.exceptions
+from tuf import client
 
 import securesystemslib.exceptions
 import securesystemslib.hash
@@ -502,7 +495,7 @@ class MultiRepoUpdater(object):
 
       else:
         # Create repository mirrors object needed by the
-        # tuf.client.updater.Updater().  Each 'repository_name' can have more
+        # client.updater.Updater().  Each 'repository_name' can have more
         # than one mirror.
         mirrors = {}
 
@@ -517,7 +510,7 @@ class MultiRepoUpdater(object):
           # NOTE: State (e.g., keys) should NOT be shared across different
           # updater instances.
           logger.debug('Adding updater for ' + repr(repository_name))
-          updater = tuf.client.updater.Updater(repository_name, mirrors)
+          updater = client.updater.Updater(repository_name, mirrors)
 
         except Exception:
           return None
@@ -1225,7 +1218,7 @@ class Updater(object):
       Non-public method that ensures the length of 'file_object' is strictly
       equal to 'trusted_file_length'.  This is a deliberately redundant
       implementation designed to complement
-      tuf.download._check_downloaded_length().
+      client.download._check_downloaded_length().
 
     <Arguments>
       file_object:
@@ -1271,7 +1264,7 @@ class Updater(object):
       Non-public method that checks the trusted file length of a file object.
       The length of the file must be less than or equal to the expected
       length. This is a deliberately redundant implementation designed to
-      complement tuf.download._check_downloaded_length().
+      complement client.download._check_downloaded_length().
 
     <Arguments>
       file_object:
@@ -1540,7 +1533,7 @@ class Updater(object):
       A file object containing the metadata.
     """
 
-    file_mirrors = tuf.mirrors.get_list_of_mirrors('meta', remote_filename,
+    file_mirrors = client.mirrors.get_list_of_mirrors('meta', remote_filename,
         self.mirrors)
 
     # file_mirror (URL): error (Exception)
@@ -1549,7 +1542,7 @@ class Updater(object):
 
     for file_mirror in file_mirrors:
       try:
-        file_object = tuf.download.unsafe_download(file_mirror,
+        file_object = client.download.unsafe_download(file_mirror,
             upperbound_filelength)
         file_object.seek(0)
 
@@ -1699,7 +1692,7 @@ class Updater(object):
       A file object containing the metadata or target.
     """
 
-    file_mirrors = tuf.mirrors.get_list_of_mirrors(file_type, filepath,
+    file_mirrors = client.mirrors.get_list_of_mirrors(file_type, filepath,
         self.mirrors)
 
     # file_mirror (URL): error (Exception)
@@ -1713,10 +1706,10 @@ class Updater(object):
         # other one for "unsafe" download? This should induce safer and more
         # readable code.
         if download_safely:
-          file_object = tuf.download.safe_download(file_mirror, file_length)
+          file_object = client.download.safe_download(file_mirror, file_length)
 
         else:
-          file_object = tuf.download.unsafe_download(file_mirror, file_length)
+          file_object = client.download.unsafe_download(file_mirror, file_length)
 
         # Verify 'file_object' according to the callable function.
         # 'file_object' is also verified if decompressed above (i.e., the

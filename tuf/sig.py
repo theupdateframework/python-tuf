@@ -51,9 +51,6 @@ from __future__ import unicode_literals
 import logging
 
 import tuf
-import tuf.keydb
-import tuf.roledb
-import tuf.formats
 
 import securesystemslib
 

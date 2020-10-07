@@ -149,8 +149,7 @@ import fnmatch
 
 import tuf
 import tuf.log
-import tuf.formats
-import tuf.repository_tool as repo_tool
+from tuf import repository_tool as repo_tool
 
 # 'pip install securesystemslib[crypto,pynacl]' is required for the CLI,
 # which installs the cryptography, pynacl, and colorama dependencies.

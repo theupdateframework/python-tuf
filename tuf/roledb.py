@@ -53,8 +53,6 @@ import logging
 import copy
 
 import tuf
-import tuf.log
-import tuf.formats
 
 import securesystemslib
 import six

@@ -48,13 +48,13 @@ can decide how to proceed rather than automatically downloading a new Root file.
 # The client first imports the 'updater.py' module, the only module the
 # client is required to import.  The client will utilize a single class
 # from this module.
-import tuf.client.updater
-import tuf.settings
+from tuf import client
 
 # The only other module the client interacts with is 'settings'.  The
 # client accesses this module solely to set the repository directory.
 # This directory will hold the files downloaded from a remote repository.
-tuf.settings.repositories_directory = 'path/to/local_repository'
+from tuf import settings
+settings.repositories_directory = 'path/to/local_repository'
 
 # Next, the client creates a dictionary object containing the repository
 # mirrors.  The client may download content from any one of these mirrors.
@@ -77,7 +77,7 @@ repository_mirrors = {'mirror1': {'url_prefix': 'http://localhost:8001',
 # is called with two arguments.  The first argument assigns a name to this
 # particular updater and the second argument the repository mirrors defined
 # above.
-updater = tuf.client.updater.Updater('updater', repository_mirrors)
+updater = client.updater.Updater('updater', repository_mirrors)
 
 # The client calls the refresh() method to ensure it has the latest
 # copies of the top-level metadata files (i.e., Root, Targets, Snapshot,

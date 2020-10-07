@@ -11,3 +11,11 @@ __version__ = "0.14.0"
 # For example, "1.4.3" and "1.0.0" are supported.  "2.0.0" is not supported.
 # See https://github.com/theupdateframework/specification
 SPECIFICATION_VERSION = '1.0.0'
+
+from . import exceptions
+from . import formats
+from . import keydb
+from . import roledb
+from . import settings
+from . import sig
+
