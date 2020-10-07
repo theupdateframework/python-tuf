@@ -90,7 +90,7 @@ def wait_for_server(host, server, port, timeout=10):
 
   if not succeeded:
     raise TimeoutError("Could not connect to the " + server \
-        + " on port " + str(port) + " !")
+        + " on port " + str(port) + "!")
 
 
 def configure_test_logging(argv):
@@ -158,38 +158,114 @@ class TestServerProcess():
       extra_cmd_args=[]):
 
     # Create temporary log file used for logging stdout and stderr
-    # of the subprocess. In the mode "r+"" stands for reading and writing
+    # of the subprocess. In the mode "r+" stands for reading and writing
     # and "t" stands for text mode.
     self.__temp_log_file = tempfile.TemporaryFile(mode='r+t')
 
     self.server = server
-    self.port = port or random.randint(30000, 45000)
     self.__logger = log
 
-    # The "-u" option forces stdin, stdout and stderr to be unbuffered.
-    command = ['python', '-u', server, str(self.port)] + extra_cmd_args
+    try:
+      self._start_server(port, timeout, extra_cmd_args, popen_cwd)
 
-    # We are reusing one server subprocess in multiple unit tests, but we are
-    # collecting the logs per test.
-    self.__server_process = subprocess.Popen(command,
-        stdout=self.__temp_log_file, stderr=subprocess.STDOUT, cwd=popen_cwd)
+      if timeout > 0:
+        wait_for_server('localhost', self.server, self.port, timeout)
+    except Exception as e:
+      # Clean the resources and log the server errors if any exists.
+      self.clean()
+      raise e
+
+
+
+  def _start_server(self, port, timeout, extra_cmd_args, popen_cwd):
+    """Start the server subprocess. Uses a retry mechanism and
+    generates a new port if the bind fails."""
+
+    started = False
+    ports_generated = 0
+    start = time.time()
+    while not started:
+      self.port = port or random.randint(30000, 45000)
+      ports_generated += 1
+      # The "-u" option forces stdin, stdout and stderr to be unbuffered.
+      command = ['python', '-u', self.server, str(self.port)] + extra_cmd_args
+
+      # We are reusing one server subprocess in multiple unit tests, but we are
+      # collecting the logs per test.
+      self.__server_process = subprocess.Popen(command,
+          stdout=self.__temp_log_file, stderr=subprocess.STDOUT, cwd=popen_cwd)
+
+      # Some tests (like those in test_slow_retrieval_attack.py) require no
+      # checks if the server has started.
+      if timeout == 0:
+        started = True
+        break
+
+      started = self._has_server_started(timeout)
+
+      if not started:
+        # If the server has not started for whatever reason
+        self.__logger.info("Failed to start " + self.server + " on port " \
+            + str(self.port) + "! Generating a new port and retrying.")
+
+        if self.is_process_running():
+          self.__server_process.kill()
+          self.__server_process.wait()
+
+        timeout = timeout - (time.time() - start)
+
+      if timeout <= 0:
+        break
+
+    if not started:
+      raise TimeoutError("Failure during server startup after " \
+        + str(ports_generated) + " retries with random ports!")
+
+    # Make sure the file is empty so we don't print log messages related
+    # to the has_server_started checks.
+    self.__temp_log_file.truncate(0)
 
     self.__logger.info('Server process with process id ' \
         + str(self.__server_process.pid) + " serving on port " \
         + str(self.port) + ' started.')
 
-    if timeout > 0:
-      try:
-        wait_for_server('localhost', self.server, self.port, timeout)
-      except Exception as e:
-        # Make sure that errors from the server side will be logged.
-        self.flush_log()
-        raise e
+
+
+  def _has_server_started(self, remaining_timeout):
+    """Waits until server has successfully started or
+    'remaining_timeout' seconds have elapsed."""
+
+    start = time.time()
+    while remaining_timeout > 0:
+      # Seek is needed to move the pointer to the beginning of the file, because
+      # the subprocess could have read and/or write and thus moved the pointer.
+      self.__temp_log_file.seek(0)
+      log_message = self.__temp_log_file.read()
+
+      if len(log_message) > 0:
+        lines = log_message.splitlines()
+
+        if "bind succeeded" in lines:
+          return True
+        elif "bind failed" in lines:
+          return False
+
+      time.sleep(0.1)
+      remaining_timeout = remaining_timeout - (time.time() - start)
+
+    # If the server process has exited we consider this as a
+    # failed attempt to start the server.
+    if not self.is_process_running():
+        return False
 
 
 
   def flush_log(self):
     """Logs contents from TempFile, truncates buffer"""
+
+    # Make sure we are only reading from opened files.
+    if self.__temp_log_file.closed:
+      return
 
     # Seek is needed to move the pointer to the beginning of the file, because
     # the subprocess could have read and/or write and thus moved the pointer.
@@ -215,8 +291,15 @@ class TestServerProcess():
 
     self.__temp_log_file.close()
 
-    if self.__server_process.returncode is None:
+    if self.is_process_running():
       self.__logger.info('Server process ' + str(self.__server_process.pid) +
           ' terminated.')
       self.__server_process.kill()
       self.__server_process.wait()
+
+
+
+  def is_process_running(self):
+    """Returns a boolean value if the server process is currently running."""
+
+    return True if self.__server_process.returncode is None else False

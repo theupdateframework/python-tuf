@@ -62,11 +62,14 @@ if len(sys.argv) > 2:
     print('simple_https_server: cert file not found: ' + sys.argv[2] +
         '; using default: ' + certfile)
 
-httpd = six.moves.BaseHTTPServer.HTTPServer(('localhost', PORT),
-                            six.moves.SimpleHTTPServer.SimpleHTTPRequestHandler)
+try:
+  httpd = six.moves.BaseHTTPServer.HTTPServer(('localhost', PORT),
+                              six.moves.SimpleHTTPServer.SimpleHTTPRequestHandler)
 
-httpd.socket = ssl.wrap_socket(
-    httpd.socket, keyfile=keyfile, certfile=certfile, server_side=True)
+  httpd.socket = ssl.wrap_socket(
+      httpd.socket, keyfile=keyfile, certfile=certfile, server_side=True)
 
-#print('Starting https server on port: ' + str(PORT))
-httpd.serve_forever()
+  print("bind succeeded")
+  httpd.serve_forever()
+except:
+  print("bind failed")

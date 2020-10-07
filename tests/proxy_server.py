@@ -489,11 +489,15 @@ def test(HandlerClass=ProxyRequestHandler, ServerClass=ThreadingHTTPServer, prot
 
 
     HandlerClass.protocol_version = protocol
-    httpd = ServerClass(server_address, HandlerClass)
+    try:
+      httpd = ServerClass(server_address, HandlerClass)
+      sa = httpd.socket.getsockname()
+      print("bind succeeded")
+      print("Serving HTTP Proxy on", sa[0], "port", sa[1], "...")
+      httpd.serve_forever()
+    except:
+      print("bind failed")
 
-    sa = httpd.socket.getsockname()
-    print "Serving HTTP Proxy on", sa[0], "port", sa[1], "..."
-    httpd.serve_forever()
 
 
 if __name__ == '__main__':
