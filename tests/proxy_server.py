@@ -39,6 +39,8 @@
   Note that this is not thread-safe, in part due to its use of globals.
 """
 
+from utils import ImproperNumberOfArguments
+
 import sys
 import os
 import socket
@@ -462,10 +464,13 @@ def test(HandlerClass=ProxyRequestHandler, ServerClass=ThreadingHTTPServer, prot
     global INTERCEPT
     global TARGET_SERVER_CA_FILEPATH
 
-    if sys.argv[1:]:
-        port = int(sys.argv[1])
-    else:
-        port = 8080
+    # sys.argv[0] contains the name of the executed script
+    # and that's why we require length > 1
+    if len(sys.argv) <= 1:
+      raise ImproperNumberOfArguments("Failure on " + __file__ + " startup!" \
+          + "Port number should be provided and should be the first argument!")
+
+    port = int(sys.argv[1])
     server_address = ('localhost', port)
 
     # MODIFIED: Argument added, conditional below added to control INTERCEPT

@@ -37,22 +37,24 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from utils import ImproperNumberOfArguments
+
 import sys
 import random
 import ssl
 import os
 import six
 
-PORT = 0
-
 keyfile = os.path.join('ssl_certs', 'ssl_cert.key')
 certfile = os.path.join('ssl_certs', 'ssl_cert.crt')
 
-if len(sys.argv) > 1:
-  PORT = int(sys.argv[1])
+# sys.argv[0] contains the name of the executed script
+# and that's why we require length > 1
+if len(sys.argv) <= 1:
+  raise ImproperNumberOfArguments("Failure on " + __file__ + " startup!" \
+      + "Port number should be provided and should be the first argument!")
 
-else:
-  PORT = random.randint(30000, 45000)
+PORT = int(sys.argv[1])
 
 if len(sys.argv) > 2:
 

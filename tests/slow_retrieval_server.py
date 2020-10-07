@@ -29,6 +29,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from utils import ImproperNumberOfArguments
+
 import os
 import sys
 import time
@@ -65,6 +67,12 @@ class Handler(six.moves.BaseHTTPServer.BaseHTTPRequestHandler):
 
 
 if __name__ == '__main__':
+  # sys.argv[0] contains the name of the executed script
+  # and that's why we require length > 1
+  if len(sys.argv) <= 1:
+    raise ImproperNumberOfArguments("Failure on " + __file__ + " startup!" \
+        + "Port number should be provided and should be the first argument!")
+
   port = int(sys.argv[1])
   server_address = ('localhost', port)
 

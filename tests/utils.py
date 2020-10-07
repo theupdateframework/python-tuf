@@ -49,6 +49,11 @@ except NameError:
       return repr(self.value)
 
 
+class ImproperNumberOfArguments(Exception):
+    """Raised when the number of argumnets is wrong."""
+    pass
+
+
 @contextmanager
 def ignore_deprecation_warnings(module):
   with warnings.catch_warnings():
