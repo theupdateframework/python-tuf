@@ -35,10 +35,12 @@
           'signatures': ['abcd3452...'],
           'paths': ['role.json'],
           'path_hash_prefixes': ['ab34df13'],
-          'delegation_hash_prefix_len': 6,
+          'succinct_hash_delegations' : {
+            'delegation_hash_prefix_len': 6,
+            'bin_name_prefix' : 'prefix' },
           'delegations': {'keys': {}, 'roles': {}}}
 
-  The 'name', 'paths', 'path_hash_prefixes', 'delegation_hash_prefix_len', and
+  The 'name', 'paths', 'path_hash_prefixes', 'succinct_hash_delegations', and
   'delegations' dict keys are optional.
 """
 
@@ -263,10 +265,12 @@ def add_role(rolename, roleinfo, repository_name='default'):
        'signatures': ['ab23dfc32']
        'paths': ['path/to/target1', 'path/to/target2', ...],
        'path_hash_prefixes': ['a324fcd...', ...],
-       'delegation_hash_prefix_len': 6,
+       'succinct_hash_delegations' : {
+         'delegation_hash_prefix_len': 6,
+         'bin_name_prefix' : 'prefix' },
        'delegations': {'keys': }
 
-      The 'paths', 'path_hash_prefixes', 'delegation_hash_prefix_len' and
+      The 'paths', 'path_hash_prefixes', 'succinct_hash_delegations' and
       'delegations' dict keys are optional.
 
       The 'target' role has an additional 'paths' key.  Its value is a list of
@@ -342,9 +346,11 @@ def update_roleinfo(rolename, roleinfo, mark_role_as_dirty=True, repository_name
        'threshold': 1,
        'paths': ['path/to/target1', 'path/to/target2', ...],
        'path_hash_prefixes': ['a324fcd...', ...],
-       'delegation_hash_prefix_len': 6}
+       'succinct_hash_delegations' : {
+         'delegation_hash_prefix_len': 6,
+         'bin_name_prefix' : 'prefix' }}
 
-      The 'name', 'paths', 'path_hash_prefixes', and `delegation_hash_prefix_len'
+      The 'name', 'paths', 'path_hash_prefixes', and `succinct_hash_delegations'
       dict keys are optional.
 
       The 'target' role has an additional 'paths' key.  Its value is a list of
@@ -697,10 +703,12 @@ def get_roleinfo(rolename, repository_name='default'):
      'signatures': ['ab453bdf...', ...],
      'paths': ['path/to/target1', 'path/to/target2', ...],
      'path_hash_prefixes': ['a324fcd...', ...],
-     'delegation_hash_prefix_len': 6,
+      'succinct_hash_delegations' : {
+        'delegation_hash_prefix_len': 6,
+        'bin_name_prefix' : 'prefix' }}
      'delegations': {'keys': {}, 'roles': []}}
 
-    The 'signatures', 'paths', 'path_hash_prefixes', 'delegation_hash_prefix_len'
+    The 'signatures', 'paths', 'path_hash_prefixes', 'succinct_hash_delegations'
     and 'delegations' dict keys are optional.
 
   <Arguments>
@@ -963,7 +971,10 @@ def get_delegated_rolenames(rolename, repository_name='default'):
   delegated_roles = []
 
   for delegated_role in roleinfo['delegations']['roles']:
-    delegated_roles.append(delegated_role['name'])
+    if 'succinct_hash_delegations' in delegated_role:
+      delegated_roles.append(delegated_role['succinct_hash_delegations']['bin_name_prefix'])
+    else:
+      delegated_roles.append(delegated_role['name'])
 
   return delegated_roles
 

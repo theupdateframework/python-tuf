@@ -2366,6 +2366,9 @@ class Targets(Metadata):
       rolename:
         The name of the delegated role, as in 'django' or 'unclaimed'.
 
+        If succinct_hash_delegations are used, the rolename will be used
+        as the bin_name_prefix
+
       public_keys:
         A list of TUF key objects in 'ANYKEYLIST_SCHEMA' format.  The list
         may contain any of the supported key types: RSAKEY_SCHEMA,
@@ -2489,7 +2492,9 @@ class Targets(Metadata):
       roleinfo['paths'] = paths
 
     if succinct_hash_delegations:
-      roleinfo['delegation_hash_prefix_len'] = succinct_hash_delegations
+      roleinfo['succinct_hash_delegations'] = {
+        'delegation_hash_prefix_len' : succinct_hash_delegations,
+        'bin_name_prefix': rolename}
       del roleinfo['paths']
     # If a delegation contains both `delegation_hash_prefix_len` and
     # `path_hash_prefixes`, `delegation_hash_prefix_len` is used.
@@ -2752,12 +2757,14 @@ class Targets(Metadata):
 
     if succinct:
       # For succinct delegations, each bin is not added, so add a single
-      # succinct delegation
-      roleinfo = {'name': prefix,
-                  'keyids': keyids,
+      # succinct delegation. This delegation contains 'succinct_hash_delegations'
+      # and so does not contain 'name'
+      roleinfo = {'keyids': keyids,
                   'threshold': 1,
                   'terminating': False,
-                  'delegation_hash_prefix_len' : prefix_length,
+                  'succinct_hash_delegations' : {
+                    'delegation_hash_prefix_len' : prefix_length,
+                    'bin_name_prefix' : prefix},
                   'paths': []}
       delegated_roleinfos.append(roleinfo)
 
@@ -3203,11 +3210,12 @@ def load_repository(repository_directory, repository_name='default',
   # [('role1', 'targets'), ('role2', 'targets'), ... ]
   roleinfo = tuf.roledb.get_roleinfo('targets', repository_name)
   for role in roleinfo['delegations']['roles']:
-    if 'delegation_hash_prefix_len' in role:
-      prefix_len = role['delegation_hash_prefix_len']
+    if 'succinct_hash_delegations' in role:
+      prefix_len = role['succinct_hash_delegations']['delegation_hash_prefix_len']
       num_bins = 2 ** prefix_len
       for i in range(num_bins):
-        bin_name = repo_lib.create_bin_name(i, prefix_len, role['name'])
+        bin_name = repo_lib.create_bin_name(i, prefix_len,
+            role['succinct_hash_delegations']['bin_name_prefix'])
         succinct_role = {'name': bin_name,
                 'keyids': role['keyids'],
                 'threshold': role['threshold'],

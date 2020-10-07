@@ -128,6 +128,12 @@ PATH_HASH_PREFIXES_SCHEMA = SCHEMA.ListOf(PATH_HASH_PREFIX_SCHEMA)
 
 DELEGATION_HASH_PREFIX_LEN_SCHEMA = SCHEMA.Integer(lo=0, hi=32)
 
+# Object that contains information for succinct hashed bin delegations.
+# This informatino will be used by the client to construct the bin names.
+SUCCINCT_HASH_DELEGATION_SCHEMA = SCHEMA.Object(
+  delegation_hash_prefix_len = DELEGATION_HASH_PREFIX_LEN_SCHEMA,
+  bin_name_prefix = ROLENAME_SCHEMA)
+
 # Role object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1,
 # 'paths':[filepaths..]} format.
 # TODO: This is not a role.  In further #660-related PRs, fix it, similar to
@@ -140,7 +146,7 @@ ROLE_SCHEMA = SCHEMA.Object(
   terminating = SCHEMA.Optional(securesystemslib.formats.BOOLEAN_SCHEMA),
   paths = SCHEMA.Optional(RELPATHS_SCHEMA),
   path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA),
-  delegation_hash_prefix_len = SCHEMA.Optional(DELEGATION_HASH_PREFIX_LEN_SCHEMA))
+  succinct_hash_delegations = SCHEMA.Optional(SUCCINCT_HASH_DELEGATION_SCHEMA))
 
 # A dict of roles where the dict keys are role names and the dict values holding
 # the role data/information.
@@ -339,7 +345,7 @@ ROLEDB_SCHEMA = SCHEMA.Object(
   signatures = SCHEMA.Optional(securesystemslib.formats.SIGNATURES_SCHEMA),
   paths = SCHEMA.Optional(SCHEMA.OneOf([RELPATHS_SCHEMA, PATH_FILEINFO_SCHEMA])),
   path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA),
-  delegation_hash_prefix_len = SCHEMA.Optional(DELEGATION_HASH_PREFIX_LEN_SCHEMA),
+  succinct_hash_delegations = SCHEMA.Optional(SUCCINCT_HASH_DELEGATION_SCHEMA),
   delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA),
   partial_loaded = SCHEMA.Optional(BOOLEAN_SCHEMA))
 

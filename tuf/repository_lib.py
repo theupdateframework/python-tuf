@@ -1393,11 +1393,12 @@ def generate_targets_metadata(targets_directory, target_files, version,
     delegations_keys = []
     # Update 'keyids' and 'threshold' for each delegated role
     for role in delegations['roles']:
-      if 'delegation_hash_prefix_len' in role:
+      if 'succinct_hash_delegations' in role:
+        succinct = role['succinct_hash_delegations']
         # succinct hash delegations share the same keyids and threshold
         # so load these once for bin 0
-        succinct_name = role['name'] + '{num:0{len}x}'.format(num=0,
-            len=role['delegation_hash_prefix_len'])
+        succinct_name = succinct['bin_name_prefix'] + '{num:0{len}x}'.format(num=0,
+            len=succinct['delegation_hash_prefix_len'])
         role['keyids'] = tuf.roledb.get_role_keyids(succinct_name,
             repository_name)
         role['threshold'] = tuf.roledb.get_role_threshold(succinct_name,
