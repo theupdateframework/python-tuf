@@ -40,7 +40,7 @@ import json
 import tempfile
 
 import tuf
-import tuf.log
+from tuf import log as tuf_log
 
 import securesystemslib
 import securesystemslib.hash
@@ -2261,14 +2261,14 @@ def disable_console_log_messages():
     None.
 
   <Side Effects>
-    Removes the 'tuf.log' console handler, added by default when
+    Removes the console handler, added by default when
     'tuf.repository_tool.py' is imported.
 
   <Returns>
     None.
   """
 
-  tuf.log.remove_console_handler()
+  tuf_log.remove_console_handler()
 
 
 

@@ -43,7 +43,7 @@ import json
 from collections import deque
 
 import tuf
-import tuf.log
+from tuf import log as tuf_log
 from tuf import repository_lib as repo_lib
 
 import securesystemslib.keys
@@ -91,8 +91,8 @@ logger = logging.getLogger(__name__)
 
 # Add a console handler so that users are aware of potentially unintended
 # states, such as multiple roles that share keys.
-tuf.log.add_console_handler()
-tuf.log.set_console_log_level(logging.INFO)
+tuf_log.add_console_handler()
+tuf_log.set_console_log_level(logging.INFO)
 
 # Recommended RSA key sizes:
 # https://en.wikipedia.org/wiki/Key_size#Asymmetric_algorithm_key_lengths

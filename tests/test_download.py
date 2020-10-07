@@ -40,7 +40,6 @@ import sys
 import unittest
 
 import tuf
-import tuf.log
 from tuf import download
 from tuf import unittest_toolbox
 

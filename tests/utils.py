@@ -29,7 +29,7 @@ import subprocess
 import tempfile
 import random
 
-import tuf.log
+from tuf import log as tuf_log
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +100,7 @@ def configure_test_logging(argv):
     loglevel = logging.DEBUG
 
   logging.basicConfig(level=loglevel)
-  tuf.log.set_log_level(loglevel)
+  tuf_log.set_log_level(loglevel)
 
 
 class TestServerProcess():

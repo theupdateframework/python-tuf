@@ -27,7 +27,7 @@ import shutil
 import sys
 
 import tuf
-import tuf.log
+from tuf import log as tuf_log
 
 import securesystemslib
 import securesystemslib.util
@@ -53,8 +53,8 @@ class TestLog(unittest.TestCase):
     self._initial_level = logging.getLogger('tuf').level
 
   def tearDown(self):
-    tuf.log.remove_console_handler()
-    tuf.log.disable_file_logging()
+    tuf_log.remove_console_handler()
+    tuf_log.disable_file_logging()
     logging.getLogger('tuf').level = self._initial_level
 
 
@@ -65,18 +65,18 @@ class TestLog(unittest.TestCase):
     global log_levels
     global logger
 
-    tuf.log.set_log_level()
+    tuf_log.set_log_level()
     self.assertTrue(logger.isEnabledFor(logging.DEBUG))
 
     for level in log_levels:
-      tuf.log.set_log_level(level)
+      tuf_log.set_log_level(level)
       self.assertTrue(logger.isEnabledFor(level))
 
     # Test for improperly formatted argument.
-    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.log.set_log_level, '123')
+    self.assertRaises(securesystemslib.exceptions.FormatError, tuf_log.set_log_level, '123')
 
     # Test for invalid argument.
-    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.log.set_log_level, 51)
+    self.assertRaises(securesystemslib.exceptions.FormatError, tuf_log.set_log_level, 51)
 
 
 
@@ -84,44 +84,44 @@ class TestLog(unittest.TestCase):
     # Normal case.  Default log level.
     # A file handler is not set by default.  Add one now before attempting to
     # set the log level.
-    self.assertRaises(tuf.exceptions.Error, tuf.log.set_filehandler_log_level)
-    tuf.log.enable_file_logging()
-    tuf.log.set_filehandler_log_level()
+    self.assertRaises(tuf.exceptions.Error, tuf_log.set_filehandler_log_level)
+    tuf_log.enable_file_logging()
+    tuf_log.set_filehandler_log_level()
 
     # Expected log levels.
     for level in log_levels:
-      tuf.log.set_log_level(level)
+      tuf_log.set_log_level(level)
 
     # Test that the log level of the file handler cannot be set because
     # file logging is disabled (via tuf.settings.ENABLE_FILE_LOGGING).
     tuf.settings.ENABLE_FILE_LOGGING = False
-    reload_module(tuf.log)
+    reload_module(tuf_log)
 
     # Test for improperly formatted argument.
-    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.log.set_filehandler_log_level, '123')
+    self.assertRaises(securesystemslib.exceptions.FormatError, tuf_log.set_filehandler_log_level, '123')
 
     # Test for invalid argument.
-    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.log.set_filehandler_log_level, 51)
+    self.assertRaises(securesystemslib.exceptions.FormatError, tuf_log.set_filehandler_log_level, 51)
 
 
   def test_set_console_log_level(self):
     # Test setting a console log level without first adding one.
-    self.assertRaises(securesystemslib.exceptions.Error, tuf.log.set_console_log_level)
+    self.assertRaises(securesystemslib.exceptions.Error, tuf_log.set_console_log_level)
 
     # Normal case.  Default log level.  Setting the console log level first
     # requires adding a console logger.
-    tuf.log.add_console_handler()
-    tuf.log.set_console_log_level()
+    tuf_log.add_console_handler()
+    tuf_log.set_console_log_level()
 
     # Expected log levels.
     for level in log_levels:
-      tuf.log.set_console_log_level(level)
+      tuf_log.set_console_log_level(level)
 
     # Test for improperly formatted argument.
-    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.log.set_console_log_level, '123')
+    self.assertRaises(securesystemslib.exceptions.FormatError, tuf_log.set_console_log_level, '123')
 
     # Test for invalid argument.
-    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.log.set_console_log_level, 51)
+    self.assertRaises(securesystemslib.exceptions.FormatError, tuf_log.set_console_log_level, 51)
 
 
 
@@ -129,20 +129,20 @@ class TestLog(unittest.TestCase):
 
   def test_add_console_handler(self):
     # Normal case.  Default log level.
-    tuf.log.add_console_handler()
+    tuf_log.add_console_handler()
 
     # Adding a console handler when one has already been added.
-    tuf.log.add_console_handler()
+    tuf_log.add_console_handler()
 
     # Expected log levels.
     for level in log_levels:
-      tuf.log.set_console_log_level(level)
+      tuf_log.set_console_log_level(level)
 
     # Test for improperly formatted argument.
-    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.log.add_console_handler, '123')
+    self.assertRaises(securesystemslib.exceptions.FormatError, tuf_log.add_console_handler, '123')
 
     # Test for invalid argument.
-    self.assertRaises(securesystemslib.exceptions.FormatError, tuf.log.add_console_handler, 51)
+    self.assertRaises(securesystemslib.exceptions.FormatError, tuf_log.add_console_handler, 51)
 
     # Test that an exception is printed to the console.  Note: A stack trace
     # is not included in the exception output because 'log.py' applies a filter
@@ -156,10 +156,10 @@ class TestLog(unittest.TestCase):
 
   def test_remove_console_handler(self):
     # Normal case.
-    tuf.log.remove_console_handler()
+    tuf_log.remove_console_handler()
 
     # Removing a console handler that has not been added.  Logs a warning.
-    tuf.log.remove_console_handler()
+    tuf_log.remove_console_handler()
 
 
   def test_enable_file_logging(self):
@@ -168,39 +168,39 @@ class TestLog(unittest.TestCase):
       shutil.move(
           tuf.settings.LOG_FILENAME, tuf.settings.LOG_FILENAME + '.backup')
 
-    tuf.log.enable_file_logging()
+    tuf_log.enable_file_logging()
     self.assertTrue(os.path.exists(tuf.settings.LOG_FILENAME))
     if os.path.exists(tuf.settings.LOG_FILENAME + '.backup'):
       shutil.move(
           tuf.settings.LOG_FILENAME + '.backup', tuf.settings.LOG_FILENAME)
 
     # The file logger must first be unset before attempting to re-add it.
-    self.assertRaises(tuf.exceptions.Error, tuf.log.enable_file_logging)
+    self.assertRaises(tuf.exceptions.Error, tuf_log.enable_file_logging)
 
-    tuf.log.disable_file_logging()
-    tuf.log.enable_file_logging('my_log_file.log')
+    tuf_log.disable_file_logging()
+    tuf_log.enable_file_logging('my_log_file.log')
     logger.debug('testing file logging')
     self.assertTrue(os.path.exists('my_log_file.log'))
 
     # Test for an improperly formatted argument.
-    tuf.log.disable_file_logging()
+    tuf_log.disable_file_logging()
     self.assertRaises(securesystemslib.exceptions.FormatError,
-        tuf.log.enable_file_logging, 1)
+        tuf_log.enable_file_logging, 1)
 
 
   def test_disable_file_logging(self):
     # Normal case.
-    tuf.log.enable_file_logging('my.log')
+    tuf_log.enable_file_logging('my.log')
     logger.debug('debug message')
     junk, hashes = securesystemslib.util.get_file_details('my.log')
-    tuf.log.disable_file_logging()
+    tuf_log.disable_file_logging()
     logger.debug('new debug message')
     junk, hashes2 = securesystemslib.util.get_file_details('my.log')
     self.assertEqual(hashes, hashes2)
 
     # An exception should not be raised if an attempt is made to disable
     # the file logger if it has already been disabled.
-    tuf.log.disable_file_logging()
+    tuf_log.disable_file_logging()
 
 
 # Run unit test.

@@ -148,7 +148,7 @@ import time
 import fnmatch
 
 import tuf
-import tuf.log
+from tuf import log as tuf_log
 from tuf import repository_tool as repo_tool
 
 # 'pip install securesystemslib[crypto,pynacl]' is required for the CLI,
@@ -1115,7 +1115,7 @@ def parse_arguments():
   logging_levels = [logging.NOTSET, logging.DEBUG,
       logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL]
 
-  tuf.log.set_log_level(logging_levels[parsed_args.verbose])
+  tuf_log.set_log_level(logging_levels[parsed_args.verbose])
 
   return parsed_args
 

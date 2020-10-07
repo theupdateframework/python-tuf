@@ -60,7 +60,6 @@ import sys
 import unittest
 
 import tuf
-import tuf.log
 from tuf import repository_tool as repo_tool
 from tuf import repository_lib as repo_lib
 from tuf import unittest_toolbox

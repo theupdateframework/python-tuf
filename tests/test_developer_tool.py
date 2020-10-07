@@ -29,7 +29,6 @@ import shutil
 import sys
 
 import tuf
-import tuf.log
 from tuf import developer_tool
 
 import securesystemslib

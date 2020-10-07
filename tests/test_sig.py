@@ -35,7 +35,6 @@ import copy
 import sys
 
 import tuf
-import tuf.log
 
 import utils
 

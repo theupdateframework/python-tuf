@@ -33,7 +33,6 @@ import logging
 import sys
 
 import tuf
-import tuf.log
 
 import utils
 

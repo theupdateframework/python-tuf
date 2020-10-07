@@ -41,7 +41,6 @@ import unittest
 import sys
 
 import tuf
-import tuf.log
 from tuf import download
 from tuf import unittest_toolbox
 

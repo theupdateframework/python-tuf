@@ -39,7 +39,6 @@ import tempfile
 import json
 
 import tuf
-import tuf.log
 from tuf import repository_lib as repo_lib
 
 import securesystemslib

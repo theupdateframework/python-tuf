@@ -45,7 +45,6 @@ import unittest
 import sys
 
 import tuf
-import tuf.log
 from tuf.client import updater
 from tuf import unittest_toolbox
 

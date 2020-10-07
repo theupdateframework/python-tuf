@@ -39,7 +39,6 @@ import json
 import sys
 
 import tuf
-import tuf.log
 from tuf.client import updater
 from tuf import unittest_toolbox
 from tuf import repository_tool as repo_tool

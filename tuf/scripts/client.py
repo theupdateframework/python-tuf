@@ -73,7 +73,7 @@ import logging
 
 import tuf
 from tuf import client
-import tuf.log
+from tuf import log as tuf_log
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger(__name__)
@@ -203,22 +203,22 @@ def parse_arguments():
 
   # Set the logging level.
   if parsed_arguments.verbose == 5:
-    tuf.log.set_log_level(logging.CRITICAL)
+    tuf_log.set_log_level(logging.CRITICAL)
 
   elif parsed_arguments.verbose == 4:
-    tuf.log.set_log_level(logging.ERROR)
+    tuf_log.set_log_level(logging.ERROR)
 
   elif parsed_arguments.verbose == 3:
-    tuf.log.set_log_level(logging.WARNING)
+    tuf_log.set_log_level(logging.WARNING)
 
   elif parsed_arguments.verbose == 2:
-    tuf.log.set_log_level(logging.INFO)
+    tuf_log.set_log_level(logging.INFO)
 
   elif parsed_arguments.verbose == 1:
-    tuf.log.set_log_level(logging.DEBUG)
+    tuf_log.set_log_level(logging.DEBUG)
 
   else:
-    tuf.log.set_log_level(logging.NOTSET)
+    tuf_log.set_log_level(logging.NOTSET)
 
   # Return the repository mirror containing the metadata and target files.
   return parsed_arguments
