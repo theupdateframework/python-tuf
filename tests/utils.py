@@ -21,6 +21,7 @@
 """
 
 import argparse
+from contextlib import contextmanager
 import errno
 import logging
 import socket
@@ -28,6 +29,7 @@ import time
 import subprocess
 import tempfile
 import random
+import warnings
 
 import tuf.log
 
@@ -45,6 +47,16 @@ except NameError:
 
     def __str__(self):
       return repr(self.value)
+
+
+@contextmanager
+def ignore_deprecation_warnings(module):
+  with warnings.catch_warnings():
+    warnings.filterwarnings('ignore',
+        category=DeprecationWarning,
+        module=module)
+    yield
+
 
 # Wait until host:port accepts connections.
 # Raises TimeoutError if this does not happen within timeout seconds

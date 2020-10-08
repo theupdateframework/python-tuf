@@ -38,6 +38,8 @@ import logging
 import os
 import sys
 import unittest
+import urllib3
+import warnings
 
 import tuf
 import tuf.download as download
@@ -295,63 +297,68 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
       # the bad cert. Expect failure because even though we trust it, the
       # hostname we're connecting to does not match the hostname in the cert.
       logger.info('Trying HTTPS download of target file: ' + bad_https_url)
-      with self.assertRaises(requests.exceptions.SSLError):
-        download.safe_download(bad_https_url, target_data_length)
-      with self.assertRaises(requests.exceptions.SSLError):
-        download.unsafe_download(bad_https_url, target_data_length)
+      with warnings.catch_warnings():
+        # We're ok with a slightly fishy localhost cert
+        warnings.filterwarnings('ignore',
+            category=urllib3.exceptions.SubjectAltNameWarning)
 
-      # Try connecting to the server processes with the good certs while not
-      # trusting the good certs (trusting the bad cert instead). Expect failure
-      # because even though the server's cert file is otherwise OK, we don't
-      # trust it.
-      logger.info('Trying HTTPS download of target file: ' + good_https_url)
-      with self.assertRaises(requests.exceptions.SSLError):
-        download.safe_download(good_https_url, target_data_length)
-      with self.assertRaises(requests.exceptions.SSLError):
-        download.unsafe_download(good_https_url, target_data_length)
+        with self.assertRaises(requests.exceptions.SSLError):
+          download.safe_download(bad_https_url, target_data_length)
+        with self.assertRaises(requests.exceptions.SSLError):
+          download.unsafe_download(bad_https_url, target_data_length)
 
-      logger.info('Trying HTTPS download of target file: ' + good2_https_url)
-      with self.assertRaises(requests.exceptions.SSLError):
-        download.safe_download(good2_https_url, target_data_length)
-      with self.assertRaises(requests.exceptions.SSLError):
-        download.unsafe_download(good2_https_url, target_data_length)
+        # Try connecting to the server processes with the good certs while not
+        # trusting the good certs (trusting the bad cert instead). Expect failure
+        # because even though the server's cert file is otherwise OK, we don't
+        # trust it.
+        logger.info('Trying HTTPS download of target file: ' + good_https_url)
+        with self.assertRaises(requests.exceptions.SSLError):
+          download.safe_download(good_https_url, target_data_length)
+        with self.assertRaises(requests.exceptions.SSLError):
+          download.unsafe_download(good_https_url, target_data_length)
 
-
-      # Configure environment to now trust the certfile that is expired.
-      os.environ['REQUESTS_CA_BUNDLE'] = expired_cert_fname
-      # Clear sessions to ensure that the certificate we just specified is used.
-      # TODO: Confirm necessity of this session clearing and lay out mechanics.
-      tuf.download._sessions = {}
-
-      # Try connecting to the server process with the expired cert while
-      # trusting the expired cert. Expect failure because even though we trust
-      # it, it is expired.
-      logger.info('Trying HTTPS download of target file: ' + expired_https_url)
-      with self.assertRaises(requests.exceptions.SSLError):
-        download.safe_download(expired_https_url, target_data_length)
-      with self.assertRaises(requests.exceptions.SSLError):
-        download.unsafe_download(expired_https_url, target_data_length)
+        logger.info('Trying HTTPS download of target file: ' + good2_https_url)
+        with self.assertRaises(requests.exceptions.SSLError):
+          download.safe_download(good2_https_url, target_data_length)
+        with self.assertRaises(requests.exceptions.SSLError):
+          download.unsafe_download(good2_https_url, target_data_length)
 
 
-      # Try connecting to the server processes with the good certs while
-      # trusting the appropriate good certs. Expect success.
-      # TODO: expand testing to switch expected certificates back and forth a
-      #       bit more while clearing / not clearing sessions.
-      os.environ['REQUESTS_CA_BUNDLE'] = good_cert_fname
-      # Clear sessions to ensure that the certificate we just specified is used.
-      # TODO: Confirm necessity of this session clearing and lay out mechanics.
-      tuf.download._sessions = {}
-      logger.info('Trying HTTPS download of target file: ' + good_https_url)
-      download.safe_download(good_https_url, target_data_length).close()
-      download.unsafe_download(good_https_url, target_data_length).close()
+        # Configure environment to now trust the certfile that is expired.
+        os.environ['REQUESTS_CA_BUNDLE'] = expired_cert_fname
+        # Clear sessions to ensure that the certificate we just specified is used.
+        # TODO: Confirm necessity of this session clearing and lay out mechanics.
+        tuf.download._sessions = {}
 
-      os.environ['REQUESTS_CA_BUNDLE'] = good2_cert_fname
-      # Clear sessions to ensure that the certificate we just specified is used.
-      # TODO: Confirm necessity of this session clearing and lay out mechanics.
-      tuf.download._sessions = {}
-      logger.info('Trying HTTPS download of target file: ' + good2_https_url)
-      download.safe_download(good2_https_url, target_data_length).close()
-      download.unsafe_download(good2_https_url, target_data_length).close()
+        # Try connecting to the server process with the expired cert while
+        # trusting the expired cert. Expect failure because even though we trust
+        # it, it is expired.
+        logger.info('Trying HTTPS download of target file: ' + expired_https_url)
+        with self.assertRaises(requests.exceptions.SSLError):
+          download.safe_download(expired_https_url, target_data_length)
+        with self.assertRaises(requests.exceptions.SSLError):
+          download.unsafe_download(expired_https_url, target_data_length)
+
+
+        # Try connecting to the server processes with the good certs while
+        # trusting the appropriate good certs. Expect success.
+        # TODO: expand testing to switch expected certificates back and forth a
+        #       bit more while clearing / not clearing sessions.
+        os.environ['REQUESTS_CA_BUNDLE'] = good_cert_fname
+        # Clear sessions to ensure that the certificate we just specified is used.
+        # TODO: Confirm necessity of this session clearing and lay out mechanics.
+        tuf.download._sessions = {}
+        logger.info('Trying HTTPS download of target file: ' + good_https_url)
+        download.safe_download(good_https_url, target_data_length).close()
+        download.unsafe_download(good_https_url, target_data_length).close()
+
+        os.environ['REQUESTS_CA_BUNDLE'] = good2_cert_fname
+        # Clear sessions to ensure that the certificate we just specified is used.
+        # TODO: Confirm necessity of this session clearing and lay out mechanics.
+        tuf.download._sessions = {}
+        logger.info('Trying HTTPS download of target file: ' + good2_https_url)
+        download.safe_download(good2_https_url, target_data_length).close()
+        download.unsafe_download(good2_https_url, target_data_length).close()
 
     finally:
       for proc_handler in [
