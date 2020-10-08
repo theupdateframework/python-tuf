@@ -603,9 +603,10 @@ class Updater(object):
       targets that have changed are returns in a list.  From this list, they
       can request a download by calling 'download_target()'.
 
-    download_target(target, destination_directory):
+    download_target(target, destination_directory, custom_download_handler):
       This method performs the actual download of the specified target.  The
-      file is saved to the 'destination_directory' argument.
+      file is saved to the 'destination_directory' argument.  A custom
+      file download function can be used if provided by the user.
 
     remove_obsolete_targets(destination_directory):
       Any files located in 'destination_directory' that were previously
@@ -1313,7 +1314,7 @@ class Updater(object):
 
 
   def _get_target_file(self, target_filepath, file_length, file_hashes,
-      prefix_filename_with_hash):
+      prefix_filename_with_hash, custom_download_handler=None):
     """
     <Purpose>
       Non-public method that safely (i.e., the file length and hash are
@@ -1338,6 +1339,10 @@ class Updater(object):
         This should be set to False when the served target filenames are not
         prefixed with hashes (in this case the server uses other means
         to ensure snapshot consistency).
+
+      custom_download_handler:
+        A user provided function performing the actual target file download.
+        If None, tuf.download.safe_download is used.
 
     <Exceptions>
       tuf.exceptions.NoWorkingMirrorError:
@@ -1370,7 +1375,7 @@ class Updater(object):
       target_filepath = os.path.join(dirname, target_digest + '.' + basename)
 
     return self._get_file(target_filepath, verify_target_file,
-        'target', file_length)
+        'target', file_length, custom_download_handler)
 
 
 
@@ -1654,7 +1659,8 @@ class Updater(object):
 
 
 
-  def _get_file(self, filepath, verify_file_function, file_type, file_length):
+  def _get_file(self, filepath, verify_file_function, file_type, file_length,
+      custom_download_handler=None):
     """
     <Purpose>
       Non-public method that tries downloading, up to a certain length, a
@@ -1681,6 +1687,10 @@ class Updater(object):
         The expected length, or upper bound, of the target or metadata file to
         be downloaded.
 
+      custom_download_handler:
+        A user provided function performing the actual target file download.
+        If None, tuf.download.safe_download is used.
+
     <Exceptions>
       tuf.exceptions.NoWorkingMirrorError:
         The metadata could not be fetched. This is raised only when all known
@@ -1702,11 +1712,17 @@ class Updater(object):
     file_mirror_errors = {}
     file_object = None
 
+    if custom_download_handler is not None:
+      safe_download = custom_download_handler
+
+    else:
+      safe_download = tuf.download.safe_download
+
     for file_mirror in file_mirrors:
       try:
         # Eensure the length of the downloaded file matches 'file_length'
         # exactly.
-        file_object = tuf.download.safe_download(file_mirror, file_length)
+        file_object = safe_download(file_mirror, file_length)
 
         # Verify 'file_object' according to the callable function.
         # 'file_object' is also verified if decompressed above (i.e., the
@@ -3206,7 +3222,7 @@ class Updater(object):
 
 
   def download_target(self, target, destination_directory,
-      prefix_filename_with_hash=True):
+      prefix_filename_with_hash=True, custom_download_handler=None):
     """
     <Purpose>
       Download 'target' and verify it is trusted.
@@ -3230,6 +3246,22 @@ class Updater(object):
         prefixed with hashes (in this case the server uses other means
         to ensure snapshot consistency).
         Default is True.
+
+     custom_download_handler:
+        A user provided function performing the actual target file download.
+        In order to comply with the TUF specification, the function signature
+        should have the form:
+
+        'def download_handler_func(url, required_length)'
+
+        The function implementation should provide the following functionality:
+
+        'Given the 'url' and 'required_length' of the desired file, open a
+        connection to 'url', download it, and return the contents of the file.
+        Also ensure the length of the downloaded file matches 'required_length'
+        exactly'
+
+        If None, tuf.download.safe_download is used.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError:
@@ -3288,6 +3320,6 @@ class Updater(object):
     # '_get_target_file()' checks every mirror and returns the first target
     # that passes verification.
     target_file_object = self._get_target_file(target_filepath, trusted_length,
-        trusted_hashes, prefix_filename_with_hash)
+        trusted_hashes, prefix_filename_with_hash, custom_download_handler)
 
     securesystemslib.util.persist_temp_file(target_file_object, destination)
