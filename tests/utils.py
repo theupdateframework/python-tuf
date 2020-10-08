@@ -129,11 +129,6 @@ class TestServerProcess():
         Path to the server to run in the subprocess.
         Default is "simpler_server.py".
 
-      port:
-        The port used to access the server. If none is provided,
-        then one will be generated.
-        Default is None.
-
       timeout:
         Time in seconds in which the server should start or otherwise
         TimeoutError error will be raised.
@@ -152,9 +147,8 @@ class TestServerProcess():
   """
 
 
-  def __init__(self, log, server='simple_server.py',
-      port=None, timeout=10, popen_cwd=".",
-      extra_cmd_args=[]):
+  def __init__(self, log, server='simple_server.py', timeout=10,
+      popen_cwd=".", extra_cmd_args=[]):
 
     # Create temporary log file used for logging stdout and stderr
     # of the subprocess. In the mode "r+" stands for reading and writing
@@ -165,7 +159,7 @@ class TestServerProcess():
     self.__logger = log
 
     try:
-      self._start_server(port, timeout, extra_cmd_args, popen_cwd)
+      self._start_server(timeout, extra_cmd_args, popen_cwd)
 
       wait_for_server('localhost', self.server, self.port, timeout)
     except Exception as e:
@@ -175,7 +169,7 @@ class TestServerProcess():
 
 
 
-  def _start_server(self, port, timeout, extra_cmd_args, popen_cwd):
+  def _start_server(self, timeout, extra_cmd_args, popen_cwd):
     """Start the server subprocess. Uses a retry mechanism and
     generates a new port if the bind fails."""
 
@@ -183,8 +177,9 @@ class TestServerProcess():
     ports_generated = 0
     start = time.time()
     while not started and timeout > 0:
-      self.port = port or random.randint(30000, 45000)
+      self.port = random.randint(30000, 45000)
       ports_generated += 1
+
       # The "-u" option forces stdin, stdout and stderr to be unbuffered.
       command = ['python', '-u', self.server, str(self.port)] + extra_cmd_args
 
