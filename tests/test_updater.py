@@ -1782,10 +1782,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.repository_updater._check_hashes(targets_path, file_hashes)
 
     self.repository_updater._get_file('targets.json', verify_target_file,
-        file_type, file_size, download_safely=True).close()
-
-    self.repository_updater._get_file('targets.json', verify_target_file,
-        file_type, file_size, download_safely=False).close()
+        file_type, file_size).close()
 
   def test_13__targets_of_role(self):
     # Test case where a list of targets is given.  By default, the 'targets'

@@ -1370,7 +1370,7 @@ class Updater(object):
       target_filepath = os.path.join(dirname, target_digest + '.' + basename)
 
     return self._get_file(target_filepath, verify_target_file,
-        'target', file_length, download_safely=True)
+        'target', file_length)
 
 
 
@@ -1654,8 +1654,7 @@ class Updater(object):
 
 
 
-  def _get_file(self, filepath, verify_file_function, file_type, file_length,
-      download_safely=True):
+  def _get_file(self, filepath, verify_file_function, file_type, file_length):
     """
     <Purpose>
       Non-public method that tries downloading, up to a certain length, a
@@ -1682,9 +1681,6 @@ class Updater(object):
         The expected length, or upper bound, of the target or metadata file to
         be downloaded.
 
-      download_safely:
-        A boolean switch to toggle safe or unsafe download of the file.
-
     <Exceptions>
       tuf.exceptions.NoWorkingMirrorError:
         The metadata could not be fetched. This is raised only when all known
@@ -1708,15 +1704,9 @@ class Updater(object):
 
     for file_mirror in file_mirrors:
       try:
-        # TODO: Instead of the more fragile 'download_safely' switch, unroll
-        # the function into two separate ones: one for "safe" download, and the
-        # other one for "unsafe" download? This should induce safer and more
-        # readable code.
-        if download_safely:
-          file_object = tuf.download.safe_download(file_mirror, file_length)
-
-        else:
-          file_object = tuf.download.unsafe_download(file_mirror, file_length)
+        # Eensure the length of the downloaded file matches 'file_length'
+        # exactly.
+        file_object = tuf.download.safe_download(file_mirror, file_length)
 
         # Verify 'file_object' according to the callable function.
         # 'file_object' is also verified if decompressed above (i.e., the
