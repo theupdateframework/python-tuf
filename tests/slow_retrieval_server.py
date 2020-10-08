@@ -37,14 +37,6 @@ import random
 import six
 
 
-# Modify the HTTPServer class to pass the 'test_mode' argument to
-# do_GET() function.
-class HTTPServer_Test(six.moves.BaseHTTPServer.HTTPServer):
-  def __init__(self, server_address, Handler, test_mode):
-    six.moves.BaseHTTPServer.HTTPServer.__init__(self, server_address, Handler)
-    self.test_mode = test_mode
-
-
 
 # HTTP request handler.
 class Handler(six.moves.BaseHTTPServer.BaseHTTPRequestHandler):
@@ -62,38 +54,18 @@ class Handler(six.moves.BaseHTTPServer.BaseHTTPRequestHandler):
       self.send_header('Content-length', str(len(data)))
       self.end_headers()
 
-      if self.server.test_mode == 'mode_1':
-        # Before sending any data, the server does nothing for a long time.
-        DELAY = 40
-        time.sleep(DELAY)
-        self.wfile.write(data)
-
-        return
-
-      # 'mode_2'
-      else:
-        DELAY = 1
-        # Throttle the file by sending a character every DELAY seconds.
-        for i in range(len(data)):
-          self.wfile.write(data[i].encode('utf-8'))
-          time.sleep(DELAY)
-
-        return
+      # Before sending any data, the server does nothing for a long time.
+      DELAY = 40
+      time.sleep(DELAY)
+      self.wfile.write((data.encode('utf-8')))
 
     except IOError as e:
       self.send_error(404, 'File Not Found!')
 
 
 
-def run(port, test_mode):
-  server_address = ('localhost', port)
-  httpd = HTTPServer_Test(server_address, Handler, test_mode)
-  httpd.handle_request()
-
-
-
 if __name__ == '__main__':
   port = int(sys.argv[1])
-  test_mode = sys.argv[2]
-  assert test_mode in ('mode_1', 'mode_2')
-  run(port, test_mode)
+  server_address = ('localhost', port)
+  httpd = six.moves.BaseHTTPServer.HTTPServer(server_address, Handler)
+  httpd.handle_request()
