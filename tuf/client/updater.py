@@ -29,19 +29,17 @@
 
   An overview of the update process:
 
-  1. The software update system instructs TUF to check for updates.
+  0. Load the trusted root metadata file.
 
-  2. TUF downloads and verifies timestamp.json.
+  1. Update the root metadata file if it's necessary.
 
-  3. If timestamp.json indicates that snapshot.json has changed, TUF downloads
-     and verifies snapshot.json.
+  2. Download the timestamp metadata file timestamp.json.
 
-  4. TUF determines which metadata files listed in snapshot.json differ from
-     those described in the last snapshot.json that TUF has seen.  If root.json
-     has changed, the update process starts over using the new root.json.
+  3. Updates snapshot metadata file if it's necessary.
 
-  5. TUF provides the software update system with a list of available files
-     according to targets.json.
+  4. Download the top-level targets metadata file
+
+  5. Verify the desired target against its targets metadata.
 
   6. The software update system instructs TUF to download a specific target
      file.
