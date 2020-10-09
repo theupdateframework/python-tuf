@@ -224,6 +224,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # directory.
     tuf.settings.repositories_directory = self.client_directory
 
+    # Test: repository does not exist
+    self.assertRaises(tuf.exceptions.MissingLocalRepositoryError, updater.Updater,
+                      'test_non_existing_repository', self.repository_mirrors)
 
     # Test: empty client repository (i.e., no metadata directory).
     metadata_backup = self.client_metadata + '.backup'

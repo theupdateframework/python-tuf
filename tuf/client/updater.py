@@ -733,6 +733,12 @@ class Updater(object):
     # Set the path for the current set of metadata files.
     repositories_directory = tuf.settings.repositories_directory
     repository_directory = os.path.join(repositories_directory, self.repository_name)
+
+    # raise MissingLocalRepository if the repo does not exist at all.
+    if not os.path.exists(repository_directory):
+      raise tuf.exceptions.MissingLocalRepositoryError('Local repository ' +
+        repr(repository_directory) + ' does not exist.')
+
     current_path = os.path.join(repository_directory, 'metadata', 'current')
 
     # Ensure the current path is valid/exists before saving it.
