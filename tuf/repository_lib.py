@@ -52,7 +52,6 @@ import securesystemslib
 import securesystemslib.hash
 import securesystemslib.interface
 import securesystemslib.util
-import iso8601
 import six
 
 import securesystemslib.storage
@@ -60,11 +59,6 @@ import securesystemslib.storage
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger(__name__)
-
-# Disable 'iso8601' logger messages to prevent 'iso8601' from clogging the
-# log file.
-iso8601_logger = logging.getLogger('iso8601')
-iso8601_logger.disabled = True
 
 # The extension of TUF metadata.
 METADATA_EXTENSION = '.json'
@@ -704,7 +698,8 @@ def _log_warning_if_expires_soon(rolename, expires_iso8601_timestamp,
   # unix timestamp, subtract from current time.time() (also in POSIX time)
   # and compare against 'seconds_remaining_to_warn'.  Log a warning message
   # to console if 'rolename' expires soon.
-  datetime_object = iso8601.parse_date(expires_iso8601_timestamp)
+  datetime_object = tuf.formats.expiry_string_to_datetime(
+      expires_iso8601_timestamp)
   expires_unix_timestamp = \
     tuf.formats.datetime_to_unix_timestamp(datetime_object)
   seconds_until_expires = expires_unix_timestamp - int(time.time())

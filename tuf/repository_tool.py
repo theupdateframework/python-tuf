@@ -53,7 +53,6 @@ import tuf.repository_lib as repo_lib
 import securesystemslib.keys
 import securesystemslib.formats
 import securesystemslib.util
-import iso8601
 import six
 
 import securesystemslib.storage
@@ -1317,15 +1316,12 @@ class Metadata(object):
     <Purpose>
       A getter method that returns the role's expiration datetime.
 
-      >>>
-      >>>
-      >>>
-
     <Arguments>
       None.
 
     <Exceptions>
-      None.
+      securesystemslib.exceptions.FormatError, if the expiration cannot be
+      parsed correctly
 
     <Side Effects>
       None.
@@ -1337,9 +1333,7 @@ class Metadata(object):
     roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
     expires = roleinfo['expires']
 
-    expires_datetime_object = iso8601.parse_date(expires)
-
-    return expires_datetime_object
+    return tuf.formats.expiry_string_to_datetime(expires)
 
 
 

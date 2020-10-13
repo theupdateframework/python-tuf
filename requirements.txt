@@ -44,4 +44,3 @@
 securesystemslib[colors, crypto, pynacl]
 requests
 six
-iso8601

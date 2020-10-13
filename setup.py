@@ -114,7 +114,6 @@ setup(
   },
   python_requires=">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4",
   install_requires = [
-    'iso8601>=0.1.12',
     'requests>=2.19.1',
     'six>=1.11.0',
     'securesystemslib>=0.16.0'

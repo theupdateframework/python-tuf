@@ -145,7 +145,6 @@ import securesystemslib.hash
 import securesystemslib.keys
 import securesystemslib.util
 import six
-import iso8601
 import requests.exceptions
 
 # The Timestamp role does not have signed metadata about it; otherwise we
@@ -162,11 +161,6 @@ DEFAULT_ROOT_UPPERLENGTH = tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger(__name__)
-
-# Disable 'iso8601' logger messages to prevent 'iso8601' from clogging the
-# log file.
-iso8601_logger = logging.getLogger('iso8601')
-iso8601_logger.disabled = True
 
 
 class MultiRepoUpdater(object):
@@ -2377,7 +2371,8 @@ class Updater(object):
     <Exceptions>
       tuf.exceptions.ExpiredMetadataError:
         If 'metadata_rolename' has expired.
-
+      securesystemslib.exceptions.FormatError:
+        If the expiration cannot be parsed correctly
     <Side Effects>
       None.
 
@@ -2385,21 +2380,14 @@ class Updater(object):
       None.
     """
 
-    # Extract the expiration time.
-    expires = metadata_object['expires']
-
-    # If the current time has surpassed the expiration date, raise an
-    # exception.  'expires' is in
-    # 'securesystemslib.formats.ISO8601_DATETIME_SCHEMA' format (e.g.,
-    # '1985-10-21T01:22:00Z'.)  Convert it to a unix timestamp and compare it
+    # Extract the expiration time. Convert it to a unix timestamp and compare it
     # against the current time.time() (also in Unix/POSIX time format, although
     # with microseconds attached.)
-    current_time = int(time.time())
-
-    # Generate a user-friendly error message if 'expires' is less than the
-    # current time (i.e., a local time.)
-    expires_datetime = iso8601.parse_date(expires)
+    expires_datetime = tuf.formats.expiry_string_to_datetime(
+        metadata_object['expires'])
     expires_timestamp = tuf.formats.datetime_to_unix_timestamp(expires_datetime)
+
+    current_time = int(time.time())
 
     if expires_timestamp < current_time:
       message = 'Metadata '+repr(metadata_rolename)+' expired on ' + \
