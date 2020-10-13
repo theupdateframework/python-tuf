@@ -60,12 +60,6 @@ import securesystemslib
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger(__name__)
 
-# Disable 'iso8601' logger messages to prevent 'iso8601' from clogging the
-# log file.
-iso8601_logger = logging.getLogger('iso8601')
-iso8601_logger.disabled = True
-
-
 def get_signature_status(signable, role=None, repository_name='default',
     threshold=None, keyids=None):
   """
