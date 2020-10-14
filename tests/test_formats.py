@@ -723,6 +723,23 @@ class TestFormats(unittest.TestCase):
 
 
 
+  def test_expiry_string_to_datetime(self):
+    dt = tuf.formats.expiry_string_to_datetime('1985-10-21T13:20:00Z')
+    self.assertEqual(dt, datetime.datetime(1985, 10, 21, 13, 20, 0))
+    dt = tuf.formats.expiry_string_to_datetime('2038-01-19T03:14:08Z')
+    self.assertEqual(dt, datetime.datetime(2038, 1, 19, 3, 14, 8))
+
+    # First 3 fail via securesystemslib schema, last one because of strptime()
+    invalid_inputs = [
+      '2038-1-19T03:14:08Z', # leading zeros not optional
+      '2038-01-19T031408Z', # strict time parsing
+      '2038-01-19T03:14:08Z-06:00', # timezone not allowed
+      '2038-13-19T03:14:08Z', # too many months
+    ]
+    for invalid_input in invalid_inputs:
+      with self.assertRaises(securesystemslib.exceptions.FormatError):
+        tuf.formats.expiry_string_to_datetime(invalid_input)
+
 
 
   def test_unix_timestamp_to_datetime(self):

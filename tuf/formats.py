@@ -612,6 +612,37 @@ SCHEMAS_BY_TYPE = {
 
 
 
+
+def expiry_string_to_datetime(expires):
+  """
+  <Purpose>
+    Convert an expiry string to a datetime object.
+  <Arguments>
+    expires:
+      The expiry date-time string in the ISO8601 format that is defined
+      in securesystemslib.ISO8601_DATETIME_SCHEMA. E.g. '2038-01-19T03:14:08Z'
+  <Exceptions>
+    securesystemslib.exceptions.FormatError, if 'expires' cannot be
+    parsed correctly.
+  <Side Effects>
+    None.
+  <Returns>
+    A datetime object representing the expiry time.
+  """
+
+  # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
+  securesystemslib.formats.ISO8601_DATETIME_SCHEMA.check_match(expires)
+
+  try:
+    return datetime.datetime.strptime(expires, "%Y-%m-%dT%H:%M:%SZ")
+  except ValueError as error:
+    six.raise_from(securesystemslib.exceptions.FormatError(
+        'Failed to parse ' + repr(expires) + ' as an expiry time'),
+        error)
+
+
+
+
 def datetime_to_unix_timestamp(datetime_object):
   """
   <Purpose>
