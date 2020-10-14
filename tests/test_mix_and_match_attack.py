@@ -221,7 +221,8 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
     self.repository_updater.refresh()
 
     try:
-      self.repository_updater.targets_of_role('role1')
+      with utils.ignore_deprecation_warnings('tuf.client.updater'):
+        self.repository_updater.targets_of_role('role1')
 
     # Verify that the specific
     # 'tuf.exceptions.BadVersionNumberError' exception is raised by

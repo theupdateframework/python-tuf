@@ -1000,7 +1000,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
    self.repository_updater.refresh()
 
    # Test: normal case.
-   all_targets = self.repository_updater.all_targets()
+   with utils.ignore_deprecation_warnings('tuf.client.updater'):
+    all_targets = self.repository_updater.all_targets()
 
    # Verify format of 'all_targets', it should correspond to
    # 'TARGETINFOS_SCHEMA'.
@@ -1044,7 +1045,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
     # Test: normal case.
-    targetinfos = self.repository_updater.targets_of_role('role1')
+    with utils.ignore_deprecation_warnings('tuf.client.updater'):
+      targetinfos = self.repository_updater.targets_of_role('role1')
 
     # Verify that the expected role files were downloaded and installed.
     os.path.exists(os.path.join(self.client_metadata_current, 'targets.json'))
@@ -1061,10 +1063,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Test: Invalid arguments.
     # targets_of_role() expected a string rolename.
-    self.assertRaises(securesystemslib.exceptions.FormatError, self.repository_updater.targets_of_role,
-                      8)
-    self.assertRaises(tuf.exceptions.UnknownRoleError, self.repository_updater.targets_of_role,
-                      'unknown_rolename')
+    with utils.ignore_deprecation_warnings('tuf.client.updater'):
+      self.assertRaises(securesystemslib.exceptions.FormatError, self.repository_updater.targets_of_role,
+                        8)
+      self.assertRaises(tuf.exceptions.UnknownRoleError, self.repository_updater.targets_of_role,
+                        'unknown_rolename')
 
 
 
@@ -1398,7 +1401,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Get the list of target files.  It will be used as an argument to the
     # 'updated_targets()' function.
-    all_targets = self.repository_updater.all_targets()
+    with utils.ignore_deprecation_warnings('tuf.client.updater'):
+      all_targets = self.repository_updater.all_targets()
 
     # Test for duplicates and targets in the root directory of the repository.
     additional_target = all_targets[0].copy()
@@ -1412,7 +1416,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     updated_targets = \
       self.repository_updater.updated_targets(all_targets, destination_directory)
 
-    all_targets = self.repository_updater.all_targets()
+    with utils.ignore_deprecation_warnings('tuf.client.updater'):
+      all_targets = self.repository_updater.all_targets()
 
     # Assumed the pre-generated repository specifies two target files in
     # 'targets.json' and one delegated target file in 'role1.json'.
@@ -1479,7 +1484,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater.refresh()
 
     # Verify that the new target file is considered updated.
-    all_targets = self.repository_updater.all_targets()
+    with utils.ignore_deprecation_warnings('tuf.client.updater'):
+      all_targets = self.repository_updater.all_targets()
     updated_targets = \
       self.repository_updater.updated_targets(all_targets, destination_directory)
     self.assertEqual(len(updated_targets), 1)
@@ -1522,7 +1528,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     destination_directory = self.make_temp_directory()
 
     #  Populate 'destination_direction' with all target files.
-    all_targets = self.repository_updater.all_targets()
+    with utils.ignore_deprecation_warnings('tuf.client.updater'):
+      all_targets = self.repository_updater.all_targets()
 
     self.assertEqual(len(os.listdir(destination_directory)), 0)
 
@@ -1553,7 +1560,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Verify number of target files in 'destination_directory' (should be 1
     # after the update made to the remote repository), and call
     # 'remove_obsolete_targets()'.
-    all_targets = self.repository_updater.all_targets()
+    with utils.ignore_deprecation_warnings('tuf.client.updater'):
+      all_targets = self.repository_updater.all_targets()
 
     updated_targets = \
       self.repository_updater.updated_targets(all_targets,
