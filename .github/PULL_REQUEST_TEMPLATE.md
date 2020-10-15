@@ -1,7 +1,7 @@
 Please fill in the fields below to submit a pull request.  The more information
 that is provided, the better.
 
-**Fixes issue #**:
+Fixes #<ISSUE NUMBER>
 
 **Description of the changes being introduced by the pull request**:
 
