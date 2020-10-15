@@ -10,7 +10,6 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
 import json
-import logging
 import tempfile
 
 from securesystemslib.formats import encode_canonical
