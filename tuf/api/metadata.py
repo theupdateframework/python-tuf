@@ -239,14 +239,14 @@ class Metadata():
             raise tuf.exceptions.Error(
                     f'no signature for key {key["keyid"]}.')
 
-        elif len(signatures_for_keyid) > 1:
+        if len(signatures_for_keyid) > 1:
             raise tuf.exceptions.Error(
                     f'{len(signatures_for_keyid)} signatures for key '
                     f'{key["keyid"]}, not sure which one to verify.')
-        else:
-            return verify_signature(
-                    key, signatures_for_keyid[0],
-                    self.signed.to_canonical_bytes())
+
+        return verify_signature(
+            key, signatures_for_keyid[0],
+            self.signed.to_canonical_bytes())
 
 
 
