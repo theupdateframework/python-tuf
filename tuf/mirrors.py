@@ -92,6 +92,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   if file_type not in _SUPPORTED_FILE_TYPES:
     raise securesystemslib.exceptions.Error('Invalid file_type argument.'
       '  Supported file types: ' + repr(_SUPPORTED_FILE_TYPES))
+  path_key = 'metadata_path' if file_type == 'meta' else 'targets_path'
 
   # Reference to 'securesystemslib.util.file_in_confined_directories()' (improve
   # readability).  This function checks whether a mirror should serve a file to
@@ -103,18 +104,17 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
 
   list_of_mirrors = []
   for junk, mirror_info in six.iteritems(mirrors_dict):
-    if file_type == 'meta':
-      base = os.path.join(mirror_info['url_prefix'], mirror_info['metadata_path'])
+    # Does mirror serve this file type at all?
+    path = mirror_info.get(path_key)
+    if path is None:
+      continue
 
-    # 'file_type' == 'target'.  'file_type' should have been verified to
-    # contain a supported string value above (either 'meta' or 'target').
-    else:
-      targets_path = mirror_info['targets_path']
-      full_filepath = os.path.join(targets_path, file_path)
+    # for targets, ensure directory confinement
+    if path_key == 'targets_path':
+      full_filepath = os.path.join(path, file_path)
       if not in_confined_directory(full_filepath,
           mirror_info['confined_target_dirs']):
         continue
-      base = os.path.join(mirror_info['url_prefix'], mirror_info['targets_path'])
 
     # urllib.quote(string) replaces special characters in string using the %xx
     # escape.  This is done to avoid parsing issues of the URL on the server
@@ -122,8 +122,10 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
     # the URL as UTF-8. We need a long-term solution with #61.
     # http://bugs.python.org/issue1712522
     file_path = six.moves.urllib.parse.quote(file_path)
-    url = os.path.join(base, file_path)
+    url = os.path.join(mirror_info['url_prefix'], path, file_path)
 
+    # The above os.path.join() result as well as input file_path may be
+    # invalid on windows (might contain both separator types), see #1077.
     # Make sure the URL doesn't contain backward slashes on Windows.
     list_of_mirrors.append(url.replace('\\', '/'))
 
