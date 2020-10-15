@@ -179,9 +179,9 @@ class Metadata():
                 The file cannot be written.
 
         """
-        with tempfile.TemporaryFile() as f:
-            f.write(self.to_json(compact).encode('utf-8'))
-            persist_temp_file(f, filename, storage_backend)
+        with tempfile.TemporaryFile() as temp_file:
+            temp_file.write(self.to_json(compact).encode('utf-8'))
+            persist_temp_file(temp_file, filename, storage_backend)
 
 
     # Signatures.
