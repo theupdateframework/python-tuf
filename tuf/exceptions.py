@@ -115,6 +115,10 @@ class RepositoryError(Error):
   """Indicate an error with a repository's state, such as a missing file."""
 
 
+class MissingLocalRepositoryError(RepositoryError):
+  """Raised when a local repository could not be found."""
+
+
 class InsufficientKeysError(Error):
   """Indicate that metadata role lacks a threshold of pubic or private keys."""
 
