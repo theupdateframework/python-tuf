@@ -20,13 +20,13 @@ matrix:
       env: TOXENV=py37
     - python: "3.8"
       env: TOXENV=py38
-    - python: "3.6"
+    - python: "3.8"
       env: TOXENV=with-sslib-master
     - python: "3.8"
       env: TOXENV=lint
 
   allow_failures:
-    - python: "3.6"
+    - python: "3.8"
       env: TOXENV=with-sslib-master
 
 install:
