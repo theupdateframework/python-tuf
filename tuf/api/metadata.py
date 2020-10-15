@@ -493,6 +493,10 @@ class Targets(Signed):
             }
 
     """
+    # TODO: determine an appropriate value for max-args and fix places where
+    # we violate that. This __init__ function takes 7 arguments, whereas the
+    # default max-args value for pylint is 5
+    # pylint: disable=too-many-arguments
     def __init__(
             self, _type: str, version: int, spec_version: str,
             expires: datetime, targets: JsonDict, delegations: JsonDict
