@@ -10,7 +10,6 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
 import json
-import logging
 import tempfile
 
 from securesystemslib.formats import encode_canonical
@@ -180,9 +179,9 @@ class Metadata():
                 The file cannot be written.
 
         """
-        with tempfile.TemporaryFile() as f:
-            f.write(self.to_json(compact).encode('utf-8'))
-            persist_temp_file(f, filename, storage_backend)
+        with tempfile.TemporaryFile() as temp_file:
+            temp_file.write(self.to_json(compact).encode('utf-8'))
+            persist_temp_file(temp_file, filename, storage_backend)
 
 
     # Signatures.
@@ -240,14 +239,14 @@ class Metadata():
             raise tuf.exceptions.Error(
                     f'no signature for key {key["keyid"]}.')
 
-        elif len(signatures_for_keyid) > 1:
+        if len(signatures_for_keyid) > 1:
             raise tuf.exceptions.Error(
                     f'{len(signatures_for_keyid)} signatures for key '
                     f'{key["keyid"]}, not sure which one to verify.')
-        else:
-            return verify_signature(
-                    key, signatures_for_keyid[0],
-                    self.signed.to_canonical_bytes())
+
+        return verify_signature(
+            key, signatures_for_keyid[0],
+            self.signed.to_canonical_bytes())
 
 
 
@@ -494,6 +493,10 @@ class Targets(Signed):
             }
 
     """
+    # TODO: determine an appropriate value for max-args and fix places where
+    # we violate that. This __init__ function takes 7 arguments, whereas the
+    # default max-args value for pylint is 5
+    # pylint: disable=too-many-arguments
     def __init__(
             self, _type: str, version: int, spec_version: str,
             expires: datetime, targets: JsonDict, delegations: JsonDict

@@ -20,11 +20,15 @@ matrix:
       env: TOXENV=py37
     - python: "3.8"
       env: TOXENV=py38
-    - python: "3.6"
+    - python: "3.8"
       env: TOXENV=with-sslib-master
+    - python: "3.8"
+      env: TOXENV=lint
+      before_script: skip
+      after_success: skip
 
   allow_failures:
-    - python: "3.6"
+    - python: "3.8"
       env: TOXENV=with-sslib-master
 
 install:
@@ -35,9 +39,9 @@ before_script:
 
 script:
   - tox
-  - fossa
 
 after_success:
+  - fossa
   # Workaround to get coverage reports with relative paths.
   # FIXME: Consider refactoring the tests to not require the test aggregation
   # script being invoked from the `tests` directory, so that `.coverage` is

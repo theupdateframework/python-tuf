@@ -1,0 +1,6 @@
+[MESSAGE_CONTROL]
+disable=fixme
+
+[FORMAT]
+indent-string="    "
+max-line-length=79
