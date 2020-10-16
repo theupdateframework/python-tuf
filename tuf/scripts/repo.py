@@ -24,7 +24,7 @@
 
   Note:
   'pip install securesystemslib[crypto,pynacl]' is required by the CLI,
-  which installs the 3rd-party dependencies: cryptography, pynacl, and colorama.
+  which installs the 3rd-party dependencies: cryptography and pynacl.
 
 <Usage>
   Note: arguments within brackets are optional.
@@ -153,9 +153,9 @@ import tuf.formats
 import tuf.repository_tool as repo_tool
 
 # 'pip install securesystemslib[crypto,pynacl]' is required for the CLI,
-# which installs the cryptography, pynacl, and colorama dependencies.
+# which installs the cryptography and pynacl.
 import securesystemslib
-from colorama import Fore
+from securesystemslib import interface
 import six
 
 
@@ -428,7 +428,7 @@ def import_privatekey_from_file(keypath, password=None):
     # However, care should be taken when including the full path in exceptions
     # and log files.
     password = securesystemslib.interface.get_password('Enter a password for'
-        ' the encrypted key (' + Fore.RED + repr(keypath) + Fore.RESET + '): ',
+        ' the encrypted key (' + interface.TERM_RED + repr(keypath) + interface.TERM_RED + '): ',
         confirm=False)
 
   # Does 'password' have the correct format?
