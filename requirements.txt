@@ -41,6 +41,6 @@
 # 3. Use this command to remove per-version files
 #    `rm requirements-?.?.txt`
 #
-securesystemslib[colors, crypto, pynacl]
+securesystemslib[crypto, pynacl]
 requests
 six
