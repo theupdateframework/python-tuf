@@ -3261,6 +3261,14 @@ class Updater(object):
         Also ensure the length of the downloaded file matches 'required_length'
         exactly'
 
+        Raise 'securesystemslib.exceptions.DownloadLengthMismatchError', if
+        STRICT_REQUIRED_LENGTH is True and total_downloaded is not equal
+        required_length.
+
+        Raise 'tuf.exceptions.SlowRetrievalError', if the total downloaded was
+        done in less than the acceptable download speed (as set in
+        tuf.settings.py).
+
         If None, tuf.download.safe_download is used.
 
     <Exceptions>
