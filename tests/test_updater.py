@@ -1213,6 +1213,73 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
+  def test_download_target_custom_download_handler(self):
+    # Create temporary directory (destination directory of downloaded targets)
+    # that will be passed as an argument to 'download_target()'.
+    destination_directory = self.make_temp_directory()
+    target_filepaths = \
+      list(self.repository_updater.metadata['current']['targets']['targets'].keys())
+
+    # Get the target info, which is an argument to 'download_target()'.
+    target_filepath = target_filepaths.pop()
+    targetinfo = self.repository_updater.get_one_valid_targetinfo(target_filepath)
+    download_filepath = os.path.join(destination_directory, target_filepath)
+
+    # Test passing a handler with correct signature but incorrect implementation
+    def test_1(param_1, param2):
+      pass
+
+    self.assertRaises(tuf.exceptions.NoWorkingMirrorError,
+        self.repository_updater.download_target, targetinfo, destination_directory,
+        custom_download_handler=test_1)
+
+    # Checks if the file is permanently stored
+    self.assertFalse(os.path.exists(download_filepath))
+
+    # Test passing a handler with incorrect number of parameters
+    def test_2(param_1, param_2, param_3):
+      pass
+
+    with self.assertRaises(tuf.exceptions.NoWorkingMirrorError) as cm:
+      self.repository_updater.download_target(targetinfo, destination_directory,
+          custom_download_handler=test_2)
+
+    for _, mirror_error in six.iteritems(cm.exception.mirror_errors):
+      self.assertTrue(isinstance(mirror_error, TypeError))
+
+    # Checks if the file is permanently stored
+    self.assertFalse(os.path.exists(download_filepath))
+
+    # Test passing a handler throwing an unexpected error
+    def test_3(param_1, param2):
+      raise IOError
+
+    with self.assertRaises(tuf.exceptions.NoWorkingMirrorError) as cm:
+      self.repository_updater.download_target(targetinfo, destination_directory,
+          custom_download_handler=test_3)
+
+    for _, mirror_error in six.iteritems(cm.exception.mirror_errors):
+      self.assertTrue(isinstance(mirror_error, IOError))
+
+    # Checks if the file has been successfully downloaded
+    self.assertFalse(os.path.exists(download_filepath))
+
+    # Test: default case.
+    self.repository_updater.download_target(targetinfo, destination_directory)
+
+    # Checks if the file has been successfully downloaded
+    self.assertTrue(os.path.exists(download_filepath))
+
+    # Test: normal case.
+    self.repository_updater.download_target(targetinfo, destination_directory,
+        custom_download_handler=tuf.download.safe_download)
+
+    # Checks if the file has been successfully downloaded
+    self.assertTrue(os.path.exists(download_filepath))
+
+
+
+
   def test_6_download_target(self):
     # Create temporary directory (destination directory of downloaded targets)
     # that will be passed as an argument to 'download_target()'.
