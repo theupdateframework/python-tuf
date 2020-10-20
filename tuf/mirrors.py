@@ -112,8 +112,10 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
     # for targets, ensure directory confinement
     if path_key == 'targets_path':
       full_filepath = os.path.join(path, file_path)
-      if not in_confined_directory(full_filepath,
-          mirror_info['confined_target_dirs']):
+      confined_target_dirs = mirror_info.get('confined_target_dirs')
+      # confined_target_dirs is an optional field
+      if confined_target_dirs and not in_confined_directory(full_filepath,
+          confined_target_dirs):
         continue
 
     # urllib.quote(string) replaces special characters in string using the %xx

@@ -50,8 +50,7 @@ class TestMirrors(unittest_toolbox.Modified_TestCase):
     self.mirrors = \
     {'mirror1': {'url_prefix' : 'http://mirror1.com',
                  'metadata_path' : 'metadata',
-                 'targets_path' : 'targets',
-                 'confined_target_dirs' : ['']},
+                 'targets_path' : 'targets'},
      'mirror2': {'url_prefix' : 'http://mirror2.com',
                  'metadata_path' : 'metadata',
                  'targets_path' : 'targets',
@@ -60,15 +59,47 @@ class TestMirrors(unittest_toolbox.Modified_TestCase):
      'mirror3': {'url_prefix' : 'http://mirror3.com',
                  'targets_path' : 'targets',
                  'confined_target_dirs' : ['targets/release/v2/']},
+     # confined_target_dirs = [] means that none of the targets on
+     # that mirror is available.
      'mirror4': {'url_prefix' : 'http://mirror4.com',
                  'metadata_path' : 'metadata',
                  'confined_target_dirs' : []},
+     # Make sure we are testing when confined_target_dirs is [''] which means
+     # that all targets are available on that mirror.
+     'mirror5': {'url_prefix' : 'http://mirror5.com',
+                 'targets_path' : 'targets',
+                 'confined_target_dirs' : ['']}
     }
 
 
 
   def test_get_list_of_mirrors(self):
     # Test: Normal case.
+
+    # 1 match: a mirror without target directory confinement
+    mirror_list = mirrors.get_list_of_mirrors('target', 'a.txt', self.mirrors)
+    self.assertEqual(len(mirror_list), 2)
+    self.assertTrue(self.mirrors['mirror1']['url_prefix']+'/targets/a.txt' in \
+                    mirror_list)
+    self.assertTrue(self.mirrors['mirror5']['url_prefix']+'/targets/a.txt' in \
+                    mirror_list)
+
+    mirror_list = mirrors.get_list_of_mirrors('target', 'a/b', self.mirrors)
+    self.assertEqual(len(mirror_list), 2)
+    self.assertTrue(self.mirrors['mirror1']['url_prefix']+'/targets/a/b' in \
+                    mirror_list)
+    self.assertTrue(self.mirrors['mirror5']['url_prefix']+'/targets/a/b' in \
+                    mirror_list)
+
+    # 2 matches: One with non-confined targets and one with matching confinement
+    mirror_list = mirrors.get_list_of_mirrors('target', 'release/v2/c', self.mirrors)
+    self.assertEqual(len(mirror_list), 3)
+    self.assertTrue(self.mirrors['mirror1']['url_prefix']+'/targets/release/v2/c' in \
+                    mirror_list)
+    self.assertTrue(self.mirrors['mirror3']['url_prefix']+'/targets/release/v2/c' in \
+                    mirror_list)
+    self.assertTrue(self.mirrors['mirror5']['url_prefix']+'/targets/release/v2/c' in \
+                    mirror_list)
 
     # 3 matches: Metadata found on 3 mirrors
     mirror_list = mirrors.get_list_of_mirrors('meta', 'release.txt', self.mirrors)
@@ -80,31 +111,12 @@ class TestMirrors(unittest_toolbox.Modified_TestCase):
     self.assertTrue(self.mirrors['mirror4']['url_prefix']+'/metadata/release.txt' in \
                     mirror_list)
 
-    # 1 match: a mirror without target directory confinement
-    mirror_list = mirrors.get_list_of_mirrors('target', 'a.txt', self.mirrors)
-    self.assertEqual(len(mirror_list), 1)
-    self.assertTrue(self.mirrors['mirror1']['url_prefix']+'/targets/a.txt' in \
-                    mirror_list)
-
-    mirror_list = mirrors.get_list_of_mirrors('target', 'a/b', self.mirrors)
-    self.assertEqual(len(mirror_list), 1)
-    self.assertTrue(self.mirrors['mirror1']['url_prefix']+'/targets/a/b' in \
-                    mirror_list)
-
     # No matches
-    mirror1 = self.mirrors['mirror1']
     del self.mirrors['mirror1']
+    del self.mirrors['mirror5']
     mirror_list = mirrors.get_list_of_mirrors('target', 'a/b', self.mirrors)
     self.assertFalse(mirror_list)
-    self.mirrors['mirror1'] = mirror1
 
-    # 2 matches: One with non-confined targets and one with matching confinement
-    mirror_list = mirrors.get_list_of_mirrors('target', 'release/v2/c', self.mirrors)
-    self.assertEqual(len(mirror_list), 2)
-    self.assertTrue(self.mirrors['mirror1']['url_prefix']+'/targets/release/v2/c' in \
-                    mirror_list)
-    self.assertTrue(self.mirrors['mirror3']['url_prefix']+'/targets/release/v2/c' in \
-                    mirror_list)
 
     # Test: Invalid 'file_type'.
     self.assertRaises(securesystemslib.exceptions.Error, mirrors.get_list_of_mirrors,

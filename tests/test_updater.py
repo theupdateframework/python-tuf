@@ -170,8 +170,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
-                                           'targets_path': 'targets',
-                                           'confined_target_dirs': ['']}}
+                                           'targets_path': 'targets'}}
 
     # Creating a repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
@@ -1092,8 +1091,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         + str(self.server_process_handler.port) + repository_basepath
 
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
-        'metadata_path': 'metadata', 'targets_path': 'targets',
-        'confined_target_dirs': ['']}}
+        'metadata_path': 'metadata', 'targets_path': 'targets'}}
 
     # Creating a repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
@@ -1391,8 +1389,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     tuf.settings.repositories_directory = self.client_directory
 
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
-        'metadata_path': 'metadata', 'targets_path': 'targets',
-        'confined_target_dirs': ['']}}
+        'metadata_path': 'metadata', 'targets_path': 'targets'}}
 
     # Creating a repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
@@ -1519,8 +1516,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     tuf.settings.repositories_directory = self.client_directory
 
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
-        'metadata_path': 'metadata', 'targets_path': 'targets',
-        'confined_target_dirs': ['']}}
+        'metadata_path': 'metadata', 'targets_path': 'targets'}}
 
     # Creating a repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
@@ -1890,12 +1886,10 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     url_prefix2 = 'http://localhost:' + str(self.SERVER_PORT2)
 
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
-        'metadata_path': 'metadata', 'targets_path': 'targets',
-        'confined_target_dirs': ['']}}
+        'metadata_path': 'metadata', 'targets_path': 'targets'}}
 
     self.repository_mirrors2 = {'mirror1': {'url_prefix': url_prefix2,
-        'metadata_path': 'metadata', 'targets_path': 'targets',
-        'confined_target_dirs': ['']}}
+        'metadata_path': 'metadata', 'targets_path': 'targets'}}
 
     # Create the repository instances.  The test cases will use these client
     # updaters to refresh metadata, fetch target files, etc.
