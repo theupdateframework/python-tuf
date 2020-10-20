@@ -38,7 +38,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import sys
-import random
 import ssl
 import os
 import six
