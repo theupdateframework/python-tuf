@@ -38,7 +38,6 @@ import utils
 
 import securesystemslib
 import securesystemslib.util
-import six
 
 
 class TestMirrors(unittest_toolbox.Modified_TestCase):

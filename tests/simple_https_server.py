@@ -40,7 +40,6 @@ from __future__ import unicode_literals
 from utils import ImproperNumberOfArguments
 
 import sys
-import random
 import ssl
 import os
 import six
