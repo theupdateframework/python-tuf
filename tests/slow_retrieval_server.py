@@ -32,7 +32,6 @@ from __future__ import unicode_literals
 import os
 import sys
 import time
-import random
 
 import six
 

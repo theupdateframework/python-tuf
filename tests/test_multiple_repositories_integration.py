@@ -31,7 +31,6 @@ from __future__ import unicode_literals
 
 import os
 import tempfile
-import random
 import logging
 import shutil
 import unittest

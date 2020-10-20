@@ -46,7 +46,6 @@ from __future__ import unicode_literals
 
 import os
 import tempfile
-import random
 import time
 import shutil
 import logging
@@ -222,7 +221,6 @@ class TestSlowRetrieval(unittest_toolbox.Modified_TestCase):
 
     # Verify that the TUF client detects replayed metadata and refuses to
     # continue the update process.
-    client_filepath = os.path.join(self.client_directory, 'file1.txt')
     try:
       file1_target = self.repository_updater.get_one_valid_targetinfo('file1.txt')
       self.repository_updater.download_target(file1_target, self.client_directory)
