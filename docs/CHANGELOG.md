@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.15.0
+### Added
+* Simple TUF role metadata model in the `tuf.api` package for interacting with
+  metadata files directly, per-file without the overheads of reading and
+  writing the entire repository at once (#1112)
+* Raise `MissingLocalRepositoryError` in updater when local repository can not
+  be found (#1173)
+
+### Changed
+* Raise an error in `tuf.client.updater` when metadata is loaded without a
+  signature (#1100)
+* Print a warning in `tuf.repository_tool` when metadata is written without a
+  signature (#1100)
+* Remove iso8661 dependency (#1176)
+* Bump dependencies: cffi (#1146), cryptography (#1149), urllib (#1179)
+* Overhauled logging to be less verbose and less alarming, by removing logging
+  in the library when an exception is raised (including the same information
+  that was logged) and using more appropriate log levels (#1145)
+* Make test output more useful by reducing and improving logging (#1145, #1104, #1170)
+* Make the `targets_path`, `metadata_path` and `confined_target_dirs` fields in
+  `tuf.client.updater`s mirror configuration optional (#1153, #1166)
+
+### Fixed
+* Ensure file objects and `requests.Responses` are closed during tests (#1147)
+
 ## v0.14.0
 ### Added
 * Added a mechanism to the Updater to disable the hash prefix for target files
