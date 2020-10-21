@@ -14,7 +14,8 @@
 * Print a warning in `tuf.repository_tool` when metadata is written without a
   signature (#1100)
 * Remove iso8661 dependency (#1176)
-* Bump dependencies: cffi (#1146), cryptography (#1149), urllib (#1179)
+* Bump dependencies: cffi (#1146), cryptography (#1149), urllib (#1179),
+  securesystemslib (#1183)
 * Overhauled logging to be less verbose and less alarming, by removing logging
   in the library when an exception is raised (including the same information
   that was logged) and using more appropriate log levels (#1145)
