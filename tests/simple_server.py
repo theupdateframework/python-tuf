@@ -48,6 +48,13 @@ if len(sys.argv) <= 1:
 
 PORT = int(sys.argv[1])
 
+# Used for tests in tests/test_utils.py
+if len(sys.argv) > 2:
+  if sys.argv[2] == "stop":
+    sys.exit()
+  elif sys.argv[2] == "endless":
+    while True:
+      pass
 
 class QuietHTTPRequestHandler(SimpleHTTPRequestHandler):
   """A SimpleHTTPRequestHandler that does not write incoming requests to
