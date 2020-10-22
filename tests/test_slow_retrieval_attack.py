@@ -169,7 +169,7 @@ class TestSlowRetrieval(unittest_toolbox.Modified_TestCase):
     repository_basepath = self.repository_directory[len(os.getcwd()):]
 
     self.server_process_handler = utils.TestServerProcess(log=logger,
-        server='slow_retrieval_server.py', timeout=0)
+        server='slow_retrieval_server.py')
 
     logger.info('Slow Retrieval Server process started.')
 

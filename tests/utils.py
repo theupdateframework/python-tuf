@@ -137,7 +137,6 @@ class TestServerProcess():
       timeout:
         Time in seconds in which the server should start or otherwise
         TimeoutError error will be raised.
-        If 0 is given, no check if the server has started will be done.
         Default is 10.
 
       popen_cwd:
@@ -168,8 +167,7 @@ class TestServerProcess():
     try:
       self._start_server(port, timeout, extra_cmd_args, popen_cwd)
 
-      if timeout > 0:
-        wait_for_server('localhost', self.server, self.port, timeout)
+      wait_for_server('localhost', self.server, self.port, timeout)
     except Exception as e:
       # Clean the resources and log the server errors if any exists.
       self.clean()
@@ -184,7 +182,7 @@ class TestServerProcess():
     started = False
     ports_generated = 0
     start = time.time()
-    while not started:
+    while not started and timeout > 0:
       self.port = port or random.randint(30000, 45000)
       ports_generated += 1
       # The "-u" option forces stdin, stdout and stderr to be unbuffered.
@@ -194,12 +192,6 @@ class TestServerProcess():
       # collecting the logs per test.
       self.__server_process = subprocess.Popen(command,
           stdout=self.__temp_log_file, stderr=subprocess.STDOUT, cwd=popen_cwd)
-
-      # Some tests (like those in test_slow_retrieval_attack.py) require no
-      # checks if the server has started.
-      if timeout == 0:
-        started = True
-        break
 
       started = self._has_server_started(timeout)
 
@@ -213,9 +205,6 @@ class TestServerProcess():
           self.__server_process.wait()
 
         timeout = timeout - (time.time() - start)
-
-      if timeout <= 0:
-        break
 
     if not started:
       raise TimeoutError("Failure during server startup after " \
