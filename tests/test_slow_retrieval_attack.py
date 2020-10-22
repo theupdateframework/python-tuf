@@ -172,14 +172,6 @@ class TestSlowRetrieval(unittest_toolbox.Modified_TestCase):
 
     logger.info('Slow Retrieval Server process started.')
 
-    # NOTE: Following error is raised if a delay is not long enough:
-    # <urlopen error [Errno 111] Connection refused>
-    # or, on Windows:
-    # Failed to establish a new connection: [Errno 111] Connection refused'
-    # 1s led to occasional failures in automated builds on AppVeyor, so
-    # increasing this to 3s, sadly.
-    time.sleep(3)
-
     url_prefix = 'http://localhost:' \
       + str(self.server_process_handler.port) + repository_basepath
 
