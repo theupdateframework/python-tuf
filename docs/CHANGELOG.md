@@ -4,9 +4,11 @@
 ### Added
 * Simple TUF role metadata model in the `tuf.api` package for interacting with
   metadata files directly, per-file without the overheads of reading and
-  writing the entire repository at once (#1112)
+  writing the entire repository at once (#1112, #1177, #1183)
 * Raise `MissingLocalRepositoryError` in updater when local repository can not
   be found (#1173)
+* Tests for targets metadata generation with existing `fileinfo` (#1078)
+* Test-verbosity documentation (#1151)
 
 ### Changed
 * Raise an error in `tuf.client.updater` when metadata is loaded without a
@@ -22,9 +24,14 @@
 * Make test output more useful by reducing and improving logging (#1145, #1104, #1170)
 * Make the `targets_path`, `metadata_path` and `confined_target_dirs` fields in
   `tuf.client.updater`s mirror configuration optional (#1153, #1166)
+* Include LICENSE files with source distributions (#1162)
+* Update Python version to be used in release instructions (#1163)
+* Remove direct use of `colorama` and dependency (#1180)
 
 ### Fixed
 * Ensure file objects and `requests.Responses` are closed during tests (#1147)
+* Auto-test against `securesystemslib` head of development (#1185)
+* Fix parameter name in `tuf.repository_lib` error message (#1078)
 
 ## v0.14.0
 ### Added
