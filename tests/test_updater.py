@@ -58,6 +58,8 @@ import logging
 import errno
 import sys
 import unittest
+import requests
+import timeit
 
 import tuf
 import tuf.exceptions
@@ -1270,9 +1272,58 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Checks if the file has been successfully downloaded
     self.assertTrue(os.path.exists(download_filepath))
 
-    # Test: normal case.
+    # Define a simple custom download handler mimicking
+    # the tuf.download call stack:
+    # safe_download()
+    #   _download_file()
+    #     _download_fixed_amount_of_data()
+    #       _check_downloaded_length()
+    def download_handler(url, required_length):
+      url = six.moves.urllib.parse.unquote(url).replace('\\', '/')
+      temp_file = tempfile.TemporaryFile()
+
+      try:
+        session = requests.Session()
+        with session.get(url, stream=True,
+            timeout=tuf.settings.SOCKET_TIMEOUT) as response:
+
+          # Check response status.
+          response.raise_for_status()
+
+          # Download fixed amount of data
+          average_download_speed = 0
+          number_of_bytes_received = 0
+
+          start_time = timeit.default_timer()
+
+          for chunk in response.iter_content(chunk_size=tuf.settings.CHUNK_SIZE):
+            number_of_bytes_received += len(chunk)
+            temp_file.write(chunk)
+            if number_of_bytes_received >= required_length:
+              break
+
+            stop_time = timeit.default_timer()
+            average_download_speed = number_of_bytes_received / (stop_time - start_time)
+            if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
+              break
+
+        #Check downloaded length
+        if number_of_bytes_received != required_length:
+          if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
+            raise tuf.exceptions.SlowRetrievalError(average_download_speed)
+
+          raise tuf.exceptions.DownloadLengthMismatchError(required_length, number_of_bytes_received)
+
+      except Exception:
+        temp_file.close()
+        raise
+
+      else:
+        return temp_file
+
+    #Test passing a custom download function
     self.repository_updater.download_target(targetinfo, destination_directory,
-        custom_download_handler=tuf.download.safe_download)
+        custom_download_handler=download_handler)
 
     # Checks if the file has been successfully downloaded
     self.assertTrue(os.path.exists(download_filepath))
