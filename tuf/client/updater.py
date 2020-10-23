@@ -3249,25 +3249,36 @@ class Updater(object):
 
      custom_download_handler:
         A user provided function performing the actual target file download.
-        In order to comply with the TUF specification, the function signature
-        should have the form:
+        In order to comply with the TUF specification, the function implementation
+        should match the following description:
 
-        'def download_handler_func(url, required_length)'
+        def download_handler_func(url, required_length)
+          <Purpose>
+            Given the 'url' and 'required_length' of the desired file, open a connection
+            to 'url', download it, and return the contents of the file.  Also ensure
+            the length of the downloaded file matches 'required_length' exactly.
 
-        The function implementation should provide the following functionality:
+          <Arguments>
+            url:
+              A URL string that represents the location of the file.
 
-        'Given the 'url' and 'required_length' of the desired file, open a
-        connection to 'url', download it, and return the contents of the file.
-        Also ensure the length of the downloaded file matches 'required_length'
-        exactly'
+            required_length:
+              An integer value representing the length of the file.  This is an exact
+              limit.
 
-        Raise 'securesystemslib.exceptions.DownloadLengthMismatchError', if
-        STRICT_REQUIRED_LENGTH is True and total_downloaded is not equal
-        required_length.
+          <Side Effects>
+            A temprorary file object is created to store the contents of 'url'.
 
-        Raise 'tuf.exceptions.SlowRetrievalError', if the total downloaded was
-        done in less than the acceptable download speed (as set in
-        tuf.settings.py).
+          <Exceptions>
+            DownloadLengthMismatchError, if there was a
+            mismatch of observed vs expected lengths while downloading the file.
+
+            SlowRetrievalError, if the total downloaded was
+            done in less than the acceptable download speed (as set in
+             tuf.settings.py).
+
+          <Returns>
+            A temporay file object that points to the contents of 'url'.
 
         If None, tuf.download.safe_download is used.
 
