@@ -119,13 +119,6 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     # the pre-generated metadata files have a specific structure, such
     # as a delegated role 'targets/role1', three target files, five key files,
     # etc.
-    self.SERVER_PORT = random.SystemRandom().randint(30000, 45000)
-    self.SERVER_PORT2 = random.SystemRandom().randint(30000, 45000)
-
-    # Avoid duplicate port numbers, to prevent multiple localhosts from
-    # listening on the same port.
-    while self.SERVER_PORT == self.SERVER_PORT2:
-      self.SERVER_PORT2 = random.SystemRandom().randint(30000, 45000)
 
     # Needed because in some tests simple_server.py cannot be found.
     # The reason is that the current working directory
@@ -134,20 +127,18 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
 
     # Creates a subprocess running server and uses temp file for logging.
     self.server_process_handler = utils.TestServerProcess(log=logger,
-        port=self.SERVER_PORT, server=SIMPLE_SERVER_PATH,
-        popen_cwd=self.repository_directory)
+        server=SIMPLE_SERVER_PATH, popen_cwd=self.repository_directory)
 
     logger.debug('Server process started.')
 
     # Creates a subprocess running server and uses temp file for logging.
     self.server_process_handler2 = utils.TestServerProcess(log=logger,
-        port=self.SERVER_PORT2, server=SIMPLE_SERVER_PATH,
-        popen_cwd=self.repository_directory2)
+        server=SIMPLE_SERVER_PATH, popen_cwd=self.repository_directory2)
 
     logger.debug('Server process 2 started.')
 
-    url_prefix = 'http://localhost:' + str(self.SERVER_PORT)
-    url_prefix2 = 'http://localhost:' + str(self.SERVER_PORT2)
+    url_prefix = 'http://localhost:' + str(self.server_process_handler.port)
+    url_prefix2 = 'http://localhost:' + str(self.server_process_handler2.port)
 
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
@@ -265,8 +256,10 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
 
     # Test the behavior of the multi-repository updater.
     map_file = securesystemslib.util.load_json_file(self.map_file)
-    map_file['repositories'][self.repository_name] = ['http://localhost:' + str(self.SERVER_PORT)]
-    map_file['repositories'][self.repository_name2] = ['http://localhost:' + str(self.SERVER_PORT2)]
+    map_file['repositories'][self.repository_name] = ['http://localhost:' \
+        + str(self.server_process_handler.port)]
+    map_file['repositories'][self.repository_name2] = ['http://localhost:' \
+        + str(self.server_process_handler2.port)]
     with open(self.map_file, 'w') as file_object:
       file_object.write(json.dumps(map_file))
 

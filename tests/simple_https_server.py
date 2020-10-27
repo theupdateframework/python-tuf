@@ -43,30 +43,24 @@ import ssl
 import os
 import six
 
-PORT = 0
-
 keyfile = os.path.join('ssl_certs', 'ssl_cert.key')
 certfile = os.path.join('ssl_certs', 'ssl_cert.crt')
 
+
 if len(sys.argv) > 1:
-  PORT = int(sys.argv[1])
-
-else:
-  PORT = random.randint(30000, 45000)
-
-if len(sys.argv) > 2:
-
-  if os.path.exists(sys.argv[2]):
-    certfile = sys.argv[2]
+  if os.path.exists(sys.argv[1]):
+    certfile = sys.argv[1]
   else:
-    print('simple_https_server: cert file not found: ' + sys.argv[2] +
+    print('simple_https_server: cert file not found: ' + sys.argv[1] +
         '; using default: ' + certfile)
 
-httpd = six.moves.BaseHTTPServer.HTTPServer(('localhost', PORT),
-                            six.moves.SimpleHTTPServer.SimpleHTTPRequestHandler)
+httpd = six.moves.BaseHTTPServer.HTTPServer(('localhost', 0),
+    six.moves.SimpleHTTPServer.SimpleHTTPRequestHandler)
 
 httpd.socket = ssl.wrap_socket(
     httpd.socket, keyfile=keyfile, certfile=certfile, server_side=True)
 
-#print('Starting https server on port: ' + str(PORT))
+port_message = 'bind succeeded, server port is: ' \
+    + str(httpd.server_address[1])
+print(port_message)
 httpd.serve_forever()

@@ -65,7 +65,10 @@ class Handler(six.moves.BaseHTTPServer.BaseHTTPRequestHandler):
 
 
 if __name__ == '__main__':
-  port = int(sys.argv[1])
-  server_address = ('localhost', port)
+  server_address = ('localhost', 0)
+
   httpd = six.moves.BaseHTTPServer.HTTPServer(server_address, Handler)
-  httpd.handle_request()
+  port_message = 'bind succeeded, server port is: ' \
+      + str(httpd.server_address[1])
+  print(port_message)
+  httpd.serve_forever()

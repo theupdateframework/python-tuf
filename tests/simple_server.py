@@ -39,14 +39,6 @@ import random
 import six
 from six.moves.SimpleHTTPServer import SimpleHTTPRequestHandler
 
-PORT = 0
-
-if len(sys.argv) > 1:
-  PORT = int(sys.argv[1])
-
-else:
-  PORT = random.randint(30000, 45000)
-
 
 class QuietHTTPRequestHandler(SimpleHTTPRequestHandler):
   """A SimpleHTTPRequestHandler that does not write incoming requests to
@@ -73,6 +65,9 @@ else:
 # Allow re-use so you can re-run tests as often as you want even if the
 # tests re-use ports. Otherwise TCP TIME-WAIT prevents reuse for ~1 minute
 six.moves.socketserver.TCPServer.allow_reuse_address = True
-httpd = six.moves.socketserver.TCPServer(('', PORT), handler)
 
+httpd = six.moves.socketserver.TCPServer(('localhost', 0), handler)
+port_message = 'bind succeeded, server port is: ' \
+    + str(httpd.server_address[1])
+print(port_message)
 httpd.serve_forever()
