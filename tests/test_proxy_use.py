@@ -80,15 +80,13 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
 
     # Launch an HTTPS server (serves files in the current dir).
     cls.https_server_handler = utils.TestServerProcess(log=logger,
-        server='simple_https_server.py',
-        port=cls.http_server_handler.port + 1)
+        server='simple_https_server.py')
 
     # Launch an HTTP proxy server derived from inaz2/proxy2.
     # This one is able to handle HTTP CONNECT requests, and so can pass HTTPS
     # requests on to the target server.
     cls.http_proxy_handler = utils.TestServerProcess(log=logger,
-        server='proxy_server.py',
-        port=cls.http_server_handler.port + 2)
+        server='proxy_server.py')
 
     # Note that the HTTP proxy server's address uses http://, regardless of the
     # type of connection used with the target server.
@@ -109,9 +107,8 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     #   This is only relevant if the proxy is in intercept mode.
     good_cert_fpath = os.path.join('ssl_certs', 'ssl_cert.crt')
     cls.https_proxy_handler = utils.TestServerProcess(log=logger,
-        server='proxy_server.py',
-        port=cls.http_server_handler.port + 3,
-        extra_cmd_args=['intercept', good_cert_fpath])
+        server='proxy_server.py', extra_cmd_args=['intercept',
+        good_cert_fpath])
 
     # Note that the HTTPS proxy server's address uses https://, regardless of
     # the type of connection used with the target server.

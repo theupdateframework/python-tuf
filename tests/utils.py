@@ -28,7 +28,6 @@ import socket
 import time
 import subprocess
 import tempfile
-import random
 import warnings
 
 import tuf.log
@@ -90,7 +89,7 @@ def wait_for_server(host, server, port, timeout=10):
 
   if not succeeded:
     raise TimeoutError("Could not connect to the " + server \
-        + " on port " + str(port) + " !")
+        + " on port " + str(port) + "!")
 
 
 def configure_test_logging(argv):
@@ -129,15 +128,9 @@ class TestServerProcess():
         Path to the server to run in the subprocess.
         Default is "simpler_server.py".
 
-      port:
-        The port used to access the server. If none is provided,
-        then one will be generated.
-        Default is None.
-
       timeout:
         Time in seconds in which the server should start or otherwise
         TimeoutError error will be raised.
-        If 0 is given, no check if the server has started will be done.
         Default is 10.
 
       popen_cwd:
@@ -154,42 +147,113 @@ class TestServerProcess():
 
 
   def __init__(self, log, server='simple_server.py',
-      port=None, timeout=10, popen_cwd=".",
-      extra_cmd_args=[]):
+      timeout=10, popen_cwd=".", extra_cmd_args=[]):
 
     # Create temporary log file used for logging stdout and stderr
-    # of the subprocess. In the mode "r+"" stands for reading and writing
+    # of the subprocess. In the mode "r+" stands for reading and writing
     # and "t" stands for text mode.
     self.__temp_log_file = tempfile.TemporaryFile(mode='r+t')
 
     self.server = server
-    self.port = port or random.randint(30000, 45000)
     self.__logger = log
+    try:
+      self._start_server(timeout, extra_cmd_args, popen_cwd)
+      wait_for_server('localhost', self.server, self.port, timeout)
+    except Exception as e:
+      # Clean the resources and log the server errors if any exists.
+      self.clean()
+      raise e
+
+
+
+  def _start_server(self, timeout, extra_cmd_args, popen_cwd):
+    """Start the server subprocess. Uses a retry mechanism
+    if the bind fails."""
+
+    success = False
+    retries = 0
+    elapsed = 0
+    start = time.time()
+    while not success and elapsed < timeout:
+      retries += 1
+      self._start_process(extra_cmd_args,  popen_cwd)
+
+      # loop until bind succeeds, server exits or we timeout
+      while elapsed < timeout:
+        if not self.is_process_running():
+          break
+        elif self._is_port_found_in_log():
+          # If the port is in the log, then the bind was successful.
+          success = True
+          break
+
+        time.sleep(0.01)
+        elapsed = time.time() - start
+
+      if not success:
+        # If the server has not started for whatever reason
+        self.__logger.info('Failed to start ' + self.server + '! Retrying!')
+        self._kill_server_process()
+        self.__temp_log_file.truncate(0)
+
+    if not success:
+      raise TimeoutError('Failure during ' + self.server + ' startup! ' \
+        + 'Made ' + str(retries) + ' retries with random ports!')
+
+    self.__logger.info(self.server + ' serving at ' + str(self.port))
+
+
+
+  def _start_process(self, extra_cmd_args, popen_cwd):
+    """Starts the process running the server."""
 
     # The "-u" option forces stdin, stdout and stderr to be unbuffered.
-    command = ['python', '-u', server, str(self.port)] + extra_cmd_args
+    command = ['python', '-u', self.server] + extra_cmd_args
 
     # We are reusing one server subprocess in multiple unit tests, but we are
     # collecting the logs per test.
     self.__server_process = subprocess.Popen(command,
         stdout=self.__temp_log_file, stderr=subprocess.STDOUT, cwd=popen_cwd)
 
-    self.__logger.info('Server process with process id ' \
-        + str(self.__server_process.pid) + " serving on port " \
-        + str(self.port) + ' started.')
 
-    if timeout > 0:
-      try:
-        wait_for_server('localhost', self.server, self.port, timeout)
-      except Exception as e:
-        # Make sure that errors from the server side will be logged.
-        self.flush_log()
-        raise e
+
+  def _is_port_found_in_log(self):
+    """Checks if the port number is sent from the server subprocess."""
+
+    # Seek is needed to move the pointer to the beginning of the file, because
+    # the subprocess could have read and/or write and thus moved the pointer.
+    self.__temp_log_file.seek(0)
+    # We have hardcoded the message we expect on a successful server startup.
+    expected_msg = 'bind succeeded, server port is: '
+    log_message = self.__temp_log_file.read()
+    lines = log_message.splitlines()
+
+    for line in lines:
+      if line.startswith(expected_msg):
+        self.port = int(line[len(expected_msg):])
+        return True
+
+    return False
+
+
+
+  def _kill_server_process(self):
+    """Kills the server subprocess if it's running."""
+
+    if self.is_process_running():
+      self.__logger.info('Server process ' + str(self.__server_process.pid) +
+          ' terminated.')
+      self.__server_process.kill()
+      self.__server_process.wait()
 
 
 
   def flush_log(self):
     """Logs contents from TempFile, truncates buffer"""
+
+    # Make sure we are only reading from opened files.
+    if self.__temp_log_file.closed:
+      return
 
     # Seek is needed to move the pointer to the beginning of the file, because
     # the subprocess could have read and/or write and thus moved the pointer.
@@ -214,9 +278,11 @@ class TestServerProcess():
     self.flush_log()
 
     self.__temp_log_file.close()
+    self._kill_server_process()
 
-    if self.__server_process.returncode is None:
-      self.__logger.info('Server process ' + str(self.__server_process.pid) +
-          ' terminated.')
-      self.__server_process.kill()
-      self.__server_process.wait()
+
+
+  def is_process_running(self):
+    """Returns a boolean value if the server process is currently running."""
+
+    return True if self.__server_process.poll() is None else False
