@@ -43,6 +43,10 @@ if IS_PY_VERSION_SUPPORTED:
         import_ed25519_privatekey_from_file
     )
 
+    from securesystemslib.keys import (
+        format_keyval_to_metadata
+    )
+
 logger = logging.getLogger(__name__)
 
 
@@ -262,6 +266,63 @@ class TestMetadata(unittest.TestCase):
         timestamp.signed.update(2, 520, hashes)
         self.assertEqual(timestamp.signed.meta['snapshot.json'], fileinfo)
 
+
+    def test_metadata_root(self):
+        root_path = os.path.join(
+                self.repo_dir, 'metadata', 'root.json')
+        root = Metadata.from_json_file(root_path)
+
+        # Add a second key to root role
+        root_key2 =  import_ed25519_publickey_from_file(
+                    os.path.join(self.keystore_dir, 'root_key2.pub'))
+
+        keyid = root_key2['keyid']
+        key_metadata = format_keyval_to_metadata(
+            root_key2['keytype'], root_key2['scheme'], root_key2['keyval'])
+
+        # Assert that root does not contain the new key
+        self.assertNotIn(keyid, root.signed.roles['root']['keyids'])
+        self.assertNotIn(keyid, root.signed.keys)
+
+        # Add new root key
+        root.signed.add_key('root', keyid, key_metadata)
+
+        # Assert that key is added
+        self.assertIn(keyid, root.signed.roles['root']['keyids'])
+        self.assertIn(keyid, root.signed.keys)
+
+        # Remove the key
+        root.signed.remove_key('root', keyid)
+
+        # Assert that root does not contain the new key anymore
+        self.assertNotIn(keyid, root.signed.roles['root']['keyids'])
+        self.assertNotIn(keyid, root.signed.keys)
+
+
+
+    def test_metadata_targets(self):
+        targets_path = os.path.join(
+                self.repo_dir, 'metadata', 'targets.json')
+        targets = Metadata.from_json_file(targets_path)
+
+        # Create a fileinfo dict representing what we expect the updated data to be
+        filename = 'file2.txt'
+        hashes = {
+            "sha256": "141f740f53781d1ca54b8a50af22cbf74e44c21a998fa2a8a05aaac2c002886b",
+            "sha512": "ef5beafa16041bcdd2937140afebd485296cd54f7348ecd5a4d035c09759608de467a7ac0eb58753d0242df873c305e8bffad2454aa48f44480f15efae1cacd0"
+        },
+
+        fileinfo = {
+            'hashes': hashes,
+            'length': 28
+        }
+
+        # Assert that data is not aleady equal
+        self.assertNotEqual(targets.signed.targets[filename], fileinfo)
+        # Update an already existing fileinfo
+        targets.signed.update(filename, fileinfo)
+        # Verify that data is updated
+        self.assertEqual(targets.signed.targets[filename], fileinfo)
 
 # Run unit test.
 if __name__ == '__main__':
