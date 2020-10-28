@@ -13,6 +13,7 @@ import os
 import shutil
 import tempfile
 import unittest
+import copy
 
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -215,12 +216,14 @@ class TestMetadata(unittest.TestCase):
         snapshot = Metadata.from_json_file(snapshot_path)
 
         # Create a dict representing what we expect the updated data to be
-        fileinfo = snapshot.signed.meta
+        fileinfo = copy.deepcopy(snapshot.signed.meta)
         hashes = {'sha256': 'c2986576f5fdfd43944e2b19e775453b96748ec4fe2638a6d2f32f1310967095'}
         fileinfo['role1.json']['version'] = 2
         fileinfo['role1.json']['hashes'] = hashes
         fileinfo['role1.json']['length'] = 123
 
+
+        self.assertNotEqual(snapshot.signed.meta, fileinfo)
         snapshot.signed.update('role1', 2, 123, hashes)
         self.assertEqual(snapshot.signed.meta, fileinfo)
 
@@ -250,10 +253,12 @@ class TestMetadata(unittest.TestCase):
         self.assertEqual(timestamp.signed.expires, datetime(2036, 1, 3, 0, 0))
 
         hashes = {'sha256': '0ae9664468150a9aa1e7f11feecb32341658eb84292851367fea2da88e8a58dc'}
-        fileinfo = timestamp.signed.meta['snapshot.json']
+        fileinfo = copy.deepcopy(timestamp.signed.meta['snapshot.json'])
         fileinfo['hashes'] = hashes
         fileinfo['version'] = 2
         fileinfo['length'] = 520
+
+        self.assertNotEqual(timestamp.signed.meta['snapshot.json'], fileinfo)
         timestamp.signed.update(2, 520, hashes)
         self.assertEqual(timestamp.signed.meta['snapshot.json'], fileinfo)
 
