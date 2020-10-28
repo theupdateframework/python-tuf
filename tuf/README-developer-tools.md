@@ -53,15 +53,16 @@ is the private key.
 
 ```
 >>> from tuf.developer_tool import *
->>> generate_and_write_rsa_keypair("path/to/key")
-Enter a password for the RSA key:
+>>> generate_and_write_rsa_keypair_with_prompt(filepath="path/to/key")
+enter password to encrypt private key file 'path/to/key'
+(leave empty if key should not be encrypted):
 Confirm:
 >>>
 ```
 
 We can also use the bits parameter to set a different key length (the default
-is 3072). We can also provide the password parameter in order to suppress the
-password prompt.
+is 3072). We can also `generate_and_write_rsa_keypair` with a `password`
+parameter if a prompt is not desired.
 
 In this example we will be using rsa keys, but ed25519 keys are also supported.
 
@@ -257,7 +258,7 @@ When generating keys, it is possible to specify the length of the key in bits
 and its password as parameters:
 
 ```
->>> generate_and_write_rsa_keypair("path/to/key", bits=2048, password="pw")
+>>> generate_and_write_rsa_keypair(password="pw", filepath="path/to/key", bits=2048)
 ```
 The bits parameter defaults to 3072, and values below 2048 will raise an error.
 The password parameter is only intended to be used in scripts.

@@ -189,6 +189,8 @@ SUPPORTED_CLI_KEYTYPES = (ECDSA_KEYTYPE, ED25519_KEYTYPE, RSA_KEYTYPE)
 # securesystemslib.
 SUPPORTED_KEY_TYPES = ('ed25519', 'ecdsa-sha2-nistp256', 'rsa')
 
+# pylint: disable=protected-access
+# ... to allow use of sslib _generate_and_write_*_keypair convenience methods
 
 def process_command_line_arguments(parsed_arguments):
   """
@@ -379,23 +381,30 @@ def gen_key(parsed_arguments):
 
   keypath = None
 
+  keygen_kwargs = {
+      "password": parsed_arguments.pw,
+      "filepath": parsed_arguments.filename,
+      "prompt": (not parsed_arguments.pw) # prompt if no default or passed pw
+  }
+
   if parsed_arguments.key not in SUPPORTED_CLI_KEYTYPES:
     tuf.exceptions.Error(
         'Invalid key type: ' + repr(parsed_arguments.key) + '.  Supported'
         ' key types: ' + repr(SUPPORTED_CLI_KEYTYPES))
 
   elif parsed_arguments.key == ECDSA_KEYTYPE:
-    keypath = securesystemslib.interface.generate_and_write_ecdsa_keypair(
-      parsed_arguments.filename, password=parsed_arguments.pw)
+    keypath = securesystemslib.interface._generate_and_write_ecdsa_keypair(
+        **keygen_kwargs)
 
   elif parsed_arguments.key == ED25519_KEYTYPE:
-    keypath = securesystemslib.interface.generate_and_write_ed25519_keypair(
-        parsed_arguments.filename, password=parsed_arguments.pw)
+    keypath = securesystemslib.interface._generate_and_write_ed25519_keypair(
+        **keygen_kwargs)
 
   # RSA key..
   else:
-    keypath = securesystemslib.interface.generate_and_write_rsa_keypair(
-        parsed_arguments.filename, password=parsed_arguments.pw)
+    keypath = securesystemslib.interface._generate_and_write_rsa_keypair(
+        **keygen_kwargs)
+
 
   # If a filename is not given, the generated keypair is saved to the current
   # working directory.  By default, the keypair is written to <KEYID>.pub
@@ -889,26 +898,27 @@ def set_top_level_keys(repository, parsed_arguments):
   Generate, write, and set the top-level keys.  'repository' is modified.
   """
 
-  # Examples of how the --pw command-line option is interpreted:
-  # repo.py --init': parsed_arguments.pw = 'pw'
-  # repo.py --init --pw my_pw: parsed_arguments.pw = 'my_pw'
-  # repo.py --init --pw: The user is prompted for a password, here.
-  if not parsed_arguments.pw:
-    parsed_arguments.pw = securesystemslib.interface.get_password(
-        prompt='Enter a password for the top-level role keys: ', confirm=True)
+  # Examples of how the --*_pw command-line options are interpreted:
+  # repo.py --init': parsed_arguments.*_pw = 'pw'
+  # repo.py --init --*_pw my_pw: parsed_arguments.*_pw = 'my_pw'
+  # repo.py --init --*_pw: The user is prompted for a password.
 
-  repo_tool.generate_and_write_ed25519_keypair(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      ROOT_KEY_NAME), password=parsed_arguments.root_pw)
-  repo_tool.generate_and_write_ed25519_keypair(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      TARGETS_KEY_NAME), password=parsed_arguments.targets_pw)
-  repo_tool.generate_and_write_ed25519_keypair(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      SNAPSHOT_KEY_NAME), password=parsed_arguments.snapshot_pw)
-  repo_tool.generate_and_write_ed25519_keypair(
-      os.path.join(parsed_arguments.path, KEYSTORE_DIR,
-      TIMESTAMP_KEY_NAME), password=parsed_arguments.timestamp_pw)
+  securesystemslib.interface._generate_and_write_ed25519_keypair(
+      password=parsed_arguments.root_pw,
+      filepath=os.path.join(parsed_arguments.path, KEYSTORE_DIR, ROOT_KEY_NAME),
+      prompt=(not parsed_arguments.root_pw))
+  securesystemslib.interface._generate_and_write_ed25519_keypair(
+      password=parsed_arguments.targets_pw,
+      filepath=os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
+      prompt=(not parsed_arguments.targets_pw))
+  securesystemslib.interface._generate_and_write_ed25519_keypair(
+      password=parsed_arguments.snapshot_pw,
+      filepath=os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
+      prompt=(not parsed_arguments.snapshot_pw))
+  securesystemslib.interface._generate_and_write_ed25519_keypair(
+      password=parsed_arguments.timestamp_pw,
+      filepath=os.path.join(parsed_arguments.path, KEYSTORE_DIR, TIMESTAMP_KEY_NAME),
+      prompt=(not parsed_arguments.timestamp_pw))
 
   # Import the private keys.  They are needed to generate the signatures
   # included in metadata.

@@ -59,11 +59,11 @@ if options.should_generate_keys and not options.dry_run:
   # Generate public and private key files for the top-level roles, and two
   # delegated roles (these number of keys should be sufficient for most of the
   # unit tests).  Unit tests may generate additional keys, if needed.
-  generate_and_write_rsa_keypair(root_key_file, password='password')
-  generate_and_write_ed25519_keypair(targets_key_file, password='password')
-  generate_and_write_ed25519_keypair(snapshot_key_file, password='password')
-  generate_and_write_ed25519_keypair(timestamp_key_file, password='password')
-  generate_and_write_ed25519_keypair(delegation_key_file, password='password')
+  generate_and_write_rsa_keypair(password='password', filepath=root_key_file)
+  generate_and_write_ed25519_keypair(password='password', filepath=targets_key_file)
+  generate_and_write_ed25519_keypair(password='password', filepath=snapshot_key_file)
+  generate_and_write_ed25519_keypair(password='password', filepath=timestamp_key_file)
+  generate_and_write_ed25519_keypair(password='password', filepath=delegation_key_file)
 
 # Import the public keys.  These keys are needed so that metadata roles are
 # assigned verification keys, which clients use to verify the signatures created
