@@ -1021,9 +1021,8 @@ class Updater(object):
         If the metadata for any of the top-level roles cannot be updated.
 
       tuf.exceptions.ExpiredMetadataError:
-         If any of the top-level metadata is expired (whether a new version was
-         downloaded expired or no new version was found and the existing
-         version is now expired).
+        If any of the top-level metadata is expired and no new version was
+        found.
 
     <Side Effects>
       Updates the metadata files of the top-level roles with the latest
@@ -1900,6 +1899,9 @@ class Updater(object):
         is 'timestamp'.  See refresh().
 
     <Exceptions>
+      tuf.exceptions.ExpiredMetadataError:
+        If local metadata is expired and newer metadata is not available.
+
       tuf.exceptions.NoWorkingMirrorError:
         If 'metadata_role' could not be downloaded after determining that it
         had changed.
@@ -2393,7 +2395,6 @@ class Updater(object):
     expires_timestamp = tuf.formats.datetime_to_unix_timestamp(expires_datetime)
 
     current_time = int(time.time())
-
     if expires_timestamp < current_time:
       message = 'Metadata '+repr(metadata_rolename)+' expired on ' + \
         expires_datetime.ctime() + ' (UTC).'
@@ -2495,6 +2496,9 @@ class Updater(object):
          repository (via snapshot.json) should be refreshed.
 
     <Exceptions>
+      tuf.exceptions.ExpiredMetadataError:
+        If local metadata is expired and newer metadata is not available.
+
       tuf.exceptions.RepositoryError:
         If the metadata file for the 'targets' role is missing from the
         'snapshot' metadata.
@@ -2715,6 +2719,9 @@ class Updater(object):
         the 'targets' (or equivalent) directory on a given mirror.
 
     <Exceptions>
+      tuf.exceptions.ExpiredMetadataError:
+        If local metadata is expired and newer metadata is not available.
+
       securesystemslib.exceptions.FormatError:
         If 'target_filepath' is improperly formatted.
 
@@ -2770,6 +2777,9 @@ class Updater(object):
         the 'targets' (or equivalent) directory on a given mirror.
 
     <Exceptions>
+      tuf.exceptions.ExpiredMetadataError:
+        If local metadata is expired and newer metadata is not available.
+
       securesystemslib.exceptions.FormatError:
         If 'target_filepath' is improperly formatted.
 
