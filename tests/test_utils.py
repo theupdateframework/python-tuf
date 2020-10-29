@@ -41,17 +41,16 @@ class TestServerProcess(unittest_toolbox.Modified_TestCase):
 
 
   def can_connect(self):
-    succeed = False
     try:
       sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
       sock.connect(('localhost', self.server_process_handler.port))
-      succeed = True
+      return True
     except:
-      pass
+      return False
     finally:
+      # The process will always enter in finally even we return.
       if sock:
         sock.close()
-    return succeed
 
 
   def test_simple_server_startup(self):
