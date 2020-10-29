@@ -181,9 +181,8 @@ class TestServerProcess():
     # loop until bind succeeds, server exits or we timeout
     while elapsed < timeout:
       if not self.is_process_running():
-        raise ChildProcessError('Child process running ' + self.server \
-            + ' exited before the timeout has expired with code ' \
-            + str(self.__server_process.poll()) + '!')
+        raise ChildProcessError(self.server + ' exited unexpectedly ' \
+            + 'with code ' + str(self.__server_process.poll()) + '!')
 
       elif self._set_port_if_in_logs():
         # If the port is in the log, then the bind was successful.
