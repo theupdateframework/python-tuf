@@ -112,6 +112,16 @@ class TestServerProcess(unittest_toolbox.Modified_TestCase):
     self.assertFalse(self.server_process_handler.is_process_running())
 
 
+  def test_server_exit_before_timeout(self):
+    # Test starting a non existing server file."
+    self.assertRaises(ChildProcessError, utils.TestServerProcess, logger,
+        server='non_existing_server.py')
+
+    # Test starting a server which immediately exits."
+    self.assertRaises(ChildProcessError, utils.TestServerProcess, logger,
+        server='fast_server_exit.py')
+
+
 if __name__ == '__main__':
   utils.configure_test_logging(sys.argv)
   unittest.main()
