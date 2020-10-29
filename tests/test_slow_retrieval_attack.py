@@ -208,7 +208,7 @@ class TestSlowRetrieval(unittest_toolbox.Modified_TestCase):
 
   def test_delay_before_send(self):
     # Simulate a slow retrieval attack.
-    # 'mode_1': When download begins,the server blocks the download for a long
+    # When download begins,the server blocks the download for a long
     # time by doing nothing before it sends the first byte of data.
 
     # Verify that the TUF client detects replayed metadata and refuses to
