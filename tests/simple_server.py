@@ -66,11 +66,8 @@ else:
 # tests re-use ports. Otherwise TCP TIME-WAIT prevents reuse for ~1 minute
 six.moves.socketserver.TCPServer.allow_reuse_address = True
 
-try:
-  httpd = six.moves.socketserver.TCPServer(('localhost', 0), handler)
-  port_message = 'bind succeeded, server port is: ' \
-      + str(httpd.server_address[1])
-  print(port_message)
-  httpd.serve_forever()
-except:
-  print("bind failed")
+httpd = six.moves.socketserver.TCPServer(('localhost', 0), handler)
+port_message = 'bind succeeded, server port is: ' \
+    + str(httpd.server_address[1])
+print(port_message)
+httpd.serve_forever()
