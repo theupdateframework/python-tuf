@@ -167,40 +167,36 @@ class TestServerProcess():
 
 
   def _start_server(self, timeout, extra_cmd_args, popen_cwd):
-    """Start the server subprocess. Uses a retry mechanism
-    if the bind fails."""
+    """
+    Start the server subprocess.
+    If the process hasn't started a Timeout exception will be raised.
+    """
 
     success = False
-    retries = 0
     elapsed = 0
     start = time.time()
-    while not success and elapsed < timeout:
-      retries += 1
-      self._start_process(extra_cmd_args,  popen_cwd)
 
-      # loop until bind succeeds, server exits or we timeout
-      while elapsed < timeout:
-        if not self.is_process_running():
-          break
-        elif self._is_port_found_in_log():
-          # If the port is in the log, then the bind was successful.
-          success = True
-          break
+    self._start_process(extra_cmd_args, popen_cwd)
 
-        time.sleep(0.01)
-        elapsed = time.time() - start
+    # loop until bind succeeds, server exits or we timeout
+    while elapsed < timeout:
+      if not self.is_process_running():
+        raise ChildProcessError('Child process running ' + self.server \
+            + ' exited before the timeout has expired with code ' \
+            + str(self.__server_process.poll()) + '!')
 
-      if not success:
-        # If the server has not started for whatever reason
-        self.__logger.info('Failed to start ' + self.server + '! Retrying!')
-        self._kill_server_process()
-        self.__temp_log_file.truncate(0)
+      elif self._set_port_if_in_logs():
+        # If the port is in the log, then the bind was successful.
+        success = True
+        break
+
+      time.sleep(0.01)
+      elapsed = time.time() - start
 
     if not success:
-      raise TimeoutError('Failure during ' + self.server + ' startup! ' \
-        + 'Made ' + str(retries) + ' retries with random ports!')
+      raise TimeoutError('Failure during ' + self.server + ' startup!')
 
-    self.__logger.info(self.server + ' serving at ' + str(self.port))
+    self.__logger.info(self.server + ' serving on ' + str(self.port))
 
 
 
@@ -217,8 +213,11 @@ class TestServerProcess():
 
 
 
-  def _is_port_found_in_log(self):
-    """Checks if the port number is sent from the server subprocess."""
+  def _set_port_if_in_logs(self):
+    """
+    Checks if the port is logged from the server subprocess.
+    If it's found, self.port is set.
+    """
 
     # Seek is needed to move the pointer to the beginning of the file, because
     # the subprocess could have read and/or write and thus moved the pointer.
@@ -271,8 +270,10 @@ class TestServerProcess():
 
 
   def clean(self):
-    """Kills the subprocess and closes the TempFile.
-    Calls flush_log to check for logged information, but not yet flushed."""
+    """
+    Kills the subprocess and closes the TempFile.
+    Calls flush_log to check for logged information, but not yet flushed.
+    """
 
     # If there is anything logged, flush it before closing the resourses.
     self.flush_log()
@@ -283,6 +284,4 @@ class TestServerProcess():
 
 
   def is_process_running(self):
-    """Returns a boolean value if the server process is currently running."""
-
     return True if self.__server_process.poll() is None else False
