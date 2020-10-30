@@ -45,7 +45,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import datetime
-import unittest.mock as mock
 import os
 import time
 import tempfile
@@ -54,6 +53,11 @@ import json
 import logging
 import unittest
 import sys
+
+if sys.version_info >= (3, 3):
+  import unittest.mock as mock
+else:
+  import mock
 
 import tuf.formats
 import tuf.log
