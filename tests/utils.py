@@ -37,11 +37,21 @@ logger = logging.getLogger(__name__)
 try:
   # is defined in Python 3
   TimeoutError
+  ChildProcessError
 except NameError:
   # Define for Python 2
   class TimeoutError(Exception):
 
     def __init__(self, value="Timeout"):
+      self.value = value
+
+    def __str__(self):
+      return repr(self.value)
+
+
+  class ChildProcessError(Exception):
+
+    def __init__(self, value="ChidProcess"):
       self.value = value
 
     def __str__(self):
