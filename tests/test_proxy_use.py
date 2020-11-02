@@ -52,6 +52,13 @@ import six
 
 logger = logging.getLogger(__name__)
 
+IS_PY_VERSION_SUPPORTED = sys.version_info == (2, 7)
+
+# Use setUpModule to tell unittest runner to skip this test module gracefully.
+def setUpModule():
+    if not IS_PY_VERSION_SUPPORTED:
+        raise unittest.SkipTest('requires Python 2.7')
+
 class TestWithProxies(unittest_toolbox.Modified_TestCase):
 
   @classmethod
