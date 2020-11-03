@@ -98,7 +98,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
   increment_version_number=True, repository_name='default',
   use_existing_fileinfo=False, use_timestamp_length=True,
   use_timestamp_hashes=True, use_snapshot_length=False,
-  use_snapshot_hashes=False):
+  use_snapshot_hashes=False, warn_unsigned=True):
   """
   Non-public function that can generate and write the metadata for the
   specified 'rolename'.  It also increments the version number of 'rolename' if
@@ -194,7 +194,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
     # signature(s), since it can only be considered fully signed depending on
     # the delegating role.
     signable = sign_metadata(metadata, signing_keyids, metadata_filename,
-        repository_name)
+        repository_name, warn_unsigned=warn_unsigned)
 
 
     def should_write():
@@ -239,7 +239,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
   # signed, and thus its signatures should not be verified.
   else:
     signable = sign_metadata(metadata, signing_keyids, metadata_filename,
-        repository_name)
+        repository_name, warn_unsigned=warn_unsigned)
     _remove_invalid_and_duplicate_signatures(signable, repository_name)
 
     # Root should always be written as if consistent_snapshot is True (i.e.,
@@ -1795,7 +1795,8 @@ def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
 
 
 
-def sign_metadata(metadata_object, keyids, filename, repository_name):
+def sign_metadata(metadata_object, keyids, filename, repository_name,
+    warn_unsigned=True):
   """
   <Purpose>
     Sign a metadata object. If any of the keyids have already signed the file,
@@ -1819,6 +1820,11 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
     repository_name:
       The name of the repository.  If not supplied, 'rolename' is added to the
       'default' repository.
+
+    warn_unsigned:
+      Boolean indicating whether warnings about unsigned metadata should be
+      printed or not. Default is True, warnings about unsigned metadata are
+      printed.
 
   <Exceptions>
     securesystemslib.exceptions.FormatError, if a valid 'signable' object could
@@ -1880,7 +1886,8 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
   except tuf.exceptions.UnsignedMetadataError:
     # Downgrade the error to a warning because a use case exists where
     # metadata may be generated unsigned on one machine and signed on another.
-    logger.warning('Unsigned metadata object: ' + repr(signable))
+    if warn_unsigned:
+      logger.warning('Unsigned metadata object: ' + repr(signable))
 
 
   return signable
@@ -2047,7 +2054,8 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
   try:
     signable, root_filename = \
       _generate_and_write_metadata('root', root_filename, targets_directory,
-          metadata_directory, storage_backend, repository_name=repository_name)
+          metadata_directory, storage_backend, repository_name=repository_name,
+          warn_unsigned=False)
     _log_status('root', signable, repository_name)
 
   # 'tuf.exceptions.UnsignedMetadataError' raised if metadata contains an
@@ -2075,7 +2083,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
     signable, targets_filename = \
       _generate_and_write_metadata('targets', targets_filename,
           targets_directory, metadata_directory, storage_backend,
-          repository_name=repository_name)
+          repository_name=repository_name, warn_unsigned=False)
     _log_status('targets', signable, repository_name)
 
   except tuf.exceptions.UnsignedMetadataError as e:
@@ -2101,7 +2109,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
     signable, snapshot_filename = \
       _generate_and_write_metadata('snapshot', snapshot_filename,
           targets_directory, metadata_directory, storage_backend, False,
-          filenames, repository_name=repository_name)
+          filenames, repository_name=repository_name, warn_unsigned=False)
     _log_status('snapshot', signable, repository_name)
 
   except tuf.exceptions.UnsignedMetadataError as e:
@@ -2127,7 +2135,8 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
     signable, timestamp_filename = \
       _generate_and_write_metadata('timestamp', timestamp_filename,
           targets_directory, metadata_directory, storage_backend,
-          False, filenames, repository_name=repository_name)
+          False, filenames, repository_name=repository_name,
+          warn_unsigned=False)
     _log_status('timestamp', signable, repository_name)
 
   except tuf.exceptions.UnsignedMetadataError as e:
