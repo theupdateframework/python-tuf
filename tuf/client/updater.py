@@ -1712,17 +1712,18 @@ class Updater(object):
     file_mirror_errors = {}
     file_object = None
 
-    if custom_download_handler is not None:
-      safe_download = custom_download_handler
-
-    else:
-      safe_download = tuf.download.safe_download
-
     for file_mirror in file_mirrors:
       try:
-        # Eensure the length of the downloaded file matches 'file_length'
-        # exactly.
-        file_object = safe_download(file_mirror, file_length)
+        if custom_download_handler is not None:
+          # When an external download handler is used, file length verification
+          # is not expected. It is performed by verify_file_function()
+          file_object = custom_download_handler(file_mirror)
+
+        else:
+          # Ensure the length of the downloaded file matches 'file_length'
+          # exactly even though it will be redundantly verified one more time
+          # by verify_file_function().
+          file_object = tuf.download.safe_download(file_mirror, file_length)
 
         # Verify 'file_object' according to the callable function.
         # 'file_object' is also verified if decompressed above (i.e., the
@@ -3252,33 +3253,21 @@ class Updater(object):
         In order to comply with the TUF specification, the function implementation
         should match the following description:
 
-        def download_handler_func(url, required_length)
+        def download_handler_func(url)
           <Purpose>
-            Given the 'url' and 'required_length' of the desired file, open a connection
-            to 'url', download it, and return the contents of the file.  Also ensure
-            the length of the downloaded file matches 'required_length' exactly.
+            Given the 'url' of the desired file,
+            open a connection to 'url', download it, and return the contents
+            of the file.
 
           <Arguments>
             url:
               A URL string that represents the location of the file.
 
-            required_length:
-              An integer value representing the length of the file.  This is an exact
-              limit.
-
           <Side Effects>
             A temprorary file object is created to store the contents of 'url'.
 
-          <Exceptions>
-            DownloadLengthMismatchError, if there was a
-            mismatch of observed vs expected lengths while downloading the file.
-
-            SlowRetrievalError, if the total downloaded was
-            done in less than the acceptable download speed (as set in
-             tuf.settings.py).
-
           <Returns>
-            A temporay file object that points to the contents of 'url'.
+            A temporary file object that points to the contents of 'url'.
 
         If None, tuf.download.safe_download is used.
 
