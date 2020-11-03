@@ -1228,7 +1228,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     download_filepath = os.path.join(destination_directory, target_filepath)
 
     # Test passing a handler with correct signature but incorrect implementation
-    def test_1(param_1, param2):
+    def test_1(param_1):
       pass
 
     self.assertRaises(tuf.exceptions.NoWorkingMirrorError,
@@ -1239,7 +1239,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertFalse(os.path.exists(download_filepath))
 
     # Test passing a handler with incorrect number of parameters
-    def test_2(param_1, param_2, param_3):
+    def test_2(param_1, param_2):
       pass
 
     with self.assertRaises(tuf.exceptions.NoWorkingMirrorError) as cm:
@@ -1253,7 +1253,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertFalse(os.path.exists(download_filepath))
 
     # Test passing a handler throwing an unexpected error
-    def test_3(param_1, param2):
+    def test_3(param_1):
       raise IOError
 
     with self.assertRaises(tuf.exceptions.NoWorkingMirrorError) as cm:
@@ -1272,13 +1272,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Checks if the file has been successfully downloaded
     self.assertTrue(os.path.exists(download_filepath))
 
-    # Define a simple custom download handler mimicking
-    # the tuf.download call stack:
-    # safe_download()
-    #   _download_file()
-    #     _download_fixed_amount_of_data()
-    #       _check_downloaded_length()
-    def download_handler(url, required_length):
+    # Define a simple custom download handler
+    def download_handler(url):
       url = six.moves.urllib.parse.unquote(url).replace('\\', '/')
       temp_file = tempfile.TemporaryFile()
 
@@ -1287,32 +1282,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         with session.get(url, stream=True,
             timeout=tuf.settings.SOCKET_TIMEOUT) as response:
 
-          # Check response status.
+          # Check response status
           response.raise_for_status()
 
-          # Download fixed amount of data
-          average_download_speed = 0
-          number_of_bytes_received = 0
-
-          start_time = timeit.default_timer()
-
+          # Read the raw socket response
           for chunk in response.iter_content(chunk_size=tuf.settings.CHUNK_SIZE):
-            number_of_bytes_received += len(chunk)
             temp_file.write(chunk)
-            if number_of_bytes_received >= required_length:
-              break
-
-            stop_time = timeit.default_timer()
-            average_download_speed = number_of_bytes_received / (stop_time - start_time)
-            if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
-              break
-
-        #Check downloaded length
-        if number_of_bytes_received != required_length:
-          if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
-            raise tuf.exceptions.SlowRetrievalError(average_download_speed)
-
-          raise tuf.exceptions.DownloadLengthMismatchError(required_length, number_of_bytes_received)
 
       except Exception:
         temp_file.close()
@@ -1321,7 +1296,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       else:
         return temp_file
 
-    #Test passing a custom download function
+    # Test passing a custom download function
     self.repository_updater.download_target(targetinfo, destination_directory,
         custom_download_handler=download_handler)
 
