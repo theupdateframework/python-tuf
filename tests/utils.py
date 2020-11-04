@@ -249,6 +249,7 @@ class TestServerProcess():
     """
 
     # We have hardcoded the message we expect on a successful server startup.
+    # This message should be the first message sent by the server!
     expected_msg = 'bind succeeded, server port is: '
     try:
       line = self._log_queue.get(timeout=timeout)

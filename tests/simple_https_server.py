@@ -46,12 +46,8 @@ keyfile = os.path.join('ssl_certs', 'ssl_cert.key')
 certfile = os.path.join('ssl_certs', 'ssl_cert.crt')
 
 
-if len(sys.argv) > 1:
-  if os.path.exists(sys.argv[1]):
+if len(sys.argv) > 1 and os.path.exists(sys.argv[1]):
     certfile = sys.argv[1]
-  else:
-    print('simple_https_server: cert file not found: ' + sys.argv[1] +
-        '; using default: ' + certfile)
 
 httpd = six.moves.BaseHTTPServer.HTTPServer(('localhost', 0),
     six.moves.SimpleHTTPServer.SimpleHTTPRequestHandler)
@@ -62,4 +58,9 @@ httpd.socket = ssl.wrap_socket(
 port_message = 'bind succeeded, server port is: ' \
     + str(httpd.server_address[1])
 print(port_message)
+
+if len(sys.argv) > 1 and certfile != sys.argv[1]:
+  print('simple_https_server: cert file was not found: ' + sys.argv[1] +
+      '; using default: ' + certfile + " certfile")
+
 httpd.serve_forever()
