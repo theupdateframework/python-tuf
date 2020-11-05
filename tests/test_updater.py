@@ -1629,25 +1629,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_10__soft_check_file_length(self):
-    # Test for exception if file object is not equal to trusted file length.
-    with tempfile.TemporaryFile() as temp_file_object:
-      temp_file_object.write(b'XXX')
-      temp_file_object.seek(0)
-      self.assertRaises(tuf.exceptions.DownloadLengthMismatchError,
-                      self.repository_updater._soft_check_file_length,
-                      temp_file_object, 1)
-
-      # Verify that an exception is not raised if the file length <= the observed
-      # file length.
-      temp_file_object.seek(0)
-      self.repository_updater._soft_check_file_length(temp_file_object, 3)
-      temp_file_object.seek(0)
-      self.repository_updater._soft_check_file_length(temp_file_object, 4)
-
-
-
-
   def test_10__targets_of_role(self):
     # Test for non-existent role.
     self.assertRaises(tuf.exceptions.UnknownRoleError,

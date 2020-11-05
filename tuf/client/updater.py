@@ -1263,53 +1263,6 @@ class Updater(object):
 
 
 
-  def _soft_check_file_length(self, file_object, trusted_file_length):
-    """
-    <Purpose>
-      Non-public method that checks the trusted file length of a file object.
-      The length of the file must be less than or equal to the expected
-      length. This is a deliberately redundant implementation designed to
-      complement tuf.download._check_downloaded_length().
-
-    <Arguments>
-      file_object:
-        A file object.
-
-      trusted_file_length:
-        A non-negative integer that is the trusted length of the file.
-
-    <Exceptions>
-      tuf.exceptions.DownloadLengthMismatchError, if the lengths do
-      not match.
-
-    <Side Effects>
-      Reads the contents of 'file_object' and logs a message if 'file_object'
-      is less than or equal to the trusted length.
-      Position within file_object is changed.
-
-    <Returns>
-      None.
-    """
-
-    # Read the entire contents of 'file_object', a
-    file_object.seek(0)
-    observed_length = len(file_object.read())
-
-    # Return and log a message if 'file_object' is less than or equal to
-    # 'trusted_file_length', otherwise raise an exception.  A soft check
-    # ensures that an upper bound restricts how large a file is downloaded.
-    if observed_length > trusted_file_length:
-      raise tuf.exceptions.DownloadLengthMismatchError(trusted_file_length,
-          observed_length)
-
-    else:
-      logger.debug('Observed length (' + str(observed_length) +\
-          ') <= trusted length (' + str(trusted_file_length) + ')')
-
-
-
-
-
   def _get_target_file(self, target_filepath, file_length, file_hashes,
       prefix_filename_with_hash):
     """
