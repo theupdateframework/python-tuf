@@ -108,7 +108,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   @classmethod
   def tearDownClass(cls):
-    # Kills the server subprocess and closes the temp file used for logging.
+    # Cleans the resources and flush the logged lines (if any).
     cls.server_process_handler.clean()
 
     # Remove the temporary repository directory, which should contain all the
@@ -1082,7 +1082,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # The SimpleHTTPServer started in the setupclass has a tendency to
     # timeout in Windows after a few tests.
 
-    # Creates a subprocess running server and uses temp file for logging.
+    # Creates a subprocess running a server.
     server_process_handler = utils.TestServerProcess(log=logger,
         server=self.SIMPLE_SERVER_PATH)
 
@@ -1206,7 +1206,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         self.repository_updater.get_one_valid_targetinfo,
         '/foo/foo1.1.tar.gz')
 
-    # Kills the server subprocess and closes the temp file used for logging.
+    # Cleans the resources and flush the logged lines (if any).
     server_process_handler.clean()
 
 
@@ -1376,7 +1376,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # The SimpleHTTPServer started in the setupclass has a tendency to
     # timeout in Windows after a few tests.
 
-    # Creates a subprocess running server and uses temp file for logging.
+    # Creates a subprocess running a server.
     server_process_handler = utils.TestServerProcess(log=logger,
         server=self.SIMPLE_SERVER_PATH)
 
@@ -1491,7 +1491,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.repository_updater.updated_targets(all_targets, destination_directory)
     self.assertEqual(len(updated_targets), 1)
 
-    # Kills the server subprocess and closes the temp file used for logging.
+    # Cleans the resources and flush the logged lines (if any).
     server_process_handler.clean()
 
 
@@ -1503,7 +1503,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # The SimpleHTTPServer started in the setupclass has a tendency to
     # timeout in Windows after a few tests.
 
-    # Creates a subprocess running server and uses temp file for logging.
+    # Creates a subprocess running a server.
     server_process_handler = utils.TestServerProcess(log=logger,
         server=self.SIMPLE_SERVER_PATH)
 
@@ -1594,7 +1594,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     del self.repository_updater.metadata['previous']['targets']
     self.repository_updater.remove_obsolete_targets(destination_directory)
 
-    # Kills the server subprocess and closes the temp file used for logging.
+    # Cleans the resources and flush the logged lines (if any).
     server_process_handler.clean()
 
 
@@ -1864,13 +1864,13 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     # as a delegated role 'targets/role1', three target files, five key files,
     # etc.
 
-    # Creates a subprocess running server and uses temp file for logging.
+    # Creates a subprocess running a server.
     self.server_process_handler = utils.TestServerProcess(log=logger,
         server=self.SIMPLE_SERVER_PATH, popen_cwd=self.repository_directory)
 
     logger.debug('Server process started.')
 
-    # Creates a subprocess running server and uses temp file for logging.
+    # Creates a subprocess running a server.
     self.server_process_handler2 = utils.TestServerProcess(log=logger,
         server=self.SIMPLE_SERVER_PATH, popen_cwd=self.repository_directory2)
 
@@ -1923,8 +1923,7 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
 
-    # Logs stdout and stderr from the server subprocesses and then it
-    # kills them and closes the temp files used for logging.
+    # Cleans the resources and flush the logged lines (if any).
     self.server_process_handler.clean()
     self.server_process_handler2.clean()
 

@@ -46,7 +46,6 @@ from __future__ import unicode_literals
 
 import os
 import tempfile
-import time
 import shutil
 import logging
 import unittest
@@ -196,8 +195,7 @@ class TestSlowRetrieval(unittest_toolbox.Modified_TestCase):
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 
-    # Logs stdout and stderr from the server subprocess and then it
-    # kills it and closes the temp file used for logging.
+    # Cleans the resources and flush the logged lines (if any).
     self.server_process_handler.clean()
 
     # Remove the temporary repository directory, which should contain all the

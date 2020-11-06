@@ -90,8 +90,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
   def tearDown(self):
     unittest_toolbox.Modified_TestCase.tearDown(self)
 
-    # Logs stdout and stderr from the server subprocess and then it
-    # kills it and closes the temp file used for logging.
+    # Cleans the resources and flush the logged lines (if any).
     self.server_process_handler.clean()
 
     self.target_fileobj.close()
@@ -367,8 +366,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
           bad_https_server_handler,
           expd_https_server_handler]:
 
-        # Logs stdout and stderr from the server subprocess and then it
-        # kills it and closes the temp file used for logging.
+        # Cleans the resources and flush the logged lines (if any).
         proc_handler.clean()
 
 

@@ -124,13 +124,13 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     # has been changed when executing a subprocess.
     SIMPLE_SERVER_PATH = os.path.join(os.getcwd(), 'simple_server.py')
 
-    # Creates a subprocess running server and uses temp file for logging.
+    # Creates a subprocess running a server.
     self.server_process_handler = utils.TestServerProcess(log=logger,
         server=SIMPLE_SERVER_PATH, popen_cwd=self.repository_directory)
 
     logger.debug('Server process started.')
 
-    # Creates a subprocess running server and uses temp file for logging.
+    # Creates a subprocess running a server.
     self.server_process_handler2 = utils.TestServerProcess(log=logger,
         server=SIMPLE_SERVER_PATH, popen_cwd=self.repository_directory2)
 
@@ -160,8 +160,7 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
 
-    # Logs stdout and stderr from the server subprocesses and then it
-    # kills them and closes the temp files used for logging.
+    # Cleans the resources and flush the logged lines (if any).
     self.server_process_handler.clean()
     self.server_process_handler2.clean()
 
