@@ -1760,10 +1760,58 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
       self.assertRaises(tuf.exceptions.InvalidMetadataJSONError,
           self.repository_updater._verify_metadata_file,
-          metadata_file_object, 'root')
+          metadata_file_object, 'root', None)
 
 
-  def test_12__get_file(self):
+
+  def test_12__validate_metadata_version(self):
+    # Test for valid metadata version with expected_version.
+    self.repository_updater._validate_metadata_version(
+        expected_version=1, metadata_role='root', version_downloaded=1)
+
+    # Test for valid metadata version without expected_version.
+    self.repository_updater._validate_metadata_version(
+        expected_version=None, metadata_role='root', version_downloaded=1)
+
+    # Test for expected_version different than version downloaded.
+    self.assertRaises(tuf.exceptions.BadVersionNumberError,
+        self.repository_updater._validate_metadata_version,
+        expected_version=2, metadata_role='root', version_downloaded=1)
+
+    # Test without expected_version and version_downloaded < current_version.
+    self.assertRaises(tuf.exceptions.ReplayedMetadataError,
+        self.repository_updater._validate_metadata_version,
+        expected_version=None, metadata_role='root', version_downloaded=0)
+
+
+
+  def test_13__validate_spec_version(self):
+    # Tests when metadata spec ver is compatible with tuf.SPECIFICATION_VERSION
+
+    # metadata spec ver = tuf.SPECIFICATION_VERSION
+    self.repository_updater._validate_spec_version(tuf.SPECIFICATION_VERSION)
+
+    code_spec_ver_split = tuf.SPECIFICATION_VERSION.split('.')
+    code_spec_major = int(code_spec_ver_split[0])
+    code_spec_minor= int(code_spec_ver_split[1])
+
+    # metadata major ver is the same as tuf.SPECIFICATION_VERSION major ver
+    # but metadata minor ver != tuf.SPECIFICATION_VERSION minor ver
+    metadata_spec = [str(code_spec_major), str(code_spec_minor + 1), '0']
+    separator = '.'
+    metadata_spec = separator.join(metadata_spec)
+    self.repository_updater._validate_spec_version(metadata_spec)
+
+    # Test when metadata spec ver is NOT compatible
+    # with tuf.SPECIFICATION_VERSION
+    metadata_spec = [str(code_spec_major + 1), str(code_spec_minor), '0']
+    metadata_spec = separator.join(metadata_spec)
+    self.assertRaises(tuf.exceptions.UnsupportedSpecificationError,
+        self.repository_updater._validate_spec_version, metadata_spec)
+
+
+
+  def test_14__get_file(self):
     # Test for an "unsafe" download, where the file is downloaded up to
     # a required length (and no more).  The "safe" download approach
     # downloads an exact required length.
@@ -1783,7 +1831,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater._get_file('targets.json', verify_target_file,
         file_type, file_size, download_safely=False).close()
 
-  def test_13__targets_of_role(self):
+
+
+  def test_15__targets_of_role(self):
     # Test case where a list of targets is given.  By default, the 'targets'
     # parameter is None.
     targets = [{'filepath': 'file1.txt', 'fileinfo': {'length': 1, 'hashes': {'sha256': 'abc'}}}]
