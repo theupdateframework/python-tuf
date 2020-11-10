@@ -269,8 +269,10 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
       self.repository_updater.refresh()
 
     except tuf.exceptions.NoWorkingMirrorError as exception:
-      for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
-        self.assertTrue(isinstance(mirror_error, securesystemslib.exceptions.Error))
+      for _, mirror_error in six.iteritems(exception.mirror_errors):
+        # Throw tuf.exceptions.InvalidMetadataJSONError
+        # because the metadata is not a valud JSON file.
+        self.assertTrue(isinstance(mirror_error, tuf.exceptions.InvalidMetadataJSONError))
 
     else:
       self.fail('TUF did not prevent an endless data attack.')
