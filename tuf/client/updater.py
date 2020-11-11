@@ -1244,8 +1244,10 @@ class Updater(object):
       None.
     """
 
-    file_object.seek(0)
-    observed_length = len(file_object.read())
+    # seek to the end of the file; that is offset 0 from the end of the file,
+    # represented by a whence value of 2
+    file_object.seek(0, 2)
+    observed_length = file_object.tell()
 
     # Return and log a message if the length 'file_object' is equal to
     # 'trusted_file_length', otherwise raise an exception.  A hard check
