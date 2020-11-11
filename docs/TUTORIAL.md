@@ -96,14 +96,15 @@ text without prepended symbols is the output of a command.
 # following function creates an RSA key pair, where the private key is saved to
 # "root_key" and the public key to "root_key.pub" (both saved to the current
 # working directory).
->>> generate_and_write_rsa_keypair("root_key", bits=2048, password="password")
+>>> generate_and_write_rsa_keypair(password="password", filepath="root_key", bits=2048)
 
 # If the key length is unspecified, it defaults to 3072 bits. A length of less
-# than 2048 bits raises an exception. A password may be supplied as an
-# argument, otherwise a user prompt is presented.  If an empty password
-# is entered, the private key is saved unencrypted.
->>> generate_and_write_rsa_keypair("root_key2")
-Enter a password for the RSA key (/path/to/root_key2):
+# than 2048 bits raises an exception. A similar function is available to supply
+# a password on the prompt. If an empty password is entered, the private key
+# is saved unencrypted.
+>>> generate_and_write_rsa_keypair_with_prompt(filepath="root_key2")
+enter password to encrypt private key file '/path/to/root_key2'
+(leave empty if key should not be encrypted):
 Confirm:
 ```
 The following four key files should now exist:
@@ -117,8 +118,9 @@ If a filepath is not given, the KEYID of the generated key is used as the
 filename.  The key files are written to the current working directory.
 ```python
 # Continuing from the previous section . . .
->>> generate_and_write_rsa_keypair()
-Enter a password for the encrypted RSA key (/path/to/b5b8de8aeda674bce948fbe82cab07e309d6775fc0ec299199d16746dc2bd54c):
+>>> generate_and_write_rsa_keypair_with_prompt()
+enter password to encrypt private key file '/path/to/KEYID'
+(leave empty if key should not be encrypted):
 Confirm:
 ```
 
@@ -132,28 +134,18 @@ Confirm:
 # Import an existing private key.  Importing a private key requires a password,
 # whereas importing a public key does not.
 >>> private_root_key = import_rsa_privatekey_from_file("root_key")
-Enter a password for the encrypted RSA key (/path/to/root_key):
-```
-
-`import_rsa_privatekey_from_file()` raises a
-`securesystemslib.exceptions.CryptoError` exception if the key / password is
-invalid:
-
-```
-securesystemslib.exceptions.CryptoError: RSA (public, private) tuple cannot be
-generated from the encrypted PEM string: Bad decrypt. Incorrect password?
+enter password to decrypt private key file '/path/to/root_key'
+(leave empty if key not encrypted):
 ```
 
 ### Create and Import Ed25519 Keys ###
 ```Python
 # Continuing from the previous section . . .
 
-# Generate and write an Ed25519 key pair.  A 'password' argument may be
-# supplied, otherwise a prompt is presented.  The private key is saved
-# encrypted if a non-empty password is given, and unencrypted if the password
-# is empty.
->>> generate_and_write_ed25519_keypair('ed25519_key')
-Enter a password for the Ed25519 key (/path/to/ed25519_key):
+# The same generation and import functions as for rsa keys exist for ed25519
+>>> generate_and_write_ed25519_keypair_with_prompt(filepath='ed25519_key')
+enter password to encrypt private key file '/path/to/ed25519_key'
+(leave empty if key should not be encrypted):
 Confirm:
 
 # Import the ed25519 public key just created . . .
@@ -161,7 +153,8 @@ Confirm:
 
 # and its corresponding private key.
 >>> private_ed25519_key = import_ed25519_privatekey_from_file('ed25519_key')
-Enter a password for the encrypted Ed25519 key (/path/to/ed25519_key):
+enter password to decrypt private key file '/path/to/ed25519_key'
+(leave empty if key should not be encrypted):
 ```
 
 Note: Methods are also available to generate and write keys from memory.
@@ -259,10 +252,9 @@ secure manner.
 >>> import datetime
 
 # Generate keys for the remaining top-level roles.  The root keys have been set above.
-# The password argument may be omitted if a password prompt is needed.
->>> generate_and_write_rsa_keypair('targets_key', password='password')
->>> generate_and_write_rsa_keypair('snapshot_key', password='password')
->>> generate_and_write_rsa_keypair('timestamp_key', password='password')
+>>> generate_and_write_rsa_keypair(password='password', filepath='targets_key')
+>>> generate_and_write_rsa_keypair(password='password', filepath='snapshot_key')
+>>> generate_and_write_rsa_keypair(password='password', filepath='timestamp_key')
 
 # Add the verification keys of the remaining top-level roles.
 
@@ -270,15 +262,10 @@ secure manner.
 >>> repository.snapshot.add_verification_key(import_rsa_publickey_from_file('snapshot_key.pub'))
 >>> repository.timestamp.add_verification_key(import_rsa_publickey_from_file('timestamp_key.pub'))
 
-# Import the signing keys of the remaining top-level roles.  Prompt for passwords.
->>> private_targets_key = import_rsa_privatekey_from_file('targets_key')
-Enter a password for the encrypted RSA key (/path/to/targets_key):
-
->>> private_snapshot_key = import_rsa_privatekey_from_file('snapshot_key')
-Enter a password for the encrypted RSA key (/path/to/snapshot_key):
-
->>> private_timestamp_key = import_rsa_privatekey_from_file('timestamp_key')
-Enter a password for the encrypted RSA key (/path/to/timestamp_key):
+# Import the signing keys of the remaining top-level roles.
+>>> private_targets_key = import_rsa_privatekey_from_file('targets_key', password='password')
+>>> private_snapshot_key = import_rsa_privatekey_from_file('snapshot_key', password='password')
+>>> private_timestamp_key = import_rsa_privatekey_from_file('timestamp_key', password='password')
 
 # Load the signing keys of the remaining roles so that valid signatures are
 # generated when repository.writeall() is called.
@@ -390,18 +377,21 @@ metadata.  `snapshot.json` keys must be loaded and its metadata signed because
 # The private key of the updated targets metadata must be re-loaded before it
 # can be signed and written (Note the load_repository() call above).
 >>> private_targets_key = import_rsa_privatekey_from_file('targets_key')
-Enter a password for the encrypted RSA key (/path/to/targets_key):
+enter password to decrypt private key file '/path/to/targets_key'
+(leave empty if key not encrypted):
 
 >>> repository.targets.load_signing_key(private_targets_key)
 
 # Due to the load_repository() and new versions of metadata, we must also load
 # the private keys of Snapshot and Timestamp to generate a valid set of metadata.
 >>> private_snapshot_key = import_rsa_privatekey_from_file('snapshot_key')
-Enter a password for the encrypted RSA key (/path/to/snapshot_key):
+enter password to decrypt private key file '/path/to/snapshot_key'
+(leave empty if key not encrypted):
 >>> repository.snapshot.load_signing_key(private_snapshot_key)
 
 >>> private_timestamp_key = import_rsa_privatekey_from_file('timestamp_key')
-Enter a password for the encrypted RSA key (/path/to/timestamp_key):
+enter password to decrypt private key file '/path/to/timestamp_key'
+(leave empty if key not encrypted):
 >>> repository.timestamp.load_signing_key(private_timestamp_key)
 
 # Mark roles for metadata update (see #964, #958)
@@ -451,7 +441,7 @@ threshold, it needs to be added to `root.json`, e.g. via
 >>> from securesystemslib.formats import encode_canonical
 >>> from securesystemslib.keys import create_signature
 >>> private_ed25519_key = import_ed25519_privatekey_from_file('ed25519_key')
-Enter a password for the encrypted Ed25519 key (/path/to/ed25519_key):
+enter password to decrypt private key file '/path/to/ed25519_key'
 >>> signature = create_signature(
 ...     private_ed25519_key, encode_canonical(signable_content).encode())
 ```
@@ -489,7 +479,7 @@ targets and generate signed metadata.
 # Continuing from the previous section . . .
 
 # Generate a key for a new delegated role named "unclaimed".
->>> generate_and_write_rsa_keypair('unclaimed_key', bits=2048, password='password')
+>>> generate_and_write_rsa_keypair(password='password', filepath='unclaimed_key', bits=2048)
 >>> public_unclaimed_key = import_rsa_publickey_from_file('unclaimed_key.pub')
 
 # Make a delegation (delegate trust of 'myproject/*.txt' files) from "targets"
@@ -502,8 +492,7 @@ targets and generate signed metadata.
 
 # Load the private key of "unclaimed" so that unclaimed's metadata can be
 # signed, and valid metadata created.
->>> private_unclaimed_key = import_rsa_privatekey_from_file('unclaimed_key')
-Enter a password for the encrypted RSA key (/path/to/unclaimed_key):
+>>> private_unclaimed_key = import_rsa_privatekey_from_file('unclaimed_key', password='password')
 
 >>> repository.targets("unclaimed").load_signing_key(private_unclaimed_key)
 

@@ -143,7 +143,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     ed25519_keypath = os.path.join(temporary_directory, 'ed25519_key')
     securesystemslib.interface.generate_and_write_ed25519_keypair(
-        ed25519_keypath, password='pw')
+        password='pw', filepath=ed25519_keypath)
 
     imported_ed25519_key = \
       repo_lib.import_ed25519_privatekey_from_file(ed25519_keypath, 'pw')

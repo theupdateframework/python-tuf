@@ -76,7 +76,14 @@ from securesystemslib.keys import (
 
 from securesystemslib.interface import (
     generate_and_write_rsa_keypair,
+    generate_and_write_rsa_keypair_with_prompt,
+    generate_and_write_unencrypted_rsa_keypair,
+    generate_and_write_ecdsa_keypair,
+    generate_and_write_ecdsa_keypair_with_prompt,
+    generate_and_write_unencrypted_ecdsa_keypair,
     generate_and_write_ed25519_keypair,
+    generate_and_write_ed25519_keypair_with_prompt,
+    generate_and_write_unencrypted_ed25519_keypair,
     import_rsa_publickey_from_file,
     import_ed25519_publickey_from_file,
     import_ed25519_privatekey_from_file)

@@ -75,11 +75,11 @@ class TestTutorial(unittest.TestCase):
 
     # ----- Tutorial Section:  Keys
 
-    generate_and_write_rsa_keypair('root_key', bits=2048, password='password')
+    generate_and_write_rsa_keypair(password='password', filepath='root_key', bits=2048)
 
     # Skipping user entry of password
-    ## generate_and_write_rsa_keypair('root_key2')
-    generate_and_write_rsa_keypair('root_key2', password='password')
+    ## generate_and_write_rsa_keypair_with_prompt('root_key2')
+    generate_and_write_rsa_keypair(password='password', filepath='root_key2')
 
     # Tutorial tells users to expect these files to exist:
     # ['root_key', 'root_key.pub', 'root_key2', 'root_key2.pub']
@@ -109,8 +109,8 @@ class TestTutorial(unittest.TestCase):
     # ----- Tutorial Section: Create and Import Ed25519 Keys
 
     # Skipping user entry of password
-    ## generate_and_write_ed25519_keypair('ed25519_key')
-    generate_and_write_ed25519_keypair('ed25519_key', password='password')
+    ## generate_and_write_ed25519_keypair_with_prompt('ed25519_key')
+    generate_and_write_ed25519_keypair(password='password', filepath='ed25519_key')
 
     public_ed25519_key = import_ed25519_publickey_from_file('ed25519_key.pub')
 
@@ -157,9 +157,9 @@ class TestTutorial(unittest.TestCase):
         repr('targets') + " role contains 0 / 1 signatures."
       ], [args[0] for args, _ in mock_logger.info.call_args_list])
 
-    generate_and_write_rsa_keypair('targets_key', password='password')
-    generate_and_write_rsa_keypair('snapshot_key', password='password')
-    generate_and_write_rsa_keypair('timestamp_key', password='password')
+    generate_and_write_rsa_keypair(password='password', filepath='targets_key')
+    generate_and_write_rsa_keypair(password='password', filepath='snapshot_key')
+    generate_and_write_rsa_keypair(password='password', filepath='timestamp_key')
 
     repository.targets.add_verification_key(import_rsa_publickey_from_file(
         'targets_key.pub'))
@@ -309,7 +309,7 @@ class TestTutorial(unittest.TestCase):
 
     # ----- Tutorial Section: Delegations
     generate_and_write_rsa_keypair(
-        'unclaimed_key', bits=2048, password='password')
+        password='password', filepath='unclaimed_key', bits=2048)
     public_unclaimed_key = import_rsa_publickey_from_file('unclaimed_key.pub')
     repository.targets.delegate(
         'unclaimed', [public_unclaimed_key], ['myproject/*.txt'])

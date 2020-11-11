@@ -117,7 +117,7 @@ setup(
   install_requires = [
     'requests>=2.19.1',
     'six>=1.11.0',
-    'securesystemslib>=0.16.0'
+    'securesystemslib>=0.18.0'
   ],
   tests_require = [
     'mock; python_version < "3.3"'
