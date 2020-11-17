@@ -619,7 +619,8 @@ class Updater(object):
     http://www.python.org/dev/peps/pep-0008/#method-names-and-instance-variables
   """
 
-  def __init__(self, repository_name, repository_mirrors):
+  def __init__(self, repository_name, repository_mirrors,
+      bootstrap_root_path=None):
     """
     <Purpose>
       Constructor.  Instantiating an updater object causes all the metadata
@@ -658,6 +659,13 @@ class Updater(object):
                                           'metadata_path': 'metadata',
                                           'targets_path': 'targets',
                                           'confined_target_dirs': ['']}}
+      bootstrap_root_path:
+        Optional path to the bootstrap root metadata file.
+        If provided, on each refresh() call a chain of trust will be
+        established from the bootstrap root up to the current root file.
+        The bootstrap_root_path parent folder will be used to store
+        all root versions marked as "previous" on _update_metadata() call.
+        Default is None.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError:
@@ -668,8 +676,8 @@ class Updater(object):
         as a missing 'root.json' file.
 
     <Side Effects>
-      Th metadata files (e.g., 'root.json', 'targets.json') for the top- level
-      roles are read from disk and stored in dictionaries.  In addition, the
+      The metadata files (e.g., 'root.json', 'targets.json') for the top-level
+      roles are read from disk and stored in dictionaries. In addition, the
       key and roledb modules are populated with 'repository_name' entries.
 
     <Returns>
@@ -763,7 +771,37 @@ class Updater(object):
       raise tuf.exceptions.RepositoryError('No root of trust!'
         ' Could not find the "root.json" file.')
 
+    self._set_boostrap_root(bootstrap_root_path)
 
+
+
+  def _set_boostrap_root(self, bootstrap_root_path):
+    """
+    Internal function. Setup boostrap_root in a separate function
+    to provide flexibilty needed for testing.
+    """
+
+    self.bootstrap_root = bootstrap_root_path
+    self.bootstrap_root_folder = None
+    if bootstrap_root_path:
+      path = bootstrap_root_path
+      # Open as byte file, so it could be decoded in _verify_metadata_file.
+      with open(bootstrap_root_path, "rb") as bootstrap_root:
+        try:
+          self._verify_metadata_file(bootstrap_root, "root",
+              expected_version=None, ensure_not_expired=False)
+
+          bootstrap_root.seek(0)
+          bootstrap_metadata = bootstrap_root.read().decode('utf-8')
+
+          self.bootstap_signable = securesystemslib.util.load_json_string(
+              bootstrap_metadata)
+        except Exception:
+          filename = os.path.basename(path)
+          logger.warning("Failed to setup " + filename + " as boostrap root!")
+          raise
+
+      self.bootstrap_root_folder = os.path.dirname(path)
 
 
 
@@ -1062,6 +1100,9 @@ class Updater(object):
         logger.info('An expired Root metadata was loaded and must be updated.')
         raise
 
+    if self.bootstrap_root:
+      self._chain_of_root_trust(self.metadata['current']['root']['version'])
+
     # Update the root metadata and verify it by building a chain of trusted root
     # keys from the current trusted root metadata file
     self._update_root_metadata(root_metadata)
@@ -1084,6 +1125,47 @@ class Updater(object):
     self._update_metadata_if_changed('snapshot',
         referenced_metadata='timestamp')
     self._update_metadata_if_changed('targets')
+
+
+
+  def _chain_of_root_trust(self, current_root_version):
+    """
+    Establishes a chain of trust between the bootstrap root
+    and the current root.
+    Raises an exception if the current_root_version is lower than
+    the bootstrap root version or the validation of one of
+    the intermediate root files failed somewhere.
+    """
+
+    low = self.bootstap_signable['signed']['version']
+    up = current_root_version
+
+    if low > up:
+      raise tuf.exceptions.BadVersionNumberError('Bootstrap root ver ' \
+          + str(low) + ' is higher than the curr root ver ' + str(up) + '!')
+
+    # We don't need to verify self.bootstrap_root again.
+    # It was verified in __init__.
+    # We don't need to verify the current_root.
+    # It was verified when _update_root_metadata was called.
+    for prev_version in range(low + 1, up):
+      prev_root_filename = str(prev_version) + ".root.json"
+      prev_root_path = os.path.join(self.bootstrap_root_folder,
+          prev_root_filename)
+      logger.debug('Verifying root file: ' + prev_root_filename)
+
+      try:
+        # Open as byte file, so it could be decoded in _verify_metadata_file.
+        with open(prev_root_path, 'rb') as prev_root:
+          self._verify_metadata_file(prev_root, 'root', prev_version,
+              ensure_not_expired=False)
+
+      except Exception:
+        logger.warning("Failed to verify " + prev_root_filename)
+        raise
+
+    logger.info('The chain of root trust between ' + str(low) + ' and ' \
+        + str(up) + ' root versions has been successfully established!')
 
 
 
@@ -1486,7 +1568,7 @@ class Updater(object):
 
 
   def _verify_metadata_file(self, metadata_file_object,
-      metadata_role, expected_version):
+      metadata_role, expected_version, ensure_not_expired=True):
     """
     <Purpose>
       Non-public method that verifies a metadata file.  An exception is
@@ -1504,6 +1586,11 @@ class Updater(object):
       expected_version:
         An integer representing the expected and required version number
         of the 'metadata_role' file downloaded.
+
+      ensure_not_expired:
+        A boolean flag indicating do we need to ensure
+        that the metadata has not_expired.
+        Default is True.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError:
@@ -1549,8 +1636,9 @@ class Updater(object):
     self._validate_metadata_version(expected_version, metadata_role,
         metadata_signable['signed']['version'])
 
-    # Is 'metadata_signable' expired?
-    self._ensure_not_expired(metadata_signable['signed'], metadata_role)
+    if ensure_not_expired:
+      # Is 'metadata_signable' expired?
+      self._ensure_not_expired(metadata_signable['signed'], metadata_role)
 
     # We previously verified version numbers in this function, but have since
     # moved version number verification to the functions that retrieve
@@ -1834,6 +1922,12 @@ class Updater(object):
     if os.path.exists(current_filepath):
       # Previous metadata might not exist, say when delegations are added.
       securesystemslib.util.ensure_parent_dir(previous_filepath)
+
+      if metadata_role == "root" and self.bootstrap_root_folder:
+        # Make sure we don't delete the old root metadata files.
+        # We will need them to establish chain of root trust.
+        previous_filepath = self.bootstrap_root_folder
+
       shutil.move(current_filepath, previous_filepath)
 
     # Next, move the verified updated metadata file to the 'current' directory.
