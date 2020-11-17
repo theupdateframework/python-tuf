@@ -1027,6 +1027,41 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
+  def test_5__chain_of_root_trust(self):
+    # Test normal cases.
+    bootstrap_root_path = os.path.join(self.repository_directory, 'metadata',
+        'root_sequence', '1.root.json')
+    self.repository_updater._set_boostrap_root(bootstrap_root_path)
+
+    self.repository_updater._chain_of_root_trust(current_root_version=1)
+    self.repository_updater._chain_of_root_trust(current_root_version=4)
+
+    # Broken cases
+
+    # Test with a bootstrap root file which cannot be verified.
+    broken_root = os.path.join(self.repository_directory, 'metadata',
+        'root_sequence', 'broken-root.json')
+    # Give root with unsupported specification version.
+    self.assertRaises(tuf.exceptions.UnsupportedSpecificationError,
+        self.repository_updater._set_boostrap_root, broken_root)
+
+    # Test with a current root version lower than bootstrap root version.
+    self.assertRaises(tuf.exceptions.BadVersionNumberError,
+        self.repository_updater._chain_of_root_trust, 0)
+
+    # Test with a bootstrap root file which is not a json file.
+    self.assertRaises(tuf.exceptions.InvalidMetadataJSONError,
+        self.repository_updater._set_boostrap_root, __file__)
+
+    # Test with a nonexistent path.
+    # FileNotFoundError is not available on Python2,
+    # instead use one of its base classes - EnvironmentError.
+    self.assertRaises(EnvironmentError,
+        self.repository_updater._set_boostrap_root, 'nonexistent_path')
+
+    # Unset the booststrap root, so it won't be used for other tests.
+    self.repository_updater._set_boostrap_root(bootstrap_root_path=None)
+
 
 
   def test_5_targets_of_role(self):

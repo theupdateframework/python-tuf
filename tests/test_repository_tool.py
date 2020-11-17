@@ -502,6 +502,13 @@ class TestRepository(unittest.TestCase):
 
     self.assertEqual(sorted(expected_files), sorted(metadata_files))
 
+    for i in range(1, 5):
+      root_filename = str(i) + ".root.json"
+      expected_files.append(os.path.abspath(os.path.join('repository_data',
+        'repository', 'metadata', 'root_sequence', root_filename)))
+
+    expected_files.append(os.path.abspath(os.path.join('repository_data',
+        'repository', 'metadata', 'root_sequence', 'broken-root.json')))
 
     # Test when the 'recursive_walk' argument is True.
     # In this case, recursive walk should yield the same results as the
