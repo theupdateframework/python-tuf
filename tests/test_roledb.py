@@ -38,7 +38,7 @@ import tuf.roledb
 import tuf.exceptions
 import tuf.log
 
-import utils
+from tests import utils
 
 import securesystemslib
 import securesystemslib.keys

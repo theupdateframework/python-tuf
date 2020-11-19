@@ -53,7 +53,7 @@ import tuf.unittest_toolbox as unittest_toolbox
 import tuf.roledb
 import tuf.keydb
 
-import utils
+from tests import utils
 
 import six
 

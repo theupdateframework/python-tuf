@@ -68,7 +68,7 @@ import tuf.roledb
 import tuf.keydb
 import tuf.exceptions
 
-import utils
+from tests import utils
 
 import securesystemslib
 import six

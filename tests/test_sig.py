@@ -42,7 +42,7 @@ import tuf.roledb
 import tuf.sig
 import tuf.exceptions
 
-import utils
+from tests import utils
 
 import securesystemslib
 import securesystemslib.keys

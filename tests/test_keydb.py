@@ -39,7 +39,7 @@ import securesystemslib.settings
 import tuf.keydb
 import tuf.log
 
-import utils
+from tests import utils
 
 logger = logging.getLogger(__name__)
 

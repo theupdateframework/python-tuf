@@ -59,7 +59,7 @@ import tuf.unittest_toolbox as unittest_toolbox
 import tuf.client.updater as updater
 import tuf.settings
 
-import utils
+from tests import utils
 
 import securesystemslib
 import six

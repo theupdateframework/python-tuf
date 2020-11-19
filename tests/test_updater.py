@@ -71,7 +71,7 @@ import tuf.repository_lib as repo_lib
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.client.updater as updater
 
-import utils
+from tests import utils
 
 import securesystemslib
 import six

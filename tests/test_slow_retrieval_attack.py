@@ -58,7 +58,7 @@ import tuf.repository_tool as repo_tool
 import tuf.roledb
 import tuf.keydb
 
-import utils
+from tests import utils
 
 import six
 
