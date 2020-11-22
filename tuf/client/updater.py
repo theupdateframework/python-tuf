@@ -1196,12 +1196,8 @@ class Updater(object):
     # Verify each trusted hash of 'trusted_hashes'.  If all are valid, simply
     # return.
     for algorithm, trusted_hash in six.iteritems(trusted_hashes):
-      digest_object = securesystemslib.hash.digest(algorithm)
-      # Ensure we read from the beginning of the file object
-      # TODO: should we store file position (before the loop) and reset after we
-      # seek about?
-      file_object.seek(0)
-      digest_object.update(file_object.read())
+      digest_object = securesystemslib.hash.digest_fileobject(file_object,
+          algorithm)
       computed_hash = digest_object.hexdigest()
 
       # Raise an exception if any of the hashes are incorrect.
