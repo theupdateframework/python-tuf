@@ -88,8 +88,7 @@ class Metadata():
         elif _type == 'timestamp':
             inner_cls = Timestamp
         elif _type == 'root':
-            # TODO: implement Root class
-            raise NotImplementedError('Root not yet implemented')
+            inner_cls = Root
         else:
             raise ValueError(f'unrecognized metadata type "{_type}"')
 
@@ -333,6 +332,89 @@ class Signed:
     def bump_version(self) -> None:
         """Increments the metadata version number by 1."""
         self.version += 1
+
+
+class Root(Signed):
+    """A container for the signed part of root metadata.
+
+    Attributes:
+        consistent_snapshot: A boolean indicating whether the repository
+            supports consistent snapshots.
+        keys: A dictionary that contains a public key store used to verify
+            top level roles metadata signatures::
+            {
+                '<KEYID>': {
+                    'keytype': '<KEY TYPE>',
+                    'scheme': '<KEY SCHEME>',
+                    'keyid_hash_algorithms': [
+                        '<HASH ALGO 1>',
+                        '<HASH ALGO 2>'
+                        ...
+                    ],
+                    'keyval': {
+                        'public': '<PUBLIC KEY HEX REPRESENTATION>'
+                    }
+                },
+                ...
+            },
+        roles: A dictionary that contains a list of signing keyids and
+            a signature threshold for each top level role::
+            {
+                '<ROLE>': {
+                    'keyids': ['<SIGNING KEY KEYID>', ...],
+                    'threshold': <SIGNATURE THRESHOLD>,
+                },
+                ...
+            }
+
+    """
+    # TODO: determine an appropriate value for max-args and fix places where
+    # we violate that. This __init__ function takes 7 arguments, whereas the
+    # default max-args value for pylint is 5
+    # pylint: disable=too-many-arguments
+    def __init__(
+            self, _type: str, version: int, spec_version: str,
+            expires: datetime, consistent_snapshot: bool,
+            keys: JsonDict, roles: JsonDict) -> None:
+        super().__init__(_type, version, spec_version, expires)
+        # TODO: Add classes for keys and roles
+        self.consistent_snapshot = consistent_snapshot
+        self.keys = keys
+        self.roles = roles
+
+
+    # Serialization.
+    def to_dict(self) -> JsonDict:
+        """Returns the JSON-serializable dictionary representation of self. """
+        json_dict = super().to_dict()
+        json_dict.update({
+            'consistent_snapshot': self.consistent_snapshot,
+            'keys': self.keys,
+            'roles': self.roles
+        })
+        return json_dict
+
+
+    # Update key for a role.
+    def add_key(self, role: str, keyid: str, key_metadata: JsonDict) -> None:
+        """Adds new key for 'role' and updates the key store. """
+        if keyid not in self.roles[role]['keyids']:
+            self.roles[role]['keyids'].append(keyid)
+            self.keys[keyid] = key_metadata
+
+
+    # Remove key for a role.
+    def remove_key(self, role: str, keyid: str) -> None:
+        """Removes key for 'role' and updates the key store. """
+        if keyid in self.roles[role]['keyids']:
+            self.roles[role]['keyids'].remove(keyid)
+            for keyinfo in self.roles.values():
+                if keyid in keyinfo['keyids']:
+                    return
+
+            del self.keys[keyid]
+
+
 
 
 class Timestamp(Signed):
