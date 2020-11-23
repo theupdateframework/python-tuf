@@ -420,6 +420,50 @@ class Root(Signed):
             del self.keys[keyid]
 
 
+class MetadataInfo:
+    """A container with information about a particular metadata file.
+    Instances of MetadataInfo are used as values in a dictionary called
+    "meta" in Timestamp and Snapshot.
+
+    Attributes:
+        version: An integer indicating the version of the metadata file.
+        length: An optional integer indicating the length of the metadata file.
+        hashes: A optional dictionary containing hash algorithms and the
+            hashes resulting from applying them over the metadata file.::
+
+                'hashes': {
+                    '<HASH ALGO 1>': '<METADATA FILE HASH 1>',
+                    '<HASH ALGO 2>': '<METADATA FILE HASH 2>',
+                    ...
+                }
+
+    """
+
+    def __init__(self, version: int, length: Optional[int] = None,
+            hashes: Optional[JsonDict] = None) -> None:
+        self.version = version
+        self.length = length
+        self.hashes = hashes
+
+
+    def __eq__(self, other: 'MetadataInfo') -> bool:
+        """Compare objects by their values instead of by their addresses."""
+        return (self.version == other.version and
+                self.length == other.length and
+                self.hashes == other.hashes)
+
+
+    def to_dict(self) -> JsonDict:
+        """Returns the JSON-serializable dictionary representation of self. """
+        json_dict = {'version': self.version}
+
+        if self.length is not None:
+            json_dict['length'] = self.length
+
+        if self.hashes is not None:
+            json_dict['hashes'] = self.hashes
+
+        return json_dict
 
 
 class Timestamp(Signed):
@@ -429,23 +473,14 @@ class Timestamp(Signed):
         meta: A dictionary that contains information about snapshot metadata::
 
             {
-                'snapshot.json': {
-                    'version': <SNAPSHOT METADATA VERSION NUMBER>,
-                    'length': <SNAPSHOT METADATA FILE SIZE>, // optional
-                    'hashes': {
-                        '<HASH ALGO 1>': '<SNAPSHOT METADATA FILE HASH 1>',
-                        '<HASH ALGO 2>': '<SNAPSHOT METADATA FILE HASH 2>',
-                        ...
-                    } // optional
-                }
+                'snapshot.json': <MetadataInfo INSTANCE>
             }
 
     """
     def __init__(
             self, _type: str, version: int, spec_version: str,
-            expires: datetime, meta: JsonDict) -> None:
+            expires: datetime, meta: Dict[str, MetadataInfo]) -> None:
         super().__init__(_type, version, spec_version, expires)
-        # TODO: Add class for meta
         self.meta = meta
 
 
@@ -454,9 +489,21 @@ class Timestamp(Signed):
         """Returns the JSON-serializable dictionary representation of self. """
         json_dict = super().to_dict()
         json_dict.update({
-            'meta': self.meta
+            'meta': {
+                'snapshot.json': self.meta['snapshot.json'].to_dict()
+            }
         })
         return json_dict
+
+
+    @classmethod
+    def from_dict(cls, signed_dict: JsonDict) -> 'Timestamp':
+        """Creates Timestamp object from its JSON/dict representation. """
+
+        signed_dict['meta']['snapshot.json'] = MetadataInfo(
+                **signed_dict['meta']['snapshot.json'])
+
+        return super().from_dict(signed_dict)
 
 
     # Modification.
@@ -464,12 +511,7 @@ class Timestamp(Signed):
             hashes: Optional[JsonDict] = None) -> None:
         """Assigns passed info about snapshot metadata to meta dict. """
 
-        self.meta['snapshot.json'] = {'version': version}
-        if length is not None:
-            self.meta['snapshot.json']['length'] = length
-
-        if hashes is not None:
-            self.meta['snapshot.json']['hashes'] = hashes
+        self.meta['snapshot.json'] = MetadataInfo(version, length, hashes)
 
 
 class Snapshot(Signed):
@@ -479,38 +521,41 @@ class Snapshot(Signed):
         meta: A dictionary that contains information about targets metadata::
 
             {
-                'targets.json': {
-                    'version': <TARGETS METADATA VERSION NUMBER>,
-                    'length': <TARGETS METADATA FILE SIZE>, // optional
-                    'hashes': {
-                        '<HASH ALGO 1>': '<TARGETS METADATA FILE HASH 1>',
-                        '<HASH ALGO 2>': '<TARGETS METADATA FILE HASH 2>',
-                        ...
-                    } // optional
-                },
-                '<DELEGATED TARGETS ROLE 1>.json': {
-                    ...
-                },
-                '<DELEGATED TARGETS ROLE 2>.json': {
-                    ...
-                },
+                'targets.json': <MetadataInfo INSTANCE>,
+                '<DELEGATED TARGETS ROLE 1>.json': <MetadataInfo INSTANCE>,
+                '<DELEGATED TARGETS ROLE 2>.json': <MetadataInfo INSTANCE>,
                 ...
             }
 
     """
     def __init__(
             self, _type: str, version: int, spec_version: str,
-            expires: datetime, meta: JsonDict) -> None:
+            expires: datetime, meta: Dict[str, MetadataInfo]) -> None:
         super().__init__(_type, version, spec_version, expires)
-        # TODO: Add class for meta
         self.meta = meta
+
+
+    @classmethod
+    def from_dict(cls, signed_dict: JsonDict) -> 'Snapshot':
+        """Creates Snapshot object from its JSON/dict representation. """
+
+        for meta_path in signed_dict['meta'].keys():
+            signed_dict['meta'][meta_path] = MetadataInfo(
+                    **signed_dict['meta'][meta_path])
+
+        return super().from_dict(signed_dict)
+
 
     # Serialization.
     def to_dict(self) -> JsonDict:
         """Returns the JSON-serializable dictionary representation of self. """
         json_dict = super().to_dict()
+        meta_dict = {}
+        for meta_path, meta_info in self.meta.items():
+            meta_dict[meta_path] = meta_info.to_dict()
+
         json_dict.update({
-            'meta': self.meta
+            'meta': meta_dict
         })
         return json_dict
 
@@ -522,12 +567,7 @@ class Snapshot(Signed):
         """Assigns passed (delegated) targets role info to meta dict. """
         metadata_fn = f'{rolename}.json'
 
-        self.meta[metadata_fn] = {'version': version}
-        if length is not None:
-            self.meta[metadata_fn]['length'] = length
-
-        if hashes is not None:
-            self.meta[metadata_fn]['hashes'] = hashes
+        self.meta[metadata_fn] = MetadataInfo(version, length, hashes)
 
 
 class Targets(Signed):

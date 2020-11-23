@@ -33,6 +33,7 @@ if IS_PY_VERSION_SUPPORTED:
     import tuf.exceptions
     from tuf.api.metadata import (
         Metadata,
+        MetadataInfo,
         Root,
         Snapshot,
         Timestamp,
@@ -224,17 +225,18 @@ class TestMetadata(unittest.TestCase):
         # Create a dict representing what we expect the updated data to be
         fileinfo = copy.deepcopy(snapshot.signed.meta)
         hashes = {'sha256': 'c2986576f5fdfd43944e2b19e775453b96748ec4fe2638a6d2f32f1310967095'}
-        fileinfo['role1.json']['version'] = 2
-        fileinfo['role1.json']['hashes'] = hashes
-        fileinfo['role1.json']['length'] = 123
+        fileinfo['role1.json'].version = 2
+        fileinfo['role1.json'].hashes = hashes
+        fileinfo['role1.json'].length = 123
 
 
         self.assertNotEqual(snapshot.signed.meta, fileinfo)
         snapshot.signed.update('role1', 2, 123, hashes)
         self.assertEqual(snapshot.signed.meta, fileinfo)
+
         # Update only version. Length and hashes are optional.
         snapshot.signed.update('role1', 3)
-        fileinfo['role1.json'] = {'version': 3}
+        fileinfo['role1.json'] = MetadataInfo(3)
         self.assertEqual(snapshot.signed.meta, fileinfo)
 
 
@@ -263,18 +265,18 @@ class TestMetadata(unittest.TestCase):
         self.assertEqual(timestamp.signed.expires, datetime(2036, 1, 3, 0, 0))
 
         hashes = {'sha256': '0ae9664468150a9aa1e7f11feecb32341658eb84292851367fea2da88e8a58dc'}
-        fileinfo = copy.deepcopy(timestamp.signed.meta['snapshot.json'])
-        fileinfo['hashes'] = hashes
-        fileinfo['version'] = 2
-        fileinfo['length'] = 520
-
-        self.assertNotEqual(timestamp.signed.meta['snapshot.json'], fileinfo)
+        fileinfo = copy.deepcopy(timestamp.signed.meta)
+        fileinfo['snapshot.json'].hashes = hashes
+        fileinfo['snapshot.json'].version = 2
+        fileinfo['snapshot.json'].length = 520
+        self.assertNotEqual(timestamp.signed.meta, fileinfo)
         timestamp.signed.update(2, 520, hashes)
-        self.assertEqual(timestamp.signed.meta['snapshot.json'], fileinfo)
+        self.assertEqual(timestamp.signed.meta, fileinfo)
+
         # Update only version. Length and hashes are optional.
         timestamp.signed.update(3)
-        fileinfo = {'version': 3}
-        self.assertEqual(timestamp.signed.meta['snapshot.json'], fileinfo)
+        fileinfo['snapshot.json'] = MetadataInfo(version=3)
+        self.assertEqual(timestamp.signed.meta, fileinfo)
 
 
     def test_metadata_root(self):
