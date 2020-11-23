@@ -58,6 +58,7 @@ import logging
 import errno
 import sys
 import unittest
+import json
 
 import tuf
 import tuf.exceptions
@@ -107,7 +108,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   @classmethod
   def tearDownClass(cls):
-    # Kills the server subprocess and closes the temp file used for logging.
+    # Cleans the resources and flush the logged lines (if any).
     cls.server_process_handler.clean()
 
     # Remove the temporary repository directory, which should contain all the
@@ -1081,7 +1082,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # The SimpleHTTPServer started in the setupclass has a tendency to
     # timeout in Windows after a few tests.
 
-    # Creates a subprocess running server and uses temp file for logging.
+    # Creates a subprocess running a server.
     server_process_handler = utils.TestServerProcess(log=logger,
         server=self.SIMPLE_SERVER_PATH)
 
@@ -1205,7 +1206,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         self.repository_updater.get_one_valid_targetinfo,
         '/foo/foo1.1.tar.gz')
 
-    # Kills the server subprocess and closes the temp file used for logging.
+    # Cleans the resources and flush the logged lines (if any).
     server_process_handler.clean()
 
 
@@ -1375,7 +1376,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # The SimpleHTTPServer started in the setupclass has a tendency to
     # timeout in Windows after a few tests.
 
-    # Creates a subprocess running server and uses temp file for logging.
+    # Creates a subprocess running a server.
     server_process_handler = utils.TestServerProcess(log=logger,
         server=self.SIMPLE_SERVER_PATH)
 
@@ -1490,7 +1491,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.repository_updater.updated_targets(all_targets, destination_directory)
     self.assertEqual(len(updated_targets), 1)
 
-    # Kills the server subprocess and closes the temp file used for logging.
+    # Cleans the resources and flush the logged lines (if any).
     server_process_handler.clean()
 
 
@@ -1502,7 +1503,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # The SimpleHTTPServer started in the setupclass has a tendency to
     # timeout in Windows after a few tests.
 
-    # Creates a subprocess running server and uses temp file for logging.
+    # Creates a subprocess running a server.
     server_process_handler = utils.TestServerProcess(log=logger,
         server=self.SIMPLE_SERVER_PATH)
 
@@ -1593,7 +1594,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     del self.repository_updater.metadata['previous']['targets']
     self.repository_updater.remove_obsolete_targets(destination_directory)
 
-    # Kills the server subprocess and closes the temp file used for logging.
+    # Cleans the resources and flush the logged lines (if any).
     server_process_handler.clean()
 
 
@@ -1863,27 +1864,35 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     # as a delegated role 'targets/role1', three target files, five key files,
     # etc.
 
-    # The ports are harcoded because the urls to the repositories are harcoded
-    # in map.json.
-    self.SERVER_PORT = 30001
-    self.SERVER_PORT2 = 30002
-
-    # Creates a subprocess running server and uses temp file for logging.
+    # Creates a subprocess running a server.
     self.server_process_handler = utils.TestServerProcess(log=logger,
-        server=self.SIMPLE_SERVER_PATH, port=self.SERVER_PORT,
-        popen_cwd=self.repository_directory)
+        server=self.SIMPLE_SERVER_PATH, popen_cwd=self.repository_directory)
 
     logger.debug('Server process started.')
 
-    # Creates a subprocess running server and uses temp file for logging.
+    # Creates a subprocess running a server.
     self.server_process_handler2 = utils.TestServerProcess(log=logger,
-        server=self.SIMPLE_SERVER_PATH, port=self.SERVER_PORT2,
-        popen_cwd=self.repository_directory2)
+        server=self.SIMPLE_SERVER_PATH, popen_cwd=self.repository_directory2)
 
     logger.debug('Server process 2 started.')
 
-    url_prefix = 'http://localhost:' + str(self.SERVER_PORT)
-    url_prefix2 = 'http://localhost:' + str(self.SERVER_PORT2)
+    url_prefix = 'http://localhost:' + str(self.server_process_handler.port)
+    url_prefix2 = 'http://localhost:' + str(self.server_process_handler2.port)
+
+    # We have all of the necessary information for two repository mirrors
+    # in map.json, except for url prefixes.
+    # For the url prefixes, we create subprocesses that run a server script.
+    # In server scripts we get a free port from the OS which is sent
+    # back to the parent process.
+    # That's why we dynamically add the ports to the url prefixes
+    # and changing the content of map.json.
+    self.map_file_path = os.path.join(self.client_directory, 'map.json')
+    data = securesystemslib.util.load_json_file(self.map_file_path)
+
+    data['repositories']['test_repository1'] = [url_prefix]
+    data['repositories']['test_repository2'] = [url_prefix2]
+    with open(self.map_file_path, 'w') as f:
+      json.dump(data, f)
 
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
         'metadata_path': 'metadata', 'targets_path': 'targets'}}
@@ -1914,8 +1923,7 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
 
-    # Logs stdout and stderr from the server subprocesses and then it
-    # kills them and closes the temp files used for logging.
+    # Cleans the resources and flush the logged lines (if any).
     self.server_process_handler.clean()
     self.server_process_handler2.clean()
 
@@ -1957,14 +1965,12 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
         updater.MultiRepoUpdater, root_filepath)
 
     # Test for a valid instantiation.
-    map_file = os.path.join(self.client_directory, 'map.json')
-    multi_repo_updater = updater.MultiRepoUpdater(map_file)
+    multi_repo_updater = updater.MultiRepoUpdater(self.map_file_path)
 
 
 
   def test__target_matches_path_pattern(self):
-    map_file = os.path.join(self.client_directory, 'map.json')
-    multi_repo_updater = updater.MultiRepoUpdater(map_file)
+    multi_repo_updater = updater.MultiRepoUpdater(self.map_file_path)
     paths = ['foo*.tgz', 'bar*.tgz', 'file1.txt']
     self.assertTrue(
         multi_repo_updater._target_matches_path_pattern('bar-1.0.tgz', paths))
@@ -1976,8 +1982,7 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
 
 
   def test_get_valid_targetinfo(self):
-    map_file = os.path.join(self.client_directory, 'map.json')
-    multi_repo_updater = updater.MultiRepoUpdater(map_file)
+    multi_repo_updater = updater.MultiRepoUpdater(self.map_file_path)
 
     # Verify the multi repo updater refuses to save targetinfo if
     # required local repositories are missing.
@@ -2084,8 +2089,7 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
 
 
   def test_get_updater(self):
-    map_file = os.path.join(self.client_directory, 'map.json')
-    multi_repo_updater = updater.MultiRepoUpdater(map_file)
+    multi_repo_updater = updater.MultiRepoUpdater(self.map_file_path)
 
     # Test for a non-existent repository name.
     self.assertEqual(None, multi_repo_updater.get_updater('bad_repo_name'))

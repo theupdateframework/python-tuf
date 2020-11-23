@@ -27,9 +27,13 @@ import logging
 import socket
 import time
 import subprocess
-import tempfile
-import random
+import threading
 import warnings
+
+try:
+  import queue
+except ImportError:
+  import Queue as queue # python2
 
 import tuf.log
 
@@ -47,6 +51,15 @@ except NameError:
 
     def __str__(self):
       return repr(self.value)
+
+
+class TestServerProcessError(Exception):
+
+  def __init__(self, value="TestServerProcess"):
+    self.value = value
+
+  def __str__(self):
+    return repr(self.value)
 
 
 @contextmanager
@@ -90,7 +103,7 @@ def wait_for_server(host, server, port, timeout=10):
 
   if not succeeded:
     raise TimeoutError("Could not connect to the " + server \
-        + " on port " + str(port) + " !")
+        + " on port " + str(port) + "!")
 
 
 def configure_test_logging(argv):
@@ -119,7 +132,7 @@ class TestServerProcess():
   """
   <Purpose>
     Creates a child process with the subprocess.Popen object and
-    TempFile object used for logging.
+    uses a thread-safe Queue structure for logging.
 
    <Arguments>
       log:
@@ -129,15 +142,9 @@ class TestServerProcess():
         Path to the server to run in the subprocess.
         Default is "simpler_server.py".
 
-      port:
-        The port used to access the server. If none is provided,
-        then one will be generated.
-        Default is None.
-
       timeout:
         Time in seconds in which the server should start or otherwise
         TimeoutError error will be raised.
-        If 0 is given, no check if the server has started will be done.
         Default is 10.
 
       popen_cwd:
@@ -154,69 +161,161 @@ class TestServerProcess():
 
 
   def __init__(self, log, server='simple_server.py',
-      port=None, timeout=10, popen_cwd=".",
-      extra_cmd_args=[]):
-
-    # Create temporary log file used for logging stdout and stderr
-    # of the subprocess. In the mode "r+"" stands for reading and writing
-    # and "t" stands for text mode.
-    self.__temp_log_file = tempfile.TemporaryFile(mode='r+t')
+      timeout=10, popen_cwd=".", extra_cmd_args=[]):
 
     self.server = server
-    self.port = port or random.randint(30000, 45000)
     self.__logger = log
+    # Stores popped messages from the queue.
+    self.__logged_messages = []
+
+    try:
+      self._start_server(timeout, extra_cmd_args, popen_cwd)
+      wait_for_server('localhost', self.server, self.port, timeout)
+    except Exception as e:
+      # Clean the resources and log the server errors if any exists.
+      self.clean()
+      raise e
+
+
+
+  def _start_server(self, timeout, extra_cmd_args, popen_cwd):
+    """
+    Start the server subprocess and a thread
+    responsible to redirect stdout/stderr to the Queue.
+    Waits for the port message maximum timeout seconds.
+    """
+
+    self._start_process(extra_cmd_args, popen_cwd)
+    self._start_redirect_thread()
+
+    self._wait_for_port(timeout)
+
+    self.__logger.info(self.server + ' serving on ' + str(self.port))
+
+
+
+  def _start_process(self, extra_cmd_args, popen_cwd):
+    """Starts the process running the server."""
 
     # The "-u" option forces stdin, stdout and stderr to be unbuffered.
-    command = ['python', '-u', server, str(self.port)] + extra_cmd_args
+    command = ['python', '-u', self.server] + extra_cmd_args
 
-    # We are reusing one server subprocess in multiple unit tests, but we are
-    # collecting the logs per test.
+    # Reusing one subprocess in multiple tests, but split up the logs for each.
     self.__server_process = subprocess.Popen(command,
-        stdout=self.__temp_log_file, stderr=subprocess.STDOUT, cwd=popen_cwd)
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=popen_cwd)
 
-    self.__logger.info('Server process with process id ' \
-        + str(self.__server_process.pid) + " serving on port " \
-        + str(self.port) + ' started.')
 
-    if timeout > 0:
-      try:
-        wait_for_server('localhost', self.server, self.port, timeout)
-      except Exception as e:
-        # Make sure that errors from the server side will be logged.
+
+  def _start_redirect_thread(self):
+    """Starts a thread responsible to redirect stdout/stderr to the Queue."""
+
+    # Run log_queue_worker() in a thread.
+    # The thread will exit when the child process dies.
+    self._log_queue = queue.Queue()
+    log_thread = threading.Thread(target=self._log_queue_worker,
+        args=(self.__server_process.stdout, self._log_queue))
+
+    # "daemon = True" means the thread won't interfere with the process exit.
+    log_thread.daemon = True
+    log_thread.start()
+
+
+  @staticmethod
+  def _log_queue_worker(stream, line_queue):
+    """
+    Worker function to run in a seprate thread.
+    Reads from 'stream', puts lines in a Queue (Queue is thread-safe).
+    """
+
+    while True:
+      # readline() is a blocking operation.
+      # decode to push a string in the queue instead of 8-bit bytes.
+      log_line = stream.readline().decode('utf-8')
+      line_queue.put(log_line)
+
+      if len(log_line) == 0:
+        # This is the end of the stream meaning the server process has exited.
+        stream.close()
+        break
+
+
+
+  def _wait_for_port(self, timeout):
+    """
+    Validates the first item from the Queue against the port message.
+    If validation is successful, self.port is set.
+    Raises TestServerProcessError if the process has exited or
+    TimeoutError if no message was found within timeout seconds.
+    """
+
+    # We have hardcoded the message we expect on a successful server startup.
+    # This message should be the first message sent by the server!
+    expected_msg = 'bind succeeded, server port is: '
+    try:
+      line = self._log_queue.get(timeout=timeout)
+      if len(line) == 0:
+        # The process has exited.
+        raise TestServerProcessError(self.server + ' exited unexpectedly ' \
+            + 'with code ' + str(self.__server_process.poll()) + '!')
+
+      elif line.startswith(expected_msg):
+        self.port = int(line[len(expected_msg):])
+      else:
+        # An exception or some other message is printed from the server.
+        self.__logged_messages.append(line)
+        # Check if more lines are logged.
         self.flush_log()
-        raise e
+        raise TestServerProcessError(self.server + ' did not print port ' \
+            + 'message as first stdout line as expected!')
+    except queue.Empty:
+      raise TimeoutError('Failure during ' + self.server + ' startup!')
 
 
 
-  def flush_log(self):
-    """Logs contents from TempFile, truncates buffer"""
+  def _kill_server_process(self):
+    """Kills the server subprocess if it's running."""
 
-    # Seek is needed to move the pointer to the beginning of the file, because
-    # the subprocess could have read and/or write and thus moved the pointer.
-    self.__temp_log_file.seek(0)
-    log_message = self.__temp_log_file.read()
-
-    if len(log_message) > 0:
-      title = "Test server (" + self.server + ") output:"
-      message = [title] + log_message.splitlines()
-      self.__logger.info('\n| '.join(message))
-
-      # Make sure the file is empty before the next test logs new information.
-      self.__temp_log_file.truncate(0)
-
-
-
-  def clean(self):
-    """Kills the subprocess and closes the TempFile.
-    Calls flush_log to check for logged information, but not yet flushed."""
-
-    # If there is anything logged, flush it before closing the resourses.
-    self.flush_log()
-
-    self.__temp_log_file.close()
-
-    if self.__server_process.returncode is None:
+    if self.is_process_running():
       self.__logger.info('Server process ' + str(self.__server_process.pid) +
           ' terminated.')
       self.__server_process.kill()
       self.__server_process.wait()
+
+
+
+  def flush_log(self):
+    """Flushes the log lines from the logging queue."""
+
+    while True:
+      # Get lines from log_queue
+      try:
+        line = self._log_queue.get(block=False)
+        if len(line) > 0:
+          self.__logged_messages.append(line)
+      except queue.Empty:
+        # No more lines are logged in the queue.
+        break
+
+    if len(self.__logged_messages) > 0:
+      title = "Test server (" + self.server + ") output:"
+      message = [title] + self.__logged_messages
+      self.__logger.info('| '.join(message))
+      self.__logged_messages = []
+
+
+
+  def clean(self):
+    """
+    Kills the subprocess and closes the TempFile.
+    Calls flush_log to check for logged information, but not yet flushed.
+    """
+
+    # If there is anything logged, flush it before closing the resourses.
+    self.flush_log()
+
+    self._kill_server_process()
+
+
+
+  def is_process_running(self):
+    return True if self.__server_process.poll() is None else False

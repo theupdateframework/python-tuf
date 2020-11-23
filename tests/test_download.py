@@ -90,8 +90,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
   def tearDown(self):
     unittest_toolbox.Modified_TestCase.tearDown(self)
 
-    # Logs stdout and stderr from the server subprocess and then it
-    # kills it and closes the temp file used for logging.
+    # Cleans the resources and flush the logged lines (if any).
     self.server_process_handler.clean()
 
     self.target_fileobj.close()
@@ -258,29 +257,29 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     # 4: run with an HTTPS certificate that is expired
     # Be sure to offset from the port used in setUp to avoid collision.
 
-    port1 = self.server_process_handler.port + 1
-    port2 = self.server_process_handler.port + 2
-    port3 = self.server_process_handler.port + 3
-    port4 = self.server_process_handler.port + 4
 
     good_https_server_handler = utils.TestServerProcess(log=logger,
-        server='simple_https_server.py', port=port1,
+        server='simple_https_server.py',
         extra_cmd_args=[good_cert_fname])
     good2_https_server_handler = utils.TestServerProcess(log=logger,
-        server='simple_https_server.py', port=port2,
+        server='simple_https_server.py',
         extra_cmd_args=[good2_cert_fname])
     bad_https_server_handler = utils.TestServerProcess(log=logger,
-        server='simple_https_server.py', port=port3,
+        server='simple_https_server.py',
         extra_cmd_args=[bad_cert_fname])
     expd_https_server_handler = utils.TestServerProcess(log=logger,
-        server='simple_https_server.py', port=port4,
+        server='simple_https_server.py',
         extra_cmd_args=[expired_cert_fname])
 
     suffix = '/' +  os.path.basename(target_filepath)
-    good_https_url = 'https://localhost:' + str(port1) + suffix
-    good2_https_url = 'https://localhost:' + str(port2) + suffix
-    bad_https_url = 'https://localhost:' + str(port3) + suffix
-    expired_https_url = 'https://localhost:' + str(port4) + suffix
+    good_https_url = 'https://localhost:' \
+        + str(good_https_server_handler.port) + suffix
+    good2_https_url = 'https://localhost:' \
+        + str(good2_https_server_handler.port) + suffix
+    bad_https_url = 'https://localhost:' \
+        + str(bad_https_server_handler.port) + suffix
+    expired_https_url = 'https://localhost:' \
+        + str(expd_https_server_handler.port) + suffix
 
     # Download the target file using an HTTPS connection.
 
@@ -367,8 +366,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
           bad_https_server_handler,
           expd_https_server_handler]:
 
-        # Logs stdout and stderr from the server subprocess and then it
-        # kills it and closes the temp file used for logging.
+        # Cleans the resources and flush the logged lines (if any).
         proc_handler.clean()
 
 

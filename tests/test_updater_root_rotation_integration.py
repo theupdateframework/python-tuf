@@ -91,7 +91,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   @classmethod
   def tearDownClass(cls):
-    # Kills the server subprocess and closes the temp file used for logging.
+    # Cleans the resources and flush the logged lines (if any).
     cls.server_process_handler.clean()
 
     # Remove the temporary repository directory, which should contain all the
