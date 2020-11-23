@@ -716,6 +716,34 @@ class TestRepository(unittest.TestCase):
       tuf.formats.check_signable_object_format(role_signable)
 
 
+  def test_signature_order(self):
+    """Test signatures are added to metadata in alphabetical order. """
+    # Create empty repo dir and init default repo in memory
+    repo_dir = tempfile.mkdtemp(dir=self.temporary_directory)
+    repo = repo_tool.create_new_repository(repo_dir)
+
+    # Dedicate any two existing test keys as root signing keys
+    for key_name in ["targets_key", "snapshot_key"]:
+      repo.root.load_signing_key(
+          repo_tool.import_ed25519_privatekey_from_file(
+              os.path.join("repository_data", "keystore", key_name),
+              "password"))
+
+    # Write root metadata with two signatures
+    repo.write("root")
+
+    # Load signed and written json metadata back into memory
+    root_metadata_path = os.path.join(
+        repo_dir, repo_tool.METADATA_STAGED_DIRECTORY_NAME, "root.json")
+    root_metadata = securesystemslib.util.load_json_file(root_metadata_path)
+
+    # Assert signatures are ordered alphabetically (by signing key keyid)
+    self.assertListEqual(
+        [sig["keyid"] for sig in root_metadata["signatures"]],
+        [
+          "59a4df8af818e9ed7abe0764c0b47b4240952aa0d179b5b78346c470ac30278d",
+          "65171251a9aff5a8b3143a813481cb07f6e0de4eb197c767837fe4491b739093"
+        ])
 
 
 
