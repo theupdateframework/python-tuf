@@ -1385,7 +1385,7 @@ class Updater(object):
     signatures = signable['signatures']
     signed = securesystemslib.formats.encode_canonical(
         signable['signed']).encode('utf-8')
-    validated = 0
+    verified_sig_keyids = set()
 
     for signature in signatures:
       keyid = signature['keyid']
@@ -1403,9 +1403,9 @@ class Updater(object):
       valid_sig = securesystemslib.keys.verify_signature(key, signature, signed)
 
       if valid_sig:
-        validated = validated + 1
+        verified_sig_keyids.add(keyid)
 
-    if validated >= threshold:
+    if len(verified_sig_keyids) >= threshold:
       return True
     return False
 

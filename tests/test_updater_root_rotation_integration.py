@@ -262,6 +262,63 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
+  def test_verify_root_with_duplicate_current_keyids(self):
+     """
+     Each root file is signed by the current root threshold of keys as well
+     as the previous root threshold of keys. In each case, a keyid must only
+     count once towards the threshold. Test that the new root signatures
+     specific signature verification implemented in _verify_root_self_signed()
+     only counts one signature per keyid towards the threshold.
+     """
+     # Load repository with root.json == 1.root.json (available on client)
+     # Signing key: "root", Threshold: 1
+     repository = repo_tool.load_repository(self.repository_directory)
+
+     # Add an additional signing key and bump the threshold to 2
+     repository.root.load_signing_key(self.role_keys['root']['private'])
+     repository.root.add_verification_key(self.role_keys['root2']['public'])
+     repository.root.load_signing_key(self.role_keys['root2']['private'])
+     repository.root.threshold = 2
+     repository.writeall()
+
+     # Move staged metadata to "live" metadata
+     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+         os.path.join(self.repository_directory, 'metadata'))
+
+     # Modify 2.root.json and list two signatures with the same keyid
+     root2_path_live = os.path.join(
+         self.repository_directory, 'metadata', '2.root.json')
+     root2 = securesystemslib.util.load_json_file(root2_path_live)
+
+     signatures = []
+     signatures.append(root2['signatures'][0])
+     signatures.append(root2['signatures'][0])
+
+     root2['signatures'] = signatures
+
+     root2_fobj = tempfile.TemporaryFile()
+     root2_fobj.write(tuf.repository_lib._get_written_metadata(root2))
+     securesystemslib.util.persist_temp_file(root2_fobj, root2_path_live)
+
+     # Update 1.root.json -> 2.root.json
+     # Signature verification with new keys should fail because the threshold
+     # can only be met by two signatures with the same keyid
+     with self.assertRaises(tuf.exceptions.NoWorkingMirrorError) as cm:
+       self.repository_updater.refresh()
+
+     for mirror_url, mirror_error in six.iteritems(cm.exception.mirror_errors):
+       self.assertTrue(mirror_url.endswith('/2.root.json'))
+       self.assertTrue(isinstance(mirror_error,
+           securesystemslib.exceptions.BadSignatureError))
+
+     # Assert that the current 'root.json' on the client side is the verified one
+     self.assertTrue(filecmp.cmp(
+       os.path.join(self.repository_directory, 'metadata', '1.root.json'),
+       os.path.join(self.client_metadata_current, 'root.json')))
+
+
+
 
 
   def test_root_rotation_full(self):
