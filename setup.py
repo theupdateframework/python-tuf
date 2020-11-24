@@ -77,7 +77,7 @@ with open('README.md') as file_object:
 
 
 setup(
-  name = 'tuf',
+  name = 'tuf-client',
   version = '0.15.0', # If updating version, also update it in tuf/__init__.py
   description = 'A secure updater framework for Python',
   long_description = long_description,
@@ -124,7 +124,6 @@ setup(
   ],
   packages = find_packages(exclude=['tests']),
   scripts = [
-    'tuf/scripts/repo.py',
     'tuf/scripts/client.py'
   ]
 )
