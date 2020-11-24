@@ -33,6 +33,7 @@ if IS_PY_VERSION_SUPPORTED:
     import tuf.exceptions
     from tuf.api.metadata import (
         Metadata,
+        Root,
         Snapshot,
         Timestamp,
         Targets
@@ -92,6 +93,7 @@ class TestMetadata(unittest.TestCase):
 
     def test_generic_read(self):
         for metadata, inner_metadata_cls in [
+                ('root', Root),
                 ('snapshot', Snapshot),
                 ('timestamp', Timestamp),
                 ('targets', Targets)]:
@@ -137,7 +139,7 @@ class TestMetadata(unittest.TestCase):
 
 
     def test_read_write_read_compare(self):
-        for metadata in ['snapshot', 'timestamp', 'targets']:
+        for metadata in ['root', 'snapshot', 'timestamp', 'targets']:
             path = os.path.join(self.repo_dir, 'metadata', metadata + '.json')
             metadata_obj = Metadata.from_json_file(path)
 
