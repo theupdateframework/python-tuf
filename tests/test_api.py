@@ -232,6 +232,10 @@ class TestMetadata(unittest.TestCase):
         self.assertNotEqual(snapshot.signed.meta, fileinfo)
         snapshot.signed.update('role1', 2, 123, hashes)
         self.assertEqual(snapshot.signed.meta, fileinfo)
+        # Update only version. Length and hashes are optional.
+        snapshot.signed.update('role1', 3)
+        fileinfo['role1.json'] = {'version': 3}
+        self.assertEqual(snapshot.signed.meta, fileinfo)
 
 
     def test_metadata_timestamp(self):
@@ -266,6 +270,10 @@ class TestMetadata(unittest.TestCase):
 
         self.assertNotEqual(timestamp.signed.meta['snapshot.json'], fileinfo)
         timestamp.signed.update(2, 520, hashes)
+        self.assertEqual(timestamp.signed.meta['snapshot.json'], fileinfo)
+        # Update only version. Length and hashes are optional.
+        timestamp.signed.update(3)
+        fileinfo = {'version': 3}
         self.assertEqual(timestamp.signed.meta['snapshot.json'], fileinfo)
 
 
