@@ -570,6 +570,58 @@ class Snapshot(Signed):
         self.meta[metadata_fn] = MetadataInfo(version, length, hashes)
 
 
+class TargetInfo:
+    """A container with information about a particular target file.
+    Instances of TargetInfo are used as values in a dictionary
+    called "targets" in Targets.
+
+    Attributes:
+        length: An integer indicating the length of the target file.
+        hashes: A dictionary containing hash algorithms and the
+            hashes resulted from applying them over the target file::
+
+                'hashes': {
+                    '<HASH ALGO 1>': '<TARGET FILE HASH 1>',
+                    '<HASH ALGO 2>': '<TARGET FILE HASH 2>',
+                    ...
+                }
+
+        custom: An optional dictionary which may include version numbers,
+            dependencies, or any other data that the application wants
+            to include to describe the target file::
+
+                'custom': {
+                    'type': 'metadata',
+                    'file_permissions': '0644',
+                    ...
+                } // optional
+
+    """
+
+    def __init__(self, length: int, hashes: JsonDict,
+            custom: Optional[JsonDict] = None) -> None:
+        self.length = length
+        self.hashes = hashes
+        self.custom = custom
+
+
+    def __eq__(self, other: 'TargetInfo') -> bool:
+        """Compare objects by their values instead of by their addresses."""
+        return (self.length == other.length and
+                self.hashes == other.hashes and
+                self.custom == other.custom)
+
+
+    def to_dict(self) -> JsonDict:
+        """Returns the JSON-serializable dictionary representation of self. """
+        json_dict = {'length': self.length, 'hashes': self.hashes}
+
+        if self.custom is not None:
+            json_dict['custom'] = self.custom
+
+        return json_dict
+
+
 class Targets(Signed):
     """A container for the signed part of targets metadata.
 
@@ -577,15 +629,7 @@ class Targets(Signed):
         targets: A dictionary that contains information about target files::
 
             {
-                '<TARGET FILE NAME>': {
-                    'length': <TARGET FILE SIZE>,
-                    'hashes': {
-                        '<HASH ALGO 1>': '<TARGET FILE HASH 1>',
-                        '<HASH ALGO 2>': '<TARGETS FILE HASH 2>',
-                        ...
-                    },
-                    'custom': <CUSTOM OPAQUE DICT> // optional
-                },
+                '<TARGET FILE NAME>': <TargetInfo INSTANCE>,
                 ...
             }
 
@@ -629,20 +673,35 @@ class Targets(Signed):
     # pylint: disable=too-many-arguments
     def __init__(
             self, _type: str, version: int, spec_version: str,
-            expires: datetime, targets: JsonDict, delegations: JsonDict
-            ) -> None:
+            expires: datetime, targets: Dict[str, TargetInfo],
+            delegations: JsonDict) -> None:
         super().__init__(_type, version, spec_version, expires)
-        # TODO: Add class for meta
         self.targets = targets
+
+        # TODO: Add Key and Role classes
         self.delegations = delegations
+
+
+    @classmethod
+    def from_dict(cls, signed_dict: JsonDict) -> 'Targets':
+        """Creates Targets object from its JSON/dict representation. """
+        for target_path in signed_dict['targets'].keys():
+            signed_dict['targets'][target_path] = TargetInfo(
+                    **signed_dict['targets'][target_path])
+
+        return super().from_dict(signed_dict)
 
 
     # Serialization.
     def to_dict(self) -> JsonDict:
         """Returns the JSON-serializable dictionary representation of self. """
         json_dict = super().to_dict()
+        target_dict = {}
+        for target_path, target_file_obj in self.targets.items():
+            target_dict[target_path] = target_file_obj.to_dict()
+
         json_dict.update({
-            'targets': self.targets,
+            'targets': target_dict,
             'delegations': self.delegations,
         })
         return json_dict
@@ -650,4 +709,5 @@ class Targets(Signed):
     # Modification.
     def update(self, filename: str, fileinfo: JsonDict) -> None:
         """Assigns passed target file info to meta dict. """
-        self.targets[filename] = fileinfo
+        self.targets[filename] = TargetInfo(fileinfo['length'],
+            fileinfo['hashes'], fileinfo.get('custom'))
