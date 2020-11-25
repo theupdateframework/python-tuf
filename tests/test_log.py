@@ -33,7 +33,7 @@ import tuf.settings
 import securesystemslib
 import securesystemslib.util
 
-import utils
+from tests import utils
 
 from six.moves import reload_module
 

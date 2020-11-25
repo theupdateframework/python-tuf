@@ -35,7 +35,7 @@ import sys
 
 import tuf.unittest_toolbox as unittest_toolbox
 
-import utils
+from tests import utils
 
 logger = logging.getLogger(__name__)
 

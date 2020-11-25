@@ -41,7 +41,7 @@ import securesystemslib.exceptions
 from tuf.developer_tool import METADATA_DIRECTORY_NAME
 from tuf.developer_tool import TARGETS_DIRECTORY_NAME
 
-import utils
+from tests import utils
 
 logger = logging.getLogger(__name__)
 

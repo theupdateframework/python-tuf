@@ -36,7 +36,7 @@ import os
 import tuf
 import tuf.formats
 
-import utils
+from tests import utils
 
 import securesystemslib
 import securesystemslib.util

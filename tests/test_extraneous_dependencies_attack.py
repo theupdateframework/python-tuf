@@ -57,7 +57,7 @@ import tuf.roledb
 import tuf.keydb
 import tuf.unittest_toolbox as unittest_toolbox
 
-import utils
+from tests import utils
 
 import securesystemslib
 import six

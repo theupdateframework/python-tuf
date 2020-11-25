@@ -44,7 +44,7 @@ else:
 
 from tuf.repository_tool import *   # part of TUTORIAL.md
 
-import utils
+from tests import utils
 
 import securesystemslib.exceptions
 

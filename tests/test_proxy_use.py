@@ -46,7 +46,7 @@ import tuf.log
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.exceptions
 
-import utils
+from tests import utils
 
 import six
 

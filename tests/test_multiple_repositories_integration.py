@@ -45,7 +45,7 @@ import tuf.settings
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.repository_tool as repo_tool
 
-import utils
+from tests import utils
 
 import six
 import securesystemslib

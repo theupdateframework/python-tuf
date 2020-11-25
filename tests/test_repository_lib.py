@@ -50,7 +50,7 @@ import tuf.settings
 import tuf.repository_lib as repo_lib
 import tuf.repository_tool as repo_tool
 
-import utils
+from tests import utils
 
 import securesystemslib
 import securesystemslib.exceptions

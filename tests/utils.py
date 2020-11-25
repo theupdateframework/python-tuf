@@ -156,17 +156,19 @@ class TestServerProcess():
         List of additional arguments for the command
         which will start the subprocess.
         More precisely "python -u <path_to_server> <port> <extra_cmd_args>".
-        Default is empty list.
+        When no list is provided, an empty list ("[]") will be assigned to it.
   """
 
 
   def __init__(self, log, server='simple_server.py',
-      timeout=10, popen_cwd=".", extra_cmd_args=[]):
+      timeout=10, popen_cwd=".", extra_cmd_args=None):
 
     self.server = server
     self.__logger = log
     # Stores popped messages from the queue.
     self.__logged_messages = []
+    if extra_cmd_args is None:
+      extra_cmd_args = []
 
     try:
       self._start_server(timeout, extra_cmd_args, popen_cwd)

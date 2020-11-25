@@ -44,7 +44,7 @@ import tuf.roledb
 import tuf.keydb
 import tuf.repository_tool as repo_tool
 
-import utils
+from tests import utils
 
 import securesystemslib
 import securesystemslib.exceptions

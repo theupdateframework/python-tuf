@@ -54,7 +54,7 @@ import tuf.client.updater as updater
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.roledb
 
-import utils
+from tests import utils
 
 import securesystemslib
 import six

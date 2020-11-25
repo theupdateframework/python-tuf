@@ -34,7 +34,7 @@ import sys
 import tuf.mirrors as mirrors
 import tuf.unittest_toolbox as unittest_toolbox
 
-import utils
+from tests import utils
 
 import securesystemslib
 import securesystemslib.util
