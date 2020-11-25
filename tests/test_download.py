@@ -45,8 +45,8 @@ import tuf
 import tuf.download as download
 import tuf.requests_fetcher
 import tuf.log
-import tuf.unittest_toolbox as unittest_toolbox
 import tuf.exceptions
+from tuf import unittest_toolbox
 
 from tests import utils
 
@@ -64,7 +64,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     current working directory.
     """
 
-    unittest_toolbox.Modified_TestCase.setUp(self)
+    super().setUp()
 
     # Making a temporary file.
     current_dir = os.getcwd()
@@ -93,7 +93,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
   # Stop server process and perform clean up.
   def tearDown(self):
-    unittest_toolbox.Modified_TestCase.tearDown(self)
+    super().tearDown()
 
     # Cleans the resources and flush the logged lines (if any).
     self.server_process_handler.clean()

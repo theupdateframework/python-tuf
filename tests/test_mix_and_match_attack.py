@@ -39,7 +39,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
-import tempfile
 import shutil
 import logging
 import unittest
@@ -49,9 +48,9 @@ import tuf.exceptions
 import tuf.log
 import tuf.client.updater as updater
 import tuf.repository_tool as repo_tool
-import tuf.unittest_toolbox as unittest_toolbox
 import tuf.roledb
 import tuf.keydb
+from tuf import unittest_toolbox
 
 from tests import utils
 
@@ -69,11 +68,6 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
 
   @classmethod
   def setUpClass(cls):
-    # Create a temporary directory to store the repository, metadata, and
-    # target files.  'temporary_directory' must be deleted in TearDownModule()
-    # so that temporary files are always removed, even when exceptions occur.
-    cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
-
     # Launch a SimpleHTTPServer (serves files in the current directory).
     # Test cases will request metadata and target files that have been
     # pre-generated in 'tuf/tests/repository_data', which will be served by the
@@ -90,16 +84,11 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
     # Cleans the resources and flush the logged lines (if any).
     cls.server_process_handler.clean()
 
-    # Remove the temporary repository directory, which should contain all the
-    # metadata, targets, and key files generated of all the test cases.
-    shutil.rmtree(cls.temporary_directory)
-
 
 
 
   def setUp(self):
-    # We are inheriting from custom class.
-    unittest_toolbox.Modified_TestCase.setUp(self)
+    super().setUp()
 
     self.repository_name = 'test_repository1'
 
@@ -108,7 +97,7 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
     # The 'repository_data' directory is expected to exist in 'tuf/tests/'.
     original_repository_files = os.path.join(os.getcwd(), 'repository_data')
     temporary_repository_root = \
-      self.make_temp_directory(directory=self.temporary_directory)
+        self.make_temp_directory(directory=os.getcwd())
 
     # The original repository, keystore, and client directories will be copied
     # for each test case.
@@ -149,9 +138,7 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
 
 
   def tearDown(self):
-    # Modified_TestCase.tearDown() automatically deletes temporary files and
-    # directories that may have been created during each test case.
-    unittest_toolbox.Modified_TestCase.tearDown(self)
+    super().tearDown()
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 

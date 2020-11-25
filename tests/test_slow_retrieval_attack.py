@@ -53,10 +53,11 @@ import sys
 
 import tuf.log
 import tuf.client.updater as updater
-import tuf.unittest_toolbox as unittest_toolbox
 import tuf.repository_tool as repo_tool
 import tuf.roledb
 import tuf.keydb
+
+from tuf import unittest_toolbox
 
 from tests import utils
 
@@ -70,8 +71,7 @@ repo_tool.disable_console_log_messages()
 class TestSlowRetrieval(unittest_toolbox.Modified_TestCase):
 
   def setUp(self):
-    # We are inheriting from custom class.
-    unittest_toolbox.Modified_TestCase.setUp(self)
+    super().setUp()
 
     self.repository_name = 'test_repository1'
 
@@ -189,9 +189,7 @@ class TestSlowRetrieval(unittest_toolbox.Modified_TestCase):
 
 
   def tearDown(self):
-    # Modified_TestCase.tearDown() automatically deletes temporary files and
-    # directories that may have been created during each test case.
-    unittest_toolbox.Modified_TestCase.tearDown(self)
+    super().tearDown()
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 

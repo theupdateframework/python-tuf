@@ -40,6 +40,8 @@ import tuf.roledb
 import tuf.keydb
 import tuf.repository_tool as repo_tool
 
+from tuf import unittest_toolbox
+
 from tests import utils
 
 import securesystemslib
@@ -50,19 +52,18 @@ logger = logging.getLogger(__name__)
 repo_tool.disable_console_log_messages()
 
 
-class TestRepository(unittest.TestCase):
+class TestRepository(unittest_toolbox.Modified_TestCase):
 
-  @classmethod
-  def setUpClass(cls):
-    cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
+  def setUp(self):
+    super().setUp()
+    self.temporary_directory = self.make_temp_directory(directory=os.getcwd())
 
-  @classmethod
-  def tearDownClass(cls):
-    shutil.rmtree(cls.temporary_directory)
 
   def tearDown(self):
     tuf.roledb.clear_roledb()
     tuf.keydb.clear_keydb()
+    super().tearDown()
+
 
   def test_init(self):
     # Test normal case.
@@ -98,8 +99,7 @@ class TestRepository(unittest.TestCase):
     #
     # Copy the target files from 'tuf/tests/repository_data' so that writeall()
     # has target fileinfo to include in metadata.
-    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
-    targets_directory = os.path.join(temporary_directory, 'repository',
+    targets_directory = os.path.join(self.temporary_directory, 'repository',
                                      repo_tool.TARGETS_DIRECTORY_NAME)
     original_targets_directory = os.path.join('repository_data',
                                               'repository', 'targets')
@@ -107,7 +107,7 @@ class TestRepository(unittest.TestCase):
 
     # In this case, create_new_repository() creates the 'repository/'
     # sub-directory in 'temporary_directory' if it does not exist.
-    repository_directory = os.path.join(temporary_directory, 'repository')
+    repository_directory = os.path.join(self.temporary_directory, 'repository')
     metadata_directory = os.path.join(repository_directory,
                                       repo_tool.METADATA_STAGED_DIRECTORY_NAME)
     repository = repo_tool.create_new_repository(repository_directory)

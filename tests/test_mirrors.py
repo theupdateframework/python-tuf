@@ -32,7 +32,7 @@ import unittest
 import sys
 
 import tuf.mirrors as mirrors
-import tuf.unittest_toolbox as unittest_toolbox
+from tuf import unittest_toolbox
 
 from tests import utils
 
@@ -43,8 +43,7 @@ import securesystemslib.util
 class TestMirrors(unittest_toolbox.Modified_TestCase):
 
   def setUp(self):
-
-    unittest_toolbox.Modified_TestCase.setUp(self)
+    super().setUp()
 
     self.mirrors = \
     {'mirror1': {'url_prefix' : 'http://mirror1.com',

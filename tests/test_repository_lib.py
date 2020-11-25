@@ -32,7 +32,6 @@ import os
 import time
 import datetime
 import logging
-import tempfile
 import json
 import shutil
 import unittest
@@ -42,10 +41,11 @@ import sys
 import tuf
 import tuf.formats
 import tuf.log
-import tuf.formats
 import tuf.roledb
 import tuf.keydb
 import tuf.settings
+
+from tuf import unittest_toolbox
 
 import tuf.repository_lib as repo_lib
 import tuf.repository_tool as repo_tool
@@ -67,16 +67,11 @@ TOP_LEVEL_METADATA_FILES = ['root.json', 'targets.json', 'timestamp.json',
                             'snapshot.json']
 
 
-class TestRepositoryToolFunctions(unittest.TestCase):
+class TestRepositoryToolFunctions(unittest_toolbox.Modified_TestCase):
   @classmethod
   def setUpClass(cls):
-    # Create a temporary directory to store the repository, metadata, and target
-    # files.  'temporary_directory' must be deleted in TearDownClass() so that
-    # temporary files are always removed, even when exceptions occur.
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
-    cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
-
 
 
   @classmethod
@@ -86,24 +81,22 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 
-    shutil.rmtree(cls.temporary_directory)
-
 
   def setUp(self):
+    super().setUp()
     tuf.roledb.create_roledb('test_repository')
     tuf.keydb.create_keydb('test_repository')
+    self.temporary_directory = self.make_temp_directory(directory=os.getcwd())
 
 
   def tearDown(self):
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
-
+    super().tearDown()
 
 
   def test_import_rsa_privatekey_from_file(self):
     # Test normal case.
-    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
-
     # Load one of the pre-generated key files from 'tuf/tests/repository_data'.
     # 'password' unlocks the pre-generated key files.
     key_filepath = os.path.join('repository_data', 'keystore',
@@ -122,14 +115,14 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Test invalid argument.
     # Non-existent key file.
-    nonexistent_keypath = os.path.join(temporary_directory,
+    nonexistent_keypath = os.path.join(self.temporary_directory,
                                        'nonexistent_keypath')
     self.assertRaises(securesystemslib.exceptions.StorageError,
         repo_lib.import_rsa_privatekey_from_file,
         nonexistent_keypath, 'pw')
 
     # Invalid key file argument.
-    invalid_keyfile = os.path.join(temporary_directory, 'invalid_keyfile')
+    invalid_keyfile = os.path.join(self.temporary_directory, 'invalid_keyfile')
     with open(invalid_keyfile, 'wb') as file_object:
       file_object.write(b'bad keyfile')
     self.assertRaises(securesystemslib.exceptions.CryptoError, repo_lib.import_rsa_privatekey_from_file,
@@ -140,8 +133,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
   def test_import_ed25519_privatekey_from_file(self):
     # Test normal case.
     # Generate ed25519 keys that can be imported.
-    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
-    ed25519_keypath = os.path.join(temporary_directory, 'ed25519_key')
+    ed25519_keypath = os.path.join(self.temporary_directory, 'ed25519_key')
     securesystemslib.interface.generate_and_write_ed25519_keypair(
         password='pw', filepath=ed25519_keypath)
 
@@ -157,14 +149,14 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Test invalid argument.
     # Non-existent key file.
-    nonexistent_keypath = os.path.join(temporary_directory,
+    nonexistent_keypath = os.path.join(self.temporary_directory,
                                        'nonexistent_keypath')
     self.assertRaises(securesystemslib.exceptions.StorageError,
                       repo_lib.import_ed25519_privatekey_from_file,
                       nonexistent_keypath, 'pw')
 
     # Invalid key file argument.
-    invalid_keyfile = os.path.join(temporary_directory, 'invalid_keyfile')
+    invalid_keyfile = os.path.join(self.temporary_directory, 'invalid_keyfile')
     with open(invalid_keyfile, 'wb') as file_object:
       file_object.write(b'bad keyfile')
 
@@ -198,7 +190,6 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
   def test_get_top_level_metadata_filenames(self):
-
     # Test normal case.
     metadata_directory = os.path.join('metadata/')
     filenames = {'root.json': metadata_directory + 'root.json',
@@ -228,8 +219,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
   def test_get_targets_metadata_fileinfo(self):
     # Test normal case.
-    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
-    test_filepath = os.path.join(temporary_directory, 'file.txt')
+    test_filepath = os.path.join(self.temporary_directory, 'file.txt')
 
     with open(test_filepath, 'wt') as file_object:
       file_object.write('test file')
@@ -257,7 +247,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
     # Test non-existent file.
-    nonexistent_filepath = os.path.join(temporary_directory, 'oops.txt')
+    nonexistent_filepath = os.path.join(self.temporary_directory, 'oops.txt')
     self.assertRaises(securesystemslib.exceptions.Error,
                       repo_lib.get_targets_metadata_fileinfo,
                       nonexistent_filepath, storage_backend)
@@ -325,8 +315,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
   def test_generate_targets_metadata(self):
     # Test normal case.
-    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
-    targets_directory = os.path.join(temporary_directory, 'targets')
+    targets_directory = os.path.join(self.temporary_directory, 'targets')
     file1_path = os.path.join(targets_directory, 'file.txt')
     securesystemslib.util.ensure_parent_dir(file1_path)
 
@@ -469,10 +458,9 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
   def _setup_generate_snapshot_metadata_test(self):
     # Test normal case.
-    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     original_repository_path = os.path.join('repository_data',
                                             'repository')
-    repository_directory = os.path.join(temporary_directory, 'repository')
+    repository_directory = os.path.join(self.temporary_directory, 'repository')
     shutil.copytree(original_repository_path, repository_directory)
     metadata_directory = os.path.join(repository_directory,
                                       repo_lib.METADATA_STAGED_DIRECTORY_NAME)
@@ -629,10 +617,9 @@ class TestRepositoryToolFunctions(unittest.TestCase):
   def _setup_generate_timestamp_metadata_test(self):
     # Test normal case.
     repository_name = 'test_repository'
-    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     original_repository_path = os.path.join('repository_data',
                                             'repository')
-    repository_directory = os.path.join(temporary_directory, 'repository')
+    repository_directory = os.path.join(self.temporary_directory, 'repository')
     shutil.copytree(original_repository_path, repository_directory)
     metadata_directory = os.path.join(repository_directory,
                                       repo_lib.METADATA_STAGED_DIRECTORY_NAME)
@@ -733,7 +720,6 @@ class TestRepositoryToolFunctions(unittest.TestCase):
   def test_sign_metadata(self):
     # Test normal case.
     repository_name = 'test_repository'
-    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     metadata_path = os.path.join('repository_data', 'repository', 'metadata')
     keystore_path = os.path.join('repository_data', 'keystore')
     root_filename = os.path.join(metadata_path, 'root.json')
@@ -792,12 +778,11 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
   def test_write_metadata_file(self):
     # Test normal case.
-    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     metadata_directory = os.path.join('repository_data', 'repository', 'metadata')
     root_filename = os.path.join(metadata_directory, 'root.json')
     root_signable = securesystemslib.util.load_json_file(root_filename)
 
-    output_filename = os.path.join(temporary_directory, 'root.json')
+    output_filename = os.path.join(self.temporary_directory, 'root.json')
     version_number = root_signable['signed']['version'] + 1
 
     self.assertFalse(os.path.exists(output_filename))
@@ -825,9 +810,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
   def test_create_tuf_client_directory(self):
     # Test normal case.
-    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     repository_directory = os.path.join('repository_data', 'repository')
-    client_directory = os.path.join(temporary_directory, 'client')
+    client_directory = os.path.join(self.temporary_directory, 'client')
 
     repo_lib.create_tuf_client_directory(repository_directory, client_directory)
 
@@ -887,10 +871,9 @@ class TestRepositoryToolFunctions(unittest.TestCase):
         repository_name)
     tuf.keydb.create_keydb_from_root_metadata(root_signable['signed'],
         repository_name)
-    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
-    targets_directory = os.path.join(temporary_directory, 'targets')
+    targets_directory = os.path.join(self.temporary_directory, 'targets')
     os.mkdir(targets_directory)
-    repository_directory = os.path.join(temporary_directory, 'repository')
+    repository_directory = os.path.join(self.temporary_directory, 'repository')
     metadata_directory = os.path.join(repository_directory,
         repo_lib.METADATA_STAGED_DIRECTORY_NAME)
     targets_metadata = os.path.join('repository_data', 'repository', 'metadata',
@@ -942,8 +925,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
   def test__delete_obsolete_metadata(self):
     repository_name = 'test_repository'
-    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
-    repository_directory = os.path.join(temporary_directory, 'repository')
+    repository_directory = os.path.join(self.temporary_directory, 'repository')
     metadata_directory = os.path.join(repository_directory,
         repo_lib.METADATA_STAGED_DIRECTORY_NAME)
     os.makedirs(metadata_directory)
@@ -978,8 +960,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
   def test__load_top_level_metadata(self):
     repository_name = 'test_repository'
 
-    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
-    repository_directory = os.path.join(temporary_directory, 'repository')
+    repository_directory = os.path.join(self.temporary_directory, 'repository')
     metadata_directory = os.path.join(repository_directory,
         repo_lib.METADATA_STAGED_DIRECTORY_NAME)
     targets_directory = os.path.join(repository_directory,

@@ -33,7 +33,7 @@ import logging
 import shutil
 import sys
 
-import tuf.unittest_toolbox as unittest_toolbox
+from tuf import unittest_toolbox
 
 from tests import utils
 
@@ -41,11 +41,13 @@ logger = logging.getLogger(__name__)
 
 
 class TestUnittestToolbox(unittest_toolbox.Modified_TestCase):
+
   def setUp(self):
-    unittest_toolbox.Modified_TestCase.setUp(self)
+    super().setUp()
+
 
   def tearDown(self):
-    unittest_toolbox.Modified_TestCase.tearDown(self)
+    super().tearDown()
 
 
   def test_tear_down_already_deleted_dir(self):

@@ -26,7 +26,7 @@ import unittest
 import socket
 import sys
 
-import tuf.unittest_toolbox as unittest_toolbox
+from tuf import unittest_toolbox
 
 from tests import utils
 

@@ -44,6 +44,8 @@ import tuf.roledb
 import tuf.keydb
 import tuf.repository_tool as repo_tool
 
+from tuf import unittest_toolbox
+
 from tests import utils
 
 import securesystemslib
@@ -55,33 +57,20 @@ logger = logging.getLogger(__name__)
 repo_tool.disable_console_log_messages()
 
 
-class TestRepository(unittest.TestCase):
-  @classmethod
-  def setUpClass(cls):
-    # Create a temporary directory to store the repository, metadata, and target
-    # files.  'temporary_directory' must be deleted in TearDownClass() so that
-    # temporary files are always removed, even when exceptions occur.
-    cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
-
-
-  @classmethod
-  def tearDownClass(cls):
-    # Remove the temporary repository directory, which should contain all the
-    # metadata, targets, and key files generated for the test cases.
-    shutil.rmtree(cls.temporary_directory)
-
+class TestRepository(unittest_toolbox.Modified_TestCase):
 
 
   def setUp(self):
+    super().setUp()
     tuf.roledb.create_roledb('test_repository')
     tuf.keydb.create_keydb('test_repository')
-
+    self.temporary_directory = self.make_temp_directory(directory=os.getcwd())
 
 
   def tearDown(self):
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
-
+    super().tearDown()
 
   def test_init(self):
     # Test normal case.

@@ -30,7 +30,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
-import tempfile
 import logging
 import shutil
 import unittest
@@ -42,8 +41,9 @@ import tuf.log
 import tuf.roledb
 import tuf.client.updater as updater
 import tuf.settings
-import tuf.unittest_toolbox as unittest_toolbox
 import tuf.repository_tool as repo_tool
+
+from tuf import unittest_toolbox
 
 from tests import utils
 
@@ -58,18 +58,14 @@ repo_tool.disable_console_log_messages()
 class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
 
   def setUp(self):
-    # We are inheriting from custom class.
-    unittest_toolbox.Modified_TestCase.setUp(self)
-
-    self.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
-
+    super().setUp()
     # Copy the original repository files provided in the test folder so that
     # any modifications made to repository files are restricted to the copies.
     # The 'repository_data' directory is expected to exist in 'tuf/tests/'.
     original_repository_files = os.path.join(os.getcwd(), 'repository_data')
 
-    self.temporary_repository_root = self.make_temp_directory(directory=
-        self.temporary_directory)
+    self.temporary_repository_root = self.make_temp_directory(
+        directory=os.getcwd())
 
     # The original repository, keystore, and client directories will be copied
     # for each test case.
@@ -160,9 +156,7 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
 
 
   def tearDown(self):
-    # Modified_TestCase.tearDown() automatically deletes temporary files and
-    # directories that may have been created during each test case.
-    unittest_toolbox.Modified_TestCase.tearDown(self)
+    super().tearDown()
 
     # Cleans the resources and flush the logged lines (if any).
     self.server_process_handler.clean()
@@ -171,8 +165,6 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     # updater.Updater() populates the roledb with the name "test_repository1"
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
-
-    shutil.rmtree(self.temporary_directory)
 
 
   def test_update(self):
@@ -272,8 +264,10 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     valid_targetinfo = multi_repo_updater.get_valid_targetinfo('file3.txt')
 
     for my_updater, my_targetinfo in six.iteritems(valid_targetinfo):
-      my_updater.download_target(my_targetinfo, self.temporary_directory)
-      self.assertTrue(os.path.exists(os.path.join(self.temporary_directory, 'file3.txt')))
+      my_updater.download_target(my_targetinfo,
+          self.temporary_repository_root)
+      self.assertTrue(os.path.exists(os.path.join(
+          self.temporary_repository_root, 'file3.txt')))
 
 
 
