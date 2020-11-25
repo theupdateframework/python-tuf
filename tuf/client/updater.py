@@ -1167,11 +1167,7 @@ class Updater(object):
   def _check_hashes(self, file_object, trusted_hashes):
     """
     <Purpose>
-      Non-public method that verifies multiple secure hashes of the downloaded
-      file 'file_object'.  If any of these fail it raises an exception.  This is
-      to conform with the TUF spec, which support clients with different hashing
-      algorithms. The 'hash.py' module is used to compute the hashes of
-      'file_object'.
+      Non-public method that verifies multiple secure hashes of 'file_object'.
 
     <Arguments>
       file_object:
@@ -1193,25 +1189,18 @@ class Updater(object):
       None.
     """
 
-    # Verify each trusted hash of 'trusted_hashes'.  If all are valid, simply
-    # return.
+    # Verify each hash, raise an exception if any hash fails to verify
     for algorithm, trusted_hash in six.iteritems(trusted_hashes):
-      digest_object = securesystemslib.hash.digest(algorithm)
-      # Ensure we read from the beginning of the file object
-      # TODO: should we store file position (before the loop) and reset after we
-      # seek about?
-      file_object.seek(0)
-      digest_object.update(file_object.read())
+      digest_object = securesystemslib.hash.digest_fileobject(file_object,
+          algorithm)
       computed_hash = digest_object.hexdigest()
 
-      # Raise an exception if any of the hashes are incorrect.
       if trusted_hash != computed_hash:
         raise securesystemslib.exceptions.BadHashError(trusted_hash,
             computed_hash)
 
       else:
-        logger.info('The file\'s ' + algorithm + ' hash is'
-            ' correct: ' + trusted_hash)
+        logger.info('Verified ' + algorithm + ' hash: ' + trusted_hash)
 
 
 
