@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.16.0
+### Added
+* Begin to document architectural and project-wide decisions as Architectural
+  Decision Records (ADRs) in docs/adr (#1182, #1203)
+* Add Python 3.9 to the CI test matrix (#1200)
+* Implement a class for Root metadata in the simple TUF role metadata model in
+  `tuf.api` (#1193)
+
+### Changed
+* Bump dependencies: cryptography (#1189, #1190), requests (#1210),
+  urllib (#1212), cffi (#1222), certifi (#1201), securesystemslib (#1191)
+* Simplify the test runner (`aggregate_tests`) and stop executing unit test
+  modules in a random order (#1187)
+* Speed up indefinite freeze tests by removing `sleep()` calls (#1194)
+* Adapt to securesystemslib changes in key generation interfaces (#1191)
+* Migrate from travis-ci.org to travis-ci.com (#1208)
+* Make metadata signatures ordered by keyid, to ensure deterministic signature
+  ordering in metadata files (#1217)
+* Improve test reliability by using thread-safe `Queue`s, rather than files,
+  for process communication (#1198)
+* Avoid reading an entire target file into memory when generating target file
+  hashes in `tuf.client.updater` (#1219)
+* Remove use of an empty list (`[]`) as the default argument in a test
+  function (#1216)
+* Simplified updater logic for downloading and verifying target files (#1202)
+
+### Fixed
+* Fix threshold computation in `_verify_root_self_signed()` such that
+  signatures by the same root key count only once towards the threshold (#1218)
+
 ## v0.15.0
 ### Added
 * Simple TUF role metadata model in the `tuf.api` package for interacting with
