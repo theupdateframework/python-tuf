@@ -1327,6 +1327,8 @@ class Updater(object):
         # Verify 'file_object' against the expected length and hashes.
         self._check_file_length(file_object, file_length)
         self._check_hashes(file_object, file_hashes)
+        # If the file verifies, we don't need to try more mirrors
+        return file_object
 
       except Exception as exception:
         # Remember the error from this mirror, and "reset" the target file.
@@ -1334,16 +1336,9 @@ class Updater(object):
         file_mirror_errors[file_mirror] = exception
         file_object = None
 
-      else:
-        break
-
-    if file_object:
-      return file_object
-
-    else:
-      logger.debug('Failed to update ' + repr(target_filepath) + ' from'
-          ' all mirrors: ' + repr(file_mirror_errors))
-      raise tuf.exceptions.NoWorkingMirrorError(file_mirror_errors)
+    logger.debug('Failed to update ' + repr(target_filepath) + ' from'
+        ' all mirrors: ' + repr(file_mirror_errors))
+    raise tuf.exceptions.NoWorkingMirrorError(file_mirror_errors)
 
 
 
