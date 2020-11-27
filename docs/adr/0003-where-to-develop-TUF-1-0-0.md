@@ -47,6 +47,13 @@ procedure:
 * git rm tuf/\*.py
 * tag 1.0.0
 
+## Pros and Cons of the Options
+
+Developing TUF 1.0.0 in a subdirectory of the current TUF
+implementation seems to have the least maintenance overhead compared to
+option 1 and 2, while allowing us to continue making releases with the
+old code unlike option 3.
+
 ### Negative Consequences
 
 * In progress development in the default branch causes messiness
