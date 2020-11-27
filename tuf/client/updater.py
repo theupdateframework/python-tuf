@@ -1320,10 +1320,12 @@ class Updater(object):
         return file_object
 
       except Exception as exception:
-        # Remember the error from this mirror, and "reset" the target file.
+        # Remember the error from this mirror, close tempfile if one was opened
         logger.debug('Update failed from ' + file_mirror + '.')
         file_mirror_errors[file_mirror] = exception
-        file_object = None
+        if file_object is not None:
+          file_object.close()
+          file_object = None
 
     logger.debug('Failed to update ' + repr(target_filepath) + ' from'
         ' all mirrors: ' + repr(file_mirror_errors))

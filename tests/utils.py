@@ -299,7 +299,7 @@ class TestServerProcess():
         break
 
     if len(self.__logged_messages) > 0:
-      title = "Test server (" + self.server + ") output:"
+      title = "Test server (" + self.server + ") output:\n"
       message = [title] + self.__logged_messages
       self.__logger.info('| '.join(message))
       self.__logged_messages = []
