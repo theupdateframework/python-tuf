@@ -35,6 +35,18 @@ implementation", because we want to add the new TUF code gradually
 while keep maintaining the current implementation given limited
 maintenance resources.
 
+Once development of the new version is complete, we will transition
+from TUF 1.0.0 in a subdirectory to stand-alone TUF 1.0.0 by the following
+procedure:
+
+* flesh out tuf/api/*
+* implement tuf/client/new-updater.py
+* implement tuf/repository/*
+* \<iterate\>
+* git mv tuf/client/new-updater.py tuf/client/updater.py
+* git rm tuf/\*.py
+* tag 1.0.0
+
 ### Negative Consequences
 
 * In progress development in the default branch causes messiness
