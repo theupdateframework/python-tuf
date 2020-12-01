@@ -511,16 +511,19 @@ class Root(Signed):
             supports consistent snapshots.
         keys: A dictionary that contains a public key store used to verify
             top level roles metadata signatures::
-            {
-                '<KEYID>': <Key instance>,
-                ...
-            },
+
+                {
+                    '<KEYID>': <Key instance>,
+                    ...
+                },
+
         roles: A dictionary that contains a list of signing keyids and
             a signature threshold for each top level role::
-            {
-                '<ROLE>': <Role istance>,
-                ...
-            }
+
+                {
+                    '<ROLE>': <Role istance>,
+                    ...
+                }
 
     """
 
@@ -760,34 +763,34 @@ class Targets(Signed):
             roles and public key store used to verify their metadata
             signatures::
 
-            {
-                'keys' : {
-                    '<KEYID>': {
-                        'keytype': '<KEY TYPE>',
-                        'scheme': '<KEY SCHEME>',
-                        'keyid_hash_algorithms': [
-                            '<HASH ALGO 1>',
-                            '<HASH ALGO 2>'
-                            ...
-                        ],
-                        'keyval': {
-                            'public': '<PUBLIC KEY HEX REPRESENTATION>'
-                        }
+                {
+                    'keys' : {
+                        '<KEYID>': {
+                            'keytype': '<KEY TYPE>',
+                            'scheme': '<KEY SCHEME>',
+                            'keyid_hash_algorithms': [
+                                '<HASH ALGO 1>',
+                                '<HASH ALGO 2>'
+                                ...
+                            ],
+                            'keyval': {
+                                'public': '<PUBLIC KEY HEX REPRESENTATION>'
+                            }
+                        },
+                        ...
                     },
+                    'roles': [
+                        {
+                            'name': '<ROLENAME>',
+                            'keyids': ['<SIGNING KEY KEYID>', ...],
+                            'threshold': <SIGNATURE THRESHOLD>,
+                            'terminating': <TERMINATING BOOLEAN>,
+                            'path_hash_prefixes': ['<HEX DIGEST>', ... ], // or
+                            'paths' : ['PATHPATTERN', ... ],
+                        },
                     ...
-                },
-                'roles': [
-                    {
-                        'name': '<ROLENAME>',
-                        'keyids': ['<SIGNING KEY KEYID>', ...],
-                        'threshold': <SIGNATURE THRESHOLD>,
-                        'terminating': <TERMINATING BOOLEAN>,
-                        'path_hash_prefixes': ['<HEX DIGEST>', ... ], // or
-                        'paths' : ['PATHPATTERN', ... ],
-                    },
-                ...
-                ]
-            }
+                    ]
+                }
 
     """
 
