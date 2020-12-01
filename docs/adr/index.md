@@ -8,6 +8,7 @@ This log lists the architectural decisions for tuf.
 - [ADR-0001](0001-python-version-3-6-plus.md) - Default to Python 3.6 or newer for new development
 - [ADR-0002](0002-pre-1-0-deprecation-strategy.md) - Deprecation strategy
 - [ADR-0003](0003-where-to-develop-TUF-1-0-0.md) - Develop TUF 1.0.0 in a subdirectory of the current TUF implementation
+- [ADR-0004](0004-extent-of-OOP-in-metadata-model.md) - Add classes for complex metadata attributes
 
 <!-- adrlogstop -->
 
