@@ -281,8 +281,6 @@ class Signed:
         self.expires = expires
 
         # TODO: Should we separate data validation from constructor?
-        if version < 0:
-            raise ValueError(f'version must be < 0, got {version}')
         self.version = version
 
 
@@ -291,22 +289,24 @@ class Signed:
     def from_dict(cls, signed_dict: JsonDict) -> 'Signed':
         """Creates Signed object from its JSON/dict representation. """
 
+        # Create empty object with default or parametrized constructor with
+        # default arguments.
+        obj = cls()
+        obj._type = signed_dict['_type']
+        obj.version = signed_dict['version']
+        obj.spec_version = signed_dict['spec_version']
         # Convert 'expires' TUF metadata string to a datetime object, which is
         # what the constructor expects and what we store. The inverse operation
         # is implemented in 'to_dict'.
-        signed_dict['expires'] = tuf.formats.expiry_string_to_datetime(
+        obj.expires = tuf.formats.expiry_string_to_datetime(
                 signed_dict['expires'])
-        # NOTE: We write the converted 'expires' back into 'signed_dict' above
-        # so that we can pass it to the constructor as  '**signed_dict' below,
-        # along with other fields that belong to Signed subclasses.
-        # Any 'from_dict'(-like) conversions of fields that correspond to a
-        # subclass should be performed in the 'from_dict' method of that
-        # subclass and also be written back into 'signed_dict' before calling
-        # super().from_dict.
+        # NOTE: Any 'from_dict'(-like) conversions of fields that correspond
+        # to a subclass should be performed in the 'from_dict' method of that
+        # subclass and assigned to the below returned object.
 
         # NOTE: cls might be a subclass of Signed, if 'from_dict' was called on
         # that subclass (see e.g. Metadata.from_dict).
-        return cls(**signed_dict)
+        return obj
 
 
     # Serialization.
@@ -378,14 +378,26 @@ class Root(Signed):
     # default max-args value for pylint is 5
     # pylint: disable=too-many-arguments
     def __init__(
-            self, _type: str, version: int, spec_version: str,
-            expires: datetime, consistent_snapshot: bool,
-            keys: JsonDict, roles: JsonDict) -> None:
+            self, _type: str=None, version: int=None, spec_version: str=None,
+            expires: datetime=None, consistent_snapshot: bool=None,
+            keys: JsonDict=None, roles: JsonDict=None) -> None:
         super().__init__(_type, version, spec_version, expires)
         # TODO: Add classes for keys and roles
         self.consistent_snapshot = consistent_snapshot
         self.keys = keys
         self.roles = roles
+
+
+    @classmethod
+    def from_dict(cls, signed_dict: JsonDict) -> 'Root':
+        """Creates Root object from its JSON/dict representation. """
+
+        # Get a parent object with its attributes already assigned.
+        obj = super().from_dict(signed_dict)
+        obj.consistent_snapshot = signed_dict['consistent_snapshot']
+        obj.keys = signed_dict['keys']
+        obj.roles = signed_dict['roles']
+        return obj
 
 
     # Serialization.
@@ -478,8 +490,9 @@ class Timestamp(Signed):
 
     """
     def __init__(
-            self, _type: str, version: int, spec_version: str,
-            expires: datetime, meta: Dict[str, MetadataInfo]) -> None:
+            self, _type: str=None, version: int=None, spec_version: str=None,
+            expires: datetime=None, meta: Dict[str, MetadataInfo]=None
+            ) -> None:
         super().__init__(_type, version, spec_version, expires)
         self.meta = meta
 
@@ -500,10 +513,14 @@ class Timestamp(Signed):
     def from_dict(cls, signed_dict: JsonDict) -> 'Timestamp':
         """Creates Timestamp object from its JSON/dict representation. """
 
-        signed_dict['meta']['snapshot.json'] = MetadataInfo(
-                **signed_dict['meta']['snapshot.json'])
+        # Get a parent object with its attributes already assigned.
+        obj = super().from_dict(signed_dict)
+        obj.meta = {}
+        meta = signed_dict['meta']['snapshot.json']
+        obj.meta['snapshot.json'] = MetadataInfo(meta['version'],
+            meta.get('length'), meta.get('hashes'))
 
-        return super().from_dict(signed_dict)
+        return obj
 
 
     # Modification.
@@ -529,8 +546,9 @@ class Snapshot(Signed):
 
     """
     def __init__(
-            self, _type: str, version: int, spec_version: str,
-            expires: datetime, meta: Dict[str, MetadataInfo]) -> None:
+            self, _type: str=None, version: int=None, spec_version: str=None,
+            expires: datetime=None, meta: Dict[str, MetadataInfo]=None
+            ) -> None:
         super().__init__(_type, version, spec_version, expires)
         self.meta = meta
 
@@ -539,11 +557,15 @@ class Snapshot(Signed):
     def from_dict(cls, signed_dict: JsonDict) -> 'Snapshot':
         """Creates Snapshot object from its JSON/dict representation. """
 
+        # Get a parent object with its attributes already assigned.
+        obj = super().from_dict(signed_dict)
+        obj.meta = {}
         for meta_path in signed_dict['meta'].keys():
-            signed_dict['meta'][meta_path] = MetadataInfo(
-                    **signed_dict['meta'][meta_path])
+            meta = signed_dict['meta'][meta_path]
+            obj.meta[meta_path] = MetadataInfo(meta['version'],
+                meta.get('length'), meta.get('hashes'))
 
-        return super().from_dict(signed_dict)
+        return obj
 
 
     # Serialization.
@@ -672,9 +694,9 @@ class Targets(Signed):
     # default max-args value for pylint is 5
     # pylint: disable=too-many-arguments
     def __init__(
-            self, _type: str, version: int, spec_version: str,
-            expires: datetime, targets: Dict[str, TargetInfo],
-            delegations: JsonDict) -> None:
+            self, _type: str=None, version: int=None, spec_version: str=None,
+            expires: datetime=None, targets: Dict[str, TargetInfo]=None,
+            delegations: JsonDict=None) -> None:
         super().__init__(_type, version, spec_version, expires)
         self.targets = targets
 
@@ -685,11 +707,17 @@ class Targets(Signed):
     @classmethod
     def from_dict(cls, signed_dict: JsonDict) -> 'Targets':
         """Creates Targets object from its JSON/dict representation. """
-        for target_path in signed_dict['targets'].keys():
-            signed_dict['targets'][target_path] = TargetInfo(
-                    **signed_dict['targets'][target_path])
 
-        return super().from_dict(signed_dict)
+        # Get a parent object with its attributes already assigned.
+        obj = super().from_dict(signed_dict)
+        obj.targets = {}
+        for target_path in signed_dict['targets'].keys():
+            info = signed_dict['targets'][target_path]
+            obj.targets[target_path] = TargetInfo(info['length'],
+                info['hashes'], info.get('custom'))
+
+        obj.delegations = signed_dict['delegations']
+        return obj
 
 
     # Serialization.
