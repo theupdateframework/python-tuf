@@ -9,6 +9,7 @@ This log lists the architectural decisions for tuf.
 - [ADR-0002](0002-pre-1-0-deprecation-strategy.md) - Deprecation strategy
 - [ADR-0003](0003-where-to-develop-TUF-1-0-0.md) - Develop TUF 1.0.0 in a subdirectory of the current TUF implementation
 - [ADR-0004](0004-extent-of-OOP-in-metadata-model.md) - Add classes for complex metadata attributes
+- [ADR-0005](0005-use-google-python-style-guide.md) - Use Google Python style guide with minimal refinements
 
 <!-- adrlogstop -->
 
