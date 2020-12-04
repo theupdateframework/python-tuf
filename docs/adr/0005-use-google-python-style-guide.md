@@ -32,6 +32,12 @@ with additional refinements, in order to emphasize items the we consider
 especially important, want to be handled differently, or in one specific way,
 where the Google guide would allow multiple.
 
+**Course of Action:**
+* Follow existing style when working on existing code (files)
+* Follow new style in any new code (files)
+* Consider providing linter and formatter configuration (e.g. pylint, flake8,
+  black, yapf) to enforce and facilitate new style
+
 
 ## Links
 * [New Slim Secure Systems Lab style guide](https://github.com/secure-systems-lab/code-style-guidelines/pull/21)
