@@ -12,4 +12,4 @@ python-dateutil
 # additional test tools for linting and coverage measurement
 coverage
 pylint
-bandit
+bandit; python_version >= "3.5"
