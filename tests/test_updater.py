@@ -60,6 +60,11 @@ import sys
 import unittest
 import json
 
+if sys.version_info >= (3, 3):
+  import unittest.mock as mock
+else:
+  import mock
+
 import tuf
 import tuf.exceptions
 import tuf.log
@@ -670,14 +675,31 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     root_metadata = self.repository_updater.metadata['current']['root']
     self.repository_updater._ensure_not_expired(root_metadata, 'root')
 
-    # 'tuf.exceptions.ExpiredMetadataError' should be raised in this next test condition,
-    # because the expiration_date has expired by 10 seconds.
+    # Metadata with an expiration time in the future should, of course, not
+    # count as expired
+    expires = tuf.formats.unix_timestamp_to_datetime(int(time.time() + 10))
+    expires = expires.isoformat() + 'Z'
+    root_metadata['expires'] = expires
+    self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(root_metadata))
+    self.repository_updater._ensure_not_expired(root_metadata, 'root')
+
+    # Metadata that expires at the exact current time is considered expired
+    expire_time = int(time.time())
+    expires = \
+      tuf.formats.unix_timestamp_to_datetime(expire_time).isoformat()+'Z'
+    root_metadata['expires'] = expires
+    mock_time = mock.Mock()
+    mock_time.return_value = expire_time
+    self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(root_metadata))
+    with mock.patch('time.time', mock_time):
+      self.assertRaises(tuf.exceptions.ExpiredMetadataError,
+                        self.repository_updater._ensure_not_expired,
+                        root_metadata, 'root')
+
+    # Metadata that expires in the past is considered expired
     expires = tuf.formats.unix_timestamp_to_datetime(int(time.time() - 10))
     expires = expires.isoformat() + 'Z'
     root_metadata['expires'] = expires
-
-    # Ensure the 'expires' value of the root file is valid by checking the
-    # the formats of the 'root.json' object.
     self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(root_metadata))
     self.assertRaises(tuf.exceptions.ExpiredMetadataError,
                       self.repository_updater._ensure_not_expired,

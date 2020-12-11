@@ -2266,7 +2266,7 @@ class Updater(object):
     expires_timestamp = tuf.formats.datetime_to_unix_timestamp(expires_datetime)
 
     current_time = int(time.time())
-    if expires_timestamp < current_time:
+    if expires_timestamp <= current_time:
       message = 'Metadata '+repr(metadata_rolename)+' expired on ' + \
         expires_datetime.ctime() + ' (UTC).'
       raise tuf.exceptions.ExpiredMetadataError(message)
