@@ -1,5 +1,9 @@
 environment:
   matrix:
+    - PYTHON: "C:\\Python39"
+      PYTHON_VERSION: 3.9
+      PYTHON_ARCH: 32
+
     - PYTHON: "C:\\Python38"
       PYTHON_VERSION: 3.8
       PYTHON_ARCH: 32
