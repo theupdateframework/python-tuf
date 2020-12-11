@@ -381,6 +381,10 @@ class Root(Signed):
             self, _type: str=None, version: int=None, spec_version: str=None,
             expires: datetime=None, consistent_snapshot: bool=None,
             keys: JsonDict=None, roles: JsonDict=None) -> None:
+
+        # TODO: Add sensible defaults when we have input validation.
+        # See issue https://github.com/theupdateframework/tuf/issues/1140
+        # We need default values to create empty objects in Signed.from_dict()
         super().__init__(_type, version, spec_version, expires)
         # TODO: Add classes for keys and roles
         self.consistent_snapshot = consistent_snapshot
@@ -493,6 +497,10 @@ class Timestamp(Signed):
             self, _type: str=None, version: int=None, spec_version: str=None,
             expires: datetime=None, meta: Dict[str, MetadataInfo]=None
             ) -> None:
+
+        # TODO: Add sensible defaults when we have input validation.
+        # See issue https://github.com/theupdateframework/tuf/issues/1140
+        # We need default values to create empty objects in Signed.from_dict()
         super().__init__(_type, version, spec_version, expires)
         self.meta = meta
 
@@ -528,6 +536,8 @@ class Timestamp(Signed):
             hashes: Optional[JsonDict] = None) -> None:
         """Assigns passed info about snapshot metadata to meta dict. """
 
+        # TODO: Consider renaming this function:
+        # see: https://github.com/theupdateframework/tuf/issues/1230
         self.meta['snapshot.json'] = MetadataInfo(version, length, hashes)
 
 
@@ -549,6 +559,10 @@ class Snapshot(Signed):
             self, _type: str=None, version: int=None, spec_version: str=None,
             expires: datetime=None, meta: Dict[str, MetadataInfo]=None
             ) -> None:
+
+        # TODO: Add sensible defaults when we have input validation.
+        # See issue https://github.com/theupdateframework/tuf/issues/1140
+        # We need default values to create empty objects in Signed.from_dict()
         super().__init__(_type, version, spec_version, expires)
         self.meta = meta
 
@@ -587,6 +601,9 @@ class Snapshot(Signed):
             self, rolename: str, version: int, length: Optional[int] = None,
             hashes: Optional[JsonDict] = None) -> None:
         """Assigns passed (delegated) targets role info to meta dict. """
+
+        # TODO: Consider renaming this function:
+        # see: https://github.com/theupdateframework/tuf/issues/1230
         metadata_fn = f'{rolename}.json'
 
         self.meta[metadata_fn] = MetadataInfo(version, length, hashes)
@@ -697,6 +714,10 @@ class Targets(Signed):
             self, _type: str=None, version: int=None, spec_version: str=None,
             expires: datetime=None, targets: Dict[str, TargetInfo]=None,
             delegations: JsonDict=None) -> None:
+
+        # TODO: Add sensible defaults when we have input validation.
+        # See issue https://github.com/theupdateframework/tuf/issues/1140
+        # We need default values to create empty objects in Signed.from_dict()
         super().__init__(_type, version, spec_version, expires)
         self.targets = targets
 
@@ -737,5 +758,8 @@ class Targets(Signed):
     # Modification.
     def update(self, filename: str, fileinfo: JsonDict) -> None:
         """Assigns passed target file info to meta dict. """
+
+        # TODO: Consider renaming this function:
+        # see: https://github.com/theupdateframework/tuf/issues/1230
         self.targets[filename] = TargetInfo(fileinfo['length'],
             fileinfo['hashes'], fileinfo.get('custom'))
