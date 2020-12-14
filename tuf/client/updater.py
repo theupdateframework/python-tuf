@@ -131,6 +131,7 @@ import warnings
 
 import tuf
 import tuf.download
+import tuf.fetcher
 import tuf.formats
 import tuf.settings
 import tuf.keydb
@@ -619,7 +620,7 @@ class Updater(object):
     http://www.python.org/dev/peps/pep-0008/#method-names-and-instance-variables
   """
 
-  def __init__(self, repository_name, repository_mirrors):
+  def __init__(self, repository_name, repository_mirrors, fetcher=None):
     """
     <Purpose>
       Constructor.  Instantiating an updater object causes all the metadata
@@ -659,6 +660,11 @@ class Updater(object):
                                           'targets_path': 'targets',
                                           'confined_target_dirs': ['']}}
 
+      fetcher:
+        A concrete 'FetcherInterface' implementation. Performs the network
+        related download operations. If an external implementation is not
+        provided, tuf.fetcher.RequestsFetcher is used.
+
     <Exceptions>
       securesystemslib.exceptions.FormatError:
         If the arguments are improperly formatted.
@@ -687,6 +693,13 @@ class Updater(object):
     # Save the validated arguments.
     self.repository_name = repository_name
     self.mirrors = repository_mirrors
+
+    # Initialize Updater with an externally provided 'fetcher' implementing
+    # the network download. By default tuf.fetcher.RequestsFetcher is used.
+    if fetcher is None:
+      self.fetcher = tuf.fetcher.RequestsFetcher()
+    else:
+      self.fetcher = fetcher
 
     # Store the trusted metadata read from disk.
     self.metadata = {}
@@ -1311,7 +1324,8 @@ class Updater(object):
 
     for file_mirror in file_mirrors:
       try:
-        file_object = tuf.download.safe_download(file_mirror, file_length)
+        file_object = tuf.download.safe_download(file_mirror,
+            file_length, self.fetcher)
 
         # Verify 'file_object' against the expected length and hashes.
         self._check_file_length(file_object, file_length)
@@ -1509,7 +1523,7 @@ class Updater(object):
     for file_mirror in file_mirrors:
       try:
         file_object = tuf.download.unsafe_download(file_mirror,
-            upperbound_filelength)
+            upperbound_filelength, self.fetcher)
         file_object.seek(0)
 
         # Verify 'file_object' according to the callable function.
