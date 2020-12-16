@@ -1422,15 +1422,13 @@ class Updater(object):
 
 
 
-  def _validate_spec_version(self, metadata_spec_version):
+  def _validate_spec_version(self, metadata_spec_version_str):
     """
     <Purpose>
       Non-public method verifying a metadata specification version.
-      It is assumed that "spec_version" is in (major.minor.fix) format,
-      (for example: "1.4.3") and that releases with the same major version
-      number maintain backward compatibility.
-      Consequently, if the major version number of new metadata equals our
-      expected major version number, the new metadata is safe to parse.
+      It is assumed that "spec_version" is in (major.minor.fix) format
+      and that releases with the same major version number maintain
+      backward compatibility.
 
     <Arguments>
       metadata_spec_version:
@@ -1446,33 +1444,24 @@ class Updater(object):
     """
 
     try:
-      metadata_spec_version_split = metadata_spec_version.split('.')
-      metadata_spec_major_version = int(metadata_spec_version_split[0])
-      metadata_spec_minor_version = int(metadata_spec_version_split[1])
+      metadata_spec_version = metadata_spec_version_str.split('.')
+      code_spec_version = tuf.SPECIFICATION_VERSION.split('.')
 
-      code_spec_version_split = tuf.SPECIFICATION_VERSION.split('.')
-      code_spec_major_version = int(code_spec_version_split[0])
-      code_spec_minor_version = int(code_spec_version_split[1])
-
-      if metadata_spec_major_version != code_spec_major_version:
+      if metadata_spec_version[0]!= code_spec_version[0]:
         raise tuf.exceptions.UnsupportedSpecificationError(
-            'Downloaded metadata that specifies an unsupported spec_version. '
-            'This code supports major version number: ' +
-            repr(code_spec_major_version) + '; however,'
-            'metadata spec version is: ' + str(metadata_spec_version))
+                'Incompatible spec_version. Got "%s", expected "%s".' %
+                (metadata_spec_version_str, code_spec_version))
 
-      # report to user if minor versions do not match, continue with update
-      if metadata_spec_minor_version != code_spec_minor_version:
-        logger.info("Downloaded metadata that specifies a different minor " +
-            "spec_version.")
-        logger.info("This code has version " + tuf.SPECIFICATION_VERSION +
-            " and the metadata lists version number " +
-            str(metadata_spec_version) + ".")
-        logger.info("The update will continue as the major versions match.")
+      # Warn if spec_version minor version number does not not match
+      if metadata_spec_version[1]!= code_spec_version[1]:
+            logger.info("Received metadata has minor version mismatch. Got %s"
+                        ", expected %s. Continuing" % (metadata_spec_version_str,
+                                                       tuf.SPECIFICATION_VERSION))
 
     except (ValueError, TypeError) as error:
       six.raise_from(securesystemslib.exceptions.FormatError('Improperly'
-          ' formatted spec_version, which must be in major.minor.fix format'),
+          ' formatted spec_version, Must be in semver (major.minor.patch)'
+          'format'),
           error)
 
 
