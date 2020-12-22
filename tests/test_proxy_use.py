@@ -121,6 +121,9 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     # the type of connection used with the target server.
     cls.https_proxy_addr = 'https://localhost:' + str(cls.https_proxy_handler.port)
 
+    # Initialize the default fetcher for the download
+    self.fetcher = tuf.fetcher.RequestsFetcher()
+
 
 
   @classmethod
@@ -202,8 +205,8 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     """
 
     logger.info('Trying HTTP download with no proxy: ' + self.url)
-    download.safe_download(self.url, self.target_data_length)
-    download.unsafe_download(self.url, self.target_data_length)
+    download.safe_download(self.url, self.target_data_length, self.fetcher)
+    download.unsafe_download(self.url, self.target_data_length, self.fetcher)
 
 
 
@@ -218,8 +221,8 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     self.set_env_value('HTTP_PROXY', self.http_proxy_addr)
 
     logger.info('Trying HTTP download via HTTP proxy: ' + self.url)
-    download.safe_download(self.url, self.target_data_length)
-    download.unsafe_download(self.url, self.target_data_length)
+    download.safe_download(self.url, self.target_data_length, self.fetcher)
+    download.unsafe_download(self.url, self.target_data_length, self.fetcher)
 
 
 
@@ -243,11 +246,11 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
         os.path.join('ssl_certs', 'ssl_cert.crt'))
     # Clear sessions to ensure that the certificate we just specified is used.
     # TODO: Confirm necessity of this session clearing and lay out mechanics.
-    tuf.download._sessions = {}
+    self.fetcher._sessions = {}
 
     logger.info('Trying HTTPS download via HTTP proxy: ' + self.url_https)
-    download.safe_download(self.url_https, self.target_data_length)
-    download.unsafe_download(self.url_https, self.target_data_length)
+    download.safe_download(self.url_https, self.target_data_length, self.fetcher)
+    download.unsafe_download(self.url_https, self.target_data_length, self.fetcher)
 
 
 
@@ -267,11 +270,11 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
         os.path.join('ssl_certs', 'proxy_ca.crt'))
     # Clear sessions to ensure that the certificate we just specified is used.
     # TODO: Confirm necessity of this session clearing and lay out mechanics.
-    tuf.download._sessions = {}
+    self.fetcher._sessions = {}
 
     logger.info('Trying HTTP download via HTTPS proxy: ' + self.url_https)
-    download.safe_download(self.url, self.target_data_length)
-    download.unsafe_download(self.url, self.target_data_length)
+    download.safe_download(self.url, self.target_data_length, self.fetcher)
+    download.unsafe_download(self.url, self.target_data_length, self.fetcher)
 
 
 
@@ -293,11 +296,11 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
         os.path.join('ssl_certs', 'proxy_ca.crt'))
     # Clear sessions to ensure that the certificate we just specified is used.
     # TODO: Confirm necessity of this session clearing and lay out mechanics.
-    tuf.download._sessions = {}
+    self.fetcher._sessions = {}
 
     logger.info('Trying HTTPS download via HTTPS proxy: ' + self.url_https)
-    download.safe_download(self.url_https, self.target_data_length)
-    download.unsafe_download(self.url_https, self.target_data_length)
+    download.safe_download(self.url_https, self.target_data_length, self.fetcher)
+    download.unsafe_download(self.url_https, self.target_data_length, self.fetcher)
 
 
 
