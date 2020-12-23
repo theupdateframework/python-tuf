@@ -50,7 +50,39 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install tox
+          pip install --upgrade tox coveralls
 
       - name: Run tox
         run: tox -e ${{ matrix.toxenv }}
+
+      - name: Publish on coveralls.io
+        # TODO: Maybe make 'lint' a separate job instead of case handling here
+        if: ${{ matrix.toxenv != 'lint' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_FLAG_NAME: ${{ runner.os }} / Python ${{ matrix.python-version }} / ${{ matrix.toxenv }}
+          COVERALLS_PARALLEL: true
+        # Use cp workaround to publish coverage reports with relative paths
+        # FIXME: Consider refactoring the tests to not require the test
+        # aggregation script being invoked from the `tests` directory, so
+        # that `.coverage` is written to and .coveragrc can also reside in
+        # the project root directory as is the convention.
+        run: |
+          cp tests/.coverage .
+          coveralls --service=github --rcfile=tests/.coveragerc
+
+  coveralls-fin:
+    # Always run when all 'build' jobs have finished even if they failed
+    # TODO: Replace always() with a 'at least one job succeeded' expression
+    if: always()
+    needs: build
+    runs-on: ubuntu-latest
+    container: python:3-slim
+    steps:
+      - name: Finalize publishing on coveralls.io
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade coveralls
+          coveralls --finish
