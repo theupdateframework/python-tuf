@@ -71,10 +71,10 @@ jobs:
 
       - name: Publish on coveralls.io
         # TODO: Maybe make 'lint' a separate job instead of case handling here
-        if: ${{ matrix.toxenv != 'lint' }}
+        if: ${{ env.TOXENV != 'lint' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COVERALLS_FLAG_NAME: ${{ runner.os }} / Python ${{ matrix.python-version }} / ${{ matrix.toxenv }}
+          COVERALLS_FLAG_NAME: ${{ runner.os }} / Python ${{ matrix.python-version }} / ${{ env.TOXENV }}
           COVERALLS_PARALLEL: true
         # Use cp workaround to publish coverage reports with relative paths
         # FIXME: Consider refactoring the tests to not require the test
