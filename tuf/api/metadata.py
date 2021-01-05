@@ -1,3 +1,5 @@
+# pylint: disable=E1101
+
 """TUF role metadata model.
 
 This module provides container classes for TUF role metadata, including methods
@@ -291,8 +293,11 @@ class Signed:
 
         # Create empty object with default or parametrized constructor with
         # default arguments.
-        obj = cls()
-        obj._type = signed_dict['_type']
+        # Warnings about rules E1120 (no-value-for-parameter) and W0212
+        # (protected-access) are not relevant here because cls is most likely
+        # a descendant of "Signed" and we need to setup the appropriate fields.
+        obj = cls() # pylint: disable=E1120
+        obj._type = signed_dict['_type'] # pylint: disable=W0212
         obj.version = signed_dict['version']
         obj.spec_version = signed_dict['spec_version']
         # Convert 'expires' TUF metadata string to a datetime object, which is
