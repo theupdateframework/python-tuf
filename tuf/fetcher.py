@@ -96,12 +96,12 @@ class RequestsFetcher(FetcherInterface):
     # Always set the timeout. This timeout value is interpreted by requests as:
     #  - connect timeout (max delay before first byte is received)
     #  - read (gap) timeout (max delay between bytes received)
-    with session.get(url, stream=True,
-        timeout=tuf.settings.SOCKET_TIMEOUT) as response:
+    response = session.get(url, stream=True,
+        timeout=tuf.settings.SOCKET_TIMEOUT)
+    # Check response status.
+    response.raise_for_status()
 
-      # Check response status.
-      response.raise_for_status()
-
+    def chunks():
       try:
         bytes_received = 0
         while True:
@@ -122,11 +122,6 @@ class RequestsFetcher(FetcherInterface):
           data = response.raw.read(read_amount)
           bytes_received += len(data)
 
-          yield data
-
-          if bytes_received == required_length:
-            break
-
           # We might have no more data to read. Check number of bytes downloaded.
           if not data:
             logger.debug('Downloaded ' + repr(bytes_received) + '/' +
@@ -135,9 +130,18 @@ class RequestsFetcher(FetcherInterface):
             # Finally, we signal that the download is complete.
             break
 
+          yield data
+
+          if bytes_received == required_length:
+            break
+
       except urllib3.exceptions.ReadTimeoutError as e:
         raise tuf.exceptions.SlowRetrievalError(str(e))
 
+      finally:
+        response.close()
+
+    return chunks()
 
 
 

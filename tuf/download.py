@@ -192,32 +192,32 @@ def _download_file(url, required_length, fetcher, STRICT_REQUIRED_LENGTH=True):
   # This is the temporary file that we will return to contain the contents of
   # the downloaded file.
   temp_file = tempfile.TemporaryFile()
-  start_time = timeit.default_timer()
 
   average_download_speed = 0
   number_of_bytes_received = 0
 
   try:
-
-    for chunk in fetcher.fetch(url, required_length):
+    chunks = fetcher.fetch(url, required_length)
+    start_time = timeit.default_timer()
+    for chunk in chunks:
 
       stop_time = timeit.default_timer()
-      seconds_spent_receiving = stop_time - start_time
+      temp_file.write(chunk)
+
       # Measure the average download speed.
       number_of_bytes_received += len(chunk)
+      seconds_spent_receiving = stop_time - start_time
       average_download_speed = number_of_bytes_received / seconds_spent_receiving
 
       if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
         logger.debug('The average download speed dropped below the minimum'
-          ' average download speed set in tuf.settings.py.')
+          ' average download speed set in tuf.settings.py. Stopping the'
+          ' download!')
         break
 
       else:
         logger.debug('The average download speed has not dipped below the'
           ' minimum average download speed set in tuf.settings.py.')
-
-
-      temp_file.write(chunk)
 
     # Does the total number of downloaded bytes match the required length?
     _check_downloaded_length(number_of_bytes_received, required_length,
