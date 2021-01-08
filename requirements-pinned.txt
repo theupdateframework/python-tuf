@@ -1,14 +1,25 @@
-certifi==2020.12.5        # via requests
-cffi==1.14.4              # via cryptography, pynacl
-chardet==4.0.0            # via requests
-cryptography==3.3.1       # via securesystemslib
-enum34==1.1.10            ; python_version < '3' # via cryptography
-idna==2.10                # via requests
-ipaddress==1.0.23         ; python_version < '3' # via cryptography
-pycparser==2.20           # via cffi
-pynacl==1.4.0             # via securesystemslib
+certifi==2020.12.5
+cffi==1.14.4
+chardet==4.0.0
+    #   cryptography
+cryptography==3.3.1
+enum34==1.1.10
+idna==2.10
+ipaddress==1.0.23
+pycparser==2.20
+    #   pynacl
+pynacl==1.4.0
+    #   requests
 requests==2.25.1
+    #   -r requirements.txt
+    #   securesystemslib
 securesystemslib[crypto,pynacl]==0.18.0
 six==1.15.0
-subprocess32==3.5.4       ; python_version < '3' # via securesystemslib
-urllib3==1.26.2           # via requests
+subprocess32==3.5.4
+urllib3==1.26.2
+    # via
+    # via cffi
+    # via cryptography
+    # via requests
+    # via -r requirements.txt
+    # via securesystemslib

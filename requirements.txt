@@ -43,4 +43,5 @@
 #
 securesystemslib[crypto, pynacl]
 requests
+idna < 3 # idna is a dependency of requests, 3.0 and newer don't support Py2.7
 six
