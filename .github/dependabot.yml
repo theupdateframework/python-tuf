@@ -6,3 +6,8 @@ updates:
     interval: daily
     time: "10:00"
   open-pull-requests-limit: 10
+  ignore:
+    # New 'idna' (see 'requests') releases break Python 2.7 builds. Ignore here
+    # to avoid listing/pinning transitive dependencies in requirements.txt.
+    # FIXME: Un-ignore when dropping Python 2.7 or resolving #1249
+    - dependency-name: "idna"
