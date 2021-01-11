@@ -151,6 +151,7 @@ import tuf
 from tuf import exceptions
 from tuf import formats
 from tuf import log
+from tuf import roledb
 import tuf.repository_tool as repo_tool
 
 # 'pip install securesystemslib[crypto,pynacl]' is required for the CLI,
@@ -320,7 +321,7 @@ def delegate(parsed_arguments):
     repository.snapshot.load_signing_key(snapshot_private)
     repository.timestamp.load_signing_key(timestamp_private)
 
-  consistent_snapshot = tuf.roledb.get_roleinfo('root',
+  consistent_snapshot = roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
   repository.writeall(consistent_snapshot=consistent_snapshot)
 
@@ -365,7 +366,7 @@ def revoke(parsed_arguments):
     repository.snapshot.load_signing_key(snapshot_private)
     repository.timestamp.load_signing_key(timestamp_private)
 
-  consistent_snapshot = tuf.roledb.get_roleinfo('root',
+  consistent_snapshot = roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
   repository.writeall(consistent_snapshot=consistent_snapshot)
 
@@ -533,7 +534,7 @@ def add_verification_key(parsed_arguments):
     else:
       repository.timestamp.add_verification_key(imported_pubkey)
 
-  consistent_snapshot = tuf.roledb.get_roleinfo('root',
+  consistent_snapshot = roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
   repository.write('root', consistent_snapshot=consistent_snapshot,
       increment_version_number=False)
@@ -578,7 +579,7 @@ def remove_verification_key(parsed_arguments):
     except securesystemslib.exceptions.Error:
       print(repr(keypath) + ' is not a trusted key.  Skipping.')
 
-  consistent_snapshot = tuf.roledb.get_roleinfo('root',
+  consistent_snapshot = roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
   repository.write('root', consistent_snapshot=consistent_snapshot,
       increment_version_number=False)
@@ -592,7 +593,7 @@ def sign_role(parsed_arguments):
 
   repository = repo_tool.load_repository(
       os.path.join(parsed_arguments.path, REPO_DIR))
-  consistent_snapshot = tuf.roledb.get_roleinfo('root',
+  consistent_snapshot = roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
 
   for keypath in parsed_arguments.sign:
@@ -614,7 +615,7 @@ def sign_role(parsed_arguments):
     else:
       # TODO: repository_tool.py will be refactored to clean up the following
       # code, which adds and signs for a non-existent role.
-      if not tuf.roledb.role_exists(parsed_arguments.role):
+      if not roledb.role_exists(parsed_arguments.role):
 
         # Load the private key keydb and set the roleinfo in roledb so that
         # metadata can be written with repository.write().
@@ -635,7 +636,7 @@ def sign_role(parsed_arguments):
             'signatures': [], 'version': 1, 'expires': expiration,
             'delegations': {'keys': {}, 'roles': []}}
 
-        tuf.roledb.add_role(parsed_arguments.role, roleinfo,
+        roledb.add_role(parsed_arguments.role, roleinfo,
             repository_name=repository._repository_name)
 
         # Generate the Targets object of --role, and add it to the top-level
@@ -716,7 +717,7 @@ def add_target_to_repo(parsed_arguments, target_path, repo_targets_path,
     shutil.copy(target_path, os.path.join(repo_targets_path, target_path))
 
 
-    roleinfo = tuf.roledb.get_roleinfo(
+    roleinfo = roledb.get_roleinfo(
         parsed_arguments.role, repository_name=repository._repository_name)
 
     # It is assumed we have a delegated role, and that the caller has made
@@ -729,7 +730,7 @@ def add_target_to_repo(parsed_arguments, target_path, repo_targets_path,
       logger.debug('Replacing target: ' + repr(target_path))
       roleinfo['paths'].update({target_path: custom})
 
-    tuf.roledb.update_roleinfo(parsed_arguments.role, roleinfo,
+    roledb.update_roleinfo(parsed_arguments.role, roleinfo,
         mark_role_as_dirty=True, repository_name=repository._repository_name)
 
 
@@ -742,10 +743,10 @@ def remove_target_files_from_metadata(parsed_arguments, repository):
         '  It must be "targets" or a delegated rolename.')
 
   else:
-    # NOTE: The following approach of using tuf.roledb to update the target
+    # NOTE: The following approach of using roledb to update the target
     # files will be modified in the future when the repository tool's API is
     # refactored.
-    roleinfo = tuf.roledb.get_roleinfo(
+    roleinfo = roledb.get_roleinfo(
         parsed_arguments.role, repository._repository_name)
 
     for glob_pattern in parsed_arguments.remove:
@@ -758,7 +759,7 @@ def remove_target_files_from_metadata(parsed_arguments, repository):
               ' given path/glob pattern ' +  repr(glob_pattern))
           continue
 
-    tuf.roledb.update_roleinfo(
+    roledb.update_roleinfo(
         parsed_arguments.role, roleinfo, mark_role_as_dirty=True,
         repository_name=repository._repository_name)
 
@@ -783,7 +784,7 @@ def add_targets(parsed_arguments):
       add_target_to_repo(parsed_arguments, target_path,
           repo_targets_path, repository)
 
-  consistent_snapshot = tuf.roledb.get_roleinfo('root',
+  consistent_snapshot = roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
 
   if parsed_arguments.role == 'targets':
@@ -853,7 +854,7 @@ def remove_targets(parsed_arguments):
     repository.snapshot.load_signing_key(snapshot_private)
     repository.timestamp.load_signing_key(timestamp_private)
 
-  consistent_snapshot = tuf.roledb.get_roleinfo('root',
+  consistent_snapshot = roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
   repository.writeall(consistent_snapshot=consistent_snapshot)
 

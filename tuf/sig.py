@@ -53,8 +53,8 @@ import logging
 import tuf
 from tuf import exceptions
 from tuf import formats
+from tuf import roledb
 import tuf.keydb
-import tuf.roledb
 
 import securesystemslib
 
@@ -71,14 +71,14 @@ def get_signature_status(signable, role=None, repository_name='default',
 
     * bad -- Invalid signature
     * good -- Valid signature from key that is available in 'tuf.keydb', and is
-      authorized for the passed role as per 'tuf.roledb' (authorization may be
+      authorized for the passed role as per 'roledb' (authorization may be
       overwritten by passed 'keyids').
     * unknown -- Signature from key that is not available in 'tuf.keydb', or if
       'role' is None.
     * unknown signing schemes -- Signature from key with unknown signing
       scheme.
     * untrusted -- Valid signature from key that is available in 'tuf.keydb',
-      but is not trusted for the passed role as per 'tuf.roledb' or the passed
+      but is not trusted for the passed role as per 'roledb' or the passed
       'keyids'.
 
     NOTE: The result may contain duplicate keyids or keyids that reference the
@@ -97,7 +97,7 @@ def get_signature_status(signable, role=None, repository_name='default',
       TUF role string (e.g. 'root', 'targets', 'snapshot' or timestamp).
 
     threshold:
-      Rather than reference the role's threshold as set in tuf.roledb.py, use
+      Rather than reference the role's threshold as set in roledb, use
       the given 'threshold' to calculate the signature status of 'signable'.
       'threshold' is an integer value that sets the role's threshold value, or
       the minimum number of signatures needed for metadata to be considered
@@ -106,7 +106,7 @@ def get_signature_status(signable, role=None, repository_name='default',
     keyids:
       Similar to the 'threshold' argument, use the supplied list of 'keyids'
       to calculate the signature status, instead of referencing the keyids
-      in tuf.roledb.py for 'role'.
+      in roledb for 'role'.
 
   <Exceptions>
     securesystemslib.exceptions.FormatError, if 'signable' does not have the
@@ -180,7 +180,7 @@ def get_signature_status(signable, role=None, repository_name='default',
         # Note that if the role is not known, tuf.exceptions.UnknownRoleError
         # is raised here.
         if keyids is None:
-          keyids = tuf.roledb.get_role_keyids(role, repository_name)
+          keyids = roledb.get_role_keyids(role, repository_name)
 
         if keyid not in keyids:
           untrusted_sigs.append(keyid)
@@ -204,7 +204,7 @@ def get_signature_status(signable, role=None, repository_name='default',
     if threshold is None:
       # Note that if the role is not known, tuf.exceptions.UnknownRoleError is
       # raised here.
-      threshold = tuf.roledb.get_role_threshold(
+      threshold = roledb.get_role_threshold(
           role, repository_name=repository_name)
 
     else:
@@ -234,7 +234,7 @@ def verify(signable, role, repository_name='default', threshold=None,
     Verify that 'signable' has a valid threshold of authorized signatures
     identified by unique keyids. The threshold and whether a keyid is
     authorized is determined by querying the 'threshold' and 'keyids' info for
-    the passed 'role' in 'tuf.roledb'. Both values can be overwritten by
+    the passed 'role' in 'roledb'. Both values can be overwritten by
     passing the 'threshold' or 'keyids' arguments.
 
     NOTE:
@@ -252,7 +252,7 @@ def verify(signable, role, repository_name='default', threshold=None,
       TUF role string (e.g. 'root', 'targets', 'snapshot' or timestamp).
 
     threshold:
-      Rather than reference the role's threshold as set in tuf.roledb.py, use
+      Rather than reference the role's threshold as set in roledb, use
       the given 'threshold' to calculate the signature status of 'signable'.
       'threshold' is an integer value that sets the role's threshold value, or
       the minimum number of signatures needed for metadata to be considered
@@ -261,7 +261,7 @@ def verify(signable, role, repository_name='default', threshold=None,
     keyids:
       Similar to the 'threshold' argument, use the supplied list of 'keyids'
       to calculate the signature status, instead of referencing the keyids
-      in tuf.roledb.py for 'role'.
+      in roledb for 'role'.
 
   <Exceptions>
     tuf.exceptions.UnknownRoleError, if 'role' is not recognized.

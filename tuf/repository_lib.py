@@ -43,8 +43,8 @@ import tuf
 from tuf import exceptions
 from tuf import formats
 from tuf import log
+from tuf import roledb
 import tuf.keydb
-import tuf.roledb
 import tuf.sig
 import tuf.settings
 
@@ -109,7 +109,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
   # Retrieve the roleinfo of 'rolename' to extract the needed metadata
   # attributes, such as version number, expiration, etc.
-  roleinfo = tuf.roledb.get_roleinfo(rolename, repository_name)
+  roleinfo = roledb.get_roleinfo(rolename, repository_name)
   previous_keyids = roleinfo.get('previous_keyids', [])
   previous_threshold = roleinfo.get('previous_threshold', 1)
   signing_keyids = sorted(set(roleinfo['signing_keyids']))
@@ -164,7 +164,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
     # Update roledb with the latest delegations info collected during
     # generate_targets_metadata()
-    tuf.roledb.update_roleinfo(rolename, roleinfo,
+    roledb.update_roleinfo(rolename, roleinfo,
         repository_name=repository_name)
 
 
@@ -179,16 +179,16 @@ def _generate_and_write_metadata(rolename, metadata_filename,
   # properly signed).
   current_version = metadata['version']
   if increment_version_number:
-    roleinfo = tuf.roledb.get_roleinfo(rolename, repository_name)
+    roleinfo = roledb.get_roleinfo(rolename, repository_name)
     metadata['version'] = metadata['version'] + 1
     roleinfo['version'] = roleinfo['version'] + 1
-    tuf.roledb.update_roleinfo(rolename, roleinfo,
+    roledb.update_roleinfo(rolename, roleinfo,
         repository_name=repository_name)
 
   else:
     logger.debug('Not incrementing ' + repr(rolename) + '\'s version number.')
 
-  if rolename in tuf.roledb.TOP_LEVEL_ROLES and not allow_partially_signed:
+  if rolename in roledb.TOP_LEVEL_ROLES and not allow_partially_signed:
     # Verify that the top-level 'rolename' is fully signed.  Only a delegated
     # role should not be written to disk without full verification of its
     # signature(s), since it can only be considered fully signed depending on
@@ -226,9 +226,9 @@ def _generate_and_write_metadata(rolename, metadata_filename,
     else:
       # Since new metadata cannot be successfully written, restore the current
       # version number.
-      roleinfo = tuf.roledb.get_roleinfo(rolename, repository_name)
+      roleinfo = roledb.get_roleinfo(rolename, repository_name)
       roleinfo['version'] = current_version
-      tuf.roledb.update_roleinfo(rolename, roleinfo,
+      roledb.update_roleinfo(rolename, roleinfo,
           repository_name=repository_name)
 
       # Note that 'signable' is an argument to tuf.UnsignedMetadataError().
@@ -269,7 +269,7 @@ def _metadata_is_partially_loaded(rolename, signable, repository_name):
   signatures.
 
   If 'rolename' is found to be partially loaded, mark it as partially loaded in
-  its 'tuf.roledb' roleinfo.  This function exists to assist in deciding whether
+  its 'roledb' roleinfo.  This function exists to assist in deciding whether
   a role's version number should be incremented when write() or write_parital()
   is called.  Return True if 'rolename' was partially loaded, False otherwise.
   """
@@ -296,8 +296,8 @@ def _check_role_keys(rolename, repository_name):
   """
 
   # Extract the total number of public and private keys of 'rolename' from its
-  # roleinfo in 'tuf.roledb'.
-  roleinfo = tuf.roledb.get_roleinfo(rolename, repository_name)
+  # roleinfo in 'roledb'.
+  roleinfo = roledb.get_roleinfo(rolename, repository_name)
   total_keyids = len(roleinfo['keyids'])
   threshold = roleinfo['threshold']
   total_signatures = len(roleinfo['signatures'])
@@ -415,14 +415,14 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
       logger.debug(repr(metadata_role) + ' does not match'
           ' supported extension ' + repr(METADATA_EXTENSION))
 
-    if metadata_role in tuf.roledb.TOP_LEVEL_ROLES:
+    if metadata_role in roledb.TOP_LEVEL_ROLES:
       logger.debug('Not removing top-level metadata ' + repr(metadata_role))
       return
 
-    # Delete the metadata file if it does not exist in 'tuf.roledb'.
+    # Delete the metadata file if it does not exist in 'roledb'.
     # 'repository_tool.py' might have removed 'metadata_name,'
     # but its metadata file is not actually deleted yet.  Do it now.
-    if not tuf.roledb.role_exists(metadata_role, repository_name):
+    if not roledb.role_exists(metadata_role, repository_name):
       logger.info('Removing outdated metadata: ' + repr(metadata_path))
       storage_backend.remove(metadata_path)
 
@@ -508,10 +508,10 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
 
     root_metadata = signable['signed']
     tuf.keydb.create_keydb_from_root_metadata(root_metadata, repository_name)
-    tuf.roledb.create_roledb_from_root_metadata(root_metadata, repository_name)
+    roledb.create_roledb_from_root_metadata(root_metadata, repository_name)
 
-    # Load Root's roleinfo and update 'tuf.roledb'.
-    roleinfo = tuf.roledb.get_roleinfo('root', repository_name)
+    # Load Root's roleinfo and update 'roledb'.
+    roleinfo = roledb.get_roleinfo('root', repository_name)
     roleinfo['consistent_snapshot'] = root_metadata['consistent_snapshot']
     roleinfo['signatures'] = []
     for signature in signable['signatures']:
@@ -534,7 +534,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     _log_warning_if_expires_soon(ROOT_FILENAME, roleinfo['expires'],
                                  ROOT_EXPIRES_WARN_SECONDS)
 
-    tuf.roledb.update_roleinfo('root', roleinfo, mark_role_as_dirty=False,
+    roledb.update_roleinfo('root', roleinfo, mark_role_as_dirty=False,
         repository_name=repository_name)
 
     # Ensure the 'consistent_snapshot' field is extracted.
@@ -552,8 +552,8 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     for signature in signable['signatures']:
       repository.timestamp.add_signature(signature, mark_role_as_dirty=False)
 
-    # Load Timestamp's roleinfo and update 'tuf.roledb'.
-    roleinfo = tuf.roledb.get_roleinfo('timestamp', repository_name)
+    # Load Timestamp's roleinfo and update 'roledb'.
+    roleinfo = roledb.get_roleinfo('timestamp', repository_name)
     roleinfo['expires'] = timestamp_metadata['expires']
     roleinfo['version'] = timestamp_metadata['version']
 
@@ -566,7 +566,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     _log_warning_if_expires_soon(TIMESTAMP_FILENAME, roleinfo['expires'],
                                  TIMESTAMP_EXPIRES_WARN_SECONDS)
 
-    tuf.roledb.update_roleinfo('timestamp', roleinfo, mark_role_as_dirty=False,
+    roledb.update_roleinfo('timestamp', roleinfo, mark_role_as_dirty=False,
         repository_name=repository_name)
 
   except securesystemslib.exceptions.StorageError as error:
@@ -598,8 +598,8 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     for signature in signable['signatures']:
       repository.snapshot.add_signature(signature, mark_role_as_dirty=False)
 
-    # Load Snapshot's roleinfo and update 'tuf.roledb'.
-    roleinfo = tuf.roledb.get_roleinfo('snapshot', repository_name)
+    # Load Snapshot's roleinfo and update 'roledb'.
+    roleinfo = roledb.get_roleinfo('snapshot', repository_name)
     roleinfo['expires'] = snapshot_metadata['expires']
     roleinfo['version'] = snapshot_metadata['version']
 
@@ -612,7 +612,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     _log_warning_if_expires_soon(SNAPSHOT_FILENAME, roleinfo['expires'],
                                  SNAPSHOT_EXPIRES_WARN_SECONDS)
 
-    tuf.roledb.update_roleinfo('snapshot', roleinfo, mark_role_as_dirty=False,
+    roledb.update_roleinfo('snapshot', roleinfo, mark_role_as_dirty=False,
         repository_name=repository_name)
 
   except securesystemslib.exceptions.StorageError as error:
@@ -640,8 +640,8 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     for signature in signable['signatures']:
       repository.targets.add_signature(signature, mark_role_as_dirty=False)
 
-    # Update 'targets.json' in 'tuf.roledb.py'
-    roleinfo = tuf.roledb.get_roleinfo('targets', repository_name)
+    # Update 'targets.json' in 'roledb'
+    roleinfo = roledb.get_roleinfo('targets', repository_name)
     roleinfo['paths'] = targets_metadata['targets']
     roleinfo['version'] = targets_metadata['version']
     roleinfo['expires'] = targets_metadata['expires']
@@ -656,7 +656,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     _log_warning_if_expires_soon(TARGETS_FILENAME, roleinfo['expires'],
                                  TARGETS_EXPIRES_WARN_SECONDS)
 
-    tuf.roledb.update_roleinfo('targets', roleinfo, mark_role_as_dirty=False,
+    roledb.update_roleinfo('targets', roleinfo, mark_role_as_dirty=False,
         repository_name=repository_name)
 
     # Add the keys specified in the delegations field of the Targets role.
@@ -872,7 +872,7 @@ def get_delegated_roles_metadata_filenames(metadata_directory,
       continue
 
     # Skip top-level roles, only interested in delegated roles.
-    if metadata_name in tuf.roledb.TOP_LEVEL_ROLES:
+    if metadata_name in roledb.TOP_LEVEL_ROLES:
       continue
 
     # Prevent reloading duplicate versions if consistent_snapshot is True
@@ -1039,7 +1039,7 @@ def get_metadata_versioninfo(rolename, repository_name):
   # types, and that all dict keys are properly named.
   formats.ROLENAME_SCHEMA.check_match(rolename)
 
-  roleinfo = tuf.roledb.get_roleinfo(rolename, repository_name)
+  roleinfo = roledb.get_roleinfo(rolename, repository_name)
   versioninfo = {'version': roleinfo['version']}
 
   return versioninfo
@@ -1195,7 +1195,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
   repository_name='default'):
   """
   <Purpose>
-    Create the root metadata.  'tuf.roledb.py' and 'tuf.keydb.py'
+    Create the root metadata.  'roledb' and 'tuf.keydb.py'
     are read and the information returned by these modules is used to generate
     the root metadata object.
 
@@ -1224,10 +1224,10 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
 
     securesystemslib.exceptions.Error, if an error is encountered while
     generating the root metadata object (e.g., a required top-level role not
-    found in 'tuf.roledb'.)
+    found in 'roledb'.)
 
   <Side Effects>
-    The contents of 'tuf.keydb.py' and 'tuf.roledb.py' are read.
+    The contents of 'tuf.keydb.py' and 'roledb' are read.
 
   <Returns>
     A root metadata object, conformant to 'tuf.formats.ROOT_SCHEMA'.
@@ -1252,22 +1252,22 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
   # Extract the role, threshold, and keyid information of the top-level roles,
   # which Root stores in its metadata.  The necessary role metadata is generated
   # from this information.
-  for rolename in tuf.roledb.TOP_LEVEL_ROLES:
+  for rolename in roledb.TOP_LEVEL_ROLES:
 
-    # If a top-level role is missing from 'tuf.roledb.py', raise an exception.
-    if not tuf.roledb.role_exists(rolename, repository_name):
+    # If a top-level role is missing from 'roledb', raise an exception.
+    if not roledb.role_exists(rolename, repository_name):
       raise securesystemslib.exceptions.Error(repr(rolename) + ' not in'
-          ' "tuf.roledb".')
+          ' "roledb".')
 
     # Collect keys from all roles in a list
-    keyids = tuf.roledb.get_role_keyids(rolename, repository_name)
+    keyids = roledb.get_role_keyids(rolename, repository_name)
     for keyid in keyids:
       key = tuf.keydb.get_key(keyid, repository_name=repository_name)
       keylist.append(key)
 
     # Generate the authentication information Root establishes for each
     # top-level role.
-    role_threshold = tuf.roledb.get_role_threshold(rolename, repository_name)
+    role_threshold = roledb.get_role_threshold(rolename, repository_name)
     role_metadata = formats.build_dict_conforming_to_schema(
         formats.ROLE_SCHEMA,
         keyids=keyids,
@@ -1406,9 +1406,9 @@ def generate_targets_metadata(targets_directory, target_files, version,
     delegations_keys = []
     # Update 'keyids' and 'threshold' for each delegated role
     for role in delegations['roles']:
-      role['keyids'] = tuf.roledb.get_role_keyids(role['name'],
+      role['keyids'] = roledb.get_role_keyids(role['name'],
           repository_name)
-      role['threshold'] = tuf.roledb.get_role_threshold(role['name'],
+      role['threshold'] = roledb.get_role_threshold(role['name'],
           repository_name)
 
       # Collect all delegations keys for generating the delegations keydict
@@ -1666,8 +1666,8 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       # in the roledb are included in the Snapshot metadata.  Since the
       # snapshot and timestamp roles are not listed in snapshot.json, do not
       # list these roles found in the metadata directory.
-      if tuf.roledb.role_exists(rolename, repository_name) and \
-          rolename not in tuf.roledb.TOP_LEVEL_ROLES:
+      if roledb.role_exists(rolename, repository_name) and \
+          rolename not in roledb.TOP_LEVEL_ROLES:
 
         length, hashes = _get_hashes_and_length_if_needed(use_length, use_hashes,
             os.path.join(metadata_directory, metadata_filename), storage_backend)
@@ -2034,9 +2034,9 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
   # Do the top-level roles contain a valid threshold of signatures?  Top-level
   # metadata is verified in Root -> Targets -> Snapshot -> Timestamp order.
   # Verify the metadata of the Root role.
-  dirty_rolenames = tuf.roledb.get_dirty_roles(repository_name)
+  dirty_rolenames = roledb.get_dirty_roles(repository_name)
 
-  root_roleinfo = tuf.roledb.get_roleinfo('root', repository_name)
+  root_roleinfo = roledb.get_roleinfo('root', repository_name)
   root_is_dirty = None
   if 'root' in dirty_rolenames:
     root_is_dirty = True
@@ -2058,12 +2058,12 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
     return
 
   finally:
-    tuf.roledb.unmark_dirty(['root'], repository_name)
-    tuf.roledb.update_roleinfo('root', root_roleinfo,
+    roledb.unmark_dirty(['root'], repository_name)
+    roledb.update_roleinfo('root', root_roleinfo,
         mark_role_as_dirty=root_is_dirty, repository_name=repository_name)
 
   # Verify the metadata of the Targets role.
-  targets_roleinfo = tuf.roledb.get_roleinfo('targets', repository_name)
+  targets_roleinfo = roledb.get_roleinfo('targets', repository_name)
   targets_is_dirty = None
   if 'targets' in dirty_rolenames:
     targets_is_dirty = True
@@ -2083,12 +2083,12 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
     return
 
   finally:
-    tuf.roledb.unmark_dirty(['targets'], repository_name)
-    tuf.roledb.update_roleinfo('targets', targets_roleinfo,
+    roledb.unmark_dirty(['targets'], repository_name)
+    roledb.update_roleinfo('targets', targets_roleinfo,
         mark_role_as_dirty=targets_is_dirty, repository_name=repository_name)
 
   # Verify the metadata of the snapshot role.
-  snapshot_roleinfo = tuf.roledb.get_roleinfo('snapshot', repository_name)
+  snapshot_roleinfo = roledb.get_roleinfo('snapshot', repository_name)
   snapshot_is_dirty = None
   if 'snapshot' in dirty_rolenames:
     snapshot_is_dirty = True
@@ -2109,12 +2109,12 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
     return
 
   finally:
-    tuf.roledb.unmark_dirty(['snapshot'], repository_name)
-    tuf.roledb.update_roleinfo('snapshot', snapshot_roleinfo,
+    roledb.unmark_dirty(['snapshot'], repository_name)
+    roledb.update_roleinfo('snapshot', snapshot_roleinfo,
         mark_role_as_dirty=snapshot_is_dirty, repository_name=repository_name)
 
   # Verify the metadata of the Timestamp role.
-  timestamp_roleinfo = tuf.roledb.get_roleinfo('timestamp', repository_name)
+  timestamp_roleinfo = roledb.get_roleinfo('timestamp', repository_name)
   timestamp_is_dirty = None
   if 'timestamp' in dirty_rolenames:
     timestamp_is_dirty = True
@@ -2135,8 +2135,8 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
     return
 
   finally:
-    tuf.roledb.unmark_dirty(['timestamp'], repository_name)
-    tuf.roledb.update_roleinfo('timestamp', timestamp_roleinfo,
+    roledb.unmark_dirty(['timestamp'], repository_name)
+    roledb.update_roleinfo('timestamp', timestamp_roleinfo,
         mark_role_as_dirty=timestamp_is_dirty, repository_name=repository_name)
 
 

@@ -42,8 +42,8 @@ import tuf
 from tuf import exceptions
 from tuf import formats
 from tuf import log
+from tuf import roledb
 import tuf.keydb
-import tuf.roledb
 import tuf.sig
 import tuf.repository_lib as repo_lib
 import tuf.repository_tool
@@ -252,12 +252,12 @@ class Project(Targets):
     # Raise 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
     securesystemslib.formats.BOOLEAN_SCHEMA.check_match(write_partial)
 
-    # At this point the tuf.keydb and tuf.roledb stores must be fully
+    # At this point the tuf.keydb and roledb stores must be fully
     # populated, otherwise write() throwns a 'tuf.Repository' exception if
     # any of the project roles are missing signatures, keys, etc.
 
     # Write the metadata files of all the delegated roles of the project.
-    delegated_rolenames = tuf.roledb.get_delegated_rolenames(self.project_name,
+    delegated_rolenames = roledb.get_delegated_rolenames(self.project_name,
         self.repository_name)
 
     for delegated_rolename in delegated_rolenames:
@@ -311,7 +311,7 @@ class Project(Targets):
         securesystemslib.exceptions.Error, if the project already contains a key.
 
       <Side Effects>
-        The role's entries in 'tuf.keydb.py' and 'tuf.roledb.py' are updated.
+        The role's entries in 'tuf.keydb.py' and 'roledb' are updated.
 
       <Returns>
         None
@@ -370,7 +370,7 @@ class Project(Targets):
       filenames['targets'] = os.path.join(metadata_directory, self.project_name)
 
       # Delegated roles.
-      delegated_roles = tuf.roledb.get_delegated_rolenames(self.project_name,
+      delegated_roles = roledb.get_delegated_rolenames(self.project_name,
           self.repository_name)
       insufficient_keys = []
       insufficient_signatures = []
@@ -464,7 +464,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
 
   # Retrieve the roleinfo of 'rolename' to extract the needed metadata
   # attributes, such as version number, expiration, etc.
-  roleinfo = tuf.roledb.get_roleinfo(rolename, repository_name)
+  roleinfo = roledb.get_roleinfo(rolename, repository_name)
 
   metadata = generate_targets_metadata(targets_directory, roleinfo['paths'],
       roleinfo['version'], roleinfo['expires'], roleinfo['delegations'],
@@ -808,7 +808,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
   securesystemslib.formats.ANY_STRING_SCHEMA.check_match(prefix)
 
   # Clear the role and key databases since we are loading in a new project.
-  tuf.roledb.clear_roledb(clear_all=True)
+  roledb.clear_roledb(clear_all=True)
   tuf.keydb.clear_keydb(clear_all=True)
 
   # Locate metadata filepaths and targets filepath.
@@ -878,7 +878,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
     project.add_signature(signature)
 
   # Update roledb.py containing the loaded project attributes.
-  roleinfo = tuf.roledb.get_roleinfo(project_name, repository_name)
+  roleinfo = roledb.get_roleinfo(project_name, repository_name)
   roleinfo['signatures'].extend(signable['signatures'])
   roleinfo['version'] = targets_metadata['version']
   roleinfo['paths'] = targets_metadata['targets']
@@ -891,7 +891,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
       repository_name=repository_name):
     roleinfo['partial_loaded'] = True
 
-  tuf.roledb.update_roleinfo(project_name, roleinfo, mark_role_as_dirty=False,
+  roledb.update_roleinfo(project_name, roleinfo, mark_role_as_dirty=False,
       repository_name=repository_name)
 
   for key_metadata in targets_metadata['delegations']['keys'].values():
@@ -905,7 +905,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
                 'signing_keyids': [], 'signatures': [], 'partial_loaded':False,
                 'delegations': {'keys':{}, 'roles':[]}
                 }
-    tuf.roledb.add_role(rolename, roleinfo, repository_name=repository_name)
+    roledb.add_role(rolename, roleinfo, repository_name=repository_name)
 
   # Load the delegated metadata and generate their fileinfo.
   targets_objects = {}
@@ -941,7 +941,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
       metadata_object = _strip_prefix_from_targets_metadata(metadata_object,
                                            prefix)
 
-      roleinfo = tuf.roledb.get_roleinfo(metadata_name, repository_name)
+      roleinfo = roledb.get_roleinfo(metadata_name, repository_name)
       roleinfo['signatures'].extend(signable['signatures'])
       roleinfo['version'] = metadata_object['version']
       roleinfo['expires'] = metadata_object['expires']
@@ -958,7 +958,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
         roleinfo['partial_loaded'] = True
 
 
-      tuf.roledb.update_roleinfo(metadata_name, roleinfo,
+      roledb.update_roleinfo(metadata_name, roleinfo,
           mark_role_as_dirty=False, repository_name=repository_name)
 
       # Append to list of elements to avoid reloading repeated metadata.
@@ -989,7 +989,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
                     'partial_loaded': False,
                     'delegations': {'keys': {},
                                     'roles': []}}
-        tuf.roledb.add_role(rolename, roleinfo, repository_name=repository_name)
+        roledb.add_role(rolename, roleinfo, repository_name=repository_name)
 
   if new_prefix:
     project.prefix = new_prefix
