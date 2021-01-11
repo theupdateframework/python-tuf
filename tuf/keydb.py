@@ -44,6 +44,7 @@ from __future__ import unicode_literals
 import logging
 import copy
 
+from tuf import exceptions
 import tuf.formats
 
 import six
@@ -133,7 +134,7 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
       # Although keyid duplicates should *not* occur (unique dict keys), log a
       # warning and continue.  However, 'key_dict' may have already been
       # adding to the keydb elsewhere.
-      except tuf.exceptions.KeyAlreadyExistsError as e: # pragma: no cover
+      except exceptions.KeyAlreadyExistsError as e: # pragma: no cover
         logger.warning(e)
         continue
 
@@ -287,7 +288,7 @@ def add_key(key_dict, keyid=None, repository_name='default'):
   # available in the key database before returning.
   keyid = key_dict['keyid']
   if keyid in _keydb_dict[repository_name]:
-    raise tuf.exceptions.KeyAlreadyExistsError('Key: ' + keyid)
+    raise exceptions.KeyAlreadyExistsError('Key: ' + keyid)
 
   _keydb_dict[repository_name][keyid] = copy.deepcopy(key_dict)
 
@@ -343,7 +344,7 @@ def get_key(keyid, repository_name='default'):
     return copy.deepcopy(_keydb_dict[repository_name][keyid])
 
   except KeyError as error:
-    six.raise_from(tuf.exceptions.UnknownKeyError('Key: ' + keyid), error)
+    six.raise_from(exceptions.UnknownKeyError('Key: ' + keyid), error)
 
 
 
@@ -396,7 +397,7 @@ def remove_key(keyid, repository_name='default'):
     del _keydb_dict[repository_name][keyid]
 
   else:
-    raise tuf.exceptions.UnknownKeyError('Key: ' + keyid)
+    raise exceptions.UnknownKeyError('Key: ' + keyid)
 
 
 

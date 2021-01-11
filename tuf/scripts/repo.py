@@ -148,6 +148,7 @@ import time
 import fnmatch
 
 import tuf
+from tuf import exceptions
 import tuf.log
 import tuf.formats
 import tuf.repository_tool as repo_tool
@@ -218,7 +219,7 @@ def process_command_line_arguments(parsed_arguments):
 
   # Do we have a valid argparse Namespace?
   if not isinstance(parsed_arguments, argparse.Namespace):
-    raise tuf.exceptions.Error('Invalid namespace: ' + repr(parsed_arguments))
+    raise exceptions.Error('Invalid namespace: ' + repr(parsed_arguments))
 
   else:
     logger.debug('We have a valid argparse Namespace.')
@@ -266,15 +267,15 @@ def process_command_line_arguments(parsed_arguments):
 def delegate(parsed_arguments):
 
   if not parsed_arguments.delegatee:
-    raise tuf.exceptions.Error(
+    raise exceptions.Error(
         '--delegatee must be set to perform the delegation.')
 
   if parsed_arguments.delegatee in ('root', 'snapshot', 'timestamp', 'targets'):
-    raise tuf.exceptions.Error(
+    raise exceptions.Error(
         'Cannot delegate to the top-level role: ' + repr(parsed_arguments.delegatee))
 
   if not parsed_arguments.pubkeys:
-    raise tuf.exceptions.Error(
+    raise exceptions.Error(
         '--pubkeys must be set to perform the delegation.')
 
   public_keys = []
@@ -388,7 +389,7 @@ def gen_key(parsed_arguments):
   }
 
   if parsed_arguments.key not in SUPPORTED_CLI_KEYTYPES:
-    tuf.exceptions.Error(
+    exceptions.Error(
         'Invalid key type: ' + repr(parsed_arguments.key) + '.  Supported'
         ' key types: ' + repr(SUPPORTED_CLI_KEYTYPES))
 
@@ -464,12 +465,12 @@ def import_privatekey_from_file(keypath, password=None):
           encrypted_key, 'rsassa-pss-sha256', password)
 
     except securesystemslib.exceptions.CryptoError as error:
-      six.raise_from(tuf.exceptions.Error(repr(keypath) + ' cannot be '
+      six.raise_from(exceptions.Error(repr(keypath) + ' cannot be '
           ' imported, possibly because an invalid key file is given or '
           ' the decryption password is incorrect.'), error)
 
   if key_object['keytype'] not in SUPPORTED_KEY_TYPES:
-    raise tuf.exceptions.Error('Trying to import an unsupported key'
+    raise exceptions.Error('Trying to import an unsupported key'
         ' type: ' + repr(key_object['keytype'] + '.'
         '  Supported key types: ' + repr(SUPPORTED_KEY_TYPES)))
 
@@ -497,7 +498,7 @@ def import_publickey_from_file(keypath):
   key_object, junk = securesystemslib.keys.format_metadata_to_key(key_metadata)
 
   if key_object['keytype'] not in SUPPORTED_KEY_TYPES:
-    raise tuf.exceptions.Error('Trying to import an unsupported key'
+    raise exceptions.Error('Trying to import an unsupported key'
         ' type: ' + repr(key_object['keytype'] + '.'
         '  Supported key types: ' + repr(SUPPORTED_KEY_TYPES)))
 
@@ -508,7 +509,7 @@ def import_publickey_from_file(keypath):
 
 def add_verification_key(parsed_arguments):
   if not parsed_arguments.pubkeys:
-    raise tuf.exceptions.Error('--pubkeys must be given with --trust.')
+    raise exceptions.Error('--pubkeys must be given with --trust.')
 
   repository = repo_tool.load_repository(
       os.path.join(parsed_arguments.path, REPO_DIR))
@@ -517,7 +518,7 @@ def add_verification_key(parsed_arguments):
     imported_pubkey = import_publickey_from_file(keypath)
 
     if parsed_arguments.role not in ('root', 'targets', 'snapshot', 'timestamp'):
-      raise tuf.exceptions.Error('The given --role is not a top-level role.')
+      raise exceptions.Error('The given --role is not a top-level role.')
 
     elif parsed_arguments.role == 'root':
       repository.root.add_verification_key(imported_pubkey)
@@ -544,7 +545,7 @@ def add_verification_key(parsed_arguments):
 
 def remove_verification_key(parsed_arguments):
   if not parsed_arguments.pubkeys:
-    raise tuf.exceptions.Error('--pubkeys must be given with --distrust.')
+    raise exceptions.Error('--pubkeys must be given with --distrust.')
 
   repository = repo_tool.load_repository(
       os.path.join(parsed_arguments.path, REPO_DIR))
@@ -554,7 +555,7 @@ def remove_verification_key(parsed_arguments):
 
     try:
       if parsed_arguments.role not in ('root', 'targets', 'snapshot', 'timestamp'):
-        raise tuf.exceptions.Error('The given --role is not a top-level role.')
+        raise exceptions.Error('The given --role is not a top-level role.')
 
       elif parsed_arguments.role == 'root':
         repository.root.remove_verification_key(imported_pubkey)
@@ -736,7 +737,7 @@ def add_target_to_repo(parsed_arguments, target_path, repo_targets_path,
 def remove_target_files_from_metadata(parsed_arguments, repository):
 
   if parsed_arguments.role in ('root', 'snapshot', 'timestamp'):
-    raise tuf.exceptions.Error(
+    raise exceptions.Error(
         'Invalid rolename specified: ' + repr(parsed_arguments.role) + '.'
         '  It must be "targets" or a delegated rolename.')
 
@@ -1146,7 +1147,7 @@ if __name__ == '__main__':
   try:
     process_command_line_arguments(arguments)
 
-  except (tuf.exceptions.Error) as e:
+  except (exceptions.Error) as e:
     sys.stderr.write('Error: ' + str(e) + '\n')
     sys.exit(1)
 

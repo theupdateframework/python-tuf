@@ -47,7 +47,7 @@ import tuf.formats
 import tuf.roledb
 import tuf.sig
 import tuf.log
-import tuf.exceptions
+from tuf import exceptions
 import tuf.repository_lib as repo_lib
 
 import securesystemslib.keys
@@ -787,7 +787,7 @@ class Metadata(object):
     try:
       tuf.keydb.add_key(key, repository_name=self._repository_name)
 
-    except tuf.exceptions.KeyAlreadyExistsError:
+    except exceptions.KeyAlreadyExistsError:
       logger.warning('Adding a verification key that has already been used.')
 
     keyid = key['keyid']
@@ -905,7 +905,7 @@ class Metadata(object):
     try:
       tuf.keydb.add_key(key, repository_name=self._repository_name)
 
-    except tuf.exceptions.KeyAlreadyExistsError:
+    except exceptions.KeyAlreadyExistsError:
       tuf.keydb.remove_key(key['keyid'], self._repository_name)
       tuf.keydb.add_key(key, repository_name=self._repository_name)
 
@@ -1491,7 +1491,7 @@ class Root(Metadata):
     try:
       tuf.roledb.add_role(self._rolename, roleinfo, self._repository_name)
 
-    except tuf.exceptions.RoleAlreadyExistsError:
+    except exceptions.RoleAlreadyExistsError:
       pass
 
 
@@ -1560,7 +1560,7 @@ class Timestamp(Metadata):
     try:
       tuf.roledb.add_role(self.rolename, roleinfo, self._repository_name)
 
-    except tuf.exceptions.RoleAlreadyExistsError:
+    except exceptions.RoleAlreadyExistsError:
       pass
 
 
@@ -1623,7 +1623,7 @@ class Snapshot(Metadata):
     try:
       tuf.roledb.add_role(self._rolename, roleinfo, self._repository_name)
 
-    except tuf.exceptions.RoleAlreadyExistsError:
+    except exceptions.RoleAlreadyExistsError:
       pass
 
 
@@ -1731,7 +1731,7 @@ class Targets(Metadata):
     try:
       tuf.roledb.add_role(self.rolename, roleinfo, self._repository_name)
 
-    except tuf.exceptions.RoleAlreadyExistsError:
+    except exceptions.RoleAlreadyExistsError:
       pass
 
 
@@ -1772,7 +1772,7 @@ class Targets(Metadata):
       return self._delegated_roles[rolename]
 
     else:
-      raise tuf.exceptions.UnknownRoleError(repr(rolename) + ' has'
+      raise exceptions.UnknownRoleError(repr(rolename) + ' has'
           ' not been delegated by ' + repr(self.rolename))
 
 
@@ -2497,7 +2497,7 @@ class Targets(Metadata):
       del self._delegated_roles[rolename]
       self._parent_targets_object.remove_delegated_role(rolename)
 
-    except (tuf.exceptions.UnknownRoleError, KeyError):
+    except (exceptions.UnknownRoleError, KeyError):
       pass
 
 
@@ -2846,11 +2846,11 @@ class Targets(Metadata):
     tuf.formats.RELPATH_SCHEMA.check_match(pathname)
 
     if '\\' in pathname:
-      raise tuf.exceptions.InvalidNameError('Path ' + repr(pathname)
+      raise exceptions.InvalidNameError('Path ' + repr(pathname)
           + ' does not use the forward slash (/) as directory separator.')
 
     if pathname.startswith('/'):
-      raise tuf.exceptions.InvalidNameError('Path ' + repr(pathname)
+      raise exceptions.InvalidNameError('Path ' + repr(pathname)
           + ' starts with a directory separator. All paths should be relative'
           '  to targets directory.')
 
@@ -3175,7 +3175,7 @@ def load_repository(repository_directory, repository_name='default',
           tuf.keydb.add_key(key_object, keyid=None,
               repository_name=repository_name)
 
-      except tuf.exceptions.KeyAlreadyExistsError:
+      except exceptions.KeyAlreadyExistsError:
         pass
 
   return repository

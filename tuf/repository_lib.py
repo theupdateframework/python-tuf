@@ -41,7 +41,7 @@ import tempfile
 
 import tuf
 import tuf.formats
-import tuf.exceptions
+from tuf import exceptions
 import tuf.keydb
 import tuf.roledb
 import tuf.sig
@@ -232,7 +232,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
           repository_name=repository_name)
 
       # Note that 'signable' is an argument to tuf.UnsignedMetadataError().
-      raise tuf.exceptions.UnsignedMetadataError('Not enough'
+      raise exceptions.UnsignedMetadataError('Not enough'
           ' signatures for ' + repr(metadata_filename), signable)
 
   # 'rolename' is a delegated role or a top-level role that is partially
@@ -305,12 +305,12 @@ def _check_role_keys(rolename, repository_name):
 
   # Raise an exception for an invalid threshold of public keys.
   if total_keyids < threshold:
-    raise tuf.exceptions.InsufficientKeysError(repr(rolename) + ' role contains'
+    raise exceptions.InsufficientKeysError(repr(rolename) + ' role contains'
       ' ' + repr(total_keyids) + ' / ' + repr(threshold) + ' public keys.')
 
   # Raise an exception for an invalid threshold of signing keys.
   if total_signatures == 0 and total_signing_keys < threshold:
-    raise tuf.exceptions.InsufficientKeysError(repr(rolename) + ' role contains'
+    raise exceptions.InsufficientKeysError(repr(rolename) + ' role contains'
       ' ' + repr(total_signing_keys) + ' / ' + repr(threshold) + ' signing keys.')
 
 
@@ -341,7 +341,7 @@ def _remove_invalid_and_duplicate_signatures(signable, repository_name):
     try:
       key = tuf.keydb.get_key(keyid, repository_name=repository_name)
 
-    except tuf.exceptions.UnknownKeyError:
+    except exceptions.UnknownKeyError:
       signable['signatures'].remove(signature)
       continue
 
@@ -501,7 +501,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     signable = securesystemslib.util.load_json_file(root_filename)
     try:
       tuf.formats.check_signable_object_format(signable)
-    except tuf.exceptions.UnsignedMetadataError:
+    except exceptions.UnsignedMetadataError:
       # Downgrade the error to a warning because a use case exists where
       # metadata may be generated unsigned on one machine and signed on another.
       logger.warning('Unsigned metadata object: ' + repr(signable))
@@ -541,7 +541,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     consistent_snapshot = root_metadata['consistent_snapshot']
 
   except securesystemslib.exceptions.StorageError as error:
-    six.raise_from(tuf.exceptions.RepositoryError('Cannot load the required'
+    six.raise_from(exceptions.RepositoryError('Cannot load the required'
         ' root file: ' + repr(root_filename)), error)
 
   # Load 'timestamp.json'.  A Timestamp role file without a version number is
@@ -570,7 +570,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
         repository_name=repository_name)
 
   except securesystemslib.exceptions.StorageError as error:
-    six.raise_from(tuf.exceptions.RepositoryError('Cannot load the Timestamp '
+    six.raise_from(exceptions.RepositoryError('Cannot load the Timestamp '
         'file: ' + repr(timestamp_filename)), error)
 
   # Load 'snapshot.json'.  A consistent snapshot.json must be calculated if
@@ -588,7 +588,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     signable = securesystemslib.util.load_json_file(snapshot_filename)
     try:
       tuf.formats.check_signable_object_format(signable)
-    except tuf.exceptions.UnsignedMetadataError:
+    except exceptions.UnsignedMetadataError:
       # Downgrade the error to a warning because a use case exists where
       # metadata may be generated unsigned on one machine and signed on another.
       logger.warning('Unsigned metadata object: ' + repr(signable))
@@ -616,7 +616,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
         repository_name=repository_name)
 
   except securesystemslib.exceptions.StorageError as error:
-    six.raise_from(tuf.exceptions.RepositoryError('The Snapshot file '
+    six.raise_from(exceptions.RepositoryError('The Snapshot file '
         'cannot be loaded: '+ repr(snapshot_filename)), error)
 
   # Load 'targets.json'.  A consistent snapshot of the Targets role must be
@@ -630,7 +630,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     signable = securesystemslib.util.load_json_file(targets_filename)
     try:
       tuf.formats.check_signable_object_format(signable)
-    except tuf.exceptions.UnsignedMetadataError:
+    except exceptions.UnsignedMetadataError:
       # Downgrade the error to a warning because a use case exists where
       # metadata may be generated unsigned on one machine and signed on another.
       logger.warning('Unsigned metadata object: ' + repr(signable))
@@ -675,11 +675,11 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
       try:
         tuf.keydb.add_key(key_object, keyid=None, repository_name=repository_name)
 
-      except tuf.exceptions.KeyAlreadyExistsError:
+      except exceptions.KeyAlreadyExistsError:
         pass
 
   except securesystemslib.exceptions.StorageError as error:
-    six.raise_from(tuf.exceptions.RepositoryError('The Targets file '
+    six.raise_from(exceptions.RepositoryError('The Targets file '
         'can not be loaded: ' + repr(targets_filename)), error)
 
   return repository, consistent_snapshot
@@ -1877,7 +1877,7 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
   # is not formatted correctly.
   try:
     tuf.formats.check_signable_object_format(signable)
-  except tuf.exceptions.UnsignedMetadataError:
+  except exceptions.UnsignedMetadataError:
     # Downgrade the error to a warning because a use case exists where
     # metadata may be generated unsigned on one machine and signed on another.
     logger.warning('Unsigned metadata object: ' + repr(signable))
@@ -2028,7 +2028,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
     try:
       _check_role_keys(rolename, repository_name)
 
-    except tuf.exceptions.InsufficientKeysError as e:
+    except exceptions.InsufficientKeysError as e:
       logger.info(str(e))
 
   # Do the top-level roles contain a valid threshold of signatures?  Top-level
@@ -2053,7 +2053,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
   # 'tuf.exceptions.UnsignedMetadataError' raised if metadata contains an
   # invalid threshold of signatures.  log the valid/threshold message, where
   # valid < threshold.
-  except tuf.exceptions.UnsignedMetadataError as e:
+  except exceptions.UnsignedMetadataError as e:
     _log_status('root', e.signable, repository_name)
     return
 
@@ -2078,7 +2078,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
           repository_name=repository_name)
     _log_status('targets', signable, repository_name)
 
-  except tuf.exceptions.UnsignedMetadataError as e:
+  except exceptions.UnsignedMetadataError as e:
     _log_status('targets', e.signable, repository_name)
     return
 
@@ -2104,7 +2104,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
           filenames, repository_name=repository_name)
     _log_status('snapshot', signable, repository_name)
 
-  except tuf.exceptions.UnsignedMetadataError as e:
+  except exceptions.UnsignedMetadataError as e:
     _log_status('snapshot', e.signable, repository_name)
     return
 
@@ -2130,7 +2130,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
           False, filenames, repository_name=repository_name)
     _log_status('timestamp', signable, repository_name)
 
-  except tuf.exceptions.UnsignedMetadataError as e:
+  except exceptions.UnsignedMetadataError as e:
     _log_status('timestamp', e.signable, repository_name)
     return
 
@@ -2227,7 +2227,7 @@ def create_tuf_client_directory(repository_directory, client_directory):
     if e.errno == errno.EEXIST:
       message = 'Cannot create a fresh client metadata directory: ' +\
         repr(client_metadata_directory) + '.  Already exists.'
-      raise tuf.exceptions.RepositoryError(message)
+      raise exceptions.RepositoryError(message)
 
     # Testing of non-errno.EEXIST exceptions have been verified on all
     # supported OSs.  An unexpected exception (the '/' directory exists, rather

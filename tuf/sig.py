@@ -51,6 +51,7 @@ from __future__ import unicode_literals
 import logging
 
 import tuf
+from tuf import exceptions
 import tuf.keydb
 import tuf.roledb
 import tuf.formats
@@ -159,7 +160,7 @@ def get_signature_status(signable, role=None, repository_name='default',
     try:
       key = tuf.keydb.get_key(keyid, repository_name)
 
-    except tuf.exceptions.UnknownKeyError:
+    except exceptions.UnknownKeyError:
       unknown_sigs.append(keyid)
       continue
 

@@ -132,6 +132,7 @@ import io
 
 import tuf
 from tuf import download
+from tuf import exceptions
 import tuf.requests_fetcher
 import tuf.formats
 import tuf.settings
@@ -140,7 +141,6 @@ import tuf.log
 import tuf.mirrors
 import tuf.roledb
 import tuf.sig
-import tuf.exceptions
 
 import securesystemslib.exceptions
 import securesystemslib.hash
@@ -208,7 +208,7 @@ class MultiRepoUpdater(object):
       self.map_file = securesystemslib.util.load_json_file(map_file)
 
     except (securesystemslib.exceptions.Error) as e:
-      raise tuf.exceptions.Error('Cannot load the map file: ' + str(e))
+      raise exceptions.Error('Cannot load the map file: ' + str(e))
 
     # Raise securesystemslib.exceptions.FormatError if the map file is
     # improperly formatted.
@@ -309,14 +309,14 @@ class MultiRepoUpdater(object):
             continue
 
           else:
-            raise tuf.exceptions.UnknownTargetError('The repositories in the'
+            raise exceptions.UnknownTargetError('The repositories in the'
                 ' mapping do not agree on the target, or none of them have'
                 ' signed for the target, and "terminating" was set to True.')
 
     # If we are here, it means either there were no mappings, or none of the
     # mappings provided the target.
     logger.debug('Did not find valid targetinfo for ' + repr(target_filename))
-    raise tuf.exceptions.UnknownTargetError('The repositories in the map'
+    raise exceptions.UnknownTargetError('The repositories in the map'
         ' file do not agree on the target, or none of them have signed'
         ' for the target.')
 
@@ -336,7 +336,7 @@ class MultiRepoUpdater(object):
           repository_name)
 
       if not os.path.isdir(repository_directory):
-        raise tuf.exceptions.Error('The metadata directory'
+        raise exceptions.Error('The metadata directory'
             ' for ' + repr(repository_name) + ' must exist'
             ' at ' + repr(repository_directory))
 
@@ -348,7 +348,7 @@ class MultiRepoUpdater(object):
           repository_directory, 'metadata', 'current', 'root.json')
 
       if not os.path.isfile(root_file):
-        raise tuf.exceptions.Error(
+        raise exceptions.Error(
             'The Root file must exist at ' + repr(root_file))
 
       else:
@@ -372,7 +372,7 @@ class MultiRepoUpdater(object):
         targetinfo, updater = self._update_from_repository(
             repository_name, target_filename)
 
-      except (tuf.exceptions.UnknownTargetError, tuf.exceptions.Error):
+      except (exceptions.UnknownTargetError, exceptions.Error):
         continue
 
       valid_targetinfo[updater] = targetinfo
@@ -535,7 +535,7 @@ class MultiRepoUpdater(object):
     updater = self.get_updater(repository_name)
 
     if not updater:
-      raise tuf.exceptions.Error(
+      raise exceptions.Error(
           'Cannot load updater for ' + repr(repository_name))
 
     else:
@@ -732,7 +732,7 @@ class Updater(object):
 
     # Ensure the repository metadata directory has been set.
     if tuf.settings.repositories_directory is None:
-      raise tuf.exceptions.RepositoryError('The TUF update client'
+      raise exceptions.RepositoryError('The TUF update client'
         ' module must specify the directory containing the local repository'
         ' files.  "tuf.settings.repositories_directory" MUST be set.')
 
@@ -742,14 +742,14 @@ class Updater(object):
 
     # raise MissingLocalRepository if the repo does not exist at all.
     if not os.path.exists(repository_directory):
-      raise tuf.exceptions.MissingLocalRepositoryError('Local repository ' +
+      raise exceptions.MissingLocalRepositoryError('Local repository ' +
         repr(repository_directory) + ' does not exist.')
 
     current_path = os.path.join(repository_directory, 'metadata', 'current')
 
     # Ensure the current path is valid/exists before saving it.
     if not os.path.exists(current_path):
-      raise tuf.exceptions.RepositoryError('Missing'
+      raise exceptions.RepositoryError('Missing'
         ' ' + repr(current_path) + '.  This path must exist and, at a minimum,'
         ' contain the Root metadata file.')
 
@@ -760,7 +760,7 @@ class Updater(object):
 
     # Ensure the previous path is valid/exists.
     if not os.path.exists(previous_path):
-      raise tuf.exceptions.RepositoryError('Missing ' + repr(previous_path) + '.'
+      raise exceptions.RepositoryError('Missing ' + repr(previous_path) + '.'
         '  This path MUST exist.')
 
     self.metadata_directory['previous'] = previous_path
@@ -773,7 +773,7 @@ class Updater(object):
     # Raise an exception if the repository is missing the required 'root'
     # metadata.
     if 'root' not in self.metadata['current']:
-      raise tuf.exceptions.RepositoryError('No root of trust!'
+      raise exceptions.RepositoryError('No root of trust!'
         ' Could not find the "root.json" file.')
 
 
@@ -968,7 +968,7 @@ class Updater(object):
 
           tuf.keydb.add_key(key, repository_name=self.repository_name)
 
-        except tuf.exceptions.KeyAlreadyExistsError:
+        except exceptions.KeyAlreadyExistsError:
           pass
 
         except (securesystemslib.exceptions.FormatError, securesystemslib.exceptions.Error):
@@ -989,7 +989,7 @@ class Updater(object):
         logger.debug('Adding delegated role: ' + str(rolename) + '.')
         tuf.roledb.add_role(rolename, roleinfo, self.repository_name)
 
-      except tuf.exceptions.RoleAlreadyExistsError:
+      except exceptions.RoleAlreadyExistsError:
         logger.warning('Role already exists: ' + rolename)
 
       except Exception:
@@ -1062,7 +1062,7 @@ class Updater(object):
     try:
       self._ensure_not_expired(root_metadata, 'root')
 
-    except tuf.exceptions.ExpiredMetadataError:
+    except exceptions.ExpiredMetadataError:
       # Raise 'tuf.exceptions.NoWorkingMirrorError' if a valid (not
       # expired, properly signed, and valid metadata) 'root.json' cannot be
       # installed.
@@ -1148,7 +1148,7 @@ class Updater(object):
             version=next_version)
       # When we run into HTTP 403/404 error from ALL mirrors, break out of
       # loop, because the next root metadata file is most likely missing.
-      except tuf.exceptions.NoWorkingMirrorError as exception:
+      except exceptions.NoWorkingMirrorError as exception:
         for mirror_error in exception.mirror_errors.values():
           # Otherwise, reraise the error, because it is not a simple HTTP
           # error.
@@ -1254,7 +1254,7 @@ class Updater(object):
     # ensures that a downloaded file strictly matches a known, or trusted,
     # file length.
     if observed_length != trusted_file_length:
-      raise tuf.exceptions.DownloadLengthMismatchError(trusted_file_length,
+      raise exceptions.DownloadLengthMismatchError(trusted_file_length,
           observed_length)
 
     else:
@@ -1341,7 +1341,7 @@ class Updater(object):
 
     logger.debug('Failed to update ' + repr(target_filepath) + ' from'
         ' all mirrors: ' + repr(file_mirror_errors))
-    raise tuf.exceptions.NoWorkingMirrorError(file_mirror_errors)
+    raise exceptions.NoWorkingMirrorError(file_mirror_errors)
 
 
 
@@ -1434,7 +1434,7 @@ class Updater(object):
       metadata_signable = securesystemslib.util.load_json_string(metadata)
 
     except Exception as exception:
-      raise tuf.exceptions.InvalidMetadataJSONError(exception)
+      raise exceptions.InvalidMetadataJSONError(exception)
 
     else:
       # Ensure the loaded 'metadata_signable' is properly formatted.  Raise
@@ -1547,7 +1547,7 @@ class Updater(object):
           code_spec_minor_version = int(code_spec_version_split[1])
 
           if metadata_spec_major_version != code_spec_major_version:
-            raise tuf.exceptions.UnsupportedSpecificationError(
+            raise exceptions.UnsupportedSpecificationError(
                 'Downloaded metadata that specifies an unsupported '
                 'spec_version.  This code supports major version number: ' +
                 repr(code_spec_major_version) + '; however, the obtained '
@@ -1576,7 +1576,7 @@ class Updater(object):
           # Verify that the downloaded version matches the version expected by
           # the caller.
           if version_downloaded != expected_version:
-            raise tuf.exceptions.BadVersionNumberError('Downloaded'
+            raise exceptions.BadVersionNumberError('Downloaded'
               ' version number: ' + repr(version_downloaded) + '.  Version'
               ' number MUST be: ' + repr(expected_version))
 
@@ -1594,7 +1594,7 @@ class Updater(object):
               self.metadata['current'][metadata_role]['version']
 
             if version_downloaded < current_version:
-              raise tuf.exceptions.ReplayedMetadataError(metadata_role,
+              raise exceptions.ReplayedMetadataError(metadata_role,
                   version_downloaded, current_version)
 
           except KeyError:
@@ -1619,7 +1619,7 @@ class Updater(object):
     else:
       logger.debug('Failed to update ' + repr(remote_filename) + ' from all'
         ' mirrors: ' + repr(file_mirror_errors))
-      raise tuf.exceptions.NoWorkingMirrorError(file_mirror_errors)
+      raise exceptions.NoWorkingMirrorError(file_mirror_errors)
 
 
 
@@ -1810,7 +1810,7 @@ class Updater(object):
     # Ensure the referenced metadata has been loaded.  The 'root' role may be
     # updated without having 'snapshot' available.
     if referenced_metadata not in self.metadata['current']:
-      raise tuf.exceptions.RepositoryError('Cannot update'
+      raise exceptions.RepositoryError('Cannot update'
         ' ' + repr(metadata_role) + ' because ' + referenced_metadata + ' is'
         ' missing.')
 
@@ -2281,7 +2281,7 @@ class Updater(object):
     if expires_timestamp <= current_time:
       message = 'Metadata '+repr(metadata_rolename)+' expired on ' + \
         expires_datetime.ctime() + ' (UTC).'
-      raise tuf.exceptions.ExpiredMetadataError(message)
+      raise exceptions.ExpiredMetadataError(message)
 
 
 
@@ -2478,7 +2478,7 @@ class Updater(object):
     logger.debug('Getting targets of role: ' + repr(rolename) + '.')
 
     if not tuf.roledb.role_exists(rolename, self.repository_name):
-      raise tuf.exceptions.UnknownRoleError(rolename)
+      raise exceptions.UnknownRoleError(rolename)
 
     # We do not need to worry about the target paths being trusted because
     # this is enforced before any new metadata is accepted.
@@ -2580,7 +2580,7 @@ class Updater(object):
 
 
     if not tuf.roledb.role_exists(rolename, self.repository_name):
-      raise tuf.exceptions.UnknownRoleError(rolename)
+      raise exceptions.UnknownRoleError(rolename)
 
     return self._targets_of_role(rolename, skip_refresh=True)
 
@@ -2628,7 +2628,7 @@ class Updater(object):
     target_filepath = target_filepath.replace('\\', '/')
 
     if target_filepath.startswith('/'):
-      raise tuf.exceptions.FormatError('The requested target file cannot'
+      raise exceptions.FormatError('The requested target file cannot'
           ' contain a leading path separator: ' + repr(target_filepath))
 
     # Get target by looking at roles in order of priority tags.
@@ -2636,7 +2636,7 @@ class Updater(object):
 
     # Raise an exception if the target information could not be retrieved.
     if target is None:
-      raise tuf.exceptions.UnknownTargetError(repr(target_filepath) + ' not'
+      raise exceptions.UnknownTargetError(repr(target_filepath) + ' not'
           ' found.')
 
     # Otherwise, return the found target.

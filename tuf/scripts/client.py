@@ -72,6 +72,7 @@ import argparse
 import logging
 
 import tuf
+from tuf import exceptions
 import tuf.client.updater
 import tuf.settings
 import tuf.log
@@ -106,7 +107,7 @@ def update_client(parsed_arguments):
   """
 
   if not isinstance(parsed_arguments, argparse.Namespace):
-    raise tuf.exceptions.Error('Invalid namespace object.')
+    raise exceptions.Error('Invalid namespace object.')
 
   else:
     logger.debug('We have a valid argparse Namespace object.')
@@ -143,7 +144,7 @@ def update_client(parsed_arguments):
     try:
       updater.download_target(target, destination_directory)
 
-    except tuf.exceptions.DownloadError:
+    except exceptions.DownloadError:
       pass
 
   # Remove any files from the destination directory that are no longer being
@@ -235,8 +236,8 @@ if __name__ == '__main__':
   try:
     update_client(arguments)
 
-  except (tuf.exceptions.NoWorkingMirrorError, tuf.exceptions.RepositoryError,
-      tuf.exceptions.FormatError, tuf.exceptions.Error) as e:
+  except (exceptions.NoWorkingMirrorError, exceptions.RepositoryError,
+      exceptions.FormatError, exceptions.Error) as e:
     sys.stderr.write('Error: ' + str(e) + '\n')
     sys.exit(1)
 

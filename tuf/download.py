@@ -40,7 +40,7 @@ import securesystemslib.util
 import six
 
 import tuf
-import tuf.exceptions
+from tuf import exceptions
 import tuf.formats
 
 # See 'log.py' to learn how logging is handled in TUF.
@@ -299,13 +299,13 @@ def _check_downloaded_length(total_downloaded, required_length,
       logger.debug('Minimum average download speed: ' + repr(tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED))
 
       if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
-        raise tuf.exceptions.SlowRetrievalError(average_download_speed)
+        raise exceptions.SlowRetrievalError(average_download_speed)
 
       else:
         logger.debug('Good average download speed: ' +
                      repr(average_download_speed) + ' bytes per second')
 
-      raise tuf.exceptions.DownloadLengthMismatchError(required_length, total_downloaded)
+      raise exceptions.DownloadLengthMismatchError(required_length, total_downloaded)
 
     else:
       # We specifically disabled strict checking of required length, but we
@@ -313,7 +313,7 @@ def _check_downloaded_length(total_downloaded, required_length,
       # Timestamp or Root metadata, for which we have no signed metadata; so,
       # we must guess a reasonable required_length for it.
       if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
-        raise tuf.exceptions.SlowRetrievalError(average_download_speed)
+        raise exceptions.SlowRetrievalError(average_download_speed)
 
       else:
         logger.debug('Good average download speed: ' +

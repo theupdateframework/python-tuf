@@ -74,7 +74,7 @@ import time
 
 import tuf
 import tuf.settings
-import tuf.exceptions
+from tuf import exceptions
 
 import securesystemslib.formats
 
@@ -249,7 +249,7 @@ def set_filehandler_log_level(log_level=_DEFAULT_FILE_LOG_LEVEL):
     file_handler.setLevel(log_level)
 
   else:
-    raise tuf.exceptions.Error(
+    raise exceptions.Error(
         'File handler has not been set.  Enable file logging'
         ' before attempting to set its log level')
 
@@ -418,7 +418,7 @@ def enable_file_logging(log_filename=tuf.settings.LOG_FILENAME):
     logger.addHandler(file_handler)
 
   else:
-    raise tuf.exceptions.Error(
+    raise exceptions.Error(
         'The file handler has already been been set.  A new file handler'
         ' can be set by first calling disable_file_logging()')
 

@@ -73,6 +73,7 @@ import securesystemslib.formats
 import securesystemslib.schema as SCHEMA
 
 import tuf
+from tuf import exceptions
 
 import six
 
@@ -1000,7 +1001,7 @@ def check_signable_object_format(signable):
         'Unrecognized type ' + repr(role_type)), error)
 
   if not signable['signatures']:
-    raise tuf.exceptions.UnsignedMetadataError('Signable object of type ' +
+    raise exceptions.UnsignedMetadataError('Signable object of type ' +
         repr(role_type) + ' has no signatures ', signable)
 
   # 'securesystemslib.exceptions.FormatError' raised if 'signable' does not

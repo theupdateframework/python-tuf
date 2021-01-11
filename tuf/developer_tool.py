@@ -39,6 +39,7 @@ import tempfile
 import json
 
 import tuf
+from tuf import exceptions
 import tuf.formats
 import tuf.keydb
 import tuf.roledb
@@ -378,7 +379,7 @@ class Project(Targets):
         try:
           _check_role_keys(delegated_role, self.repository_name)
 
-        except tuf.exceptions.InsufficientKeysError:
+        except exceptions.InsufficientKeysError:
           insufficient_keys.append(delegated_role)
           continue
 
@@ -407,7 +408,7 @@ class Project(Targets):
       try:
         _check_role_keys(self.rolename, self.repository_name)
 
-      except tuf.exceptions.InsufficientKeysError as e:
+      except exceptions.InsufficientKeysError as e:
         logger.info(str(e))
         return
 
@@ -417,7 +418,7 @@ class Project(Targets):
             self.repository_name)
         self._log_status(self.project_name, signable, self.repository_name)
 
-      except tuf.exceptions.UnsignedMetadataError as e:
+      except exceptions.UnsignedMetadataError as e:
         # This error is raised if the metadata has insufficient signatures to
         # meet the threshold.
         self._log_status(self.project_name, e.signable, self.repository_name)
@@ -864,7 +865,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
   signable = securesystemslib.util.load_json_file(targets_metadata_path)
   try:
     tuf.formats.check_signable_object_format(signable)
-  except tuf.exceptions.UnsignedMetadataError:
+  except exceptions.UnsignedMetadataError:
     # Downgrade the error to a warning because a use case exists where
     # metadata may be generated unsigned on one machine and signed on another.
     logger.warning('Unsigned metadata object: ' + repr(signable))
@@ -977,7 +978,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
         try:
           tuf.keydb.add_key(key_object, repository_name=repository_name)
 
-        except tuf.exceptions.KeyAlreadyExistsError:
+        except exceptions.KeyAlreadyExistsError:
           pass
 
       for role in metadata_object['delegations']['roles']:
