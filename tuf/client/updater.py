@@ -54,12 +54,13 @@
   # The client first imports the 'updater.py' module, the only module the
   # client is required to import.  The client will utilize a single class
   # from this module.
-  import tuf.client.updater
+  from tuf.client.updater import Updater
 
   # The only other module the client interacts with is 'tuf.settings'.  The
   # client accesses this module solely to set the repository directory.
   # This directory will hold the files downloaded from a remote repository.
-  tuf.settings.repositories_directory = 'local-repository'
+  from tuf import settings
+  settings.repositories_directory = 'local-repository'
 
   # Next, the client creates a dictionary object containing the repository
   # mirrors.  The client may download content from any one of these mirrors.
@@ -82,7 +83,7 @@
   # is called with two arguments.  The first argument assigns a name to this
   # particular updater and the second argument the repository mirrors defined
   # above.
-  updater = tuf.client.updater.Updater('updater', repository_mirrors)
+  updater = Updater('updater', repository_mirrors)
 
   # The client next calls the refresh() method to ensure it has the latest
   # copies of the metadata files.
@@ -512,7 +513,7 @@ class MultiRepoUpdater(object):
           # NOTE: State (e.g., keys) should NOT be shared across different
           # updater instances.
           logger.debug('Adding updater for ' + repr(repository_name))
-          updater = tuf.client.updater.Updater(repository_name, repo_mirrors)
+          updater = Updater(repository_name, repo_mirrors)
 
         except Exception:
           return None
