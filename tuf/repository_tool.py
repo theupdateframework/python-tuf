@@ -39,6 +39,7 @@ import logging
 import tempfile
 import shutil
 import json
+import six
 
 from collections import deque
 
@@ -50,11 +51,10 @@ from securesystemslib import storage as sslib_storage
 import tuf
 from tuf import exceptions
 from tuf import formats
+from tuf import keydb
 from tuf import log
+from tuf import repository_lib as repo_lib
 from tuf import roledb
-import tuf.repository_lib as repo_lib
-
-import six
 
 
 # Copy API
@@ -251,7 +251,7 @@ class Repository(object):
 
     try:
       roledb.create_roledb(repository_name)
-      tuf.keydb.create_keydb(repository_name)
+      keydb.create_keydb(repository_name)
 
     except sslib_exceptions.InvalidNameError:
       logger.debug(repr(repository_name) + ' already exists.  Overwriting'
@@ -314,7 +314,7 @@ class Repository(object):
     # formatted.
     sslib_formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
 
-    # At this point, tuf.keydb and roledb must be fully populated,
+    # At this point, keydb and roledb must be fully populated,
     # otherwise writeall() throws a 'tuf.exceptions.UnsignedMetadataError' for
     # the top-level roles.  exception if any of the top-level roles are missing
     # signatures, keys, etc.
@@ -721,7 +721,7 @@ class Metadata(object):
       expired.
 
     <Side Effects>
-      The role's entries in 'tuf.keydb.py' and 'roledb' are updated.
+      The role's entries in 'keydb' and 'roledb' are updated.
 
     <Returns>
       None.
@@ -780,11 +780,11 @@ class Metadata(object):
     key['expires'] = expires
 
     # Ensure 'key', which should contain the public portion, is added to
-    # 'tuf.keydb.py'.  Add 'key' to the list of recognized keys.
+    # 'keydb'.  Add 'key' to the list of recognized keys.
     # Keys may be shared, so do not raise an exception if 'key' has already
     # been loaded.
     try:
-      tuf.keydb.add_key(key, repository_name=self._repository_name)
+      keydb.add_key(key, repository_name=self._repository_name)
 
     except exceptions.KeyAlreadyExistsError:
       logger.warning('Adding a verification key that has already been used.')
@@ -882,7 +882,7 @@ class Metadata(object):
       securesystemslib.exceptions.Error, if the private key is not found in 'key'.
 
     <Side Effects>
-      Updates the role's 'tuf.keydb.py' and 'roledb' entries.
+      Updates the role's 'keydb' and 'roledb' entries.
 
     <Returns>
       None.
@@ -902,11 +902,11 @@ class Metadata(object):
     # Has the key, with the private portion included, been added to the keydb?
     # The public version of the key may have been previously added.
     try:
-      tuf.keydb.add_key(key, repository_name=self._repository_name)
+      keydb.add_key(key, repository_name=self._repository_name)
 
     except exceptions.KeyAlreadyExistsError:
-      tuf.keydb.remove_key(key['keyid'], self._repository_name)
-      tuf.keydb.add_key(key, repository_name=self._repository_name)
+      keydb.remove_key(key['keyid'], self._repository_name)
+      keydb.add_key(key, repository_name=self._repository_name)
 
     # Update the role's 'signing_keys' field in 'roledb'.
     roleinfo = roledb.get_roleinfo(self.rolename, self._repository_name)
@@ -2351,7 +2351,7 @@ class Targets(Metadata):
 
     <Side Effects>
       A new Target object is created for 'rolename' that is accessible to the
-      caller (i.e., targets.<rolename>).  The 'tuf.keydb.py' and
+      caller (i.e., targets.<rolename>).  The 'keydb' and
       'roledb' stores are updated with 'public_keys'.
 
     <Returns>
@@ -3171,7 +3171,7 @@ def load_repository(repository_directory, repository_name='default',
       try:
         for keyid in keyids: # pragma: no branch
           key_object['keyid'] = keyid
-          tuf.keydb.add_key(key_object, keyid=None,
+          keydb.add_key(key_object, keyid=None,
               repository_name=repository_name)
 
       except exceptions.KeyAlreadyExistsError:

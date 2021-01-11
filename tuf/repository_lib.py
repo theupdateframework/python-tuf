@@ -37,6 +37,7 @@ import time
 import logging
 import shutil
 import json
+import six
 import tempfile
 
 import securesystemslib
@@ -51,13 +52,11 @@ from securesystemslib import storage as sslib_storage
 import tuf
 from tuf import exceptions
 from tuf import formats
+from tuf import keydb
 from tuf import log
 from tuf import roledb
 from tuf import settings
 from tuf import sig
-import tuf.keydb
-
-import six
 
 
 # See 'log.py' to learn how logging is handled in TUF.
@@ -340,9 +339,9 @@ def _remove_invalid_and_duplicate_signatures(signable, repository_name):
     key = None
 
     # Remove 'signature' from 'signable' if the listed keyid does not exist
-    # in 'tuf.keydb'.
+    # in 'keydb'.
     try:
-      key = tuf.keydb.get_key(keyid, repository_name=repository_name)
+      key = keydb.get_key(keyid, repository_name=repository_name)
 
     except exceptions.UnknownKeyError:
       signable['signatures'].remove(signature)
@@ -510,7 +509,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
       logger.warning('Unsigned metadata object: ' + repr(signable))
 
     root_metadata = signable['signed']
-    tuf.keydb.create_keydb_from_root_metadata(root_metadata, repository_name)
+    keydb.create_keydb_from_root_metadata(root_metadata, repository_name)
     roledb.create_roledb_from_root_metadata(root_metadata, repository_name)
 
     # Load Root's roleinfo and update 'roledb'.
@@ -676,7 +675,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
       # repository maintainer should have also been made aware of the duplicate
       # key when it was added.
       try:
-        tuf.keydb.add_key(key_object, keyid=None, repository_name=repository_name)
+        keydb.add_key(key_object, keyid=None, repository_name=repository_name)
 
       except exceptions.KeyAlreadyExistsError:
         pass
@@ -1198,7 +1197,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
   repository_name='default'):
   """
   <Purpose>
-    Create the root metadata.  'roledb' and 'tuf.keydb.py'
+    Create the root metadata.  'roledb' and 'keydb'
     are read and the information returned by these modules is used to generate
     the root metadata object.
 
@@ -1230,7 +1229,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
     found in 'roledb'.)
 
   <Side Effects>
-    The contents of 'tuf.keydb.py' and 'roledb' are read.
+    The contents of 'keydb' and 'roledb' are read.
 
   <Returns>
     A root metadata object, conformant to 'tuf.formats.ROOT_SCHEMA'.
@@ -1265,7 +1264,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
     # Collect keys from all roles in a list
     keyids = roledb.get_role_keyids(rolename, repository_name)
     for keyid in keyids:
-      key = tuf.keydb.get_key(keyid, repository_name=repository_name)
+      key = keydb.get_key(keyid, repository_name=repository_name)
       keylist.append(key)
 
     # Generate the authentication information Root establishes for each
@@ -1416,7 +1415,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
       # Collect all delegations keys for generating the delegations keydict
       for keyid in role['keyids']:
-        key = tuf.keydb.get_key(keyid, repository_name=repository_name)
+        key = keydb.get_key(keyid, repository_name=repository_name)
         delegations_keys.append(key)
 
     _, delegations['keys'] = keys_to_keydict(delegations_keys)
@@ -1803,7 +1802,7 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
   <Purpose>
     Sign a metadata object. If any of the keyids have already signed the file,
     the old signature is replaced.  The keys in 'keyids' must already be
-    loaded in 'tuf.keydb'.
+    loaded in 'keydb'.
 
   <Arguments>
     metadata_object:
@@ -1857,7 +1856,7 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
   for keyid in keyids:
 
     # Load the signing key.
-    key = tuf.keydb.get_key(keyid, repository_name=repository_name)
+    key = keydb.get_key(keyid, repository_name=repository_name)
     # Generate the signature using the appropriate signing method.
     if key['keytype'] in SUPPORTED_KEY_TYPES:
       if 'private' in key['keyval']:

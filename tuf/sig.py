@@ -58,8 +58,8 @@ from securesystemslib import keys as sslib_keys
 import tuf
 from tuf import exceptions
 from tuf import formats
+from tuf import keydb
 from tuf import roledb
-import tuf.keydb
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger(__name__)
@@ -161,7 +161,7 @@ def get_signature_status(signable, role=None, repository_name='default',
 
     # Does the signature use an unrecognized key?
     try:
-      key = tuf.keydb.get_key(keyid, repository_name)
+      key = keydb.get_key(keyid, repository_name)
 
     except exceptions.UnknownKeyError:
       unknown_sigs.append(keyid)
@@ -306,7 +306,7 @@ def verify(signable, role, repository_name='default', threshold=None,
 
   unique_keys = set()
   for keyid in good_sigs:
-    key = tuf.keydb.get_key(keyid, repository_name)
+    key = keydb.get_key(keyid, repository_name)
     unique_keys.add(key['keyval']['public'])
 
   return len(unique_keys) >= threshold

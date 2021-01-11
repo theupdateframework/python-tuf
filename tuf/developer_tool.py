@@ -37,25 +37,25 @@ import logging
 import shutil
 import tempfile
 import json
+import six
 
+
+import securesystemslib
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
 from securesystemslib import storage as sslib_storage
+from securesystemslib import util as sslib_util
 
 import tuf
 from tuf import exceptions
 from tuf import formats
+from tuf import keydb
 from tuf import log
+from tuf import repository_lib as repo_lib
 from tuf import roledb
 from tuf import sig
 import tuf.keydb
-import tuf.repository_lib as repo_lib
 import tuf.repository_tool
-
-import securesystemslib
-from securesystemslib import util as sslib_util
-
-import six
 
 from tuf.repository_tool import Targets
 from tuf.repository_lib import _check_role_keys
@@ -256,7 +256,7 @@ class Project(Targets):
     # Raise 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
     sslib_formats.BOOLEAN_SCHEMA.check_match(write_partial)
 
-    # At this point the tuf.keydb and roledb stores must be fully
+    # At this point the keydb and roledb stores must be fully
     # populated, otherwise write() throwns a 'tuf.Repository' exception if
     # any of the project roles are missing signatures, keys, etc.
 
@@ -315,7 +315,7 @@ class Project(Targets):
         securesystemslib.exceptions.Error, if the project already contains a key.
 
       <Side Effects>
-        The role's entries in 'tuf.keydb.py' and 'roledb' are updated.
+        The role's entries in 'keydb' and 'roledb' are updated.
 
       <Returns>
         None
@@ -754,7 +754,7 @@ def _save_project_configuration(metadata_directory, targets_directory,
 
   # Build a dictionary containing the actual keys.
   for key in public_keys:
-    key_info = tuf.keydb.get_key(key)
+    key_info = keydb.get_key(key)
     key_metadata = format_keyval_to_metadata(key_info['keytype'],
         key_info['scheme'], key_info['keyval'])
     project_config['public_keys'][key] = key_metadata
@@ -813,7 +813,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
 
   # Clear the role and key databases since we are loading in a new project.
   roledb.clear_roledb(clear_all=True)
-  tuf.keydb.clear_keydb(clear_all=True)
+  keydb.clear_keydb(clear_all=True)
 
   # Locate metadata filepaths and targets filepath.
   project_directory = os.path.abspath(project_directory)
@@ -900,7 +900,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
 
   for key_metadata in targets_metadata['delegations']['keys'].values():
     key_object, junk = format_metadata_to_key(key_metadata)
-    tuf.keydb.add_key(key_object, repository_name=repository_name)
+    keydb.add_key(key_object, repository_name=repository_name)
 
   for role in targets_metadata['delegations']['roles']:
     rolename = role['name']
@@ -980,7 +980,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
         key_object, junk = format_metadata_to_key(key_metadata)
 
         try:
-          tuf.keydb.add_key(key_object, repository_name=repository_name)
+          keydb.add_key(key_object, repository_name=repository_name)
 
         except exceptions.KeyAlreadyExistsError:
           pass

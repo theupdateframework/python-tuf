@@ -146,6 +146,7 @@ import argparse
 import shutil
 import time
 import fnmatch
+import six
 
 import securesystemslib
 from securesystemslib import exceptions as sslib_exceptions
@@ -158,11 +159,10 @@ from securesystemslib import util as sslib_util
 import tuf
 from tuf import exceptions
 from tuf import formats
+from tuf import keydb
 from tuf import log
+from tuf import repository_tool as repo_tool
 from tuf import roledb
-import tuf.repository_tool as repo_tool
-
-import six
 
 
 # See 'log.py' to learn how logging is handled in TUF.
@@ -623,9 +623,9 @@ def sign_role(parsed_arguments):
 
         # Load the private key keydb and set the roleinfo in roledb so that
         # metadata can be written with repository.write().
-        tuf.keydb.remove_key(role_privatekey['keyid'],
+        keydb.remove_key(role_privatekey['keyid'],
             repository_name = repository._repository_name)
-        tuf.keydb.add_key(
+        keydb.add_key(
             role_privatekey, repository_name = repository._repository_name)
 
         # Set the delegated metadata file to expire in 3 months.
