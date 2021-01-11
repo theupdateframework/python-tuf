@@ -52,12 +52,14 @@ from __future__ import unicode_literals
 import logging
 import copy
 
+import securesystemslib
+from securesystemslib import exceptions as sslib_exceptions
+
 import tuf
 from tuf import exceptions
 from tuf import formats
 from tuf import log
 
-import securesystemslib
 import six
 
 # See 'tuf.log' to learn how logging is handled in TUF.
@@ -189,7 +191,7 @@ def create_roledb(repository_name):
   global _dirty_roles
 
   if repository_name in _roledb_dict or repository_name in _dirty_roles:
-    raise securesystemslib.exceptions.InvalidNameError('Repository name'
+    raise sslib_exceptions.InvalidNameError('Repository name'
       ' already exists: ' + repr(repository_name))
 
   _roledb_dict[repository_name] = {}
@@ -237,7 +239,7 @@ def remove_roledb(repository_name):
     return
 
   if repository_name == 'default':
-    raise securesystemslib.exceptions.InvalidNameError('Cannot remove the'
+    raise sslib_exceptions.InvalidNameError('Cannot remove the'
       ' default repository: ' + repr(repository_name))
 
   del _roledb_dict[repository_name]
@@ -309,7 +311,7 @@ def add_role(rolename, roleinfo, repository_name='default'):
   _validate_rolename(rolename)
 
   if repository_name not in _roledb_dict:
-    raise securesystemslib.exceptions.InvalidNameError('Repository name does not exist: ' + repository_name)
+    raise sslib_exceptions.InvalidNameError('Repository name does not exist: ' + repository_name)
 
   if rolename in _roledb_dict[repository_name]:
     raise exceptions.RoleAlreadyExistsError('Role already exists: ' + rolename)
@@ -393,7 +395,7 @@ def update_roleinfo(rolename, roleinfo, mark_role_as_dirty=True, repository_name
   global _dirty_roles
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
-    raise securesystemslib.exceptions.InvalidNameError('Repository name does not' ' exist: ' +
+    raise sslib_exceptions.InvalidNameError('Repository name does not' ' exist: ' +
       repository_name)
 
   if rolename not in _roledb_dict[repository_name]:
@@ -445,7 +447,7 @@ def get_dirty_roles(repository_name='default'):
   global _dirty_roles
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
-    raise securesystemslib.exceptions.InvalidNameError('Repository name does'
+    raise sslib_exceptions.InvalidNameError('Repository name does'
       '  not' ' exist: ' + repository_name)
 
   return sorted(list(_dirty_roles[repository_name]))
@@ -488,7 +490,7 @@ def mark_dirty(roles, repository_name='default'):
   global _dirty_roles
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
-    raise securesystemslib.exceptions.InvalidNameError('Repository name does'
+    raise sslib_exceptions.InvalidNameError('Repository name does'
       ' not' ' exist: ' + repository_name)
 
   _dirty_roles[repository_name].update(roles)
@@ -531,7 +533,7 @@ def unmark_dirty(roles, repository_name='default'):
   global _dirty_roles
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
-    raise securesystemslib.exceptions.InvalidNameError('Repository name does'
+    raise sslib_exceptions.InvalidNameError('Repository name does'
       ' not exist: ' + repository_name)
 
   for role in roles:
@@ -675,7 +677,7 @@ def get_rolenames(repository_name='default'):
   global _dirty_roles
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
-    raise securesystemslib.exceptions.InvalidNameError('Repository name does'
+    raise sslib_exceptions.InvalidNameError('Repository name does'
       ' not' ' exist: ' + repository_name)
 
   return list(_roledb_dict[repository_name].keys())
@@ -1003,7 +1005,7 @@ def clear_roledb(repository_name='default', clear_all=False):
   global _dirty_roles
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
-    raise securesystemslib.exceptions.InvalidNameError('Repository name does not'
+    raise sslib_exceptions.InvalidNameError('Repository name does not'
       ' exist: ' + repository_name)
 
   if clear_all:
@@ -1043,7 +1045,7 @@ def _check_rolename(rolename, repository_name='default'):
   global _dirty_roles
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
-    raise securesystemslib.exceptions.InvalidNameError('Repository name does not'
+    raise sslib_exceptions.InvalidNameError('Repository name does not'
       ' exist: ' + repository_name)
 
   if rolename not in _roledb_dict[repository_name]:
@@ -1060,13 +1062,13 @@ def _validate_rolename(rolename):
   'ROLENAME_SCHEMA' prior to calling this function.  """
 
   if rolename == '':
-    raise securesystemslib.exceptions.InvalidNameError('Rolename must *not* be'
+    raise sslib_exceptions.InvalidNameError('Rolename must *not* be'
       ' an empty string.')
 
   if rolename != rolename.strip():
-    raise securesystemslib.exceptions.InvalidNameError('Invalid rolename.'
+    raise sslib_exceptions.InvalidNameError('Invalid rolename.'
       '  Cannot start or end with whitespace: ' + rolename)
 
   if rolename.startswith('/') or rolename.endswith('/'):
-    raise securesystemslib.exceptions.InvalidNameError('Invalid rolename.'
+    raise sslib_exceptions.InvalidNameError('Invalid rolename.'
       '  Cannot start or end with a "/": ' + rolename)

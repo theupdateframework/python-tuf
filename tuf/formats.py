@@ -69,6 +69,7 @@ import datetime
 import time
 import copy
 
+from securesystemslib import exceptions as sslib_exceptions
 import securesystemslib.formats
 import securesystemslib.schema as SCHEMA
 
@@ -637,7 +638,7 @@ def expiry_string_to_datetime(expires):
   try:
     return datetime.datetime.strptime(expires, "%Y-%m-%dT%H:%M:%SZ")
   except ValueError as error:
-    six.raise_from(securesystemslib.exceptions.FormatError(
+    six.raise_from(sslib_exceptions.FormatError(
         'Failed to parse ' + repr(expires) + ' as an expiry time'),
         error)
 
@@ -675,7 +676,7 @@ def datetime_to_unix_timestamp(datetime_object):
   # Raise 'securesystemslib.exceptions.FormatError' if not.
   if not isinstance(datetime_object, datetime.datetime):
     message = repr(datetime_object) + ' is not a datetime.datetime() object.'
-    raise securesystemslib.exceptions.FormatError(message)
+    raise sslib_exceptions.FormatError(message)
 
   unix_timestamp = calendar.timegm(datetime_object.timetuple())
 
@@ -753,7 +754,7 @@ def format_base64(data):
     return binascii.b2a_base64(data).decode('utf-8').rstrip('=\n ')
 
   except (TypeError, binascii.Error) as e:
-    raise securesystemslib.exceptions.FormatError('Invalid base64'
+    raise sslib_exceptions.FormatError('Invalid base64'
       ' encoding: ' + str(e))
 
 
@@ -782,7 +783,7 @@ def parse_base64(base64_string):
 
   if not isinstance(base64_string, six.string_types):
     message = 'Invalid argument: '+repr(base64_string)
-    raise securesystemslib.exceptions.FormatError(message)
+    raise sslib_exceptions.FormatError(message)
 
   extra = len(base64_string) % 4
   if extra:
@@ -793,7 +794,7 @@ def parse_base64(base64_string):
     return binascii.a2b_base64(base64_string.encode('utf-8'))
 
   except (TypeError, binascii.Error) as e:
-    raise securesystemslib.exceptions.FormatError('Invalid base64'
+    raise sslib_exceptions.FormatError('Invalid base64'
       ' encoding: ' + str(e))
 
 
@@ -990,14 +991,14 @@ def check_signable_object_format(signable):
     role_type = signable['signed']['_type']
 
   except (KeyError, TypeError) as error:
-    six.raise_from(securesystemslib.exceptions.FormatError(
+    six.raise_from(sslib_exceptions.FormatError(
         'Untyped signable object.'), error)
 
   try:
     schema = SCHEMAS_BY_TYPE[role_type]
 
   except KeyError as error:
-    six.raise_from(securesystemslib.exceptions.FormatError(
+    six.raise_from(sslib_exceptions.FormatError(
         'Unrecognized type ' + repr(role_type)), error)
 
   if not signable['signatures']:

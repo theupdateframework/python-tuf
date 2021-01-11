@@ -39,6 +39,8 @@ import shutil
 import json
 import tempfile
 
+from securesystemslib import exceptions as sslib_exceptions
+
 import tuf
 from tuf import exceptions
 from tuf import formats
@@ -540,7 +542,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     # Ensure the 'consistent_snapshot' field is extracted.
     consistent_snapshot = root_metadata['consistent_snapshot']
 
-  except securesystemslib.exceptions.StorageError as error:
+  except sslib_exceptions.StorageError as error:
     six.raise_from(exceptions.RepositoryError('Cannot load the required'
         ' root file: ' + repr(root_filename)), error)
 
@@ -569,7 +571,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     roledb.update_roleinfo('timestamp', roleinfo, mark_role_as_dirty=False,
         repository_name=repository_name)
 
-  except securesystemslib.exceptions.StorageError as error:
+  except sslib_exceptions.StorageError as error:
     six.raise_from(exceptions.RepositoryError('Cannot load the Timestamp '
         'file: ' + repr(timestamp_filename)), error)
 
@@ -615,7 +617,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     roledb.update_roleinfo('snapshot', roleinfo, mark_role_as_dirty=False,
         repository_name=repository_name)
 
-  except securesystemslib.exceptions.StorageError as error:
+  except sslib_exceptions.StorageError as error:
     six.raise_from(exceptions.RepositoryError('The Snapshot file '
         'cannot be loaded: '+ repr(snapshot_filename)), error)
 
@@ -678,7 +680,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
       except exceptions.KeyAlreadyExistsError:
         pass
 
-  except securesystemslib.exceptions.StorageError as error:
+  except sslib_exceptions.StorageError as error:
     six.raise_from(exceptions.RepositoryError('The Targets file '
         'can not be loaded: ' + repr(targets_filename)), error)
 
@@ -759,7 +761,7 @@ def import_rsa_privatekey_from_file(filepath, password=None):
 
   # The user might not have given a password for an encrypted private key.
   # Prompt for a password for convenience.
-  except securesystemslib.exceptions.CryptoError:
+  except sslib_exceptions.CryptoError:
     if password is None:
       private_key = securesystemslib.interface.import_rsa_privatekey_from_file(
           filepath, password, prompt=True)
@@ -822,7 +824,7 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
 
   # The user might not have given a password for an encrypted private key.
   # Prompt for a password for convenience.
-  except securesystemslib.exceptions.CryptoError:
+  except sslib_exceptions.CryptoError:
     if password is None:
       private_key = securesystemslib.interface.import_ed25519_privatekey_from_file(
           filepath, password, prompt=True)
@@ -1116,7 +1118,7 @@ def get_bin_numbers(number_of_bins):
     # Note: x % y != 0 does not guarantee that y is not a power of 2 for
     # arbitrary x and y values. However, due to the relationship between
     # number_of_bins and prefix_count, it is true for them.
-    raise securesystemslib.exceptions.Error('The "number_of_bins" argument'
+    raise sslib_exceptions.Error('The "number_of_bins" argument'
         ' must be a power of 2.')
 
   return prefix_length, prefix_count, bin_size
@@ -1256,7 +1258,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
 
     # If a top-level role is missing from 'roledb', raise an exception.
     if not roledb.role_exists(rolename, repository_name):
-      raise securesystemslib.exceptions.Error(repr(rolename) + ' not in'
+      raise sslib_exceptions.Error(repr(rolename) + ' not in'
           ' "roledb".')
 
     # Collect keys from all roles in a list
@@ -1396,7 +1398,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
   securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_existing_fileinfo)
 
   if write_consistent_targets and use_existing_fileinfo:
-    raise securesystemslib.exceptions.Error('Cannot support writing consistent'
+    raise sslib_exceptions.Error('Cannot support writing consistent'
         ' targets and using existing fileinfo.')
 
   if delegations is not None:
@@ -1431,12 +1433,12 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
       # Ensure all fileinfo entries in target_files have a non-empty hashes dict
       if not fileinfo.get('hashes', None):
-        raise securesystemslib.exceptions.Error('use_existing_fileinfo option'
+        raise sslib_exceptions.Error('use_existing_fileinfo option'
             ' set but no hashes exist in fileinfo for ' + repr(target))
 
       # and a non-empty length
       if fileinfo.get('length', -1) < 0:
-        raise securesystemslib.exceptions.Error('use_existing_fileinfo option'
+        raise sslib_exceptions.Error('use_existing_fileinfo option'
             ' set but no length exists in fileinfo for ' + repr(target))
 
       filedict[target] = fileinfo
@@ -1870,7 +1872,7 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
         logger.debug('Private key unset.  Skipping: ' + repr(keyid))
 
     else:
-      raise securesystemslib.exceptions.Error('The keydb contains a key with'
+      raise sslib_exceptions.Error('The keydb contains a key with'
         ' an invalid key type.' + repr(key['keytype']))
 
   # Raise 'securesystemslib.exceptions.FormatError' if the resulting 'signable'

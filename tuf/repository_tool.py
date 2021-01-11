@@ -42,6 +42,8 @@ import json
 
 from collections import deque
 
+from securesystemslib import exceptions as sslib_exceptions
+
 import tuf
 from tuf import exceptions
 from tuf import formats
@@ -252,7 +254,7 @@ class Repository(object):
       roledb.create_roledb(repository_name)
       tuf.keydb.create_keydb(repository_name)
 
-    except securesystemslib.exceptions.InvalidNameError:
+    except sslib_exceptions.InvalidNameError:
       logger.debug(repr(repository_name) + ' already exists.  Overwriting'
           ' its contents.')
 
@@ -630,7 +632,7 @@ class Repository(object):
 
     # Ensure a valid directory is given.
     if not os.path.isdir(files_directory):
-      raise securesystemslib.exceptions.Error(repr(files_directory) + ' is not'
+      raise sslib_exceptions.Error(repr(files_directory) + ' is not'
         ' a directory.')
 
     # A list of the target filepaths found in 'files_directory'.
@@ -759,7 +761,7 @@ class Metadata(object):
     # Is 'expires' a datetime.datetime() object?
     # Raise 'securesystemslib.exceptions.FormatError' if not.
     if not isinstance(expires, datetime.datetime):
-      raise securesystemslib.exceptions.FormatError(repr(expires) + ' is not a'
+      raise sslib_exceptions.FormatError(repr(expires) + ' is not a'
           ' datetime.datetime() object.')
 
     # Truncate the microseconds value to produce a correct schema string
@@ -771,7 +773,7 @@ class Metadata(object):
       formats.unix_timestamp_to_datetime(int(time.time()))
 
     if expires < current_datetime:
-      raise securesystemslib.exceptions.Error(repr(key) + ' has already'
+      raise sslib_exceptions.Error(repr(key) + ' has already'
           ' expired.')
 
     # Update the key's 'expires' entry.
@@ -853,7 +855,7 @@ class Metadata(object):
           repository_name=self._repository_name)
 
     else:
-      raise securesystemslib.exceptions.Error('Verification key not found.')
+      raise sslib_exceptions.Error('Verification key not found.')
 
 
 
@@ -896,7 +898,7 @@ class Metadata(object):
     # Ensure the private portion of the key is available, otherwise signatures
     # cannot be generated when the metadata file is written to disk.
     if 'private' not in key['keyval'] or not len(key['keyval']['private']):
-      raise securesystemslib.exceptions.Error('This is not a private key.')
+      raise sslib_exceptions.Error('This is not a private key.')
 
     # Has the key, with the private portion included, been added to the keydb?
     # The public version of the key may have been previously added.
@@ -966,7 +968,7 @@ class Metadata(object):
           repository_name=self._repository_name)
 
     else:
-      raise securesystemslib.exceptions.Error('Signing key not found.')
+      raise sslib_exceptions.Error('Signing key not found.')
 
 
 
@@ -1077,7 +1079,7 @@ class Metadata(object):
           repository_name=self._repository_name)
 
     else:
-      raise securesystemslib.exceptions.Error('Signature not found.')
+      raise sslib_exceptions.Error('Signature not found.')
 
 
 
@@ -1375,7 +1377,7 @@ class Metadata(object):
     # Is 'datetime_object' a datetime.datetime() object?
     # Raise 'securesystemslib.exceptions.FormatError' if not.
     if not isinstance(datetime_object, datetime.datetime):
-      raise securesystemslib.exceptions.FormatError(
+      raise sslib_exceptions.FormatError(
           repr(datetime_object) + ' is not a datetime.datetime() object.')
 
     # truncate the microseconds value to produce a correct schema string
@@ -1387,7 +1389,7 @@ class Metadata(object):
       formats.unix_timestamp_to_datetime(int(time.time()))
 
     if datetime_object < current_datetime_object:
-      raise securesystemslib.exceptions.Error(repr(self.rolename) + ' has'
+      raise sslib_exceptions.Error(repr(self.rolename) + ' has'
         ' already expired.')
 
     # Update the role's 'expires' entry in 'roledb'.
@@ -1809,7 +1811,7 @@ class Targets(Metadata):
     formats.ROLENAME_SCHEMA.check_match(rolename)
 
     if not isinstance(targets_object, Targets):
-      raise securesystemslib.exceptions.FormatError(repr(targets_object) + ' is'
+      raise sslib_exceptions.FormatError(repr(targets_object) + ' is'
           ' not a Targets object.')
 
 
@@ -1939,7 +1941,7 @@ class Targets(Metadata):
     # Ensure that 'child_rolename' exists, otherwise it will not have an entry
     # in the parent role's delegations field.
     if not roledb.role_exists(child_rolename, self._repository_name):
-      raise securesystemslib.exceptions.Error(repr(child_rolename) + ' does'
+      raise sslib_exceptions.Error(repr(child_rolename) + ' does'
           ' not exist.')
 
     for path in paths:
@@ -2025,7 +2027,7 @@ class Targets(Metadata):
     formats.RELPATH_SCHEMA.check_match(filepath)
 
     if fileinfo and custom:
-      raise securesystemslib.exceptions.Error("Can only take one of"
+      raise sslib_exceptions.Error("Can only take one of"
           " custom or fileinfo, not both.")
 
     if fileinfo:
@@ -2170,7 +2172,7 @@ class Targets(Metadata):
           repository_name=self._repository_name)
 
     else:
-      raise securesystemslib.exceptions.Error('Target file path not found.')
+      raise sslib_exceptions.Error('Target file path not found.')
 
 
 
@@ -2719,7 +2721,7 @@ class Targets(Metadata):
 
     # Ensure the Targets object has delegated to hashed bins
     if not self._delegated_roles.get(bin_name, None):
-      raise securesystemslib.exceptions.Error(self.rolename + ' does not have'
+      raise sslib_exceptions.Error(self.rolename + ' does not have'
           ' a delegated role ' + bin_name)
 
     self._delegated_roles[bin_name].add_target(target_filepath,
@@ -2781,7 +2783,7 @@ class Targets(Metadata):
 
     # Ensure the Targets object has delegated to hashed bins
     if not self._delegated_roles.get(bin_name, None):
-      raise securesystemslib.exceptions.Error(self.rolename + ' does not have'
+      raise sslib_exceptions.Error(self.rolename + ' does not have'
           ' a delegated role ' + bin_name)
 
     self._delegated_roles[bin_name].remove_target(target_filepath)
@@ -3112,7 +3114,7 @@ def load_repository(repository_directory, repository_name='default',
     try:
       signable = securesystemslib.util.load_json_file(metadata_path)
 
-    except (securesystemslib.exceptions.Error, ValueError, IOError):
+    except (sslib_exceptions.Error, ValueError, IOError):
       logger.debug('Tried to load metadata with invalid JSON'
           ' content: ' + repr(metadata_path))
       continue

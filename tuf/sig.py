@@ -50,13 +50,14 @@ from __future__ import unicode_literals
 
 import logging
 
+import securesystemslib
+from securesystemslib import exceptions as sslib_exceptions
+
 import tuf
 from tuf import exceptions
 from tuf import formats
 from tuf import roledb
 import tuf.keydb
-
-import securesystemslib
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger(__name__)
@@ -168,7 +169,7 @@ def get_signature_status(signable, role=None, repository_name='default',
     try:
       valid_sig = securesystemslib.keys.verify_signature(key, signature, signed)
 
-    except securesystemslib.exceptions.UnsupportedAlgorithmError:
+    except sslib_exceptions.UnsupportedAlgorithmError:
       unknown_signing_schemes.append(keyid)
       continue
 
@@ -299,7 +300,7 @@ def verify(signable, role, repository_name='default', threshold=None,
   # Note: get_signature_status() is expected to verify that 'threshold' is
   # not None or <= 0.
   if threshold is None or threshold <= 0: #pragma: no cover
-    raise securesystemslib.exceptions.Error("Invalid threshold: " + repr(threshold))
+    raise sslib_exceptions.Error("Invalid threshold: " + repr(threshold))
 
   unique_keys = set()
   for keyid in good_sigs:

@@ -38,6 +38,8 @@ import shutil
 import tempfile
 import json
 
+from securesystemslib import exceptions as sslib_exceptions
+
 import tuf
 from tuf import exceptions
 from tuf import formats
@@ -322,7 +324,7 @@ class Project(Targets):
     # more than one key.
     # TODO: Add condition check for the requirement stated above.
     if len(self.keys) > 0:
-      raise securesystemslib.exceptions.Error("This project already contains a key.")
+      raise sslib_exceptions.Error("This project already contains a key.")
 
     super(Project, self).add_verification_key(key, expires)
 
@@ -389,7 +391,7 @@ class Project(Targets):
               repository_name=self.repository_name)
           self._log_status(delegated_role, signable[0], self.repository_name)
 
-        except securesystemslib.exceptions.Error:
+        except sslib_exceptions.Error:
           insufficient_signatures.append(delegated_role)
 
       if len(insufficient_keys):
@@ -516,7 +518,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   # 'signable' contains an invalid threshold of signatures.
   else:
     message = 'Not enough signatures for ' + repr(metadata_filename)
-    raise securesystemslib.exceptions.Error(message, signable)
+    raise sslib_exceptions.Error(message, signable)
 
   return signable, filename
 

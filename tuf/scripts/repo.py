@@ -147,6 +147,10 @@ import shutil
 import time
 import fnmatch
 
+import securesystemslib
+from securesystemslib import exceptions as sslib_exceptions
+from securesystemslib import interface
+
 import tuf
 from tuf import exceptions
 from tuf import formats
@@ -154,10 +158,6 @@ from tuf import log
 from tuf import roledb
 import tuf.repository_tool as repo_tool
 
-# 'pip install securesystemslib[crypto,pynacl]' is required for the CLI,
-# which installs the cryptography and pynacl.
-import securesystemslib
-from securesystemslib import interface
 import six
 
 
@@ -458,14 +458,14 @@ def import_privatekey_from_file(keypath, password=None):
   try:
     key_object = securesystemslib.keys.decrypt_key(encrypted_key, password)
 
-  except securesystemslib.exceptions.CryptoError:
+  except sslib_exceptions.CryptoError:
     try:
       logger.debug(
           'Decryption failed.  Attempting to import a private PEM instead.')
       key_object = securesystemslib.keys.import_rsakey_from_private_pem(
           encrypted_key, 'rsassa-pss-sha256', password)
 
-    except securesystemslib.exceptions.CryptoError as error:
+    except sslib_exceptions.CryptoError as error:
       six.raise_from(exceptions.Error(repr(keypath) + ' cannot be '
           ' imported, possibly because an invalid key file is given or '
           ' the decryption password is incorrect.'), error)
@@ -492,7 +492,7 @@ def import_publickey_from_file(keypath):
   # An RSA public key is saved to disk in PEM format (not JSON), so the
   # load_json_file() call above can fail for this reason.  Try to potentially
   # load the PEM string in keypath if an exception is raised.
-  except securesystemslib.exceptions.Error:
+  except sslib_exceptions.Error:
     key_metadata = securesystemslib.interface.import_rsa_publickey_from_file(
         keypath)
 
@@ -576,7 +576,7 @@ def remove_verification_key(parsed_arguments):
     # securesystemslib.exceptions.FormatError, and the latter is not raised
     # because a valid key should have been returned by
     # import_publickey_from_file().
-    except securesystemslib.exceptions.Error:
+    except sslib_exceptions.Error:
       print(repr(keypath) + ' is not a trusted key.  Skipping.')
 
   consistent_snapshot = roledb.get_roleinfo('root',

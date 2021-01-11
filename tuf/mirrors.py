@@ -32,10 +32,12 @@ from __future__ import unicode_literals
 
 import os
 
+import securesystemslib
+from securesystemslib import exceptions as sslib_exceptions
+
 import tuf
 from tuf import formats
 
-import securesystemslib
 import six
 
 # The type of file to be downloaded from a repository.  The
@@ -90,7 +92,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
 
   # Verify 'file_type' is supported.
   if file_type not in _SUPPORTED_FILE_TYPES:
-    raise securesystemslib.exceptions.Error('Invalid file_type argument.'
+    raise sslib_exceptions.Error('Invalid file_type argument.'
       '  Supported file types: ' + repr(_SUPPORTED_FILE_TYPES))
   path_key = 'metadata_path' if file_type == 'meta' else 'targets_path'
 

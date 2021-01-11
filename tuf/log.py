@@ -72,6 +72,8 @@ from __future__ import unicode_literals
 import logging
 import time
 
+from securesystemslib import exceptions as sslib_exceptions
+
 import tuf
 from tuf import exceptions
 from tuf import settings
@@ -269,7 +271,7 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
       'log_level' examples: logging.INFO; logging.CRITICAL.
 
   <Exceptions>
-    securesystems.exceptions.Error, if the 'log.py' console handler has not
+    securesystemslib.exceptions.Error, if the 'log.py' console handler has not
     been set yet with add_console_handler().
 
   <Side Effects>
@@ -291,7 +293,7 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
 
   else:
     message = 'The console handler has not been set with add_console_handler().'
-    raise securesystemslib.exceptions.Error(message)
+    raise sslib_exceptions.Error(message)
 
 
 
