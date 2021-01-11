@@ -40,7 +40,7 @@ import json
 
 import tuf
 from tuf import exceptions
-import tuf.formats
+from tuf import formats
 import tuf.keydb
 import tuf.roledb
 import tuf.sig
@@ -723,7 +723,7 @@ def _save_project_configuration(metadata_directory, targets_directory,
   securesystemslib.formats.PATH_SCHEMA.check_match(metadata_directory)
   securesystemslib.formats.PATH_SCHEMA.check_match(prefix)
   securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
-  tuf.formats.RELPATH_SCHEMA.check_match(project_name)
+  formats.RELPATH_SCHEMA.check_match(project_name)
 
   cfg_file_directory = metadata_directory
 
@@ -818,7 +818,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
   config_filename = os.path.join(project_directory, PROJECT_FILENAME)
 
   project_configuration = securesystemslib.util.load_json_file(config_filename)
-  tuf.formats.PROJECT_CFG_SCHEMA.check_match(project_configuration)
+  formats.PROJECT_CFG_SCHEMA.check_match(project_configuration)
 
   targets_directory = os.path.join(project_directory,
       project_configuration['targets_location'])
@@ -864,7 +864,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
       project_filename)
   signable = securesystemslib.util.load_json_file(targets_metadata_path)
   try:
-    tuf.formats.check_signable_object_format(signable)
+    formats.check_signable_object_format(signable)
   except exceptions.UnsignedMetadataError:
     # Downgrade the error to a warning because a use case exists where
     # metadata may be generated unsigned on one machine and signed on another.

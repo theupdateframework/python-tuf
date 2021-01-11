@@ -54,8 +54,8 @@ import copy
 
 import tuf
 from tuf import exceptions
+from tuf import formats
 import tuf.log
-import tuf.formats
 
 import securesystemslib
 import six
@@ -112,7 +112,7 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
   # This check will ensure 'root_metadata' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
   # Raises securesystemslib.exceptions.FormatError.
-  tuf.formats.ROOT_SCHEMA.check_match(root_metadata)
+  formats.ROOT_SCHEMA.check_match(root_metadata)
 
   # Is 'repository_name' formatted correctly?
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
@@ -295,10 +295,10 @@ def add_role(rolename, roleinfo, repository_name='default'):
   # Does 'rolename' have the correct object format?
   # This check will ensure 'rolename' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
-  tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+  formats.ROLENAME_SCHEMA.check_match(rolename)
 
   # Does 'roleinfo' have the correct object format?
-  tuf.formats.ROLEDB_SCHEMA.check_match(roleinfo)
+  formats.ROLEDB_SCHEMA.check_match(roleinfo)
 
   # Is 'repository_name' correctly formatted?
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
@@ -379,12 +379,12 @@ def update_roleinfo(rolename, roleinfo, mark_role_as_dirty=True, repository_name
   # Does the arguments have the correct object format?
   # This check will ensure arguments have the appropriate number of objects
   # and object types, and that all dict keys are properly named.
-  tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+  formats.ROLENAME_SCHEMA.check_match(rolename)
   securesystemslib.formats.BOOLEAN_SCHEMA.check_match(mark_role_as_dirty)
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
   # Does 'roleinfo' have the correct object format?
-  tuf.formats.ROLEDB_SCHEMA.check_match(roleinfo)
+  formats.ROLEDB_SCHEMA.check_match(roleinfo)
 
   # Raises securesystemslib.exceptions.InvalidNameError.
   _validate_rolename(rolename)
@@ -1031,7 +1031,7 @@ def _check_rolename(rolename, repository_name='default'):
   # Does 'rolename' have the correct object format?
   # This check will ensure 'rolename' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
-  tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+  formats.ROLENAME_SCHEMA.check_match(rolename)
 
   # Does 'repository_name' have the correct format?
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)

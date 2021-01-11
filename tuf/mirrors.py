@@ -33,7 +33,7 @@ from __future__ import unicode_literals
 import os
 
 import tuf
-import tuf.formats
+from tuf import formats
 
 import securesystemslib
 import six
@@ -84,8 +84,8 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   """
 
   # Checking if all the arguments have appropriate format.
-  tuf.formats.RELPATH_SCHEMA.check_match(file_path)
-  tuf.formats.MIRRORDICT_SCHEMA.check_match(mirrors_dict)
+  formats.RELPATH_SCHEMA.check_match(file_path)
+  formats.MIRRORDICT_SCHEMA.check_match(mirrors_dict)
   securesystemslib.formats.NAME_SCHEMA.check_match(file_type)
 
   # Verify 'file_type' is supported.

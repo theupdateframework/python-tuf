@@ -41,7 +41,7 @@ import six
 
 import tuf
 from tuf import exceptions
-import tuf.formats
+from tuf import formats
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger(__name__)
@@ -87,7 +87,7 @@ def safe_download(url, required_length, fetcher):
   # Do all of the arguments have the appropriate format?
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
   securesystemslib.formats.URL_SCHEMA.check_match(url)
-  tuf.formats.LENGTH_SCHEMA.check_match(required_length)
+  formats.LENGTH_SCHEMA.check_match(required_length)
 
   return _download_file(url, required_length, fetcher, STRICT_REQUIRED_LENGTH=True)
 
@@ -135,7 +135,7 @@ def unsafe_download(url, required_length, fetcher):
   # Do all of the arguments have the appropriate format?
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
   securesystemslib.formats.URL_SCHEMA.check_match(url)
-  tuf.formats.LENGTH_SCHEMA.check_match(required_length)
+  formats.LENGTH_SCHEMA.check_match(required_length)
 
   return _download_file(url, required_length, fetcher, STRICT_REQUIRED_LENGTH=False)
 

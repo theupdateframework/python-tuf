@@ -52,9 +52,9 @@ import logging
 
 import tuf
 from tuf import exceptions
+from tuf import formats
 import tuf.keydb
 import tuf.roledb
-import tuf.formats
 
 import securesystemslib
 
@@ -126,14 +126,14 @@ def get_signature_status(signable, role=None, repository_name='default',
   # arguments have the appropriate number of objects and object types, and that
   # all dict keys are properly named.  Raise
   # 'securesystemslib.exceptions.FormatError' if the check fails.
-  tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
+  formats.SIGNABLE_SCHEMA.check_match(signable)
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
   if role is not None:
-    tuf.formats.ROLENAME_SCHEMA.check_match(role)
+    formats.ROLENAME_SCHEMA.check_match(role)
 
   if threshold is not None:
-    tuf.formats.THRESHOLD_SCHEMA.check_match(threshold)
+    formats.THRESHOLD_SCHEMA.check_match(threshold)
 
   if keyids is not None:
     securesystemslib.formats.KEYIDS_SCHEMA.check_match(keyids)
@@ -280,8 +280,8 @@ def verify(signable, role, repository_name='default', threshold=None,
     role's threshold, False otherwise.
   """
 
-  tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
-  tuf.formats.ROLENAME_SCHEMA.check_match(role)
+  formats.SIGNABLE_SCHEMA.check_match(signable)
+  formats.ROLENAME_SCHEMA.check_match(role)
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
   # Retrieve the signature status.  tuf.sig.get_signature_status() raises:
@@ -338,7 +338,7 @@ def may_need_new_keys(signature_status):
   # This check will ensure 'signature_status' has the appropriate number
   # of objects and object types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
-  tuf.formats.SIGNATURESTATUS_SCHEMA.check_match(signature_status)
+  formats.SIGNATURESTATUS_SCHEMA.check_match(signature_status)
 
   unknown = signature_status['unknown_sigs']
   untrusted = signature_status['untrusted_sigs']

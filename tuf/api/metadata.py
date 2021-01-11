@@ -25,7 +25,7 @@ from securesystemslib.storage import FilesystemBackend, StorageBackendInterface
 from securesystemslib.util import persist_temp_file
 
 from tuf import exceptions
-import tuf.formats
+from tuf import formats
 from tuf.api.serialization import (
     MetadataDeserializer,
     MetadataSerializer,
@@ -337,7 +337,7 @@ class Signed:
         # Convert 'expires' TUF metadata string to a datetime object, which is
         # what the constructor expects and what we store. The inverse operation
         # is implemented in '_common_fields_to_dict'.
-        expires = tuf.formats.expiry_string_to_datetime(expires_str)
+        expires = formats.expiry_string_to_datetime(expires_str)
         return [_type, version, spec_version, expires]
 
     def _common_fields_to_dict(self) -> Dict[str, Any]:

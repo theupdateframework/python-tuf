@@ -45,7 +45,7 @@ import logging
 import copy
 
 from tuf import exceptions
-import tuf.formats
+from tuf import formats
 
 import six
 import securesystemslib
@@ -100,7 +100,7 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
   # This check will ensure 'root_metadata' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
-  tuf.formats.ROOT_SCHEMA.check_match(root_metadata)
+  formats.ROOT_SCHEMA.check_match(root_metadata)
 
   # Does 'repository_name' have the correct format?
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)

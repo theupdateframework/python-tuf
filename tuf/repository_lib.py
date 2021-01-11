@@ -40,8 +40,8 @@ import json
 import tempfile
 
 import tuf
-import tuf.formats
 from tuf import exceptions
+from tuf import formats
 import tuf.keydb
 import tuf.roledb
 import tuf.sig
@@ -500,7 +500,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     # Initialize the key and role metadata of the top-level roles.
     signable = securesystemslib.util.load_json_file(root_filename)
     try:
-      tuf.formats.check_signable_object_format(signable)
+      formats.check_signable_object_format(signable)
     except exceptions.UnsignedMetadataError:
       # Downgrade the error to a warning because a use case exists where
       # metadata may be generated unsigned on one machine and signed on another.
@@ -587,7 +587,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
   try:
     signable = securesystemslib.util.load_json_file(snapshot_filename)
     try:
-      tuf.formats.check_signable_object_format(signable)
+      formats.check_signable_object_format(signable)
     except exceptions.UnsignedMetadataError:
       # Downgrade the error to a warning because a use case exists where
       # metadata may be generated unsigned on one machine and signed on another.
@@ -629,7 +629,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
   try:
     signable = securesystemslib.util.load_json_file(targets_filename)
     try:
-      tuf.formats.check_signable_object_format(signable)
+      formats.check_signable_object_format(signable)
     except exceptions.UnsignedMetadataError:
       # Downgrade the error to a warning because a use case exists where
       # metadata may be generated unsigned on one machine and signed on another.
@@ -698,10 +698,10 @@ def _log_warning_if_expires_soon(rolename, expires_iso8601_timestamp,
   # unix timestamp, subtract from current time.time() (also in POSIX time)
   # and compare against 'seconds_remaining_to_warn'.  Log a warning message
   # to console if 'rolename' expires soon.
-  datetime_object = tuf.formats.expiry_string_to_datetime(
+  datetime_object = formats.expiry_string_to_datetime(
       expires_iso8601_timestamp)
   expires_unix_timestamp = \
-    tuf.formats.datetime_to_unix_timestamp(datetime_object)
+    formats.datetime_to_unix_timestamp(datetime_object)
   seconds_until_expires = expires_unix_timestamp - int(time.time())
 
   if seconds_until_expires <= seconds_remaining_to_warn:
@@ -985,7 +985,7 @@ def get_targets_metadata_fileinfo(filename, storage_backend, custom=None):
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
   securesystemslib.formats.PATH_SCHEMA.check_match(filename)
   if custom is not None:
-    tuf.formats.CUSTOM_SCHEMA.check_match(custom)
+    formats.CUSTOM_SCHEMA.check_match(custom)
 
   # Note: 'filehashes' is a dictionary of the form
   # {'sha256': 1233dfba312, ...}.  'custom' is an optional
@@ -995,7 +995,7 @@ def get_targets_metadata_fileinfo(filename, storage_backend, custom=None):
   filesize, filehashes = securesystemslib.util.get_file_details(filename,
       tuf.settings.FILE_HASH_ALGORITHMS, storage_backend)
 
-  return tuf.formats.make_targets_fileinfo(filesize, filehashes, custom=custom)
+  return formats.make_targets_fileinfo(filesize, filehashes, custom=custom)
 
 
 
@@ -1037,7 +1037,7 @@ def get_metadata_versioninfo(rolename, repository_name):
   # Does 'rolename' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
-  tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+  formats.ROLENAME_SCHEMA.check_match(rolename)
 
   roleinfo = tuf.roledb.get_roleinfo(rolename, repository_name)
   versioninfo = {'version': roleinfo['version']}
@@ -1182,7 +1182,7 @@ def get_target_hash(target_filepath):
     The hash of 'target_filepath'.
 
   """
-  tuf.formats.RELPATH_SCHEMA.check_match(target_filepath)
+  formats.RELPATH_SCHEMA.check_match(target_filepath)
 
   digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
   digest_object.update(target_filepath.encode('utf-8'))
@@ -1238,7 +1238,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
   # types, and that all dict keys are properly named.  Raise
   # 'securesystemslib.exceptions.FormatError' if any of the arguments are
   # improperly formatted.
-  tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
+  formats.METADATAVERSION_SCHEMA.check_match(version)
   securesystemslib.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
   securesystemslib.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
@@ -1268,8 +1268,8 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
     # Generate the authentication information Root establishes for each
     # top-level role.
     role_threshold = tuf.roledb.get_role_threshold(rolename, repository_name)
-    role_metadata = tuf.formats.build_dict_conforming_to_schema(
-        tuf.formats.ROLE_SCHEMA,
+    role_metadata = formats.build_dict_conforming_to_schema(
+        formats.ROLE_SCHEMA,
         keyids=keyids,
         threshold=role_threshold)
     roledict[rolename] = role_metadata
@@ -1285,8 +1285,8 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
   #       generate_root_metadata, etc. with one function that generates
   #       metadata, possibly rolling that upwards into the calling function.
   #       There are very few things that really need to be done differently.
-  return tuf.formats.build_dict_conforming_to_schema(
-      tuf.formats.ROOT_SCHEMA,
+  return formats.build_dict_conforming_to_schema(
+      formats.ROOT_SCHEMA,
       version=version,
       expires=expiration_date,
       keys=keydict,
@@ -1389,8 +1389,8 @@ def generate_targets_metadata(targets_directory, target_files, version,
   # types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
   securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
-  tuf.formats.PATH_FILEINFO_SCHEMA.check_match(target_files)
-  tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
+  formats.PATH_FILEINFO_SCHEMA.check_match(target_files)
+  formats.METADATAVERSION_SCHEMA.check_match(version)
   securesystemslib.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
   securesystemslib.formats.BOOLEAN_SCHEMA.check_match(write_consistent_targets)
   securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_existing_fileinfo)
@@ -1400,7 +1400,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
         ' targets and using existing fileinfo.')
 
   if delegations is not None:
-    tuf.formats.DELEGATIONS_SCHEMA.check_match(delegations)
+    formats.DELEGATIONS_SCHEMA.check_match(delegations)
     # If targets role has delegations, collect the up-to-date 'keyids' and
     # 'threshold' for each role. Update the delegations keys dictionary.
     delegations_keys = []
@@ -1460,15 +1460,15 @@ def generate_targets_metadata(targets_directory, target_files, version,
   #       metadata, possibly rolling that upwards into the calling function.
   #       There are very few things that really need to be done differently.
   if delegations is not None:
-    return tuf.formats.build_dict_conforming_to_schema(
-        tuf.formats.TARGETS_SCHEMA,
+    return formats.build_dict_conforming_to_schema(
+        formats.TARGETS_SCHEMA,
         version=version,
         expires=expiration_date,
         targets=filedict,
         delegations=delegations)
   else:
-    return tuf.formats.build_dict_conforming_to_schema(
-        tuf.formats.TARGETS_SCHEMA,
+    return formats.build_dict_conforming_to_schema(
+        formats.TARGETS_SCHEMA,
         version=version,
         expires=expiration_date,
         targets=filedict)
@@ -1621,7 +1621,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   # object types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
   securesystemslib.formats.PATH_SCHEMA.check_match(metadata_directory)
-  tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
+  formats.METADATAVERSION_SCHEMA.check_match(version)
   securesystemslib.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
   securesystemslib.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
@@ -1643,7 +1643,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   # Make file info dictionary with make_metadata_fileinfo because
   # in the tuf spec length and hashes are optional for all
   # METAFILES in snapshot.json including the top-level targets file.
-  fileinfodict[TARGETS_FILENAME] = tuf.formats.make_metadata_fileinfo(
+  fileinfodict[TARGETS_FILENAME] = formats.make_metadata_fileinfo(
       targets_file_version['version'], length, hashes)
 
   # Search the metadata directory and generate the versioninfo of all the role
@@ -1675,7 +1675,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
         file_version = get_metadata_versioninfo(rolename,
             repository_name)
 
-        fileinfodict[metadata_name] = tuf.formats.make_metadata_fileinfo(
+        fileinfodict[metadata_name] = formats.make_metadata_fileinfo(
             file_version['version'], length, hashes)
 
     else:
@@ -1691,8 +1691,8 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   #       generate_root_metadata, etc. with one function that generates
   #       metadata, possibly rolling that upwards into the calling function.
   #       There are very few things that really need to be done differently.
-  return tuf.formats.build_dict_conforming_to_schema(
-      tuf.formats.SNAPSHOT_SCHEMA,
+  return formats.build_dict_conforming_to_schema(
+      formats.SNAPSHOT_SCHEMA,
       version=version,
       expires=expiration_date,
       meta=fileinfodict)
@@ -1758,7 +1758,7 @@ def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
   # object types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
   securesystemslib.formats.PATH_SCHEMA.check_match(snapshot_file_path)
-  tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
+  formats.METADATAVERSION_SCHEMA.check_match(version)
   securesystemslib.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
   securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_length)
@@ -1773,7 +1773,7 @@ def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
   # Retrieve the versioninfo of the Snapshot metadata file.
   snapshot_version = get_metadata_versioninfo('snapshot', repository_name)
   snapshot_fileinfo[snapshot_filename] = \
-      tuf.formats.make_metadata_fileinfo(snapshot_version['version'],
+      formats.make_metadata_fileinfo(snapshot_version['version'],
           length, hashes)
 
   # Generate the timestamp metadata object.
@@ -1785,8 +1785,8 @@ def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
   #       generate_root_metadata, etc. with one function that generates
   #       metadata, possibly rolling that upwards into the calling function.
   #       There are very few things that really need to be done differently.
-  return tuf.formats.build_dict_conforming_to_schema(
-      tuf.formats.TIMESTAMP_SCHEMA,
+  return formats.build_dict_conforming_to_schema(
+      formats.TIMESTAMP_SCHEMA,
       version=version,
       expires=expiration_date,
       meta=snapshot_fileinfo)
@@ -1838,7 +1838,7 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
   # This check ensures arguments have the appropriate number of objects and
   # object types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
-  tuf.formats.ANYROLE_SCHEMA.check_match(metadata_object)
+  formats.ANYROLE_SCHEMA.check_match(metadata_object)
   securesystemslib.formats.KEYIDS_SCHEMA.check_match(keyids)
   securesystemslib.formats.PATH_SCHEMA.check_match(filename)
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
@@ -1847,7 +1847,7 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
   # it contains a 'signatures' field containing the result
   # of signing the 'signed' field of 'metadata' with each
   # keyid of 'keyids'.
-  signable = tuf.formats.make_signable(metadata_object)
+  signable = formats.make_signable(metadata_object)
 
   # Sign the metadata with each keyid in 'keyids'.  'signable' should have
   # zero signatures (metadata_object contained none).
@@ -1876,7 +1876,7 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
   # Raise 'securesystemslib.exceptions.FormatError' if the resulting 'signable'
   # is not formatted correctly.
   try:
-    tuf.formats.check_signable_object_format(signable)
+    formats.check_signable_object_format(signable)
   except exceptions.UnsignedMetadataError:
     # Downgrade the error to a warning because a use case exists where
     # metadata may be generated unsigned on one machine and signed on another.
@@ -1936,9 +1936,9 @@ def write_metadata_file(metadata, filename, version_number, consistent_snapshot,
   # This check ensures arguments have the appropriate number of objects and
   # object types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
-  tuf.formats.SIGNABLE_SCHEMA.check_match(metadata)
+  formats.SIGNABLE_SCHEMA.check_match(metadata)
   securesystemslib.formats.PATH_SCHEMA.check_match(filename)
-  tuf.formats.METADATAVERSION_SCHEMA.check_match(version_number)
+  formats.METADATAVERSION_SCHEMA.check_match(version_number)
   securesystemslib.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
 
   if storage_backend is None:

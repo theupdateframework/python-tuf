@@ -43,11 +43,11 @@ import json
 from collections import deque
 
 import tuf
-import tuf.formats
+from tuf import exceptions
+from tuf import formats
 import tuf.roledb
 import tuf.sig
 import tuf.log
-from tuf import exceptions
 import tuf.repository_lib as repo_lib
 
 import securesystemslib.keys
@@ -740,23 +740,23 @@ class Metadata(object):
     if expires is None:
       if self.rolename == 'root':
         expires = \
-          tuf.formats.unix_timestamp_to_datetime(int(time.time() + ROOT_EXPIRATION))
+          formats.unix_timestamp_to_datetime(int(time.time() + ROOT_EXPIRATION))
 
       elif self.rolename == 'Targets':
         expires = \
-          tuf.formats.unix_timestamp_to_datetime(int(time.time() + TARGETS_EXPIRATION))
+          formats.unix_timestamp_to_datetime(int(time.time() + TARGETS_EXPIRATION))
 
       elif self.rolename == 'Snapshot':
         expires = \
-          tuf.formats.unix_timestamp_to_datetime(int(time.time() + SNAPSHOT_EXPIRATION))
+          formats.unix_timestamp_to_datetime(int(time.time() + SNAPSHOT_EXPIRATION))
 
       elif self.rolename == 'Timestamp':
         expires = \
-          tuf.formats.unix_timestamp_to_datetime(int(time.time() + TIMESTAMP_EXPIRATION))
+          formats.unix_timestamp_to_datetime(int(time.time() + TIMESTAMP_EXPIRATION))
 
       else:
         expires = \
-          tuf.formats.unix_timestamp_to_datetime(int(time.time() + TIMESTAMP_EXPIRATION))
+          formats.unix_timestamp_to_datetime(int(time.time() + TIMESTAMP_EXPIRATION))
 
     # Is 'expires' a datetime.datetime() object?
     # Raise 'securesystemslib.exceptions.FormatError' if not.
@@ -770,7 +770,7 @@ class Metadata(object):
 
     # Ensure the expiration has not already passed.
     current_datetime = \
-      tuf.formats.unix_timestamp_to_datetime(int(time.time()))
+      formats.unix_timestamp_to_datetime(int(time.time()))
 
     if expires < current_datetime:
       raise securesystemslib.exceptions.Error(repr(key) + ' has already'
@@ -1234,7 +1234,7 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
+    formats.METADATAVERSION_SCHEMA.check_match(version)
 
     roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
     roleinfo['version'] = version
@@ -1306,7 +1306,7 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    tuf.formats.THRESHOLD_SCHEMA.check_match(threshold)
+    formats.THRESHOLD_SCHEMA.check_match(threshold)
 
     roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
     roleinfo['previous_threshold'] = roleinfo['threshold']
@@ -1339,7 +1339,7 @@ class Metadata(object):
     roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
     expires = roleinfo['expires']
 
-    return tuf.formats.expiry_string_to_datetime(expires)
+    return formats.expiry_string_to_datetime(expires)
 
 
 
@@ -1386,7 +1386,7 @@ class Metadata(object):
 
     # Ensure the expiration has not already passed.
     current_datetime_object = \
-      tuf.formats.unix_timestamp_to_datetime(int(time.time()))
+      formats.unix_timestamp_to_datetime(int(time.time()))
 
     if datetime_object < current_datetime_object:
       raise securesystemslib.exceptions.Error(repr(self.rolename) + ' has'
@@ -1477,11 +1477,11 @@ class Root(Metadata):
 
     # Is 'repository_name' properly formatted?  Otherwise, raise a
     # tuf.exceptions.FormatError exception.
-    tuf.formats.ROLENAME_SCHEMA.check_match(repository_name)
+    formats.ROLENAME_SCHEMA.check_match(repository_name)
 
     # By default, 'snapshot' metadata is set to expire 1 week from the current
     # time.  The expiration may be modified.
-    expiration = tuf.formats.unix_timestamp_to_datetime(
+    expiration = formats.unix_timestamp_to_datetime(
         int(time.time() + ROOT_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
 
@@ -1549,7 +1549,7 @@ class Timestamp(Metadata):
 
     # By default, 'root' metadata is set to expire 1 year from the current
     # time.  The expiration may be modified.
-    expiration = tuf.formats.unix_timestamp_to_datetime(
+    expiration = formats.unix_timestamp_to_datetime(
         int(time.time() + TIMESTAMP_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
 
@@ -1612,7 +1612,7 @@ class Snapshot(Metadata):
 
     # By default, 'snapshot' metadata is set to expire 1 week from the current
     # time.  The expiration may be modified.
-    expiration = tuf.formats.unix_timestamp_to_datetime(
+    expiration = formats.unix_timestamp_to_datetime(
         int(time.time() + SNAPSHOT_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
 
@@ -1693,11 +1693,11 @@ class Targets(Metadata):
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
     securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
-    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+    formats.ROLENAME_SCHEMA.check_match(rolename)
     securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
     if roleinfo is not None:
-      tuf.formats.ROLEDB_SCHEMA.check_match(roleinfo)
+      formats.ROLEDB_SCHEMA.check_match(roleinfo)
 
     super(Targets, self).__init__()
     self._targets_directory = targets_directory
@@ -1715,7 +1715,7 @@ class Targets(Metadata):
 
     # By default, Targets objects are set to expire 3 months from the current
     # time.  May be later modified.
-    expiration = tuf.formats.unix_timestamp_to_datetime(
+    expiration = formats.unix_timestamp_to_datetime(
         int(time.time() + TARGETS_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
 
@@ -1766,7 +1766,7 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+    formats.ROLENAME_SCHEMA.check_match(rolename)
 
     if rolename in self._delegated_roles:
       return self._delegated_roles[rolename]
@@ -1808,7 +1808,7 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+    formats.ROLENAME_SCHEMA.check_match(rolename)
 
     if not isinstance(targets_object, Targets):
       raise securesystemslib.exceptions.FormatError(repr(targets_object) + ' is'
@@ -1848,7 +1848,7 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+    formats.ROLENAME_SCHEMA.check_match(rolename)
 
     if rolename not in self._delegated_roles:
       logger.debug(repr(rolename) + ' has not been delegated.')
@@ -1936,7 +1936,7 @@ class Targets(Metadata):
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     securesystemslib.formats.PATHS_SCHEMA.check_match(paths)
-    tuf.formats.ROLENAME_SCHEMA.check_match(child_rolename)
+    formats.ROLENAME_SCHEMA.check_match(child_rolename)
 
     # Ensure that 'child_rolename' exists, otherwise it will not have an entry
     # in the parent role's delegations field.
@@ -2024,19 +2024,19 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    tuf.formats.RELPATH_SCHEMA.check_match(filepath)
+    formats.RELPATH_SCHEMA.check_match(filepath)
 
     if fileinfo and custom:
       raise securesystemslib.exceptions.Error("Can only take one of"
           " custom or fileinfo, not both.")
 
     if fileinfo:
-      tuf.formats.TARGETS_FILEINFO_SCHEMA.check_match(fileinfo)
+      formats.TARGETS_FILEINFO_SCHEMA.check_match(fileinfo)
 
     if custom is None:
       custom = {}
     else:
-      tuf.formats.CUSTOM_SCHEMA.check_match(custom)
+      formats.CUSTOM_SCHEMA.check_match(custom)
 
     # Add 'filepath' (i.e., relative to the targets directory) to the role's
     # list of targets.  'filepath' will not be verified as an allowed path
@@ -2104,7 +2104,7 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    tuf.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
+    formats.RELPATHS_SCHEMA.check_match(list_of_targets)
 
     # Ensure the paths in 'list_of_targets' are relative and use forward slash
     # as a separator or raise an exception. The paths of 'list_of_targets'
@@ -2162,7 +2162,7 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    tuf.formats.RELPATH_SCHEMA.check_match(filepath)
+    formats.RELPATH_SCHEMA.check_match(filepath)
 
     # Remove 'relative_filepath', if found, and update this Targets roleinfo.
     fileinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
@@ -2241,7 +2241,7 @@ class Targets(Metadata):
     expiration is set (3 months from the current time).
     """
 
-    expiration = tuf.formats.unix_timestamp_to_datetime(
+    expiration = formats.unix_timestamp_to_datetime(
         int(time.time() + TARGETS_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
 
@@ -2363,17 +2363,17 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+    formats.ROLENAME_SCHEMA.check_match(rolename)
     securesystemslib.formats.ANYKEYLIST_SCHEMA.check_match(public_keys)
-    tuf.formats.RELPATHS_SCHEMA.check_match(paths)
-    tuf.formats.THRESHOLD_SCHEMA.check_match(threshold)
+    formats.RELPATHS_SCHEMA.check_match(paths)
+    formats.THRESHOLD_SCHEMA.check_match(threshold)
     securesystemslib.formats.BOOLEAN_SCHEMA.check_match(terminating)
 
     if list_of_targets is not None:
-      tuf.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
+      formats.RELPATHS_SCHEMA.check_match(list_of_targets)
 
     if path_hash_prefixes is not None:
-      tuf.formats.PATH_HASH_PREFIXES_SCHEMA.check_match(path_hash_prefixes)
+      formats.PATH_HASH_PREFIXES_SCHEMA.check_match(path_hash_prefixes)
 
     # Keep track of the valid keyids (added to the new Targets object) and
     # their keydicts (added to this Targets delegations).
@@ -2477,7 +2477,7 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+    formats.ROLENAME_SCHEMA.check_match(rolename)
 
     # Remove 'rolename' from this Target's delegations dict.
     roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
@@ -2569,7 +2569,7 @@ class Targets(Metadata):
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     securesystemslib.formats.PATHS_SCHEMA.check_match(list_of_targets)
     securesystemslib.formats.ANYKEYLIST_SCHEMA.check_match(keys_of_hashed_bins)
-    tuf.formats.NUMBINS_SCHEMA.check_match(number_of_bins)
+    formats.NUMBINS_SCHEMA.check_match(number_of_bins)
 
     prefix_length, prefix_count, bin_size = repo_lib.get_bin_numbers(number_of_bins)
 
@@ -2712,7 +2712,7 @@ class Targets(Metadata):
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     securesystemslib.formats.PATH_SCHEMA.check_match(target_filepath)
-    tuf.formats.NUMBINS_SCHEMA.check_match(number_of_bins)
+    formats.NUMBINS_SCHEMA.check_match(number_of_bins)
 
     # TODO: check target_filepath is sane
 
@@ -2774,7 +2774,7 @@ class Targets(Metadata):
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     securesystemslib.formats.PATH_SCHEMA.check_match(target_filepath)
-    tuf.formats.NUMBINS_SCHEMA.check_match(number_of_bins)
+    formats.NUMBINS_SCHEMA.check_match(number_of_bins)
 
     # TODO: check target_filepath is sane?
 
@@ -2843,7 +2843,7 @@ class Targets(Metadata):
       None.
     """
 
-    tuf.formats.RELPATH_SCHEMA.check_match(pathname)
+    formats.RELPATH_SCHEMA.check_match(pathname)
 
     if '\\' in pathname:
       raise exceptions.InvalidNameError('Path ' + repr(pathname)
@@ -3222,7 +3222,7 @@ def dump_signable_metadata(metadata_filepath):
   signable = securesystemslib.util.load_json_file(metadata_filepath)
 
   # Is 'signable' a valid metadata file?
-  tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
+  formats.SIGNABLE_SCHEMA.check_match(signable)
 
   return securesystemslib.formats.encode_canonical(signable['signed'])
 
@@ -3278,7 +3278,7 @@ def append_signature(signature, metadata_filepath):
   signable = securesystemslib.util.load_json_file(metadata_filepath)
 
   # Is 'signable' a valid metadata file?
-  tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
+  formats.SIGNABLE_SCHEMA.check_match(signable)
 
   signable['signatures'].append(signature)
 
