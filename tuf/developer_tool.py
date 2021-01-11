@@ -43,8 +43,8 @@ from tuf import exceptions
 from tuf import formats
 from tuf import log
 from tuf import roledb
+from tuf import sig
 import tuf.keydb
-import tuf.sig
 import tuf.repository_lib as repo_lib
 import tuf.repository_tool
 
@@ -437,7 +437,7 @@ class Project(Targets):
     'rolename'.
     """
 
-    status = tuf.sig.get_signature_status(signable, rolename, repository_name)
+    status = sig.get_signature_status(signable, rolename, repository_name)
 
     message = repr(rolename) + ' role contains ' +\
       repr(len(status['good_sigs'])) + ' / ' + repr(status['threshold']) +\
@@ -490,7 +490,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
     temp_signable = repo_lib.sign_metadata(metadata, [], metadata_filename,
         repository_name)
     temp_signable['signatures'].extend(roleinfo['signatures'])
-    status = tuf.sig.get_signature_status(temp_signable, rolename,
+    status = sig.get_signature_status(temp_signable, rolename,
         repository_name)
     if len(status['good_sigs']) == 0:
       metadata['version'] = metadata['version'] + 1
@@ -499,7 +499,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
 
   # non-partial write()
   else:
-    if tuf.sig.verify(signable, rolename, repository_name):
+    if sig.verify(signable, rolename, repository_name):
       metadata['version'] = metadata['version'] + 1
       signable = repo_lib.sign_metadata(metadata, roleinfo['signing_keyids'],
           metadata_filename, repository_name)
@@ -507,7 +507,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   # Write the metadata to file if contains a threshold of signatures.
   signable['signatures'].extend(roleinfo['signatures'])
 
-  if tuf.sig.verify(signable, rolename, repository_name) or write_partial:
+  if sig.verify(signable, rolename, repository_name) or write_partial:
     repo_lib._remove_invalid_and_duplicate_signatures(signable, repository_name)
     storage_backend = securesystemslib.storage.FilesystemBackend()
     filename = repo_lib.write_metadata_file(signable, metadata_filename,

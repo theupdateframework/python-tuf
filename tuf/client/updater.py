@@ -138,9 +138,9 @@ from tuf import log
 from tuf import mirrors
 from tuf import roledb
 from tuf import settings
+from tuf import sig
 import tuf.requests_fetcher
 import tuf.keydb
-import tuf.sig
 
 import securesystemslib.exceptions
 import securesystemslib.hash
@@ -1449,7 +1449,7 @@ class Updater(object):
     # metadata.
 
     # Verify the signature on the downloaded metadata object.
-    valid = tuf.sig.verify(metadata_signable, metadata_role,
+    valid = sig.verify(metadata_signable, metadata_role,
         self.repository_name)
 
     if not valid:

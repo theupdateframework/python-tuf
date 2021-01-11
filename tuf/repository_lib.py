@@ -45,8 +45,8 @@ from tuf import formats
 from tuf import log
 from tuf import roledb
 from tuf import settings
+from tuf import sig
 import tuf.keydb
-import tuf.sig
 
 import securesystemslib
 import securesystemslib.hash
@@ -200,7 +200,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
     def should_write():
       # Root must be signed by its previous keys and threshold.
       if rolename == 'root' and len(previous_keyids) > 0:
-        if not tuf.sig.verify(signable, rolename, repository_name,
+        if not sig.verify(signable, rolename, repository_name,
             previous_threshold, previous_keyids):
           return False
 
@@ -208,7 +208,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
           logger.debug('Root is signed by a threshold of its previous keyids.')
 
       # In the normal case, we should write metadata if the threshold is met.
-      return tuf.sig.verify(signable, rolename, repository_name,
+      return sig.verify(signable, rolename, repository_name,
           roleinfo['threshold'], roleinfo['signing_keyids'])
 
 
@@ -276,7 +276,7 @@ def _metadata_is_partially_loaded(rolename, signable, repository_name):
 
   # The signature status lists the number of good signatures, including
   # bad, untrusted, unknown, etc.
-  status = tuf.sig.get_signature_status(signable, rolename, repository_name)
+  status = sig.get_signature_status(signable, rolename, repository_name)
 
   if len(status['good_sigs']) < status['threshold'] and \
                                                   len(status['good_sigs']) >= 0:
@@ -2147,7 +2147,7 @@ def _log_status(rolename, signable, repository_name):
   'rolename'.
   """
 
-  status = tuf.sig.get_signature_status(signable, rolename, repository_name)
+  status = sig.get_signature_status(signable, rolename, repository_name)
 
   logger.info(repr(rolename) + ' role contains ' + \
     repr(len(status['good_sigs'])) + ' / ' + repr(status['threshold']) + \

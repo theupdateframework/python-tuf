@@ -47,7 +47,6 @@ from tuf import exceptions
 from tuf import formats
 from tuf import log
 from tuf import roledb
-import tuf.sig
 import tuf.repository_lib as repo_lib
 
 import securesystemslib.keys
