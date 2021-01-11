@@ -44,9 +44,9 @@ from tuf import exceptions
 from tuf import formats
 from tuf import log
 from tuf import roledb
+from tuf import settings
 import tuf.keydb
 import tuf.sig
-import tuf.settings
 
 import securesystemslib
 import securesystemslib.hash
@@ -87,7 +87,7 @@ SUPPORTED_KEY_TYPES = ['rsa', 'ed25519', 'ecdsa-sha2-nistp256']
 
 # The algorithm used by the repository to generate the path hash prefixes
 # of hashed bin delegations.  Please see delegate_hashed_bins()
-HASH_FUNCTION = tuf.settings.DEFAULT_HASH_ALGORITHM
+HASH_FUNCTION = settings.DEFAULT_HASH_ALGORITHM
 
 
 
@@ -803,7 +803,7 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
 
     securesystemslib.exceptions.UnsupportedLibraryError, if 'filepath' cannot be
     decrypted due to an invalid configuration setting (i.e., invalid
-    'tuf.settings.py' setting).
+    'tuf.settings' setting).
 
   <Side Effects>
     'password' is used to decrypt the 'filepath' key file.
@@ -993,7 +993,7 @@ def get_targets_metadata_fileinfo(filename, storage_backend, custom=None):
   # file information, such as the file's author, version/revision
   # numbers, etc.
   filesize, filehashes = securesystemslib.util.get_file_details(filename,
-      tuf.settings.FILE_HASH_ALGORITHMS, storage_backend)
+      settings.FILE_HASH_ALGORITHMS, storage_backend)
 
   return formats.make_targets_fileinfo(filesize, filehashes, custom=custom)
 
@@ -1543,7 +1543,7 @@ def _get_hashes_and_length_if_needed(use_length, use_hashes, full_file_path,
 
   if use_hashes:
     hashes = securesystemslib.util.get_file_hashes(full_file_path,
-        tuf.settings.FILE_HASH_ALGORITHMS, storage_backend)
+        settings.FILE_HASH_ALGORITHMS, storage_backend)
 
   return length, hashes
 

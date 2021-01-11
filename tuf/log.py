@@ -73,8 +73,8 @@ import logging
 import time
 
 import tuf
-import tuf.settings
 from tuf import exceptions
+from tuf import settings
 
 import securesystemslib.formats
 
@@ -125,8 +125,8 @@ logger.addHandler(logging.NullHandler())
 # '_DEFAULT_LOG_LEVEL'.  The log level of messages handled by 'file_handler'
 # may be modified with 'set_filehandler_log_level()'.  'settings.LOG_FILENAME'
 # will be opened in append mode.
-if tuf.settings.ENABLE_FILE_LOGGING:
-  file_handler = logging.FileHandler(tuf.settings.LOG_FILENAME)
+if settings.ENABLE_FILE_LOGGING:
+  file_handler = logging.FileHandler(settings.LOG_FILENAME)
   file_handler.setLevel(_DEFAULT_FILE_LOG_LEVEL)
   file_handler.setFormatter(formatter)
   logger.addHandler(file_handler)
@@ -381,7 +381,7 @@ def remove_console_handler():
 
 
 
-def enable_file_logging(log_filename=tuf.settings.LOG_FILENAME):
+def enable_file_logging(log_filename=settings.LOG_FILENAME):
   """
   <Purpose>
     Log messages to a file (i.e., 'log_filename').  The log level for the file

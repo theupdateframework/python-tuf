@@ -42,6 +42,7 @@ import six
 import tuf
 from tuf import exceptions
 from tuf import formats
+from tuf import settings
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger(__name__)
@@ -208,15 +209,14 @@ def _download_file(url, required_length, fetcher, STRICT_REQUIRED_LENGTH=True):
       seconds_spent_receiving = stop_time - start_time
       average_download_speed = number_of_bytes_received / seconds_spent_receiving
 
-      if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
+      if average_download_speed < settings.MIN_AVERAGE_DOWNLOAD_SPEED:
         logger.debug('The average download speed dropped below the minimum'
-          ' average download speed set in tuf.settings.py. Stopping the'
-          ' download!')
+          ' average download speed set in settings. Stopping the download!.')
         break
 
       else:
         logger.debug('The average download speed has not dipped below the'
-          ' minimum average download speed set in tuf.settings.py.')
+          ' minimum average download speed set in settings.')
 
     # Does the total number of downloaded bytes match the required length?
     _check_downloaded_length(number_of_bytes_received, required_length,
@@ -273,7 +273,7 @@ def _check_downloaded_length(total_downloaded, required_length,
 
     tuf.exceptions.SlowRetrievalError, if the total downloaded was
     done in less than the acceptable download speed (as set in
-    tuf.settings.py).
+    tuf.settings).
 
   <Returns>
     None.
@@ -296,9 +296,9 @@ def _check_downloaded_length(total_downloaded, required_length,
       # If the average download speed is below a certain threshold, we flag
       # this as a possible slow-retrieval attack.
       logger.debug('Average download speed: ' + repr(average_download_speed))
-      logger.debug('Minimum average download speed: ' + repr(tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED))
+      logger.debug('Minimum average download speed: ' + repr(settings.MIN_AVERAGE_DOWNLOAD_SPEED))
 
-      if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
+      if average_download_speed < settings.MIN_AVERAGE_DOWNLOAD_SPEED:
         raise exceptions.SlowRetrievalError(average_download_speed)
 
       else:
@@ -312,7 +312,7 @@ def _check_downloaded_length(total_downloaded, required_length,
       # will log a warning anyway. This is useful when we wish to download the
       # Timestamp or Root metadata, for which we have no signed metadata; so,
       # we must guess a reasonable required_length for it.
-      if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
+      if average_download_speed < settings.MIN_AVERAGE_DOWNLOAD_SPEED:
         raise exceptions.SlowRetrievalError(average_download_speed)
 
       else:

@@ -74,8 +74,8 @@ import logging
 import tuf
 from tuf import exceptions
 from tuf import log
+from tuf import settings
 import tuf.client.updater
-import tuf.settings
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger(__name__)
@@ -113,7 +113,7 @@ def update_client(parsed_arguments):
     logger.debug('We have a valid argparse Namespace object.')
 
   # Set the local repositories directory containing all of the metadata files.
-  tuf.settings.repositories_directory = '.'
+  settings.repositories_directory = '.'
 
   # Set the repository mirrors.  This dictionary is needed by the Updater
   # class of updater.py.

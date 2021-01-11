@@ -137,8 +137,8 @@ from tuf import formats
 from tuf import log
 from tuf import mirrors
 from tuf import roledb
+from tuf import settings
 import tuf.requests_fetcher
-import tuf.settings
 import tuf.keydb
 import tuf.sig
 
@@ -151,14 +151,14 @@ import six
 # The Timestamp role does not have signed metadata about it; otherwise we
 # would need an infinite regress of metadata. Therefore, we use some
 # default, but sane, upper file length for its metadata.
-DEFAULT_TIMESTAMP_UPPERLENGTH = tuf.settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
+DEFAULT_TIMESTAMP_UPPERLENGTH = settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
 
 # The Root role may be updated without knowing its version number if
 # top-level metadata cannot be safely downloaded (e.g., keys may have been
 # revoked, thus requiring a new Root file that includes the updated keys)
 # and 'unsafely_update_root_if_necessary' is True.
 # We use some default, but sane, upper file length for its metadata.
-DEFAULT_ROOT_UPPERLENGTH = tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH
+DEFAULT_ROOT_UPPERLENGTH = settings.DEFAULT_ROOT_REQUIRED_LENGTH
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger(__name__)
@@ -270,7 +270,7 @@ class MultiRepoUpdater(object):
     formats.MAPPING_SCHEMA.check_match(self.map_file['mapping'])
 
     # Set the top-level directory containing the metadata for each repository.
-    repositories_directory = tuf.settings.repositories_directory
+    repositories_directory = settings.repositories_directory
 
     # Verify that the required local directories exist for each repository.
     self._verify_metadata_directories(repositories_directory)
@@ -731,13 +731,13 @@ class Updater(object):
     self.consistent_snapshot = False
 
     # Ensure the repository metadata directory has been set.
-    if tuf.settings.repositories_directory is None:
+    if settings.repositories_directory is None:
       raise exceptions.RepositoryError('The TUF update client'
         ' module must specify the directory containing the local repository'
         ' files.  "tuf.settings.repositories_directory" MUST be set.')
 
     # Set the path for the current set of metadata files.
-    repositories_directory = tuf.settings.repositories_directory
+    repositories_directory = settings.repositories_directory
     repository_directory = os.path.join(repositories_directory, self.repository_name)
 
     # raise MissingLocalRepository if the repo does not exist at all.
@@ -1138,7 +1138,7 @@ class Updater(object):
     # Following the spec, try downloading the N+1th root for a certain maximum
     # number of times.
     lower_bound = current_root_metadata['version'] + 1
-    upper_bound = lower_bound + tuf.settings.MAX_NUMBER_ROOT_ROTATIONS
+    upper_bound = lower_bound + settings.MAX_NUMBER_ROOT_ROTATIONS
 
     # Try downloading the next root.
     for next_version in range(lower_bound, upper_bound):
@@ -1852,11 +1852,11 @@ class Updater(object):
     # expected role.  Note: The Timestamp role is not updated via this
     # function.
     if metadata_role == 'snapshot':
-      upperbound_filelength = tuf.settings.DEFAULT_SNAPSHOT_REQUIRED_LENGTH
+      upperbound_filelength = settings.DEFAULT_SNAPSHOT_REQUIRED_LENGTH
 
     # The metadata is considered Targets (or delegated Targets metadata).
     else:
-      upperbound_filelength = tuf.settings.DEFAULT_TARGETS_REQUIRED_LENGTH
+      upperbound_filelength = settings.DEFAULT_TARGETS_REQUIRED_LENGTH
 
     try:
       self._update_metadata(metadata_role, upperbound_filelength,
@@ -2681,7 +2681,7 @@ class Updater(object):
     current_metadata = self.metadata['current']
     role_names = ['targets']
     visited_role_names = set()
-    number_of_delegations = tuf.settings.MAX_NUMBER_OF_DELEGATIONS
+    number_of_delegations = settings.MAX_NUMBER_OF_DELEGATIONS
 
     # Ensure the client has the most up-to-date version of 'targets.json'.
     # Raise 'tuf.exceptions.NoWorkingMirrorError' if the changed metadata
@@ -2755,7 +2755,7 @@ class Updater(object):
     if target is None and number_of_delegations == 0 and len(role_names) > 0:
       logger.debug(repr(len(role_names)) + ' roles left to visit, ' +
           'but allowed to visit at most ' +
-          repr(tuf.settings.MAX_NUMBER_OF_DELEGATIONS) + ' delegations.')
+          repr(settings.MAX_NUMBER_OF_DELEGATIONS) + ' delegations.')
 
     return target
 
