@@ -135,10 +135,10 @@ from tuf import download
 from tuf import exceptions
 from tuf import formats
 from tuf import log
+from tuf import mirrors
 import tuf.requests_fetcher
 import tuf.settings
 import tuf.keydb
-import tuf.mirrors
 import tuf.roledb
 import tuf.sig
 
@@ -1313,7 +1313,7 @@ class Updater(object):
       dirname, basename = os.path.split(target_filepath)
       target_filepath = os.path.join(dirname, target_digest + '.' + basename)
 
-    file_mirrors = tuf.mirrors.get_list_of_mirrors('target', target_filepath,
+    file_mirrors = mirrors.get_list_of_mirrors('target', target_filepath,
         self.mirrors)
 
     # file_mirror (URL): error (Exception)
@@ -1511,7 +1511,7 @@ class Updater(object):
       A file object containing the metadata.
     """
 
-    file_mirrors = tuf.mirrors.get_list_of_mirrors('meta', remote_filename,
+    file_mirrors = mirrors.get_list_of_mirrors('meta', remote_filename,
         self.mirrors)
 
     # file_mirror (URL): error (Exception)
