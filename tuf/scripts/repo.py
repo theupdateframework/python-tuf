@@ -150,7 +150,7 @@ import fnmatch
 import tuf
 from tuf import exceptions
 from tuf import formats
-import tuf.log
+from tuf import log
 import tuf.repository_tool as repo_tool
 
 # 'pip install securesystemslib[crypto,pynacl]' is required for the CLI,
@@ -1127,7 +1127,7 @@ def parse_arguments():
   logging_levels = [logging.NOTSET, logging.DEBUG,
       logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL]
 
-  tuf.log.set_log_level(logging_levels[parsed_args.verbose])
+  log.set_log_level(logging_levels[parsed_args.verbose])
 
   return parsed_args
 

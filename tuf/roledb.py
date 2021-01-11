@@ -55,7 +55,7 @@ import copy
 import tuf
 from tuf import exceptions
 from tuf import formats
-import tuf.log
+from tuf import log
 
 import securesystemslib
 import six

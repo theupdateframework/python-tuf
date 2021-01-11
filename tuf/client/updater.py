@@ -134,10 +134,10 @@ import tuf
 from tuf import download
 from tuf import exceptions
 from tuf import formats
+from tuf import log
 import tuf.requests_fetcher
 import tuf.settings
 import tuf.keydb
-import tuf.log
 import tuf.mirrors
 import tuf.roledb
 import tuf.sig

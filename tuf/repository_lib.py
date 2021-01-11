@@ -42,10 +42,10 @@ import tempfile
 import tuf
 from tuf import exceptions
 from tuf import formats
+from tuf import log
 import tuf.keydb
 import tuf.roledb
 import tuf.sig
-import tuf.log
 import tuf.settings
 
 import securesystemslib
@@ -2269,7 +2269,7 @@ def disable_console_log_messages():
     None.
   """
 
-  tuf.log.remove_console_handler()
+  log.remove_console_handler()
 
 
 
