@@ -131,7 +131,7 @@ import warnings
 import io
 
 import tuf
-import tuf.download
+from tuf import download
 import tuf.requests_fetcher
 import tuf.formats
 import tuf.settings
@@ -1225,7 +1225,7 @@ class Updater(object):
       Non-public method that ensures the length of 'file_object' is strictly
       equal to 'trusted_file_length'.  This is a deliberately redundant
       implementation designed to complement
-      tuf.download._check_downloaded_length().
+      download._check_downloaded_length().
 
     <Arguments>
       file_object:
@@ -1322,7 +1322,7 @@ class Updater(object):
 
     for file_mirror in file_mirrors:
       try:
-        file_object = tuf.download.safe_download(file_mirror,
+        file_object = download.safe_download(file_mirror,
             file_length, self.fetcher)
 
         # Verify 'file_object' against the expected length and hashes.
@@ -1520,7 +1520,7 @@ class Updater(object):
 
     for file_mirror in file_mirrors:
       try:
-        file_object = tuf.download.unsafe_download(file_mirror,
+        file_object = download.unsafe_download(file_mirror,
             upperbound_filelength, self.fetcher)
         file_object.seek(0)
 

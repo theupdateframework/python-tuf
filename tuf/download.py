@@ -53,7 +53,7 @@ def safe_download(url, required_length, fetcher):
     Given the 'url' and 'required_length' of the desired file, open a connection
     to 'url', download it, and return the contents of the file.  Also ensure
     the length of the downloaded file matches 'required_length' exactly.
-    tuf.download.unsafe_download() may be called if an upper download limit is
+    download.unsafe_download() may be called if an upper download limit is
     preferred.
 
   <Arguments>
@@ -101,7 +101,7 @@ def unsafe_download(url, required_length, fetcher):
     Given the 'url' and 'required_length' of the desired file, open a connection
     to 'url', download it, and return the contents of the file.  Also ensure
     the length of the downloaded file is up to 'required_length', and no larger.
-    tuf.download.safe_download() may be called if an exact download limit is
+    download.safe_download() may be called if an exact download limit is
     preferred.
 
   <Arguments>
