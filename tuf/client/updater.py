@@ -499,10 +499,10 @@ class MultiRepoUpdater(object):
         # Create repository mirrors object needed by the
         # tuf.client.updater.Updater().  Each 'repository_name' can have more
         # than one mirror.
-        mirrors = {}
+        repo_mirrors = {}
 
         for url in self.repository_names_to_mirrors[repository_name]:
-          mirrors[url] = {
+          repo_mirrors[url] = {
             'url_prefix': url,
             'metadata_path': 'metadata',
             'targets_path': 'targets'}
@@ -511,7 +511,7 @@ class MultiRepoUpdater(object):
           # NOTE: State (e.g., keys) should NOT be shared across different
           # updater instances.
           logger.debug('Adding updater for ' + repr(repository_name))
-          updater = tuf.client.updater.Updater(repository_name, mirrors)
+          updater = tuf.client.updater.Updater(repository_name, repo_mirrors)
 
         except Exception:
           return None
