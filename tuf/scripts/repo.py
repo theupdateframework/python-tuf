@@ -152,6 +152,7 @@ from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
 from securesystemslib import interface as sslib_interface
 from securesystemslib import keys as sslib_keys
+from securesystemslib import settings as sslib_settings
 from securesystemslib import util as sslib_util
 
 import tuf
@@ -481,7 +482,7 @@ def import_privatekey_from_file(keypath, password=None):
   else:
     # Add "keyid_hash_algorithms" so that equal keys with different keyids can
     # be associated using supported keyid_hash_algorithms.
-    key_object['keyid_hash_algorithms'] = securesystemslib.settings.HASH_ALGORITHMS
+    key_object['keyid_hash_algorithms'] = sslib_settings.HASH_ALGORITHMS
 
     return key_object
 
