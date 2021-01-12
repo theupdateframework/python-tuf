@@ -143,7 +143,7 @@ from tuf import download
 from tuf import exceptions
 from tuf import formats
 from tuf import keydb
-from tuf import log
+from tuf import log # pylint: disable=unused-import
 from tuf import mirrors
 from tuf import roledb
 from tuf import settings

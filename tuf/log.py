@@ -75,7 +75,6 @@ import time
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
 
-import tuf
 from tuf import exceptions
 from tuf import settings
 

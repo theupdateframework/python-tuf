@@ -52,14 +52,12 @@ from __future__ import unicode_literals
 import logging
 import copy
 
-import securesystemslib
+import securesystemslib # pylint: disable=unused-import
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
 
-import tuf
 from tuf import exceptions
 from tuf import formats
-from tuf import log
 
 import six
 

@@ -71,7 +71,6 @@ import sys
 import argparse
 import logging
 
-import tuf
 from tuf import exceptions
 from tuf import log
 from tuf import settings

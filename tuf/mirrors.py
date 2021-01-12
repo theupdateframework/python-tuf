@@ -32,12 +32,11 @@ from __future__ import unicode_literals
 
 import os
 
-import securesystemslib
+import securesystemslib # pylint: disable=unused-import
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
 from securesystemslib.util import file_in_confined_directories
 
-import tuf
 from tuf import formats
 
 import six

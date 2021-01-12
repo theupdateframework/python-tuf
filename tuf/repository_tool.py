@@ -48,7 +48,6 @@ from securesystemslib import formats as sslib_formats
 from securesystemslib import util as sslib_util
 from securesystemslib import storage as sslib_storage
 
-import tuf
 from tuf import exceptions
 from tuf import formats
 from tuf import keydb

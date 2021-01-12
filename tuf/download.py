@@ -36,7 +36,7 @@ import six
 import timeit
 import tempfile
 
-import securesystemslib
+import securesystemslib # pylint: disable=unused-import
 from securesystemslib import formats as sslib_formats
 
 import tuf
