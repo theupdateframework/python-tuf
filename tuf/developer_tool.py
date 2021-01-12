@@ -52,7 +52,7 @@ import tuf.repository_lib as repo_lib
 import tuf.repository_tool
 
 import securesystemslib
-import securesystemslib.util
+from securesystemslib import util as sslib_util
 
 import six
 
@@ -270,7 +270,7 @@ class Project(Targets):
       # Ensure the parent directories of 'metadata_filepath' exist, otherwise an
       # IO exception is raised if 'metadata_filepath' is written to a
       # sub-directory.
-      securesystemslib.util.ensure_parent_dir(delegated_filename)
+      sslib_util.ensure_parent_dir(delegated_filename)
 
       _generate_and_write_metadata(delegated_rolename, delegated_filename,
           write_partial, self.targets_directory, prefix=self.prefix,
@@ -820,7 +820,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
   # Load the cfg file and the project.
   config_filename = os.path.join(project_directory, PROJECT_FILENAME)
 
-  project_configuration = securesystemslib.util.load_json_file(config_filename)
+  project_configuration = sslib_util.load_json_file(config_filename)
   formats.PROJECT_CFG_SCHEMA.check_match(project_configuration)
 
   targets_directory = os.path.join(project_directory,
@@ -865,7 +865,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
   # Load the project's metadata.
   targets_metadata_path = os.path.join(project_directory, metadata_directory,
       project_filename)
-  signable = securesystemslib.util.load_json_file(targets_metadata_path)
+  signable = sslib_util.load_json_file(targets_metadata_path)
   try:
     formats.check_signable_object_format(signable)
   except exceptions.UnsignedMetadataError:
@@ -936,7 +936,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
         continue
 
       signable = None
-      signable = securesystemslib.util.load_json_file(metadata_path)
+      signable = sslib_util.load_json_file(metadata_path)
 
       # Strip the prefix from the local working copy, it will be added again
       # when the targets metadata is written to disk.

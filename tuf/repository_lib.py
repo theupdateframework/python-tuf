@@ -43,6 +43,7 @@ from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
 from securesystemslib import interface as sslib_interface
 from securesystemslib import keys as sslib_keys
+from securesystemslib import util as sslib_util
 
 import tuf
 from tuf import exceptions
@@ -55,7 +56,6 @@ import tuf.keydb
 
 import securesystemslib
 import securesystemslib.hash
-import securesystemslib.util
 import six
 
 import securesystemslib.storage
@@ -502,7 +502,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
   # written.
   try:
     # Initialize the key and role metadata of the top-level roles.
-    signable = securesystemslib.util.load_json_file(root_filename)
+    signable = sslib_util.load_json_file(root_filename)
     try:
       formats.check_signable_object_format(signable)
     except exceptions.UnsignedMetadataError:
@@ -551,7 +551,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
   # Load 'timestamp.json'.  A Timestamp role file without a version number is
   # always written.
   try:
-    signable = securesystemslib.util.load_json_file(timestamp_filename)
+    signable = sslib_util.load_json_file(timestamp_filename)
     timestamp_metadata = signable['signed']
     for signature in signable['signatures']:
       repository.timestamp.add_signature(signature, mark_role_as_dirty=False)
@@ -589,7 +589,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
         str(snapshot_version) + '.' + basename + METADATA_EXTENSION)
 
   try:
-    signable = securesystemslib.util.load_json_file(snapshot_filename)
+    signable = sslib_util.load_json_file(snapshot_filename)
     try:
       formats.check_signable_object_format(signable)
     except exceptions.UnsignedMetadataError:
@@ -631,7 +631,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     targets_filename = os.path.join(dirname, str(targets_version) + '.' + basename)
 
   try:
-    signable = securesystemslib.util.load_json_file(targets_filename)
+    signable = sslib_util.load_json_file(targets_filename)
     try:
       formats.check_signable_object_format(signable)
     except exceptions.UnsignedMetadataError:
@@ -996,7 +996,7 @@ def get_targets_metadata_fileinfo(filename, storage_backend, custom=None):
   # dictionary that a client might define to include additional
   # file information, such as the file's author, version/revision
   # numbers, etc.
-  filesize, filehashes = securesystemslib.util.get_file_details(filename,
+  filesize, filehashes = sslib_util.get_file_details(filename,
       settings.FILE_HASH_ALGORITHMS, storage_backend)
 
   return formats.make_targets_fileinfo(filesize, filehashes, custom=custom)
@@ -1542,11 +1542,11 @@ def _get_hashes_and_length_if_needed(use_length, use_hashes, full_file_path,
   length = None
   hashes = None
   if use_length:
-    length = securesystemslib.util.get_file_length(full_file_path,
+    length = sslib_util.get_file_length(full_file_path,
         storage_backend)
 
   if use_hashes:
-    hashes = securesystemslib.util.get_file_hashes(full_file_path,
+    hashes = sslib_util.get_file_hashes(full_file_path,
         settings.FILE_HASH_ALGORITHMS, storage_backend)
 
   return length, hashes
@@ -1980,7 +1980,7 @@ def write_metadata_file(metadata, filename, version_number, consistent_snapshot,
     # the consistent snapshot and point 'written_filename' to it.
     logger.debug('Creating a consistent file for ' + repr(filename))
     logger.debug('Saving ' + repr(written_consistent_filename))
-    securesystemslib.util.persist_temp_file(file_object,
+    sslib_util.persist_temp_file(file_object,
         written_consistent_filename, should_close=False)
 
   else:

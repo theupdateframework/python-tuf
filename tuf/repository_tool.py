@@ -44,6 +44,7 @@ from collections import deque
 
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
+from securesystemslib import util as sslib_util
 
 import tuf
 from tuf import exceptions
@@ -52,7 +53,6 @@ from tuf import log
 from tuf import roledb
 import tuf.repository_lib as repo_lib
 
-import securesystemslib.util
 import six
 
 import securesystemslib.storage
@@ -3112,7 +3112,7 @@ def load_repository(repository_directory, repository_name='default',
     signable = None
 
     try:
-      signable = securesystemslib.util.load_json_file(metadata_path)
+      signable = sslib_util.load_json_file(metadata_path)
 
     except (sslib_exceptions.Error, ValueError, IOError):
       logger.debug('Tried to load metadata with invalid JSON'
@@ -3219,7 +3219,7 @@ def dump_signable_metadata(metadata_filepath):
   # Are the argument properly formatted?
   sslib_formats.PATH_SCHEMA.check_match(metadata_filepath)
 
-  signable = securesystemslib.util.load_json_file(metadata_filepath)
+  signable = sslib_util.load_json_file(metadata_filepath)
 
   # Is 'signable' a valid metadata file?
   formats.SIGNABLE_SCHEMA.check_match(signable)
@@ -3275,7 +3275,7 @@ def append_signature(signature, metadata_filepath):
   sslib_formats.SIGNATURE_SCHEMA.check_match(signature)
   sslib_formats.PATH_SCHEMA.check_match(metadata_filepath)
 
-  signable = securesystemslib.util.load_json_file(metadata_filepath)
+  signable = sslib_util.load_json_file(metadata_filepath)
 
   # Is 'signable' a valid metadata file?
   formats.SIGNABLE_SCHEMA.check_match(signable)
@@ -3288,7 +3288,7 @@ def append_signature(signature, metadata_filepath):
       separators=(',', ': '), sort_keys=True).encode('utf-8')
 
   file_object.write(written_metadata_content)
-  securesystemslib.util.persist_temp_file(file_object, metadata_filepath)
+  sslib_util.persist_temp_file(file_object, metadata_filepath)
 
 
 

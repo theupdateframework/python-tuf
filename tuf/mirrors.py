@@ -35,6 +35,7 @@ import os
 import securesystemslib
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
+from securesystemslib.util import file_in_confined_directories
 
 import tuf
 from tuf import formats
@@ -97,14 +98,6 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
       '  Supported file types: ' + repr(_SUPPORTED_FILE_TYPES))
   path_key = 'metadata_path' if file_type == 'meta' else 'targets_path'
 
-  # Reference to 'securesystemslib.util.file_in_confined_directories()' (improve
-  # readability).  This function checks whether a mirror should serve a file to
-  # the client.  A client may be confined to certain paths on a repository
-  # mirror when fetching target files.  This field may be set by the client
-  # when the repository mirror is added to the 'tuf.client.updater.Updater'
-  # object.
-  in_confined_directory = securesystemslib.util.file_in_confined_directories
-
   list_of_mirrors = []
   for junk, mirror_info in six.iteritems(mirrors_dict):
     # Does mirror serve this file type at all?
@@ -116,8 +109,9 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
     if path_key == 'targets_path':
       full_filepath = os.path.join(path, file_path)
       confined_target_dirs = mirror_info.get('confined_target_dirs')
-      # confined_target_dirs is an optional field
-      if confined_target_dirs and not in_confined_directory(full_filepath,
+      # confined_target_dirs is optional and can used to confine the client to
+      # certain paths on a repository mirror when fetching target files.
+      if confined_target_dirs and not file_in_confined_directories(full_filepath,
           confined_target_dirs):
         continue
 

@@ -150,8 +150,9 @@ import fnmatch
 import securesystemslib
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
-from securesystemslib import keys as sslib_keys
 from securesystemslib import interface as sslib_interface
+from securesystemslib import keys as sslib_keys
+from securesystemslib import util as sslib_util
 
 import tuf
 from tuf import exceptions
@@ -419,8 +420,8 @@ def gen_key(parsed_arguments):
     pubkey_repo_path =  os.path.join(parsed_arguments.path,
         KEYSTORE_DIR, os.path.basename(keypath + '.pub'))
 
-    securesystemslib.util.ensure_parent_dir(privkey_repo_path)
-    securesystemslib.util.ensure_parent_dir(pubkey_repo_path)
+    sslib_util.ensure_parent_dir(privkey_repo_path)
+    sslib_util.ensure_parent_dir(pubkey_repo_path)
 
     # Move them from the CWD to the repo's keystore.
     shutil.move(keypath, privkey_repo_path)
@@ -489,7 +490,7 @@ def import_privatekey_from_file(keypath, password=None):
 def import_publickey_from_file(keypath):
 
   try:
-    key_metadata = securesystemslib.util.load_json_file(keypath)
+    key_metadata = sslib_util.load_json_file(keypath)
 
   # An RSA public key is saved to disk in PEM format (not JSON), so the
   # load_json_file() call above can fail for this reason.  Try to potentially
@@ -714,8 +715,7 @@ def add_target_to_repo(parsed_arguments, target_path, repo_targets_path,
     logger.debug(repr(target_path) + ' does not exist.  Skipping.')
 
   else:
-    securesystemslib.util.ensure_parent_dir(
-        os.path.join(repo_targets_path, target_path))
+    sslib_util.ensure_parent_dir(os.path.join(repo_targets_path, target_path))
     shutil.copy(target_path, os.path.join(repo_targets_path, target_path))
 
 
