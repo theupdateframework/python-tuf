@@ -128,6 +128,7 @@ import shutil
 import time
 import fnmatch
 import copy
+import six
 import warnings
 import io
 
@@ -148,8 +149,6 @@ from tuf import roledb
 from tuf import settings
 from tuf import sig
 import tuf.requests_fetcher
-
-import six
 
 # The Timestamp role does not have signed metadata about it; otherwise we
 # would need an infinite regress of metadata. Therefore, we use some

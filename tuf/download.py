@@ -32,12 +32,12 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import logging
+import six
 import timeit
 import tempfile
 
 import securesystemslib
 from securesystemslib import formats as sslib_formats
-import six
 
 import tuf
 from tuf import exceptions
