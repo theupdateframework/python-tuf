@@ -39,8 +39,10 @@ import shutil
 import json
 import tempfile
 
+import securesystemslib
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
+from securesystemslib import hash as sslib_hash
 from securesystemslib import interface as sslib_interface
 from securesystemslib import keys as sslib_keys
 from securesystemslib import util as sslib_util
@@ -55,8 +57,6 @@ from tuf import settings
 from tuf import sig
 import tuf.keydb
 
-import securesystemslib
-import securesystemslib.hash
 import six
 
 
@@ -1187,7 +1187,7 @@ def get_target_hash(target_filepath):
   """
   formats.RELPATH_SCHEMA.check_match(target_filepath)
 
-  digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
+  digest_object = sslib_hash.digest(algorithm=HASH_FUNCTION)
   digest_object.update(target_filepath.encode('utf-8'))
   return digest_object.hexdigest()
 
