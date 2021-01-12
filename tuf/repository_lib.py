@@ -41,6 +41,7 @@ import tempfile
 
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
+from securesystemslib import keys as sslib_keys
 
 import tuf
 from tuf import exceptions
@@ -349,7 +350,7 @@ def _remove_invalid_and_duplicate_signatures(signable, repository_name):
       continue
 
     # Remove 'signature' from 'signable' if it is an invalid signature.
-    if not securesystemslib.keys.verify_signature(key, signature, signed):
+    if not sslib_keys.verify_signature(key, signature, signed):
       logger.debug('Removing invalid signature for ' + repr(keyid))
       signable['signatures'].remove(signature)
 
@@ -666,7 +667,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     for keyid, key_metadata in six.iteritems(targets_metadata['delegations']['keys']):
 
       # Use the keyid found in the delegation
-      key_object, _ = securesystemslib.keys.format_metadata_to_key(key_metadata,
+      key_object, _ = sslib_keys.format_metadata_to_key(key_metadata,
           keyid)
 
       # Add 'key_object' to the list of recognized keys.  Keys may be shared,
@@ -1863,7 +1864,7 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
       if 'private' in key['keyval']:
         signed = sslib_formats.encode_canonical(signable['signed']).encode('utf-8')
         try:
-          signature = securesystemslib.keys.create_signature(key, signed)
+          signature = sslib_keys.create_signature(key, signed)
           signable['signatures'].append(signature)
 
         except Exception:
@@ -2298,7 +2299,7 @@ def keys_to_keydict(keys):
 
   for key in keys:
     keyid = key['keyid']
-    key_metadata_format = securesystemslib.keys.format_keyval_to_metadata(
+    key_metadata_format = sslib_keys.format_keyval_to_metadata(
         key['keytype'], key['scheme'], key['keyval'])
 
     new_keydict = {keyid: key_metadata_format}

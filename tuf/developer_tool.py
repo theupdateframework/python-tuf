@@ -53,7 +53,6 @@ import tuf.repository_tool
 
 import securesystemslib
 import securesystemslib.util
-import securesystemslib.keys
 
 import six
 
@@ -76,7 +75,8 @@ from tuf.repository_lib import (
     import_rsa_privatekey_from_file)
 
 from securesystemslib.keys import (
-    format_keyval_to_metadata)
+    format_keyval_to_metadata,
+    format_metadata_to_key)
 
 from securesystemslib.interface import (
     generate_and_write_rsa_keypair,
@@ -859,7 +859,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
   keydict = project_configuration['public_keys']
 
   for keyid in keydict:
-    key, junk = securesystemslib.keys.format_metadata_to_key(keydict[keyid])
+    key, junk = format_metadata_to_key(keydict[keyid])
     project.add_verification_key(key)
 
   # Load the project's metadata.
@@ -898,7 +898,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
       repository_name=repository_name)
 
   for key_metadata in targets_metadata['delegations']['keys'].values():
-    key_object, junk = securesystemslib.keys.format_metadata_to_key(key_metadata)
+    key_object, junk = format_metadata_to_key(key_metadata)
     tuf.keydb.add_key(key_object, repository_name=repository_name)
 
   for role in targets_metadata['delegations']['roles']:
@@ -976,7 +976,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
 
       # Add the keys specified in the delegations field of the Targets role.
       for key_metadata in metadata_object['delegations']['keys'].values():
-        key_object, junk = securesystemslib.keys.format_metadata_to_key(key_metadata)
+        key_object, junk = format_metadata_to_key(key_metadata)
 
         try:
           tuf.keydb.add_key(key_object, repository_name=repository_name)

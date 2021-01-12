@@ -47,6 +47,7 @@ import copy
 import securesystemslib
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
+from securesystemslib import keys as sslib_keys
 
 from tuf import exceptions
 from tuf import formats
@@ -126,7 +127,7 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
       # format_metadata_to_key() uses the provided keyid as the default keyid.
       # All other keyids returned are ignored.
 
-      key_dict, _ = securesystemslib.keys.format_metadata_to_key(key_metadata,
+      key_dict, _ = sslib_keys.format_metadata_to_key(key_metadata,
           keyid)
 
       # Make sure to update key_dict['keyid'] to use one of the other valid

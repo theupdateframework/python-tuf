@@ -150,6 +150,7 @@ import fnmatch
 import securesystemslib
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
+from securesystemslib import keys as sslib_keys
 from securesystemslib import interface
 
 import tuf
@@ -457,13 +458,13 @@ def import_privatekey_from_file(keypath, password=None):
   # the derived encryption key from 'password'.  Raise
   # 'securesystemslib.exceptions.CryptoError' if the decryption fails.
   try:
-    key_object = securesystemslib.keys.decrypt_key(encrypted_key, password)
+    key_object = sslib_keys.decrypt_key(encrypted_key, password)
 
   except sslib_exceptions.CryptoError:
     try:
       logger.debug(
           'Decryption failed.  Attempting to import a private PEM instead.')
-      key_object = securesystemslib.keys.import_rsakey_from_private_pem(
+      key_object = sslib_keys.import_rsakey_from_private_pem(
           encrypted_key, 'rsassa-pss-sha256', password)
 
     except sslib_exceptions.CryptoError as error:
@@ -497,7 +498,7 @@ def import_publickey_from_file(keypath):
     key_metadata = securesystemslib.interface.import_rsa_publickey_from_file(
         keypath)
 
-  key_object, junk = securesystemslib.keys.format_metadata_to_key(key_metadata)
+  key_object, junk = sslib_keys.format_metadata_to_key(key_metadata)
 
   if key_object['keytype'] not in SUPPORTED_KEY_TYPES:
     raise exceptions.Error('Trying to import an unsupported key'

@@ -53,6 +53,7 @@ import logging
 import securesystemslib
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
+from securesystemslib import keys as sslib_keys
 
 import tuf
 from tuf import exceptions
@@ -168,7 +169,7 @@ def get_signature_status(signable, role=None, repository_name='default',
 
     # Does the signature use an unknown/unsupported signing scheme?
     try:
-      valid_sig = securesystemslib.keys.verify_signature(key, signature, signed)
+      valid_sig = sslib_keys.verify_signature(key, signature, signed)
 
     except sslib_exceptions.UnsupportedAlgorithmError:
       unknown_signing_schemes.append(keyid)
@@ -398,6 +399,6 @@ def generate_rsa_signature(signed, rsakey_dict):
 
   # Generate the RSA signature.
   # Raises securesystemslib.exceptions.FormatError and TypeError.
-  signature = securesystemslib.keys.create_signature(rsakey_dict, signed)
+  signature = sslib_keys.create_signature(rsakey_dict, signed)
 
   return signature

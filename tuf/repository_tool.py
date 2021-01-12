@@ -52,7 +52,6 @@ from tuf import log
 from tuf import roledb
 import tuf.repository_lib as repo_lib
 
-import securesystemslib.keys
 import securesystemslib.util
 import six
 
@@ -89,6 +88,7 @@ from securesystemslib.interface import (
     import_ecdsa_privatekey_from_file)
 
 from securesystemslib.keys import (
+    format_metadata_to_key,
     generate_rsa_key,
     generate_ecdsa_key,
     generate_ed25519_key,
@@ -3167,7 +3167,7 @@ def load_repository(repository_directory, repository_name='default',
       # The repo may have used hashing algorithms for the generated keyids
       # that doesn't match the client's set of hash algorithms.  Make sure
       # to only used the repo's selected hashing algorithms.
-      key_object, keyids = securesystemslib.keys.format_metadata_to_key(key_metadata,
+      key_object, keyids = format_metadata_to_key(key_metadata,
           keyid_hash_algorithms=key_metadata['keyid_hash_algorithms'])
       try:
         for keyid in keyids: # pragma: no branch
