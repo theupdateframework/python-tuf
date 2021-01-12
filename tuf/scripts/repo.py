@@ -151,7 +151,7 @@ import securesystemslib
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
 from securesystemslib import keys as sslib_keys
-from securesystemslib import interface
+from securesystemslib import interface as sslib_interface
 
 import tuf
 from tuf import exceptions
@@ -397,16 +397,16 @@ def gen_key(parsed_arguments):
         ' key types: ' + repr(SUPPORTED_CLI_KEYTYPES))
 
   elif parsed_arguments.key == ECDSA_KEYTYPE:
-    keypath = securesystemslib.interface._generate_and_write_ecdsa_keypair(
+    keypath = sslib_interface._generate_and_write_ecdsa_keypair(
         **keygen_kwargs)
 
   elif parsed_arguments.key == ED25519_KEYTYPE:
-    keypath = securesystemslib.interface._generate_and_write_ed25519_keypair(
+    keypath = sslib_interface._generate_and_write_ed25519_keypair(
         **keygen_kwargs)
 
   # RSA key..
   else:
-    keypath = securesystemslib.interface._generate_and_write_rsa_keypair(
+    keypath = sslib_interface._generate_and_write_rsa_keypair(
         **keygen_kwargs)
 
 
@@ -440,8 +440,8 @@ def import_privatekey_from_file(keypath, password=None):
     # worry about leaking sensitive information about the key's location.
     # However, care should be taken when including the full path in exceptions
     # and log files.
-    password = securesystemslib.interface.get_password('Enter a password for'
-        ' the encrypted key (' + interface.TERM_RED + repr(keypath) + interface.TERM_RED + '): ',
+    password = sslib_interface.get_password('Enter a password for'
+        ' the encrypted key (' + sslib_interface.TERM_RED + repr(keypath) + sslib_interface.TERM_RED + '): ',
         confirm=False)
 
   # Does 'password' have the correct format?
@@ -495,7 +495,7 @@ def import_publickey_from_file(keypath):
   # load_json_file() call above can fail for this reason.  Try to potentially
   # load the PEM string in keypath if an exception is raised.
   except sslib_exceptions.Error:
-    key_metadata = securesystemslib.interface.import_rsa_publickey_from_file(
+    key_metadata = sslib_interface.import_rsa_publickey_from_file(
         keypath)
 
   key_object, junk = sslib_keys.format_metadata_to_key(key_metadata)
@@ -835,7 +835,7 @@ def remove_targets(parsed_arguments):
   # repo.py --init --pw my_password: parsed_arguments.pw = 'my_password'
   # repo.py --init --pw: The user is prompted for a password, as follows:
   if not parsed_arguments.pw:
-    parsed_arguments.pw = securesystemslib.interface.get_password(
+    parsed_arguments.pw = sslib_interface.get_password(
         prompt='Enter a password for the top-level role keys: ', confirm=True)
 
   targets_private = import_privatekey_from_file(
@@ -907,19 +907,19 @@ def set_top_level_keys(repository, parsed_arguments):
   # repo.py --init --*_pw my_pw: parsed_arguments.*_pw = 'my_pw'
   # repo.py --init --*_pw: The user is prompted for a password.
 
-  securesystemslib.interface._generate_and_write_ed25519_keypair(
+  sslib_interface._generate_and_write_ed25519_keypair(
       password=parsed_arguments.root_pw,
       filepath=os.path.join(parsed_arguments.path, KEYSTORE_DIR, ROOT_KEY_NAME),
       prompt=(not parsed_arguments.root_pw))
-  securesystemslib.interface._generate_and_write_ed25519_keypair(
+  sslib_interface._generate_and_write_ed25519_keypair(
       password=parsed_arguments.targets_pw,
       filepath=os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
       prompt=(not parsed_arguments.targets_pw))
-  securesystemslib.interface._generate_and_write_ed25519_keypair(
+  sslib_interface._generate_and_write_ed25519_keypair(
       password=parsed_arguments.snapshot_pw,
       filepath=os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
       prompt=(not parsed_arguments.snapshot_pw))
-  securesystemslib.interface._generate_and_write_ed25519_keypair(
+  sslib_interface._generate_and_write_ed25519_keypair(
       password=parsed_arguments.timestamp_pw,
       filepath=os.path.join(parsed_arguments.path, KEYSTORE_DIR, TIMESTAMP_KEY_NAME),
       prompt=(not parsed_arguments.timestamp_pw))

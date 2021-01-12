@@ -41,6 +41,7 @@ import tempfile
 
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
+from securesystemslib import interface as sslib_interface
 from securesystemslib import keys as sslib_keys
 
 import tuf
@@ -54,7 +55,6 @@ import tuf.keydb
 
 import securesystemslib
 import securesystemslib.hash
-import securesystemslib.interface
 import securesystemslib.util
 import six
 
@@ -758,14 +758,14 @@ def import_rsa_privatekey_from_file(filepath, password=None):
   # prompt for a password if the key file is encrypted and a password isn't
   # given.
   try:
-    private_key = securesystemslib.interface.import_rsa_privatekey_from_file(
+    private_key = sslib_interface.import_rsa_privatekey_from_file(
         filepath, password)
 
   # The user might not have given a password for an encrypted private key.
   # Prompt for a password for convenience.
   except sslib_exceptions.CryptoError:
     if password is None:
-      private_key = securesystemslib.interface.import_rsa_privatekey_from_file(
+      private_key = sslib_interface.import_rsa_privatekey_from_file(
           filepath, password, prompt=True)
 
     else:
@@ -821,14 +821,14 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
   # automatically prompt for a password if the key file is encrypted and a
   # password isn't given.
   try:
-    private_key = securesystemslib.interface.import_ed25519_privatekey_from_file(
+    private_key = sslib_interface.import_ed25519_privatekey_from_file(
         filepath, password)
 
   # The user might not have given a password for an encrypted private key.
   # Prompt for a password for convenience.
   except sslib_exceptions.CryptoError:
     if password is None:
-      private_key = securesystemslib.interface.import_ed25519_privatekey_from_file(
+      private_key = sslib_interface.import_ed25519_privatekey_from_file(
           filepath, password, prompt=True)
 
     else:
