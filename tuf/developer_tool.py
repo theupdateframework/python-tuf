@@ -40,6 +40,7 @@ import json
 
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
+from securesystemslib import storage as sslib_storage
 
 import tuf
 from tuf import exceptions
@@ -512,7 +513,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
 
   if sig.verify(signable, rolename, repository_name) or write_partial:
     repo_lib._remove_invalid_and_duplicate_signatures(signable, repository_name)
-    storage_backend = securesystemslib.storage.FilesystemBackend()
+    storage_backend = sslib_storage.FilesystemBackend()
     filename = repo_lib.write_metadata_file(signable, metadata_filename,
         metadata['version'], False, storage_backend)
 

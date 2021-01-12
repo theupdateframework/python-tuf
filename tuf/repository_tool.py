@@ -45,6 +45,7 @@ from collections import deque
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
 from securesystemslib import util as sslib_util
+from securesystemslib import storage as sslib_storage
 
 import tuf
 from tuf import exceptions
@@ -54,8 +55,6 @@ from tuf import roledb
 import tuf.repository_lib as repo_lib
 
 import six
-
-import securesystemslib.storage
 
 
 # Copy API
@@ -2929,7 +2928,7 @@ def create_new_repository(repository_directory, repository_name='default',
   sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   if storage_backend is None:
-    storage_backend = securesystemslib.storage.FilesystemBackend()
+    storage_backend = sslib_storage.FilesystemBackend()
 
   # Set the repository, metadata, and targets directories.  These directories
   # are created if they do not exist.
@@ -3039,7 +3038,7 @@ def load_repository(repository_directory, repository_name='default',
   sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   if storage_backend is None:
-    storage_backend = securesystemslib.storage.FilesystemBackend()
+    storage_backend = sslib_storage.FilesystemBackend()
 
   repository_directory = os.path.abspath(repository_directory)
   metadata_directory = os.path.join(repository_directory,

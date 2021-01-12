@@ -44,6 +44,7 @@ from securesystemslib import formats as sslib_formats
 from securesystemslib import interface as sslib_interface
 from securesystemslib import keys as sslib_keys
 from securesystemslib import util as sslib_util
+from securesystemslib import storage as sslib_storage
 
 import tuf
 from tuf import exceptions
@@ -57,8 +58,6 @@ import tuf.keydb
 import securesystemslib
 import securesystemslib.hash
 import six
-
-import securesystemslib.storage
 
 
 # See 'log.py' to learn how logging is handled in TUF.
@@ -1449,7 +1448,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
     # Generate the fileinfo dicts by accessing the target files on storage.
     # Default to accessing files on local storage.
     if storage_backend is None:
-      storage_backend = securesystemslib.storage.FilesystemBackend()
+      storage_backend = sslib_storage.FilesystemBackend()
 
     filedict = _generate_targets_fileinfo(target_files, targets_directory,
         write_consistent_targets, storage_backend)
@@ -1946,7 +1945,7 @@ def write_metadata_file(metadata, filename, version_number, consistent_snapshot,
   sslib_formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
 
   if storage_backend is None:
-    storage_backend = securesystemslib.storage.FilesystemBackend()
+    storage_backend = sslib_storage.FilesystemBackend()
 
   # Generate the actual metadata file content of 'metadata'.  Metadata is
   # saved as JSON and includes formatting, such as indentation and sorted
