@@ -39,6 +39,7 @@ import tempfile
 import json
 
 from securesystemslib import exceptions as sslib_exceptions
+from securesystemslib import formats as sslib_formats
 
 import tuf
 from tuf import exceptions
@@ -197,11 +198,11 @@ class Project(Targets):
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly
     # formatted.
-    securesystemslib.formats.NAME_SCHEMA.check_match(project_name)
-    securesystemslib.formats.PATH_SCHEMA.check_match(metadata_directory)
-    securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
-    securesystemslib.formats.ANY_STRING_SCHEMA.check_match(file_prefix)
-    securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+    sslib_formats.NAME_SCHEMA.check_match(project_name)
+    sslib_formats.PATH_SCHEMA.check_match(metadata_directory)
+    sslib_formats.PATH_SCHEMA.check_match(targets_directory)
+    sslib_formats.ANY_STRING_SCHEMA.check_match(file_prefix)
+    sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
     self.metadata_directory = metadata_directory
     self.targets_directory = targets_directory
@@ -252,7 +253,7 @@ class Project(Targets):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(write_partial)
+    sslib_formats.BOOLEAN_SCHEMA.check_match(write_partial)
 
     # At this point the tuf.keydb and roledb stores must be fully
     # populated, otherwise write() throwns a 'tuf.Repository' exception if
@@ -589,13 +590,13 @@ def create_new_project(project_name, metadata_directory,
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.PATH_SCHEMA.check_match(metadata_directory)
+  sslib_formats.PATH_SCHEMA.check_match(metadata_directory)
 
   # Do the same for the location in the repo and the project name, we must
   # ensure they are valid pathnames.
-  securesystemslib.formats.NAME_SCHEMA.check_match(project_name)
-  securesystemslib.formats.ANY_STRING_SCHEMA.check_match(location_in_repository)
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAME_SCHEMA.check_match(project_name)
+  sslib_formats.ANY_STRING_SCHEMA.check_match(location_in_repository)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   # for the targets directory we do the same, but first, let's find out what
   # layout the user needs, layout_type is a variable that is usually set to
@@ -611,10 +612,10 @@ def create_new_project(project_name, metadata_directory,
     layout_type = 'repo-like'
 
   if targets_directory is not None:
-    securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
+    sslib_formats.PATH_SCHEMA.check_match(targets_directory)
 
   if key is not None:
-    securesystemslib.formats.KEY_SCHEMA.check_match(key)
+    sslib_formats.KEY_SCHEMA.check_match(key)
 
   # Set the metadata and targets directories.  These directories
   # are created if they do not exist.
@@ -722,9 +723,9 @@ def _save_project_configuration(metadata_directory, targets_directory,
   """
 
   # Schema check for the arguments.
-  securesystemslib.formats.PATH_SCHEMA.check_match(metadata_directory)
-  securesystemslib.formats.PATH_SCHEMA.check_match(prefix)
-  securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
+  sslib_formats.PATH_SCHEMA.check_match(metadata_directory)
+  sslib_formats.PATH_SCHEMA.check_match(prefix)
+  sslib_formats.PATH_SCHEMA.check_match(targets_directory)
   formats.RELPATH_SCHEMA.check_match(project_name)
 
   cfg_file_directory = metadata_directory
@@ -803,11 +804,11 @@ def load_project(project_directory, prefix='', new_targets_location=None,
 
   # Does 'repository_directory' have the correct format?
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.PATH_SCHEMA.check_match(project_directory)
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.PATH_SCHEMA.check_match(project_directory)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   # Do the same for the prefix
-  securesystemslib.formats.ANY_STRING_SCHEMA.check_match(prefix)
+  sslib_formats.ANY_STRING_SCHEMA.check_match(prefix)
 
   # Clear the role and key databases since we are loading in a new project.
   roledb.clear_roledb(clear_all=True)

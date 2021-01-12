@@ -36,6 +36,7 @@ import timeit
 import tempfile
 
 import securesystemslib
+from securesystemslib import formats as sslib_formats
 import securesystemslib.util
 import six
 
@@ -87,7 +88,7 @@ def safe_download(url, required_length, fetcher):
 
   # Do all of the arguments have the appropriate format?
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.URL_SCHEMA.check_match(url)
+  sslib_formats.URL_SCHEMA.check_match(url)
   formats.LENGTH_SCHEMA.check_match(required_length)
 
   return _download_file(url, required_length, fetcher, STRICT_REQUIRED_LENGTH=True)
@@ -135,7 +136,7 @@ def unsafe_download(url, required_length, fetcher):
 
   # Do all of the arguments have the appropriate format?
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.URL_SCHEMA.check_match(url)
+  sslib_formats.URL_SCHEMA.check_match(url)
   formats.LENGTH_SCHEMA.check_match(required_length)
 
   return _download_file(url, required_length, fetcher, STRICT_REQUIRED_LENGTH=False)

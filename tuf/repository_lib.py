@@ -40,6 +40,7 @@ import json
 import tempfile
 
 from securesystemslib import exceptions as sslib_exceptions
+from securesystemslib import formats as sslib_formats
 
 import tuf
 from tuf import exceptions
@@ -334,7 +335,7 @@ def _remove_invalid_and_duplicate_signatures(signable, repository_name):
   signature_keyids = []
 
   for signature in signable['signatures']:
-    signed = securesystemslib.formats.encode_canonical(signable['signed']).encode('utf-8')
+    signed = sslib_formats.encode_canonical(signable['signed']).encode('utf-8')
     keyid = signature['keyid']
     key = None
 
@@ -920,7 +921,7 @@ def get_top_level_metadata_filenames(metadata_directory):
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.PATH_SCHEMA.check_match(metadata_directory)
+  sslib_formats.PATH_SCHEMA.check_match(metadata_directory)
 
   # Store the filepaths of the top-level roles, including the
   # 'metadata_directory' for each one.
@@ -985,7 +986,7 @@ def get_targets_metadata_fileinfo(filename, storage_backend, custom=None):
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.PATH_SCHEMA.check_match(filename)
+  sslib_formats.PATH_SCHEMA.check_match(filename)
   if custom is not None:
     formats.CUSTOM_SCHEMA.check_match(custom)
 
@@ -1241,9 +1242,9 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
   # 'securesystemslib.exceptions.FormatError' if any of the arguments are
   # improperly formatted.
   formats.METADATAVERSION_SCHEMA.check_match(version)
-  securesystemslib.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
-  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
+  sslib_formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   # The role and key dictionaries to be saved in the root metadata object.
   # Conformant to 'ROLEDICT_SCHEMA' and 'KEYDICT_SCHEMA', respectively.
@@ -1390,12 +1391,12 @@ def generate_targets_metadata(targets_directory, target_files, version,
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
+  sslib_formats.PATH_SCHEMA.check_match(targets_directory)
   formats.PATH_FILEINFO_SCHEMA.check_match(target_files)
   formats.METADATAVERSION_SCHEMA.check_match(version)
-  securesystemslib.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
-  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(write_consistent_targets)
-  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_existing_fileinfo)
+  sslib_formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
+  sslib_formats.BOOLEAN_SCHEMA.check_match(write_consistent_targets)
+  sslib_formats.BOOLEAN_SCHEMA.check_match(use_existing_fileinfo)
 
   if write_consistent_targets and use_existing_fileinfo:
     raise sslib_exceptions.Error('Cannot support writing consistent'
@@ -1622,13 +1623,13 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   # This check ensures arguments have the appropriate number of objects and
   # object types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
-  securesystemslib.formats.PATH_SCHEMA.check_match(metadata_directory)
+  sslib_formats.PATH_SCHEMA.check_match(metadata_directory)
   formats.METADATAVERSION_SCHEMA.check_match(version)
-  securesystemslib.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
-  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
-  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_length)
-  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_hashes)
+  sslib_formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
+  sslib_formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.BOOLEAN_SCHEMA.check_match(use_length)
+  sslib_formats.BOOLEAN_SCHEMA.check_match(use_hashes)
 
   # Snapshot's 'fileinfodict' shall contain the version number of Root,
   # Targets, and all delegated roles of the repository.
@@ -1759,12 +1760,12 @@ def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
   # This check ensures arguments have the appropriate number of objects and
   # object types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
-  securesystemslib.formats.PATH_SCHEMA.check_match(snapshot_file_path)
+  sslib_formats.PATH_SCHEMA.check_match(snapshot_file_path)
   formats.METADATAVERSION_SCHEMA.check_match(version)
-  securesystemslib.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
-  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_length)
-  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_hashes)
+  sslib_formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.BOOLEAN_SCHEMA.check_match(use_length)
+  sslib_formats.BOOLEAN_SCHEMA.check_match(use_hashes)
 
   snapshot_fileinfo = {}
 
@@ -1841,9 +1842,9 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
   # object types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
   formats.ANYROLE_SCHEMA.check_match(metadata_object)
-  securesystemslib.formats.KEYIDS_SCHEMA.check_match(keyids)
-  securesystemslib.formats.PATH_SCHEMA.check_match(filename)
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.KEYIDS_SCHEMA.check_match(keyids)
+  sslib_formats.PATH_SCHEMA.check_match(filename)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   # Make sure the metadata is in 'signable' format.  That is,
   # it contains a 'signatures' field containing the result
@@ -1860,7 +1861,7 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
     # Generate the signature using the appropriate signing method.
     if key['keytype'] in SUPPORTED_KEY_TYPES:
       if 'private' in key['keyval']:
-        signed = securesystemslib.formats.encode_canonical(signable['signed']).encode('utf-8')
+        signed = sslib_formats.encode_canonical(signable['signed']).encode('utf-8')
         try:
           signature = securesystemslib.keys.create_signature(key, signed)
           signable['signatures'].append(signature)
@@ -1939,9 +1940,9 @@ def write_metadata_file(metadata, filename, version_number, consistent_snapshot,
   # object types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
   formats.SIGNABLE_SCHEMA.check_match(metadata)
-  securesystemslib.formats.PATH_SCHEMA.check_match(filename)
+  sslib_formats.PATH_SCHEMA.check_match(filename)
   formats.METADATAVERSION_SCHEMA.check_match(version_number)
-  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
+  sslib_formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
 
   if storage_backend is None:
     storage_backend = securesystemslib.storage.FilesystemBackend()
@@ -2203,8 +2204,8 @@ def create_tuf_client_directory(repository_directory, client_directory):
   # This check ensures arguments have the appropriate number of objects and
   # object types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
-  securesystemslib.formats.PATH_SCHEMA.check_match(repository_directory)
-  securesystemslib.formats.PATH_SCHEMA.check_match(client_directory)
+  sslib_formats.PATH_SCHEMA.check_match(repository_directory)
+  sslib_formats.PATH_SCHEMA.check_match(client_directory)
 
   # Set the absolute path of the Repository's metadata directory.  The metadata
   # directory should be the one served by the Live repository.  At a minimum,

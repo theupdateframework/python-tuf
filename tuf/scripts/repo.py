@@ -149,6 +149,7 @@ import fnmatch
 
 import securesystemslib
 from securesystemslib import exceptions as sslib_exceptions
+from securesystemslib import formats as sslib_formats
 from securesystemslib import interface
 
 import tuf
@@ -443,7 +444,7 @@ def import_privatekey_from_file(keypath, password=None):
         confirm=False)
 
   # Does 'password' have the correct format?
-  securesystemslib.formats.PASSWORD_SCHEMA.check_match(password)
+  sslib_formats.PASSWORD_SCHEMA.check_match(password)
 
   # Store the encrypted contents of 'filepath' prior to calling the decryption
   # routine.

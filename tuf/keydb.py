@@ -46,6 +46,7 @@ import copy
 
 import securesystemslib
 from securesystemslib import exceptions as sslib_exceptions
+from securesystemslib import formats as sslib_formats
 
 from tuf import exceptions
 from tuf import formats
@@ -105,7 +106,7 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
   formats.ROOT_SCHEMA.check_match(root_metadata)
 
   # Does 'repository_name' have the correct format?
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   # Clear the key database for 'repository_name', or create it if non-existent.
   if repository_name in _keydb_dict:
@@ -170,7 +171,7 @@ def create_keydb(repository_name):
   """
 
   # Is 'repository_name' properly formatted?  Raise 'securesystemslib.exceptions.FormatError' if not.
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   if repository_name in _keydb_dict:
     raise sslib_exceptions.InvalidNameError('Repository name already exists:'
@@ -206,7 +207,7 @@ def remove_keydb(repository_name):
   """
 
   # Is 'repository_name' properly formatted?  Raise 'securesystemslib.exceptions.FormatError' if not.
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   if repository_name not in _keydb_dict:
     logger.warning('Repository name does not exist: ' + repr(repository_name))
@@ -267,15 +268,15 @@ def add_key(key_dict, keyid=None, repository_name='default'):
   # This check will ensure 'key_dict' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError if the check fails.
-  securesystemslib.formats.ANYKEY_SCHEMA.check_match(key_dict)
+  sslib_formats.ANYKEY_SCHEMA.check_match(key_dict)
 
   # Does 'repository_name' have the correct format?
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   # Does 'keyid' have the correct format?
   if keyid is not None:
     # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
-    securesystemslib.formats.KEYID_SCHEMA.check_match(keyid)
+    sslib_formats.KEYID_SCHEMA.check_match(keyid)
 
     # Check if each keyid found in 'key_dict' matches 'keyid'.
     if keyid != key_dict['keyid']:
@@ -332,10 +333,10 @@ def get_key(keyid, repository_name='default'):
   # This check will ensure 'keyid' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' is the match fails.
-  securesystemslib.formats.KEYID_SCHEMA.check_match(keyid)
+  sslib_formats.KEYID_SCHEMA.check_match(keyid)
 
   # Does 'repository_name' have the correct format?
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   if repository_name not in _keydb_dict:
     raise sslib_exceptions.InvalidNameError('Repository name does not exist:'
@@ -385,10 +386,10 @@ def remove_key(keyid, repository_name='default'):
   # This check will ensure 'keyid' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' is the match fails.
-  securesystemslib.formats.KEYID_SCHEMA.check_match(keyid)
+  sslib_formats.KEYID_SCHEMA.check_match(keyid)
 
   # Does 'repository_name' have the correct format?
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   if repository_name not in _keydb_dict:
     raise sslib_exceptions.InvalidNameError('Repository name does not exist:'
@@ -434,8 +435,8 @@ def clear_keydb(repository_name='default', clear_all=False):
 
   # Do the arguments have the correct format?  Raise 'securesystemslib.exceptions.FormatError' if
   # 'repository_name' is improperly formatted.
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
-  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(clear_all)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.BOOLEAN_SCHEMA.check_match(clear_all)
 
   global _keydb_dict
 

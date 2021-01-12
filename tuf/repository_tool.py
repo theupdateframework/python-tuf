@@ -43,6 +43,7 @@ import json
 from collections import deque
 
 from securesystemslib import exceptions as sslib_exceptions
+from securesystemslib import formats as sslib_formats
 
 import tuf
 from tuf import exceptions
@@ -52,7 +53,6 @@ from tuf import roledb
 import tuf.repository_lib as repo_lib
 
 import securesystemslib.keys
-import securesystemslib.formats
 import securesystemslib.util
 import six
 
@@ -231,14 +231,14 @@ class Repository(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    securesystemslib.formats.PATH_SCHEMA.check_match(repository_directory)
-    securesystemslib.formats.PATH_SCHEMA.check_match(metadata_directory)
-    securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
-    securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
-    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_timestamp_length)
-    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_timestamp_hashes)
-    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_snapshot_length)
-    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_snapshot_hashes)
+    sslib_formats.PATH_SCHEMA.check_match(repository_directory)
+    sslib_formats.PATH_SCHEMA.check_match(metadata_directory)
+    sslib_formats.PATH_SCHEMA.check_match(targets_directory)
+    sslib_formats.NAME_SCHEMA.check_match(repository_name)
+    sslib_formats.BOOLEAN_SCHEMA.check_match(use_timestamp_length)
+    sslib_formats.BOOLEAN_SCHEMA.check_match(use_timestamp_hashes)
+    sslib_formats.BOOLEAN_SCHEMA.check_match(use_snapshot_length)
+    sslib_formats.BOOLEAN_SCHEMA.check_match(use_snapshot_hashes)
 
     self._repository_directory = repository_directory
     self._metadata_directory = metadata_directory
@@ -313,7 +313,7 @@ class Repository(object):
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly
     # formatted.
-    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
+    sslib_formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
 
     # At this point, tuf.keydb and roledb must be fully populated,
     # otherwise writeall() throws a 'tuf.exceptions.UnsignedMetadataError' for
@@ -626,9 +626,9 @@ class Repository(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    securesystemslib.formats.PATH_SCHEMA.check_match(files_directory)
-    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(recursive_walk)
-    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(followlinks)
+    sslib_formats.PATH_SCHEMA.check_match(files_directory)
+    sslib_formats.BOOLEAN_SCHEMA.check_match(recursive_walk)
+    sslib_formats.BOOLEAN_SCHEMA.check_match(followlinks)
 
     # Ensure a valid directory is given.
     if not os.path.isdir(files_directory):
@@ -732,7 +732,7 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    securesystemslib.formats.ANYKEY_SCHEMA.check_match(key)
+    sslib_formats.ANYKEY_SCHEMA.check_match(key)
 
     # If 'expires' is unset, choose a default expiration for 'key'.  By
     # default, Root, Targets, Snapshot, and Timestamp keys are set to expire
@@ -843,7 +843,7 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    securesystemslib.formats.ANYKEY_SCHEMA.check_match(key)
+    sslib_formats.ANYKEY_SCHEMA.check_match(key)
 
     keyid = key['keyid']
     roleinfo = roledb.get_roleinfo(self.rolename, self._repository_name)
@@ -893,7 +893,7 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    securesystemslib.formats.ANYKEY_SCHEMA.check_match(key)
+    sslib_formats.ANYKEY_SCHEMA.check_match(key)
 
     # Ensure the private portion of the key is available, otherwise signatures
     # cannot be generated when the metadata file is written to disk.
@@ -953,7 +953,7 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    securesystemslib.formats.ANYKEY_SCHEMA.check_match(key)
+    sslib_formats.ANYKEY_SCHEMA.check_match(key)
 
     # Update the role's 'signing_keys' field in 'roledb'.
     roleinfo = roledb.get_roleinfo(self.rolename, self._repository_name)
@@ -1014,8 +1014,8 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    securesystemslib.formats.SIGNATURE_SCHEMA.check_match(signature)
-    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(mark_role_as_dirty)
+    sslib_formats.SIGNATURE_SCHEMA.check_match(signature)
+    sslib_formats.BOOLEAN_SCHEMA.check_match(mark_role_as_dirty)
 
     roleinfo = roledb.get_roleinfo(self.rolename, self._repository_name)
 
@@ -1068,7 +1068,7 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    securesystemslib.formats.SIGNATURE_SCHEMA.check_match(signature)
+    sslib_formats.SIGNATURE_SCHEMA.check_match(signature)
 
     roleinfo = roledb.get_roleinfo(self.rolename, self._repository_name)
 
@@ -1545,7 +1545,7 @@ class Timestamp(Metadata):
 
     # Is 'repository_name' properly formatted?  Otherwise, raise a
     # tuf.exceptions.FormatError exception.
-    securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+    sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
     # By default, 'root' metadata is set to expire 1 year from the current
     # time.  The expiration may be modified.
@@ -1608,7 +1608,7 @@ class Snapshot(Metadata):
 
     # Is 'repository_name' properly formatted?  Otherwise, raise a
     # tuf.exceptions.FormatError exception.
-    securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+    sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
     # By default, 'snapshot' metadata is set to expire 1 week from the current
     # time.  The expiration may be modified.
@@ -1692,9 +1692,9 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
+    sslib_formats.PATH_SCHEMA.check_match(targets_directory)
     formats.ROLENAME_SCHEMA.check_match(rolename)
-    securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+    sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
     if roleinfo is not None:
       formats.ROLEDB_SCHEMA.check_match(roleinfo)
@@ -1935,7 +1935,7 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    securesystemslib.formats.PATHS_SCHEMA.check_match(paths)
+    sslib_formats.PATHS_SCHEMA.check_match(paths)
     formats.ROLENAME_SCHEMA.check_match(child_rolename)
 
     # Ensure that 'child_rolename' exists, otherwise it will not have an entry
@@ -2364,10 +2364,10 @@ class Targets(Metadata):
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     formats.ROLENAME_SCHEMA.check_match(rolename)
-    securesystemslib.formats.ANYKEYLIST_SCHEMA.check_match(public_keys)
+    sslib_formats.ANYKEYLIST_SCHEMA.check_match(public_keys)
     formats.RELPATHS_SCHEMA.check_match(paths)
     formats.THRESHOLD_SCHEMA.check_match(threshold)
-    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(terminating)
+    sslib_formats.BOOLEAN_SCHEMA.check_match(terminating)
 
     if list_of_targets is not None:
       formats.RELPATHS_SCHEMA.check_match(list_of_targets)
@@ -2567,8 +2567,8 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    securesystemslib.formats.PATHS_SCHEMA.check_match(list_of_targets)
-    securesystemslib.formats.ANYKEYLIST_SCHEMA.check_match(keys_of_hashed_bins)
+    sslib_formats.PATHS_SCHEMA.check_match(list_of_targets)
+    sslib_formats.ANYKEYLIST_SCHEMA.check_match(keys_of_hashed_bins)
     formats.NUMBINS_SCHEMA.check_match(number_of_bins)
 
     prefix_length, prefix_count, bin_size = repo_lib.get_bin_numbers(number_of_bins)
@@ -2711,7 +2711,7 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    securesystemslib.formats.PATH_SCHEMA.check_match(target_filepath)
+    sslib_formats.PATH_SCHEMA.check_match(target_filepath)
     formats.NUMBINS_SCHEMA.check_match(number_of_bins)
 
     # TODO: check target_filepath is sane
@@ -2773,7 +2773,7 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    securesystemslib.formats.PATH_SCHEMA.check_match(target_filepath)
+    sslib_formats.PATH_SCHEMA.check_match(target_filepath)
     formats.NUMBINS_SCHEMA.check_match(number_of_bins)
 
     # TODO: check target_filepath is sane?
@@ -2925,8 +2925,8 @@ def create_new_repository(repository_directory, repository_name='default',
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.PATH_SCHEMA.check_match(repository_directory)
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.PATH_SCHEMA.check_match(repository_directory)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   if storage_backend is None:
     storage_backend = securesystemslib.storage.FilesystemBackend()
@@ -3035,8 +3035,8 @@ def load_repository(repository_directory, repository_name='default',
 
   # Does 'repository_directory' have the correct format?
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.PATH_SCHEMA.check_match(repository_directory)
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.PATH_SCHEMA.check_match(repository_directory)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   if storage_backend is None:
     storage_backend = securesystemslib.storage.FilesystemBackend()
@@ -3217,14 +3217,14 @@ def dump_signable_metadata(metadata_filepath):
   """
 
   # Are the argument properly formatted?
-  securesystemslib.formats.PATH_SCHEMA.check_match(metadata_filepath)
+  sslib_formats.PATH_SCHEMA.check_match(metadata_filepath)
 
   signable = securesystemslib.util.load_json_file(metadata_filepath)
 
   # Is 'signable' a valid metadata file?
   formats.SIGNABLE_SCHEMA.check_match(signable)
 
-  return securesystemslib.formats.encode_canonical(signable['signed'])
+  return sslib_formats.encode_canonical(signable['signed'])
 
 
 
@@ -3272,8 +3272,8 @@ def append_signature(signature, metadata_filepath):
   """
 
   # Are the arguments properly formatted?
-  securesystemslib.formats.SIGNATURE_SCHEMA.check_match(signature)
-  securesystemslib.formats.PATH_SCHEMA.check_match(metadata_filepath)
+  sslib_formats.SIGNATURE_SCHEMA.check_match(signature)
+  sslib_formats.PATH_SCHEMA.check_match(metadata_filepath)
 
   signable = securesystemslib.util.load_json_file(metadata_filepath)
 

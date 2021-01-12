@@ -34,6 +34,7 @@ import os
 
 import securesystemslib
 from securesystemslib import exceptions as sslib_exceptions
+from securesystemslib import formats as sslib_formats
 
 import tuf
 from tuf import formats
@@ -88,7 +89,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   # Checking if all the arguments have appropriate format.
   formats.RELPATH_SCHEMA.check_match(file_path)
   formats.MIRRORDICT_SCHEMA.check_match(mirrors_dict)
-  securesystemslib.formats.NAME_SCHEMA.check_match(file_type)
+  sslib_formats.NAME_SCHEMA.check_match(file_type)
 
   # Verify 'file_type' is supported.
   if file_type not in _SUPPORTED_FILE_TYPES:

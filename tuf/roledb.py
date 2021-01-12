@@ -54,6 +54,7 @@ import copy
 
 import securesystemslib
 from securesystemslib import exceptions as sslib_exceptions
+from securesystemslib import formats as sslib_formats
 
 import tuf
 from tuf import exceptions
@@ -117,7 +118,7 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
   formats.ROOT_SCHEMA.check_match(root_metadata)
 
   # Is 'repository_name' formatted correctly?
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   global _roledb_dict
   global _dirty_roles
@@ -185,7 +186,7 @@ def create_roledb(repository_name):
 
   # Is 'repository_name' properly formatted?  If not, raise
   # 'securesystemslib.exceptions.FormatError'.
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   global _roledb_dict
   global _dirty_roles
@@ -228,7 +229,7 @@ def remove_roledb(repository_name):
 
   # Is 'repository_name' properly formatted?  If not, raise
   # 'securesystemslib.exceptions.FormatError'.
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   global _roledb_dict
   global _dirty_roles
@@ -303,7 +304,7 @@ def add_role(rolename, roleinfo, repository_name='default'):
   formats.ROLEDB_SCHEMA.check_match(roleinfo)
 
   # Is 'repository_name' correctly formatted?
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   global _roledb_dict
 
@@ -382,8 +383,8 @@ def update_roleinfo(rolename, roleinfo, mark_role_as_dirty=True, repository_name
   # This check will ensure arguments have the appropriate number of objects
   # and object types, and that all dict keys are properly named.
   formats.ROLENAME_SCHEMA.check_match(rolename)
-  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(mark_role_as_dirty)
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.BOOLEAN_SCHEMA.check_match(mark_role_as_dirty)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   # Does 'roleinfo' have the correct object format?
   formats.ROLEDB_SCHEMA.check_match(roleinfo)
@@ -441,7 +442,7 @@ def get_dirty_roles(repository_name='default'):
 
   # Does 'repository_name' have the correct format?  Raise
   # 'securesystemslib.exceptions.FormatError' if not.
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   global _roledb_dict
   global _dirty_roles
@@ -483,8 +484,8 @@ def mark_dirty(roles, repository_name='default'):
 
   # Are the arguments properly formatted?  If not, raise
   # securesystemslib.exceptions.FormatError.
-  securesystemslib.formats.NAMES_SCHEMA.check_match(roles)
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAMES_SCHEMA.check_match(roles)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   global _roledb_dict
   global _dirty_roles
@@ -526,8 +527,8 @@ def unmark_dirty(roles, repository_name='default'):
 
   # Are the arguments properly formatted?  If not, raise
   # securesystemslib.exceptions.FormatError.
-  securesystemslib.formats.NAMES_SCHEMA.check_match(roles)
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAMES_SCHEMA.check_match(roles)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   global _roledb_dict
   global _dirty_roles
@@ -627,7 +628,7 @@ def remove_role(rolename, repository_name='default'):
 
   # Does 'repository_name' have the correct format?  Raise
   # 'securesystemslib.exceptions.FormatError' if it is improperly formatted.
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   # Raises securesystemslib.exceptions.FormatError,
   # tuf.exceptions.UnknownRoleError, or
@@ -671,7 +672,7 @@ def get_rolenames(repository_name='default'):
 
   # Does 'repository_name' have the correct format?  Raise
   # 'securesystemslib.exceptions.FormatError' if it is improperly formatted.
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   global _roledb_dict
   global _dirty_roles
@@ -729,7 +730,7 @@ def get_roleinfo(rolename, repository_name='default'):
 
   # Is 'repository_name' properly formatted?  If not, raise
   # 'securesystemslib.exceptions.FormatError'.
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   # Raises securesystemslib.exceptions.FormatError,
   # tuf.exceptions.UnknownRoleError, or
@@ -782,7 +783,7 @@ def get_role_keyids(rolename, repository_name='default'):
 
   # Raise 'securesystemslib.exceptions.FormatError' if 'repository_name' is
   # improperly formatted.
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   # Raises securesystemslib.exceptions.FormatError,
   # tuf.exceptions.UnknownRoleError, or
@@ -834,7 +835,7 @@ def get_role_threshold(rolename, repository_name='default'):
 
   # Raise 'securesystemslib.exceptions.FormatError' if 'repository_name' is
   # improperly formatted.
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   # Raises securesystemslib.exceptions.FormatError,
   # tuf.exceptions.UnknownRoleError, or
@@ -885,7 +886,7 @@ def get_role_paths(rolename, repository_name='default'):
 
   # Raise 'securesystemslib.exceptions.FormatError' if 'repository_name' is
   # improperly formatted.
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   # Raises securesystemslib.exceptions.FormatError,
   # tuf.exceptions.UnknownRoleError, or
@@ -945,7 +946,7 @@ def get_delegated_rolenames(rolename, repository_name='default'):
 
   # Does 'repository_name' have the correct format?  Raise
   # 'securesystemslib.exceptions.FormatError' if it does not.
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   # Raises securesystemslib.exceptions.FormatError,
   # tuf.exceptions.UnknownRoleError, or
@@ -998,8 +999,8 @@ def clear_roledb(repository_name='default', clear_all=False):
 
   # Do the arguments have the correct format?  If not, raise
   # 'securesystemslib.exceptions.FormatError'
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
-  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(clear_all)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.BOOLEAN_SCHEMA.check_match(clear_all)
 
   global _roledb_dict
   global _dirty_roles
@@ -1036,7 +1037,7 @@ def _check_rolename(rolename, repository_name='default'):
   formats.ROLENAME_SCHEMA.check_match(rolename)
 
   # Does 'repository_name' have the correct format?
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   # Raises securesystemslib.exceptions.InvalidNameError.
   _validate_rolename(rolename)

@@ -52,6 +52,7 @@ import logging
 
 import securesystemslib
 from securesystemslib import exceptions as sslib_exceptions
+from securesystemslib import formats as sslib_formats
 
 import tuf
 from tuf import exceptions
@@ -128,7 +129,7 @@ def get_signature_status(signable, role=None, repository_name='default',
   # all dict keys are properly named.  Raise
   # 'securesystemslib.exceptions.FormatError' if the check fails.
   formats.SIGNABLE_SCHEMA.check_match(signable)
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   if role is not None:
     formats.ROLENAME_SCHEMA.check_match(role)
@@ -137,7 +138,7 @@ def get_signature_status(signable, role=None, repository_name='default',
     formats.THRESHOLD_SCHEMA.check_match(threshold)
 
   if keyids is not None:
-    securesystemslib.formats.KEYIDS_SCHEMA.check_match(keyids)
+    sslib_formats.KEYIDS_SCHEMA.check_match(keyids)
 
   # The signature status dictionary returned.
   signature_status = {}
@@ -149,7 +150,7 @@ def get_signature_status(signable, role=None, repository_name='default',
 
   # Extract the relevant fields from 'signable' that will allow us to identify
   # the different classes of keys (i.e., good_sigs, bad_sigs, etc.).
-  signed = securesystemslib.formats.encode_canonical(signable['signed']).encode('utf-8')
+  signed = sslib_formats.encode_canonical(signable['signed']).encode('utf-8')
   signatures = signable['signatures']
 
   # Iterate the signatures and enumerate the signature_status fields.
@@ -283,7 +284,7 @@ def verify(signable, role, repository_name='default', threshold=None,
 
   formats.SIGNABLE_SCHEMA.check_match(signable)
   formats.ROLENAME_SCHEMA.check_match(role)
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   # Retrieve the signature status.  tuf.sig.get_signature_status() raises:
   # tuf.exceptions.UnknownRoleError
@@ -393,7 +394,7 @@ def generate_rsa_signature(signed, rsakey_dict):
 
   # We need 'signed' in canonical JSON format to generate
   # the 'method' and 'sig' fields of the signature.
-  signed = securesystemslib.formats.encode_canonical(signed).encode('utf-8')
+  signed = sslib_formats.encode_canonical(signed).encode('utf-8')
 
   # Generate the RSA signature.
   # Raises securesystemslib.exceptions.FormatError and TypeError.

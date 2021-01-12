@@ -73,12 +73,12 @@ import logging
 import time
 
 from securesystemslib import exceptions as sslib_exceptions
+from securesystemslib import formats as sslib_formats
 
 import tuf
 from tuf import exceptions
 from tuf import settings
 
-import securesystemslib.formats
 
 # Setting a handler's log level filters only logging messages of that level
 # (and above).  For example, setting the built-in StreamHandler's log level to
@@ -214,7 +214,7 @@ def set_log_level(log_level=_DEFAULT_LOG_LEVEL):
 
   # Does 'log_level' have the correct format?
   # Raise 'securesystems.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.LOGLEVEL_SCHEMA.check_match(log_level)
+  sslib_formats.LOGLEVEL_SCHEMA.check_match(log_level)
 
   logger.setLevel(log_level)
 
@@ -245,7 +245,7 @@ def set_filehandler_log_level(log_level=_DEFAULT_FILE_LOG_LEVEL):
 
   # Does 'log_level' have the correct format?
   # Raise 'securesystems.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.LOGLEVEL_SCHEMA.check_match(log_level)
+  sslib_formats.LOGLEVEL_SCHEMA.check_match(log_level)
 
   if file_handler:
     file_handler.setLevel(log_level)
@@ -283,7 +283,7 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
 
   # Does 'log_level' have the correct format?
   # Raise 'securesystems.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.LOGLEVEL_SCHEMA.check_match(log_level)
+  sslib_formats.LOGLEVEL_SCHEMA.check_match(log_level)
 
   # Assign to the global console_handler object.
   global console_handler
@@ -322,7 +322,7 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
 
   # Does 'log_level' have the correct format?
   # Raise 'securesystems.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.LOGLEVEL_SCHEMA.check_match(log_level)
+  sslib_formats.LOGLEVEL_SCHEMA.check_match(log_level)
 
   # Assign to the global console_handler object.
   global console_handler
@@ -408,7 +408,7 @@ def enable_file_logging(log_filename=settings.LOG_FILENAME):
   """
 
   # Are the arguments properly formatted?
-  securesystemslib.formats.PATH_SCHEMA.check_match(log_filename)
+  sslib_formats.PATH_SCHEMA.check_match(log_filename)
 
   global file_handler
 
