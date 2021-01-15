@@ -22,6 +22,13 @@ jobs:
             os: ubuntu-latest
             toxenv: lint
 
+    env:
+      # Set TOXENV env var to tell tox which testenv (see tox.ini) to use
+      # NOTE: The Python 2.7 runner has two Python versions on the path (see
+      # setup-python below), so we tell tox explicitly to use the 'py27'
+      # testenv. For all other runners the toxenv configured above suffices.
+      TOXENV: ${{ matrix.python-version == '2.7' && 'py27' || matrix.toxenv }}
+
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -32,6 +39,12 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+
+      - name: Set up service Python 3.x (on 2.7 only)
+        uses: actions/setup-python@v2
+        if: ${{ matrix.python-version == 2.7 }}
+        with:
+          python-version: 3.x
 
       - name: Find pip cache dir
         id: pip-cache
@@ -50,7 +63,40 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install tox
+          pip install --upgrade tox coveralls
 
-      - name: Run tox
-        run: tox -e ${{ matrix.toxenv }}
+      - name: Run tox (${{ env.TOXENV }})
+        # See TOXENV environment variable for the testenv to be executed here
+        run: tox
+
+      - name: Publish on coveralls.io
+        # TODO: Maybe make 'lint' a separate job instead of case handling here
+        if: ${{ env.TOXENV != 'lint' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_FLAG_NAME: ${{ runner.os }} / Python ${{ matrix.python-version }} / ${{ env.TOXENV }}
+          COVERALLS_PARALLEL: true
+        # Use cp workaround to publish coverage reports with relative paths
+        # FIXME: Consider refactoring the tests to not require the test
+        # aggregation script being invoked from the `tests` directory, so
+        # that `.coverage` is written to and .coveragrc can also reside in
+        # the project root directory as is the convention.
+        run: |
+          cp tests/.coverage .
+          coveralls --service=github --rcfile=tests/.coveragerc
+
+  coveralls-fin:
+    # Always run when all 'build' jobs have finished even if they failed
+    # TODO: Replace always() with a 'at least one job succeeded' expression
+    if: always()
+    needs: build
+    runs-on: ubuntu-latest
+    container: python:3-slim
+    steps:
+      - name: Finalize publishing on coveralls.io
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade coveralls
+          coveralls --finish
