@@ -273,6 +273,8 @@ class Signed:
             self, _type: str, version: int, spec_version: str,
             expires: datetime) -> None:
 
+        # "_type" is not actually meant to be "protected" in the OOP sense
+        # but rather is a workaround to not shadow the built-in "type" name.
         self._type = _type
         self.version = version
         self.spec_version = spec_version
