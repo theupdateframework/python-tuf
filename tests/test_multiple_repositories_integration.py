@@ -136,8 +136,8 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
 
     logger.debug('Server process 2 started.')
 
-    url_prefix = 'http://localhost:' + str(self.server_process_handler.port)
-    url_prefix2 = 'http://localhost:' + str(self.server_process_handler2.port)
+    url_prefix = 'http://127.0.0.1:' + str(self.server_process_handler.port)
+    url_prefix2 = 'http://127.0.0.1:' + str(self.server_process_handler2.port)
 
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',

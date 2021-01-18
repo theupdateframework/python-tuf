@@ -167,10 +167,10 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
 
     suffix = '/' + os.path.basename(target_filepath)
     self.url = \
-        'http://localhost:' + str(self.http_server_handler.port) + suffix
+        'http://127.0.0.1:' + str(self.http_server_handler.port) + suffix
 
     self.url_https = \
-        'https://localhost:' + str(self.https_server_handler.port) + suffix
+        'https://127.0.0.1:' + str(self.https_server_handler.port) + suffix
 
 
 

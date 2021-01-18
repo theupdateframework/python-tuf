@@ -171,7 +171,7 @@ class TestSlowRetrieval(unittest_toolbox.Modified_TestCase):
 
     logger.info('Slow Retrieval Server process started.')
 
-    url_prefix = 'http://localhost:' \
+    url_prefix = 'http://127.0.0.1:' \
       + str(self.server_process_handler.port) + repository_basepath
 
     # Setting 'tuf.settings.repository_directory' with the temporary client

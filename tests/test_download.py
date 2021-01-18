@@ -77,7 +77,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     self.server_process_handler = utils.TestServerProcess(log=logger)
 
     rel_target_filepath = os.path.basename(target_filepath)
-    self.url = 'http://localhost:' \
+    self.url = 'http://127.0.0.1:' \
         + str(self.server_process_handler.port) + '/' + rel_target_filepath
 
     # Computing hash of target file data.
@@ -172,14 +172,14 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     self.assertRaises(securesystemslib.exceptions.FormatError,
                       download_file, None, self.target_data_length, self.fetcher)
 
-    url = 'http://localhost:' \
+    url = 'http://127.0.0.1:' \
         + str(self.server_process_handler.port) + '/' + self.random_string()
     self.assertRaises(requests.exceptions.HTTPError,
                       download_file,
                       url,
                       self.target_data_length,
                       self.fetcher)
-    url1 = 'http://localhost:' \
+    url1 = 'http://127.0.0.1:' \
       + str(self.server_process_handler.port + 1) + '/' + self.random_string()
     self.assertRaises(requests.exceptions.ConnectionError,
                       download_file,

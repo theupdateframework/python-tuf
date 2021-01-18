@@ -167,7 +167,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
     repository_basepath = self.repository_directory[len(os.getcwd()):]
-    url_prefix = 'http://localhost:' \
+    url_prefix = 'http://127.0.0.1:' \
         + str(self.server_process_handler.port) + repository_basepath
 
     # Setting 'tuf.settings.repository_directory' with the temporary client
@@ -1110,7 +1110,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
     repository_basepath = self.repository_directory[len(os.getcwd()):]
-    url_prefix = 'http://localhost:' \
+    url_prefix = 'http://127.0.0.1:' \
         + str(self.server_process_handler.port) + repository_basepath
 
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
@@ -1406,7 +1406,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
     repository_basepath = self.repository_directory[len(os.getcwd()):]
-    url_prefix = 'http://localhost:' \
+    url_prefix = 'http://127.0.0.1:' \
         + str(self.server_process_handler.port) + repository_basepath
 
     # Setting 'tuf.settings.repository_directory' with the temporary client
@@ -1533,7 +1533,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
     repository_basepath = self.repository_directory[len(os.getcwd()):]
-    url_prefix = 'http://localhost:' \
+    url_prefix = 'http://127.0.0.1:' \
         + str(self.server_process_handler.port) + repository_basepath
 
     # Setting 'tuf.settings.repository_directory' with the temporary client
@@ -1861,8 +1861,8 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
 
     logger.debug('Server process 2 started.')
 
-    url_prefix = 'http://localhost:' + str(self.server_process_handler.port)
-    url_prefix2 = 'http://localhost:' + str(self.server_process_handler2.port)
+    url_prefix = 'http://127.0.0.1:' + str(self.server_process_handler.port)
+    url_prefix2 = 'http://127.0.0.1:' + str(self.server_process_handler2.port)
 
     # We have all of the necessary information for two repository mirrors
     # in map.json, except for url prefixes.

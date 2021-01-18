@@ -132,7 +132,7 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
 
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
     repository_basepath = self.repository_directory[len(os.getcwd()):]
-    url_prefix = 'http://localhost:' \
+    url_prefix = 'http://127.0.0.1:' \
       + str(self.server_process_handler.port) + repository_basepath
 
     # Setting 'tuf.settings.repository_directory' with the temporary client
