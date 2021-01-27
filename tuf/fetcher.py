@@ -101,6 +101,9 @@ class RequestsFetcher(FetcherInterface):
     # Check response status.
     response.raise_for_status()
 
+    # Define a generator function to be returned by fetch. This way the caller
+    # of fetch can differentiate between connection and actual data download
+    # and measure download times accordingly.
     def chunks():
       try:
         bytes_received = 0
@@ -132,7 +135,7 @@ class RequestsFetcher(FetcherInterface):
 
           yield data
 
-          if bytes_received == required_length:
+          if bytes_received >= required_length:
             break
 
       except urllib3.exceptions.ReadTimeoutError as e:
