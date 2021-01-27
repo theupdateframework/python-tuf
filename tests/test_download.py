@@ -112,6 +112,29 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
       self.assertEqual(self.target_data_length, len(temp_file_data))
 
 
+  # Test: Download url in more than one chunk.
+  def test_download_url_in_chunks(self):
+
+    # Set smaller chunk size to ensure that the file will be downloaded
+    # in more than one chunk
+    default_chunk_size = tuf.settings.CHUNK_SIZE
+    tuf.settings.CHUNK_SIZE = 4
+    # We don't have access to chunks from  download_file()
+    # so we just confirm that the expectation of more than one chunk is
+    # correct and verify that no errors are raised during download
+    chunks_count = self.target_data_length/tuf.settings.CHUNK_SIZE
+    self.assertGreater(chunks_count, 1)
+
+    download_file = download.safe_download
+    with download_file(self.url, self.target_data_length, self.fetcher) as temp_fileobj:
+      temp_fileobj.seek(0)
+      temp_file_data = temp_fileobj.read().decode('utf-8')
+      self.assertEqual(self.target_data, temp_file_data)
+      self.assertEqual(self.target_data_length, len(temp_file_data))
+
+    # Restore default settings
+    tuf.settings.CHUNK_SIZE = default_chunk_size
+
 
   # Test: Incorrect lengths.
   def test_download_url_to_tempfileobj_and_lengths(self):

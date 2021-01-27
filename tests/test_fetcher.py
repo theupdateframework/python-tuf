@@ -16,6 +16,9 @@
 <Purpose>
   Unit test for RequestsFetcher.
 """
+# Help with Python 2 compatibility, where the '/' operator performs
+# integer division.
+from __future__ import division
 
 import logging
 import os
@@ -23,6 +26,7 @@ import io
 import sys
 import unittest
 import tempfile
+import math
 
 import tuf
 import tuf.exceptions
@@ -30,7 +34,6 @@ import tuf.fetcher
 import tuf.unittest_toolbox as unittest_toolbox
 
 from tests import utils
-
 
 logger = logging.getLogger(__name__)
 
@@ -77,15 +80,12 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
 
   # Test: Normal case.
   def test_fetch(self):
-
     for chunk in self.fetcher.fetch(self.url, self.file_length):
         self.temp_file.write(chunk)
 
     self.temp_file.seek(0)
     temp_file_data = self.temp_file.read().decode('utf-8')
     self.assertEqual(self.file_contents, temp_file_data)
-    self.assertEqual(self.file_length, len(temp_file_data))
-
 
   # Test if fetcher downloads file up to a required length
   def test_fetch_restricted_length(self):
@@ -96,7 +96,7 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
     self.assertEqual(self.temp_file.tell(), self.file_length-4)
 
 
-  # Test if fetcher does not downlad more than actual file length
+  # Test that fetcher does not download more than actual file length
   def test_fetch_upper_length(self):
     for chunk in self.fetcher.fetch(self.url, self.file_length+4):
         self.temp_file.write(chunk)
@@ -107,9 +107,34 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
 
   # Test incorrect URL parsing
   def test_url_parsing(self):
-   with self.assertRaises(tuf.exceptions.URLParsingError) as cm:
-     for chunk in self.fetcher.fetch(self.random_string(), self.file_length):
-         self.temp_file.write(chunk)
+    with self.assertRaises(tuf.exceptions.URLParsingError):
+      self.fetcher.fetch(self.random_string(), self.file_length)
+
+
+  # Test: Normal case with url data downloaded in more than one chunk
+  def test_fetch_in_chunks(self):
+    # Set smaller chunk size to ensure that the file will be downloaded
+    # in more than one chunk
+    default_chunk_size = tuf.settings.CHUNK_SIZE
+    tuf.settings.CHUNK_SIZE = 4
+
+    # expected_chunks_count: 3
+    expected_chunks_count = math.ceil(self.file_length/tuf.settings.CHUNK_SIZE)
+    self.assertEqual(expected_chunks_count, 3)
+
+    chunks_count = 0
+    for chunk in self.fetcher.fetch(self.url, self.file_length):
+      self.temp_file.write(chunk)
+      chunks_count+=1
+
+    self.temp_file.seek(0)
+    temp_file_data = self.temp_file.read().decode('utf-8')
+    self.assertEqual(self.file_contents, temp_file_data)
+    # Check that we calculate chunks as expected
+    self.assertEqual(chunks_count, expected_chunks_count)
+
+    # Restore default settings
+    tuf.settings.CHUNK_SIZE = default_chunk_size
 
 
 
