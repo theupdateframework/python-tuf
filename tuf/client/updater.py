@@ -1492,7 +1492,7 @@ class Updater(object):
       snapshot_merkle:
         Is the metadata file a snapshot merkle file? Snapshot merkle files
         are not signed and so should skip some of the verification steps here.
-        Instead, they must be verified using _verify_merkle_path.
+        Instead, they must be verified using verify_merkle_path.
 
     <Exceptions>
       tuf.exceptions.NoWorkingMirrorError:
@@ -1654,7 +1654,7 @@ class Updater(object):
 
       version:
         The expected and required version number of the 'merkle_filename' file
-        downloaded.  'expected_version' is an integer.
+        downloaded.  'version' is an integer.
 
     <Exceptions>
       tuf.exceptions.NoWorkingMirrorError:
@@ -1865,7 +1865,7 @@ class Updater(object):
 
 
 
-  def _verify_merkle_path(self, metadata_role):
+  def verify_merkle_path(self, metadata_role, version=None, merkle_root=None):
     """
     <Purpose>
       Download the merkle path associated with metadata_role and verify the hashes.
@@ -1879,13 +1879,14 @@ class Updater(object):
       A dictionary containing the snapshot information about metadata role,
       conforming to VERSIONINFO_SCHEMA or METADATA_FILEINFO_SCHEMA
     """
-    merkle_root = self.metadata['current']['timestamp']['merkle_root']
+    if not merkle_root:
+      merkle_root = self.metadata['current']['timestamp']['merkle_root']
 
     metadata_rolename = metadata_role + '-snapshot'
 
     # Download Merkle path
     upperbound_filelength = tuf.settings.MERKLE_FILELENGTH
-    self._update_merkle_metadata(metadata_rolename, upperbound_filelength)
+    self._update_merkle_metadata(metadata_rolename, upperbound_filelength, version)
     metadata_directory = self.metadata_directory['current']
     metadata_filename = metadata_rolename + '.json'
     metadata_filepath = os.path.join(metadata_directory, metadata_filename)
@@ -2040,7 +2041,7 @@ class Updater(object):
 
     if 'merkle_root' in self.metadata['current']['timestamp']:
       # Download version information from merkle tree
-      contents = self._verify_merkle_path(metadata_role)
+      contents = self.verify_merkle_path(metadata_role)
       expected_versioninfo = contents
 
     else:
@@ -3419,3 +3420,42 @@ class Updater(object):
         trusted_hashes, prefix_filename_with_hash)
 
     securesystemslib.util.persist_temp_file(target_file_object, destination)
+
+  def download_metadata_version_if_exists(self, role_name, version, verification_fn, upperbound_filelength):
+
+    filename = role_name + ".json"
+    dirname, basename = os.path.split(filename)
+    remote_filename = os.path.join(dirname, str(version) + '.' + basename)
+
+
+    def neither_403_nor_404(mirror_error):
+      if isinstance(mirror_error, requests.exceptions.HTTPError):
+        if mirror_error.response.status_code in {403, 404}:
+          return False
+      return True
+
+    updated_metadata_object = None
+
+    try:
+      # Thoroughly verify it.
+      metadata_file_object = \
+        self._get_metadata_file(role_name, remote_filename,
+          upperbound_filelength, version, verification_fn)
+      metadata_file_object.seek(0)
+      updated_metadata_object = \
+        securesystemslib.util.load_json_string(metadata_file_object.read().decode('utf-8'))
+    # When we run into HTTP 403/404 error from ALL mirrors,
+    # metadata file is most likely missing.
+    except tuf.exceptions.NoWorkingMirrorError as exception:
+      for mirror_error in exception.mirror_errors.values():
+        # Otherwise, reraise the error, because it is not a simple HTTP
+        # error.
+        if neither_403_nor_404(mirror_error):
+          logger.exception('Misc error for root version '+str(version))
+          raise
+        else:
+          # Calling this function should give us a detailed stack trace
+          # including an HTTP error code, if any.
+          logger.exception('HTTP error for root version '+str(version))
+
+    return updated_metadata_object
