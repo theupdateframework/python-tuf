@@ -146,7 +146,6 @@ import securesystemslib.hash
 import securesystemslib.keys
 import securesystemslib.util
 import six
-import requests.exceptions
 
 # The Timestamp role does not have signed metadata about it; otherwise we
 # would need an infinite regress of metadata. Therefore, we use some
@@ -1125,8 +1124,8 @@ class Updater(object):
     """
 
     def neither_403_nor_404(mirror_error):
-      if isinstance(mirror_error, requests.exceptions.HTTPError):
-        if mirror_error.response.status_code in {403, 404}:
+      if isinstance(mirror_error, tuf.exceptions.FetcherHTTPError):
+        if mirror_error.status_code in {403, 404}:
           return False
       return True
 

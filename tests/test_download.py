@@ -192,23 +192,19 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     download_file = download.safe_download
     unsafe_download_file = download.unsafe_download
 
-    self.assertRaises(securesystemslib.exceptions.FormatError,
-                      download_file, None, self.target_data_length, self.fetcher)
+    with self.assertRaises(securesystemslib.exceptions.FormatError):
+      download_file(None, self.target_data_length, self.fetcher)
 
     url = 'http://127.0.0.1:' \
         + str(self.server_process_handler.port) + '/' + self.random_string()
-    self.assertRaises(requests.exceptions.HTTPError,
-                      download_file,
-                      url,
-                      self.target_data_length,
-                      self.fetcher)
+    with self.assertRaises(tuf.exceptions.FetcherHTTPError) as cm:
+      download_file(url, self.target_data_length, self.fetcher)
+    self.assertEqual(cm.exception.status_code, 404)
+
     url1 = 'http://127.0.0.1:' \
       + str(self.server_process_handler.port + 1) + '/' + self.random_string()
-    self.assertRaises(requests.exceptions.ConnectionError,
-                      download_file,
-                      url1,
-                      self.target_data_length,
-                      self.fetcher)
+    with self.assertRaises(requests.exceptions.ConnectionError):
+      download_file(url1, self.target_data_length, self.fetcher)
 
     # Specify an unsupported URI scheme.
     url_with_unsupported_uri = self.url.replace('http', 'file')
