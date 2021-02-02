@@ -155,13 +155,13 @@ via PyPI).
 
 To develop and test ``tuf`` with above commands alongside its in-house dependency
 `securesystemslib <https://github.com/secure-systems-lab/securesystemslib>`_,
-it is recommended to first make an editable install of ``securesystemslib`` (in
-a *venv*), and then install ``tuf`` in editable mode too (in the same *venv*).
+it is recommended to first make an editable install of ``tuf`` (in
+a *venv*), and then install ``securesystemslib`` in editable mode too (in the same *venv*).
 ::
 
-    $ cd path/to/securesystemslib
-    $ pip install -r requirements-dev.txt
     $ cd path/to/tuf
+    $ pip install -r requirements-dev.txt
+    $ cd path/to/securesystemslib
     $ pip install -r requirements-dev.txt
 
 
