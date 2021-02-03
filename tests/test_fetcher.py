@@ -30,7 +30,7 @@ import math
 
 import tuf
 import tuf.exceptions
-import tuf.fetcher
+import tuf.requests_fetcher
 import tuf.unittest_toolbox as unittest_toolbox
 
 from tests import utils
@@ -64,7 +64,7 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
     # Create a temporary file where the target file chunks are written
     # during fetching
     self.temp_file = tempfile.TemporaryFile()
-    self.fetcher = tuf.fetcher.RequestsFetcher()
+    self.fetcher = tuf.requests_fetcher.RequestsFetcher()
 
 
   # Stop server process and perform clean up.

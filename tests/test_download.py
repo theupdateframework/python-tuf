@@ -43,7 +43,7 @@ import warnings
 
 import tuf
 import tuf.download as download
-import tuf.fetcher
+import tuf.requests_fetcher
 import tuf.log
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.exceptions
@@ -87,7 +87,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     self.target_hash = {'md5':digest}
 
     # Initialize the default fetcher for the download
-    self.fetcher = tuf.fetcher.RequestsFetcher()
+    self.fetcher = tuf.requests_fetcher.RequestsFetcher()
 
 
 

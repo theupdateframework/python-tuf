@@ -40,7 +40,6 @@ import securesystemslib.util
 import six
 
 import tuf
-import tuf.fetcher
 import tuf.exceptions
 import tuf.formats
 

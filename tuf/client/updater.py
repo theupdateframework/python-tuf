@@ -131,7 +131,7 @@ import warnings
 
 import tuf
 import tuf.download
-import tuf.fetcher
+import tuf.requests_fetcher
 import tuf.formats
 import tuf.settings
 import tuf.keydb
@@ -696,7 +696,7 @@ class Updater(object):
     # Initialize Updater with an externally provided 'fetcher' implementing
     # the network download. By default tuf.fetcher.RequestsFetcher is used.
     if fetcher is None:
-      self.fetcher = tuf.fetcher.RequestsFetcher()
+      self.fetcher = tuf.requests_fetcher.RequestsFetcher()
     else:
       self.fetcher = fetcher
 
