@@ -14,25 +14,29 @@ The **tuf.repository_tool** module can be used to create a TUF repository.  See
 
 ## Overview of the Update Process
 
-1. The software update system instructs TUF to check for updates.
+0. The software update system instructs TUF to check for updates.
 
-2. TUF downloads and verifies timestamp.json.
+1. Tuf loads the trusted root metadata file.s
 
-3. If timestamp.json indicates that snapshot.json has changed, TUF downloads and
-verifies snapshot.json.
+2. Updates the root metadata file to the latest trustworthy version.
+Establish a trusted line of continuity to the latest root version.
 
-4. TUF determines which metadata files listed in snapshot.json differ from those
-described in the last snapshot.json that TUF has seen.  If root.json has changed,
-the update process starts over using the new root.json.
+3. Download and validates the timestamp metadata file.
 
-5. TUF provides the software update system with a list of available files
-according to targets.json.
+4. If timestamp.json indicates that snapshot.json has changed, TUF downloads
+and verifies snapshot.json.
 
-6. The software update system instructs TUF to download a specific target
-file.
+5. If snapshot.json indicates that any of the top-level targets metadata and/or
+delegated targets metadata has changed, TUF downloads and verifies targets.json
+and/or all changed delegated target files.
 
-7. TUF downloads and verifies the file and then makes the file available to
-the software update system.
+6. Verify the desired target against its target's metadata.
+
+7. The software update system instructs TUF to download a specific target
+    file.
+
+8. TUF downloads and verifies the file and then makes the file available to
+    the software update system.
 
 
 If at any point in the above procedure there is a problem (i.e., if unexpired,
