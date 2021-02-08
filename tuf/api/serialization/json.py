@@ -19,7 +19,8 @@ from tuf.api.serialization import (MetadataSerializer,
                                    MetadataDeserializer,
                                    SignedSerializer,
                                    SerializationError,
-                                   DeserializationError)
+                                   DeserializationError,
+                                   util)
 
 
 class JSONDeserializer(MetadataDeserializer):
@@ -29,7 +30,7 @@ class JSONDeserializer(MetadataDeserializer):
         """Deserialize utf-8 encoded JSON bytes into Metadata object. """
         try:
             _dict = json.loads(raw_data.decode("utf-8"))
-            return Metadata.from_dict(_dict)
+            return util.metadata_from_dict(_dict)
 
         except Exception as e: # pylint: disable=broad-except
             six.raise_from(DeserializationError, e)
@@ -51,7 +52,7 @@ class JSONSerializer(MetadataSerializer):
         try:
             indent = (None if self.compact else 1)
             separators=((',', ':') if self.compact else (',', ': '))
-            return json.dumps(metadata_obj.to_dict(),
+            return json.dumps(util.metadata_to_dict(metadata_obj),
                               indent=indent,
                               separators=separators,
                               sort_keys=True).encode("utf-8")
@@ -66,7 +67,7 @@ class CanonicalJSONSerializer(SignedSerializer):
     def serialize(self, signed_obj: Signed) -> bytes:
         """Serialize Signed object into utf-8 encoded Canonical JSON bytes. """
         try:
-            signed_dict = signed_obj.to_dict()
+            signed_dict = util.signed_to_dict(signed_obj)
             return encode_canonical(signed_dict).encode("utf-8")
 
         except Exception as e: # pylint: disable=broad-except

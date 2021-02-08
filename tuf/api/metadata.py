@@ -23,7 +23,6 @@ import tuf.formats
 import tuf.exceptions
 
 
-
 # Types
 JsonDict = Dict[str, Any]
 
@@ -54,49 +53,6 @@ class Metadata():
     def __init__(self, signed: 'Signed', signatures: list) -> None:
         self.signed = signed
         self.signatures = signatures
-
-
-    # Deserialization (factories).
-    @classmethod
-    def from_dict(cls, metadata: JsonDict) -> 'Metadata':
-        """Creates Metadata object from its JSON/dict representation.
-
-        Calls 'from_dict' for any complex metadata attribute represented by a
-        class also that has a 'from_dict' factory method. (Currently this is
-        only the signed attribute.)
-
-        Arguments:
-            metadata: TUF metadata in JSON/dict representation, as e.g.
-            returned by 'json.loads'.
-
-        Raises:
-            KeyError: The metadata dict format is invalid.
-            ValueError: The metadata has an unrecognized signed._type field.
-
-        Returns:
-            A TUF Metadata object.
-
-        """
-        # Dispatch to contained metadata class on metadata _type field.
-        _type = metadata['signed']['_type']
-
-        if _type == 'targets':
-            inner_cls = Targets
-        elif _type == 'snapshot':
-            inner_cls = Snapshot
-        elif _type == 'timestamp':
-            inner_cls = Timestamp
-        elif _type == 'root':
-            inner_cls = Root
-        else:
-            raise ValueError(f'unrecognized metadata type "{_type}"')
-
-        # NOTE: If Signature becomes a class, we should iterate over
-        # metadata['signatures'], call Signature.from_dict for each item, and
-        # pass a list of Signature objects to the Metadata constructor intead.
-        return cls(
-                signed=inner_cls.from_dict(metadata['signed']),
-                signatures=metadata['signatures'])
 
 
     @classmethod
@@ -138,14 +94,6 @@ class Metadata():
 
         return deserializer.deserialize(raw_data)
 
-
-    # Serialization.
-    def to_dict(self) -> JsonDict:
-        """Returns the JSON-serializable dictionary representation of self. """
-        return {
-            'signatures': self.signatures,
-            'signed': self.signed.to_dict()
-        }
 
     def to_file(self, filename: str, serializer: MetadataSerializer = None,
                 storage_backend: StorageBackendInterface = None) -> None:
@@ -302,39 +250,6 @@ class Signed:
         self.version = version
 
 
-    # Deserialization (factories).
-    @classmethod
-    def from_dict(cls, signed_dict: JsonDict) -> 'Signed':
-        """Creates Signed object from its JSON/dict representation. """
-
-        # Convert 'expires' TUF metadata string to a datetime object, which is
-        # what the constructor expects and what we store. The inverse operation
-        # is implemented in 'to_dict'.
-        signed_dict['expires'] = tuf.formats.expiry_string_to_datetime(
-                signed_dict['expires'])
-        # NOTE: We write the converted 'expires' back into 'signed_dict' above
-        # so that we can pass it to the constructor as  '**signed_dict' below,
-        # along with other fields that belong to Signed subclasses.
-        # Any 'from_dict'(-like) conversions of fields that correspond to a
-        # subclass should be performed in the 'from_dict' method of that
-        # subclass and also be written back into 'signed_dict' before calling
-        # super().from_dict.
-
-        # NOTE: cls might be a subclass of Signed, if 'from_dict' was called on
-        # that subclass (see e.g. Metadata.from_dict).
-        return cls(**signed_dict)
-
-
-    def to_dict(self) -> JsonDict:
-        """Returns the JSON-serializable dictionary representation of self. """
-        return {
-            '_type': self._type,
-            'version': self.version,
-            'spec_version': self.spec_version,
-            'expires': self.expires.isoformat() + 'Z'
-        }
-
-
     # Modification.
     def bump_expiration(self, delta: timedelta = timedelta(days=1)) -> None:
         """Increments the expires attribute by the passed timedelta. """
@@ -344,6 +259,7 @@ class Signed:
     def bump_version(self) -> None:
         """Increments the metadata version number by 1."""
         self.version += 1
+
 
 
 class Root(Signed):
@@ -395,18 +311,6 @@ class Root(Signed):
         self.roles = roles
 
 
-    # Serialization.
-    def to_dict(self) -> JsonDict:
-        """Returns the JSON-serializable dictionary representation of self. """
-        json_dict = super().to_dict()
-        json_dict.update({
-            'consistent_snapshot': self.consistent_snapshot,
-            'keys': self.keys,
-            'roles': self.roles
-        })
-        return json_dict
-
-
     # Update key for a role.
     def add_key(self, role: str, keyid: str, key_metadata: JsonDict) -> None:
         """Adds new key for 'role' and updates the key store. """
@@ -425,7 +329,6 @@ class Root(Signed):
                     return
 
             del self.keys[keyid]
-
 
 
 
@@ -456,16 +359,6 @@ class Timestamp(Signed):
         self.meta = meta
 
 
-    # Serialization.
-    def to_dict(self) -> JsonDict:
-        """Returns the JSON-serializable dictionary representation of self. """
-        json_dict = super().to_dict()
-        json_dict.update({
-            'meta': self.meta
-        })
-        return json_dict
-
-
     # Modification.
     def update(self, version: int, length: int, hashes: JsonDict) -> None:
         """Assigns passed info about snapshot metadata to meta dict. """
@@ -474,6 +367,7 @@ class Timestamp(Signed):
             'length': length,
             'hashes': hashes
         }
+
 
 
 class Snapshot(Signed):
@@ -509,15 +403,6 @@ class Snapshot(Signed):
         # TODO: Add class for meta
         self.meta = meta
 
-    # Serialization.
-    def to_dict(self) -> JsonDict:
-        """Returns the JSON-serializable dictionary representation of self. """
-        json_dict = super().to_dict()
-        json_dict.update({
-            'meta': self.meta
-        })
-        return json_dict
-
 
     # Modification.
     def update(
@@ -532,6 +417,7 @@ class Snapshot(Signed):
 
         if hashes is not None:
             self.meta[metadata_fn]['hashes'] = hashes
+
 
 
 class Targets(Signed):
@@ -600,16 +486,6 @@ class Targets(Signed):
         self.targets = targets
         self.delegations = delegations
 
-
-    # Serialization.
-    def to_dict(self) -> JsonDict:
-        """Returns the JSON-serializable dictionary representation of self. """
-        json_dict = super().to_dict()
-        json_dict.update({
-            'targets': self.targets,
-            'delegations': self.delegations,
-        })
-        return json_dict
 
     # Modification.
     def update(self, filename: str, fileinfo: JsonDict) -> None:
