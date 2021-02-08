@@ -4,3 +4,6 @@ disable=fixme
 [FORMAT]
 indent-string="    "
 max-line-length=79
+
+[DESIGN]
+min-public-methods=0
