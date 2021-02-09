@@ -28,6 +28,10 @@ from tuf.api.metadata import (
     Targets
 )
 
+from tuf.api.serialization import (
+    DeserializationError
+)
+
 from tuf.api.serialization.json import (
     JSONSerializer,
     JSONDeserializer,
@@ -118,7 +122,7 @@ class TestMetadata(unittest.TestCase):
         with open(bad_metadata_path, 'wb') as f:
             f.write(json.dumps(bad_metadata).encode('utf-8'))
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(DeserializationError):
             Metadata.from_file(bad_metadata_path)
 
         os.remove(bad_metadata_path)

@@ -13,6 +13,14 @@ base classes defined in this __init__.py module.
 """
 import abc
 
+# TODO: Should these be in tuf.exceptions or inherit from tuf.exceptions.Error?
+class SerializationError(Exception):
+    """Error during serialization. """
+
+class DeserializationError(Exception):
+    """Error during deserialization. """
+
+
 class MetadataDeserializer():
     """Abstract base class for deserialization of Metadata objects. """
     __metaclass__ = abc.ABCMeta

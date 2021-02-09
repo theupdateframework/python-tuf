@@ -117,8 +117,8 @@ class Metadata():
 
         Raises:
             securesystemslib.exceptions.StorageError: The file cannot be read.
-            securesystemslib.exceptions.Error, ValueError, KeyError: The
-                metadata cannot be parsed.
+            tuf.api.serialization.DeserializationError:
+                The file cannot be deserialized.
 
         Returns:
             A TUF Metadata object.
@@ -161,6 +161,8 @@ class Metadata():
                 a (local) FilesystemBackend is used.
 
         Raises:
+            tuf.api.serialization.SerializationError:
+                The metadata object cannot be serialized.
             securesystemslib.exceptions.StorageError:
                 The file cannot be written.
 
@@ -191,7 +193,8 @@ class Metadata():
                 CanonicalJSONSerializer is used.
 
         Raises:
-            securesystemslib.exceptions.FormatError: Key argument is malformed.
+            tuf.api.serialization.SerializationError:
+                'signed' cannot be serialized.
             securesystemslib.exceptions.CryptoError, \
                     securesystemslib.exceptions.UnsupportedAlgorithmError:
                 Signing errors.
@@ -230,6 +233,8 @@ class Metadata():
             # TODO: Revise exception taxonomy
             tuf.exceptions.Error: None or multiple signatures found for key.
             securesystemslib.exceptions.FormatError: Key argument is malformed.
+            tuf.api.serialization.SerializationError:
+                'signed' cannot be serialized.
             securesystemslib.exceptions.CryptoError, \
                     securesystemslib.exceptions.UnsupportedAlgorithmError:
                 Signing errors.
