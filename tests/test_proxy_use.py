@@ -205,8 +205,8 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     """
 
     logger.info('Trying HTTP download with no proxy: ' + self.url)
-    download.safe_download(self.url, self.target_data_length, self.fetcher)
-    download.unsafe_download(self.url, self.target_data_length, self.fetcher)
+    download.safe_download(self.url, self.target_data_length, self.fetcher).close()
+    download.unsafe_download(self.url, self.target_data_length, self.fetcher).close()
 
 
 
@@ -221,8 +221,8 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     self.set_env_value('HTTP_PROXY', self.http_proxy_addr)
 
     logger.info('Trying HTTP download via HTTP proxy: ' + self.url)
-    download.safe_download(self.url, self.target_data_length, self.fetcher)
-    download.unsafe_download(self.url, self.target_data_length, self.fetcher)
+    download.safe_download(self.url, self.target_data_length, self.fetcher).close()
+    download.unsafe_download(self.url, self.target_data_length, self.fetcher).close()
 
 
 
@@ -249,8 +249,8 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     self.fetcher._sessions = {}
 
     logger.info('Trying HTTPS download via HTTP proxy: ' + self.url_https)
-    download.safe_download(self.url_https, self.target_data_length, self.fetcher)
-    download.unsafe_download(self.url_https, self.target_data_length, self.fetcher)
+    download.safe_download(self.url_https, self.target_data_length, self.fetcher).close()
+    download.unsafe_download(self.url_https, self.target_data_length, self.fetcher).close()
 
 
 
@@ -273,8 +273,8 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     self.fetcher._sessions = {}
 
     logger.info('Trying HTTP download via HTTPS proxy: ' + self.url_https)
-    download.safe_download(self.url, self.target_data_length, self.fetcher)
-    download.unsafe_download(self.url, self.target_data_length, self.fetcher)
+    download.safe_download(self.url, self.target_data_length, self.fetcher).close()
+    download.unsafe_download(self.url, self.target_data_length, self.fetcher).close()
 
 
 
@@ -299,8 +299,8 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
     self.fetcher._sessions = {}
 
     logger.info('Trying HTTPS download via HTTPS proxy: ' + self.url_https)
-    download.safe_download(self.url_https, self.target_data_length, self.fetcher)
-    download.unsafe_download(self.url_https, self.target_data_length, self.fetcher)
+    download.safe_download(self.url_https, self.target_data_length, self.fetcher).close()
+    download.unsafe_download(self.url_https, self.target_data_length, self.fetcher).close()
 
 
 
