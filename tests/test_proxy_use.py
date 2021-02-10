@@ -97,7 +97,8 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
 
     # Note that the HTTP proxy server's address uses http://, regardless of the
     # type of connection used with the target server.
-    cls.http_proxy_addr = 'http://127.0.0.1:' + str(cls.http_proxy_handler.port)
+    cls.http_proxy_addr = 'http://' + utils.TEST_HOST_ADDRESS + ':' + \
+        str(cls.http_proxy_handler.port)
 
 
     # Launch an HTTPS proxy server, also derived from inaz2/proxy2.
@@ -167,10 +168,12 @@ class TestWithProxies(unittest_toolbox.Modified_TestCase):
 
     suffix = '/' + os.path.basename(target_filepath)
     self.url = \
-        'http://127.0.0.1:' + str(self.http_server_handler.port) + suffix
+        'http://' + utils.TEST_HOST_ADDRESS + ':' + \
+        str(self.http_server_handler.port) + suffix
 
     self.url_https = \
-        'https://127.0.0.1:' + str(self.https_server_handler.port) + suffix
+        'https://' + utils.TEST_HOST_ADDRESS + ':' + \
+         str(self.https_server_handler.port) + suffix
 
 
 

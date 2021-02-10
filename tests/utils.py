@@ -39,6 +39,9 @@ import tuf.log
 
 logger = logging.getLogger(__name__)
 
+# Used when forming URLs on the client side
+TEST_HOST_ADDRESS = '127.0.0.1'
+
 try:
   # is defined in Python 3
   TimeoutError

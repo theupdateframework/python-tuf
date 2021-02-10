@@ -58,7 +58,7 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
     self.server_process_handler = utils.TestServerProcess(log=logger)
 
     rel_target_filepath = os.path.basename(target_filepath)
-    self.url = 'http://127.0.0.1:' \
+    self.url = 'http://' + utils.TEST_HOST_ADDRESS + ':' \
         + str(self.server_process_handler.port) + '/' + rel_target_filepath
 
     # Create a temporary file where the target file chunks are written
