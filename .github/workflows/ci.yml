@@ -1,6 +1,11 @@
 name: Run TUF tests and linter
 
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
