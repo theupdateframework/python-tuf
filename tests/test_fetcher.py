@@ -1,20 +1,9 @@
 #!/usr/bin/env python
 
-"""
-<Program>
-  test_download.py
+# Copyright 2021, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
 
-<Author>
-  Teodora Sechkova tsechkova@vmware.com
-
-<Started>
-  December 18, 2020.
-
-<Copyright>
-  See LICENSE-MIT OR LICENSE for licensing information.
-
-<Purpose>
-  Unit test for RequestsFetcher.
+"""Unit test for RequestsFetcher.
 """
 # Help with Python 2 compatibility, where the '/' operator performs
 # integer division.

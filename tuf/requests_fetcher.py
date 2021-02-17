@@ -1,59 +1,69 @@
-"""
-<Program Name>
-  fetcher.py
+# Copyright 2021, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
 
-<Author>
-  Teodora Sechkova <tsechkova@vmware.com>
-
-<Started>
-  December 14, 2020
-
-<Copyright>
-  See LICENSE-MIT OR LICENSE for licensing information.
-
-<Purpose>
-  Provides an implementation of FetcherInterface using the requests HTTP
+"""Provides an implementation of FetcherInterface using the Requests HTTP
   library.
 """
 
+# Imports
 import requests
 import six
 import logging
 import time
 
 import urllib3.exceptions
+
 import tuf.exceptions
 import tuf.settings
-import tuf.client.fetcher
 
+from tuf.client.fetcher import FetcherInterface
+
+# Globals
 logger = logging.getLogger(__name__)
 
-
-class RequestsFetcher(tuf.client.fetcher.FetcherInterface):
-  """
-  <Purpose>
-    A concrete implementation of FetcherInterface based on the Requests
+# Classess
+class RequestsFetcher(FetcherInterface):
+  """A concrete implementation of FetcherInterface based on the Requests
     library.
+
+    Attributes:
+      _sessions: A dictionary of Requests.Session objects storing a separate
+        session per scheme+hostname combination.
   """
 
   def __init__(self):
     # From http://docs.python-requests.org/en/master/user/advanced/#session-objects:
     #
-    # "The Session object allows you to persist certain parameters across requests.
-    # It also persists cookies across all requests made from the Session instance,
-    # and will use urllib3's connection pooling. So if you're making several
-    # requests to the same host, the underlying TCP connection will be reused,
-    # which can result in a significant performance increase (see HTTP persistent
-    # connection)."
+    # "The Session object allows you to persist certain parameters across
+    # requests. It also persists cookies across all requests made from the
+    # Session instance, and will use urllib3's connection pooling. So if you're
+    # making several requests to the same host, the underlying TCP connection
+    # will be reused, which can result in a significant performance increase
+    # (see HTTP persistent connection)."
     #
-    # NOTE: We use a separate requests.Session per scheme+hostname combination, in
-    # order to reuse connections to the same hostname to improve efficiency, but
-    # avoiding sharing state between different hosts-scheme combinations to
+    # NOTE: We use a separate requests.Session per scheme+hostname combination,
+    # in order to reuse connections to the same hostname to improve efficiency,
+    # but avoiding sharing state between different hosts-scheme combinations to
     # minimize subtle security issues. Some cookies may not be HTTP-safe.
     self._sessions = {}
 
 
   def fetch(self, url, required_length):
+    """Fetches the contents of HTTP/HTTPS url from a remote server.
+
+    Ensures the length of the downloaded data is up to 'required_length'.
+
+    Arguments:
+      url: A URL string that represents a file location.
+      required_length: An integer value representing the file length in bytes.
+
+    Raises:
+      tuf.exceptions.SlowRetrievalError: A timeout occurs while receiving data.
+      tuf.exceptions.FetcherHTTPError: An HTTP error code is received.
+
+    Returns:
+      A bytes iterator
+    """
     # Get a customized session for each new schema+hostname combination.
     session = self._get_session(url)
 
@@ -81,10 +91,10 @@ class RequestsFetcher(tuf.client.fetcher.FetcherInterface):
         bytes_received = 0
         while True:
           # We download a fixed chunk of data in every round. This is so that we
-          # can defend against slow retrieval attacks. Furthermore, we do not wish
-          # to download an extremely large file in one shot.
-          # Before beginning the round, sleep (if set) for a short amount of time
-          # so that the CPU is not hogged in the while loop.
+          # can defend against slow retrieval attacks. Furthermore, we do not
+          # wish to download an extremely large file in one shot.
+          # Before beginning the round, sleep (if set) for a short amount of
+          # time so that the CPU is not hogged in the while loop.
           if tuf.settings.SLEEP_BEFORE_ROUND:
             time.sleep(tuf.settings.SLEEP_BEFORE_ROUND)
 
@@ -121,8 +131,7 @@ class RequestsFetcher(tuf.client.fetcher.FetcherInterface):
 
 
   def _get_session(self, url):
-    """
-    Returns a different customized requests.Session per schema+hostname
+    """Returns a different customized requests.Session per schema+hostname
     combination.
     """
     # Use a different requests.Session per schema+hostname combination, to
