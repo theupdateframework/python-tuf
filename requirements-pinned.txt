@@ -1,7 +1,7 @@
 certifi==2020.12.5        # via requests
 cffi==1.14.5              # via cryptography, pynacl
 chardet==4.0.0            # via requests
-cryptography==3.4.5       ; python_version >= '3' # via securesystemslib
+cryptography==3.4.6       ; python_version >= '3' # via securesystemslib
 cryptography==3.3.2       ; python_version < '3' # via securesystemslib
 enum34==1.1.10            ; python_version < '3' # via cryptography
 idna==2.10                # via requests
