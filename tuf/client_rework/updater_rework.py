@@ -506,7 +506,278 @@ class Updater:
         return intermediate_snapshot
 
 
+    def _verify_targets(self,
+        temp_obj: TextIO, filename: str, parent_role: str) -> TargetsWrapper:
 
+         # Check against timestamp metadata
+        if self._metadata['snapshot'].role(filename).get('hash'):
+            _check_hashes(temp_obj,
+                self._metadata['snapshot'].targets.get('hash'))
+
+        intermediate_targets = TargetsWrapper.from_json_object(temp_obj)
+        if (intermediate_targets.version !=
+            self._metadata['snapshot'].role(filename)['version']):
+            temp_obj.close()
+            raise tuf.exceptions.BadVersionNumberError
+
+        # Check for an arbitrary software attack
+        parent_role = self._metadata[parent_role]
+
+        intermediate_targets.verify(parent_role.keys(filename),
+                                    parent_role.threshold(filename))
+
+        intermediate_targets.expires()
+
+        return intermediate_targets
+
+
+
+    def _verify_target_file(self,
+        temp_obj: BinaryIO, targetinfo: Dict) -> None:
+
+        _check_file_length(temp_obj, targetinfo['fileinfo']['length'])
+        _check_hashes(temp_obj, targetinfo['fileinfo']['hashes'])
+
+
+
+    def _preorder_depth_first_walk(self, target_filepath) -> Dict:
+
+        target = None
+        role_names = [('targets', 'root')]
+        visited_role_names = set()
+        number_of_delegations = tuf.settings.MAX_NUMBER_OF_DELEGATIONS
+
+        # Ensure the client has the most up-to-date version of 'targets.json'.
+        # Raise 'tuf.exceptions.NoWorkingMirrorError' if the changed metadata
+        # cannot be successfully downloaded and
+        # 'tuf.exceptions.RepositoryError' if the referenced metadata is
+        # missing.  Target methods such as this one are called after the
+        # top-level metadata have been refreshed (i.e., updater.refresh()).
+        # self._update_metadata_if_changed('targets')
+
+        # Preorder depth-first traversal of the graph of target delegations.
+        while (target is None and
+               number_of_delegations > 0 and
+               len(role_names) > 0):
+
+            # Pop the role name from the top of the stack.
+            role_name, parent_role = role_names.pop(-1)
+            self._load_targets(role_name, parent_role)
+            # Skip any visited current role to prevent cycles.
+            if (role_name, parent_role) in visited_role_names:
+                logger.debug(f"Skipping visited current role {role_name}")
+                continue
+
+            # The metadata for 'role_name' must be downloaded/updated before
+            # its targets, delegations, and child roles can be inspected.
+            # self._metadata['current'][role_name] is currently missing.
+            # _refresh_targets_metadata() does not refresh 'targets.json', it
+            # expects _update_metadata_if_changed() to have already refreshed
+            # it, which this function has checked above.
+            # self._refresh_targets_metadata(role_name,
+            #     refresh_all_delegated_roles=False)
+
+            role_metadata = self._metadata[role_name]
+            targets = role_metadata.targets
+            target = targets.get(target_filepath)
+
+            # After preorder check, add current role to set of visited roles.
+            visited_role_names.add((role_name, parent_role))
+
+            # And also decrement number of visited roles.
+            number_of_delegations -= 1
+            delegations = role_metadata.delegations
+            child_roles = delegations.get('roles', [])
+
+            if target is None:
+
+                child_roles_to_visit = []
+                # NOTE: This may be a slow operation if there are many
+                # delegated roles.
+                for child_role in child_roles:
+                    child_role_name = _visit_child_role(
+                        child_role, target_filepath)
+
+                    if (child_role['terminating'] and
+                        child_role_name is not None):
+                        logger.debug('Adding child role ' +
+                                    repr(child_role_name))
+                        logger.debug('Not backtracking to other roles.')
+                        role_names = []
+                        child_roles_to_visit.append(
+                            (child_role_name, role_name))
+                        break
+
+                    if child_role_name is None:
+                        logger.debug('Skipping child role ' +
+                                    repr(child_role_name))
+
+                    else:
+                        logger.debug('Adding child role ' +
+                                    repr(child_role_name))
+                        child_roles_to_visit.append(
+                            (child_role_name, role_name))
+
+                # Push 'child_roles_to_visit' in reverse order of appearance
+                # onto 'role_names'.  Roles are popped from the end of
+                # the 'role_names' list.
+                child_roles_to_visit.reverse()
+                role_names.extend(child_roles_to_visit)
+
+            else:
+                logger.debug('Found target in current role ' +
+                            repr(role_name))
+
+        if (target is None and
+            number_of_delegations == 0 and
+            len(role_names) > 0):
+            logger.debug(repr(len(role_names)) + ' roles left to visit, ' +
+                'but allowed to visit at most ' +
+                repr(tuf.settings.MAX_NUMBER_OF_DELEGATIONS) + ' delegations.')
+
+        return {'filepath': target_filepath, 'fileinfo': target}
+
+
+
+
+
+
+def _visit_child_role(child_role: Dict, target_filepath: str) -> str:
+    """
+    <Purpose>
+      Non-public method that determines whether the given 'target_filepath'
+      is an allowed path of 'child_role'.
+
+      Ensure that we explore only delegated roles trusted with the target.  The
+      metadata for 'child_role' should have been refreshed prior to this point,
+      however, the paths/targets that 'child_role' signs for have not been
+      verified (as intended).  The paths/targets that 'child_role' is allowed
+      to specify in its metadata depends on the delegating role, and thus is
+      left to the caller to verify.  We verify here that 'target_filepath'
+      is an allowed path according to the delegated 'child_role'.
+
+      TODO: Should the TUF spec restrict the repository to one particular
+      algorithm?  Should we allow the repository to specify in the role
+      dictionary the algorithm used for these generated hashed paths?
+
+    <Arguments>
+      child_role:
+        The delegation targets role object of 'child_role', containing its
+        paths, path_hash_prefixes, keys, and so on.
+
+      target_filepath:
+        The path to the target file on the repository. This will be relative to
+        the 'targets' (or equivalent) directory on a given mirror.
+
+    <Exceptions>
+      None.
+
+    <Side Effects>
+      None.
+
+    <Returns>
+      If 'child_role' has been delegated the target with the name
+      'target_filepath', then we return the role name of 'child_role'.
+
+      Otherwise, we return None.
+    """
+
+    child_role_name = child_role['name']
+    child_role_paths = child_role.get('paths')
+    child_role_path_hash_prefixes = child_role.get('path_hash_prefixes')
+
+    if child_role_path_hash_prefixes is not None:
+        target_filepath_hash = _get_target_hash(target_filepath)
+        for child_role_path_hash_prefix in child_role_path_hash_prefixes:
+            if not target_filepath_hash.startswith(child_role_path_hash_prefix):
+                continue
+
+            return child_role_name
+
+    elif child_role_paths is not None:
+        # Is 'child_role_name' allowed to sign for 'target_filepath'?
+        for child_role_path in child_role_paths:
+            # A child role path may be an explicit path or glob pattern (Unix
+            # shell-style wildcards).  The child role 'child_role_name' is
+            # returned if 'target_filepath' is equal to or matches
+            # 'child_role_path'. Explicit filepaths are also considered
+            # matches. A repo maintainer might delegate a glob pattern with a
+            # leading path separator, while the client requests a matching
+            # target without a leading path separator - make sure to strip any
+            # leading path separators so that a match is made.
+            # Example: "foo.tgz" should match with "/*.tgz".
+            if fnmatch.fnmatch(target_filepath.lstrip(os.sep),
+                               child_role_path.lstrip(os.sep)):
+                logger.debug('Child role ' + repr(child_role_name) +
+                    ' is allowed to sign for ' + repr(target_filepath))
+
+                return child_role_name
+
+            logger.debug(
+                'The given target path ' + repr(target_filepath) +
+                ' does not match the trusted path or glob pattern: ' +
+                repr(child_role_path))
+            continue
+
+    else:
+        # 'role_name' should have been validated when it was downloaded.
+        # The 'paths' or 'path_hash_prefixes' fields should not be missing,
+        # so we raise a format error here in case they are both missing.
+        raise tuf.exceptions.FormatError(repr(child_role_name) + ' '
+            'has neither a "paths" nor "path_hash_prefixes".  At least'
+            ' one of these attributes must be present.')
+
+    return None
+
+
+def _check_file_length(file_object, trusted_file_length):
+
+    file_object.seek(0, 2)
+    observed_length = file_object.tell()
+
+    # Return and log a message if the length 'file_object' is equal to
+    # 'trusted_file_length', otherwise raise an exception.  A hard check
+    # ensures that a downloaded file strictly matches a known, or trusted,
+    # file length.
+    if observed_length != trusted_file_length:
+        raise tuf.exceptions.DownloadLengthMismatchError(trusted_file_length,
+            observed_length)
+
+
+def _check_hashes(file_object, trusted_hashes):
+
+    # Verify each trusted hash of 'trusted_hashes'.  If all are valid, simply
+    # return.
+    for algorithm, trusted_hash in trusted_hashes.items():
+        digest_object = securesystemslib.hash.digest(algorithm)
+        # Ensure we read from the beginning of the file object
+        # TODO: should we store file position (before the loop) and reset
+        # after we seek about?
+        file_object.seek(0)
+        digest_object.update(file_object.read())
+        computed_hash = digest_object.hexdigest()
+
+        # Raise an exception if any of the hashes are incorrect.
+        if trusted_hash != computed_hash:
+            raise securesystemslib.exceptions.BadHashError(trusted_hash,
+                computed_hash)
+
+        logger.info('The file\'s ' + algorithm + ' hash is'
+            ' correct: ' + trusted_hash)
+
+
+
+def _get_target_hash(target_filepath, hash_function='sha256'):
+
+    # Calculate the hash of the filepath to determine which bin to find the
+    # target.  The client currently assumes the repository (i.e., repository
+    # tool) uses 'hash_function' to generate hashes and UTF-8.
+    digest_object = securesystemslib.hash.digest(hash_function)
+    encoded_target_filepath = target_filepath.encode('utf-8')
+    digest_object.update(encoded_target_filepath)
+    target_filepath_hash = digest_object.hexdigest()
+
+    return target_filepath_hash
 
 def neither_403_nor_404(mirror_error):
     if isinstance(mirror_error, tuf.exceptions.FetcherHTTPError):
