@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.17.0
+**NOTE**: this will be the final release of tuf that supports Python 2.7.
+This is because Python 2.7 was marked [end-of-life](
+https://www.python.org/dev/peps/pep-0373/) in January of 2020, and
+since then several of tuf's direct and transient dependencies have stopped
+supporting Python 2.7.
+
+### Added
+* Added Architectural Decisions Records (ADRs) for:
+  * where to develop python-tuf 1.0 (#1220)
+  * to justify the extent of OOP in the metadata model (#1229)
+  * to decide on a Python code style guide (#1232)
+
+### Changed
+* Switch to GitHub Actions for CI (#1242, #1283, #1252)
+* Switch to only running bandit on Python versions greater than 3.5 (#1234)
+* Bump dependencies: requests (#1245), chardet (#1239), urllib3 (#1268),
+  cffi (#1280), securesystemslib (#1285), cryptography (#1282, #1286).
+  **NOTE**: the latest version of cryptography is no longer used on
+  Python 2, as that is not supported.
+* Moved from dependabot-preview to GitHub native Dependabot (#1258)
+* Configure dependabot to ignore idna, as it breaks Python 2.7 builds (#1259)
+* Install securesystemslib in tox in non-editable mode (#1228)
+* Change the editable venv installation order (#1271)
+
+### Fixed
+* Updated expiration check in Updater to better match the specification (#1235)
+* Ensure tempfile's are closed in Updater (#1226)
+
+### Removed
+* Dropped support for Python 3.5 (#1238)
+
 ## v0.16.0
 ### Added
 * Begin to document architectural and project-wide decisions as Architectural
