@@ -1,5 +1,9 @@
-python-tuf (0.11.2.dev3-1) unstable; urgency=low
+python-tuf (0.17.0-1) UNRELEASED; urgency=low
 
+  [Lukas Puehringer]
+  * Initial packaging effort on 0.11.2.dev3-1
+
+  [Philippe Coval]
   * Initial release. (Closes: #934151)
 
- -- Lukas Puehringer <lukas.puehringer@nyu.edu>  Wed, 07 Aug 2019 10:08:28 -0400
+ -- Philippe Coval <rzr@users.sf.net>  Fri, 26 Mar 2021 16:33:04 +0100
