@@ -39,7 +39,6 @@ import tempfile
 import securesystemslib # pylint: disable=unused-import
 from securesystemslib import formats as sslib_formats
 
-import tuf
 from tuf import exceptions
 from tuf import formats
 from tuf import settings

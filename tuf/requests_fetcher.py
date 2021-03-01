@@ -12,6 +12,7 @@ import logging
 import time
 from urllib3.exceptions import ReadTimeoutError
 
+import tuf
 from tuf import exceptions
 from tuf import settings
 
