@@ -10,8 +10,7 @@ import requests
 import six
 import logging
 import time
-
-import urllib3.exceptions
+from urllib3.exceptions import ReadTimeoutError
 
 from tuf import exceptions
 from tuf import settings
@@ -121,7 +120,7 @@ class RequestsFetcher(FetcherInterface):
           if bytes_received >= required_length:
             break
 
-      except urllib3.exceptions.ReadTimeoutError as e:
+      except ReadTimeoutError as e:
         raise exceptions.SlowRetrievalError(str(e))
 
       finally:
