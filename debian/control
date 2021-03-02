@@ -4,13 +4,14 @@ Uploaders: Philippe Coval <rzr@users.sf.net>
 Section: devel
 Priority: optional
 Build-Depends: dh-python,
-               debhelper-compat (= 12),
+               debhelper-compat (= 13),
                python3-all,
                python3-setuptools,
                python3-six,
                python3-requests,
                python3-securesystemslib
-Standards-Version: 4.5.0
+Standards-Version: 4.5.1
+Rules-Requires-Root: no
 Vcs-Browser: https://github.com/theupdateframework/tuf
 Vcs-Git: https://github.com/theupdateframework/tuf.git
 Homepage: https://theupdateframework.com
