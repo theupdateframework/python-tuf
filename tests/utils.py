@@ -29,11 +29,7 @@ import time
 import subprocess
 import threading
 import warnings
-
-try:
-  import queue
-except ImportError:
-  import Queue as queue # python2
+import queue
 
 import tuf.log
 
@@ -41,19 +37,6 @@ logger = logging.getLogger(__name__)
 
 # Used when forming URLs on the client side
 TEST_HOST_ADDRESS = '127.0.0.1'
-
-try:
-  # is defined in Python 3
-  TimeoutError
-except NameError:
-  # Define for Python 2
-  class TimeoutError(Exception):
-
-    def __init__(self, value="Timeout"):
-      self.value = value
-
-    def __str__(self):
-      return repr(self.value)
 
 
 class TestServerProcessError(Exception):
