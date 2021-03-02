@@ -1,7 +1,6 @@
 Source: python-tuf
-Maintainer: tuf developers <theupdateframework@googlegroups.com>
-Uploaders: Lukas Puehringer <lukas.puehringer@nyu.edu>,
-           Justin Cappos <jcappos@nyu.edu>
+Maintainer: Debian Python Team <team+python@tracker.debian.org>
+Uploaders: Philippe Coval <rzr@users.sf.net>
 Section: devel
 Priority: optional
 Build-Depends: dh-python,
