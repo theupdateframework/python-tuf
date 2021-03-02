@@ -96,8 +96,8 @@ class Metadata():
         # metadata['signatures'], call Signature.from_dict for each item, and
         # pass a list of Signature objects to the Metadata constructor intead.
         return cls(
-                signed=inner_cls.from_dict(metadata['signed']),
-                signatures=metadata['signatures'])
+            signed=inner_cls.from_dict(metadata['signed']),
+            signatures=metadata['signatures'])
 
 
     @classmethod
@@ -122,7 +122,7 @@ class Metadata():
     def from_json_file(
             cls, filename: str,
             storage_backend: Optional[StorageBackendInterface] = None
-            ) -> 'Metadata':
+    ) -> 'Metadata':
         """Loads JSON-formatted TUF metadata from file storage.
 
         Arguments:
@@ -155,10 +155,10 @@ class Metadata():
     def to_json(self, compact: bool = False) -> None:
         """Returns the optionally compacted JSON representation of self. """
         return json.dumps(
-                self.to_dict(),
-                indent=(None if compact else 1),
-                separators=((',', ':') if compact else (',', ': ')),
-                sort_keys=True)
+            self.to_dict(),
+            indent=(None if compact else 1),
+            separators=((',', ':') if compact else (',', ': ')),
+            sort_keys=True)
 
 
     def to_json_file(
@@ -232,16 +232,16 @@ class Metadata():
 
         """
         signatures_for_keyid = list(filter(
-                lambda sig: sig['keyid'] == key['keyid'], self.signatures))
+            lambda sig: sig['keyid'] == key['keyid'], self.signatures))
 
         if not signatures_for_keyid:
             raise tuf.exceptions.Error(
-                    f'no signature for key {key["keyid"]}.')
+                f'no signature for key {key["keyid"]}.')
 
         if len(signatures_for_keyid) > 1:
             raise tuf.exceptions.Error(
-                    f'{len(signatures_for_keyid)} signatures for key '
-                    f'{key["keyid"]}, not sure which one to verify.')
+                f'{len(signatures_for_keyid)} signatures for key '
+                f'{key["keyid"]}, not sure which one to verify.')
 
         return verify_signature(
             key, signatures_for_keyid[0],
@@ -293,7 +293,7 @@ class Signed:
         # what the constructor expects and what we store. The inverse operation
         # is implemented in 'to_dict'.
         signed_dict['expires'] = tuf.formats.expiry_string_to_datetime(
-                signed_dict['expires'])
+            signed_dict['expires'])
         # NOTE: We write the converted 'expires' back into 'signed_dict' above
         # so that we can pass it to the constructor as  '**signed_dict' below,
         # along with other fields that belong to Signed subclasses.
@@ -582,7 +582,7 @@ class Targets(Signed):
     def __init__(
             self, _type: str, version: int, spec_version: str,
             expires: datetime, targets: JsonDict, delegations: JsonDict
-            ) -> None:
+    ) -> None:
         super().__init__(_type, version, spec_version, expires)
         # TODO: Add class for meta
         self.targets = targets
