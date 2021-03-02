@@ -1,4 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Contact: https://github.com/theupdateframework,
+ tuf developers <theupdateframework@googlegroups.com>
 Upstream-Name: tuf
 Source: https://github.com/theupdateframework
 
