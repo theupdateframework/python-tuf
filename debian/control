@@ -1,7 +1,7 @@
 Source: python-tuf
 Maintainer: Debian Python Team <team+python@tracker.debian.org>
 Uploaders: Philippe Coval <rzr@users.sf.net>
-Section: devel
+Section: python
 Priority: optional
 Build-Depends: dh-python,
                debhelper-compat (= 13),
