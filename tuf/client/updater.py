@@ -128,6 +128,7 @@ import time
 import fnmatch
 import copy
 import warnings
+import io
 
 import tuf
 import tuf.download
@@ -1245,9 +1246,7 @@ class Updater(object):
       None.
     """
 
-    # seek to the end of the file; that is offset 0 from the end of the file,
-    # represented by a whence value of 2
-    file_object.seek(0, 2)
+    file_object.seek(0, io.SEEK_END)
     observed_length = file_object.tell()
 
     # Return and log a message if the length 'file_object' is equal to

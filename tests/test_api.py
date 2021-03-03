@@ -20,32 +20,22 @@ from dateutil.relativedelta import relativedelta
 
 from tests import utils
 
-# TODO: Remove case handling when fully dropping support for versions >= 3.6
-IS_PY_VERSION_SUPPORTED = sys.version_info >= (3, 6)
+import tuf.exceptions
+from tuf.api.metadata import (
+    Metadata,
+    Snapshot,
+    Timestamp,
+    Targets
+)
 
-# Use setUpModule to tell unittest runner to skip this test module gracefully.
-def setUpModule():
-    if not IS_PY_VERSION_SUPPORTED:
-        raise unittest.SkipTest('requires Python 3.6 or higher')
+from securesystemslib.interface import (
+    import_ed25519_publickey_from_file,
+    import_ed25519_privatekey_from_file
+)
 
-# Since setUpModule is called after imports we need to import conditionally.
-if IS_PY_VERSION_SUPPORTED:
-    import tuf.exceptions
-    from tuf.api.metadata import (
-        Metadata,
-        Snapshot,
-        Timestamp,
-        Targets
-    )
-
-    from securesystemslib.interface import (
-        import_ed25519_publickey_from_file,
-        import_ed25519_privatekey_from_file
-    )
-
-    from securesystemslib.keys import (
-        format_keyval_to_metadata
-    )
+from securesystemslib.keys import (
+    format_keyval_to_metadata
+)
 
 logger = logging.getLogger(__name__)
 

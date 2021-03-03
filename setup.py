@@ -97,8 +97,6 @@ setup(
     'Operating System :: MacOS :: MacOS X',
     'Operating System :: Microsoft :: Windows',
     'Programming Language :: Python',
-    'Programming Language :: Python :: 2',
-    'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3.6',
     'Programming Language :: Python :: 3.7',
@@ -112,14 +110,11 @@ setup(
     'Source': 'https://github.com/theupdateframework/tuf',
     'Issues': 'https://github.com/theupdateframework/tuf/issues'
   },
-  python_requires=">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, <4",
+  python_requires="~=3.6",
   install_requires = [
     'requests>=2.19.1',
     'six>=1.11.0',
     'securesystemslib>=0.18.0'
-  ],
-  tests_require = [
-    'mock; python_version < "3.3"'
   ],
   packages = find_packages(exclude=['tests']),
   scripts = [
