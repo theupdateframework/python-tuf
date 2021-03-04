@@ -1,3 +1,6 @@
+# Copyright New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """TUF role metadata JSON serialization and deserialization.
 
 This module provides concrete implementations to serialize and deserialize TUF
