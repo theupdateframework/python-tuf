@@ -8,8 +8,5 @@ good-names=e
 indent-string="    "
 max-line-length=79
 
-[CLASSES]
-exclude-protected:_type
-
 [DESIGN]
 min-public-methods=0

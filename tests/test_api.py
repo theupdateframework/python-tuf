@@ -38,8 +38,6 @@ from tuf.api.serialization.json import (
     CanonicalJSONSerializer
 )
 
-from tuf.api.serialization.util import metadata_to_dict
-
 from securesystemslib.interface import (
     import_ed25519_publickey_from_file,
     import_ed25519_privatekey_from_file
@@ -48,7 +46,6 @@ from securesystemslib.interface import (
 from securesystemslib.keys import (
     format_keyval_to_metadata
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -114,9 +111,9 @@ class TestMetadata(unittest.TestCase):
             self.assertTrue(
                     isinstance(metadata_obj2.signed, inner_metadata_cls))
 
-            # ... and are equal (compared by dict representation)
-            self.assertDictEqual(metadata_to_dict(metadata_obj),
-                                 metadata_to_dict(metadata_obj2))
+            # ... and return the same object (compared by dict representation)
+            self.assertDictEqual(
+                    metadata_obj.to_dict(), metadata_obj2.to_dict())
 
 
         # Assert that it chokes correctly on an unknown metadata type
@@ -148,8 +145,9 @@ class TestMetadata(unittest.TestCase):
             metadata_obj.to_file(path_2)
             metadata_obj_2 = Metadata.from_file(path_2)
 
-            self.assertDictEqual(metadata_to_dict(metadata_obj),
-                                 metadata_to_dict(metadata_obj_2))
+            self.assertDictEqual(
+                    metadata_obj.to_dict(),
+                    metadata_obj_2.to_dict())
 
             os.remove(path_2)
 
