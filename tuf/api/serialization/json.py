@@ -10,6 +10,9 @@ import json
 
 from securesystemslib.formats import encode_canonical
 
+# pylint: disable=cyclic-import
+# ... to allow de/serializing the correct metadata class here, while also
+# creating default de/serializers there (see metadata function scope imports).
 from tuf.api.metadata import Metadata, Signed
 from tuf.api.serialization import (MetadataSerializer,
                                    MetadataDeserializer,

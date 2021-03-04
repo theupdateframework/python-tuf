@@ -1,7 +1,7 @@
 """TUF role metadata model.
 
 This module provides container classes for TUF role metadata, including methods
-to read/serialize/write from and to JSON, perform TUF-compliant metadata
+to read/serialize/write from and to file, perform TUF-compliant metadata
 updates, and create and verify signatures.
 
 """
@@ -9,20 +9,19 @@ updates, and create and verify signatures.
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
-import json
 import tempfile
 
-from securesystemslib.formats import encode_canonical
-from securesystemslib.util import (
-    load_json_file,
-    load_json_string,
-    persist_temp_file
-)
-from securesystemslib.storage import StorageBackendInterface
+from securesystemslib.util import persist_temp_file
+from securesystemslib.storage import (StorageBackendInterface,
+                                      FilesystemBackend)
 from securesystemslib.keys import create_signature, verify_signature
+
+from tuf.api.serialization import (MetadataSerializer, MetadataDeserializer,
+                                   SignedSerializer)
 
 import tuf.formats
 import tuf.exceptions
+
 
 
 # Types
@@ -101,32 +100,17 @@ class Metadata():
 
 
     @classmethod
-    def from_json(cls, metadata_json: str) -> 'Metadata':
-        """Loads JSON-formatted TUF metadata from a string.
-
-        Arguments:
-            metadata_json: TUF metadata in JSON-string representation.
-
-        Raises:
-            securesystemslib.exceptions.Error, ValueError, KeyError: The
-                metadata cannot be parsed.
-
-        Returns:
-            A TUF Metadata object.
-
-        """
-        return cls.from_dict(load_json_string(metadata_json))
-
-
-    @classmethod
-    def from_json_file(
-            cls, filename: str,
-            storage_backend: Optional[StorageBackendInterface] = None
-            ) -> 'Metadata':
-        """Loads JSON-formatted TUF metadata from file storage.
+    def from_file(
+        cls, filename: str, deserializer: MetadataDeserializer = None,
+        storage_backend: Optional[StorageBackendInterface] = None
+    ) -> 'Metadata':
+        """Loads TUF metadata from file storage.
 
         Arguments:
             filename: The path to read the file from.
+            deserializer: A MetadataDeserializer subclass instance that
+                implements the desired wireline format deserialization. Per
+                default a JSONDeserializer is used.
             storage_backend: An object that implements
                 securesystemslib.storage.StorageBackendInterface. Per default
                 a (local) FilesystemBackend is used.
@@ -140,7 +124,19 @@ class Metadata():
             A TUF Metadata object.
 
         """
-        return cls.from_dict(load_json_file(filename, storage_backend))
+        if deserializer is None:
+            # Function-scope import to avoid circular dependency. Yucky!!!
+            # TODO: At least move to _get_default_metadata_deserializer helper.
+            from tuf.api.serialization.json import JSONDeserializer # pylint: disable=import-outside-toplevel
+            deserializer = JSONDeserializer()
+
+        if storage_backend is None:
+            storage_backend = FilesystemBackend()
+
+        with storage_backend.get(filename) as file_obj:
+            raw_data = file_obj.read()
+
+        return deserializer.deserialize(raw_data)
 
 
     # Serialization.
@@ -151,40 +147,38 @@ class Metadata():
             'signed': self.signed.to_dict()
         }
 
-
-    def to_json(self, compact: bool = False) -> None:
-        """Returns the optionally compacted JSON representation of self. """
-        return json.dumps(
-                self.to_dict(),
-                indent=(None if compact else 1),
-                separators=((',', ':') if compact else (',', ': ')),
-                sort_keys=True)
-
-
-    def to_json_file(
-            self, filename: str, compact: bool = False,
-            storage_backend: StorageBackendInterface = None) -> None:
-        """Writes the JSON representation of self to file storage.
+    def to_file(self, filename: str, serializer: MetadataSerializer = None,
+                storage_backend: StorageBackendInterface = None) -> None:
+        """Writes TUF metadata to file storage.
 
         Arguments:
             filename: The path to write the file to.
-            compact: A boolean indicating if the JSON string should be compact
-                    by excluding whitespace.
+            serializer: A MetadataSerializer subclass instance that implements
+                the desired wireline format serialization. Per default a
+                JSONSerializer is used.
             storage_backend: An object that implements
                 securesystemslib.storage.StorageBackendInterface. Per default
                 a (local) FilesystemBackend is used.
+
         Raises:
             securesystemslib.exceptions.StorageError:
                 The file cannot be written.
 
         """
+        if serializer is None:
+            # Function-scope import to avoid circular dependency. Yucky!!!
+            # TODO: At least move to a _get_default_metadata_serializer helper.
+            from tuf.api.serialization.json import JSONSerializer # pylint: disable=import-outside-toplevel
+            serializer = JSONSerializer(True) # Pass True to compact JSON
+
         with tempfile.TemporaryFile() as temp_file:
-            temp_file.write(self.to_json(compact).encode('utf-8'))
+            temp_file.write(serializer.serialize(self))
             persist_temp_file(temp_file, filename, storage_backend)
 
 
     # Signatures.
-    def sign(self, key: JsonDict, append: bool = False) -> JsonDict:
+    def sign(self, key: JsonDict, append: bool = False,
+             serializer: SignedSerializer = None) -> JsonDict:
         """Creates signature over 'signed' and assigns it to 'signatures'.
 
         Arguments:
@@ -192,6 +186,9 @@ class Metadata():
             append: A boolean indicating if the signature should be appended to
                 the list of signatures or replace any existing signatures. The
                 default behavior is to replace signatures.
+            serializer: A SignedSerializer subclass instance that implements
+                the desired canonicalization format. Per default a
+                CanonicalJSONSerializer is used.
 
         Raises:
             securesystemslib.exceptions.FormatError: Key argument is malformed.
@@ -203,7 +200,13 @@ class Metadata():
             A securesystemslib-style signature object.
 
         """
-        signature = create_signature(key, self.signed.to_canonical_bytes())
+        if serializer is None:
+            # Function-scope import to avoid circular dependency. Yucky!!!
+            # TODO: At least move to a _get_default_signed_serializer helper.
+            from tuf.api.serialization.json import CanonicalJSONSerializer # pylint: disable=import-outside-toplevel
+            serializer = CanonicalJSONSerializer()
+
+        signature = create_signature(key, serializer.serialize(self.signed))
 
         if append:
             self.signatures.append(signature)
@@ -213,11 +216,15 @@ class Metadata():
         return signature
 
 
-    def verify(self, key: JsonDict) -> bool:
+    def verify(self, key: JsonDict,
+               serializer: SignedSerializer = None) -> bool:
         """Verifies 'signatures' over 'signed' that match the passed key by id.
 
         Arguments:
             key: A securesystemslib-style public key object.
+            serializer: A SignedSerializer subclass instance that implements
+                the desired canonicalization format. Per default a
+                CanonicalJSONSerializer is used.
 
         Raises:
             # TODO: Revise exception taxonomy
@@ -243,9 +250,15 @@ class Metadata():
                     f'{len(signatures_for_keyid)} signatures for key '
                     f'{key["keyid"]}, not sure which one to verify.')
 
+        if serializer is None:
+            # Function-scope import to avoid circular dependency. Yucky!!!
+            # TODO: At least move to a _get_default_signed_serializer helper.
+            from tuf.api.serialization.json import CanonicalJSONSerializer # pylint: disable=import-outside-toplevel
+            serializer = CanonicalJSONSerializer()
+
         return verify_signature(
             key, signatures_for_keyid[0],
-            self.signed.to_canonical_bytes())
+            serializer.serialize(self.signed))
 
 
 
@@ -305,12 +318,6 @@ class Signed:
         # NOTE: cls might be a subclass of Signed, if 'from_dict' was called on
         # that subclass (see e.g. Metadata.from_dict).
         return cls(**signed_dict)
-
-
-    # Serialization.
-    def to_canonical_bytes(self) -> bytes:
-        """Returns the UTF-8 encoded canonical JSON representation of self. """
-        return encode_canonical(self.to_dict()).encode('UTF-8')
 
 
     def to_dict(self) -> JsonDict:
