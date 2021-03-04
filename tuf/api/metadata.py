@@ -128,9 +128,9 @@ class Metadata():
 
         """
         if deserializer is None:
-            # Function-scope import to avoid circular dependency. Yucky!!!
-            # TODO: At least move to _get_default_metadata_deserializer helper.
-            from tuf.api.serialization.json import JSONDeserializer # pylint: disable=import-outside-toplevel
+            # Use local scope import to avoid circular import errors
+            # pylint: disable=import-outside-toplevel
+            from tuf.api.serialization.json import JSONDeserializer
             deserializer = JSONDeserializer()
 
         if storage_backend is None:
@@ -171,9 +171,9 @@ class Metadata():
 
         """
         if serializer is None:
-            # Function-scope import to avoid circular dependency. Yucky!!!
-            # TODO: At least move to a _get_default_metadata_serializer helper.
-            from tuf.api.serialization.json import JSONSerializer # pylint: disable=import-outside-toplevel
+            # Use local scope import to avoid circular import errors
+            # pylint: disable=import-outside-toplevel
+            from tuf.api.serialization.json import JSONSerializer
             serializer = JSONSerializer(True) # Pass True to compact JSON
 
         with tempfile.TemporaryFile() as temp_file:
@@ -207,9 +207,9 @@ class Metadata():
 
         """
         if serializer is None:
-            # Function-scope import to avoid circular dependency. Yucky!!!
-            # TODO: At least move to a _get_default_signed_serializer helper.
-            from tuf.api.serialization.json import CanonicalJSONSerializer # pylint: disable=import-outside-toplevel
+            # Use local scope import to avoid circular import errors
+            # pylint: disable=import-outside-toplevel
+            from tuf.api.serialization.json import CanonicalJSONSerializer
             serializer = CanonicalJSONSerializer()
 
         signature = create_signature(key, serializer.serialize(self.signed))
@@ -259,9 +259,9 @@ class Metadata():
                     f'{key["keyid"]}, not sure which one to verify.')
 
         if serializer is None:
-            # Function-scope import to avoid circular dependency. Yucky!!!
-            # TODO: At least move to a _get_default_signed_serializer helper.
-            from tuf.api.serialization.json import CanonicalJSONSerializer # pylint: disable=import-outside-toplevel
+            # Use local scope import to avoid circular import errors
+            # pylint: disable=import-outside-toplevel
+            from tuf.api.serialization.json import CanonicalJSONSerializer
             serializer = CanonicalJSONSerializer()
 
         return verify_signature(

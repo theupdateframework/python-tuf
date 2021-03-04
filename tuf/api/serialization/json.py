@@ -15,8 +15,9 @@ import six
 from securesystemslib.formats import encode_canonical
 
 # pylint: disable=cyclic-import
-# ... to allow de/serializing the correct metadata class here, while also
-# creating default de/serializers there (see metadata function scope imports).
+# ... to allow de/serializing Metadata and Signed objects here, while also
+# creating default de/serializers there (see metadata local scope imports).
+# NOTE: A less desirable alternative would be to add more abstraction layers.
 from tuf.api.metadata import Metadata, Signed
 from tuf.api.serialization import (MetadataSerializer,
                                    MetadataDeserializer,
