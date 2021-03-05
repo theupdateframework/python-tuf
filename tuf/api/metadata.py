@@ -301,31 +301,31 @@ class Signed:
             raise ValueError(f'version must be < 0, got {version}')
         self.version = version
 
+    @staticmethod
+    def _common_fields_from_dict(signed_dict: Mapping[str, Any]) -> list:
+        """Returns common fields of 'Signed' instances from the passed dict
+        representation, and returns an ordered list to be passed as leading
+        positional arguments to a subclass constructor.
 
-    # Deserialization (factories).
-    @classmethod
-    def from_dict(cls, signed_dict: Mapping[str, Any]) -> 'Signed':
-        """Creates Signed object from its dict representation. """
+        See '{Root, Timestamp, Snapshot, Targets}.from_dict' methods for usage.
+
+        """
+        _type = signed_dict.pop('_type')
+        version = signed_dict.pop('version')
+        spec_version = signed_dict.pop('spec_version')
+        expires_str = signed_dict.pop('expires')
         # Convert 'expires' TUF metadata string to a datetime object, which is
         # what the constructor expects and what we store. The inverse operation
-        # is implemented in 'to_dict'.
-        signed_dict['expires'] = tuf.formats.expiry_string_to_datetime(
-                signed_dict['expires'])
-        # NOTE: We write the converted 'expires' back into 'signed_dict' above
-        # so that we can pass it to the constructor as  '**signed_dict' below,
-        # along with other fields that belong to Signed subclasses.
-        # Any 'from_dict'(-like) conversions of fields that correspond to a
-        # subclass should be performed in the 'from_dict' method of that
-        # subclass and also be written back into 'signed_dict' before calling
-        # super().from_dict.
+        # is implemented in '_common_fields_to_dict'.
+        expires = tuf.formats.expiry_string_to_datetime(expires_str)
+        return [_type, version, spec_version, expires]
 
-        # NOTE: cls might be a subclass of Signed, if 'from_dict' was called on
-        # that subclass (see e.g. Metadata.from_dict).
-        return cls(**signed_dict)
+    def _common_fields_to_dict(self) -> Dict[str, Any]:
+        """Returns dict representation of common fields of 'Signed' instances.
 
+        See '{Root, Timestamp, Snapshot, Targets}.to_dict' methods for usage.
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Returns the dict representation of self. """
+        """
         return {
             '_type': self._type,
             'version': self.version,
@@ -393,10 +393,18 @@ class Root(Signed):
         self.keys = keys
         self.roles = roles
 
+    @classmethod
+    def from_dict(cls, root_dict: Mapping[str, Any]) -> 'Root':
+        """Creates Root object from its dict representation. """
+        common_args = super()._common_fields_from_dict(root_dict)
+        consistent_snapshot = root_dict.pop('consistent_snapshot')
+        keys = root_dict.pop('keys')
+        roles = root_dict.pop('roles')
+        return cls(*common_args, consistent_snapshot, keys, roles)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self. """
-        root_dict = super().to_dict()
+        root_dict = super()._common_fields_to_dict()
         root_dict.update({
             'consistent_snapshot': self.consistent_snapshot,
             'keys': self.keys,
@@ -453,9 +461,16 @@ class Timestamp(Signed):
         # TODO: Add class for meta
         self.meta = meta
 
+    @classmethod
+    def from_dict(cls, timestamp_dict: Mapping[str, Any]) -> 'Timestamp':
+        """Creates Timestamp object from its dict representation. """
+        common_args = super()._common_fields_from_dict(timestamp_dict)
+        meta = timestamp_dict.pop('meta')
+        return cls(*common_args, meta)
+
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self. """
-        timestamp_dict = super().to_dict()
+        timestamp_dict = super()._common_fields_to_dict()
         timestamp_dict.update({
             'meta': self.meta
         })
@@ -505,9 +520,16 @@ class Snapshot(Signed):
         # TODO: Add class for meta
         self.meta = meta
 
+    @classmethod
+    def from_dict(cls, snapshot_dict: Mapping[str, Any]) -> 'Snapshot':
+        """Creates Snapshot object from its dict representation. """
+        common_args = super()._common_fields_from_dict(snapshot_dict)
+        meta = snapshot_dict.pop('meta')
+        return cls(*common_args, meta)
+
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self. """
-        snapshot_dict = super().to_dict()
+        snapshot_dict = super()._common_fields_to_dict()
         snapshot_dict.update({
             'meta': self.meta
         })
@@ -595,9 +617,17 @@ class Targets(Signed):
         self.targets = targets
         self.delegations = delegations
 
+    @classmethod
+    def from_dict(cls, targets_dict: Mapping[str, Any]) -> 'Targets':
+        """Creates Targets object from its dict representation. """
+        common_args = super()._common_fields_from_dict(targets_dict)
+        targets = targets_dict.pop('targets')
+        delegations = targets_dict.pop('delegations')
+        return cls(*common_args, targets, delegations)
+
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self. """
-        targets_dict = super().to_dict()
+        targets_dict = super()._common_fields_to_dict()
         targets_dict.update({
             'targets': self.targets,
             'delegations': self.delegations,
