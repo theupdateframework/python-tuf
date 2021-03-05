@@ -4,13 +4,19 @@
 """TUF role metadata model.
 
 This module provides container classes for TUF role metadata, including methods
-to read/serialize/write from and to file, perform TUF-compliant metadata
-updates, and create and verify signatures.
+to read and write from and to file, perform TUF-compliant metadata updates, and
+create and verify signatures.
+
+The metadata model supports any custom serialization format, defaulting to JSON
+as wireline format and Canonical JSON for reproducible signature creation and
+verification.
+Custom serializers must implement the abstract serialization interface defined
+in 'tuf.api.serialization', and may use the [to|from]_dict convenience methods
+available in the class model.
 
 """
-# Imports
 from datetime import datetime, timedelta
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Mapping, Optional
 
 import tempfile
 
@@ -26,24 +32,18 @@ import tuf.formats
 import tuf.exceptions
 
 
-
-# Types
-JsonDict = Dict[str, Any]
-
-
-# Classes.
 class Metadata():
     """A container for signed TUF metadata.
 
-      Provides methods to (de-)serialize JSON metadata from and to file
-      storage, and to create and verify signatures.
+    Provides methods to convert to and from dictionary, read and write to and
+    from file and to create and verify metadata signatures.
 
     Attributes:
         signed: A subclass of Signed, which has the actual metadata payload,
             i.e. one of Targets, Snapshot, Timestamp or Root.
 
-        signatures: A list of signatures over the canonical JSON representation
-            of the value of the signed attribute::
+        signatures: A list of signatures over the canonical representation of
+            the value of the signed attribute::
 
             [
                 {
@@ -58,23 +58,19 @@ class Metadata():
         self.signed = signed
         self.signatures = signatures
 
-
-    # Deserialization (factories).
     @classmethod
-    def from_dict(cls, metadata: JsonDict) -> 'Metadata':
-        """Creates Metadata object from its JSON/dict representation.
-
-        Calls 'from_dict' for any complex metadata attribute represented by a
-        class also that has a 'from_dict' factory method. (Currently this is
-        only the signed attribute.)
+    def from_dict(cls, metadata: Mapping[str, Any]) -> 'Metadata':
+        """Creates Metadata object from its dict representation.
 
         Arguments:
-            metadata: TUF metadata in JSON/dict representation, as e.g.
-            returned by 'json.loads'.
+            metadata: TUF metadata in dict representation.
 
         Raises:
             KeyError: The metadata dict format is invalid.
             ValueError: The metadata has an unrecognized signed._type field.
+
+        Side Effect:
+            Destroys the metadata Mapping passed by reference.
 
         Returns:
             A TUF Metadata object.
@@ -96,11 +92,10 @@ class Metadata():
 
         # NOTE: If Signature becomes a class, we should iterate over
         # metadata['signatures'], call Signature.from_dict for each item, and
-        # pass a list of Signature objects to the Metadata constructor intead.
+        # pass a list of Signature objects to the Metadata constructor instead.
         return cls(
-                signed=inner_cls.from_dict(metadata['signed']),
-                signatures=metadata['signatures'])
-
+                signed=inner_cls.from_dict(metadata.pop('signed')),
+                signatures=metadata.pop('signatures'))
 
     @classmethod
     def from_file(
@@ -142,10 +137,8 @@ class Metadata():
 
         return deserializer.deserialize(raw_data)
 
-
-    # Serialization.
-    def to_dict(self) -> JsonDict:
-        """Returns the JSON-serializable dictionary representation of self. """
+    def to_dict(self) -> Dict[str, Any]:
+        """Returns the dict representation of self. """
         return {
             'signatures': self.signatures,
             'signed': self.signed.to_dict()
@@ -183,10 +176,11 @@ class Metadata():
             temp_file.write(serializer.serialize(self))
             persist_temp_file(temp_file, filename, storage_backend)
 
-
     # Signatures.
-    def sign(self, key: JsonDict, append: bool = False,
-             signed_serializer: Optional[SignedSerializer] = None) -> JsonDict:
+    def sign(
+        self, key: Mapping[str, Any], append: bool = False,
+        signed_serializer: Optional[SignedSerializer] = None
+    ) -> Dict[str, Any]:
         """Creates signature over 'signed' and assigns it to 'signatures'.
 
         Arguments:
@@ -225,8 +219,7 @@ class Metadata():
 
         return signature
 
-
-    def verify(self, key: JsonDict,
+    def verify(self, key: Mapping[str, Any],
                signed_serializer: Optional[SignedSerializer] = None) -> bool:
         """Verifies 'signatures' over 'signed' that match the passed key by id.
 
@@ -311,9 +304,8 @@ class Signed:
 
     # Deserialization (factories).
     @classmethod
-    def from_dict(cls, signed_dict: JsonDict) -> 'Signed':
-        """Creates Signed object from its JSON/dict representation. """
-
+    def from_dict(cls, signed_dict: Mapping[str, Any]) -> 'Signed':
+        """Creates Signed object from its dict representation. """
         # Convert 'expires' TUF metadata string to a datetime object, which is
         # what the constructor expects and what we store. The inverse operation
         # is implemented in 'to_dict'.
@@ -332,8 +324,8 @@ class Signed:
         return cls(**signed_dict)
 
 
-    def to_dict(self) -> JsonDict:
-        """Returns the JSON-serializable dictionary representation of self. """
+    def to_dict(self) -> Dict[str, Any]:
+        """Returns the dict representation of self. """
         return {
             '_type': self._type,
             'version': self.version,
@@ -394,7 +386,7 @@ class Root(Signed):
     def __init__(
             self, _type: str, version: int, spec_version: str,
             expires: datetime, consistent_snapshot: bool,
-            keys: JsonDict, roles: JsonDict) -> None:
+            keys: Mapping[str, Any], roles: Mapping[str, Any]) -> None:
         super().__init__(_type, version, spec_version, expires)
         # TODO: Add classes for keys and roles
         self.consistent_snapshot = consistent_snapshot
@@ -402,20 +394,19 @@ class Root(Signed):
         self.roles = roles
 
 
-    # Serialization.
-    def to_dict(self) -> JsonDict:
-        """Returns the JSON-serializable dictionary representation of self. """
-        json_dict = super().to_dict()
-        json_dict.update({
+    def to_dict(self) -> Dict[str, Any]:
+        """Returns the dict representation of self. """
+        root_dict = super().to_dict()
+        root_dict.update({
             'consistent_snapshot': self.consistent_snapshot,
             'keys': self.keys,
             'roles': self.roles
         })
-        return json_dict
-
+        return root_dict
 
     # Update key for a role.
-    def add_key(self, role: str, keyid: str, key_metadata: JsonDict) -> None:
+    def add_key(self, role: str, keyid: str,
+                key_metadata: Mapping[str, Any]) -> None:
         """Adds new key for 'role' and updates the key store. """
         if keyid not in self.roles[role]['keyids']:
             self.roles[role]['keyids'].append(keyid)
@@ -457,24 +448,22 @@ class Timestamp(Signed):
     """
     def __init__(
             self, _type: str, version: int, spec_version: str,
-            expires: datetime, meta: JsonDict) -> None:
+            expires: datetime, meta: Mapping[str, Any]) -> None:
         super().__init__(_type, version, spec_version, expires)
         # TODO: Add class for meta
         self.meta = meta
 
-
-    # Serialization.
-    def to_dict(self) -> JsonDict:
-        """Returns the JSON-serializable dictionary representation of self. """
-        json_dict = super().to_dict()
-        json_dict.update({
+    def to_dict(self) -> Dict[str, Any]:
+        """Returns the dict representation of self. """
+        timestamp_dict = super().to_dict()
+        timestamp_dict.update({
             'meta': self.meta
         })
-        return json_dict
-
+        return timestamp_dict
 
     # Modification.
-    def update(self, version: int, length: int, hashes: JsonDict) -> None:
+    def update(self, version: int, length: int,
+               hashes: Mapping[str, Any]) -> None:
         """Assigns passed info about snapshot metadata to meta dict. """
         self.meta['snapshot.json'] = {
             'version': version,
@@ -511,25 +500,23 @@ class Snapshot(Signed):
     """
     def __init__(
             self, _type: str, version: int, spec_version: str,
-            expires: datetime, meta: JsonDict) -> None:
+            expires: datetime, meta: Mapping[str, Any]) -> None:
         super().__init__(_type, version, spec_version, expires)
         # TODO: Add class for meta
         self.meta = meta
 
-    # Serialization.
-    def to_dict(self) -> JsonDict:
-        """Returns the JSON-serializable dictionary representation of self. """
-        json_dict = super().to_dict()
-        json_dict.update({
+    def to_dict(self) -> Dict[str, Any]:
+        """Returns the dict representation of self. """
+        snapshot_dict = super().to_dict()
+        snapshot_dict.update({
             'meta': self.meta
         })
-        return json_dict
-
+        return snapshot_dict
 
     # Modification.
     def update(
             self, rolename: str, version: int, length: Optional[int] = None,
-            hashes: Optional[JsonDict] = None) -> None:
+            hashes: Optional[Mapping[str, Any]] = None) -> None:
         """Assigns passed (delegated) targets role info to meta dict. """
         metadata_fn = f'{rolename}.json'
 
@@ -599,26 +586,25 @@ class Targets(Signed):
     # default max-args value for pylint is 5
     # pylint: disable=too-many-arguments
     def __init__(
-            self, _type: str, version: int, spec_version: str,
-            expires: datetime, targets: JsonDict, delegations: JsonDict
-            ) -> None:
+        self, _type: str, version: int, spec_version: str,
+        expires: datetime, targets: Mapping[str, Any],
+        delegations: Mapping[str, Any]
+    ) -> None:
         super().__init__(_type, version, spec_version, expires)
         # TODO: Add class for meta
         self.targets = targets
         self.delegations = delegations
 
-
-    # Serialization.
-    def to_dict(self) -> JsonDict:
-        """Returns the JSON-serializable dictionary representation of self. """
-        json_dict = super().to_dict()
-        json_dict.update({
+    def to_dict(self) -> Dict[str, Any]:
+        """Returns the dict representation of self. """
+        targets_dict = super().to_dict()
+        targets_dict.update({
             'targets': self.targets,
             'delegations': self.delegations,
         })
-        return json_dict
+        return targets_dict
 
     # Modification.
-    def update(self, filename: str, fileinfo: JsonDict) -> None:
+    def update(self, filename: str, fileinfo: Mapping[str, Any]) -> None:
         """Assigns passed target file info to meta dict. """
         self.targets[filename] = fileinfo
