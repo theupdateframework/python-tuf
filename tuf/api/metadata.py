@@ -104,7 +104,8 @@ class Metadata():
 
     @classmethod
     def from_file(
-        cls, filename: str, deserializer: MetadataDeserializer = None,
+        cls, filename: str,
+        deserializer: Optional[MetadataDeserializer] = None,
         storage_backend: Optional[StorageBackendInterface] = None
     ) -> 'Metadata':
         """Loads TUF metadata from file storage.
@@ -150,8 +151,10 @@ class Metadata():
             'signed': self.signed.to_dict()
         }
 
-    def to_file(self, filename: str, serializer: MetadataSerializer = None,
-                storage_backend: StorageBackendInterface = None) -> None:
+    def to_file(
+        self, filename: str, serializer: Optional[MetadataSerializer] = None,
+        storage_backend: Optional[StorageBackendInterface] = None
+    ) -> None:
         """Writes TUF metadata to file storage.
 
         Arguments:
@@ -183,7 +186,7 @@ class Metadata():
 
     # Signatures.
     def sign(self, key: JsonDict, append: bool = False,
-             serializer: SignedSerializer = None) -> JsonDict:
+             serializer: Optional[SignedSerializer] = None) -> JsonDict:
         """Creates signature over 'signed' and assigns it to 'signatures'.
 
         Arguments:
@@ -223,7 +226,7 @@ class Metadata():
 
 
     def verify(self, key: JsonDict,
-               serializer: SignedSerializer = None) -> bool:
+               serializer: Optional[SignedSerializer] = None) -> bool:
         """Verifies 'signatures' over 'signed' that match the passed key by id.
 
         Arguments:
