@@ -266,7 +266,6 @@ class Metadata():
             signed_serializer.serialize(self.signed))
 
 
-
 class Signed:
     """A base class for the signed part of TUF metadata.
 
@@ -281,12 +280,10 @@ class Signed:
             metadata format adheres to.
         expires: The metadata expiration datetime object.
 
-
     """
     # NOTE: Signed is a stupid name, because this might not be signed yet, but
     # we keep it to match spec terminology (I often refer to this as "payload",
     # or "inner metadata")
-
     def __init__(
             self, _type: str, version: int, spec_version: str,
             expires: datetime) -> None:
@@ -333,12 +330,10 @@ class Signed:
             'expires': self.expires.isoformat() + 'Z'
         }
 
-
     # Modification.
     def bump_expiration(self, delta: timedelta = timedelta(days=1)) -> None:
         """Increments the expires attribute by the passed timedelta. """
         self.expires += delta
-
 
     def bump_version(self) -> None:
         """Increments the metadata version number by 1."""
@@ -420,7 +415,6 @@ class Root(Signed):
             self.roles[role]['keyids'].append(keyid)
             self.keys[keyid] = key_metadata
 
-
     # Remove key for a role.
     def remove_key(self, role: str, keyid: str) -> None:
         """Removes key for 'role' and updates the key store. """
@@ -431,8 +425,6 @@ class Root(Signed):
                     return
 
             del self.keys[keyid]
-
-
 
 
 class Timestamp(Signed):
