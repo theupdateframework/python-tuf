@@ -33,10 +33,12 @@ class JSONDeserializer(MetadataDeserializer):
         """Deserialize utf-8 encoded JSON bytes into Metadata object. """
         try:
             json_dict = json.loads(raw_data.decode("utf-8"))
-            return Metadata.from_dict(json_dict)
+            metadata_obj = Metadata.from_dict(json_dict)
 
         except Exception as e: # pylint: disable=broad-except
             six.raise_from(DeserializationError, e)
+
+        return metadata_obj
 
 
 class JSONSerializer(MetadataSerializer):
@@ -54,14 +56,16 @@ class JSONSerializer(MetadataSerializer):
         """Serialize Metadata object into utf-8 encoded JSON bytes. """
         try:
             indent = (None if self.compact else 1)
-            separators=((',', ':') if self.compact else (',', ': '))
-            return json.dumps(metadata_obj.to_dict(),
-                              indent=indent,
-                              separators=separators,
-                              sort_keys=True).encode("utf-8")
+            separators = ((',', ':') if self.compact else (',', ': '))
+            json_bytes = json.dumps(metadata_obj.to_dict(),
+                                    indent=indent,
+                                    separators=separators,
+                                    sort_keys=True).encode("utf-8")
 
         except Exception as e: # pylint: disable=broad-except
             six.raise_from(SerializationError, e)
+
+        return json_bytes
 
 
 class CanonicalJSONSerializer(SignedSerializer):
@@ -71,7 +75,9 @@ class CanonicalJSONSerializer(SignedSerializer):
         """Serialize Signed object into utf-8 encoded Canonical JSON bytes. """
         try:
             signed_dict = signed_obj.to_dict()
-            return encode_canonical(signed_dict).encode("utf-8")
+            canonical_bytes = encode_canonical(signed_dict).encode("utf-8")
 
         except Exception as e: # pylint: disable=broad-except
             six.raise_from(SerializationError, e)
+
+        return canonical_bytes
