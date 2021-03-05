@@ -32,8 +32,8 @@ class JSONDeserializer(MetadataDeserializer):
     def deserialize(self, raw_data: bytes) -> Metadata:
         """Deserialize utf-8 encoded JSON bytes into Metadata object. """
         try:
-            _dict = json.loads(raw_data.decode("utf-8"))
-            return Metadata.from_dict(_dict)
+            json_dict = json.loads(raw_data.decode("utf-8"))
+            return Metadata.from_dict(json_dict)
 
         except Exception as e: # pylint: disable=broad-except
             six.raise_from(DeserializationError, e)

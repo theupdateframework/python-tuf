@@ -186,7 +186,7 @@ class Metadata():
 
     # Signatures.
     def sign(self, key: JsonDict, append: bool = False,
-             serializer: Optional[SignedSerializer] = None) -> JsonDict:
+             signed_serializer: Optional[SignedSerializer] = None) -> JsonDict:
         """Creates signature over 'signed' and assigns it to 'signatures'.
 
         Arguments:
@@ -194,8 +194,8 @@ class Metadata():
             append: A boolean indicating if the signature should be appended to
                 the list of signatures or replace any existing signatures. The
                 default behavior is to replace signatures.
-            serializer: A SignedSerializer subclass instance that implements
-                the desired canonicalization format. Per default a
+            signed_serializer: A SignedSerializer subclass instance that
+                implements the desired canonicalization format. Per default a
                 CanonicalJSONSerializer is used.
 
         Raises:
@@ -209,13 +209,14 @@ class Metadata():
             A securesystemslib-style signature object.
 
         """
-        if serializer is None:
+        if signed_serializer is None:
             # Use local scope import to avoid circular import errors
             # pylint: disable=import-outside-toplevel
             from tuf.api.serialization.json import CanonicalJSONSerializer
-            serializer = CanonicalJSONSerializer()
+            signed_serializer = CanonicalJSONSerializer()
 
-        signature = create_signature(key, serializer.serialize(self.signed))
+        signature = create_signature(key,
+                                     signed_serializer.serialize(self.signed))
 
         if append:
             self.signatures.append(signature)
@@ -226,13 +227,13 @@ class Metadata():
 
 
     def verify(self, key: JsonDict,
-               serializer: Optional[SignedSerializer] = None) -> bool:
+               signed_serializer: Optional[SignedSerializer] = None) -> bool:
         """Verifies 'signatures' over 'signed' that match the passed key by id.
 
         Arguments:
             key: A securesystemslib-style public key object.
-            serializer: A SignedSerializer subclass instance that implements
-                the desired canonicalization format. Per default a
+            signed_serializer: A SignedSerializer subclass instance that
+                implements the desired canonicalization format. Per default a
                 CanonicalJSONSerializer is used.
 
         Raises:
@@ -261,15 +262,15 @@ class Metadata():
                     f'{len(signatures_for_keyid)} signatures for key '
                     f'{key["keyid"]}, not sure which one to verify.')
 
-        if serializer is None:
+        if signed_serializer is None:
             # Use local scope import to avoid circular import errors
             # pylint: disable=import-outside-toplevel
             from tuf.api.serialization.json import CanonicalJSONSerializer
-            serializer = CanonicalJSONSerializer()
+            signed_serializer = CanonicalJSONSerializer()
 
         return verify_signature(
             key, signatures_for_keyid[0],
-            serializer.serialize(self.signed))
+            signed_serializer.serialize(self.signed))
 
 
 
