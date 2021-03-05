@@ -177,7 +177,7 @@ class Metadata():
             # Use local scope import to avoid circular import errors
             # pylint: disable=import-outside-toplevel
             from tuf.api.serialization.json import JSONSerializer
-            serializer = JSONSerializer(True) # Pass True to compact JSON
+            serializer = JSONSerializer(compact=True)
 
         with tempfile.TemporaryFile() as temp_file:
             temp_file.write(serializer.serialize(self))
