@@ -10,7 +10,6 @@ format for signature generation and verification.
 
 """
 import json
-import six
 
 from securesystemslib.formats import encode_canonical
 
@@ -36,7 +35,7 @@ class JSONDeserializer(MetadataDeserializer):
             metadata_obj = Metadata.from_dict(json_dict)
 
         except Exception as e: # pylint: disable=broad-except
-            six.raise_from(DeserializationError, e)
+            raise DeserializationError from e
 
         return metadata_obj
 
@@ -63,7 +62,7 @@ class JSONSerializer(MetadataSerializer):
                                     sort_keys=True).encode("utf-8")
 
         except Exception as e: # pylint: disable=broad-except
-            six.raise_from(SerializationError, e)
+            raise SerializationError from e
 
         return json_bytes
 
@@ -78,6 +77,6 @@ class CanonicalJSONSerializer(SignedSerializer):
             canonical_bytes = encode_canonical(signed_dict).encode("utf-8")
 
         except Exception as e: # pylint: disable=broad-except
-            six.raise_from(SerializationError, e)
+            raise SerializationError from e
 
         return canonical_bytes

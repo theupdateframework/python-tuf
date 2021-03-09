@@ -26,9 +26,8 @@ class DeserializationError(Exception):
     """Error during deserialization. """
 
 
-class MetadataDeserializer():
+class MetadataDeserializer(metaclass=abc.ABCMeta):
     """Abstract base class for deserialization of Metadata objects. """
-    __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
     def deserialize(self, raw_data: bytes) -> "Metadata":
@@ -36,9 +35,8 @@ class MetadataDeserializer():
         raise NotImplementedError
 
 
-class MetadataSerializer():
+class MetadataSerializer(metaclass=abc.ABCMeta):
     """Abstract base class for serialization of Metadata objects. """
-    __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
     def serialize(self, metadata_obj: "Metadata") -> bytes:
@@ -46,9 +44,8 @@ class MetadataSerializer():
         raise NotImplementedError
 
 
-class SignedSerializer():
+class SignedSerializer(metaclass=abc.ABCMeta):
     """Abstract base class for serialization of Signed objects. """
-    __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
     def serialize(self, signed_obj: "Signed") -> bytes:
