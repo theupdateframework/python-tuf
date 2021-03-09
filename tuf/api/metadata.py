@@ -391,7 +391,7 @@ class Root(Signed):
     @classmethod
     def from_dict(cls, root_dict: Mapping[str, Any]) -> 'Root':
         """Creates Root object from its dict representation. """
-        common_args = super()._common_fields_from_dict(root_dict)
+        common_args = cls._common_fields_from_dict(root_dict)
         consistent_snapshot = root_dict.pop('consistent_snapshot')
         keys = root_dict.pop('keys')
         roles = root_dict.pop('roles')
@@ -399,7 +399,7 @@ class Root(Signed):
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self. """
-        root_dict = super()._common_fields_to_dict()
+        root_dict = self._common_fields_to_dict()
         root_dict.update({
             'consistent_snapshot': self.consistent_snapshot,
             'keys': self.keys,
@@ -456,13 +456,13 @@ class Timestamp(Signed):
     @classmethod
     def from_dict(cls, timestamp_dict: Mapping[str, Any]) -> 'Timestamp':
         """Creates Timestamp object from its dict representation. """
-        common_args = super()._common_fields_from_dict(timestamp_dict)
+        common_args = cls._common_fields_from_dict(timestamp_dict)
         meta = timestamp_dict.pop('meta')
         return cls(*common_args, meta)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self. """
-        timestamp_dict = super()._common_fields_to_dict()
+        timestamp_dict = self._common_fields_to_dict()
         timestamp_dict.update({
             'meta': self.meta
         })
@@ -515,13 +515,13 @@ class Snapshot(Signed):
     @classmethod
     def from_dict(cls, snapshot_dict: Mapping[str, Any]) -> 'Snapshot':
         """Creates Snapshot object from its dict representation. """
-        common_args = super()._common_fields_from_dict(snapshot_dict)
+        common_args = cls._common_fields_from_dict(snapshot_dict)
         meta = snapshot_dict.pop('meta')
         return cls(*common_args, meta)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self. """
-        snapshot_dict = super()._common_fields_to_dict()
+        snapshot_dict = self._common_fields_to_dict()
         snapshot_dict.update({
             'meta': self.meta
         })
@@ -612,14 +612,14 @@ class Targets(Signed):
     @classmethod
     def from_dict(cls, targets_dict: Mapping[str, Any]) -> 'Targets':
         """Creates Targets object from its dict representation. """
-        common_args = super()._common_fields_from_dict(targets_dict)
+        common_args = cls._common_fields_from_dict(targets_dict)
         targets = targets_dict.pop('targets')
         delegations = targets_dict.pop('delegations')
         return cls(*common_args, targets, delegations)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self. """
-        targets_dict = super()._common_fields_to_dict()
+        targets_dict = self._common_fields_to_dict()
         targets_dict.update({
             'targets': self.targets,
             'delegations': self.delegations,
