@@ -7,6 +7,13 @@ Source: https://github.com/theupdateframework
 Files: *
 Copyright: 2018 New York University
 License: Apache-2.0
+
+Files: debian/*
+Copyright: 2018 New York University
+        2021 Philippe Coval <rzr@users.sf.net>
+License: Apache-2.0
+
+License: Apache-2.0
  Copyright 2018 New York University
  .
  Licensed under the Apache License, Version 2.0 (the "License");
