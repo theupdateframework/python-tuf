@@ -9,7 +9,6 @@ Build-Depends: dh-python,
                python3-all,
                python3-setuptools,
                python3-six,
-               python3-iso8601,
                python3-requests,
                python3-securesystemslib
 Standards-Version: 4.5.0
