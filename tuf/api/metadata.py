@@ -20,10 +20,11 @@ from typing import Any, Dict, Mapping, Optional
 
 import tempfile
 
+from securesystemslib.keys import verify_signature
 from securesystemslib.util import persist_temp_file
+from securesystemslib.signer import Signer, Signature
 from securesystemslib.storage import (StorageBackendInterface,
                                       FilesystemBackend)
-from securesystemslib.keys import create_signature, verify_signature
 
 from tuf.api.serialization import (MetadataSerializer, MetadataDeserializer,
                                    SignedSerializer)
@@ -90,12 +91,14 @@ class Metadata():
         else:
             raise ValueError(f'unrecognized metadata type "{_type}"')
 
-        # NOTE: If Signature becomes a class, we should iterate over
-        # metadata['signatures'], call Signature.from_dict for each item, and
-        # pass a list of Signature objects to the Metadata constructor instead.
+        signatures = []
+        for signature in metadata.pop('signatures'):
+            signature_obj = Signature.from_dict(signature)
+            signatures.append(signature_obj)
+
         return cls(
                 signed=inner_cls.from_dict(metadata.pop('signed')),
-                signatures=metadata.pop('signatures'))
+                signatures=signatures)
 
     @classmethod
     def from_file(
@@ -139,8 +142,13 @@ class Metadata():
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self. """
+
+        signatures = []
+        for sig in self.signatures:
+            signatures.append(sig.to_dict())
+
         return {
-            'signatures': self.signatures,
+            'signatures': signatures,
             'signed': self.signed.to_dict()
         }
 
@@ -178,13 +186,14 @@ class Metadata():
 
     # Signatures.
     def sign(
-        self, key: Mapping[str, Any], append: bool = False,
+        self, signer: Signer, append: bool = False,
         signed_serializer: Optional[SignedSerializer] = None
     ) -> Dict[str, Any]:
         """Creates signature over 'signed' and assigns it to 'signatures'.
 
         Arguments:
-            key: A securesystemslib-style private key object used for signing.
+            signer: An object implementing the securesystemslib.signer.Signer
+                interface.
             append: A boolean indicating if the signature should be appended to
                 the list of signatures or replace any existing signatures. The
                 default behavior is to replace signatures.
@@ -209,8 +218,7 @@ class Metadata():
             from tuf.api.serialization.json import CanonicalJSONSerializer
             signed_serializer = CanonicalJSONSerializer()
 
-        signature = create_signature(key,
-                                     signed_serializer.serialize(self.signed))
+        signature = signer.sign(signed_serializer.serialize(self.signed))
 
         if append:
             self.signatures.append(signature)
@@ -244,7 +252,7 @@ class Metadata():
 
         """
         signatures_for_keyid = list(filter(
-                lambda sig: sig['keyid'] == key['keyid'], self.signatures))
+                lambda sig: sig.keyid == key['keyid'], self.signatures))
 
         if not signatures_for_keyid:
             raise tuf.exceptions.Error(
@@ -262,7 +270,7 @@ class Metadata():
             signed_serializer = CanonicalJSONSerializer()
 
         return verify_signature(
-            key, signatures_for_keyid[0],
+            key, signatures_for_keyid[0].to_dict(),
             signed_serializer.serialize(self.signed))
 
 

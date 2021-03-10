@@ -47,6 +47,10 @@ from securesystemslib.keys import (
     format_keyval_to_metadata
 )
 
+from securesystemslib.signer import (
+    SSlibSigner
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -163,8 +167,9 @@ class TestMetadata(unittest.TestCase):
         self.assertTrue(metadata_obj.verify(
                 self.keystore['targets']['public']))
 
+        sslib_signer = SSlibSigner(self.keystore['snapshot']['private'])
         # Append a new signature with the unrelated key and assert that ...
-        metadata_obj.sign(self.keystore['snapshot']['private'], append=True)
+        metadata_obj.sign(sslib_signer, append=True)
         # ... there are now two signatures, and
         self.assertTrue(len(metadata_obj.signatures) == 2)
         # ... both are valid for the corresponding keys.
@@ -173,8 +178,9 @@ class TestMetadata(unittest.TestCase):
         self.assertTrue(metadata_obj.verify(
                 self.keystore['snapshot']['public']))
 
+        sslib_signer.key_dict = self.keystore['timestamp']['private']
         # Create and assign (don't append) a new signature and assert that ...
-        metadata_obj.sign(self.keystore['timestamp']['private'], append=False)
+        metadata_obj.sign(sslib_signer, append=False)
         # ... there now is only one signature,
         self.assertTrue(len(metadata_obj.signatures) == 1)
         # ... valid for that key.
@@ -182,7 +188,7 @@ class TestMetadata(unittest.TestCase):
                 self.keystore['timestamp']['public']))
 
         # Assert exception if there are more than one signatures for a key
-        metadata_obj.sign(self.keystore['timestamp']['private'], append=True)
+        metadata_obj.sign(sslib_signer, append=True)
         with self.assertRaises(tuf.exceptions.Error) as ctx:
             metadata_obj.verify(self.keystore['timestamp']['public'])
         self.assertTrue(
