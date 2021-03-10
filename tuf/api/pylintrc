@@ -1,6 +1,12 @@
 [MESSAGE_CONTROL]
 disable=fixme
 
+[BASIC]
+good-names=e
+
 [FORMAT]
 indent-string="    "
 max-line-length=79
+
+[DESIGN]
+min-public-methods=0

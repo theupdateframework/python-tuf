@@ -28,6 +28,16 @@ from tuf.api.metadata import (
     Targets
 )
 
+from tuf.api.serialization import (
+    DeserializationError
+)
+
+from tuf.api.serialization.json import (
+    JSONSerializer,
+    JSONDeserializer,
+    CanonicalJSONSerializer
+)
+
 from securesystemslib.interface import (
     import_ed25519_publickey_from_file,
     import_ed25519_privatekey_from_file
@@ -89,10 +99,10 @@ class TestMetadata(unittest.TestCase):
             # Load JSON-formatted metdata of each supported type from file
             # and from out-of-band read JSON string
             path = os.path.join(self.repo_dir, 'metadata', metadata + '.json')
-            metadata_obj = Metadata.from_json_file(path)
+            metadata_obj = Metadata.from_file(path)
             with open(path, 'rb') as f:
                 metadata_str = f.read()
-            metadata_obj2 = Metadata.from_json(metadata_str)
+            metadata_obj2 = JSONDeserializer().deserialize(metadata_str)
 
             # Assert that both methods instantiate the right inner class for
             # each metadata type and ...
@@ -112,28 +122,28 @@ class TestMetadata(unittest.TestCase):
         with open(bad_metadata_path, 'wb') as f:
             f.write(json.dumps(bad_metadata).encode('utf-8'))
 
-        with self.assertRaises(ValueError):
-            Metadata.from_json_file(bad_metadata_path)
+        with self.assertRaises(DeserializationError):
+            Metadata.from_file(bad_metadata_path)
 
         os.remove(bad_metadata_path)
 
 
     def test_compact_json(self):
         path = os.path.join(self.repo_dir, 'metadata', 'targets.json')
-        metadata_obj = Metadata.from_json_file(path)
+        metadata_obj = Metadata.from_file(path)
         self.assertTrue(
-                len(metadata_obj.to_json(compact=True)) <
-                len(metadata_obj.to_json()))
+                len(JSONSerializer(compact=True).serialize(metadata_obj)) <
+                len(JSONSerializer().serialize(metadata_obj)))
 
 
     def test_read_write_read_compare(self):
         for metadata in ['snapshot', 'timestamp', 'targets']:
             path = os.path.join(self.repo_dir, 'metadata', metadata + '.json')
-            metadata_obj = Metadata.from_json_file(path)
+            metadata_obj = Metadata.from_file(path)
 
             path_2 = path + '.tmp'
-            metadata_obj.to_json_file(path_2)
-            metadata_obj_2 = Metadata.from_json_file(path_2)
+            metadata_obj.to_file(path_2)
+            metadata_obj_2 = Metadata.from_file(path_2)
 
             self.assertDictEqual(
                     metadata_obj.to_dict(),
@@ -145,7 +155,7 @@ class TestMetadata(unittest.TestCase):
     def test_sign_verify(self):
         # Load sample metadata (targets) and assert ...
         path = os.path.join(self.repo_dir, 'metadata', 'targets.json')
-        metadata_obj = Metadata.from_json_file(path)
+        metadata_obj = Metadata.from_file(path)
 
         # ... it has a single existing signature,
         self.assertTrue(len(metadata_obj.signatures) == 1)
@@ -192,7 +202,7 @@ class TestMetadata(unittest.TestCase):
         # with real data
         snapshot_path = os.path.join(
                 self.repo_dir, 'metadata', 'snapshot.json')
-        md = Metadata.from_json_file(snapshot_path)
+        md = Metadata.from_file(snapshot_path)
 
         self.assertEqual(md.signed.version, 1)
         md.signed.bump_version()
@@ -207,7 +217,7 @@ class TestMetadata(unittest.TestCase):
     def test_metadata_snapshot(self):
         snapshot_path = os.path.join(
                 self.repo_dir, 'metadata', 'snapshot.json')
-        snapshot = Metadata.from_json_file(snapshot_path)
+        snapshot = Metadata.from_file(snapshot_path)
 
         # Create a dict representing what we expect the updated data to be
         fileinfo = copy.deepcopy(snapshot.signed.meta)
@@ -225,7 +235,7 @@ class TestMetadata(unittest.TestCase):
     def test_metadata_timestamp(self):
         timestamp_path = os.path.join(
                 self.repo_dir, 'metadata', 'timestamp.json')
-        timestamp = Metadata.from_json_file(timestamp_path)
+        timestamp = Metadata.from_file(timestamp_path)
 
         self.assertEqual(timestamp.signed.version, 1)
         timestamp.signed.bump_version()
@@ -260,7 +270,7 @@ class TestMetadata(unittest.TestCase):
     def test_metadata_root(self):
         root_path = os.path.join(
                 self.repo_dir, 'metadata', 'root.json')
-        root = Metadata.from_json_file(root_path)
+        root = Metadata.from_file(root_path)
 
         # Add a second key to root role
         root_key2 =  import_ed25519_publickey_from_file(
@@ -293,7 +303,7 @@ class TestMetadata(unittest.TestCase):
     def test_metadata_targets(self):
         targets_path = os.path.join(
                 self.repo_dir, 'metadata', 'targets.json')
-        targets = Metadata.from_json_file(targets_path)
+        targets = Metadata.from_file(targets_path)
 
         # Create a fileinfo dict representing what we expect the updated data to be
         filename = 'file2.txt'

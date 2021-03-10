@@ -1,47 +1,49 @@
+# Copyright New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """TUF role metadata model.
 
 This module provides container classes for TUF role metadata, including methods
-to read/serialize/write from and to JSON, perform TUF-compliant metadata
-updates, and create and verify signatures.
+to read and write from and to file, perform TUF-compliant metadata updates, and
+create and verify signatures.
+
+The metadata model supports any custom serialization format, defaulting to JSON
+as wireline format and Canonical JSON for reproducible signature creation and
+verification.
+Custom serializers must implement the abstract serialization interface defined
+in 'tuf.api.serialization', and may use the [to|from]_dict convenience methods
+available in the class model.
 
 """
-# Imports
 from datetime import datetime, timedelta
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Mapping, Optional
 
-import json
 import tempfile
 
-from securesystemslib.formats import encode_canonical
-from securesystemslib.util import (
-    load_json_file,
-    load_json_string,
-    persist_temp_file
-)
-from securesystemslib.storage import StorageBackendInterface
+from securesystemslib.util import persist_temp_file
+from securesystemslib.storage import (StorageBackendInterface,
+                                      FilesystemBackend)
 from securesystemslib.keys import create_signature, verify_signature
+
+from tuf.api.serialization import (MetadataSerializer, MetadataDeserializer,
+                                   SignedSerializer)
 
 import tuf.formats
 import tuf.exceptions
 
 
-# Types
-JsonDict = Dict[str, Any]
-
-
-# Classes.
 class Metadata():
     """A container for signed TUF metadata.
 
-      Provides methods to (de-)serialize JSON metadata from and to file
-      storage, and to create and verify signatures.
+    Provides methods to convert to and from dictionary, read and write to and
+    from file and to create and verify metadata signatures.
 
     Attributes:
         signed: A subclass of Signed, which has the actual metadata payload,
             i.e. one of Targets, Snapshot, Timestamp or Root.
 
-        signatures: A list of signatures over the canonical JSON representation
-            of the value of the signed attribute::
+        signatures: A list of signatures over the canonical representation of
+            the value of the signed attribute::
 
             [
                 {
@@ -56,23 +58,19 @@ class Metadata():
         self.signed = signed
         self.signatures = signatures
 
-
-    # Deserialization (factories).
     @classmethod
-    def from_dict(cls, metadata: JsonDict) -> 'Metadata':
-        """Creates Metadata object from its JSON/dict representation.
-
-        Calls 'from_dict' for any complex metadata attribute represented by a
-        class also that has a 'from_dict' factory method. (Currently this is
-        only the signed attribute.)
+    def from_dict(cls, metadata: Mapping[str, Any]) -> 'Metadata':
+        """Creates Metadata object from its dict representation.
 
         Arguments:
-            metadata: TUF metadata in JSON/dict representation, as e.g.
-            returned by 'json.loads'.
+            metadata: TUF metadata in dict representation.
 
         Raises:
             KeyError: The metadata dict format is invalid.
             ValueError: The metadata has an unrecognized signed._type field.
+
+        Side Effect:
+            Destroys the metadata Mapping passed by reference.
 
         Returns:
             A TUF Metadata object.
@@ -94,97 +92,95 @@ class Metadata():
 
         # NOTE: If Signature becomes a class, we should iterate over
         # metadata['signatures'], call Signature.from_dict for each item, and
-        # pass a list of Signature objects to the Metadata constructor intead.
+        # pass a list of Signature objects to the Metadata constructor instead.
         return cls(
-                signed=inner_cls.from_dict(metadata['signed']),
-                signatures=metadata['signatures'])
-
-
-    @classmethod
-    def from_json(cls, metadata_json: str) -> 'Metadata':
-        """Loads JSON-formatted TUF metadata from a string.
-
-        Arguments:
-            metadata_json: TUF metadata in JSON-string representation.
-
-        Raises:
-            securesystemslib.exceptions.Error, ValueError, KeyError: The
-                metadata cannot be parsed.
-
-        Returns:
-            A TUF Metadata object.
-
-        """
-        return cls.from_dict(load_json_string(metadata_json))
-
+                signed=inner_cls.from_dict(metadata.pop('signed')),
+                signatures=metadata.pop('signatures'))
 
     @classmethod
-    def from_json_file(
-            cls, filename: str,
-            storage_backend: Optional[StorageBackendInterface] = None
-            ) -> 'Metadata':
-        """Loads JSON-formatted TUF metadata from file storage.
+    def from_file(
+        cls, filename: str,
+        deserializer: Optional[MetadataDeserializer] = None,
+        storage_backend: Optional[StorageBackendInterface] = None
+    ) -> 'Metadata':
+        """Loads TUF metadata from file storage.
 
         Arguments:
             filename: The path to read the file from.
+            deserializer: A MetadataDeserializer subclass instance that
+                implements the desired wireline format deserialization. Per
+                default a JSONDeserializer is used.
             storage_backend: An object that implements
                 securesystemslib.storage.StorageBackendInterface. Per default
                 a (local) FilesystemBackend is used.
 
         Raises:
             securesystemslib.exceptions.StorageError: The file cannot be read.
-            securesystemslib.exceptions.Error, ValueError, KeyError: The
-                metadata cannot be parsed.
+            tuf.api.serialization.DeserializationError:
+                The file cannot be deserialized.
 
         Returns:
             A TUF Metadata object.
 
         """
-        return cls.from_dict(load_json_file(filename, storage_backend))
+        if deserializer is None:
+            # Use local scope import to avoid circular import errors
+            # pylint: disable=import-outside-toplevel
+            from tuf.api.serialization.json import JSONDeserializer
+            deserializer = JSONDeserializer()
 
+        if storage_backend is None:
+            storage_backend = FilesystemBackend()
 
-    # Serialization.
-    def to_dict(self) -> JsonDict:
-        """Returns the JSON-serializable dictionary representation of self. """
+        with storage_backend.get(filename) as file_obj:
+            raw_data = file_obj.read()
+
+        return deserializer.deserialize(raw_data)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Returns the dict representation of self. """
         return {
             'signatures': self.signatures,
             'signed': self.signed.to_dict()
         }
 
-
-    def to_json(self, compact: bool = False) -> None:
-        """Returns the optionally compacted JSON representation of self. """
-        return json.dumps(
-                self.to_dict(),
-                indent=(None if compact else 1),
-                separators=((',', ':') if compact else (',', ': ')),
-                sort_keys=True)
-
-
-    def to_json_file(
-            self, filename: str, compact: bool = False,
-            storage_backend: StorageBackendInterface = None) -> None:
-        """Writes the JSON representation of self to file storage.
+    def to_file(
+        self, filename: str, serializer: Optional[MetadataSerializer] = None,
+        storage_backend: Optional[StorageBackendInterface] = None
+    ) -> None:
+        """Writes TUF metadata to file storage.
 
         Arguments:
             filename: The path to write the file to.
-            compact: A boolean indicating if the JSON string should be compact
-                    by excluding whitespace.
+            serializer: A MetadataSerializer subclass instance that implements
+                the desired wireline format serialization. Per default a
+                JSONSerializer is used.
             storage_backend: An object that implements
                 securesystemslib.storage.StorageBackendInterface. Per default
                 a (local) FilesystemBackend is used.
+
         Raises:
+            tuf.api.serialization.SerializationError:
+                The metadata object cannot be serialized.
             securesystemslib.exceptions.StorageError:
                 The file cannot be written.
 
         """
+        if serializer is None:
+            # Use local scope import to avoid circular import errors
+            # pylint: disable=import-outside-toplevel
+            from tuf.api.serialization.json import JSONSerializer
+            serializer = JSONSerializer(compact=True)
+
         with tempfile.TemporaryFile() as temp_file:
-            temp_file.write(self.to_json(compact).encode('utf-8'))
+            temp_file.write(serializer.serialize(self))
             persist_temp_file(temp_file, filename, storage_backend)
 
-
     # Signatures.
-    def sign(self, key: JsonDict, append: bool = False) -> JsonDict:
+    def sign(
+        self, key: Mapping[str, Any], append: bool = False,
+        signed_serializer: Optional[SignedSerializer] = None
+    ) -> Dict[str, Any]:
         """Creates signature over 'signed' and assigns it to 'signatures'.
 
         Arguments:
@@ -192,9 +188,13 @@ class Metadata():
             append: A boolean indicating if the signature should be appended to
                 the list of signatures or replace any existing signatures. The
                 default behavior is to replace signatures.
+            signed_serializer: A SignedSerializer subclass instance that
+                implements the desired canonicalization format. Per default a
+                CanonicalJSONSerializer is used.
 
         Raises:
-            securesystemslib.exceptions.FormatError: Key argument is malformed.
+            tuf.api.serialization.SerializationError:
+                'signed' cannot be serialized.
             securesystemslib.exceptions.CryptoError, \
                     securesystemslib.exceptions.UnsupportedAlgorithmError:
                 Signing errors.
@@ -203,7 +203,14 @@ class Metadata():
             A securesystemslib-style signature object.
 
         """
-        signature = create_signature(key, self.signed.to_canonical_bytes())
+        if signed_serializer is None:
+            # Use local scope import to avoid circular import errors
+            # pylint: disable=import-outside-toplevel
+            from tuf.api.serialization.json import CanonicalJSONSerializer
+            signed_serializer = CanonicalJSONSerializer()
+
+        signature = create_signature(key,
+                                     signed_serializer.serialize(self.signed))
 
         if append:
             self.signatures.append(signature)
@@ -212,17 +219,22 @@ class Metadata():
 
         return signature
 
-
-    def verify(self, key: JsonDict) -> bool:
+    def verify(self, key: Mapping[str, Any],
+               signed_serializer: Optional[SignedSerializer] = None) -> bool:
         """Verifies 'signatures' over 'signed' that match the passed key by id.
 
         Arguments:
             key: A securesystemslib-style public key object.
+            signed_serializer: A SignedSerializer subclass instance that
+                implements the desired canonicalization format. Per default a
+                CanonicalJSONSerializer is used.
 
         Raises:
             # TODO: Revise exception taxonomy
             tuf.exceptions.Error: None or multiple signatures found for key.
             securesystemslib.exceptions.FormatError: Key argument is malformed.
+            tuf.api.serialization.SerializationError:
+                'signed' cannot be serialized.
             securesystemslib.exceptions.CryptoError, \
                     securesystemslib.exceptions.UnsupportedAlgorithmError:
                 Signing errors.
@@ -243,10 +255,15 @@ class Metadata():
                     f'{len(signatures_for_keyid)} signatures for key '
                     f'{key["keyid"]}, not sure which one to verify.')
 
+        if signed_serializer is None:
+            # Use local scope import to avoid circular import errors
+            # pylint: disable=import-outside-toplevel
+            from tuf.api.serialization.json import CanonicalJSONSerializer
+            signed_serializer = CanonicalJSONSerializer()
+
         return verify_signature(
             key, signatures_for_keyid[0],
-            self.signed.to_canonical_bytes())
-
+            signed_serializer.serialize(self.signed))
 
 
 class Signed:
@@ -263,12 +280,10 @@ class Signed:
             metadata format adheres to.
         expires: The metadata expiration datetime object.
 
-
     """
     # NOTE: Signed is a stupid name, because this might not be signed yet, but
     # we keep it to match spec terminology (I often refer to this as "payload",
     # or "inner metadata")
-
     def __init__(
             self, _type: str, version: int, spec_version: str,
             expires: datetime) -> None:
@@ -283,38 +298,31 @@ class Signed:
             raise ValueError(f'version must be < 0, got {version}')
         self.version = version
 
+    @staticmethod
+    def _common_fields_from_dict(signed_dict: Mapping[str, Any]) -> list:
+        """Returns common fields of 'Signed' instances from the passed dict
+        representation, and returns an ordered list to be passed as leading
+        positional arguments to a subclass constructor.
 
-    # Deserialization (factories).
-    @classmethod
-    def from_dict(cls, signed_dict: JsonDict) -> 'Signed':
-        """Creates Signed object from its JSON/dict representation. """
+        See '{Root, Timestamp, Snapshot, Targets}.from_dict' methods for usage.
 
+        """
+        _type = signed_dict.pop('_type')
+        version = signed_dict.pop('version')
+        spec_version = signed_dict.pop('spec_version')
+        expires_str = signed_dict.pop('expires')
         # Convert 'expires' TUF metadata string to a datetime object, which is
         # what the constructor expects and what we store. The inverse operation
-        # is implemented in 'to_dict'.
-        signed_dict['expires'] = tuf.formats.expiry_string_to_datetime(
-                signed_dict['expires'])
-        # NOTE: We write the converted 'expires' back into 'signed_dict' above
-        # so that we can pass it to the constructor as  '**signed_dict' below,
-        # along with other fields that belong to Signed subclasses.
-        # Any 'from_dict'(-like) conversions of fields that correspond to a
-        # subclass should be performed in the 'from_dict' method of that
-        # subclass and also be written back into 'signed_dict' before calling
-        # super().from_dict.
+        # is implemented in '_common_fields_to_dict'.
+        expires = tuf.formats.expiry_string_to_datetime(expires_str)
+        return [_type, version, spec_version, expires]
 
-        # NOTE: cls might be a subclass of Signed, if 'from_dict' was called on
-        # that subclass (see e.g. Metadata.from_dict).
-        return cls(**signed_dict)
+    def _common_fields_to_dict(self) -> Dict[str, Any]:
+        """Returns dict representation of common fields of 'Signed' instances.
 
+        See '{Root, Timestamp, Snapshot, Targets}.to_dict' methods for usage.
 
-    # Serialization.
-    def to_canonical_bytes(self) -> bytes:
-        """Returns the UTF-8 encoded canonical JSON representation of self. """
-        return encode_canonical(self.to_dict()).encode('UTF-8')
-
-
-    def to_dict(self) -> JsonDict:
-        """Returns the JSON-serializable dictionary representation of self. """
+        """
         return {
             '_type': self._type,
             'version': self.version,
@@ -322,12 +330,10 @@ class Signed:
             'expires': self.expires.isoformat() + 'Z'
         }
 
-
     # Modification.
     def bump_expiration(self, delta: timedelta = timedelta(days=1)) -> None:
         """Increments the expires attribute by the passed timedelta. """
         self.expires += delta
-
 
     def bump_version(self) -> None:
         """Increments the metadata version number by 1."""
@@ -375,33 +381,39 @@ class Root(Signed):
     def __init__(
             self, _type: str, version: int, spec_version: str,
             expires: datetime, consistent_snapshot: bool,
-            keys: JsonDict, roles: JsonDict) -> None:
+            keys: Mapping[str, Any], roles: Mapping[str, Any]) -> None:
         super().__init__(_type, version, spec_version, expires)
         # TODO: Add classes for keys and roles
         self.consistent_snapshot = consistent_snapshot
         self.keys = keys
         self.roles = roles
 
+    @classmethod
+    def from_dict(cls, root_dict: Mapping[str, Any]) -> 'Root':
+        """Creates Root object from its dict representation. """
+        common_args = cls._common_fields_from_dict(root_dict)
+        consistent_snapshot = root_dict.pop('consistent_snapshot')
+        keys = root_dict.pop('keys')
+        roles = root_dict.pop('roles')
+        return cls(*common_args, consistent_snapshot, keys, roles)
 
-    # Serialization.
-    def to_dict(self) -> JsonDict:
-        """Returns the JSON-serializable dictionary representation of self. """
-        json_dict = super().to_dict()
-        json_dict.update({
+    def to_dict(self) -> Dict[str, Any]:
+        """Returns the dict representation of self. """
+        root_dict = self._common_fields_to_dict()
+        root_dict.update({
             'consistent_snapshot': self.consistent_snapshot,
             'keys': self.keys,
             'roles': self.roles
         })
-        return json_dict
-
+        return root_dict
 
     # Update key for a role.
-    def add_key(self, role: str, keyid: str, key_metadata: JsonDict) -> None:
+    def add_key(self, role: str, keyid: str,
+                key_metadata: Mapping[str, Any]) -> None:
         """Adds new key for 'role' and updates the key store. """
         if keyid not in self.roles[role]['keyids']:
             self.roles[role]['keyids'].append(keyid)
             self.keys[keyid] = key_metadata
-
 
     # Remove key for a role.
     def remove_key(self, role: str, keyid: str) -> None:
@@ -413,8 +425,6 @@ class Root(Signed):
                     return
 
             del self.keys[keyid]
-
-
 
 
 class Timestamp(Signed):
@@ -438,24 +448,29 @@ class Timestamp(Signed):
     """
     def __init__(
             self, _type: str, version: int, spec_version: str,
-            expires: datetime, meta: JsonDict) -> None:
+            expires: datetime, meta: Mapping[str, Any]) -> None:
         super().__init__(_type, version, spec_version, expires)
         # TODO: Add class for meta
         self.meta = meta
 
+    @classmethod
+    def from_dict(cls, timestamp_dict: Mapping[str, Any]) -> 'Timestamp':
+        """Creates Timestamp object from its dict representation. """
+        common_args = cls._common_fields_from_dict(timestamp_dict)
+        meta = timestamp_dict.pop('meta')
+        return cls(*common_args, meta)
 
-    # Serialization.
-    def to_dict(self) -> JsonDict:
-        """Returns the JSON-serializable dictionary representation of self. """
-        json_dict = super().to_dict()
-        json_dict.update({
+    def to_dict(self) -> Dict[str, Any]:
+        """Returns the dict representation of self. """
+        timestamp_dict = self._common_fields_to_dict()
+        timestamp_dict.update({
             'meta': self.meta
         })
-        return json_dict
-
+        return timestamp_dict
 
     # Modification.
-    def update(self, version: int, length: int, hashes: JsonDict) -> None:
+    def update(self, version: int, length: int,
+               hashes: Mapping[str, Any]) -> None:
         """Assigns passed info about snapshot metadata to meta dict. """
         self.meta['snapshot.json'] = {
             'version': version,
@@ -492,25 +507,30 @@ class Snapshot(Signed):
     """
     def __init__(
             self, _type: str, version: int, spec_version: str,
-            expires: datetime, meta: JsonDict) -> None:
+            expires: datetime, meta: Mapping[str, Any]) -> None:
         super().__init__(_type, version, spec_version, expires)
         # TODO: Add class for meta
         self.meta = meta
 
-    # Serialization.
-    def to_dict(self) -> JsonDict:
-        """Returns the JSON-serializable dictionary representation of self. """
-        json_dict = super().to_dict()
-        json_dict.update({
+    @classmethod
+    def from_dict(cls, snapshot_dict: Mapping[str, Any]) -> 'Snapshot':
+        """Creates Snapshot object from its dict representation. """
+        common_args = cls._common_fields_from_dict(snapshot_dict)
+        meta = snapshot_dict.pop('meta')
+        return cls(*common_args, meta)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Returns the dict representation of self. """
+        snapshot_dict = self._common_fields_to_dict()
+        snapshot_dict.update({
             'meta': self.meta
         })
-        return json_dict
-
+        return snapshot_dict
 
     # Modification.
     def update(
             self, rolename: str, version: int, length: Optional[int] = None,
-            hashes: Optional[JsonDict] = None) -> None:
+            hashes: Optional[Mapping[str, Any]] = None) -> None:
         """Assigns passed (delegated) targets role info to meta dict. """
         metadata_fn = f'{rolename}.json'
 
@@ -580,26 +600,33 @@ class Targets(Signed):
     # default max-args value for pylint is 5
     # pylint: disable=too-many-arguments
     def __init__(
-            self, _type: str, version: int, spec_version: str,
-            expires: datetime, targets: JsonDict, delegations: JsonDict
-            ) -> None:
+        self, _type: str, version: int, spec_version: str,
+        expires: datetime, targets: Mapping[str, Any],
+        delegations: Mapping[str, Any]
+    ) -> None:
         super().__init__(_type, version, spec_version, expires)
         # TODO: Add class for meta
         self.targets = targets
         self.delegations = delegations
 
+    @classmethod
+    def from_dict(cls, targets_dict: Mapping[str, Any]) -> 'Targets':
+        """Creates Targets object from its dict representation. """
+        common_args = cls._common_fields_from_dict(targets_dict)
+        targets = targets_dict.pop('targets')
+        delegations = targets_dict.pop('delegations')
+        return cls(*common_args, targets, delegations)
 
-    # Serialization.
-    def to_dict(self) -> JsonDict:
-        """Returns the JSON-serializable dictionary representation of self. """
-        json_dict = super().to_dict()
-        json_dict.update({
+    def to_dict(self) -> Dict[str, Any]:
+        """Returns the dict representation of self. """
+        targets_dict = self._common_fields_to_dict()
+        targets_dict.update({
             'targets': self.targets,
             'delegations': self.delegations,
         })
-        return json_dict
+        return targets_dict
 
     # Modification.
-    def update(self, filename: str, fileinfo: JsonDict) -> None:
+    def update(self, filename: str, fileinfo: Mapping[str, Any]) -> None:
         """Assigns passed target file info to meta dict. """
         self.targets[filename] = fileinfo
