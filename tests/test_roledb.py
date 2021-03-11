@@ -96,7 +96,7 @@ class TestRoledb(unittest.TestCase):
 
     tuf.roledb.remove_roledb(repository_name)
 
-    # remove_roledb() should not raise an excepion if a non-existent
+    # remove_roledb() should not raise an exception if a non-existent
     # 'repository_name' is specified.
     tuf.roledb.remove_roledb(repository_name)
 
