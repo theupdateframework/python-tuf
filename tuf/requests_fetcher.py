@@ -79,6 +79,7 @@ class RequestsFetcher(FetcherInterface):
     try:
       response.raise_for_status()
     except requests.HTTPError as e:
+      response.close()
       status = e.response.status_code
       raise tuf.exceptions.FetcherHTTPError(str(e), status)
 
