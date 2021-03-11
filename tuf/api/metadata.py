@@ -15,25 +15,25 @@ in 'tuf.api.serialization', and may use the [to|from]_dict convenience methods
 available in the class model.
 
 """
+import tempfile
 from datetime import datetime, timedelta
 from typing import Any, Dict, Mapping, Optional
 
-import tempfile
-
 from securesystemslib.keys import verify_signature
+from securesystemslib.signer import Signature, Signer
+from securesystemslib.storage import FilesystemBackend, StorageBackendInterface
 from securesystemslib.util import persist_temp_file
-from securesystemslib.signer import Signer, Signature
-from securesystemslib.storage import (StorageBackendInterface,
-                                      FilesystemBackend)
 
-from tuf.api.serialization import (MetadataSerializer, MetadataDeserializer,
-                                   SignedSerializer)
-
-import tuf.formats
 import tuf.exceptions
+import tuf.formats
+from tuf.api.serialization import (
+    MetadataDeserializer,
+    MetadataSerializer,
+    SignedSerializer,
+)
 
 
-class Metadata():
+class Metadata:
     """A container for signed TUF metadata.
 
     Provides methods to convert to and from dictionary, read and write to and
@@ -55,12 +55,13 @@ class Metadata():
             ]
 
     """
-    def __init__(self, signed: 'Signed', signatures: list) -> None:
+
+    def __init__(self, signed: "Signed", signatures: list) -> None:
         self.signed = signed
         self.signatures = signatures
 
     @classmethod
-    def from_dict(cls, metadata: Mapping[str, Any]) -> 'Metadata':
+    def from_dict(cls, metadata: Mapping[str, Any]) -> "Metadata":
         """Creates Metadata object from its dict representation.
 
         Arguments:
@@ -78,34 +79,36 @@ class Metadata():
 
         """
         # Dispatch to contained metadata class on metadata _type field.
-        _type = metadata['signed']['_type']
+        _type = metadata["signed"]["_type"]
 
-        if _type == 'targets':
+        if _type == "targets":
             inner_cls = Targets
-        elif _type == 'snapshot':
+        elif _type == "snapshot":
             inner_cls = Snapshot
-        elif _type == 'timestamp':
+        elif _type == "timestamp":
             inner_cls = Timestamp
-        elif _type == 'root':
+        elif _type == "root":
             inner_cls = Root
         else:
             raise ValueError(f'unrecognized metadata type "{_type}"')
 
         signatures = []
-        for signature in metadata.pop('signatures'):
+        for signature in metadata.pop("signatures"):
             signature_obj = Signature.from_dict(signature)
             signatures.append(signature_obj)
 
         return cls(
-                signed=inner_cls.from_dict(metadata.pop('signed')),
-                signatures=signatures)
+            signed=inner_cls.from_dict(metadata.pop("signed")),
+            signatures=signatures,
+        )
 
     @classmethod
     def from_file(
-        cls, filename: str,
+        cls,
+        filename: str,
         deserializer: Optional[MetadataDeserializer] = None,
-        storage_backend: Optional[StorageBackendInterface] = None
-    ) -> 'Metadata':
+        storage_backend: Optional[StorageBackendInterface] = None,
+    ) -> "Metadata":
         """Loads TUF metadata from file storage.
 
         Arguments:
@@ -130,6 +133,7 @@ class Metadata():
             # Use local scope import to avoid circular import errors
             # pylint: disable=import-outside-toplevel
             from tuf.api.serialization.json import JSONDeserializer
+
             deserializer = JSONDeserializer()
 
         if storage_backend is None:
@@ -147,14 +151,13 @@ class Metadata():
         for sig in self.signatures:
             signatures.append(sig.to_dict())
 
-        return {
-            'signatures': signatures,
-            'signed': self.signed.to_dict()
-        }
+        return {"signatures": signatures, "signed": self.signed.to_dict()}
 
     def to_file(
-        self, filename: str, serializer: Optional[MetadataSerializer] = None,
-        storage_backend: Optional[StorageBackendInterface] = None
+        self,
+        filename: str,
+        serializer: Optional[MetadataSerializer] = None,
+        storage_backend: Optional[StorageBackendInterface] = None,
     ) -> None:
         """Writes TUF metadata to file storage.
 
@@ -178,6 +181,7 @@ class Metadata():
             # Use local scope import to avoid circular import errors
             # pylint: disable=import-outside-toplevel
             from tuf.api.serialization.json import JSONSerializer
+
             serializer = JSONSerializer(compact=True)
 
         with tempfile.TemporaryFile() as temp_file:
@@ -186,8 +190,10 @@ class Metadata():
 
     # Signatures.
     def sign(
-        self, signer: Signer, append: bool = False,
-        signed_serializer: Optional[SignedSerializer] = None
+        self,
+        signer: Signer,
+        append: bool = False,
+        signed_serializer: Optional[SignedSerializer] = None,
     ) -> Dict[str, Any]:
         """Creates signature over 'signed' and assigns it to 'signatures'.
 
@@ -216,6 +222,7 @@ class Metadata():
             # Use local scope import to avoid circular import errors
             # pylint: disable=import-outside-toplevel
             from tuf.api.serialization.json import CanonicalJSONSerializer
+
             signed_serializer = CanonicalJSONSerializer()
 
         signature = signer.sign(signed_serializer.serialize(self.signed))
@@ -227,8 +234,11 @@ class Metadata():
 
         return signature
 
-    def verify(self, key: Mapping[str, Any],
-               signed_serializer: Optional[SignedSerializer] = None) -> bool:
+    def verify(
+        self,
+        key: Mapping[str, Any],
+        signed_serializer: Optional[SignedSerializer] = None,
+    ) -> bool:
         """Verifies 'signatures' over 'signed' that match the passed key by id.
 
         Arguments:
@@ -251,27 +261,31 @@ class Metadata():
             A boolean indicating if the signature is valid for the passed key.
 
         """
-        signatures_for_keyid = list(filter(
-                lambda sig: sig.keyid == key['keyid'], self.signatures))
+        signatures_for_keyid = list(
+            filter(lambda sig: sig.keyid == key["keyid"], self.signatures)
+        )
 
         if not signatures_for_keyid:
-            raise tuf.exceptions.Error(
-                    f'no signature for key {key["keyid"]}.')
+            raise tuf.exceptions.Error(f'no signature for key {key["keyid"]}.')
 
         if len(signatures_for_keyid) > 1:
             raise tuf.exceptions.Error(
-                    f'{len(signatures_for_keyid)} signatures for key '
-                    f'{key["keyid"]}, not sure which one to verify.')
+                f"{len(signatures_for_keyid)} signatures for key "
+                f'{key["keyid"]}, not sure which one to verify.'
+            )
 
         if signed_serializer is None:
             # Use local scope import to avoid circular import errors
             # pylint: disable=import-outside-toplevel
             from tuf.api.serialization.json import CanonicalJSONSerializer
+
             signed_serializer = CanonicalJSONSerializer()
 
         return verify_signature(
-            key, signatures_for_keyid[0].to_dict(),
-            signed_serializer.serialize(self.signed))
+            key,
+            signatures_for_keyid[0].to_dict(),
+            signed_serializer.serialize(self.signed),
+        )
 
 
 class Signed:
@@ -289,12 +303,13 @@ class Signed:
         expires: The metadata expiration datetime object.
 
     """
+
     # NOTE: Signed is a stupid name, because this might not be signed yet, but
     # we keep it to match spec terminology (I often refer to this as "payload",
     # or "inner metadata")
     def __init__(
-            self, _type: str, version: int, spec_version: str,
-            expires: datetime) -> None:
+        self, _type: str, version: int, spec_version: str, expires: datetime
+    ) -> None:
 
         self._type = _type
         self.version = version
@@ -303,7 +318,7 @@ class Signed:
 
         # TODO: Should we separate data validation from constructor?
         if version < 0:
-            raise ValueError(f'version must be < 0, got {version}')
+            raise ValueError(f"version must be < 0, got {version}")
         self.version = version
 
     @staticmethod
@@ -315,10 +330,10 @@ class Signed:
         See '{Root, Timestamp, Snapshot, Targets}.from_dict' methods for usage.
 
         """
-        _type = signed_dict.pop('_type')
-        version = signed_dict.pop('version')
-        spec_version = signed_dict.pop('spec_version')
-        expires_str = signed_dict.pop('expires')
+        _type = signed_dict.pop("_type")
+        version = signed_dict.pop("version")
+        spec_version = signed_dict.pop("spec_version")
+        expires_str = signed_dict.pop("expires")
         # Convert 'expires' TUF metadata string to a datetime object, which is
         # what the constructor expects and what we store. The inverse operation
         # is implemented in '_common_fields_to_dict'.
@@ -332,10 +347,10 @@ class Signed:
 
         """
         return {
-            '_type': self._type,
-            'version': self.version,
-            'spec_version': self.spec_version,
-            'expires': self.expires.isoformat() + 'Z'
+            "_type": self._type,
+            "version": self.version,
+            "spec_version": self.spec_version,
+            "expires": self.expires.isoformat() + "Z",
         }
 
     # Modification.
@@ -382,14 +397,21 @@ class Root(Signed):
             }
 
     """
+
     # TODO: determine an appropriate value for max-args and fix places where
     # we violate that. This __init__ function takes 7 arguments, whereas the
     # default max-args value for pylint is 5
     # pylint: disable=too-many-arguments
     def __init__(
-            self, _type: str, version: int, spec_version: str,
-            expires: datetime, consistent_snapshot: bool,
-            keys: Mapping[str, Any], roles: Mapping[str, Any]) -> None:
+        self,
+        _type: str,
+        version: int,
+        spec_version: str,
+        expires: datetime,
+        consistent_snapshot: bool,
+        keys: Mapping[str, Any],
+        roles: Mapping[str, Any],
+    ) -> None:
         super().__init__(_type, version, spec_version, expires)
         # TODO: Add classes for keys and roles
         self.consistent_snapshot = consistent_snapshot
@@ -397,39 +419,42 @@ class Root(Signed):
         self.roles = roles
 
     @classmethod
-    def from_dict(cls, root_dict: Mapping[str, Any]) -> 'Root':
+    def from_dict(cls, root_dict: Mapping[str, Any]) -> "Root":
         """Creates Root object from its dict representation. """
         common_args = cls._common_fields_from_dict(root_dict)
-        consistent_snapshot = root_dict.pop('consistent_snapshot')
-        keys = root_dict.pop('keys')
-        roles = root_dict.pop('roles')
+        consistent_snapshot = root_dict.pop("consistent_snapshot")
+        keys = root_dict.pop("keys")
+        roles = root_dict.pop("roles")
         return cls(*common_args, consistent_snapshot, keys, roles)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self. """
         root_dict = self._common_fields_to_dict()
-        root_dict.update({
-            'consistent_snapshot': self.consistent_snapshot,
-            'keys': self.keys,
-            'roles': self.roles
-        })
+        root_dict.update(
+            {
+                "consistent_snapshot": self.consistent_snapshot,
+                "keys": self.keys,
+                "roles": self.roles,
+            }
+        )
         return root_dict
 
     # Update key for a role.
-    def add_key(self, role: str, keyid: str,
-                key_metadata: Mapping[str, Any]) -> None:
+    def add_key(
+        self, role: str, keyid: str, key_metadata: Mapping[str, Any]
+    ) -> None:
         """Adds new key for 'role' and updates the key store. """
-        if keyid not in self.roles[role]['keyids']:
-            self.roles[role]['keyids'].append(keyid)
+        if keyid not in self.roles[role]["keyids"]:
+            self.roles[role]["keyids"].append(keyid)
             self.keys[keyid] = key_metadata
 
     # Remove key for a role.
     def remove_key(self, role: str, keyid: str) -> None:
         """Removes key for 'role' and updates the key store. """
-        if keyid in self.roles[role]['keyids']:
-            self.roles[role]['keyids'].remove(keyid)
+        if keyid in self.roles[role]["keyids"]:
+            self.roles[role]["keyids"].remove(keyid)
             for keyinfo in self.roles.values():
-                if keyid in keyinfo['keyids']:
+                if keyid in keyinfo["keyids"]:
                     return
 
             del self.keys[keyid]
@@ -454,36 +479,41 @@ class Timestamp(Signed):
             }
 
     """
+
     def __init__(
-            self, _type: str, version: int, spec_version: str,
-            expires: datetime, meta: Mapping[str, Any]) -> None:
+        self,
+        _type: str,
+        version: int,
+        spec_version: str,
+        expires: datetime,
+        meta: Mapping[str, Any],
+    ) -> None:
         super().__init__(_type, version, spec_version, expires)
         # TODO: Add class for meta
         self.meta = meta
 
     @classmethod
-    def from_dict(cls, timestamp_dict: Mapping[str, Any]) -> 'Timestamp':
+    def from_dict(cls, timestamp_dict: Mapping[str, Any]) -> "Timestamp":
         """Creates Timestamp object from its dict representation. """
         common_args = cls._common_fields_from_dict(timestamp_dict)
-        meta = timestamp_dict.pop('meta')
+        meta = timestamp_dict.pop("meta")
         return cls(*common_args, meta)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self. """
         timestamp_dict = self._common_fields_to_dict()
-        timestamp_dict.update({
-            'meta': self.meta
-        })
+        timestamp_dict.update({"meta": self.meta})
         return timestamp_dict
 
     # Modification.
-    def update(self, version: int, length: int,
-               hashes: Mapping[str, Any]) -> None:
+    def update(
+        self, version: int, length: int, hashes: Mapping[str, Any]
+    ) -> None:
         """Assigns passed info about snapshot metadata to meta dict. """
-        self.meta['snapshot.json'] = {
-            'version': version,
-            'length': length,
-            'hashes': hashes
+        self.meta["snapshot.json"] = {
+            "version": version,
+            "length": length,
+            "hashes": hashes,
         }
 
 
@@ -513,41 +543,49 @@ class Snapshot(Signed):
             }
 
     """
+
     def __init__(
-            self, _type: str, version: int, spec_version: str,
-            expires: datetime, meta: Mapping[str, Any]) -> None:
+        self,
+        _type: str,
+        version: int,
+        spec_version: str,
+        expires: datetime,
+        meta: Mapping[str, Any],
+    ) -> None:
         super().__init__(_type, version, spec_version, expires)
         # TODO: Add class for meta
         self.meta = meta
 
     @classmethod
-    def from_dict(cls, snapshot_dict: Mapping[str, Any]) -> 'Snapshot':
+    def from_dict(cls, snapshot_dict: Mapping[str, Any]) -> "Snapshot":
         """Creates Snapshot object from its dict representation. """
         common_args = cls._common_fields_from_dict(snapshot_dict)
-        meta = snapshot_dict.pop('meta')
+        meta = snapshot_dict.pop("meta")
         return cls(*common_args, meta)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self. """
         snapshot_dict = self._common_fields_to_dict()
-        snapshot_dict.update({
-            'meta': self.meta
-        })
+        snapshot_dict.update({"meta": self.meta})
         return snapshot_dict
 
     # Modification.
     def update(
-            self, rolename: str, version: int, length: Optional[int] = None,
-            hashes: Optional[Mapping[str, Any]] = None) -> None:
+        self,
+        rolename: str,
+        version: int,
+        length: Optional[int] = None,
+        hashes: Optional[Mapping[str, Any]] = None,
+    ) -> None:
         """Assigns passed (delegated) targets role info to meta dict. """
-        metadata_fn = f'{rolename}.json'
+        metadata_fn = f"{rolename}.json"
 
-        self.meta[metadata_fn] = {'version': version}
+        self.meta[metadata_fn] = {"version": version}
         if length is not None:
-            self.meta[metadata_fn]['length'] = length
+            self.meta[metadata_fn]["length"] = length
 
         if hashes is not None:
-            self.meta[metadata_fn]['hashes'] = hashes
+            self.meta[metadata_fn]["hashes"] = hashes
 
 
 class Targets(Signed):
@@ -603,14 +641,19 @@ class Targets(Signed):
             }
 
     """
+
     # TODO: determine an appropriate value for max-args and fix places where
     # we violate that. This __init__ function takes 7 arguments, whereas the
     # default max-args value for pylint is 5
     # pylint: disable=too-many-arguments
     def __init__(
-        self, _type: str, version: int, spec_version: str,
-        expires: datetime, targets: Mapping[str, Any],
-        delegations: Mapping[str, Any]
+        self,
+        _type: str,
+        version: int,
+        spec_version: str,
+        expires: datetime,
+        targets: Mapping[str, Any],
+        delegations: Mapping[str, Any],
     ) -> None:
         super().__init__(_type, version, spec_version, expires)
         # TODO: Add class for meta
@@ -618,20 +661,22 @@ class Targets(Signed):
         self.delegations = delegations
 
     @classmethod
-    def from_dict(cls, targets_dict: Mapping[str, Any]) -> 'Targets':
+    def from_dict(cls, targets_dict: Mapping[str, Any]) -> "Targets":
         """Creates Targets object from its dict representation. """
         common_args = cls._common_fields_from_dict(targets_dict)
-        targets = targets_dict.pop('targets')
-        delegations = targets_dict.pop('delegations')
+        targets = targets_dict.pop("targets")
+        delegations = targets_dict.pop("delegations")
         return cls(*common_args, targets, delegations)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self. """
         targets_dict = self._common_fields_to_dict()
-        targets_dict.update({
-            'targets': self.targets,
-            'delegations': self.delegations,
-        })
+        targets_dict.update(
+            {
+                "targets": self.targets,
+                "delegations": self.delegations,
+            }
+        )
         return targets_dict
 
     # Modification.
