@@ -31,6 +31,8 @@ undergo review and automated testing, including, but not limited to:
 [Tox](https://tox.readthedocs.io/en/latest/).
 * Static code analysis via [Pylint](https://www.pylint.org/) and
 [Bandit](https://wiki.openstack.org/wiki/Security/Projects/Bandit).
+- Auto-formatting with [black](https://black.readthedocs.io/) and
+[isort](https://pycqa.github.io/isort/).
 * Checks for Signed-off-by commits via [Probot: DCO](https://github.com/probot/dco).
 * Review by one or more
 [maintainers](MAINTAINERS.txt).

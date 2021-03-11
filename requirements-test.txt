@@ -8,5 +8,7 @@ python-dateutil
 
 # additional test tools for linting and coverage measurement
 coverage
+black
+isort
 pylint
 bandit
