@@ -105,6 +105,16 @@ To work on the TUF project, it's best to perform a development install.
     $ pip install -r requirements-dev.txt
 
 
+Auto-formatting
+===============
+
+New TUF code should be auto-formatted with `black <https://black.readthedocs.io/>`_
+and `isort <https://pycqa.github.io/isort>`_. The tasks can be installed as
+`pre-commit <https://pre-commit.com/>`_ git hooks with the following command.
+::
+    $ pre-commit install
+
+
 Testing
 =======
 
