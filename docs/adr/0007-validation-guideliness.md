@@ -114,11 +114,10 @@ See: https://pydantic-docs.helpmanual.io/benchmarks/
 
 * Good, because it uses the built-in types from `python 3.6` onwards.
 
-* Bad, because this library **has not yet implemented** a `strict` mode and
-the default behaviour when validating a certain argument or field is to **try
-a cast to the expected type from the received type**.
-To enable strict mode, we would have to add this manually through
-`validators` that are called before the cast.
+* Good, because it allows for strict type checks through `StrictInt`, `StrictStr`,
+`StrictFloat`, `StrictBool` and `StrictBytes` types defined in `pydantic` .
+They have not yet implemented a classwide strict mode where all fields will be
+considered automatically as "strict", but there is a discussion about it:
 See: https://github.com/samuelcolvin/pydantic/issues/1098
 
 * Bad, because there is a learning curve when using `pydantic`.
