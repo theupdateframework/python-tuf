@@ -18,6 +18,7 @@ tests/htmlcov/*
 .python-version
 *~
 *.tmp
+.pre-commit-config.yaml
 
 # Debian generated files
 debian/.debhelper/*

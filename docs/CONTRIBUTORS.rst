@@ -5,8 +5,8 @@ Note: Development of TUF occurs on the "develop" branch of this repository.
 
 Contributions can be made by submitting GitHub pull requests.  Submitted code
 should follow our `code style guidelines
-<https://github.com/secure-systems-lab/code-style-guidelines>`_, which provide
-examples of what to do (or not to do) when writing Python code.
+<https://github.com/secure-systems-lab/code-style-guidelines>`_, which are
+enforced with linters and auto-formatters (details below).
 
 Contributors must also indicate acceptance of the `Developer Certificate of
 Origin <https://developercertificate.org/>`_  (DCO) when making a contribution
@@ -103,6 +103,26 @@ To work on the TUF project, it's best to perform a development install.
 ::
 
     $ pip install -r requirements-dev.txt
+
+
+Auto-formatting
+===============
+
+CI/CD will check that new TUF code is formatted with `black
+<https://black.readthedocs.io/>`__ and `isort <https://pycqa.github.io/isort>`__.
+Auto-formatting can be done on the command line:
+::
+
+    $ # TODO: configure black and isort args in pyproject.toml (see #1161)
+    $ black --line-length 80 tuf/api
+    $ isort --line-length 80 --profile black -p tuf tuf/api
+
+or via source code editor plugin
+[`black <https://black.readthedocs.io/en/stable/editor_integration.html>`__,
+`isort <https://github.com/pycqa/isort/wiki/isort-Plugins>`__] or
+`pre-commit <https://pre-commit.com/>`__-powered git hooks
+[`black <https://black.readthedocs.io/en/stable/version_control_integration.html>`__,
+`isort <https://pycqa.github.io/isort/docs/configuration/pre-commit/>`__].
 
 
 Testing
