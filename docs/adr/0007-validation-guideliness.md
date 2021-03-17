@@ -24,6 +24,9 @@ Some of the requirements we want to meet are:
 3. As little as possible performance overhead.
 4. Add as minimal number of dependencies as possible.
 5. Support for all python versions we are using.
+6. Reuse code used for validation.
+7. A way to invoke all validation functions responsible to validate the class
+attributes in the middle of function execution.
 
 ## Considered Options
 1. Usage of a `ValidationMixin`.
@@ -38,14 +41,23 @@ we would implement the `ValidationMixin` the same way it is implemented in
 [in-toto](https://github.com/in-toto) until version 1.0.1 (the latest
 version at the time of writing.)
 
-* Good, because it's shorter by calling one function and validating
-multiple fields.
+Here is how this option compares against our
+[requirements](#decision-drivers-and-requirements):
 
-* Good, because it allows reuse of the validation code through
-`securesystemslib.schemas` or another schema of our choice.
+| Number      | Stance |
+| ----------- | ----------- |
+| 1 | It's limited on what it can validate.  |
+| 2   | Yes, it does allow that. |
+| 3   | It contains only the code we need, so the overhead is minimal. |
+| 4   | It doesn't add any dependencies.        |
+| 5   | Yes, it does support all of our python versions.      |
+| 6   | Yes, it does allow that.  |
+| 7   | Yes, it does allow that. |
+
+Additional thoughts:
 
 * Bad, because there could be different code paths and return statements, and as
-a consequence there could be a code path which doesn't call `validate()`.
+a consequence there could be a code path that doesn't call `validate()`.
 
 Examle:
 ```python
@@ -84,7 +96,8 @@ class User(ValidationMixin):
 perspective to inherit `ValidationMixin` from classes without a "IS A"
 relationship with it.
 
-* Consideration: if we use this option, we are limited on what can be validated.
+* Consideration (*related to point 1*): if we use this option, we are limited on
+what can be validated.
 With the `in-toto` implementation of the `ValidationMixin`, we can only validate
 class attributes inside class methods.
 If we want to validate functions outside classes or function arguments we would
@@ -99,6 +112,21 @@ should be combined with custom "setter" properties.
 
 ### Option 2: Usage of a third-party library called "pydantic"
 
+Here is how this option compares against our
+[requirements](#decision-drivers-and-requirements):
+
+| Number      | Stance |
+| ----------- | ----------- |
+| 1 | It's not limited to what it can validate.  |
+| 2   | Yes, it allows that through a `@validator` decorator. |
+| 3   | The fastest validation library according to [them](https://pydantic-docs.helpmanual.io/benchmarks/).  |
+| 4   | It adds two dependencies. |
+| 5   | Yes, it does support all of our python versions. |
+| 6   | Yes, it does allow that.  |
+| 7   | No direct way. |
+
+Additional thoughts:
+
 * Good, because it's flexible:
 1. There is a `@validate_arguments` decorator which allows us to decide which
 functions to validate and the ability to validate functions outside classes.
@@ -107,18 +135,24 @@ beyond type checking for our class attributes.
 3. We can use an embedded `Config` class inside our classes, which allows for
 even more customization (for example enforce assignment validation).
 
-* Good, because (according to their documentation) `pydantic` is the fastest
-validation library compared to others (including our other third-party library
-option `marshmallow`).
-See: https://pydantic-docs.helpmanual.io/benchmarks/
-
-* Good, because it uses the built-in types from `python 3.6` onwards.
-
 * Good, because it allows for strict type checks through `StrictInt`, `StrictStr`,
 `StrictFloat`, `StrictBool` and `StrictBytes` types defined in `pydantic` .
 They have not yet implemented a classwide strict mode where all fields will be
 considered automatically as "strict", but there is a discussion about it:
 See: https://github.com/samuelcolvin/pydantic/issues/1098
+
+* Good, because it provides additional custom types (with their own built-in
+validation) like `FilePath`/`DirectoryPath` (like `typing.Path`, but there is also
+validation that the file/directory exists), `PostivieInt`, `IPvAnyAddress`
+(for IP versions 4 and 6), `HttpUrl` (for HTTP and HTTPS URLs) etc.
+Also, `pydantic` has field (class attributes) constraints. This could be useful
+when verifying that a HEX string has the expected length.
+
+* Good, if we decide to require that our objects should be valid and fully
+populated all of the time. This could easily be marking our fields (class
+attributes) as `required` (which will raise an error for partially populated
+objects) and embed a `Config` class inside our classes with an option to enforce
+assignment validation.
 
 * Bad, because there is a learning curve when using `pydantic`.
 1. For example, when I had to handle the `_type` attribute in `Signed` it took me
@@ -126,7 +160,7 @@ a lot of reading to understand that standard attributes whose name begin with
 "_" are ignored. The `_type` attribute can only be `PrivateAttr`
 (defined in `pydantic`) even though we don't handle it as a typical private
 attribute.
-2. Also, I had difficulties using pydantic when there is inheritance.
+2. Also, I had difficulties using `pydantic` when there is inheritance.
 The initialization and validation of new objects was tricky.
 
 * Bad, because it adds `2` new dependencies: `pydantic` and `typing-extensions`.
@@ -134,6 +168,10 @@ This was concluded by performing the following steps:
 1. Creating a fresh virtual environment with python3.8.
 2. Installing all dependencies in `requirements-dev.txt` from `tuf`.
 3. Install `pydantic` with `pip install pydantic`.
+
+* Consideration about requirement number 7: this could be added by calling all
+functions with a name begging with `_validate`, the same way it's done in the
+`ValidationMixin` implementation in `in-toto`.
 
 ## Links
 * [in-toto ValidatorMixin](https://github.com/in-toto/in-toto/blob/74da7a/in_toto/models/common.py#L27-L40)
