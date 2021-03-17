@@ -44,7 +44,10 @@ max-line-length=80
 single-line-if-stmt=yes
 
 [LOGGING]
-logging-format-style: new
+logging-format-style=new
 
 [MISCELLANEOUS]
 notes=TODO
+
+[STRING]
+check-quote-consistency=yes

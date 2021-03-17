@@ -266,12 +266,12 @@ class Metadata:
         )
 
         if not signatures_for_keyid:
-            raise tuf.exceptions.Error(f'no signature for key {key["keyid"]}.')
+            raise tuf.exceptions.Error(f"no signature for key {key['keyid']}.")
 
         if len(signatures_for_keyid) > 1:
             raise tuf.exceptions.Error(
                 f"{len(signatures_for_keyid)} signatures for key "
-                f'{key["keyid"]}, not sure which one to verify.'
+                f"{key['keyid']}, not sure which one to verify."
             )
 
         if signed_serializer is None:
