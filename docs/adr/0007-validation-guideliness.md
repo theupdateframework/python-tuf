@@ -31,6 +31,7 @@ attributes in the middle of function execution.
 ## Considered Options
 1. Usage of a `ValidationMixin`.
 2. Usage of a third-party library called `pydantic`.
+3. Usage of a third-part library called `marshmallow`.
 
 ## Pros, Cons, and Considerations of the Options
 
@@ -173,10 +174,55 @@ This was concluded by performing the following steps:
 functions with a name begging with `_validate`, the same way it's done in the
 `ValidationMixin` implementation in `in-toto`.
 
+### Option 3: Usage of a third-part library called "marshmallow"
+
+Here is how this option compares against our
+[requirements](#decision-drivers-and-requirements):
+
+| Number      | Stance |
+| ----------- | ----------- |
+| 1 | It can validate only class attributes.  |
+| 2   | Yes, it allows that. |
+| 3   | Likely slower than pydanitc (according to [pydantic](https://pydantic-docs.helpmanual.io/benchmarks/)).  |
+| 4   | It adds 1 additional dependency. |
+| 5   | Yes, it does support all of our python versions. |
+| 6   | Yes, it does allow that.  |
+| 7   | Yes, it allows that through `validate()` function. |
+
+Additional thoughts:
+
+* Good, because it allows for strict type checks by marking the class attributes
+(or Fields as they call them) as `strict`.
+
+* Good, because it provides additional custom types (with their own built-in
+validation) like `URL`, `IPv4`, `IPv6`, etc.
+
+* Bad, because it's created with schemas in mind and a heavy focus on
+serialization and deserialization. Most of the features are not related
+to validation.
+
+* Bad, because it adds one additional dependency - itself.
+This was concluded by performing the following steps:
+1. Creating a fresh virtual environment with python3.8.
+2. Installing all dependencies in `requirements-dev.txt` from `tuf`.
+3. Install `marshmallow` with `pip install marshmallow`.
+
+* Bad, because they use their custom types even for types existing in the
+standard `typing` module from python 3.6 onwards. This means that integrating
+`marshmallow` would make up for a bigger diff compared to `pydantic`.
+Additionally, because they define their types there could be problems specific
+to their types and conversion from-to standard types as defined in the `typing`
+python module.
+This was the case when I researched `marshmallow` and had to use the
+`marshmallow.fields.DateTime` class instead of the `datetime.datetime` object.
+
+
+
 ## Links
 * [in-toto ValidatorMixin](https://github.com/in-toto/in-toto/blob/74da7a/in_toto/models/common.py#L27-L40)
 * [ValidatorMixing usage](https://github.com/in-toto/in-toto/blob/74da7a/in_toto/models/layout.py#L420-L438)
 * [Pydantic documentation](https://pydantic-docs.helpmanual.io/)
+* [Marshmallow documentation](https://marshmallow.readthedocs.io/)
 
 ## Decision Outcome
 
