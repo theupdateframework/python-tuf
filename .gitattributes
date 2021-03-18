@@ -1,0 +1,3 @@
+# Files that will always have LF line endings on checkout.
+tests/repository_data/** text eol=lf
+
