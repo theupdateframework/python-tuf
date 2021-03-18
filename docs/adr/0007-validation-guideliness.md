@@ -204,7 +204,7 @@ class RepositoryManager(BaseModel):
       user.validate()
 
     self.writer.write_to_file(self.repositoryUsers)
-
+```
 
 ### Option 3: Usage of a third-part library called "marshmallow"
 
