@@ -32,7 +32,6 @@ attributes in the middle of function execution.
 1. Usage of a `ValidationMixin`.
 2. Usage of a third-party library called `pydantic`.
 3. Usage of a third-party library called `marshmallow`.
-4. Usage of a third-party library called `typical`.
 
 ## Pros, Cons, and Considerations of the Options
 
