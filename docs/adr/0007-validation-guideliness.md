@@ -31,7 +31,8 @@ attributes in the middle of function execution.
 ## Considered Options
 1. Usage of a `ValidationMixin`.
 2. Usage of a third-party library called `pydantic`.
-3. Usage of a third-part library called `marshmallow`.
+3. Usage of a third-party library called `marshmallow`.
+4. Usage of a third-party library called `typical`.
 
 ## Pros, Cons, and Considerations of the Options
 
@@ -124,7 +125,7 @@ Here is how this option compares against our
 | 4   | It adds two dependencies. |
 | 5   | Yes, it does support all of our python versions. |
 | 6   | Yes, it does allow that.  |
-| 7   | No direct way. |
+| 7   | It allows it, but with not very intuitive manner.  |
 
 Additional thoughts:
 
@@ -170,9 +171,41 @@ This was concluded by performing the following steps:
 2. Installing all dependencies in `requirements-dev.txt` from `tuf`.
 3. Install `pydantic` with `pip install pydantic`.
 
-* Consideration about requirement number 7: this could be added by calling all
-functions with a name begging with `_validate`, the same way it's done in the
-`ValidationMixin` implementation in `in-toto`.
+* Explanation about requirment number 7: there is a helper function called
+`validate_model(model: Type[BaseModel], input_data: DictStrAny)` which can be
+used to invoke all validators from your current or parent classes.
+This is how it can be used:
+```python
+class User(BaseModel):
+  email: StrictStr
+
+  @validator('email')
+  def validate_email(cls, email):
+    # Some regular expression checks for a valid email here
+    return email
+
+  def change_email(self, new_email: StrictStr):
+    self.email = new_email
+
+
+class RepositoryManager(BaseModel):
+  repositoryUsers: List[User]
+  writer: object
+
+  def validate(self):
+    *_, validation_error = validate_model(self.__class__, self.__dict__)
+    if validation_error:
+        raise validation_error
+
+  def write_users_to_file(self):
+    for user in self.repositoryUsers:
+
+      # Validate that user objects have valid fields before writing
+      # even if their email has changed.
+      user.validate()
+
+    self.writer.write_to_file(self.repositoryUsers)
+
 
 ### Option 3: Usage of a third-part library called "marshmallow"
 
@@ -183,7 +216,7 @@ Here is how this option compares against our
 | ----------- | ----------- |
 | 1 | It can validate only class attributes.  |
 | 2   | Yes, it allows that. |
-| 3   | Likely slower than pydanitc (according to [pydantic](https://pydantic-docs.helpmanual.io/benchmarks/)).  |
+| 3   | Likely slower than `pydanitc` (according to [pydantic](https://pydantic-docs.helpmanual.io/benchmarks/)).  |
 | 4   | It adds 1 additional dependency. |
 | 5   | Yes, it does support all of our python versions. |
 | 6   | Yes, it does allow that.  |
