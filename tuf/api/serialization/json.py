@@ -18,11 +18,13 @@ from securesystemslib.formats import encode_canonical
 # creating default de/serializers there (see metadata local scope imports).
 # NOTE: A less desirable alternative would be to add more abstraction layers.
 from tuf.api.metadata import Metadata, Signed
-from tuf.api.serialization import (MetadataSerializer,
-                                   MetadataDeserializer,
-                                   SignedSerializer,
-                                   SerializationError,
-                                   DeserializationError)
+from tuf.api.serialization import (
+    DeserializationError,
+    MetadataDeserializer,
+    MetadataSerializer,
+    SerializationError,
+    SignedSerializer,
+)
 
 
 class JSONDeserializer(MetadataDeserializer):
@@ -34,7 +36,7 @@ class JSONDeserializer(MetadataDeserializer):
             json_dict = json.loads(raw_data.decode("utf-8"))
             metadata_obj = Metadata.from_dict(json_dict)
 
-        except Exception as e: # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             raise DeserializationError from e
 
         return metadata_obj
@@ -48,20 +50,23 @@ class JSONSerializer(MetadataSerializer):
                 'serialize' should be compact by excluding whitespace.
 
     """
+
     def __init__(self, compact: bool = False) -> None:
         self.compact = compact
 
     def serialize(self, metadata_obj: Metadata) -> bytes:
         """Serialize Metadata object into utf-8 encoded JSON bytes. """
         try:
-            indent = (None if self.compact else 1)
-            separators = ((',', ':') if self.compact else (',', ': '))
-            json_bytes = json.dumps(metadata_obj.to_dict(),
-                                    indent=indent,
-                                    separators=separators,
-                                    sort_keys=True).encode("utf-8")
+            indent = None if self.compact else 1
+            separators = (",", ":") if self.compact else (",", ": ")
+            json_bytes = json.dumps(
+                metadata_obj.to_dict(),
+                indent=indent,
+                separators=separators,
+                sort_keys=True,
+            ).encode("utf-8")
 
-        except Exception as e: # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             raise SerializationError from e
 
         return json_bytes
@@ -78,7 +83,7 @@ class CanonicalJSONSerializer(SignedSerializer):
             signed_dict = signed_obj.to_dict()
             canonical_bytes = encode_canonical(signed_dict).encode("utf-8")
 
-        except Exception as e: # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             raise SerializationError from e
 
         return canonical_bytes
