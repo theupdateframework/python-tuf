@@ -24,8 +24,7 @@ from securesystemslib.signer import Signature, Signer
 from securesystemslib.storage import FilesystemBackend, StorageBackendInterface
 from securesystemslib.util import persist_temp_file
 
-from tuf import exceptions
-from tuf import formats
+from tuf import exceptions, formats
 from tuf.api.serialization import (
     MetadataDeserializer,
     MetadataSerializer,
