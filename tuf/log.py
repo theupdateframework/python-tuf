@@ -72,11 +72,12 @@ from __future__ import unicode_literals
 import logging
 import time
 
-import tuf
-import tuf.settings
-import tuf.exceptions
+from securesystemslib import exceptions as sslib_exceptions
+from securesystemslib import formats as sslib_formats
 
-import securesystemslib.formats
+from tuf import exceptions
+from tuf import settings
+
 
 # Setting a handler's log level filters only logging messages of that level
 # (and above).  For example, setting the built-in StreamHandler's log level to
@@ -125,8 +126,8 @@ logger.addHandler(logging.NullHandler())
 # '_DEFAULT_LOG_LEVEL'.  The log level of messages handled by 'file_handler'
 # may be modified with 'set_filehandler_log_level()'.  'settings.LOG_FILENAME'
 # will be opened in append mode.
-if tuf.settings.ENABLE_FILE_LOGGING:
-  file_handler = logging.FileHandler(tuf.settings.LOG_FILENAME)
+if settings.ENABLE_FILE_LOGGING:
+  file_handler = logging.FileHandler(settings.LOG_FILENAME)
   file_handler.setLevel(_DEFAULT_FILE_LOG_LEVEL)
   file_handler.setFormatter(formatter)
   logger.addHandler(file_handler)
@@ -212,7 +213,7 @@ def set_log_level(log_level=_DEFAULT_LOG_LEVEL):
 
   # Does 'log_level' have the correct format?
   # Raise 'securesystems.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.LOGLEVEL_SCHEMA.check_match(log_level)
+  sslib_formats.LOGLEVEL_SCHEMA.check_match(log_level)
 
   logger.setLevel(log_level)
 
@@ -243,13 +244,13 @@ def set_filehandler_log_level(log_level=_DEFAULT_FILE_LOG_LEVEL):
 
   # Does 'log_level' have the correct format?
   # Raise 'securesystems.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.LOGLEVEL_SCHEMA.check_match(log_level)
+  sslib_formats.LOGLEVEL_SCHEMA.check_match(log_level)
 
   if file_handler:
     file_handler.setLevel(log_level)
 
   else:
-    raise tuf.exceptions.Error(
+    raise exceptions.Error(
         'File handler has not been set.  Enable file logging'
         ' before attempting to set its log level')
 
@@ -269,7 +270,7 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
       'log_level' examples: logging.INFO; logging.CRITICAL.
 
   <Exceptions>
-    securesystems.exceptions.Error, if the 'log.py' console handler has not
+    securesystemslib.exceptions.Error, if the 'log.py' console handler has not
     been set yet with add_console_handler().
 
   <Side Effects>
@@ -281,7 +282,7 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
 
   # Does 'log_level' have the correct format?
   # Raise 'securesystems.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.LOGLEVEL_SCHEMA.check_match(log_level)
+  sslib_formats.LOGLEVEL_SCHEMA.check_match(log_level)
 
   # Assign to the global console_handler object.
   global console_handler
@@ -291,7 +292,7 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
 
   else:
     message = 'The console handler has not been set with add_console_handler().'
-    raise securesystemslib.exceptions.Error(message)
+    raise sslib_exceptions.Error(message)
 
 
 
@@ -320,7 +321,7 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
 
   # Does 'log_level' have the correct format?
   # Raise 'securesystems.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.LOGLEVEL_SCHEMA.check_match(log_level)
+  sslib_formats.LOGLEVEL_SCHEMA.check_match(log_level)
 
   # Assign to the global console_handler object.
   global console_handler
@@ -381,7 +382,7 @@ def remove_console_handler():
 
 
 
-def enable_file_logging(log_filename=tuf.settings.LOG_FILENAME):
+def enable_file_logging(log_filename=settings.LOG_FILENAME):
   """
   <Purpose>
     Log messages to a file (i.e., 'log_filename').  The log level for the file
@@ -406,7 +407,7 @@ def enable_file_logging(log_filename=tuf.settings.LOG_FILENAME):
   """
 
   # Are the arguments properly formatted?
-  securesystemslib.formats.PATH_SCHEMA.check_match(log_filename)
+  sslib_formats.PATH_SCHEMA.check_match(log_filename)
 
   global file_handler
 
@@ -418,7 +419,7 @@ def enable_file_logging(log_filename=tuf.settings.LOG_FILENAME):
     logger.addHandler(file_handler)
 
   else:
-    raise tuf.exceptions.Error(
+    raise exceptions.Error(
         'The file handler has already been been set.  A new file handler'
         ' can be set by first calling disable_file_logging()')
 

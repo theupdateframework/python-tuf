@@ -146,17 +146,22 @@ import argparse
 import shutil
 import time
 import fnmatch
-
-import tuf
-import tuf.log
-import tuf.formats
-import tuf.repository_tool as repo_tool
-
-# 'pip install securesystemslib[crypto,pynacl]' is required for the CLI,
-# which installs the cryptography and pynacl.
-import securesystemslib
-from securesystemslib import interface
 import six
+
+import securesystemslib # pylint: disable=unused-import
+from securesystemslib import exceptions as sslib_exceptions
+from securesystemslib import formats as sslib_formats
+from securesystemslib import interface as sslib_interface
+from securesystemslib import keys as sslib_keys
+from securesystemslib import settings as sslib_settings
+from securesystemslib import util as sslib_util
+
+from tuf import exceptions
+from tuf import formats
+from tuf import keydb
+from tuf import log
+from tuf import repository_tool as repo_tool
+from tuf import roledb
 
 
 # See 'log.py' to learn how logging is handled in TUF.
@@ -218,7 +223,7 @@ def process_command_line_arguments(parsed_arguments):
 
   # Do we have a valid argparse Namespace?
   if not isinstance(parsed_arguments, argparse.Namespace):
-    raise tuf.exceptions.Error('Invalid namespace: ' + repr(parsed_arguments))
+    raise exceptions.Error('Invalid namespace: ' + repr(parsed_arguments))
 
   else:
     logger.debug('We have a valid argparse Namespace.')
@@ -266,15 +271,15 @@ def process_command_line_arguments(parsed_arguments):
 def delegate(parsed_arguments):
 
   if not parsed_arguments.delegatee:
-    raise tuf.exceptions.Error(
+    raise exceptions.Error(
         '--delegatee must be set to perform the delegation.')
 
   if parsed_arguments.delegatee in ('root', 'snapshot', 'timestamp', 'targets'):
-    raise tuf.exceptions.Error(
+    raise exceptions.Error(
         'Cannot delegate to the top-level role: ' + repr(parsed_arguments.delegatee))
 
   if not parsed_arguments.pubkeys:
-    raise tuf.exceptions.Error(
+    raise exceptions.Error(
         '--pubkeys must be set to perform the delegation.')
 
   public_keys = []
@@ -319,7 +324,7 @@ def delegate(parsed_arguments):
     repository.snapshot.load_signing_key(snapshot_private)
     repository.timestamp.load_signing_key(timestamp_private)
 
-  consistent_snapshot = tuf.roledb.get_roleinfo('root',
+  consistent_snapshot = roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
   repository.writeall(consistent_snapshot=consistent_snapshot)
 
@@ -364,7 +369,7 @@ def revoke(parsed_arguments):
     repository.snapshot.load_signing_key(snapshot_private)
     repository.timestamp.load_signing_key(timestamp_private)
 
-  consistent_snapshot = tuf.roledb.get_roleinfo('root',
+  consistent_snapshot = roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
   repository.writeall(consistent_snapshot=consistent_snapshot)
 
@@ -388,21 +393,21 @@ def gen_key(parsed_arguments):
   }
 
   if parsed_arguments.key not in SUPPORTED_CLI_KEYTYPES:
-    tuf.exceptions.Error(
+    exceptions.Error(
         'Invalid key type: ' + repr(parsed_arguments.key) + '.  Supported'
         ' key types: ' + repr(SUPPORTED_CLI_KEYTYPES))
 
   elif parsed_arguments.key == ECDSA_KEYTYPE:
-    keypath = securesystemslib.interface._generate_and_write_ecdsa_keypair(
+    keypath = sslib_interface._generate_and_write_ecdsa_keypair(
         **keygen_kwargs)
 
   elif parsed_arguments.key == ED25519_KEYTYPE:
-    keypath = securesystemslib.interface._generate_and_write_ed25519_keypair(
+    keypath = sslib_interface._generate_and_write_ed25519_keypair(
         **keygen_kwargs)
 
   # RSA key..
   else:
-    keypath = securesystemslib.interface._generate_and_write_rsa_keypair(
+    keypath = sslib_interface._generate_and_write_rsa_keypair(
         **keygen_kwargs)
 
 
@@ -415,8 +420,8 @@ def gen_key(parsed_arguments):
     pubkey_repo_path =  os.path.join(parsed_arguments.path,
         KEYSTORE_DIR, os.path.basename(keypath + '.pub'))
 
-    securesystemslib.util.ensure_parent_dir(privkey_repo_path)
-    securesystemslib.util.ensure_parent_dir(pubkey_repo_path)
+    sslib_util.ensure_parent_dir(privkey_repo_path)
+    sslib_util.ensure_parent_dir(pubkey_repo_path)
 
     # Move them from the CWD to the repo's keystore.
     shutil.move(keypath, privkey_repo_path)
@@ -436,12 +441,12 @@ def import_privatekey_from_file(keypath, password=None):
     # worry about leaking sensitive information about the key's location.
     # However, care should be taken when including the full path in exceptions
     # and log files.
-    password = securesystemslib.interface.get_password('Enter a password for'
-        ' the encrypted key (' + interface.TERM_RED + repr(keypath) + interface.TERM_RED + '): ',
+    password = sslib_interface.get_password('Enter a password for'
+        ' the encrypted key (' + sslib_interface.TERM_RED + repr(keypath) + sslib_interface.TERM_RED + '): ',
         confirm=False)
 
   # Does 'password' have the correct format?
-  securesystemslib.formats.PASSWORD_SCHEMA.check_match(password)
+  sslib_formats.PASSWORD_SCHEMA.check_match(password)
 
   # Store the encrypted contents of 'filepath' prior to calling the decryption
   # routine.
@@ -454,29 +459,29 @@ def import_privatekey_from_file(keypath, password=None):
   # the derived encryption key from 'password'.  Raise
   # 'securesystemslib.exceptions.CryptoError' if the decryption fails.
   try:
-    key_object = securesystemslib.keys.decrypt_key(encrypted_key, password)
+    key_object = sslib_keys.decrypt_key(encrypted_key, password)
 
-  except securesystemslib.exceptions.CryptoError:
+  except sslib_exceptions.CryptoError:
     try:
       logger.debug(
           'Decryption failed.  Attempting to import a private PEM instead.')
-      key_object = securesystemslib.keys.import_rsakey_from_private_pem(
+      key_object = sslib_keys.import_rsakey_from_private_pem(
           encrypted_key, 'rsassa-pss-sha256', password)
 
-    except securesystemslib.exceptions.CryptoError as error:
-      six.raise_from(tuf.exceptions.Error(repr(keypath) + ' cannot be '
+    except sslib_exceptions.CryptoError as error:
+      six.raise_from(exceptions.Error(repr(keypath) + ' cannot be '
           ' imported, possibly because an invalid key file is given or '
           ' the decryption password is incorrect.'), error)
 
   if key_object['keytype'] not in SUPPORTED_KEY_TYPES:
-    raise tuf.exceptions.Error('Trying to import an unsupported key'
+    raise exceptions.Error('Trying to import an unsupported key'
         ' type: ' + repr(key_object['keytype'] + '.'
         '  Supported key types: ' + repr(SUPPORTED_KEY_TYPES)))
 
   else:
     # Add "keyid_hash_algorithms" so that equal keys with different keyids can
     # be associated using supported keyid_hash_algorithms.
-    key_object['keyid_hash_algorithms'] = securesystemslib.settings.HASH_ALGORITHMS
+    key_object['keyid_hash_algorithms'] = sslib_settings.HASH_ALGORITHMS
 
     return key_object
 
@@ -485,19 +490,19 @@ def import_privatekey_from_file(keypath, password=None):
 def import_publickey_from_file(keypath):
 
   try:
-    key_metadata = securesystemslib.util.load_json_file(keypath)
+    key_metadata = sslib_util.load_json_file(keypath)
 
   # An RSA public key is saved to disk in PEM format (not JSON), so the
   # load_json_file() call above can fail for this reason.  Try to potentially
   # load the PEM string in keypath if an exception is raised.
-  except securesystemslib.exceptions.Error:
-    key_metadata = securesystemslib.interface.import_rsa_publickey_from_file(
+  except sslib_exceptions.Error:
+    key_metadata = sslib_interface.import_rsa_publickey_from_file(
         keypath)
 
-  key_object, junk = securesystemslib.keys.format_metadata_to_key(key_metadata)
+  key_object, junk = sslib_keys.format_metadata_to_key(key_metadata)
 
   if key_object['keytype'] not in SUPPORTED_KEY_TYPES:
-    raise tuf.exceptions.Error('Trying to import an unsupported key'
+    raise exceptions.Error('Trying to import an unsupported key'
         ' type: ' + repr(key_object['keytype'] + '.'
         '  Supported key types: ' + repr(SUPPORTED_KEY_TYPES)))
 
@@ -508,7 +513,7 @@ def import_publickey_from_file(keypath):
 
 def add_verification_key(parsed_arguments):
   if not parsed_arguments.pubkeys:
-    raise tuf.exceptions.Error('--pubkeys must be given with --trust.')
+    raise exceptions.Error('--pubkeys must be given with --trust.')
 
   repository = repo_tool.load_repository(
       os.path.join(parsed_arguments.path, REPO_DIR))
@@ -517,7 +522,7 @@ def add_verification_key(parsed_arguments):
     imported_pubkey = import_publickey_from_file(keypath)
 
     if parsed_arguments.role not in ('root', 'targets', 'snapshot', 'timestamp'):
-      raise tuf.exceptions.Error('The given --role is not a top-level role.')
+      raise exceptions.Error('The given --role is not a top-level role.')
 
     elif parsed_arguments.role == 'root':
       repository.root.add_verification_key(imported_pubkey)
@@ -532,7 +537,7 @@ def add_verification_key(parsed_arguments):
     else:
       repository.timestamp.add_verification_key(imported_pubkey)
 
-  consistent_snapshot = tuf.roledb.get_roleinfo('root',
+  consistent_snapshot = roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
   repository.write('root', consistent_snapshot=consistent_snapshot,
       increment_version_number=False)
@@ -544,7 +549,7 @@ def add_verification_key(parsed_arguments):
 
 def remove_verification_key(parsed_arguments):
   if not parsed_arguments.pubkeys:
-    raise tuf.exceptions.Error('--pubkeys must be given with --distrust.')
+    raise exceptions.Error('--pubkeys must be given with --distrust.')
 
   repository = repo_tool.load_repository(
       os.path.join(parsed_arguments.path, REPO_DIR))
@@ -554,7 +559,7 @@ def remove_verification_key(parsed_arguments):
 
     try:
       if parsed_arguments.role not in ('root', 'targets', 'snapshot', 'timestamp'):
-        raise tuf.exceptions.Error('The given --role is not a top-level role.')
+        raise exceptions.Error('The given --role is not a top-level role.')
 
       elif parsed_arguments.role == 'root':
         repository.root.remove_verification_key(imported_pubkey)
@@ -574,10 +579,10 @@ def remove_verification_key(parsed_arguments):
     # securesystemslib.exceptions.FormatError, and the latter is not raised
     # because a valid key should have been returned by
     # import_publickey_from_file().
-    except securesystemslib.exceptions.Error:
+    except sslib_exceptions.Error:
       print(repr(keypath) + ' is not a trusted key.  Skipping.')
 
-  consistent_snapshot = tuf.roledb.get_roleinfo('root',
+  consistent_snapshot = roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
   repository.write('root', consistent_snapshot=consistent_snapshot,
       increment_version_number=False)
@@ -591,7 +596,7 @@ def sign_role(parsed_arguments):
 
   repository = repo_tool.load_repository(
       os.path.join(parsed_arguments.path, REPO_DIR))
-  consistent_snapshot = tuf.roledb.get_roleinfo('root',
+  consistent_snapshot = roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
 
   for keypath in parsed_arguments.sign:
@@ -613,17 +618,17 @@ def sign_role(parsed_arguments):
     else:
       # TODO: repository_tool.py will be refactored to clean up the following
       # code, which adds and signs for a non-existent role.
-      if not tuf.roledb.role_exists(parsed_arguments.role):
+      if not roledb.role_exists(parsed_arguments.role):
 
         # Load the private key keydb and set the roleinfo in roledb so that
         # metadata can be written with repository.write().
-        tuf.keydb.remove_key(role_privatekey['keyid'],
+        keydb.remove_key(role_privatekey['keyid'],
             repository_name = repository._repository_name)
-        tuf.keydb.add_key(
+        keydb.add_key(
             role_privatekey, repository_name = repository._repository_name)
 
         # Set the delegated metadata file to expire in 3 months.
-        expiration = tuf.formats.unix_timestamp_to_datetime(
+        expiration = formats.unix_timestamp_to_datetime(
             int(time.time() + 7889230))
         expiration = expiration.isoformat() + 'Z'
 
@@ -634,7 +639,7 @@ def sign_role(parsed_arguments):
             'signatures': [], 'version': 1, 'expires': expiration,
             'delegations': {'keys': {}, 'roles': []}}
 
-        tuf.roledb.add_role(parsed_arguments.role, roleinfo,
+        roledb.add_role(parsed_arguments.role, roleinfo,
             repository_name=repository._repository_name)
 
         # Generate the Targets object of --role, and add it to the top-level
@@ -710,12 +715,11 @@ def add_target_to_repo(parsed_arguments, target_path, repo_targets_path,
     logger.debug(repr(target_path) + ' does not exist.  Skipping.')
 
   else:
-    securesystemslib.util.ensure_parent_dir(
-        os.path.join(repo_targets_path, target_path))
+    sslib_util.ensure_parent_dir(os.path.join(repo_targets_path, target_path))
     shutil.copy(target_path, os.path.join(repo_targets_path, target_path))
 
 
-    roleinfo = tuf.roledb.get_roleinfo(
+    roleinfo = roledb.get_roleinfo(
         parsed_arguments.role, repository_name=repository._repository_name)
 
     # It is assumed we have a delegated role, and that the caller has made
@@ -728,7 +732,7 @@ def add_target_to_repo(parsed_arguments, target_path, repo_targets_path,
       logger.debug('Replacing target: ' + repr(target_path))
       roleinfo['paths'].update({target_path: custom})
 
-    tuf.roledb.update_roleinfo(parsed_arguments.role, roleinfo,
+    roledb.update_roleinfo(parsed_arguments.role, roleinfo,
         mark_role_as_dirty=True, repository_name=repository._repository_name)
 
 
@@ -736,15 +740,15 @@ def add_target_to_repo(parsed_arguments, target_path, repo_targets_path,
 def remove_target_files_from_metadata(parsed_arguments, repository):
 
   if parsed_arguments.role in ('root', 'snapshot', 'timestamp'):
-    raise tuf.exceptions.Error(
+    raise exceptions.Error(
         'Invalid rolename specified: ' + repr(parsed_arguments.role) + '.'
         '  It must be "targets" or a delegated rolename.')
 
   else:
-    # NOTE: The following approach of using tuf.roledb to update the target
+    # NOTE: The following approach of using roledb to update the target
     # files will be modified in the future when the repository tool's API is
     # refactored.
-    roleinfo = tuf.roledb.get_roleinfo(
+    roleinfo = roledb.get_roleinfo(
         parsed_arguments.role, repository._repository_name)
 
     for glob_pattern in parsed_arguments.remove:
@@ -757,7 +761,7 @@ def remove_target_files_from_metadata(parsed_arguments, repository):
               ' given path/glob pattern ' +  repr(glob_pattern))
           continue
 
-    tuf.roledb.update_roleinfo(
+    roledb.update_roleinfo(
         parsed_arguments.role, roleinfo, mark_role_as_dirty=True,
         repository_name=repository._repository_name)
 
@@ -782,7 +786,7 @@ def add_targets(parsed_arguments):
       add_target_to_repo(parsed_arguments, target_path,
           repo_targets_path, repository)
 
-  consistent_snapshot = tuf.roledb.get_roleinfo('root',
+  consistent_snapshot = roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
 
   if parsed_arguments.role == 'targets':
@@ -831,7 +835,7 @@ def remove_targets(parsed_arguments):
   # repo.py --init --pw my_password: parsed_arguments.pw = 'my_password'
   # repo.py --init --pw: The user is prompted for a password, as follows:
   if not parsed_arguments.pw:
-    parsed_arguments.pw = securesystemslib.interface.get_password(
+    parsed_arguments.pw = sslib_interface.get_password(
         prompt='Enter a password for the top-level role keys: ', confirm=True)
 
   targets_private = import_privatekey_from_file(
@@ -852,7 +856,7 @@ def remove_targets(parsed_arguments):
     repository.snapshot.load_signing_key(snapshot_private)
     repository.timestamp.load_signing_key(timestamp_private)
 
-  consistent_snapshot = tuf.roledb.get_roleinfo('root',
+  consistent_snapshot = roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
   repository.writeall(consistent_snapshot=consistent_snapshot)
 
@@ -903,19 +907,19 @@ def set_top_level_keys(repository, parsed_arguments):
   # repo.py --init --*_pw my_pw: parsed_arguments.*_pw = 'my_pw'
   # repo.py --init --*_pw: The user is prompted for a password.
 
-  securesystemslib.interface._generate_and_write_ed25519_keypair(
+  sslib_interface._generate_and_write_ed25519_keypair(
       password=parsed_arguments.root_pw,
       filepath=os.path.join(parsed_arguments.path, KEYSTORE_DIR, ROOT_KEY_NAME),
       prompt=(not parsed_arguments.root_pw))
-  securesystemslib.interface._generate_and_write_ed25519_keypair(
+  sslib_interface._generate_and_write_ed25519_keypair(
       password=parsed_arguments.targets_pw,
       filepath=os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
       prompt=(not parsed_arguments.targets_pw))
-  securesystemslib.interface._generate_and_write_ed25519_keypair(
+  sslib_interface._generate_and_write_ed25519_keypair(
       password=parsed_arguments.snapshot_pw,
       filepath=os.path.join(parsed_arguments.path, KEYSTORE_DIR, SNAPSHOT_KEY_NAME),
       prompt=(not parsed_arguments.snapshot_pw))
-  securesystemslib.interface._generate_and_write_ed25519_keypair(
+  sslib_interface._generate_and_write_ed25519_keypair(
       password=parsed_arguments.timestamp_pw,
       filepath=os.path.join(parsed_arguments.path, KEYSTORE_DIR, TIMESTAMP_KEY_NAME),
       prompt=(not parsed_arguments.timestamp_pw))
@@ -1126,7 +1130,7 @@ def parse_arguments():
   logging_levels = [logging.NOTSET, logging.DEBUG,
       logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL]
 
-  tuf.log.set_log_level(logging_levels[parsed_args.verbose])
+  log.set_log_level(logging_levels[parsed_args.verbose])
 
   return parsed_args
 
@@ -1146,7 +1150,7 @@ if __name__ == '__main__':
   try:
     process_command_line_arguments(arguments)
 
-  except (tuf.exceptions.Error) as e:
+  except (exceptions.Error) as e:
     sys.stderr.write('Error: ' + str(e) + '\n')
     sys.exit(1)
 

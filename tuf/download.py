@@ -32,16 +32,16 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import logging
+import six
 import timeit
 import tempfile
 
-import securesystemslib
-import securesystemslib.util
-import six
+import securesystemslib # pylint: disable=unused-import
+from securesystemslib import formats as sslib_formats
 
-import tuf
-import tuf.exceptions
-import tuf.formats
+from tuf import exceptions
+from tuf import formats
+from tuf import settings
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger(__name__)
@@ -53,7 +53,7 @@ def safe_download(url, required_length, fetcher):
     Given the 'url' and 'required_length' of the desired file, open a connection
     to 'url', download it, and return the contents of the file.  Also ensure
     the length of the downloaded file matches 'required_length' exactly.
-    tuf.download.unsafe_download() may be called if an upper download limit is
+    download.unsafe_download() may be called if an upper download limit is
     preferred.
 
   <Arguments>
@@ -86,8 +86,8 @@ def safe_download(url, required_length, fetcher):
 
   # Do all of the arguments have the appropriate format?
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.URL_SCHEMA.check_match(url)
-  tuf.formats.LENGTH_SCHEMA.check_match(required_length)
+  sslib_formats.URL_SCHEMA.check_match(url)
+  formats.LENGTH_SCHEMA.check_match(required_length)
 
   return _download_file(url, required_length, fetcher, STRICT_REQUIRED_LENGTH=True)
 
@@ -101,7 +101,7 @@ def unsafe_download(url, required_length, fetcher):
     Given the 'url' and 'required_length' of the desired file, open a connection
     to 'url', download it, and return the contents of the file.  Also ensure
     the length of the downloaded file is up to 'required_length', and no larger.
-    tuf.download.safe_download() may be called if an exact download limit is
+    download.safe_download() may be called if an exact download limit is
     preferred.
 
   <Arguments>
@@ -134,8 +134,8 @@ def unsafe_download(url, required_length, fetcher):
 
   # Do all of the arguments have the appropriate format?
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.URL_SCHEMA.check_match(url)
-  tuf.formats.LENGTH_SCHEMA.check_match(required_length)
+  sslib_formats.URL_SCHEMA.check_match(url)
+  formats.LENGTH_SCHEMA.check_match(required_length)
 
   return _download_file(url, required_length, fetcher, STRICT_REQUIRED_LENGTH=False)
 
@@ -208,15 +208,14 @@ def _download_file(url, required_length, fetcher, STRICT_REQUIRED_LENGTH=True):
       seconds_spent_receiving = stop_time - start_time
       average_download_speed = number_of_bytes_received / seconds_spent_receiving
 
-      if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
+      if average_download_speed < settings.MIN_AVERAGE_DOWNLOAD_SPEED:
         logger.debug('The average download speed dropped below the minimum'
-          ' average download speed set in tuf.settings.py. Stopping the'
-          ' download!')
+          ' average download speed set in settings. Stopping the download!.')
         break
 
       else:
         logger.debug('The average download speed has not dipped below the'
-          ' minimum average download speed set in tuf.settings.py.')
+          ' minimum average download speed set in settings.')
 
     # Does the total number of downloaded bytes match the required length?
     _check_downloaded_length(number_of_bytes_received, required_length,
@@ -273,7 +272,7 @@ def _check_downloaded_length(total_downloaded, required_length,
 
     tuf.exceptions.SlowRetrievalError, if the total downloaded was
     done in less than the acceptable download speed (as set in
-    tuf.settings.py).
+    tuf.settings).
 
   <Returns>
     None.
@@ -296,24 +295,24 @@ def _check_downloaded_length(total_downloaded, required_length,
       # If the average download speed is below a certain threshold, we flag
       # this as a possible slow-retrieval attack.
       logger.debug('Average download speed: ' + repr(average_download_speed))
-      logger.debug('Minimum average download speed: ' + repr(tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED))
+      logger.debug('Minimum average download speed: ' + repr(settings.MIN_AVERAGE_DOWNLOAD_SPEED))
 
-      if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
-        raise tuf.exceptions.SlowRetrievalError(average_download_speed)
+      if average_download_speed < settings.MIN_AVERAGE_DOWNLOAD_SPEED:
+        raise exceptions.SlowRetrievalError(average_download_speed)
 
       else:
         logger.debug('Good average download speed: ' +
                      repr(average_download_speed) + ' bytes per second')
 
-      raise tuf.exceptions.DownloadLengthMismatchError(required_length, total_downloaded)
+      raise exceptions.DownloadLengthMismatchError(required_length, total_downloaded)
 
     else:
       # We specifically disabled strict checking of required length, but we
       # will log a warning anyway. This is useful when we wish to download the
       # Timestamp or Root metadata, for which we have no signed metadata; so,
       # we must guess a reasonable required_length for it.
-      if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
-        raise tuf.exceptions.SlowRetrievalError(average_download_speed)
+      if average_download_speed < settings.MIN_AVERAGE_DOWNLOAD_SPEED:
+        raise exceptions.SlowRetrievalError(average_download_speed)
 
       else:
         logger.debug('Good average download speed: ' +

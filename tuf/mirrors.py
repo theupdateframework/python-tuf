@@ -32,10 +32,13 @@ from __future__ import unicode_literals
 
 import os
 
-import tuf
-import tuf.formats
+import securesystemslib # pylint: disable=unused-import
+from securesystemslib import exceptions as sslib_exceptions
+from securesystemslib import formats as sslib_formats
+from securesystemslib.util import file_in_confined_directories
 
-import securesystemslib
+from tuf import formats
+
 import six
 
 # The type of file to be downloaded from a repository.  The
@@ -84,23 +87,15 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   """
 
   # Checking if all the arguments have appropriate format.
-  tuf.formats.RELPATH_SCHEMA.check_match(file_path)
-  tuf.formats.MIRRORDICT_SCHEMA.check_match(mirrors_dict)
-  securesystemslib.formats.NAME_SCHEMA.check_match(file_type)
+  formats.RELPATH_SCHEMA.check_match(file_path)
+  formats.MIRRORDICT_SCHEMA.check_match(mirrors_dict)
+  sslib_formats.NAME_SCHEMA.check_match(file_type)
 
   # Verify 'file_type' is supported.
   if file_type not in _SUPPORTED_FILE_TYPES:
-    raise securesystemslib.exceptions.Error('Invalid file_type argument.'
+    raise sslib_exceptions.Error('Invalid file_type argument.'
       '  Supported file types: ' + repr(_SUPPORTED_FILE_TYPES))
   path_key = 'metadata_path' if file_type == 'meta' else 'targets_path'
-
-  # Reference to 'securesystemslib.util.file_in_confined_directories()' (improve
-  # readability).  This function checks whether a mirror should serve a file to
-  # the client.  A client may be confined to certain paths on a repository
-  # mirror when fetching target files.  This field may be set by the client
-  # when the repository mirror is added to the 'tuf.client.updater.Updater'
-  # object.
-  in_confined_directory = securesystemslib.util.file_in_confined_directories
 
   list_of_mirrors = []
   for junk, mirror_info in six.iteritems(mirrors_dict):
@@ -113,8 +108,9 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
     if path_key == 'targets_path':
       full_filepath = os.path.join(path, file_path)
       confined_target_dirs = mirror_info.get('confined_target_dirs')
-      # confined_target_dirs is an optional field
-      if confined_target_dirs and not in_confined_directory(full_filepath,
+      # confined_target_dirs is optional and can used to confine the client to
+      # certain paths on a repository mirror when fetching target files.
+      if confined_target_dirs and not file_in_confined_directories(full_filepath,
           confined_target_dirs):
         continue
 

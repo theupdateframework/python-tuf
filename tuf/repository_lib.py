@@ -37,24 +37,25 @@ import time
 import logging
 import shutil
 import json
+import six
 import tempfile
 
-import tuf
-import tuf.formats
-import tuf.exceptions
-import tuf.keydb
-import tuf.roledb
-import tuf.sig
-import tuf.log
-import tuf.settings
+import securesystemslib # pylint: disable=unused-import
+from securesystemslib import exceptions as sslib_exceptions
+from securesystemslib import formats as sslib_formats
+from securesystemslib import hash as sslib_hash
+from securesystemslib import interface as sslib_interface
+from securesystemslib import keys as sslib_keys
+from securesystemslib import util as sslib_util
+from securesystemslib import storage as sslib_storage
 
-import securesystemslib
-import securesystemslib.hash
-import securesystemslib.interface
-import securesystemslib.util
-import six
-
-import securesystemslib.storage
+from tuf import exceptions
+from tuf import formats
+from tuf import keydb
+from tuf import log
+from tuf import roledb
+from tuf import settings
+from tuf import sig
 
 
 # See 'log.py' to learn how logging is handled in TUF.
@@ -87,7 +88,7 @@ SUPPORTED_KEY_TYPES = ['rsa', 'ed25519', 'ecdsa-sha2-nistp256']
 
 # The algorithm used by the repository to generate the path hash prefixes
 # of hashed bin delegations.  Please see delegate_hashed_bins()
-HASH_FUNCTION = tuf.settings.DEFAULT_HASH_ALGORITHM
+HASH_FUNCTION = settings.DEFAULT_HASH_ALGORITHM
 
 
 
@@ -109,7 +110,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
   # Retrieve the roleinfo of 'rolename' to extract the needed metadata
   # attributes, such as version number, expiration, etc.
-  roleinfo = tuf.roledb.get_roleinfo(rolename, repository_name)
+  roleinfo = roledb.get_roleinfo(rolename, repository_name)
   previous_keyids = roleinfo.get('previous_keyids', [])
   previous_threshold = roleinfo.get('previous_threshold', 1)
   signing_keyids = sorted(set(roleinfo['signing_keyids']))
@@ -164,7 +165,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
     # Update roledb with the latest delegations info collected during
     # generate_targets_metadata()
-    tuf.roledb.update_roleinfo(rolename, roleinfo,
+    roledb.update_roleinfo(rolename, roleinfo,
         repository_name=repository_name)
 
 
@@ -179,16 +180,16 @@ def _generate_and_write_metadata(rolename, metadata_filename,
   # properly signed).
   current_version = metadata['version']
   if increment_version_number:
-    roleinfo = tuf.roledb.get_roleinfo(rolename, repository_name)
+    roleinfo = roledb.get_roleinfo(rolename, repository_name)
     metadata['version'] = metadata['version'] + 1
     roleinfo['version'] = roleinfo['version'] + 1
-    tuf.roledb.update_roleinfo(rolename, roleinfo,
+    roledb.update_roleinfo(rolename, roleinfo,
         repository_name=repository_name)
 
   else:
     logger.debug('Not incrementing ' + repr(rolename) + '\'s version number.')
 
-  if rolename in tuf.roledb.TOP_LEVEL_ROLES and not allow_partially_signed:
+  if rolename in roledb.TOP_LEVEL_ROLES and not allow_partially_signed:
     # Verify that the top-level 'rolename' is fully signed.  Only a delegated
     # role should not be written to disk without full verification of its
     # signature(s), since it can only be considered fully signed depending on
@@ -200,7 +201,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
     def should_write():
       # Root must be signed by its previous keys and threshold.
       if rolename == 'root' and len(previous_keyids) > 0:
-        if not tuf.sig.verify(signable, rolename, repository_name,
+        if not sig.verify(signable, rolename, repository_name,
             previous_threshold, previous_keyids):
           return False
 
@@ -208,7 +209,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
           logger.debug('Root is signed by a threshold of its previous keyids.')
 
       # In the normal case, we should write metadata if the threshold is met.
-      return tuf.sig.verify(signable, rolename, repository_name,
+      return sig.verify(signable, rolename, repository_name,
           roleinfo['threshold'], roleinfo['signing_keyids'])
 
 
@@ -226,13 +227,13 @@ def _generate_and_write_metadata(rolename, metadata_filename,
     else:
       # Since new metadata cannot be successfully written, restore the current
       # version number.
-      roleinfo = tuf.roledb.get_roleinfo(rolename, repository_name)
+      roleinfo = roledb.get_roleinfo(rolename, repository_name)
       roleinfo['version'] = current_version
-      tuf.roledb.update_roleinfo(rolename, roleinfo,
+      roledb.update_roleinfo(rolename, roleinfo,
           repository_name=repository_name)
 
       # Note that 'signable' is an argument to tuf.UnsignedMetadataError().
-      raise tuf.exceptions.UnsignedMetadataError('Not enough'
+      raise exceptions.UnsignedMetadataError('Not enough'
           ' signatures for ' + repr(metadata_filename), signable)
 
   # 'rolename' is a delegated role or a top-level role that is partially
@@ -269,14 +270,14 @@ def _metadata_is_partially_loaded(rolename, signable, repository_name):
   signatures.
 
   If 'rolename' is found to be partially loaded, mark it as partially loaded in
-  its 'tuf.roledb' roleinfo.  This function exists to assist in deciding whether
+  its 'roledb' roleinfo.  This function exists to assist in deciding whether
   a role's version number should be incremented when write() or write_parital()
   is called.  Return True if 'rolename' was partially loaded, False otherwise.
   """
 
   # The signature status lists the number of good signatures, including
   # bad, untrusted, unknown, etc.
-  status = tuf.sig.get_signature_status(signable, rolename, repository_name)
+  status = sig.get_signature_status(signable, rolename, repository_name)
 
   if len(status['good_sigs']) < status['threshold'] and \
                                                   len(status['good_sigs']) >= 0:
@@ -296,8 +297,8 @@ def _check_role_keys(rolename, repository_name):
   """
 
   # Extract the total number of public and private keys of 'rolename' from its
-  # roleinfo in 'tuf.roledb'.
-  roleinfo = tuf.roledb.get_roleinfo(rolename, repository_name)
+  # roleinfo in 'roledb'.
+  roleinfo = roledb.get_roleinfo(rolename, repository_name)
   total_keyids = len(roleinfo['keyids'])
   threshold = roleinfo['threshold']
   total_signatures = len(roleinfo['signatures'])
@@ -305,12 +306,12 @@ def _check_role_keys(rolename, repository_name):
 
   # Raise an exception for an invalid threshold of public keys.
   if total_keyids < threshold:
-    raise tuf.exceptions.InsufficientKeysError(repr(rolename) + ' role contains'
+    raise exceptions.InsufficientKeysError(repr(rolename) + ' role contains'
       ' ' + repr(total_keyids) + ' / ' + repr(threshold) + ' public keys.')
 
   # Raise an exception for an invalid threshold of signing keys.
   if total_signatures == 0 and total_signing_keys < threshold:
-    raise tuf.exceptions.InsufficientKeysError(repr(rolename) + ' role contains'
+    raise exceptions.InsufficientKeysError(repr(rolename) + ' role contains'
       ' ' + repr(total_signing_keys) + ' / ' + repr(threshold) + ' signing keys.')
 
 
@@ -332,21 +333,21 @@ def _remove_invalid_and_duplicate_signatures(signable, repository_name):
   signature_keyids = []
 
   for signature in signable['signatures']:
-    signed = securesystemslib.formats.encode_canonical(signable['signed']).encode('utf-8')
+    signed = sslib_formats.encode_canonical(signable['signed']).encode('utf-8')
     keyid = signature['keyid']
     key = None
 
     # Remove 'signature' from 'signable' if the listed keyid does not exist
-    # in 'tuf.keydb'.
+    # in 'keydb'.
     try:
-      key = tuf.keydb.get_key(keyid, repository_name=repository_name)
+      key = keydb.get_key(keyid, repository_name=repository_name)
 
-    except tuf.exceptions.UnknownKeyError:
+    except exceptions.UnknownKeyError:
       signable['signatures'].remove(signature)
       continue
 
     # Remove 'signature' from 'signable' if it is an invalid signature.
-    if not securesystemslib.keys.verify_signature(key, signature, signed):
+    if not sslib_keys.verify_signature(key, signature, signed):
       logger.debug('Removing invalid signature for ' + repr(keyid))
       signable['signatures'].remove(signature)
 
@@ -415,14 +416,14 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
       logger.debug(repr(metadata_role) + ' does not match'
           ' supported extension ' + repr(METADATA_EXTENSION))
 
-    if metadata_role in tuf.roledb.TOP_LEVEL_ROLES:
+    if metadata_role in roledb.TOP_LEVEL_ROLES:
       logger.debug('Not removing top-level metadata ' + repr(metadata_role))
       return
 
-    # Delete the metadata file if it does not exist in 'tuf.roledb'.
+    # Delete the metadata file if it does not exist in 'roledb'.
     # 'repository_tool.py' might have removed 'metadata_name,'
     # but its metadata file is not actually deleted yet.  Do it now.
-    if not tuf.roledb.role_exists(metadata_role, repository_name):
+    if not roledb.role_exists(metadata_role, repository_name):
       logger.info('Removing outdated metadata: ' + repr(metadata_path))
       storage_backend.remove(metadata_path)
 
@@ -498,20 +499,20 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
   # written.
   try:
     # Initialize the key and role metadata of the top-level roles.
-    signable = securesystemslib.util.load_json_file(root_filename)
+    signable = sslib_util.load_json_file(root_filename)
     try:
-      tuf.formats.check_signable_object_format(signable)
-    except tuf.exceptions.UnsignedMetadataError:
+      formats.check_signable_object_format(signable)
+    except exceptions.UnsignedMetadataError:
       # Downgrade the error to a warning because a use case exists where
       # metadata may be generated unsigned on one machine and signed on another.
       logger.warning('Unsigned metadata object: ' + repr(signable))
 
     root_metadata = signable['signed']
-    tuf.keydb.create_keydb_from_root_metadata(root_metadata, repository_name)
-    tuf.roledb.create_roledb_from_root_metadata(root_metadata, repository_name)
+    keydb.create_keydb_from_root_metadata(root_metadata, repository_name)
+    roledb.create_roledb_from_root_metadata(root_metadata, repository_name)
 
-    # Load Root's roleinfo and update 'tuf.roledb'.
-    roleinfo = tuf.roledb.get_roleinfo('root', repository_name)
+    # Load Root's roleinfo and update 'roledb'.
+    roleinfo = roledb.get_roleinfo('root', repository_name)
     roleinfo['consistent_snapshot'] = root_metadata['consistent_snapshot']
     roleinfo['signatures'] = []
     for signature in signable['signatures']:
@@ -534,26 +535,26 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     _log_warning_if_expires_soon(ROOT_FILENAME, roleinfo['expires'],
                                  ROOT_EXPIRES_WARN_SECONDS)
 
-    tuf.roledb.update_roleinfo('root', roleinfo, mark_role_as_dirty=False,
+    roledb.update_roleinfo('root', roleinfo, mark_role_as_dirty=False,
         repository_name=repository_name)
 
     # Ensure the 'consistent_snapshot' field is extracted.
     consistent_snapshot = root_metadata['consistent_snapshot']
 
-  except securesystemslib.exceptions.StorageError as error:
-    six.raise_from(tuf.exceptions.RepositoryError('Cannot load the required'
+  except sslib_exceptions.StorageError as error:
+    six.raise_from(exceptions.RepositoryError('Cannot load the required'
         ' root file: ' + repr(root_filename)), error)
 
   # Load 'timestamp.json'.  A Timestamp role file without a version number is
   # always written.
   try:
-    signable = securesystemslib.util.load_json_file(timestamp_filename)
+    signable = sslib_util.load_json_file(timestamp_filename)
     timestamp_metadata = signable['signed']
     for signature in signable['signatures']:
       repository.timestamp.add_signature(signature, mark_role_as_dirty=False)
 
-    # Load Timestamp's roleinfo and update 'tuf.roledb'.
-    roleinfo = tuf.roledb.get_roleinfo('timestamp', repository_name)
+    # Load Timestamp's roleinfo and update 'roledb'.
+    roleinfo = roledb.get_roleinfo('timestamp', repository_name)
     roleinfo['expires'] = timestamp_metadata['expires']
     roleinfo['version'] = timestamp_metadata['version']
 
@@ -566,11 +567,11 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     _log_warning_if_expires_soon(TIMESTAMP_FILENAME, roleinfo['expires'],
                                  TIMESTAMP_EXPIRES_WARN_SECONDS)
 
-    tuf.roledb.update_roleinfo('timestamp', roleinfo, mark_role_as_dirty=False,
+    roledb.update_roleinfo('timestamp', roleinfo, mark_role_as_dirty=False,
         repository_name=repository_name)
 
-  except securesystemslib.exceptions.StorageError as error:
-    six.raise_from(tuf.exceptions.RepositoryError('Cannot load the Timestamp '
+  except sslib_exceptions.StorageError as error:
+    six.raise_from(exceptions.RepositoryError('Cannot load the Timestamp '
         'file: ' + repr(timestamp_filename)), error)
 
   # Load 'snapshot.json'.  A consistent snapshot.json must be calculated if
@@ -585,10 +586,10 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
         str(snapshot_version) + '.' + basename + METADATA_EXTENSION)
 
   try:
-    signable = securesystemslib.util.load_json_file(snapshot_filename)
+    signable = sslib_util.load_json_file(snapshot_filename)
     try:
-      tuf.formats.check_signable_object_format(signable)
-    except tuf.exceptions.UnsignedMetadataError:
+      formats.check_signable_object_format(signable)
+    except exceptions.UnsignedMetadataError:
       # Downgrade the error to a warning because a use case exists where
       # metadata may be generated unsigned on one machine and signed on another.
       logger.warning('Unsigned metadata object: ' + repr(signable))
@@ -598,8 +599,8 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     for signature in signable['signatures']:
       repository.snapshot.add_signature(signature, mark_role_as_dirty=False)
 
-    # Load Snapshot's roleinfo and update 'tuf.roledb'.
-    roleinfo = tuf.roledb.get_roleinfo('snapshot', repository_name)
+    # Load Snapshot's roleinfo and update 'roledb'.
+    roleinfo = roledb.get_roleinfo('snapshot', repository_name)
     roleinfo['expires'] = snapshot_metadata['expires']
     roleinfo['version'] = snapshot_metadata['version']
 
@@ -612,11 +613,11 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     _log_warning_if_expires_soon(SNAPSHOT_FILENAME, roleinfo['expires'],
                                  SNAPSHOT_EXPIRES_WARN_SECONDS)
 
-    tuf.roledb.update_roleinfo('snapshot', roleinfo, mark_role_as_dirty=False,
+    roledb.update_roleinfo('snapshot', roleinfo, mark_role_as_dirty=False,
         repository_name=repository_name)
 
-  except securesystemslib.exceptions.StorageError as error:
-    six.raise_from(tuf.exceptions.RepositoryError('The Snapshot file '
+  except sslib_exceptions.StorageError as error:
+    six.raise_from(exceptions.RepositoryError('The Snapshot file '
         'cannot be loaded: '+ repr(snapshot_filename)), error)
 
   # Load 'targets.json'.  A consistent snapshot of the Targets role must be
@@ -627,10 +628,10 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     targets_filename = os.path.join(dirname, str(targets_version) + '.' + basename)
 
   try:
-    signable = securesystemslib.util.load_json_file(targets_filename)
+    signable = sslib_util.load_json_file(targets_filename)
     try:
-      tuf.formats.check_signable_object_format(signable)
-    except tuf.exceptions.UnsignedMetadataError:
+      formats.check_signable_object_format(signable)
+    except exceptions.UnsignedMetadataError:
       # Downgrade the error to a warning because a use case exists where
       # metadata may be generated unsigned on one machine and signed on another.
       logger.warning('Unsigned metadata object: ' + repr(signable))
@@ -640,8 +641,8 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     for signature in signable['signatures']:
       repository.targets.add_signature(signature, mark_role_as_dirty=False)
 
-    # Update 'targets.json' in 'tuf.roledb.py'
-    roleinfo = tuf.roledb.get_roleinfo('targets', repository_name)
+    # Update 'targets.json' in 'roledb'
+    roleinfo = roledb.get_roleinfo('targets', repository_name)
     roleinfo['paths'] = targets_metadata['targets']
     roleinfo['version'] = targets_metadata['version']
     roleinfo['expires'] = targets_metadata['expires']
@@ -656,14 +657,14 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     _log_warning_if_expires_soon(TARGETS_FILENAME, roleinfo['expires'],
                                  TARGETS_EXPIRES_WARN_SECONDS)
 
-    tuf.roledb.update_roleinfo('targets', roleinfo, mark_role_as_dirty=False,
+    roledb.update_roleinfo('targets', roleinfo, mark_role_as_dirty=False,
         repository_name=repository_name)
 
     # Add the keys specified in the delegations field of the Targets role.
     for keyid, key_metadata in six.iteritems(targets_metadata['delegations']['keys']):
 
       # Use the keyid found in the delegation
-      key_object, _ = securesystemslib.keys.format_metadata_to_key(key_metadata,
+      key_object, _ = sslib_keys.format_metadata_to_key(key_metadata,
           keyid)
 
       # Add 'key_object' to the list of recognized keys.  Keys may be shared,
@@ -673,13 +674,13 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
       # repository maintainer should have also been made aware of the duplicate
       # key when it was added.
       try:
-        tuf.keydb.add_key(key_object, keyid=None, repository_name=repository_name)
+        keydb.add_key(key_object, keyid=None, repository_name=repository_name)
 
-      except tuf.exceptions.KeyAlreadyExistsError:
+      except exceptions.KeyAlreadyExistsError:
         pass
 
-  except securesystemslib.exceptions.StorageError as error:
-    six.raise_from(tuf.exceptions.RepositoryError('The Targets file '
+  except sslib_exceptions.StorageError as error:
+    six.raise_from(exceptions.RepositoryError('The Targets file '
         'can not be loaded: ' + repr(targets_filename)), error)
 
   return repository, consistent_snapshot
@@ -698,10 +699,10 @@ def _log_warning_if_expires_soon(rolename, expires_iso8601_timestamp,
   # unix timestamp, subtract from current time.time() (also in POSIX time)
   # and compare against 'seconds_remaining_to_warn'.  Log a warning message
   # to console if 'rolename' expires soon.
-  datetime_object = tuf.formats.expiry_string_to_datetime(
+  datetime_object = formats.expiry_string_to_datetime(
       expires_iso8601_timestamp)
   expires_unix_timestamp = \
-    tuf.formats.datetime_to_unix_timestamp(datetime_object)
+    formats.datetime_to_unix_timestamp(datetime_object)
   seconds_until_expires = expires_unix_timestamp - int(time.time())
 
   if seconds_until_expires <= seconds_remaining_to_warn:
@@ -754,14 +755,14 @@ def import_rsa_privatekey_from_file(filepath, password=None):
   # prompt for a password if the key file is encrypted and a password isn't
   # given.
   try:
-    private_key = securesystemslib.interface.import_rsa_privatekey_from_file(
+    private_key = sslib_interface.import_rsa_privatekey_from_file(
         filepath, password)
 
   # The user might not have given a password for an encrypted private key.
   # Prompt for a password for convenience.
-  except securesystemslib.exceptions.CryptoError:
+  except sslib_exceptions.CryptoError:
     if password is None:
-      private_key = securesystemslib.interface.import_rsa_privatekey_from_file(
+      private_key = sslib_interface.import_rsa_privatekey_from_file(
           filepath, password, prompt=True)
 
     else:
@@ -803,7 +804,7 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
 
     securesystemslib.exceptions.UnsupportedLibraryError, if 'filepath' cannot be
     decrypted due to an invalid configuration setting (i.e., invalid
-    'tuf.settings.py' setting).
+    'tuf.settings' setting).
 
   <Side Effects>
     'password' is used to decrypt the 'filepath' key file.
@@ -817,14 +818,14 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
   # automatically prompt for a password if the key file is encrypted and a
   # password isn't given.
   try:
-    private_key = securesystemslib.interface.import_ed25519_privatekey_from_file(
+    private_key = sslib_interface.import_ed25519_privatekey_from_file(
         filepath, password)
 
   # The user might not have given a password for an encrypted private key.
   # Prompt for a password for convenience.
-  except securesystemslib.exceptions.CryptoError:
+  except sslib_exceptions.CryptoError:
     if password is None:
-      private_key = securesystemslib.interface.import_ed25519_privatekey_from_file(
+      private_key = sslib_interface.import_ed25519_privatekey_from_file(
           filepath, password, prompt=True)
 
     else:
@@ -872,7 +873,7 @@ def get_delegated_roles_metadata_filenames(metadata_directory,
       continue
 
     # Skip top-level roles, only interested in delegated roles.
-    if metadata_name in tuf.roledb.TOP_LEVEL_ROLES:
+    if metadata_name in roledb.TOP_LEVEL_ROLES:
       continue
 
     # Prevent reloading duplicate versions if consistent_snapshot is True
@@ -918,7 +919,7 @@ def get_top_level_metadata_filenames(metadata_directory):
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.PATH_SCHEMA.check_match(metadata_directory)
+  sslib_formats.PATH_SCHEMA.check_match(metadata_directory)
 
   # Store the filepaths of the top-level roles, including the
   # 'metadata_directory' for each one.
@@ -983,19 +984,19 @@ def get_targets_metadata_fileinfo(filename, storage_backend, custom=None):
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.PATH_SCHEMA.check_match(filename)
+  sslib_formats.PATH_SCHEMA.check_match(filename)
   if custom is not None:
-    tuf.formats.CUSTOM_SCHEMA.check_match(custom)
+    formats.CUSTOM_SCHEMA.check_match(custom)
 
   # Note: 'filehashes' is a dictionary of the form
   # {'sha256': 1233dfba312, ...}.  'custom' is an optional
   # dictionary that a client might define to include additional
   # file information, such as the file's author, version/revision
   # numbers, etc.
-  filesize, filehashes = securesystemslib.util.get_file_details(filename,
-      tuf.settings.FILE_HASH_ALGORITHMS, storage_backend)
+  filesize, filehashes = sslib_util.get_file_details(filename,
+      settings.FILE_HASH_ALGORITHMS, storage_backend)
 
-  return tuf.formats.make_targets_fileinfo(filesize, filehashes, custom=custom)
+  return formats.make_targets_fileinfo(filesize, filehashes, custom=custom)
 
 
 
@@ -1037,9 +1038,9 @@ def get_metadata_versioninfo(rolename, repository_name):
   # Does 'rolename' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
-  tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+  formats.ROLENAME_SCHEMA.check_match(rolename)
 
-  roleinfo = tuf.roledb.get_roleinfo(rolename, repository_name)
+  roleinfo = roledb.get_roleinfo(rolename, repository_name)
   versioninfo = {'version': roleinfo['version']}
 
   return versioninfo
@@ -1116,7 +1117,7 @@ def get_bin_numbers(number_of_bins):
     # Note: x % y != 0 does not guarantee that y is not a power of 2 for
     # arbitrary x and y values. However, due to the relationship between
     # number_of_bins and prefix_count, it is true for them.
-    raise securesystemslib.exceptions.Error('The "number_of_bins" argument'
+    raise sslib_exceptions.Error('The "number_of_bins" argument'
         ' must be a power of 2.')
 
   return prefix_length, prefix_count, bin_size
@@ -1182,9 +1183,9 @@ def get_target_hash(target_filepath):
     The hash of 'target_filepath'.
 
   """
-  tuf.formats.RELPATH_SCHEMA.check_match(target_filepath)
+  formats.RELPATH_SCHEMA.check_match(target_filepath)
 
-  digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
+  digest_object = sslib_hash.digest(algorithm=HASH_FUNCTION)
   digest_object.update(target_filepath.encode('utf-8'))
   return digest_object.hexdigest()
 
@@ -1195,7 +1196,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
   repository_name='default'):
   """
   <Purpose>
-    Create the root metadata.  'tuf.roledb.py' and 'tuf.keydb.py'
+    Create the root metadata.  'roledb' and 'keydb'
     are read and the information returned by these modules is used to generate
     the root metadata object.
 
@@ -1224,10 +1225,10 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
 
     securesystemslib.exceptions.Error, if an error is encountered while
     generating the root metadata object (e.g., a required top-level role not
-    found in 'tuf.roledb'.)
+    found in 'roledb'.)
 
   <Side Effects>
-    The contents of 'tuf.keydb.py' and 'tuf.roledb.py' are read.
+    The contents of 'keydb' and 'roledb' are read.
 
   <Returns>
     A root metadata object, conformant to 'tuf.formats.ROOT_SCHEMA'.
@@ -1238,10 +1239,10 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
   # types, and that all dict keys are properly named.  Raise
   # 'securesystemslib.exceptions.FormatError' if any of the arguments are
   # improperly formatted.
-  tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-  securesystemslib.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
-  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  formats.METADATAVERSION_SCHEMA.check_match(version)
+  sslib_formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
+  sslib_formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   # The role and key dictionaries to be saved in the root metadata object.
   # Conformant to 'ROLEDICT_SCHEMA' and 'KEYDICT_SCHEMA', respectively.
@@ -1252,24 +1253,24 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
   # Extract the role, threshold, and keyid information of the top-level roles,
   # which Root stores in its metadata.  The necessary role metadata is generated
   # from this information.
-  for rolename in tuf.roledb.TOP_LEVEL_ROLES:
+  for rolename in roledb.TOP_LEVEL_ROLES:
 
-    # If a top-level role is missing from 'tuf.roledb.py', raise an exception.
-    if not tuf.roledb.role_exists(rolename, repository_name):
-      raise securesystemslib.exceptions.Error(repr(rolename) + ' not in'
-          ' "tuf.roledb".')
+    # If a top-level role is missing from 'roledb', raise an exception.
+    if not roledb.role_exists(rolename, repository_name):
+      raise sslib_exceptions.Error(repr(rolename) + ' not in'
+          ' "roledb".')
 
     # Collect keys from all roles in a list
-    keyids = tuf.roledb.get_role_keyids(rolename, repository_name)
+    keyids = roledb.get_role_keyids(rolename, repository_name)
     for keyid in keyids:
-      key = tuf.keydb.get_key(keyid, repository_name=repository_name)
+      key = keydb.get_key(keyid, repository_name=repository_name)
       keylist.append(key)
 
     # Generate the authentication information Root establishes for each
     # top-level role.
-    role_threshold = tuf.roledb.get_role_threshold(rolename, repository_name)
-    role_metadata = tuf.formats.build_dict_conforming_to_schema(
-        tuf.formats.ROLE_SCHEMA,
+    role_threshold = roledb.get_role_threshold(rolename, repository_name)
+    role_metadata = formats.build_dict_conforming_to_schema(
+        formats.ROLE_SCHEMA,
         keyids=keyids,
         threshold=role_threshold)
     roledict[rolename] = role_metadata
@@ -1285,8 +1286,8 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
   #       generate_root_metadata, etc. with one function that generates
   #       metadata, possibly rolling that upwards into the calling function.
   #       There are very few things that really need to be done differently.
-  return tuf.formats.build_dict_conforming_to_schema(
-      tuf.formats.ROOT_SCHEMA,
+  return formats.build_dict_conforming_to_schema(
+      formats.ROOT_SCHEMA,
       version=version,
       expires=expiration_date,
       keys=keydict,
@@ -1388,32 +1389,32 @@ def generate_targets_metadata(targets_directory, target_files, version,
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
-  tuf.formats.PATH_FILEINFO_SCHEMA.check_match(target_files)
-  tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-  securesystemslib.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
-  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(write_consistent_targets)
-  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_existing_fileinfo)
+  sslib_formats.PATH_SCHEMA.check_match(targets_directory)
+  formats.PATH_FILEINFO_SCHEMA.check_match(target_files)
+  formats.METADATAVERSION_SCHEMA.check_match(version)
+  sslib_formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
+  sslib_formats.BOOLEAN_SCHEMA.check_match(write_consistent_targets)
+  sslib_formats.BOOLEAN_SCHEMA.check_match(use_existing_fileinfo)
 
   if write_consistent_targets and use_existing_fileinfo:
-    raise securesystemslib.exceptions.Error('Cannot support writing consistent'
+    raise sslib_exceptions.Error('Cannot support writing consistent'
         ' targets and using existing fileinfo.')
 
   if delegations is not None:
-    tuf.formats.DELEGATIONS_SCHEMA.check_match(delegations)
+    formats.DELEGATIONS_SCHEMA.check_match(delegations)
     # If targets role has delegations, collect the up-to-date 'keyids' and
     # 'threshold' for each role. Update the delegations keys dictionary.
     delegations_keys = []
     # Update 'keyids' and 'threshold' for each delegated role
     for role in delegations['roles']:
-      role['keyids'] = tuf.roledb.get_role_keyids(role['name'],
+      role['keyids'] = roledb.get_role_keyids(role['name'],
           repository_name)
-      role['threshold'] = tuf.roledb.get_role_threshold(role['name'],
+      role['threshold'] = roledb.get_role_threshold(role['name'],
           repository_name)
 
       # Collect all delegations keys for generating the delegations keydict
       for keyid in role['keyids']:
-        key = tuf.keydb.get_key(keyid, repository_name=repository_name)
+        key = keydb.get_key(keyid, repository_name=repository_name)
         delegations_keys.append(key)
 
     _, delegations['keys'] = keys_to_keydict(delegations_keys)
@@ -1431,12 +1432,12 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
       # Ensure all fileinfo entries in target_files have a non-empty hashes dict
       if not fileinfo.get('hashes', None):
-        raise securesystemslib.exceptions.Error('use_existing_fileinfo option'
+        raise sslib_exceptions.Error('use_existing_fileinfo option'
             ' set but no hashes exist in fileinfo for ' + repr(target))
 
       # and a non-empty length
       if fileinfo.get('length', -1) < 0:
-        raise securesystemslib.exceptions.Error('use_existing_fileinfo option'
+        raise sslib_exceptions.Error('use_existing_fileinfo option'
             ' set but no length exists in fileinfo for ' + repr(target))
 
       filedict[target] = fileinfo
@@ -1445,7 +1446,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
     # Generate the fileinfo dicts by accessing the target files on storage.
     # Default to accessing files on local storage.
     if storage_backend is None:
-      storage_backend = securesystemslib.storage.FilesystemBackend()
+      storage_backend = sslib_storage.FilesystemBackend()
 
     filedict = _generate_targets_fileinfo(target_files, targets_directory,
         write_consistent_targets, storage_backend)
@@ -1460,15 +1461,15 @@ def generate_targets_metadata(targets_directory, target_files, version,
   #       metadata, possibly rolling that upwards into the calling function.
   #       There are very few things that really need to be done differently.
   if delegations is not None:
-    return tuf.formats.build_dict_conforming_to_schema(
-        tuf.formats.TARGETS_SCHEMA,
+    return formats.build_dict_conforming_to_schema(
+        formats.TARGETS_SCHEMA,
         version=version,
         expires=expiration_date,
         targets=filedict,
         delegations=delegations)
   else:
-    return tuf.formats.build_dict_conforming_to_schema(
-        tuf.formats.TARGETS_SCHEMA,
+    return formats.build_dict_conforming_to_schema(
+        formats.TARGETS_SCHEMA,
         version=version,
         expires=expiration_date,
         targets=filedict)
@@ -1538,12 +1539,12 @@ def _get_hashes_and_length_if_needed(use_length, use_hashes, full_file_path,
   length = None
   hashes = None
   if use_length:
-    length = securesystemslib.util.get_file_length(full_file_path,
+    length = sslib_util.get_file_length(full_file_path,
         storage_backend)
 
   if use_hashes:
-    hashes = securesystemslib.util.get_file_hashes(full_file_path,
-        tuf.settings.FILE_HASH_ALGORITHMS, storage_backend)
+    hashes = sslib_util.get_file_hashes(full_file_path,
+        settings.FILE_HASH_ALGORITHMS, storage_backend)
 
   return length, hashes
 
@@ -1620,13 +1621,13 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   # This check ensures arguments have the appropriate number of objects and
   # object types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
-  securesystemslib.formats.PATH_SCHEMA.check_match(metadata_directory)
-  tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-  securesystemslib.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
-  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
-  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_length)
-  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_hashes)
+  sslib_formats.PATH_SCHEMA.check_match(metadata_directory)
+  formats.METADATAVERSION_SCHEMA.check_match(version)
+  sslib_formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
+  sslib_formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.BOOLEAN_SCHEMA.check_match(use_length)
+  sslib_formats.BOOLEAN_SCHEMA.check_match(use_hashes)
 
   # Snapshot's 'fileinfodict' shall contain the version number of Root,
   # Targets, and all delegated roles of the repository.
@@ -1643,7 +1644,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   # Make file info dictionary with make_metadata_fileinfo because
   # in the tuf spec length and hashes are optional for all
   # METAFILES in snapshot.json including the top-level targets file.
-  fileinfodict[TARGETS_FILENAME] = tuf.formats.make_metadata_fileinfo(
+  fileinfodict[TARGETS_FILENAME] = formats.make_metadata_fileinfo(
       targets_file_version['version'], length, hashes)
 
   # Search the metadata directory and generate the versioninfo of all the role
@@ -1666,8 +1667,8 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       # in the roledb are included in the Snapshot metadata.  Since the
       # snapshot and timestamp roles are not listed in snapshot.json, do not
       # list these roles found in the metadata directory.
-      if tuf.roledb.role_exists(rolename, repository_name) and \
-          rolename not in tuf.roledb.TOP_LEVEL_ROLES:
+      if roledb.role_exists(rolename, repository_name) and \
+          rolename not in roledb.TOP_LEVEL_ROLES:
 
         length, hashes = _get_hashes_and_length_if_needed(use_length, use_hashes,
             os.path.join(metadata_directory, metadata_filename), storage_backend)
@@ -1675,7 +1676,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
         file_version = get_metadata_versioninfo(rolename,
             repository_name)
 
-        fileinfodict[metadata_name] = tuf.formats.make_metadata_fileinfo(
+        fileinfodict[metadata_name] = formats.make_metadata_fileinfo(
             file_version['version'], length, hashes)
 
     else:
@@ -1691,8 +1692,8 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   #       generate_root_metadata, etc. with one function that generates
   #       metadata, possibly rolling that upwards into the calling function.
   #       There are very few things that really need to be done differently.
-  return tuf.formats.build_dict_conforming_to_schema(
-      tuf.formats.SNAPSHOT_SCHEMA,
+  return formats.build_dict_conforming_to_schema(
+      formats.SNAPSHOT_SCHEMA,
       version=version,
       expires=expiration_date,
       meta=fileinfodict)
@@ -1757,12 +1758,12 @@ def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
   # This check ensures arguments have the appropriate number of objects and
   # object types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
-  securesystemslib.formats.PATH_SCHEMA.check_match(snapshot_file_path)
-  tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-  securesystemslib.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
-  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_length)
-  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_hashes)
+  sslib_formats.PATH_SCHEMA.check_match(snapshot_file_path)
+  formats.METADATAVERSION_SCHEMA.check_match(version)
+  sslib_formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.BOOLEAN_SCHEMA.check_match(use_length)
+  sslib_formats.BOOLEAN_SCHEMA.check_match(use_hashes)
 
   snapshot_fileinfo = {}
 
@@ -1773,7 +1774,7 @@ def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
   # Retrieve the versioninfo of the Snapshot metadata file.
   snapshot_version = get_metadata_versioninfo('snapshot', repository_name)
   snapshot_fileinfo[snapshot_filename] = \
-      tuf.formats.make_metadata_fileinfo(snapshot_version['version'],
+      formats.make_metadata_fileinfo(snapshot_version['version'],
           length, hashes)
 
   # Generate the timestamp metadata object.
@@ -1785,8 +1786,8 @@ def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
   #       generate_root_metadata, etc. with one function that generates
   #       metadata, possibly rolling that upwards into the calling function.
   #       There are very few things that really need to be done differently.
-  return tuf.formats.build_dict_conforming_to_schema(
-      tuf.formats.TIMESTAMP_SCHEMA,
+  return formats.build_dict_conforming_to_schema(
+      formats.TIMESTAMP_SCHEMA,
       version=version,
       expires=expiration_date,
       meta=snapshot_fileinfo)
@@ -1800,7 +1801,7 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
   <Purpose>
     Sign a metadata object. If any of the keyids have already signed the file,
     the old signature is replaced.  The keys in 'keyids' must already be
-    loaded in 'tuf.keydb'.
+    loaded in 'keydb'.
 
   <Arguments>
     metadata_object:
@@ -1838,29 +1839,29 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
   # This check ensures arguments have the appropriate number of objects and
   # object types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
-  tuf.formats.ANYROLE_SCHEMA.check_match(metadata_object)
-  securesystemslib.formats.KEYIDS_SCHEMA.check_match(keyids)
-  securesystemslib.formats.PATH_SCHEMA.check_match(filename)
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  formats.ANYROLE_SCHEMA.check_match(metadata_object)
+  sslib_formats.KEYIDS_SCHEMA.check_match(keyids)
+  sslib_formats.PATH_SCHEMA.check_match(filename)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   # Make sure the metadata is in 'signable' format.  That is,
   # it contains a 'signatures' field containing the result
   # of signing the 'signed' field of 'metadata' with each
   # keyid of 'keyids'.
-  signable = tuf.formats.make_signable(metadata_object)
+  signable = formats.make_signable(metadata_object)
 
   # Sign the metadata with each keyid in 'keyids'.  'signable' should have
   # zero signatures (metadata_object contained none).
   for keyid in keyids:
 
     # Load the signing key.
-    key = tuf.keydb.get_key(keyid, repository_name=repository_name)
+    key = keydb.get_key(keyid, repository_name=repository_name)
     # Generate the signature using the appropriate signing method.
     if key['keytype'] in SUPPORTED_KEY_TYPES:
       if 'private' in key['keyval']:
-        signed = securesystemslib.formats.encode_canonical(signable['signed']).encode('utf-8')
+        signed = sslib_formats.encode_canonical(signable['signed']).encode('utf-8')
         try:
-          signature = securesystemslib.keys.create_signature(key, signed)
+          signature = sslib_keys.create_signature(key, signed)
           signable['signatures'].append(signature)
 
         except Exception:
@@ -1870,14 +1871,14 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
         logger.debug('Private key unset.  Skipping: ' + repr(keyid))
 
     else:
-      raise securesystemslib.exceptions.Error('The keydb contains a key with'
+      raise sslib_exceptions.Error('The keydb contains a key with'
         ' an invalid key type.' + repr(key['keytype']))
 
   # Raise 'securesystemslib.exceptions.FormatError' if the resulting 'signable'
   # is not formatted correctly.
   try:
-    tuf.formats.check_signable_object_format(signable)
-  except tuf.exceptions.UnsignedMetadataError:
+    formats.check_signable_object_format(signable)
+  except exceptions.UnsignedMetadataError:
     # Downgrade the error to a warning because a use case exists where
     # metadata may be generated unsigned on one machine and signed on another.
     logger.warning('Unsigned metadata object: ' + repr(signable))
@@ -1936,13 +1937,13 @@ def write_metadata_file(metadata, filename, version_number, consistent_snapshot,
   # This check ensures arguments have the appropriate number of objects and
   # object types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
-  tuf.formats.SIGNABLE_SCHEMA.check_match(metadata)
-  securesystemslib.formats.PATH_SCHEMA.check_match(filename)
-  tuf.formats.METADATAVERSION_SCHEMA.check_match(version_number)
-  securesystemslib.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
+  formats.SIGNABLE_SCHEMA.check_match(metadata)
+  sslib_formats.PATH_SCHEMA.check_match(filename)
+  formats.METADATAVERSION_SCHEMA.check_match(version_number)
+  sslib_formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
 
   if storage_backend is None:
-    storage_backend = securesystemslib.storage.FilesystemBackend()
+    storage_backend = sslib_storage.FilesystemBackend()
 
   # Generate the actual metadata file content of 'metadata'.  Metadata is
   # saved as JSON and includes formatting, such as indentation and sorted
@@ -1976,7 +1977,7 @@ def write_metadata_file(metadata, filename, version_number, consistent_snapshot,
     # the consistent snapshot and point 'written_filename' to it.
     logger.debug('Creating a consistent file for ' + repr(filename))
     logger.debug('Saving ' + repr(written_consistent_filename))
-    securesystemslib.util.persist_temp_file(file_object,
+    sslib_util.persist_temp_file(file_object,
         written_consistent_filename, should_close=False)
 
   else:
@@ -2028,15 +2029,15 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
     try:
       _check_role_keys(rolename, repository_name)
 
-    except tuf.exceptions.InsufficientKeysError as e:
+    except exceptions.InsufficientKeysError as e:
       logger.info(str(e))
 
   # Do the top-level roles contain a valid threshold of signatures?  Top-level
   # metadata is verified in Root -> Targets -> Snapshot -> Timestamp order.
   # Verify the metadata of the Root role.
-  dirty_rolenames = tuf.roledb.get_dirty_roles(repository_name)
+  dirty_rolenames = roledb.get_dirty_roles(repository_name)
 
-  root_roleinfo = tuf.roledb.get_roleinfo('root', repository_name)
+  root_roleinfo = roledb.get_roleinfo('root', repository_name)
   root_is_dirty = None
   if 'root' in dirty_rolenames:
     root_is_dirty = True
@@ -2053,17 +2054,17 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
   # 'tuf.exceptions.UnsignedMetadataError' raised if metadata contains an
   # invalid threshold of signatures.  log the valid/threshold message, where
   # valid < threshold.
-  except tuf.exceptions.UnsignedMetadataError as e:
+  except exceptions.UnsignedMetadataError as e:
     _log_status('root', e.signable, repository_name)
     return
 
   finally:
-    tuf.roledb.unmark_dirty(['root'], repository_name)
-    tuf.roledb.update_roleinfo('root', root_roleinfo,
+    roledb.unmark_dirty(['root'], repository_name)
+    roledb.update_roleinfo('root', root_roleinfo,
         mark_role_as_dirty=root_is_dirty, repository_name=repository_name)
 
   # Verify the metadata of the Targets role.
-  targets_roleinfo = tuf.roledb.get_roleinfo('targets', repository_name)
+  targets_roleinfo = roledb.get_roleinfo('targets', repository_name)
   targets_is_dirty = None
   if 'targets' in dirty_rolenames:
     targets_is_dirty = True
@@ -2078,17 +2079,17 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
           repository_name=repository_name)
     _log_status('targets', signable, repository_name)
 
-  except tuf.exceptions.UnsignedMetadataError as e:
+  except exceptions.UnsignedMetadataError as e:
     _log_status('targets', e.signable, repository_name)
     return
 
   finally:
-    tuf.roledb.unmark_dirty(['targets'], repository_name)
-    tuf.roledb.update_roleinfo('targets', targets_roleinfo,
+    roledb.unmark_dirty(['targets'], repository_name)
+    roledb.update_roleinfo('targets', targets_roleinfo,
         mark_role_as_dirty=targets_is_dirty, repository_name=repository_name)
 
   # Verify the metadata of the snapshot role.
-  snapshot_roleinfo = tuf.roledb.get_roleinfo('snapshot', repository_name)
+  snapshot_roleinfo = roledb.get_roleinfo('snapshot', repository_name)
   snapshot_is_dirty = None
   if 'snapshot' in dirty_rolenames:
     snapshot_is_dirty = True
@@ -2104,17 +2105,17 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
           filenames, repository_name=repository_name)
     _log_status('snapshot', signable, repository_name)
 
-  except tuf.exceptions.UnsignedMetadataError as e:
+  except exceptions.UnsignedMetadataError as e:
     _log_status('snapshot', e.signable, repository_name)
     return
 
   finally:
-    tuf.roledb.unmark_dirty(['snapshot'], repository_name)
-    tuf.roledb.update_roleinfo('snapshot', snapshot_roleinfo,
+    roledb.unmark_dirty(['snapshot'], repository_name)
+    roledb.update_roleinfo('snapshot', snapshot_roleinfo,
         mark_role_as_dirty=snapshot_is_dirty, repository_name=repository_name)
 
   # Verify the metadata of the Timestamp role.
-  timestamp_roleinfo = tuf.roledb.get_roleinfo('timestamp', repository_name)
+  timestamp_roleinfo = roledb.get_roleinfo('timestamp', repository_name)
   timestamp_is_dirty = None
   if 'timestamp' in dirty_rolenames:
     timestamp_is_dirty = True
@@ -2130,13 +2131,13 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
           False, filenames, repository_name=repository_name)
     _log_status('timestamp', signable, repository_name)
 
-  except tuf.exceptions.UnsignedMetadataError as e:
+  except exceptions.UnsignedMetadataError as e:
     _log_status('timestamp', e.signable, repository_name)
     return
 
   finally:
-    tuf.roledb.unmark_dirty(['timestamp'], repository_name)
-    tuf.roledb.update_roleinfo('timestamp', timestamp_roleinfo,
+    roledb.unmark_dirty(['timestamp'], repository_name)
+    roledb.update_roleinfo('timestamp', timestamp_roleinfo,
         mark_role_as_dirty=timestamp_is_dirty, repository_name=repository_name)
 
 
@@ -2147,7 +2148,7 @@ def _log_status(rolename, signable, repository_name):
   'rolename'.
   """
 
-  status = tuf.sig.get_signature_status(signable, rolename, repository_name)
+  status = sig.get_signature_status(signable, rolename, repository_name)
 
   logger.info(repr(rolename) + ' role contains ' + \
     repr(len(status['good_sigs'])) + ' / ' + repr(status['threshold']) + \
@@ -2201,8 +2202,8 @@ def create_tuf_client_directory(repository_directory, client_directory):
   # This check ensures arguments have the appropriate number of objects and
   # object types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if the check fails.
-  securesystemslib.formats.PATH_SCHEMA.check_match(repository_directory)
-  securesystemslib.formats.PATH_SCHEMA.check_match(client_directory)
+  sslib_formats.PATH_SCHEMA.check_match(repository_directory)
+  sslib_formats.PATH_SCHEMA.check_match(client_directory)
 
   # Set the absolute path of the Repository's metadata directory.  The metadata
   # directory should be the one served by the Live repository.  At a minimum,
@@ -2227,7 +2228,7 @@ def create_tuf_client_directory(repository_directory, client_directory):
     if e.errno == errno.EEXIST:
       message = 'Cannot create a fresh client metadata directory: ' +\
         repr(client_metadata_directory) + '.  Already exists.'
-      raise tuf.exceptions.RepositoryError(message)
+      raise exceptions.RepositoryError(message)
 
     # Testing of non-errno.EEXIST exceptions have been verified on all
     # supported OSs.  An unexpected exception (the '/' directory exists, rather
@@ -2269,7 +2270,7 @@ def disable_console_log_messages():
     None.
   """
 
-  tuf.log.remove_console_handler()
+  log.remove_console_handler()
 
 
 
@@ -2295,7 +2296,7 @@ def keys_to_keydict(keys):
 
   for key in keys:
     keyid = key['keyid']
-    key_metadata_format = securesystemslib.keys.format_keyval_to_metadata(
+    key_metadata_format = sslib_keys.format_keyval_to_metadata(
         key['keytype'], key['scheme'], key['keyval'])
 
     new_keydict = {keyid: key_metadata_format}

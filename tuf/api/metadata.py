@@ -24,8 +24,7 @@ from securesystemslib.signer import Signature, Signer
 from securesystemslib.storage import FilesystemBackend, StorageBackendInterface
 from securesystemslib.util import persist_temp_file
 
-import tuf.exceptions
-import tuf.formats
+from tuf import exceptions, formats
 from tuf.api.serialization import (
     MetadataDeserializer,
     MetadataSerializer,
@@ -266,10 +265,10 @@ class Metadata:
         )
 
         if not signatures_for_keyid:
-            raise tuf.exceptions.Error(f"no signature for key {key['keyid']}.")
+            raise exceptions.Error(f"no signature for key {key['keyid']}.")
 
         if len(signatures_for_keyid) > 1:
-            raise tuf.exceptions.Error(
+            raise exceptions.Error(
                 f"{len(signatures_for_keyid)} signatures for key "
                 f"{key['keyid']}, not sure which one to verify."
             )
@@ -337,7 +336,7 @@ class Signed:
         # Convert 'expires' TUF metadata string to a datetime object, which is
         # what the constructor expects and what we store. The inverse operation
         # is implemented in '_common_fields_to_dict'.
-        expires = tuf.formats.expiry_string_to_datetime(expires_str)
+        expires = formats.expiry_string_to_datetime(expires_str)
         return [_type, version, spec_version, expires]
 
     def _common_fields_to_dict(self) -> Dict[str, Any]:

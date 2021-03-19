@@ -10,11 +10,11 @@ import requests
 import six
 import logging
 import time
+from urllib3.exceptions import ReadTimeoutError
 
-import urllib3.exceptions
-
-import tuf.exceptions
-import tuf.settings
+import tuf
+from tuf import exceptions
+from tuf import settings
 
 from tuf.client.fetcher import FetcherInterface
 
@@ -74,14 +74,14 @@ class RequestsFetcher(FetcherInterface):
     #  - connect timeout (max delay before first byte is received)
     #  - read (gap) timeout (max delay between bytes received)
     response = session.get(url, stream=True,
-        timeout=tuf.settings.SOCKET_TIMEOUT)
+        timeout=settings.SOCKET_TIMEOUT)
     # Check response status.
     try:
       response.raise_for_status()
     except requests.HTTPError as e:
       response.close()
       status = e.response.status_code
-      raise tuf.exceptions.FetcherHTTPError(str(e), status)
+      raise exceptions.FetcherHTTPError(str(e), status)
 
 
     # Define a generator function to be returned by fetch. This way the caller
@@ -96,11 +96,11 @@ class RequestsFetcher(FetcherInterface):
           # wish to download an extremely large file in one shot.
           # Before beginning the round, sleep (if set) for a short amount of
           # time so that the CPU is not hogged in the while loop.
-          if tuf.settings.SLEEP_BEFORE_ROUND:
-            time.sleep(tuf.settings.SLEEP_BEFORE_ROUND)
+          if settings.SLEEP_BEFORE_ROUND:
+            time.sleep(settings.SLEEP_BEFORE_ROUND)
 
           read_amount = min(
-              tuf.settings.CHUNK_SIZE, required_length - bytes_received)
+              settings.CHUNK_SIZE, required_length - bytes_received)
 
           # NOTE: This may not handle some servers adding a Content-Encoding
           # header, which may cause urllib3 to misbehave:
@@ -121,8 +121,8 @@ class RequestsFetcher(FetcherInterface):
           if bytes_received >= required_length:
             break
 
-      except urllib3.exceptions.ReadTimeoutError as e:
-        raise tuf.exceptions.SlowRetrievalError(str(e))
+      except ReadTimeoutError as e:
+        raise exceptions.SlowRetrievalError(str(e))
 
       finally:
         response.close()
@@ -140,7 +140,7 @@ class RequestsFetcher(FetcherInterface):
     parsed_url = six.moves.urllib.parse.urlparse(url)
 
     if not parsed_url.scheme or not parsed_url.hostname:
-      raise tuf.exceptions.URLParsingError(
+      raise exceptions.URLParsingError(
           'Could not get scheme and hostname from URL: ' + url)
 
     session_index = parsed_url.scheme + '+' + parsed_url.hostname

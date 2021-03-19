@@ -71,10 +71,10 @@ import sys
 import argparse
 import logging
 
-import tuf
-import tuf.client.updater
-import tuf.settings
-import tuf.log
+from tuf import exceptions
+from tuf import log
+from tuf import settings
+from tuf.client.updater import Updater
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger(__name__)
@@ -106,13 +106,13 @@ def update_client(parsed_arguments):
   """
 
   if not isinstance(parsed_arguments, argparse.Namespace):
-    raise tuf.exceptions.Error('Invalid namespace object.')
+    raise exceptions.Error('Invalid namespace object.')
 
   else:
     logger.debug('We have a valid argparse Namespace object.')
 
   # Set the local repositories directory containing all of the metadata files.
-  tuf.settings.repositories_directory = '.'
+  settings.repositories_directory = '.'
 
   # Set the repository mirrors.  This dictionary is needed by the Updater
   # class of updater.py.
@@ -121,7 +121,7 @@ def update_client(parsed_arguments):
 
   # Create the repository object using the repository name 'repository'
   # and the repository mirrors defined above.
-  updater = tuf.client.updater.Updater('tufrepo', repository_mirrors)
+  updater = Updater('tufrepo', repository_mirrors)
 
   # The local destination directory to save the target files.
   destination_directory = './tuftargets'
@@ -143,7 +143,7 @@ def update_client(parsed_arguments):
     try:
       updater.download_target(target, destination_directory)
 
-    except tuf.exceptions.DownloadError:
+    except exceptions.DownloadError:
       pass
 
   # Remove any files from the destination directory that are no longer being
@@ -203,22 +203,22 @@ def parse_arguments():
 
   # Set the logging level.
   if parsed_arguments.verbose == 5:
-    tuf.log.set_log_level(logging.CRITICAL)
+    log.set_log_level(logging.CRITICAL)
 
   elif parsed_arguments.verbose == 4:
-    tuf.log.set_log_level(logging.ERROR)
+    log.set_log_level(logging.ERROR)
 
   elif parsed_arguments.verbose == 3:
-    tuf.log.set_log_level(logging.WARNING)
+    log.set_log_level(logging.WARNING)
 
   elif parsed_arguments.verbose == 2:
-    tuf.log.set_log_level(logging.INFO)
+    log.set_log_level(logging.INFO)
 
   elif parsed_arguments.verbose == 1:
-    tuf.log.set_log_level(logging.DEBUG)
+    log.set_log_level(logging.DEBUG)
 
   else:
-    tuf.log.set_log_level(logging.NOTSET)
+    log.set_log_level(logging.NOTSET)
 
   # Return the repository mirror containing the metadata and target files.
   return parsed_arguments
@@ -235,8 +235,8 @@ if __name__ == '__main__':
   try:
     update_client(arguments)
 
-  except (tuf.exceptions.NoWorkingMirrorError, tuf.exceptions.RepositoryError,
-      tuf.exceptions.FormatError, tuf.exceptions.Error) as e:
+  except (exceptions.NoWorkingMirrorError, exceptions.RepositoryError,
+      exceptions.FormatError, exceptions.Error) as e:
     sys.stderr.write('Error: ' + str(e) + '\n')
     sys.exit(1)
 

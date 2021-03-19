@@ -39,23 +39,21 @@ import logging
 import tempfile
 import shutil
 import json
+import six
 
 from collections import deque
 
-import tuf
-import tuf.formats
-import tuf.roledb
-import tuf.sig
-import tuf.log
-import tuf.exceptions
-import tuf.repository_lib as repo_lib
+from securesystemslib import exceptions as sslib_exceptions
+from securesystemslib import formats as sslib_formats
+from securesystemslib import util as sslib_util
+from securesystemslib import storage as sslib_storage
 
-import securesystemslib.keys
-import securesystemslib.formats
-import securesystemslib.util
-import six
-
-import securesystemslib.storage
+from tuf import exceptions
+from tuf import formats
+from tuf import keydb
+from tuf import log
+from tuf import repository_lib as repo_lib
+from tuf import roledb
 
 
 # Copy API
@@ -88,6 +86,7 @@ from securesystemslib.interface import (
     import_ecdsa_privatekey_from_file)
 
 from securesystemslib.keys import (
+    format_metadata_to_key,
     generate_rsa_key,
     generate_ecdsa_key,
     generate_ed25519_key,
@@ -100,8 +99,8 @@ logger = logging.getLogger(__name__)
 
 # Add a console handler so that users are aware of potentially unintended
 # states, such as multiple roles that share keys.
-tuf.log.add_console_handler()
-tuf.log.set_console_log_level(logging.INFO)
+log.add_console_handler()
+log.set_console_log_level(logging.INFO)
 
 # Recommended RSA key sizes:
 # https://en.wikipedia.org/wiki/Key_size#Asymmetric_algorithm_key_lengths
@@ -230,14 +229,14 @@ class Repository(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    securesystemslib.formats.PATH_SCHEMA.check_match(repository_directory)
-    securesystemslib.formats.PATH_SCHEMA.check_match(metadata_directory)
-    securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
-    securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
-    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_timestamp_length)
-    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_timestamp_hashes)
-    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_snapshot_length)
-    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_snapshot_hashes)
+    sslib_formats.PATH_SCHEMA.check_match(repository_directory)
+    sslib_formats.PATH_SCHEMA.check_match(metadata_directory)
+    sslib_formats.PATH_SCHEMA.check_match(targets_directory)
+    sslib_formats.NAME_SCHEMA.check_match(repository_name)
+    sslib_formats.BOOLEAN_SCHEMA.check_match(use_timestamp_length)
+    sslib_formats.BOOLEAN_SCHEMA.check_match(use_timestamp_hashes)
+    sslib_formats.BOOLEAN_SCHEMA.check_match(use_snapshot_length)
+    sslib_formats.BOOLEAN_SCHEMA.check_match(use_snapshot_hashes)
 
     self._repository_directory = repository_directory
     self._metadata_directory = metadata_directory
@@ -250,10 +249,10 @@ class Repository(object):
     self._use_snapshot_hashes = use_snapshot_hashes
 
     try:
-      tuf.roledb.create_roledb(repository_name)
-      tuf.keydb.create_keydb(repository_name)
+      roledb.create_roledb(repository_name)
+      keydb.create_keydb(repository_name)
 
-    except securesystemslib.exceptions.InvalidNameError:
+    except sslib_exceptions.InvalidNameError:
       logger.debug(repr(repository_name) + ' already exists.  Overwriting'
           ' its contents.')
 
@@ -312,9 +311,9 @@ class Repository(object):
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly
     # formatted.
-    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
+    sslib_formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
 
-    # At this point, tuf.keydb and tuf.roledb must be fully populated,
+    # At this point, keydb and roledb must be fully populated,
     # otherwise writeall() throws a 'tuf.exceptions.UnsignedMetadataError' for
     # the top-level roles.  exception if any of the top-level roles are missing
     # signatures, keys, etc.
@@ -328,12 +327,12 @@ class Repository(object):
         repo_lib.TIMESTAMP_FILENAME)}
 
     snapshot_signable = None
-    dirty_rolenames = tuf.roledb.get_dirty_roles(self._repository_name)
+    dirty_rolenames = roledb.get_dirty_roles(self._repository_name)
 
     for dirty_rolename in dirty_rolenames:
 
       # Ignore top-level roles, they will be generated later in this method.
-      if dirty_rolename in tuf.roledb.TOP_LEVEL_ROLES:
+      if dirty_rolename in roledb.TOP_LEVEL_ROLES:
         continue
 
       dirty_filename = os.path.join(self._metadata_directory,
@@ -349,7 +348,7 @@ class Repository(object):
     # metadata file.  _generate_and_write_metadata() raises a
     # 'securesystemslib.exceptions.Error' exception if the metadata cannot be
     # written.
-    root_roleinfo = tuf.roledb.get_roleinfo('root', self._repository_name)
+    root_roleinfo = roledb.get_roleinfo('root', self._repository_name)
     old_consistent_snapshot = root_roleinfo['consistent_snapshot']
     if 'root' in dirty_rolenames or consistent_snapshot != old_consistent_snapshot:
       repo_lib._generate_and_write_metadata('root', filenames['root'],
@@ -384,9 +383,9 @@ class Repository(object):
           use_timestamp_length=self._use_timestamp_length,
           use_timestamp_hashes=self._use_timestamp_hashes)
 
-    tuf.roledb.unmark_dirty(dirty_rolenames, self._repository_name)
+    roledb.unmark_dirty(dirty_rolenames, self._repository_name)
 
-    # Delete the metadata of roles no longer in 'tuf.roledb'.  Obsolete roles
+    # Delete the metadata of roles no longer in 'roledb'.  Obsolete roles
     # may have been revoked and should no longer have their metadata files
     # available on disk, otherwise loading a repository may unintentionally
     # load them.
@@ -460,7 +459,7 @@ class Repository(object):
         use_existing_fileinfo=use_existing_fileinfo)
 
     # Ensure 'rolename' is no longer marked as dirty after the successful write().
-    tuf.roledb.unmark_dirty([rolename], self._repository_name)
+    roledb.unmark_dirty([rolename], self._repository_name)
 
 
 
@@ -536,7 +535,7 @@ class Repository(object):
       None.
     """
 
-    logger.info('Dirty roles: ' + str(tuf.roledb.get_dirty_roles(self._repository_name)))
+    logger.info('Dirty roles: ' + str(roledb.get_dirty_roles(self._repository_name)))
 
 
 
@@ -560,7 +559,7 @@ class Repository(object):
       None.
     """
 
-    tuf.roledb.mark_dirty(roles, self._repository_name)
+    roledb.mark_dirty(roles, self._repository_name)
 
 
 
@@ -584,7 +583,7 @@ class Repository(object):
       None.
     """
 
-    tuf.roledb.unmark_dirty(roles, self._repository_name)
+    roledb.unmark_dirty(roles, self._repository_name)
 
 
 
@@ -625,13 +624,13 @@ class Repository(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    securesystemslib.formats.PATH_SCHEMA.check_match(files_directory)
-    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(recursive_walk)
-    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(followlinks)
+    sslib_formats.PATH_SCHEMA.check_match(files_directory)
+    sslib_formats.BOOLEAN_SCHEMA.check_match(recursive_walk)
+    sslib_formats.BOOLEAN_SCHEMA.check_match(followlinks)
 
     # Ensure a valid directory is given.
     if not os.path.isdir(files_directory):
-      raise securesystemslib.exceptions.Error(repr(files_directory) + ' is not'
+      raise sslib_exceptions.Error(repr(files_directory) + ' is not'
         ' a directory.')
 
     # A list of the target filepaths found in 'files_directory'.
@@ -721,8 +720,7 @@ class Metadata(object):
       expired.
 
     <Side Effects>
-      The role's entries in 'tuf.keydb.py' and 'tuf.roledb.py' are
-      updated.
+      The role's entries in 'keydb' and 'roledb' are updated.
 
     <Returns>
       None.
@@ -732,7 +730,7 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    securesystemslib.formats.ANYKEY_SCHEMA.check_match(key)
+    sslib_formats.ANYKEY_SCHEMA.check_match(key)
 
     # If 'expires' is unset, choose a default expiration for 'key'.  By
     # default, Root, Targets, Snapshot, and Timestamp keys are set to expire
@@ -740,28 +738,28 @@ class Metadata(object):
     if expires is None:
       if self.rolename == 'root':
         expires = \
-          tuf.formats.unix_timestamp_to_datetime(int(time.time() + ROOT_EXPIRATION))
+          formats.unix_timestamp_to_datetime(int(time.time() + ROOT_EXPIRATION))
 
       elif self.rolename == 'Targets':
         expires = \
-          tuf.formats.unix_timestamp_to_datetime(int(time.time() + TARGETS_EXPIRATION))
+          formats.unix_timestamp_to_datetime(int(time.time() + TARGETS_EXPIRATION))
 
       elif self.rolename == 'Snapshot':
         expires = \
-          tuf.formats.unix_timestamp_to_datetime(int(time.time() + SNAPSHOT_EXPIRATION))
+          formats.unix_timestamp_to_datetime(int(time.time() + SNAPSHOT_EXPIRATION))
 
       elif self.rolename == 'Timestamp':
         expires = \
-          tuf.formats.unix_timestamp_to_datetime(int(time.time() + TIMESTAMP_EXPIRATION))
+          formats.unix_timestamp_to_datetime(int(time.time() + TIMESTAMP_EXPIRATION))
 
       else:
         expires = \
-          tuf.formats.unix_timestamp_to_datetime(int(time.time() + TIMESTAMP_EXPIRATION))
+          formats.unix_timestamp_to_datetime(int(time.time() + TIMESTAMP_EXPIRATION))
 
     # Is 'expires' a datetime.datetime() object?
     # Raise 'securesystemslib.exceptions.FormatError' if not.
     if not isinstance(expires, datetime.datetime):
-      raise securesystemslib.exceptions.FormatError(repr(expires) + ' is not a'
+      raise sslib_exceptions.FormatError(repr(expires) + ' is not a'
           ' datetime.datetime() object.')
 
     # Truncate the microseconds value to produce a correct schema string
@@ -770,10 +768,10 @@ class Metadata(object):
 
     # Ensure the expiration has not already passed.
     current_datetime = \
-      tuf.formats.unix_timestamp_to_datetime(int(time.time()))
+      formats.unix_timestamp_to_datetime(int(time.time()))
 
     if expires < current_datetime:
-      raise securesystemslib.exceptions.Error(repr(key) + ' has already'
+      raise sslib_exceptions.Error(repr(key) + ' has already'
           ' expired.')
 
     # Update the key's 'expires' entry.
@@ -781,29 +779,29 @@ class Metadata(object):
     key['expires'] = expires
 
     # Ensure 'key', which should contain the public portion, is added to
-    # 'tuf.keydb.py'.  Add 'key' to the list of recognized keys.
+    # 'keydb'.  Add 'key' to the list of recognized keys.
     # Keys may be shared, so do not raise an exception if 'key' has already
     # been loaded.
     try:
-      tuf.keydb.add_key(key, repository_name=self._repository_name)
+      keydb.add_key(key, repository_name=self._repository_name)
 
-    except tuf.exceptions.KeyAlreadyExistsError:
+    except exceptions.KeyAlreadyExistsError:
       logger.warning('Adding a verification key that has already been used.')
 
     keyid = key['keyid']
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
+    roleinfo = roledb.get_roleinfo(self.rolename, self._repository_name)
 
     # Save the keyids that are being replaced since certain roles will need to
     # re-sign metadata with these keys (e.g., root).  Use list() to make a copy
     # of roleinfo['keyids'] to ensure we're modifying distinct lists.
     previous_keyids = list(roleinfo['keyids'])
 
-    # Add 'key' to the role's entry in 'tuf.roledb.py', and avoid duplicates.
+    # Add 'key' to the role's entry in 'roledb', and avoid duplicates.
     if keyid not in roleinfo['keyids']:
       roleinfo['keyids'].append(keyid)
       roleinfo['previous_keyids'] = previous_keyids
 
-      tuf.roledb.update_roleinfo(self._rolename, roleinfo,
+      roledb.update_roleinfo(self._rolename, roleinfo,
           repository_name=self._repository_name)
 
 
@@ -833,7 +831,7 @@ class Metadata(object):
       previously added.
 
     <Side Effects>
-      Updates the role's 'tuf.roledb.py' entry.
+      Updates the role's 'roledb' entry.
 
     <Returns>
       None.
@@ -843,19 +841,19 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    securesystemslib.formats.ANYKEY_SCHEMA.check_match(key)
+    sslib_formats.ANYKEY_SCHEMA.check_match(key)
 
     keyid = key['keyid']
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
+    roleinfo = roledb.get_roleinfo(self.rolename, self._repository_name)
 
     if keyid in roleinfo['keyids']:
       roleinfo['keyids'].remove(keyid)
 
-      tuf.roledb.update_roleinfo(self._rolename, roleinfo,
+      roledb.update_roleinfo(self._rolename, roleinfo,
           repository_name=self._repository_name)
 
     else:
-      raise securesystemslib.exceptions.Error('Verification key not found.')
+      raise sslib_exceptions.Error('Verification key not found.')
 
 
 
@@ -883,7 +881,7 @@ class Metadata(object):
       securesystemslib.exceptions.Error, if the private key is not found in 'key'.
 
     <Side Effects>
-      Updates the role's 'tuf.keydb.py' and 'tuf.roledb.py' entries.
+      Updates the role's 'keydb' and 'roledb' entries.
 
     <Returns>
       None.
@@ -893,28 +891,28 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    securesystemslib.formats.ANYKEY_SCHEMA.check_match(key)
+    sslib_formats.ANYKEY_SCHEMA.check_match(key)
 
     # Ensure the private portion of the key is available, otherwise signatures
     # cannot be generated when the metadata file is written to disk.
     if 'private' not in key['keyval'] or not len(key['keyval']['private']):
-      raise securesystemslib.exceptions.Error('This is not a private key.')
+      raise sslib_exceptions.Error('This is not a private key.')
 
     # Has the key, with the private portion included, been added to the keydb?
     # The public version of the key may have been previously added.
     try:
-      tuf.keydb.add_key(key, repository_name=self._repository_name)
+      keydb.add_key(key, repository_name=self._repository_name)
 
-    except tuf.exceptions.KeyAlreadyExistsError:
-      tuf.keydb.remove_key(key['keyid'], self._repository_name)
-      tuf.keydb.add_key(key, repository_name=self._repository_name)
+    except exceptions.KeyAlreadyExistsError:
+      keydb.remove_key(key['keyid'], self._repository_name)
+      keydb.add_key(key, repository_name=self._repository_name)
 
-    # Update the role's 'signing_keys' field in 'tuf.roledb.py'.
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
+    # Update the role's 'signing_keys' field in 'roledb'.
+    roleinfo = roledb.get_roleinfo(self.rolename, self._repository_name)
     if key['keyid'] not in roleinfo['signing_keyids']:
       roleinfo['signing_keyids'].append(key['keyid'])
 
-      tuf.roledb.update_roleinfo(self.rolename, roleinfo,
+      roledb.update_roleinfo(self.rolename, roleinfo,
           repository_name=self._repository_name)
 
 
@@ -943,7 +941,7 @@ class Metadata(object):
       previously loaded.
 
     <Side Effects>
-      Updates the signing keys of the role in 'tuf.roledb.py'.
+      Updates the signing keys of the role in 'roledb'.
 
     <Returns>
       None.
@@ -953,10 +951,10 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    securesystemslib.formats.ANYKEY_SCHEMA.check_match(key)
+    sslib_formats.ANYKEY_SCHEMA.check_match(key)
 
-    # Update the role's 'signing_keys' field in 'tuf.roledb.py'.
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
+    # Update the role's 'signing_keys' field in 'roledb'.
+    roleinfo = roledb.get_roleinfo(self.rolename, self._repository_name)
 
     # TODO: Should we consider removing keys from keydb that are no longer
     # associated with any roles?  There could be many no-longer-used keys
@@ -964,11 +962,11 @@ class Metadata(object):
     if key['keyid'] in roleinfo['signing_keyids']:
       roleinfo['signing_keyids'].remove(key['keyid'])
 
-      tuf.roledb.update_roleinfo(self.rolename, roleinfo,
+      roledb.update_roleinfo(self.rolename, roleinfo,
           repository_name=self._repository_name)
 
     else:
-      raise securesystemslib.exceptions.Error('Signing key not found.')
+      raise sslib_exceptions.Error('Signing key not found.')
 
 
 
@@ -1004,7 +1002,7 @@ class Metadata(object):
 
     <Side Effects>
       Adds 'signature', if not already added, to the role's 'signatures' field
-      in 'tuf.roledb.py'.
+      in 'roledb'.
 
     <Returns>
       None.
@@ -1014,10 +1012,10 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    securesystemslib.formats.SIGNATURE_SCHEMA.check_match(signature)
-    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(mark_role_as_dirty)
+    sslib_formats.SIGNATURE_SCHEMA.check_match(signature)
+    sslib_formats.BOOLEAN_SCHEMA.check_match(mark_role_as_dirty)
 
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
+    roleinfo = roledb.get_roleinfo(self.rolename, self._repository_name)
 
     # Ensure the roleinfo contains a 'signatures' field.
     if 'signatures' not in roleinfo:
@@ -1027,7 +1025,7 @@ class Metadata(object):
     # added.
     if signature not in roleinfo['signatures']:
       roleinfo['signatures'].append(signature)
-      tuf.roledb.update_roleinfo(self.rolename, roleinfo, mark_role_as_dirty,
+      roledb.update_roleinfo(self.rolename, roleinfo, mark_role_as_dirty,
           repository_name=self._repository_name)
 
     else:
@@ -1058,7 +1056,7 @@ class Metadata(object):
       added to this role.
 
     <Side Effects>
-      Updates the 'signatures' field of the role in 'tuf.roledb.py'.
+      Updates the 'signatures' field of the role in 'roledb'.
 
     <Returns>
       None.
@@ -1068,18 +1066,18 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    securesystemslib.formats.SIGNATURE_SCHEMA.check_match(signature)
+    sslib_formats.SIGNATURE_SCHEMA.check_match(signature)
 
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
+    roleinfo = roledb.get_roleinfo(self.rolename, self._repository_name)
 
     if signature in roleinfo['signatures']:
       roleinfo['signatures'].remove(signature)
 
-      tuf.roledb.update_roleinfo(self.rolename, roleinfo,
+      roledb.update_roleinfo(self.rolename, roleinfo,
           repository_name=self._repository_name)
 
     else:
-      raise securesystemslib.exceptions.Error('Signature not found.')
+      raise sslib_exceptions.Error('Signature not found.')
 
 
 
@@ -1106,7 +1104,7 @@ class Metadata(object):
       'securesystemslib.formats.SIGNATURES_SCHEMA'.
     """
 
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
+    roleinfo = roledb.get_roleinfo(self.rolename, self._repository_name)
     signatures = roleinfo['signatures']
 
     return signatures
@@ -1134,7 +1132,7 @@ class Metadata(object):
       A list of the role's keyids (i.e., keyids of the keys).
     """
 
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
+    roleinfo = roledb.get_roleinfo(self.rolename, self._repository_name)
     keyids = roleinfo['keyids']
 
     return keyids
@@ -1187,7 +1185,7 @@ class Metadata(object):
       'tuf.formats.VERSION_SCHEMA'.
     """
 
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
+    roleinfo = roledb.get_roleinfo(self.rolename, self._repository_name)
     version = roleinfo['version']
 
     return version
@@ -1224,7 +1222,7 @@ class Metadata(object):
 
     <Side Effects>
       Modifies the 'version' attribute of the Repository object and updates the
-      role's version in 'tuf.roledb.py'.
+      role's version in 'roledb'.
 
     <Returns>
       None.
@@ -1234,12 +1232,12 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
+    formats.METADATAVERSION_SCHEMA.check_match(version)
 
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
+    roleinfo = roledb.get_roleinfo(self.rolename, self._repository_name)
     roleinfo['version'] = version
 
-    tuf.roledb.update_roleinfo(self._rolename, roleinfo,
+    roledb.update_roleinfo(self._rolename, roleinfo,
         repository_name=self._repository_name)
 
 
@@ -1265,7 +1263,7 @@ class Metadata(object):
       'tuf.formats.THRESHOLD_SCHEMA'.
     """
 
-    roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
+    roleinfo = roledb.get_roleinfo(self._rolename, self._repository_name)
     threshold = roleinfo['threshold']
 
     return threshold
@@ -1296,7 +1294,7 @@ class Metadata(object):
 
     <Side Effects>
       Modifies the threshold attribute of the Repository object and updates
-      the roles threshold in 'tuf.roledb.py'.
+      the roles threshold in 'roledb'.
 
     <Returns>
       None.
@@ -1306,13 +1304,13 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    tuf.formats.THRESHOLD_SCHEMA.check_match(threshold)
+    formats.THRESHOLD_SCHEMA.check_match(threshold)
 
-    roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
+    roleinfo = roledb.get_roleinfo(self._rolename, self._repository_name)
     roleinfo['previous_threshold'] = roleinfo['threshold']
     roleinfo['threshold'] = threshold
 
-    tuf.roledb.update_roleinfo(self._rolename, roleinfo,
+    roledb.update_roleinfo(self._rolename, roleinfo,
         repository_name=self._repository_name)
 
 
@@ -1336,10 +1334,10 @@ class Metadata(object):
       The role's expiration datetime, a datetime.datetime() object.
     """
 
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
+    roleinfo = roledb.get_roleinfo(self.rolename, self._repository_name)
     expires = roleinfo['expires']
 
-    return tuf.formats.expiry_string_to_datetime(expires)
+    return formats.expiry_string_to_datetime(expires)
 
 
 
@@ -1377,7 +1375,7 @@ class Metadata(object):
     # Is 'datetime_object' a datetime.datetime() object?
     # Raise 'securesystemslib.exceptions.FormatError' if not.
     if not isinstance(datetime_object, datetime.datetime):
-      raise securesystemslib.exceptions.FormatError(
+      raise sslib_exceptions.FormatError(
           repr(datetime_object) + ' is not a datetime.datetime() object.')
 
     # truncate the microseconds value to produce a correct schema string
@@ -1386,18 +1384,18 @@ class Metadata(object):
 
     # Ensure the expiration has not already passed.
     current_datetime_object = \
-      tuf.formats.unix_timestamp_to_datetime(int(time.time()))
+      formats.unix_timestamp_to_datetime(int(time.time()))
 
     if datetime_object < current_datetime_object:
-      raise securesystemslib.exceptions.Error(repr(self.rolename) + ' has'
+      raise sslib_exceptions.Error(repr(self.rolename) + ' has'
         ' already expired.')
 
-    # Update the role's 'expires' entry in 'tuf.roledb.py'.
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
+    # Update the role's 'expires' entry in 'roledb'.
+    roleinfo = roledb.get_roleinfo(self.rolename, self._repository_name)
     expires = datetime_object.isoformat() + 'Z'
     roleinfo['expires'] = expires
 
-    tuf.roledb.update_roleinfo(self.rolename, roleinfo,
+    roledb.update_roleinfo(self.rolename, roleinfo,
         repository_name=self._repository_name)
 
 
@@ -1426,7 +1424,7 @@ class Metadata(object):
       'securesystemslib.formats.KEYIDS_SCHEMA'.
     """
 
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
+    roleinfo = roledb.get_roleinfo(self.rolename, self._repository_name)
     signing_keyids = roleinfo['signing_keyids']
 
     return signing_keyids
@@ -1462,7 +1460,7 @@ class Root(Metadata):
     tuf.exceptions.FormatError, if the argument is improperly formatted.
 
   <Side Effects>
-    A 'root' role is added to 'tuf.roledb.py'.
+    A 'root' role is added to 'roledb'.
 
   <Returns>
     None.
@@ -1477,11 +1475,11 @@ class Root(Metadata):
 
     # Is 'repository_name' properly formatted?  Otherwise, raise a
     # tuf.exceptions.FormatError exception.
-    tuf.formats.ROLENAME_SCHEMA.check_match(repository_name)
+    formats.ROLENAME_SCHEMA.check_match(repository_name)
 
     # By default, 'snapshot' metadata is set to expire 1 week from the current
     # time.  The expiration may be modified.
-    expiration = tuf.formats.unix_timestamp_to_datetime(
+    expiration = formats.unix_timestamp_to_datetime(
         int(time.time() + ROOT_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
 
@@ -1489,9 +1487,9 @@ class Root(Metadata):
                 'signatures': [], 'version': 0, 'consistent_snapshot': False,
                 'expires': expiration, 'partial_loaded': False}
     try:
-      tuf.roledb.add_role(self._rolename, roleinfo, self._repository_name)
+      roledb.add_role(self._rolename, roleinfo, self._repository_name)
 
-    except tuf.exceptions.RoleAlreadyExistsError:
+    except exceptions.RoleAlreadyExistsError:
       pass
 
 
@@ -1530,7 +1528,7 @@ class Timestamp(Metadata):
     tuf.exceptions.FormatError, if the argument is improperly formatted.
 
   <Side Effects>
-    A 'timestamp' role is added to 'tuf.roledb.py'.
+    A 'timestamp' role is added to 'roledb'.
 
   <Returns>
     None.
@@ -1545,11 +1543,11 @@ class Timestamp(Metadata):
 
     # Is 'repository_name' properly formatted?  Otherwise, raise a
     # tuf.exceptions.FormatError exception.
-    securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+    sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
     # By default, 'root' metadata is set to expire 1 year from the current
     # time.  The expiration may be modified.
-    expiration = tuf.formats.unix_timestamp_to_datetime(
+    expiration = formats.unix_timestamp_to_datetime(
         int(time.time() + TIMESTAMP_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
 
@@ -1558,9 +1556,9 @@ class Timestamp(Metadata):
                 'partial_loaded': False}
 
     try:
-      tuf.roledb.add_role(self.rolename, roleinfo, self._repository_name)
+      roledb.add_role(self.rolename, roleinfo, self._repository_name)
 
-    except tuf.exceptions.RoleAlreadyExistsError:
+    except exceptions.RoleAlreadyExistsError:
       pass
 
 
@@ -1593,7 +1591,7 @@ class Snapshot(Metadata):
     tuf.exceptions.FormatError, if the argument is improperly formatted.
 
   <Side Effects>
-    A 'snapshot' role is added to 'tuf.roledb.py'.
+    A 'snapshot' role is added to 'roledb'.
 
   <Returns>
     None.
@@ -1608,11 +1606,11 @@ class Snapshot(Metadata):
 
     # Is 'repository_name' properly formatted?  Otherwise, raise a
     # tuf.exceptions.FormatError exception.
-    securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+    sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
     # By default, 'snapshot' metadata is set to expire 1 week from the current
     # time.  The expiration may be modified.
-    expiration = tuf.formats.unix_timestamp_to_datetime(
+    expiration = formats.unix_timestamp_to_datetime(
         int(time.time() + SNAPSHOT_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
 
@@ -1621,9 +1619,9 @@ class Snapshot(Metadata):
                 'partial_loaded': False}
 
     try:
-      tuf.roledb.add_role(self._rolename, roleinfo, self._repository_name)
+      roledb.add_role(self._rolename, roleinfo, self._repository_name)
 
-    except tuf.exceptions.RoleAlreadyExistsError:
+    except exceptions.RoleAlreadyExistsError:
       pass
 
 
@@ -1678,7 +1676,7 @@ class Targets(Metadata):
     formatted.
 
   <Side Effects>
-    Modifies the roleinfo of the targets role in 'tuf.roledb', or creates
+    Modifies the roleinfo of the targets role in 'roledb', or creates
     a default one named 'targets'.
 
   <Returns>
@@ -1692,12 +1690,12 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
-    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
-    securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+    sslib_formats.PATH_SCHEMA.check_match(targets_directory)
+    formats.ROLENAME_SCHEMA.check_match(rolename)
+    sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
     if roleinfo is not None:
-      tuf.formats.ROLEDB_SCHEMA.check_match(roleinfo)
+      formats.ROLEDB_SCHEMA.check_match(roleinfo)
 
     super(Targets, self).__init__()
     self._targets_directory = targets_directory
@@ -1715,7 +1713,7 @@ class Targets(Metadata):
 
     # By default, Targets objects are set to expire 3 months from the current
     # time.  May be later modified.
-    expiration = tuf.formats.unix_timestamp_to_datetime(
+    expiration = formats.unix_timestamp_to_datetime(
         int(time.time() + TARGETS_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
 
@@ -1727,11 +1725,11 @@ class Targets(Metadata):
                   'partial_loaded': False, 'delegations': {'keys': {},
                                                            'roles': []}}
 
-    # Add the new role to the 'tuf.roledb'.
+    # Add the new role to the 'roledb'.
     try:
-      tuf.roledb.add_role(self.rolename, roleinfo, self._repository_name)
+      roledb.add_role(self.rolename, roleinfo, self._repository_name)
 
-    except tuf.exceptions.RoleAlreadyExistsError:
+    except exceptions.RoleAlreadyExistsError:
       pass
 
 
@@ -1756,7 +1754,7 @@ class Targets(Metadata):
       delegated by this Targets object.
 
     <Side Effects>
-      Modifies the roleinfo of the targets role in 'tuf.roledb'.
+      Modifies the roleinfo of the targets role in 'roledb'.
 
     <Returns>
       The Targets object of 'rolename'.
@@ -1766,13 +1764,13 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+    formats.ROLENAME_SCHEMA.check_match(rolename)
 
     if rolename in self._delegated_roles:
       return self._delegated_roles[rolename]
 
     else:
-      raise tuf.exceptions.UnknownRoleError(repr(rolename) + ' has'
+      raise exceptions.UnknownRoleError(repr(rolename) + ' has'
           ' not been delegated by ' + repr(self.rolename))
 
 
@@ -1808,10 +1806,10 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+    formats.ROLENAME_SCHEMA.check_match(rolename)
 
     if not isinstance(targets_object, Targets):
-      raise securesystemslib.exceptions.FormatError(repr(targets_object) + ' is'
+      raise sslib_exceptions.FormatError(repr(targets_object) + ' is'
           ' not a Targets object.')
 
 
@@ -1826,7 +1824,7 @@ class Targets(Metadata):
   def remove_delegated_role(self, rolename):
     """
       Remove 'rolename' from this Targets object's list of delegated roles.
-      This method does not update tuf.roledb and others.
+      This method does not update roledb and others.
 
     <Arguments>
       rolename:
@@ -1848,7 +1846,7 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+    formats.ROLENAME_SCHEMA.check_match(rolename)
 
     if rolename not in self._delegated_roles:
       logger.debug(repr(rolename) + ' has not been delegated.')
@@ -1883,7 +1881,7 @@ class Targets(Metadata):
       None.
     """
 
-    target_files = tuf.roledb.get_roleinfo(self._rolename,
+    target_files = roledb.get_roleinfo(self._rolename,
         self._repository_name)['paths']
     return target_files
 
@@ -1935,13 +1933,13 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    securesystemslib.formats.PATHS_SCHEMA.check_match(paths)
-    tuf.formats.ROLENAME_SCHEMA.check_match(child_rolename)
+    sslib_formats.PATHS_SCHEMA.check_match(paths)
+    formats.ROLENAME_SCHEMA.check_match(child_rolename)
 
     # Ensure that 'child_rolename' exists, otherwise it will not have an entry
     # in the parent role's delegations field.
-    if not tuf.roledb.role_exists(child_rolename, self._repository_name):
-      raise securesystemslib.exceptions.Error(repr(child_rolename) + ' does'
+    if not roledb.role_exists(child_rolename, self._repository_name):
+      raise sslib_exceptions.Error(repr(child_rolename) + ' does'
           ' not exist.')
 
     for path in paths:
@@ -1953,7 +1951,7 @@ class Targets(Metadata):
 
     # Get the current role's roleinfo, so that its delegations field can be
     # updated.
-    roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
+    roleinfo = roledb.get_roleinfo(self._rolename, self._repository_name)
 
     # Update the delegated paths of 'child_rolename' to add relative paths.
     for role in roleinfo['delegations']['roles']:
@@ -1967,7 +1965,7 @@ class Targets(Metadata):
       else:
         logger.debug(repr(role['name']) + ' does not match child rolename.')
 
-    tuf.roledb.update_roleinfo(self._rolename, roleinfo,
+    roledb.update_roleinfo(self._rolename, roleinfo,
         repository_name=self._repository_name)
 
 
@@ -2014,7 +2012,7 @@ class Targets(Metadata):
 
     <Side Effects>
       Adds 'filepath' to this role's list of targets.  This role's
-      'tuf.roledb.py' entry is also updated.
+      'roledb' entry is also updated.
 
     <Returns>
       None.
@@ -2024,19 +2022,19 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    tuf.formats.RELPATH_SCHEMA.check_match(filepath)
+    formats.RELPATH_SCHEMA.check_match(filepath)
 
     if fileinfo and custom:
-      raise securesystemslib.exceptions.Error("Can only take one of"
+      raise sslib_exceptions.Error("Can only take one of"
           " custom or fileinfo, not both.")
 
     if fileinfo:
-      tuf.formats.TARGETS_FILEINFO_SCHEMA.check_match(fileinfo)
+      formats.TARGETS_FILEINFO_SCHEMA.check_match(fileinfo)
 
     if custom is None:
       custom = {}
     else:
-      tuf.formats.CUSTOM_SCHEMA.check_match(custom)
+      formats.CUSTOM_SCHEMA.check_match(custom)
 
     # Add 'filepath' (i.e., relative to the targets directory) to the role's
     # list of targets.  'filepath' will not be verified as an allowed path
@@ -2051,8 +2049,8 @@ class Targets(Metadata):
     # later calls to write() will fail.
     self._check_path(filepath)
 
-    # Update the role's 'tuf.roledb.py' entry and avoid duplicates.
-    roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
+    # Update the role's 'roledb' entry and avoid duplicates.
+    roleinfo = roledb.get_roleinfo(self._rolename, self._repository_name)
 
     if filepath not in roleinfo['paths']:
       logger.debug('Adding new target: ' + repr(filepath))
@@ -2065,7 +2063,7 @@ class Targets(Metadata):
     else:
       roleinfo['paths'].update({filepath: {'custom': custom}})
 
-    tuf.roledb.update_roleinfo(self._rolename, roleinfo,
+    roledb.update_roleinfo(self._rolename, roleinfo,
         repository_name=self._repository_name)
 
 
@@ -2104,7 +2102,7 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    tuf.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
+    formats.RELPATHS_SCHEMA.check_match(list_of_targets)
 
     # Ensure the paths in 'list_of_targets' are relative and use forward slash
     # as a separator or raise an exception. The paths of 'list_of_targets'
@@ -2115,8 +2113,8 @@ class Targets(Metadata):
     for target in list_of_targets:
       self._check_path(target)
 
-    # Update this Targets 'tuf.roledb.py' entry.
-    roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
+    # Update this Targets 'roledb' entry.
+    roleinfo = roledb.get_roleinfo(self._rolename, self._repository_name)
     for relative_target in list_of_targets:
       if relative_target not in roleinfo['paths']:
         logger.debug('Adding new target: ' + repr(relative_target))
@@ -2124,7 +2122,7 @@ class Targets(Metadata):
         logger.debug('Replacing target: ' + repr(relative_target))
       roleinfo['paths'].update({relative_target: {}})
 
-    tuf.roledb.update_roleinfo(self.rolename, roleinfo,
+    roledb.update_roleinfo(self.rolename, roleinfo,
         repository_name=self._repository_name)
 
 
@@ -2152,7 +2150,7 @@ class Targets(Metadata):
       repository's targets directory, or not found.
 
     <Side Effects>
-      Modifies this Targets 'tuf.roledb.py' entry.
+      Modifies this Targets 'roledb' entry.
 
     <Returns>
       None.
@@ -2162,17 +2160,17 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.  Raise
     # 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    tuf.formats.RELPATH_SCHEMA.check_match(filepath)
+    formats.RELPATH_SCHEMA.check_match(filepath)
 
     # Remove 'relative_filepath', if found, and update this Targets roleinfo.
-    fileinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
+    fileinfo = roledb.get_roleinfo(self.rolename, self._repository_name)
     if filepath in fileinfo['paths']:
       del fileinfo['paths'][filepath]
-      tuf.roledb.update_roleinfo(self.rolename, fileinfo,
+      roledb.update_roleinfo(self.rolename, fileinfo,
           repository_name=self._repository_name)
 
     else:
-      raise securesystemslib.exceptions.Error('Target file path not found.')
+      raise sslib_exceptions.Error('Target file path not found.')
 
 
 
@@ -2192,16 +2190,16 @@ class Targets(Metadata):
       None.
 
     <Side Effects>
-      Modifies this Targets' 'tuf.roledb.py' entry.
+      Modifies this Targets' 'roledb' entry.
 
     <Returns>
       None.
     """
 
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
+    roleinfo = roledb.get_roleinfo(self.rolename, self._repository_name)
     roleinfo['paths'] = {}
 
-    tuf.roledb.update_roleinfo(self.rolename, roleinfo,
+    roledb.update_roleinfo(self.rolename, roleinfo,
         repository_name=self._repository_name)
 
 
@@ -2229,7 +2227,7 @@ class Targets(Metadata):
      A list of rolenames.
     """
 
-    return tuf.roledb.get_delegated_rolenames(self.rolename, self._repository_name)
+    return roledb.get_delegated_rolenames(self.rolename, self._repository_name)
 
 
 
@@ -2241,7 +2239,7 @@ class Targets(Metadata):
     expiration is set (3 months from the current time).
     """
 
-    expiration = tuf.formats.unix_timestamp_to_datetime(
+    expiration = formats.unix_timestamp_to_datetime(
         int(time.time() + TARGETS_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
 
@@ -2267,13 +2265,13 @@ class Targets(Metadata):
     roles in delegations_roleinfo
     """
 
-    current_roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
+    current_roleinfo = roledb.get_roleinfo(self.rolename, self._repository_name)
     current_roleinfo['delegations']['keys'].update(keydict)
 
     for roleinfo in delegations_roleinfo:
       current_roleinfo['delegations']['roles'].append(roleinfo)
 
-    tuf.roledb.update_roleinfo(self.rolename, current_roleinfo,
+    roledb.update_roleinfo(self.rolename, current_roleinfo,
         repository_name=self._repository_name)
 
 
@@ -2352,8 +2350,8 @@ class Targets(Metadata):
 
     <Side Effects>
       A new Target object is created for 'rolename' that is accessible to the
-      caller (i.e., targets.<rolename>).  The 'tuf.keydb.py' and
-      'tuf.roledb.py' stores are updated with 'public_keys'.
+      caller (i.e., targets.<rolename>).  The 'keydb' and
+      'roledb' stores are updated with 'public_keys'.
 
     <Returns>
       None.
@@ -2363,17 +2361,17 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
-    securesystemslib.formats.ANYKEYLIST_SCHEMA.check_match(public_keys)
-    tuf.formats.RELPATHS_SCHEMA.check_match(paths)
-    tuf.formats.THRESHOLD_SCHEMA.check_match(threshold)
-    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(terminating)
+    formats.ROLENAME_SCHEMA.check_match(rolename)
+    sslib_formats.ANYKEYLIST_SCHEMA.check_match(public_keys)
+    formats.RELPATHS_SCHEMA.check_match(paths)
+    formats.THRESHOLD_SCHEMA.check_match(threshold)
+    sslib_formats.BOOLEAN_SCHEMA.check_match(terminating)
 
     if list_of_targets is not None:
-      tuf.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
+      formats.RELPATHS_SCHEMA.check_match(list_of_targets)
 
     if path_hash_prefixes is not None:
-      tuf.formats.PATH_HASH_PREFIXES_SCHEMA.check_match(path_hash_prefixes)
+      formats.PATH_HASH_PREFIXES_SCHEMA.check_match(path_hash_prefixes)
 
     # Keep track of the valid keyids (added to the new Targets object) and
     # their keydicts (added to this Targets delegations).
@@ -2446,7 +2444,7 @@ class Targets(Metadata):
     <Purpose>
       Revoke this Targets' 'rolename' delegation.  Its 'rolename' attribute is
       deleted, including the entries in its 'delegations' field and in
-      'tuf.roledb'.
+      'roledb'.
 
       Actual metadata files are not updated, only when repository.write() or
       repository.write() is called.
@@ -2465,7 +2463,7 @@ class Targets(Metadata):
       formatted.
 
     <Side Effects>
-      The delegations dictionary of 'rolename' is modified, and its 'tuf.roledb'
+      The delegations dictionary of 'rolename' is modified, and its 'roledb'
       entry is updated.  This Targets' 'rolename' delegation attribute is also
       deleted.
 
@@ -2477,27 +2475,27 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+    formats.ROLENAME_SCHEMA.check_match(rolename)
 
     # Remove 'rolename' from this Target's delegations dict.
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
+    roleinfo = roledb.get_roleinfo(self.rolename, self._repository_name)
 
     for role in roleinfo['delegations']['roles']:
       if role['name'] == rolename:
         roleinfo['delegations']['roles'].remove(role)
 
-    tuf.roledb.update_roleinfo(self.rolename, roleinfo,
+    roledb.update_roleinfo(self.rolename, roleinfo,
         repository_name=self._repository_name)
 
-    # Remove 'rolename' from 'tuf.roledb.py'.
+    # Remove 'rolename' from 'roledb'.
     try:
-      tuf.roledb.remove_role(rolename, self._repository_name)
+      roledb.remove_role(rolename, self._repository_name)
       # Remove the rolename delegation from the current role.  For example, the
       # 'django' role is removed from repository.targets('django').
       del self._delegated_roles[rolename]
       self._parent_targets_object.remove_delegated_role(rolename)
 
-    except (tuf.exceptions.UnknownRoleError, KeyError):
+    except (exceptions.UnknownRoleError, KeyError):
       pass
 
 
@@ -2567,9 +2565,9 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    securesystemslib.formats.PATHS_SCHEMA.check_match(list_of_targets)
-    securesystemslib.formats.ANYKEYLIST_SCHEMA.check_match(keys_of_hashed_bins)
-    tuf.formats.NUMBINS_SCHEMA.check_match(number_of_bins)
+    sslib_formats.PATHS_SCHEMA.check_match(list_of_targets)
+    sslib_formats.ANYKEYLIST_SCHEMA.check_match(keys_of_hashed_bins)
+    formats.NUMBINS_SCHEMA.check_match(number_of_bins)
 
     prefix_length, prefix_count, bin_size = repo_lib.get_bin_numbers(number_of_bins)
 
@@ -2711,8 +2709,8 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    securesystemslib.formats.PATH_SCHEMA.check_match(target_filepath)
-    tuf.formats.NUMBINS_SCHEMA.check_match(number_of_bins)
+    sslib_formats.PATH_SCHEMA.check_match(target_filepath)
+    formats.NUMBINS_SCHEMA.check_match(number_of_bins)
 
     # TODO: check target_filepath is sane
 
@@ -2721,7 +2719,7 @@ class Targets(Metadata):
 
     # Ensure the Targets object has delegated to hashed bins
     if not self._delegated_roles.get(bin_name, None):
-      raise securesystemslib.exceptions.Error(self.rolename + ' does not have'
+      raise sslib_exceptions.Error(self.rolename + ' does not have'
           ' a delegated role ' + bin_name)
 
     self._delegated_roles[bin_name].add_target(target_filepath,
@@ -2773,8 +2771,8 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    securesystemslib.formats.PATH_SCHEMA.check_match(target_filepath)
-    tuf.formats.NUMBINS_SCHEMA.check_match(number_of_bins)
+    sslib_formats.PATH_SCHEMA.check_match(target_filepath)
+    formats.NUMBINS_SCHEMA.check_match(number_of_bins)
 
     # TODO: check target_filepath is sane?
 
@@ -2783,7 +2781,7 @@ class Targets(Metadata):
 
     # Ensure the Targets object has delegated to hashed bins
     if not self._delegated_roles.get(bin_name, None):
-      raise securesystemslib.exceptions.Error(self.rolename + ' does not have'
+      raise sslib_exceptions.Error(self.rolename + ' does not have'
           ' a delegated role ' + bin_name)
 
     self._delegated_roles[bin_name].remove_target(target_filepath)
@@ -2806,7 +2804,7 @@ class Targets(Metadata):
 
     <Exceptions>
       tuf.exceptions.UnknownRoleError, if this Targets' rolename
-      does not exist in 'tuf.roledb'.
+      does not exist in 'roledb'.
 
     <Side Effects>
       None.
@@ -2843,14 +2841,14 @@ class Targets(Metadata):
       None.
     """
 
-    tuf.formats.RELPATH_SCHEMA.check_match(pathname)
+    formats.RELPATH_SCHEMA.check_match(pathname)
 
     if '\\' in pathname:
-      raise tuf.exceptions.InvalidNameError('Path ' + repr(pathname)
+      raise exceptions.InvalidNameError('Path ' + repr(pathname)
           + ' does not use the forward slash (/) as directory separator.')
 
     if pathname.startswith('/'):
-      raise tuf.exceptions.InvalidNameError('Path ' + repr(pathname)
+      raise exceptions.InvalidNameError('Path ' + repr(pathname)
           + ' starts with a directory separator. All paths should be relative'
           '  to targets directory.')
 
@@ -2925,11 +2923,11 @@ def create_new_repository(repository_directory, repository_name='default',
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.PATH_SCHEMA.check_match(repository_directory)
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.PATH_SCHEMA.check_match(repository_directory)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   if storage_backend is None:
-    storage_backend = securesystemslib.storage.FilesystemBackend()
+    storage_backend = sslib_storage.FilesystemBackend()
 
   # Set the repository, metadata, and targets directories.  These directories
   # are created if they do not exist.
@@ -3035,11 +3033,11 @@ def load_repository(repository_directory, repository_name='default',
 
   # Does 'repository_directory' have the correct format?
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.PATH_SCHEMA.check_match(repository_directory)
-  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+  sslib_formats.PATH_SCHEMA.check_match(repository_directory)
+  sslib_formats.NAME_SCHEMA.check_match(repository_name)
 
   if storage_backend is None:
-    storage_backend = securesystemslib.storage.FilesystemBackend()
+    storage_backend = sslib_storage.FilesystemBackend()
 
   repository_directory = os.path.abspath(repository_directory)
   metadata_directory = os.path.join(repository_directory,
@@ -3085,7 +3083,7 @@ def load_repository(repository_directory, repository_name='default',
   # Store the delegations in the form of delegated-delegating role tuples,
   # starting from the top-level targets:
   # [('role1', 'targets'), ('role2', 'targets'), ... ]
-  roleinfo = tuf.roledb.get_roleinfo('targets', repository_name)
+  roleinfo = roledb.get_roleinfo('targets', repository_name)
   for role in roleinfo['delegations']['roles']:
     delegations.append((role, 'targets'))
 
@@ -3112,9 +3110,9 @@ def load_repository(repository_directory, repository_name='default',
     signable = None
 
     try:
-      signable = securesystemslib.util.load_json_file(metadata_path)
+      signable = sslib_util.load_json_file(metadata_path)
 
-    except (securesystemslib.exceptions.Error, ValueError, IOError):
+    except (sslib_exceptions.Error, ValueError, IOError):
       logger.debug('Tried to load metadata with invalid JSON'
           ' content: ' + repr(metadata_path))
       continue
@@ -3167,15 +3165,15 @@ def load_repository(repository_directory, repository_name='default',
       # The repo may have used hashing algorithms for the generated keyids
       # that doesn't match the client's set of hash algorithms.  Make sure
       # to only used the repo's selected hashing algorithms.
-      key_object, keyids = securesystemslib.keys.format_metadata_to_key(key_metadata,
+      key_object, keyids = format_metadata_to_key(key_metadata,
           keyid_hash_algorithms=key_metadata['keyid_hash_algorithms'])
       try:
         for keyid in keyids: # pragma: no branch
           key_object['keyid'] = keyid
-          tuf.keydb.add_key(key_object, keyid=None,
+          keydb.add_key(key_object, keyid=None,
               repository_name=repository_name)
 
-      except tuf.exceptions.KeyAlreadyExistsError:
+      except exceptions.KeyAlreadyExistsError:
         pass
 
   return repository
@@ -3217,14 +3215,14 @@ def dump_signable_metadata(metadata_filepath):
   """
 
   # Are the argument properly formatted?
-  securesystemslib.formats.PATH_SCHEMA.check_match(metadata_filepath)
+  sslib_formats.PATH_SCHEMA.check_match(metadata_filepath)
 
-  signable = securesystemslib.util.load_json_file(metadata_filepath)
+  signable = sslib_util.load_json_file(metadata_filepath)
 
   # Is 'signable' a valid metadata file?
-  tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
+  formats.SIGNABLE_SCHEMA.check_match(signable)
 
-  return securesystemslib.formats.encode_canonical(signable['signed'])
+  return sslib_formats.encode_canonical(signable['signed'])
 
 
 
@@ -3272,13 +3270,13 @@ def append_signature(signature, metadata_filepath):
   """
 
   # Are the arguments properly formatted?
-  securesystemslib.formats.SIGNATURE_SCHEMA.check_match(signature)
-  securesystemslib.formats.PATH_SCHEMA.check_match(metadata_filepath)
+  sslib_formats.SIGNATURE_SCHEMA.check_match(signature)
+  sslib_formats.PATH_SCHEMA.check_match(metadata_filepath)
 
-  signable = securesystemslib.util.load_json_file(metadata_filepath)
+  signable = sslib_util.load_json_file(metadata_filepath)
 
   # Is 'signable' a valid metadata file?
-  tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
+  formats.SIGNABLE_SCHEMA.check_match(signable)
 
   signable['signatures'].append(signature)
 
@@ -3288,7 +3286,7 @@ def append_signature(signature, metadata_filepath):
       separators=(',', ': '), sort_keys=True).encode('utf-8')
 
   file_object.write(written_metadata_content)
-  securesystemslib.util.persist_temp_file(file_object, metadata_filepath)
+  sslib_util.persist_temp_file(file_object, metadata_filepath)
 
 
 

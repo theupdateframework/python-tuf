@@ -69,10 +69,12 @@ import datetime
 import time
 import copy
 
-import securesystemslib.formats
-import securesystemslib.schema as SCHEMA
+from securesystemslib import exceptions as sslib_exceptions
+from securesystemslib import formats as sslib_formats
+from securesystemslib import schema as SCHEMA
 
 import tuf
+from tuf import exceptions
 
 import six
 
@@ -133,9 +135,9 @@ PATH_HASH_PREFIXES_SCHEMA = SCHEMA.ListOf(PATH_HASH_PREFIX_SCHEMA)
 ROLE_SCHEMA = SCHEMA.Object(
   object_name = 'ROLE_SCHEMA',
   name = SCHEMA.Optional(ROLENAME_SCHEMA),
-  keyids = securesystemslib.formats.KEYIDS_SCHEMA,
+  keyids = sslib_formats.KEYIDS_SCHEMA,
   threshold = THRESHOLD_SCHEMA,
-  terminating = SCHEMA.Optional(securesystemslib.formats.BOOLEAN_SCHEMA),
+  terminating = SCHEMA.Optional(sslib_formats.BOOLEAN_SCHEMA),
   paths = SCHEMA.Optional(RELPATHS_SCHEMA),
   path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA))
 
@@ -150,13 +152,13 @@ ROLEDICT_SCHEMA = SCHEMA.DictOf(
 # repository (corresponding to the repository belonging to named repository in
 # the dictionary key)
 ROLEDICTDB_SCHEMA = SCHEMA.DictOf(
-  key_schema = securesystemslib.formats.NAME_SCHEMA,
+  key_schema = sslib_formats.NAME_SCHEMA,
   value_schema = ROLEDICT_SCHEMA)
 
 # Command argument list, as used by the CLI tool.
 # Example: {'keytype': ed25519, 'expires': 365,}
 COMMAND_SCHEMA = SCHEMA.DictOf(
-  key_schema = securesystemslib.formats.NAME_SCHEMA,
+  key_schema = sslib_formats.NAME_SCHEMA,
   value_schema = SCHEMA.Any())
 
 # A dictionary holding version information.
@@ -274,7 +276,7 @@ NAME_SCHEMA = SCHEMA.AnyString()
 # A dict of repository names to mirrors.
 REPO_NAMES_TO_MIRRORS_SCHEMA = SCHEMA.DictOf(
   key_schema = NAME_SCHEMA,
-  value_schema = SCHEMA.ListOf(securesystemslib.formats.URL_SCHEMA))
+  value_schema = SCHEMA.ListOf(sslib_formats.URL_SCHEMA))
 
 # An object containing the map file's "mapping" attribute.
 MAPPING_SCHEMA = SCHEMA.ListOf(SCHEMA.Object(
@@ -333,7 +335,7 @@ ROLEDB_SCHEMA = SCHEMA.Object(
   previous_threshold = SCHEMA.Optional(THRESHOLD_SCHEMA),
   version = SCHEMA.Optional(METADATAVERSION_SCHEMA),
   expires = SCHEMA.Optional(ISO8601_DATETIME_SCHEMA),
-  signatures = SCHEMA.Optional(securesystemslib.formats.SIGNATURES_SCHEMA),
+  signatures = SCHEMA.Optional(sslib_formats.SIGNATURES_SCHEMA),
   paths = SCHEMA.Optional(SCHEMA.OneOf([RELPATHS_SCHEMA, PATH_FILEINFO_SCHEMA])),
   path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA),
   delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA),
@@ -343,7 +345,7 @@ ROLEDB_SCHEMA = SCHEMA.Object(
 SIGNABLE_SCHEMA = SCHEMA.Object(
   object_name = 'SIGNABLE_SCHEMA',
   signed = SCHEMA.Any(),
-  signatures = SCHEMA.ListOf(securesystemslib.formats.SIGNATURE_SCHEMA))
+  signatures = SCHEMA.ListOf(sslib_formats.SIGNATURE_SCHEMA))
 
 # Root role: indicates root keys and top-level roles.
 ROOT_SCHEMA = SCHEMA.Object(
@@ -372,7 +374,7 @@ SNAPSHOT_SCHEMA = SCHEMA.Object(
   object_name = 'SNAPSHOT_SCHEMA',
   _type = SCHEMA.String('snapshot'),
   version = METADATAVERSION_SCHEMA,
-  expires = securesystemslib.formats.ISO8601_DATETIME_SCHEMA,
+  expires = sslib_formats.ISO8601_DATETIME_SCHEMA,
   spec_version = SPECIFICATION_VERSION_SCHEMA,
   meta = FILEINFODICT_SCHEMA)
 
@@ -382,7 +384,7 @@ TIMESTAMP_SCHEMA = SCHEMA.Object(
   _type = SCHEMA.String('timestamp'),
   spec_version = SPECIFICATION_VERSION_SCHEMA,
   version = METADATAVERSION_SCHEMA,
-  expires = securesystemslib.formats.ISO8601_DATETIME_SCHEMA,
+  expires = sslib_formats.ISO8601_DATETIME_SCHEMA,
   meta = FILEINFODICT_SCHEMA)
 
 
@@ -391,10 +393,10 @@ PROJECT_CFG_SCHEMA = SCHEMA.Object(
     object_name = 'PROJECT_CFG_SCHEMA',
     project_name = SCHEMA.AnyString(),
     layout_type = SCHEMA.OneOf([SCHEMA.String('repo-like'), SCHEMA.String('flat')]),
-    targets_location = securesystemslib.formats.PATH_SCHEMA,
-    metadata_location = securesystemslib.formats.PATH_SCHEMA,
-    prefix = securesystemslib.formats.PATH_SCHEMA,
-    public_keys = securesystemslib.formats.KEYDICT_SCHEMA,
+    targets_location = sslib_formats.PATH_SCHEMA,
+    metadata_location = sslib_formats.PATH_SCHEMA,
+    prefix = sslib_formats.PATH_SCHEMA,
+    public_keys = sslib_formats.KEYDICT_SCHEMA,
     threshold = SCHEMA.Integer(lo = 0, hi = 2)
     )
 
@@ -402,7 +404,7 @@ PROJECT_CFG_SCHEMA = SCHEMA.Object(
 # such as a url, the path of the directory metadata files, etc.
 MIRROR_SCHEMA = SCHEMA.Object(
   object_name = 'MIRROR_SCHEMA',
-  url_prefix = securesystemslib.formats.URL_SCHEMA,
+  url_prefix = sslib_formats.URL_SCHEMA,
   metadata_path = SCHEMA.Optional(RELPATH_SCHEMA),
   targets_path = SCHEMA.Optional(RELPATH_SCHEMA),
   confined_target_dirs = SCHEMA.Optional(RELPATHS_SCHEMA),
@@ -422,7 +424,7 @@ MIRRORLIST_SCHEMA = SCHEMA.Object(
   object_name = 'MIRRORLIST_SCHEMA',
   _type = SCHEMA.String('mirrors'),
   version = METADATAVERSION_SCHEMA,
-  expires = securesystemslib.formats.ISO8601_DATETIME_SCHEMA,
+  expires = sslib_formats.ISO8601_DATETIME_SCHEMA,
   mirrors = SCHEMA.ListOf(MIRROR_SCHEMA))
 
 # Any of the role schemas (e.g., TIMESTAMP_SCHEMA, SNAPSHOT_SCHEMA, etc.)
@@ -440,14 +442,14 @@ SCPCONFIG_SCHEMA = SCHEMA.Object(
   general = SCHEMA.Object(
     object_name = '[general]',
     transfer_module = SCHEMA.String('scp'),
-    metadata_path = securesystemslib.formats.PATH_SCHEMA,
-    targets_directory = securesystemslib.formats.PATH_SCHEMA),
+    metadata_path = sslib_formats.PATH_SCHEMA,
+    targets_directory = sslib_formats.PATH_SCHEMA),
   scp=SCHEMA.Object(
     object_name = '[scp]',
-    host = securesystemslib.formats.URL_SCHEMA,
-    user = securesystemslib.formats.NAME_SCHEMA,
-    identity_file = securesystemslib.formats.PATH_SCHEMA,
-    remote_directory = securesystemslib.formats.PATH_SCHEMA))
+    host = sslib_formats.URL_SCHEMA,
+    user = sslib_formats.NAME_SCHEMA,
+    identity_file = sslib_formats.PATH_SCHEMA,
+    remote_directory = sslib_formats.PATH_SCHEMA))
 
 # The format of the resulting "receive config dict" after extraction from the
 # receive configuration file (i.e., receive.cfg).  The receive config file
@@ -457,11 +459,11 @@ SCPCONFIG_SCHEMA = SCHEMA.Object(
 RECEIVECONFIG_SCHEMA = SCHEMA.Object(
   object_name = 'RECEIVECONFIG_SCHEMA', general=SCHEMA.Object(
     object_name = '[general]',
-    pushroots = SCHEMA.ListOf(securesystemslib.formats.PATH_SCHEMA),
-    repository_directory = securesystemslib.formats.PATH_SCHEMA,
-    metadata_directory = securesystemslib.formats.PATH_SCHEMA,
-    targets_directory = securesystemslib.formats.PATH_SCHEMA,
-    backup_directory = securesystemslib.formats.PATH_SCHEMA))
+    pushroots = SCHEMA.ListOf(sslib_formats.PATH_SCHEMA),
+    repository_directory = sslib_formats.PATH_SCHEMA,
+    metadata_directory = sslib_formats.PATH_SCHEMA,
+    targets_directory = sslib_formats.PATH_SCHEMA,
+    backup_directory = sslib_formats.PATH_SCHEMA))
 
 
 
@@ -631,12 +633,12 @@ def expiry_string_to_datetime(expires):
   """
 
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.ISO8601_DATETIME_SCHEMA.check_match(expires)
+  sslib_formats.ISO8601_DATETIME_SCHEMA.check_match(expires)
 
   try:
     return datetime.datetime.strptime(expires, "%Y-%m-%dT%H:%M:%SZ")
   except ValueError as error:
-    six.raise_from(securesystemslib.exceptions.FormatError(
+    six.raise_from(sslib_exceptions.FormatError(
         'Failed to parse ' + repr(expires) + ' as an expiry time'),
         error)
 
@@ -674,7 +676,7 @@ def datetime_to_unix_timestamp(datetime_object):
   # Raise 'securesystemslib.exceptions.FormatError' if not.
   if not isinstance(datetime_object, datetime.datetime):
     message = repr(datetime_object) + ' is not a datetime.datetime() object.'
-    raise securesystemslib.exceptions.FormatError(message)
+    raise sslib_exceptions.FormatError(message)
 
   unix_timestamp = calendar.timegm(datetime_object.timetuple())
 
@@ -713,7 +715,7 @@ def unix_timestamp_to_datetime(unix_timestamp):
 
   # Is 'unix_timestamp' properly formatted?
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.UNIX_TIMESTAMP_SCHEMA.check_match(unix_timestamp)
+  sslib_formats.UNIX_TIMESTAMP_SCHEMA.check_match(unix_timestamp)
 
   # Convert 'unix_timestamp' to a 'time.struct_time',  in UTC.  The Daylight
   # Savings Time (DST) flag is set to zero.  datetime.fromtimestamp() is not
@@ -752,7 +754,7 @@ def format_base64(data):
     return binascii.b2a_base64(data).decode('utf-8').rstrip('=\n ')
 
   except (TypeError, binascii.Error) as e:
-    raise securesystemslib.exceptions.FormatError('Invalid base64'
+    raise sslib_exceptions.FormatError('Invalid base64'
       ' encoding: ' + str(e))
 
 
@@ -781,7 +783,7 @@ def parse_base64(base64_string):
 
   if not isinstance(base64_string, six.string_types):
     message = 'Invalid argument: '+repr(base64_string)
-    raise securesystemslib.exceptions.FormatError(message)
+    raise sslib_exceptions.FormatError(message)
 
   extra = len(base64_string) % 4
   if extra:
@@ -792,7 +794,7 @@ def parse_base64(base64_string):
     return binascii.a2b_base64(base64_string.encode('utf-8'))
 
   except (TypeError, binascii.Error) as e:
-    raise securesystemslib.exceptions.FormatError('Invalid base64'
+    raise sslib_exceptions.FormatError('Invalid base64'
       ' encoding: ' + str(e))
 
 
@@ -944,7 +946,7 @@ def expected_meta_rolename(meta_rolename):
   # This check ensures 'meta_rolename' conforms to
   # 'securesystemslib.formats.NAME_SCHEMA'.
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.NAME_SCHEMA.check_match(meta_rolename)
+  sslib_formats.NAME_SCHEMA.check_match(meta_rolename)
 
   return meta_rolename.lower()
 
@@ -989,18 +991,18 @@ def check_signable_object_format(signable):
     role_type = signable['signed']['_type']
 
   except (KeyError, TypeError) as error:
-    six.raise_from(securesystemslib.exceptions.FormatError(
+    six.raise_from(sslib_exceptions.FormatError(
         'Untyped signable object.'), error)
 
   try:
     schema = SCHEMAS_BY_TYPE[role_type]
 
   except KeyError as error:
-    six.raise_from(securesystemslib.exceptions.FormatError(
+    six.raise_from(sslib_exceptions.FormatError(
         'Unrecognized type ' + repr(role_type)), error)
 
   if not signable['signatures']:
-    raise tuf.exceptions.UnsignedMetadataError('Signable object of type ' +
+    raise exceptions.UnsignedMetadataError('Signable object of type ' +
         repr(role_type) + ' has no signatures ', signable)
 
   # 'securesystemslib.exceptions.FormatError' raised if 'signable' does not
