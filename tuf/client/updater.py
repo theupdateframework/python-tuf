@@ -148,7 +148,7 @@ from tuf import mirrors
 from tuf import roledb
 from tuf import settings
 from tuf import sig
-import tuf.requests_fetcher
+from tuf import requests_fetcher
 
 # The Timestamp role does not have signed metadata about it; otherwise we
 # would need an infinite regress of metadata. Therefore, we use some
@@ -699,7 +699,7 @@ class Updater(object):
     # Initialize Updater with an externally provided 'fetcher' implementing
     # the network download. By default tuf.fetcher.RequestsFetcher is used.
     if fetcher is None:
-      self.fetcher = tuf.requests_fetcher.RequestsFetcher()
+      self.fetcher = requests_fetcher.RequestsFetcher()
     else:
       self.fetcher = fetcher
 
