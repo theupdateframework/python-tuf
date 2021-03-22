@@ -60,12 +60,7 @@ class Updater:
         self._repository_name = repository_name
         self._mirrors = repository_mirrors
         self._consistent_snapshot = False
-        self._metadata = {
-            "root": {},
-            "timestamp": {},
-            "snapshot": {},
-            "targets": {},
-        }
+        self._metadata = {}
 
         if fetcher is None:
             self._fetcher = RequestsFetcher()
@@ -99,9 +94,8 @@ class Updater:
         """
         return self._preorder_depth_first_walk(filename)
 
-    def updated_targets(
-        self, targets: Dict, destination_directory: str
-    ) -> Dict:
+    @staticmethod
+    def updated_targets(targets: Dict, destination_directory: str) -> Dict:
         """
         After the client has retrieved the target information for those targets
         they are interested in updating, they would call this method to
@@ -157,16 +151,18 @@ class Updater:
         The file is saved to the 'destination_directory' argument.
         """
 
-        for temp_obj in self._mirror_target_download(target):
-            try:
+        try:
+            for temp_obj in self._mirror_target_download(target):
                 self._verify_target_file(temp_obj, target)
                 # break? should we break after first successful download?
-            except Exception as exception:
-                # TODO: do something with exceptions
-                raise
 
-        filepath = os.path.join(destination_directory, target["filepath"])
-        securesystemslib.util.persist_temp_file(temp_obj, filepath)
+                filepath = os.path.join(
+                    destination_directory, target["filepath"]
+                )
+                securesystemslib.util.persist_temp_file(temp_obj, filepath)
+        except Exception:
+            # TODO: do something with exceptions
+            raise
 
     def _mirror_meta_download(self, filename: str, upper_length: int) -> TextIO:
         """
@@ -242,8 +238,9 @@ class Updater:
             filename,
         )
 
+    @staticmethod
     def _get_relative_meta_name(
-        self, role: str, extension: str = ".json", version: int = None
+        role: str, extension: str = ".json", version: int = None
     ) -> str:
         """
         Helper method returning full metadata file path given the role name
@@ -269,7 +266,7 @@ class Updater:
         # Update the root role
         # 1.1. Let N denote the version number of the trusted
         # root metadata file.
-        lower_bound = self._metadata["root"]._meta.signed.version
+        lower_bound = self._metadata["root"].version
         upper_bound = lower_bound + tuf.settings.MAX_NUMBER_ROOT_ROTATIONS
 
         verified_root = None
@@ -284,7 +281,7 @@ class Updater:
                     try:
                         verified_root = self._verify_root(temp_obj)
 
-                    except Exception as exception:
+                    except Exception:
                         raise
 
             except tuf.exceptions.NoWorkingMirrorError as exception:
@@ -299,7 +296,7 @@ class Updater:
         # than the expiration timestamp in the trusted root metadata file
         try:
             verified_root.expires()
-        except Exception:
+        except tuf.exceptions.ExpiredMetadataError:
             temp_obj.close()
 
         # 1.9. If the timestamp and / or snapshot keys have been rotated,
@@ -328,9 +325,13 @@ class Updater:
         self._consistent_snapshot = self._metadata[
             "root"
         ].signed.consistent_snapshot
+
         temp_obj.close()
 
     def _load_timestamp(self) -> None:
+        """
+        TODO
+        """
         # TODO Check if timestamp exists locally
         for temp_obj in self._mirror_meta_download(
             "timestamp.json", tuf.settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
@@ -338,7 +339,7 @@ class Updater:
             try:
                 verified_tampstamp = self._verify_timestamp(temp_obj)
                 # break? should we break after first successful download?
-            except Exception as exception:
+            except Exception:
                 # TODO: do something with exceptions
                 temp_obj.close()
                 raise
@@ -353,16 +354,19 @@ class Updater:
         temp_obj.close()
 
     def _load_snapshot(self) -> None:
-
+        """
+        TODO
+        """
         try:
             length = self._metadata["timestamp"].snapshot["length"]
         except KeyError:
             length = tuf.settings.DEFAULT_SNAPSHOT_REQUIRED_LENGTH
 
-        if self._consistent_snapshot:
-            version = self._metadata["timestamp"].snapshot["version"]
-        else:
-            version = None
+        # Uncomment when implementing consistent_snapshot
+        # if self._consistent_snapshot:
+        #     version = self._metadata["timestamp"].snapshot["version"]
+        # else:
+        #     version = None
 
         # Check if exists locally
         # self.loadLocal('snapshot', snapshotVerifier)
@@ -370,7 +374,7 @@ class Updater:
             try:
                 verified_snapshot = self._verify_snapshot(temp_obj)
                 # break? should we break after first successful download?
-            except Exception as exception:
+            except Exception:
                 # TODO: do something with exceptions
                 temp_obj.close()
                 raise
@@ -385,15 +389,19 @@ class Updater:
         temp_obj.close()
 
     def _load_targets(self, targets_role: str, parent_role: str) -> None:
+        """
+        TODO
+        """
         try:
             length = self._metadata["snapshot"].role(targets_role)["length"]
         except KeyError:
             length = tuf.settings.DEFAULT_TARGETS_REQUIRED_LENGTH
 
-        if self._consistent_snapshot:
-            version = self._metadata["snapshot"].role(targets_role)["version"]
-        else:
-            version = None
+        # Uncomment when implementing consistent_snapshot
+        # if self._consistent_snapshot:
+        #     version = self._metadata["snapshot"].role(targets_role)["version"]
+        # else:
+        #     version = None
 
         # Check if exists locally
         # self.loadLocal('snapshot', targetsVerifier)
@@ -406,7 +414,7 @@ class Updater:
                     temp_obj, targets_role, parent_role
                 )
                 # break? should we break after first successful download?
-            except Exception as exception:
+            except Exception:
                 # TODO: do something with exceptions
                 temp_obj.close()
                 raise
@@ -420,6 +428,9 @@ class Updater:
         temp_obj.close()
 
     def _verify_root(self, temp_obj: TextIO) -> RootWrapper:
+        """
+        TODO
+        """
 
         intermediate_root = RootWrapper.from_json_object(temp_obj)
 
@@ -444,6 +455,9 @@ class Updater:
         return intermediate_root
 
     def _verify_timestamp(self, temp_obj: TextIO) -> TimestampWrapper:
+        """
+        TODO
+        """
         intermediate_timestamp = TimestampWrapper.from_json_object(temp_obj)
 
         # Check for an arbitrary software attack
@@ -453,7 +467,7 @@ class Updater:
         )
 
         # Check for a rollback attack.
-        if self._metadata["timestamp"]:
+        if self._metadata.get("timestamp"):
             if (
                 intermediate_timestamp.signed.version
                 <= self._metadata["timestamp"].version
@@ -465,7 +479,7 @@ class Updater:
                     self._metadata["timestamp"].version(),
                 )
 
-        if self._metadata["snapshot"]:
+        if self._metadata.get("snapshot"):
             if (
                 intermediate_timestamp.snapshot.version
                 <= self._metadata["timestamp"].snapshot["version"]
@@ -482,6 +496,9 @@ class Updater:
         return intermediate_timestamp
 
     def _verify_snapshot(self, temp_obj: TextIO) -> SnapshotWrapper:
+        """
+        TODO
+        """
 
         # Check against timestamp metadata
         if self._metadata["timestamp"].snapshot.get("hash"):
@@ -505,7 +522,7 @@ class Updater:
         )
 
         # Check for a rollback attack
-        if self._metadata["snapshot"]:
+        if self._metadata.get("snapshot"):
             for target_role in intermediate_snapshot.signed.meta:
                 if (
                     target_role["version"]
@@ -521,6 +538,9 @@ class Updater:
     def _verify_targets(
         self, temp_obj: TextIO, filename: str, parent_role: str
     ) -> TargetsWrapper:
+        """
+        TODO
+        """
 
         # Check against timestamp metadata
         if self._metadata["snapshot"].role(filename).get("hash"):
@@ -547,12 +567,19 @@ class Updater:
 
         return intermediate_targets
 
-    def _verify_target_file(self, temp_obj: BinaryIO, targetinfo: Dict) -> None:
+    @staticmethod
+    def _verify_target_file(temp_obj: BinaryIO, targetinfo: Dict) -> None:
+        """
+        TODO
+        """
 
         _check_file_length(temp_obj, targetinfo["fileinfo"]["length"])
         _check_hashes(temp_obj, targetinfo["fileinfo"]["hashes"])
 
     def _preorder_depth_first_walk(self, target_filepath) -> Dict:
+        """
+        TODO
+        """
 
         target = None
         role_names = [("targets", "root")]
@@ -577,7 +604,8 @@ class Updater:
             self._load_targets(role_name, parent_role)
             # Skip any visited current role to prevent cycles.
             if (role_name, parent_role) in visited_role_names:
-                logger.debug(f"Skipping visited current role {role_name}")
+                msg = f"Skipping visited current role {role_name}"
+                logger.debug(msg)
                 continue
 
             # The metadata for 'role_name' must be downloaded/updated before
@@ -590,8 +618,7 @@ class Updater:
             #     refresh_all_delegated_roles=False)
 
             role_metadata = self._metadata[role_name]
-            targets = role_metadata.targets
-            target = targets.get(target_filepath)
+            target = role_metadata.targets.get(target_filepath)
 
             # After preorder check, add current role to set of visited roles.
             visited_role_names.add((role_name, parent_role))
@@ -615,10 +642,11 @@ class Updater:
                         child_role["terminating"]
                         and child_role_name is not None
                     ):
-                        logger.debug(
-                            "Adding child role " + repr(child_role_name)
+                        msg = (
+                            f"Adding child role {child_role_name}.\n",
+                            "Not backtracking to other roles.",
                         )
-                        logger.debug("Not backtracking to other roles.")
+                        logger.debug(msg)
                         role_names = []
                         child_roles_to_visit.append(
                             (child_role_name, role_name)
@@ -626,14 +654,12 @@ class Updater:
                         break
 
                     if child_role_name is None:
-                        logger.debug(
-                            "Skipping child role " + repr(child_role_name)
-                        )
+                        msg = f"Skipping child role {child_role_name}"
+                        logger.debug(msg)
 
                     else:
-                        logger.debug(
-                            "Adding child role " + repr(child_role_name)
-                        )
+                        msg = f"Adding child role {child_role_name}"
+                        logger.debug(msg)
                         child_roles_to_visit.append(
                             (child_role_name, role_name)
                         )
@@ -645,20 +671,21 @@ class Updater:
                 role_names.extend(child_roles_to_visit)
 
             else:
-                logger.debug("Found target in current role " + repr(role_name))
+                msg = f"Found target in current role {role_name}"
+                logger.debug(msg)
 
         if (
             target is None
             and number_of_delegations == 0
             and len(role_names) > 0
         ):
-            logger.debug(
-                repr(len(role_names))
-                + " roles left to visit, "
-                + "but allowed to visit at most "
-                + repr(tuf.settings.MAX_NUMBER_OF_DELEGATIONS)
-                + " delegations."
+            msg = (
+                f"{len(role_names)}  roles left to visit, ",
+                "but allowed to visit at most ",
+                f"{tuf.settings.MAX_NUMBER_OF_DELEGATIONS}",
+                " delegations.",
             )
+            logger.debug(msg)
 
         return {"filepath": target_filepath, "fileinfo": target}
 
@@ -761,7 +788,9 @@ def _visit_child_role(child_role: Dict, target_filepath: str) -> str:
 
 
 def _check_file_length(file_object, trusted_file_length):
-
+    """
+    TODO
+    """
     file_object.seek(0, 2)
     observed_length = file_object.tell()
 
@@ -776,7 +805,9 @@ def _check_file_length(file_object, trusted_file_length):
 
 
 def _check_hashes(file_object, trusted_hashes):
-
+    """
+    TODO
+    """
     # Verify each trusted hash of 'trusted_hashes'.  If all are valid, simply
     # return.
     for algorithm, trusted_hash in trusted_hashes.items():
@@ -800,7 +831,9 @@ def _check_hashes(file_object, trusted_hashes):
 
 
 def _get_target_hash(target_filepath, hash_function="sha256"):
-
+    """
+    TODO
+    """
     # Calculate the hash of the filepath to determine which bin to find the
     # target.  The client currently assumes the repository (i.e., repository
     # tool) uses 'hash_function' to generate hashes and UTF-8.
@@ -813,6 +846,9 @@ def _get_target_hash(target_filepath, hash_function="sha256"):
 
 
 def neither_403_nor_404(mirror_error):
+    """
+    TODO
+    """
     if isinstance(mirror_error, tuf.exceptions.FetcherHTTPError):
         if mirror_error.status_code in {403, 404}:
             return False

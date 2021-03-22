@@ -25,18 +25,19 @@ class MetadataWrapper:
     def from_json_object(cls, tmp_file):
         """Loads JSON-formatted TUF metadata from a file object."""
         raw_data = tmp_file.read()
-
+        # Use local scope import to avoid circular import errors
+        # pylint: disable=import-outside-toplevel
         from tuf.api.serialization.json import JSONDeserializer
 
         deserializer = JSONDeserializer()
-        _meta = deserializer.deserialize(raw_data)
-        return cls(meta=_meta)
+        meta = deserializer.deserialize(raw_data)
+        return cls(meta=meta)
 
     @classmethod
     def from_json_file(cls, filename):
         """Loads JSON-formatted TUF metadata from a file."""
-        _meta = metadata.Metadata.from_file(filename)
-        return cls(meta=_meta)
+        meta = metadata.Metadata.from_file(filename)
+        return cls(meta=meta)
 
     @property
     def signed(self):
@@ -97,7 +98,7 @@ class RootWrapper(MetadataWrapper):
         keys = []
         for keyid in self._meta.signed.roles[role]["keyids"]:
             key_metadata = self._meta.signed.keys[keyid]
-            key, _ = format_metadata_to_key(key_metadata)
+            key, dummy = format_metadata_to_key(key_metadata)
             keys.append(key)
 
         return keys
@@ -162,7 +163,7 @@ class TargetsWrapper(MetadataWrapper):
             if delegation["name"] == role:
                 for keyid in delegation["keyids"]:
                     key_metadata = self._meta.signed.delegations["keys"][keyid]
-                    key, _ = format_metadata_to_key(key_metadata)
+                    key, dummy = format_metadata_to_key(key_metadata)
                     keys.append(key)
             return keys
 
