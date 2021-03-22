@@ -35,27 +35,27 @@ attributes in the middle of function execution.
 
 ## Pros, Cons, and Considerations of the Options
 
+Here is how all of our options compare against our requirements:
+
+| Number      | Requirement | ValidationMixin | pydantic | marshmallow |
+| ----------- | ----------- | ----------- | ----------- | ----------- |
+| 1 | Validate function args everywhere | Limited | ✓ | Limited |
+| 2 | Custom deeper validation | ✓ | ✓ | ✓ |
+| 3 | Performance overhead | Minimal. | [Fastest](https://pydantic-docs.helpmanual.io/benchmarks/) | [Slower](https://pydantic-docs.helpmanual.io/benchmarks/) |
+| 4 | Number of new depedencies | 0 | 2 | 1  |
+| 5 | Support for all python versions | ✓ | ✓ | ✓ |
+| 6 | Code reuse for validation | ✓  | ✓ | ✓ |
+| 7 | Way to invoke all validators | ✓ | ✓ | ✓ |
+
+Bellow, in the following sections, there are additional pros, cons, and
+considerations for each of the options.
+
 ### Option 1: Usage of a ValidationMixin
 
 **Note:** All pros, cons, and considerations are documented with the assumption
 we would implement the `ValidationMixin` the same way it is implemented in
 [in-toto](https://github.com/in-toto) until version 1.0.1 (the latest
 version at the time of writing.)
-
-Here is how this option compares against our
-[requirements](#decision-drivers-and-requirements):
-
-| Number      | Stance |
-| ----------- | ----------- |
-| 1 | It's limited on what it can validate.  |
-| 2   | Yes, it does allow that. |
-| 3   | It contains only the code we need, so the overhead is minimal. |
-| 4   | It doesn't add any dependencies.        |
-| 5   | Yes, it does support all of our python versions.      |
-| 6   | Yes, it does allow that.  |
-| 7   | Yes, it does allow that. |
-
-Additional thoughts:
 
 * Bad, because there could be different code paths and return statements, and as
 a consequence there could be a code path that doesn't call `validate()`.
@@ -97,7 +97,7 @@ class User(ValidationMixin):
 perspective to inherit `ValidationMixin` from classes without a "IS A"
 relationship with it.
 
-* Consideration (*related to point 1*): if we use this option, we are limited on
+* Consideration (*related to requirement 1*): if we use this option, we are limited on
 what can be validated.
 With the `in-toto` implementation of the `ValidationMixin`, we can only validate
 class attributes inside class methods.
@@ -112,21 +112,6 @@ resolved by us or replace the schema implementation with something else.
 should be combined with custom "setter" properties.
 
 ### Option 2: Usage of a third-party library called "pydantic"
-
-Here is how this option compares against our
-[requirements](#decision-drivers-and-requirements):
-
-| Number      | Stance |
-| ----------- | ----------- |
-| 1 | It's not limited to what it can validate.  |
-| 2   | Yes, it allows that through a `@validator` decorator. |
-| 3   | The fastest validation library according to [them](https://pydantic-docs.helpmanual.io/benchmarks/).  |
-| 4   | It adds two dependencies. |
-| 5   | Yes, it does support all of our python versions. |
-| 6   | Yes, it does allow that.  |
-| 7   | It allows it, but with not very intuitive manner.  |
-
-Additional thoughts:
 
 * Good, because it's flexible:
 1. There is a `@validate_arguments` decorator which allows us to decide which
@@ -207,21 +192,6 @@ class RepositoryManager(BaseModel):
 ```
 
 ### Option 3: Usage of a third-part library called "marshmallow"
-
-Here is how this option compares against our
-[requirements](#decision-drivers-and-requirements):
-
-| Number      | Stance |
-| ----------- | ----------- |
-| 1 | It can validate only class attributes.  |
-| 2   | Yes, it allows that. |
-| 3   | Likely slower than `pydanitc` (according to [pydantic](https://pydantic-docs.helpmanual.io/benchmarks/)).  |
-| 4   | It adds 1 additional dependency. |
-| 5   | Yes, it does support all of our python versions. |
-| 6   | Yes, it does allow that.  |
-| 7   | Yes, it allows that through `validate()` function. |
-
-Additional thoughts:
 
 * Good, because it allows for strict type checks by marking the class attributes
 (or Fields as they call them) as `strict`.
