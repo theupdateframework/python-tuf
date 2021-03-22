@@ -8,10 +8,9 @@
 import time
 
 from securesystemslib.keys import format_metadata_to_key
-from tuf.api import metadata
+
 import tuf.exceptions
-
-
+from tuf.api import metadata
 
 
 class MetadataWrapper:
@@ -24,20 +23,18 @@ class MetadataWrapper:
 
     @classmethod
     def from_json_object(cls, tmp_file):
-        """Loads JSON-formatted TUF metadata from a file object.
-        """
+        """Loads JSON-formatted TUF metadata from a file object."""
         raw_data = tmp_file.read()
 
         from tuf.api.serialization.json import JSONDeserializer
+
         deserializer = JSONDeserializer()
         _meta = deserializer.deserialize(raw_data)
         return cls(meta=_meta)
 
-
     @classmethod
     def from_json_file(cls, filename):
-        """Loads JSON-formatted TUF metadata from a file.
-        """
+        """Loads JSON-formatted TUF metadata from a file."""
         _meta = metadata.Metadata.from_file(filename)
         return cls(meta=_meta)
 
@@ -55,7 +52,6 @@ class MetadataWrapper:
         """
         return self._meta.signed.version
 
-
     def verify(self, keys, threshold):
         """
         TODO
@@ -64,11 +60,10 @@ class MetadataWrapper:
         # 1.3. Check signatures
         for key in keys:
             self._meta.verify(key)
-            verified+=1
+            verified += 1
 
         if verified < threshold:
             raise tuf.exceptions.InsufficientKeysError
-
 
     def persist(self, filename):
         """
@@ -76,82 +71,80 @@ class MetadataWrapper:
         """
         self._meta.to_file(filename)
 
-
     def expires(self, reference_time=None):
         """
         TODO
         """
         if reference_time is None:
             expires_timestamp = tuf.formats.datetime_to_unix_timestamp(
-                self._meta.signed.expires)
+                self._meta.signed.expires
+            )
             reference_time = int(time.time())
 
         if expires_timestamp < reference_time:
             raise tuf.exceptions.ExpiredMetadataError
 
 
-
-
 class RootWrapper(MetadataWrapper):
     """
     TODO
     """
+
     def keys(self, role):
         """
         TODO
         """
         keys = []
-        for keyid in self._meta.signed.roles[role]['keyids']:
+        for keyid in self._meta.signed.roles[role]["keyids"]:
             key_metadata = self._meta.signed.keys[keyid]
             key, _ = format_metadata_to_key(key_metadata)
             keys.append(key)
 
         return keys
 
-
     def threshold(self, role):
         """
         TODO
         """
-        return self._meta.signed.roles[role]['threshold']
-
+        return self._meta.signed.roles[role]["threshold"]
 
 
 class TimestampWrapper(MetadataWrapper):
     """
     TODO
     """
+
     @property
     def snapshot(self):
         """
         TODO
         """
-        return self._meta.signed.meta['snapshot.json']
+        return self._meta.signed.meta["snapshot.json"]
 
 
 class SnapshotWrapper(MetadataWrapper):
     """
     TODO
     """
+
     def role(self, name):
         """
         TODO
         """
-        return self._meta.signed.meta[name + '.json']
-
+        return self._meta.signed.meta[name + ".json"]
 
 
 class TargetsWrapper(MetadataWrapper):
     """
     TODO
     """
+
     @property
     def targets(self):
         """
         TODO
         """
         return self._meta.signed.targets
-
 
     @property
     def delegations(self):
@@ -160,27 +153,25 @@ class TargetsWrapper(MetadataWrapper):
         """
         return self._meta.signed.delegations
 
-
     def keys(self, role):
         """
         TODO
         """
         keys = []
-        for delegation in self._meta.signed.delegations['roles']:
-            if delegation['name'] == role:
-                for keyid in delegation['keyids']:
-                    key_metadata = self._meta.signed.delegations['keys'][keyid]
+        for delegation in self._meta.signed.delegations["roles"]:
+            if delegation["name"] == role:
+                for keyid in delegation["keyids"]:
+                    key_metadata = self._meta.signed.delegations["keys"][keyid]
                     key, _ = format_metadata_to_key(key_metadata)
                     keys.append(key)
             return keys
-
 
     def threshold(self, role):
         """
         TODO
         """
-        for delegation in self._meta.signed.delegations['roles']:
-            if delegation['name'] == role:
-                return delegation['threshold']
+        for delegation in self._meta.signed.delegations["roles"]:
+            if delegation["name"] == role:
+                return delegation["threshold"]
 
         return None
