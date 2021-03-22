@@ -299,7 +299,7 @@ class Updater:
         try:
             verified_root.expires()
         except tuf.exceptions.ExpiredMetadataError:
-            temp_obj.close()
+            temp_obj.close()  # pylint: disable=undefined-loop-variable
 
         # 1.9. If the timestamp and / or snapshot keys have been rotated,
         # then delete the trusted timestamp and snapshot metadata files.
@@ -328,7 +328,7 @@ class Updater:
             "root"
         ].signed.consistent_snapshot
 
-        temp_obj.close()
+        temp_obj.close()  # pylint: disable=undefined-loop-variable
 
     def _load_timestamp(self) -> None:
         """
@@ -353,7 +353,7 @@ class Updater:
             self._get_full_meta_name("timestamp.json")
         )
 
-        temp_obj.close()
+        temp_obj.close()  # pylint: disable=undefined-loop-variable
 
     def _load_snapshot(self) -> None:
         """
@@ -388,7 +388,7 @@ class Updater:
             self._get_full_meta_name("snapshot.json")
         )
 
-        temp_obj.close()
+        temp_obj.close()  # pylint: disable=undefined-loop-variable
 
     def _load_targets(self, targets_role: str, parent_role: str) -> None:
         """
@@ -427,7 +427,7 @@ class Updater:
             self._get_full_meta_name(targets_role, extension=".json")
         )
 
-        temp_obj.close()
+        temp_obj.close()  # pylint: disable=undefined-loop-variable
 
     def _verify_root(self, temp_obj: TextIO) -> RootWrapper:
         """
