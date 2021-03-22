@@ -160,6 +160,7 @@ class Updater:
                     destination_directory, target["filepath"]
                 )
                 securesystemslib.util.persist_temp_file(temp_obj, filepath)
+        # pylint: disable=try-except-raise
         except Exception:
             # TODO: do something with exceptions
             raise
@@ -182,6 +183,7 @@ class Updater:
                 temp_obj.seek(0)
                 yield temp_obj
 
+            # pylint: disable=broad-except
             except Exception as exception:
                 file_mirror_errors[file_mirror] = exception
 
@@ -209,7 +211,7 @@ class Updater:
 
                 temp_obj.seek(0)
                 yield temp_obj
-
+            # pylint: disable=broad-except
             except Exception as exception:
                 file_mirror_errors[file_mirror] = exception
 
@@ -280,7 +282,7 @@ class Updater:
                 for temp_obj in mirror_download:
                     try:
                         verified_root = self._verify_root(temp_obj)
-
+                    # pylint: disable=try-except-raise
                     except Exception:
                         raise
 
