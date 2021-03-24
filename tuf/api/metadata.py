@@ -311,7 +311,6 @@ class Signed:
     ) -> None:
 
         self._type = _type
-        self.version = version
         self.spec_version = spec_version
         self.expires = expires
 
