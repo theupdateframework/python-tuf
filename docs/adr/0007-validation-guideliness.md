@@ -32,20 +32,22 @@ attributes in the middle of function execution.
 1. Usage of a `ValidationMixin`.
 2. Usage of a third-party library called `pydantic`.
 3. Usage of a third-party library called `marshmallow`.
+4. Combined option including a third-party library called `typeguard`, and
+usage of python descriptors.
 
 ## Pros, Cons, and Considerations of the Options
 
 Here is how all of our options compare against our requirements:
 
-| Number      | Requirement | ValidationMixin | pydantic | marshmallow |
-| ----------- | ----------- | ----------- | ----------- | ----------- |
-| 1 | Validate function args everywhere | Limited | ✓ | Limited |
-| 2 | Custom deeper validation | ✓ | ✓ | ✓ |
-| 3 | Performance overhead | Minimal. | [Fastest](https://pydantic-docs.helpmanual.io/benchmarks/) | [Slower](https://pydantic-docs.helpmanual.io/benchmarks/) |
-| 4 | Number of new depedencies | 0 | 2 | 1  |
-| 5 | Support for all python versions | ✓ | ✓ | ✓ |
-| 6 | Code reuse for validation | ✓  | ✓ | ✓ |
-| 7 | Way to invoke all validators | ✓ | ✓ | ✓ |
+| Number | Requirement | ValidationMixin | pydantic | marshmallow | typeguard + Descriptors |
+| ----------- | ----------- | ----------- | ----------- | ----------- | ----------- |
+| 1 | Validate function args everywhere | Limited | ✓ | Limited | ✓ |
+| 2 | Custom deeper validation | ✓ | ✓ | ✓ | ✓ |
+| 3 | Performance overhead | Minimal | [Fastest](https://pydantic-docs.helpmanual.io/benchmarks/) | [Slower](https://pydantic-docs.helpmanual.io/benchmarks/) | No information |
+| 4 | Number of new depedencies | 0 | 2 | 1  | 1 |
+| 5 | Support for all python versions | ✓ | ✓ | ✓ | ✓ |
+| 6 | Code reuse for validation | ✓  | ✓ | ✓ | ✓ |
+| 7 | Way to invoke all validators | ✓ | ✓ | ✓ | ✘ |
 
 Bellow, in the following sections, there are additional pros, cons, and
 considerations for each of the options.
@@ -219,12 +221,99 @@ This was the case when I researched `marshmallow` and had to use the
 `marshmallow.fields.DateTime` class instead of the `datetime.datetime` object.
 
 
+### Option 4: Third-party library called `typeguard` and python descriptors
+
+* Good (*related to requirment 1*), because it allows for strict type checks
+because of `typeguard`.
+
+* Good, because requires little code changes to enable strict type checking and
+at the same time, it allows you to ignore validation for certain functions by
+using a decorator @typeguard.typechecked (not released in the latest version,
+but it's added to the master branch on GitHub).
+
+* Good, because enforces assignment validation.
+
+* Good, because it allows us to enforce custom restrictions with one-liners.
+For example, we can pass a `predicate` function for our types which could be
+whatever we want.
+See [Python descriptors](https://docs.python.org/3/howto/descriptor.html#custom-validators)
+
+* Bad (*related to requirement number 7*), there is no way of invoking the
+validation functions for each of the fields whenever we want. This is because
+we are overriding the `__get__` magic method and no longer can we access the
+class instance.
+Example:
+```python
+class Integer:
+    def __init__(self, minvalue=None, maxvalue=None):
+        self.minvalue = minvalue
+        self.maxvalue = maxvalue
+
+    def __set_name__(self, owner, name):
+        self.private_name = "_" + "NO_VALIDATION_" + name
+
+    def __get__(self, obj, objtype=None):
+        return getattr(obj, self.private_name)
+
+    def __set__(self, obj, value):
+        self.validate(value)
+        setattr(obj, self.private_name, value)
+
+    def validate(self, value):
+        if not isinstance(value, int):
+            raise TypeError(f"Expected {value!r} to be an int or float")
+        if self.minvalue is not None and value < self.minvalue:
+            raise ValueError(
+                f"Expected {value!r} to be at least {self.minvalue!r}"
+            )
+        if self.maxvalue is not None and value > self.maxvalue:
+            raise ValueError(
+                f"Expected {value!r} to be no more than {self.maxvalue!r}"
+            )
+
+class User:
+  id: Integer(minvalue=0, maxvalue=1000)
+
+  def __init__(self, id: int):
+    self.id = id # Validation will be invoked
+
+  def important_operation(self):
+    # I want to validate the user id here before performing the important operation.
+    # If use "self.id.validate()" then "self.id" will invoke the Integer __get__()
+    # method and the result will be int.validate(), but an int doesn't have
+    # a validate method...
+```
+
+* Bad (*related to requirement 4*), because it adds one additional dependency - itself.
+This was concluded by performing the following steps:
+1. Creating a fresh virtual environment with python3.8.
+2. Installing all dependencies in `requirements-dev.txt` from `tuf`.
+3. Install `typeguard` with `pip install typeguard`.
+
+* Consideration: the `typeguard` project is maintained by only 1 developer and
+the project is located as his personal repository.
+We should keep an eye on the project development.
+
+* Consideration: in the example above, when we use `__set__` and `__set_name__`
+in the `Integer` class we set additional argument for each `User` instance.
+This attribute is named `_NO_VALIDATION_id` and if we decide we can bypass the
+validation like this:
+```python
+u = User(3)
+u._NO_VALIDATION_id = -100 # No validation will be invoked.
+
+# u.id will call the "__get__()" method of the Integer class and will return -100.
+print(u.id)
+```
+
 
 ## Links
 * [in-toto ValidatorMixin](https://github.com/in-toto/in-toto/blob/74da7a/in_toto/models/common.py#L27-L40)
 * [ValidatorMixing usage](https://github.com/in-toto/in-toto/blob/74da7a/in_toto/models/layout.py#L420-L438)
 * [Pydantic documentation](https://pydantic-docs.helpmanual.io/)
 * [Marshmallow documentation](https://marshmallow.readthedocs.io/)
+* [typeguard GitHub page](https://github.com/agronholm/typeguard)
+* [Python descriptors](https://docs.python.org/3/howto/descriptor.html#custom-validators)
 
 ## Decision Outcome
 
