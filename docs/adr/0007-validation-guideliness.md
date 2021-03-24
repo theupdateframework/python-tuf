@@ -34,20 +34,22 @@ attributes in the middle of function execution.
 3. Usage of a third-party library called `marshmallow`.
 4. Combined option including a third-party library called `typeguard`, and
 usage of python descriptors.
+5. Combined option including a third-party library called `typeguard`, and
+usage of `ValidationMixin`
 
 ## Pros, Cons, and Considerations of the Options
 
 Here is how all of our options compare against our requirements:
 
-| Number | Requirement | ValidationMixin | pydantic | marshmallow | typeguard + Descriptors |
-| ----------- | ----------- | ----------- | ----------- | ----------- | ----------- |
-| 1 | Validate function args everywhere | Limited | ✓ | Limited | ✓ |
-| 2 | Custom deeper validation | ✓ | ✓ | ✓ | ✓ |
-| 3 | Performance overhead | Minimal | [Fastest](https://pydantic-docs.helpmanual.io/benchmarks/) | [Slower](https://pydantic-docs.helpmanual.io/benchmarks/) | No information |
-| 4 | Number of new depedencies | 0 | 2 | 1  | 1 |
-| 5 | Support for all python versions | ✓ | ✓ | ✓ | ✓ |
-| 6 | Code reuse for validation | ✓  | ✓ | ✓ | ✓ |
-| 7 | Way to invoke all validators | ✓ | ✓ | ✓ | ✘ |
+| Number | Requirement | ValidationMixin | pydantic | marshmallow | typeguard + Descriptors | typeguard +  ValidationMixin |
+| ----------- | ----------- | ----------- | ----------- | ----------- | ----------- | ----------- |
+| 1 | Validate function args everywhere | Limited | ✓ | Limited | ✓ | ✓ |
+| 2 | Custom deeper validation | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 3 | Performance overhead | Minimal | [Fastest](https://pydantic-docs.helpmanual.io/benchmarks/) | [Slower](https://pydantic-docs.helpmanual.io/benchmarks/) | No information | No information |
+| 4 | Number of new depedencies | 0 | 2 | 1  | 1 | 1 |
+| 5 | Support for all python versions | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 6 | Code reuse for validation | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 7 | Way to invoke all validators | ✓ | ✓ | ✓ | ✘ | ✓ |
 
 Bellow, in the following sections, there are additional pros, cons, and
 considerations for each of the options.
@@ -306,6 +308,14 @@ u._NO_VALIDATION_id = -100 # No validation will be invoked.
 print(u.id)
 ```
 
+### Option 5: Third-party library called `typeguard` and `ValidationMixin`
+
+* All pros, cons, and consideration from option 1 are applied here too,
+with the exception that we can validate function arguments everywhere because
+of `typeguard`.
+
+* All pros, cons, and consideration from option 4 related to `typeguard` apply
+here too.
 
 ## Links
 * [in-toto ValidatorMixin](https://github.com/in-toto/in-toto/blob/74da7a/in_toto/models/common.py#L27-L40)
