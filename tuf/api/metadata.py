@@ -316,7 +316,7 @@ class Signed:
 
         # TODO: Should we separate data validation from constructor?
         if version < 0:
-            raise ValueError(f"version must be < 0, got {version}")
+            raise ValueError(f"version must be >= 0, got {version}")
         self.version = version
 
     @staticmethod
