@@ -12,8 +12,8 @@ Build-Depends: dh-python,
                python3-securesystemslib
 Standards-Version: 4.5.1
 Rules-Requires-Root: no
-Vcs-Browser: https://github.com/theupdateframework/tuf
-Vcs-Git: https://github.com/theupdateframework/tuf.git
+Vcs-Browser: https://salsa.debian.org/python-team/packages/python-tuf/-/tree/debian/master
+Vcs-Git: https://salsa.debian.org/python-team/packages/python-tuf.git
 Homepage: https://theupdateframework.com
 
 Package: python3-tuf
