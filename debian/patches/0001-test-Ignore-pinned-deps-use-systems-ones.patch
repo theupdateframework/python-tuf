@@ -1,0 +1,31 @@
+From: Philippe Coval <rzr@users.sf.net>
+Date: Sat, 27 Mar 2021 11:20:24 +0000
+Subject: test: Ignore pinned deps use systems ones
+
+Relate-to: https://github.com/theupdateframework/tuf/pull/1325
+Forwarded: not-needed
+Signed-off-by: Philippe Coval <rzr@users.sf.net>
+---
+ tox.ini | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/tox.ini b/tox.ini
+index acf8044..c98517e 100644
+--- a/tox.ini
++++ b/tox.ini
+@@ -19,7 +19,6 @@ commands =
+     coverage report -m --fail-under 97
+ 
+ deps =
+-    -r{toxinidir}/requirements-test.txt
+     # Install TUF in editable mode, instead of tox default virtual environment
+     # installation (see `skipsdist`), to get relative paths in coverage reports
+     --editable {toxinidir}
+@@ -33,7 +32,6 @@ install_command = pip install --use-deprecated=legacy-resolver --pre {opts} {pac
+ [testenv:with-sslib-master]
+ deps =
+     git+http://github.com/secure-systems-lab/securesystemslib.git@master#egg=securesystemslib
+-    -r{toxinidir}/requirements-test.txt
+     --editable {toxinidir}
+ 
+ commands =

@@ -1,0 +1,55 @@
+From: Philippe Coval <rzr@users.sf.net>
+Date: Sat, 27 Mar 2021 11:20:24 +0000
+Subject: test: Use python3-coverage from sitepackages
+
+Suppress coverage fail threshold
+
+Debian python team prefer to not break on coverage issues,
+so they are just skip for now.
+
+I suspect this is caused by unaligned deps,
+threshold may be reintroduced once sitepackages get aligned with:
+requirements-pinned.txt
+
+For example this one is currently outdated:
+
+https://tracker.debian.org/pkg/python-certifi
+
+Relate-to: https://github.com/theupdateframework/tuf/issues/263
+Forwarded: not-needed
+Signed-off-by: Philippe Coval <rzr@users.sf.net>
+---
+ tox.ini | 11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/tox.ini b/tox.ini
+index c98517e..d8d1b34 100644
+--- a/tox.ini
++++ b/tox.ini
+@@ -13,10 +13,13 @@ skipsdist = true
+ # would make use of other testing tools such as coverage/coveralls easier.
+ changedir = tests
+ 
++allowlist_externals = python3-coverage
++
++
+ commands =
+     python --version
+-    coverage run aggregate_tests.py
+-    coverage report -m --fail-under 97
++    python3 -m coverage run aggregate_tests.py
++    python3-coverage report -m
+ 
+ deps =
+     # Install TUF in editable mode, instead of tox default virtual environment
+@@ -35,8 +38,8 @@ deps =
+     --editable {toxinidir}
+ 
+ commands =
+-    coverage run aggregate_tests.py
+-    coverage report -m
++    python3 -m coverage run aggregate_tests.py
++    python3-coverage report -m
+ 
+ [testenv:lint]
+ commands =
