@@ -1,0 +1,13 @@
+#!/bin/sh
+set -efu
+set -x
+
+pys="$(py3versions -s 2> /dev/null)"
+
+cp -rva tests "$AUTOPKGTEST_TMP/"
+cd "$AUTOPKGTEST_TMP/tests"
+
+for py in $pys; do
+    echo "=== $py ==="
+    PYTHONPATH="../tests/.." $py aggregate_tests.py
+done

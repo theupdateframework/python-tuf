@@ -29,6 +29,7 @@ Rules-Requires-Root: no
 Vcs-Browser: https://salsa.debian.org/python-team/packages/python-tuf/-/tree/debian/master
 Vcs-Git: https://salsa.debian.org/python-team/packages/python-tuf.git
 Homepage: https://theupdateframework.com
+Testsuite: autopkgtest-pkg-python
 
 Package: python3-tuf
 Architecture: all
