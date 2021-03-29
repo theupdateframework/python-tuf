@@ -1,0 +1,13 @@
+Document: python3-tuf-doc
+Title: TUF The update framework documentation
+Abstract: Specification, tutorial and papers about using and implementing TUF.
+Section: Video
+
+Format: Text
+Index: /usr/share/doc/python3-tuf/docs/GETTING_STARTED.rst
+Files: /usr/share/doc/python3-tuf/docs/*.md
+ /usr/share/doc/python3-tuf/docs/*.rst
+ /usr/share/doc/python3-tuf/docs/*.txt
+
+Format: PDF
+Files: /usr/share/doc/python3-tuf/docs/papers/*.pdf.gz

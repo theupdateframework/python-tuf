@@ -26,3 +26,8 @@ endif
 override_dh_auto_clean:
 	rm -rf .tox
 	dh_auto_clean
+
+override_dh_installdocs:
+	dh_installdocs
+	ln -fs tuf-spec.md \
+debian/python3-tuf-doc/usr/share/doc/python3-tuf/docs/tuf-spec.txt

@@ -42,3 +42,11 @@ Description: plug-and-play library for securing a software updater
  or signing keys.
  .
  tuf is developed at the Secure Systems Lab of NYU.
+
+Package: python3-tuf-doc
+Architecture: all
+Section: doc
+Depends: ${misc:Depends}
+Description: Documentation and specification for TUF library and more
+ TUF's documentation from source package, it contains specification,
+ tutorial and more detailed documents, more can be found online.
