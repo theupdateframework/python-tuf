@@ -1,4 +1,4 @@
-Source: python-tuf
+Source: tuf
 Maintainer: Debian Python Team <team+python@tracker.debian.org>
 Uploaders: Philippe Coval <rzr@users.sf.net>
 Section: python
@@ -27,8 +27,8 @@ Build-Depends: dh-python,
                tox
 Standards-Version: 4.5.1
 Rules-Requires-Root: no
-Vcs-Browser: https://salsa.debian.org/python-team/packages/python-tuf/-/tree/debian/master
-Vcs-Git: https://salsa.debian.org/python-team/packages/python-tuf.git
+Vcs-Browser: https://salsa.debian.org/python-team/packages/tuf/-/tree/debian/master
+Vcs-Git: https://salsa.debian.org/python-team/packages/tuf.git
 Homepage: https://theupdateframework.com
 Testsuite: autopkgtest-pkg-python
 
