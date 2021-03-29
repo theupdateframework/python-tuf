@@ -46,10 +46,24 @@ Here is how all of our options compare against our requirements:
 | 1 | Validate function args everywhere | Limited | ✓ | Limited | ✓ | ✓ |
 | 2 | Custom deeper validation | ✓ | ✓ | ✓ | ✓ | ✓ |
 | 3 | Performance overhead | Minimal | [Fastest](https://pydantic-docs.helpmanual.io/benchmarks/) | [Slower](https://pydantic-docs.helpmanual.io/benchmarks/) | No information | No information |
-| 4 | Number of new depedencies | 0 | 2 | 1  | 1 | 1 |
+| 4 | New [dependencies ; files ; lines of code;] | [0; no info; no info] | [2; 26; 8982] | [1; 13; 2652] | [1; 3; 899] | [1; 3; 899] |
 | 5 | Support for all python versions | ✓ | ✓ | ✓ | ✓ | ✓ |
 | 6 | Code reuse for validation | ✓ | ✓ | ✓ | ✓ | ✓ |
 | 7 | Way to invoke all validators | ✓ | ✓ | ✓ | ✘ | ✓ |
+
+For requirement number 4, the calculations were made with [sloccount](https://linux.die.net/man/1/sloccount)
+on March 30-th 2021.
+Those results were concluded by performing the following steps for each of the
+options using third-party libraries:
+1. Creating a fresh virtual environment with python3.8.
+2. Installing all dependencies in `requirements-dev.txt` from `tuf`.
+3. Install `<package_name>` with `pip install <package_name>`.
+4. Use `sloccount` to count added lines and files by the package and its
+dependencies.
+
+Only source files were used when calculating the lines of code and number of
+files (meaning all test files, doc folders, and other meta or configuration
+files were excluded).
 
 Bellow, in the following sections, there are additional pros, cons, and
 considerations for each of the options.
