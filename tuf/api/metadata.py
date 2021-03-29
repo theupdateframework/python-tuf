@@ -612,7 +612,7 @@ class Timestamp(Signed):
                         '<HASH ALGO 1>': '<SNAPSHOT METADATA FILE HASH 1>',
                         '<HASH ALGO 2>': '<SNAPSHOT METADATA FILE HASH 2>',
                         ...
-                    }
+                    } // optional
                 }
             }
 
@@ -648,14 +648,19 @@ class Timestamp(Signed):
 
     # Modification.
     def update(
-        self, version: int, length: int, hashes: Mapping[str, Any]
+        self,
+        version: int,
+        length: Optional[int] = None,
+        hashes: Optional[Mapping[str, Any]] = None,
     ) -> None:
         """Assigns passed info about snapshot metadata to meta dict."""
-        self.meta["snapshot.json"] = {
-            "version": version,
-            "length": length,
-            "hashes": hashes,
-        }
+        self.meta["snapshot.json"] = {"version": version}
+
+        if length is not None:
+            self.meta["snapshot.json"]["length"] = length
+
+        if hashes is not None:
+            self.meta["snapshot.json"]["hashes"] = hashes
 
 
 class Snapshot(Signed):

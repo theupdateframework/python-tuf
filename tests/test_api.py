@@ -260,6 +260,18 @@ class TestMetadata(unittest.TestCase):
         snapshot.signed.update('role1', 2, 123, hashes)
         self.assertEqual(snapshot.signed.meta, fileinfo)
 
+        # Update only version. Length and hashes are optional.
+        snapshot.signed.update('role2', 3)
+        fileinfo['role2.json'] = {'version': 3}
+        self.assertEqual(snapshot.signed.meta, fileinfo)
+
+        # Test from_dict and to_dict without hashes and length.
+        snapshot_dict = snapshot.to_dict()
+        test_dict = snapshot_dict['signed'].copy()
+        del test_dict['meta']['role1.json']['length']
+        del test_dict['meta']['role1.json']['hashes']
+        snapshot = Snapshot.from_dict(test_dict)
+        self.assertEqual(snapshot_dict['signed'], snapshot.to_dict())
 
     def test_metadata_timestamp(self):
         timestamp_path = os.path.join(
@@ -295,6 +307,18 @@ class TestMetadata(unittest.TestCase):
         timestamp.signed.update(2, 520, hashes)
         self.assertEqual(timestamp.signed.meta['snapshot.json'], fileinfo)
 
+        # Test from_dict and to_dict without hashes and length.
+        timestamp_dict = timestamp.to_dict()
+        test_dict = timestamp_dict['signed'].copy()
+        del test_dict['meta']['snapshot.json']['length']
+        del test_dict['meta']['snapshot.json']['hashes']
+        timestamp_test = Timestamp.from_dict(test_dict)
+        self.assertEqual(timestamp_dict['signed'], timestamp_test.to_dict())
+
+        # Update only version. Length and hashes are optional.
+        timestamp.signed.update(3)
+        fileinfo = {'version': 3}
+        self.assertEqual(timestamp.signed.meta['snapshot.json'], fileinfo)
 
     def test_key_class(self):
         keys = {
