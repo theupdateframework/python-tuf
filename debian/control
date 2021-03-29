@@ -6,6 +6,7 @@ Priority: optional
 Build-Depends: dh-python,
                black,
                debhelper-compat (= 13),
+	       python-is-python3,
                python3-all,
                python3-astroid,
                python3-bandit,

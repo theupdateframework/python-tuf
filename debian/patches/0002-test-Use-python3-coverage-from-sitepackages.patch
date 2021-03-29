@@ -37,8 +37,8 @@ index c98517e..d8d1b34 100644
      python --version
 -    coverage run aggregate_tests.py
 -    coverage report -m --fail-under 97
-+    python3 -m coverage run aggregate_tests.py
-+    python3-coverage report -m
++    python -m coverage run aggregate_tests.py
++    python -m coverage report -m
  
  deps =
      # Install TUF in editable mode, instead of tox default virtual environment
@@ -48,8 +48,8 @@ index c98517e..d8d1b34 100644
  commands =
 -    coverage run aggregate_tests.py
 -    coverage report -m
-+    python3 -m coverage run aggregate_tests.py
-+    python3-coverage report -m
++    python -m coverage run aggregate_tests.py
++    python -m coverage report -m
  
  [testenv:lint]
  commands =
