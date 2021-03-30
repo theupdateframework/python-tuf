@@ -53,15 +53,16 @@ class Updater:
         fetcher: Optional[FetcherInterface] = None,
     ):
 
-        self._repository_name = repository_name
         self._mirrors = repository_mirrors
-        self._consistent_snapshot = False
-        self._metadata = {}
 
         if fetcher is None:
             self._fetcher = requests_fetcher.RequestsFetcher()
         else:
             self._fetcher = fetcher
+
+        self._metadata = MetadataUpdater(
+            repository_name, self._mirrors, self._fetcher
+        )
 
     def refresh(self) -> None:
         """
@@ -77,10 +78,7 @@ class Updater:
         requests.
         """
 
-        self._load_root()
-        self._load_timestamp()
-        self._load_snapshot()
-        self._load_targets("targets", "root")
+        self._metadata.refresh()
 
     def get_one_valid_targetinfo(self, filename: str) -> Dict:
         """
@@ -88,7 +86,7 @@ class Updater:
         file path.  This target method also downloads the metadata of updated
         targets.
         """
-        return self._preorder_depth_first_walk(filename)
+        return self._metadata.preorder_depth_first_walk(filename)
 
     @staticmethod
     def updated_targets(targets: Dict, destination_directory: str) -> Dict:
@@ -161,32 +159,6 @@ class Updater:
             # TODO: do something with exceptions
             raise
 
-    def _mirror_meta_download(self, filename: str, upper_length: int) -> TextIO:
-        """
-        Download metadata file from the list of metadata mirrors
-        """
-        file_mirrors = mirrors.get_list_of_mirrors(
-            "meta", filename, self._mirrors
-        )
-
-        file_mirror_errors = {}
-        for file_mirror in file_mirrors:
-            try:
-                temp_obj = download.unsafe_download(
-                    file_mirror, upper_length, self._fetcher
-                )
-
-                temp_obj.seek(0)
-                yield temp_obj
-
-            # pylint: disable=broad-except
-            except Exception as exception:
-                file_mirror_errors[file_mirror] = exception
-
-            finally:
-                if file_mirror_errors:
-                    raise exceptions.NoWorkingMirrorError(file_mirror_errors)
-
     def _mirror_target_download(self, fileinfo: str) -> BinaryIO:
         """
         Download target file from the list of target mirrors
@@ -212,6 +184,67 @@ class Updater:
             finally:
                 if file_mirror_errors:
                     raise exceptions.NoWorkingMirrorError(file_mirror_errors)
+
+    def _verify_target_file(self, temp_obj: BinaryIO, targetinfo: Dict) -> None:
+        """
+        TODO
+        """
+
+        self._check_file_length(temp_obj, targetinfo["fileinfo"]["length"])
+        _check_hashes(temp_obj, targetinfo["fileinfo"]["hashes"])
+
+    @staticmethod
+    def _check_file_length(file_object, trusted_file_length):
+        """
+        TODO
+        """
+        file_object.seek(0, 2)
+        observed_length = file_object.tell()
+
+        # Return and log a message if the length 'file_object' is equal to
+        # 'trusted_file_length', otherwise raise an exception.  A hard check
+        # ensures that a downloaded file strictly matches a known, or trusted,
+        # file length.
+        if observed_length != trusted_file_length:
+            raise exceptions.DownloadLengthMismatchError(
+                trusted_file_length, observed_length
+            )
+
+
+class MetadataUpdater:
+    """TODO"""
+
+    def __init__(
+        self,
+        repository_name: str,
+        repository_mirrors: Dict,
+        fetcher: FetcherInterface,
+    ):
+
+        self._repository_name = repository_name
+        self._mirrors = repository_mirrors
+        self._fetcher = fetcher
+
+        self._metadata = {}
+
+    def refresh(self) -> None:
+        """
+        This method downloads, verifies, and loads metadata for the top-level
+        roles in a specific order (root -> timestamp -> snapshot -> targets)
+        The expiration time for downloaded metadata is also verified.
+
+        The metadata for delegated roles are not refreshed by this method, but
+        by the method that returns targetinfo (i.e.,
+        get_one_valid_targetinfo()).
+
+        The refresh() method should be called by the client before any target
+        requests.
+        """
+
+        self._load_root()
+        self._load_timestamp()
+        self._load_snapshot()
+        self._load_targets("targets", "root")
 
     def _get_full_meta_name(
         self, role: str, extension: str = ".json", version: int = None
@@ -280,7 +313,7 @@ class Updater:
 
             except exceptions.NoWorkingMirrorError as exception:
                 for mirror_error in exception.mirror_errors.values():
-                    if neither_403_nor_404(mirror_error):
+                    if self.neither_403_nor_404(mirror_error):
                         temp_obj.close()
                         raise
 
@@ -316,9 +349,10 @@ class Updater:
 
         # 1.10. Set whether consistent snapshots are used as per
         # the trusted root metadata file
-        self._consistent_snapshot = self._metadata[
-            "root"
-        ].signed.consistent_snapshot
+        # Uncomment when implementing consistent_snapshot
+        # self._consistent_snapshot = self._metadata[
+        #     "root"
+        # ].signed.consistent_snapshot
 
         temp_obj.close()  # pylint: disable=undefined-loop-variable
 
@@ -561,16 +595,7 @@ class Updater:
 
         return intermediate_targets
 
-    @staticmethod
-    def _verify_target_file(temp_obj: BinaryIO, targetinfo: Dict) -> None:
-        """
-        TODO
-        """
-
-        _check_file_length(temp_obj, targetinfo["fileinfo"]["length"])
-        _check_hashes(temp_obj, targetinfo["fileinfo"]["hashes"])
-
-    def _preorder_depth_first_walk(self, target_filepath) -> Dict:
+    def preorder_depth_first_walk(self, target_filepath) -> Dict:
         """
         TODO
         """
@@ -628,7 +653,7 @@ class Updater:
                 # NOTE: This may be a slow operation if there are many
                 # delegated roles.
                 for child_role in child_roles:
-                    child_role_name = _visit_child_role(
+                    child_role_name = self._visit_child_role(
                         child_role, target_filepath
                     )
 
@@ -683,121 +708,157 @@ class Updater:
 
         return {"filepath": target_filepath, "fileinfo": target}
 
+    def _visit_child_role(self, child_role: Dict, target_filepath: str) -> str:
+        """
+        <Purpose>
+        Non-public method that determines whether the given 'target_filepath'
+        is an allowed path of 'child_role'.
 
-def _visit_child_role(child_role: Dict, target_filepath: str) -> str:
-    """
-    <Purpose>
-      Non-public method that determines whether the given 'target_filepath'
-      is an allowed path of 'child_role'.
+        Ensure that we explore only delegated roles trusted with the target.
+        The metadata for 'child_role' should have been refreshed prior to this
+        point, however, the paths/targets that 'child_role' signs for have not
+        been verified (as intended).  The paths/targets that 'child_role' is
+        allowed to specify in its metadata depends on the delegating role, and
+        thus is left to the caller to verify.  We verify here that
+        'target_filepath' is an allowed path according to the delegated
+        'child_role'.
 
-      Ensure that we explore only delegated roles trusted with the target.  The
-      metadata for 'child_role' should have been refreshed prior to this point,
-      however, the paths/targets that 'child_role' signs for have not been
-      verified (as intended).  The paths/targets that 'child_role' is allowed
-      to specify in its metadata depends on the delegating role, and thus is
-      left to the caller to verify.  We verify here that 'target_filepath'
-      is an allowed path according to the delegated 'child_role'.
+        TODO: Should the TUF spec restrict the repository to one particular
+        algorithm?  Should we allow the repository to specify in the role
+        dictionary the algorithm used for these generated hashed paths?
 
-      TODO: Should the TUF spec restrict the repository to one particular
-      algorithm?  Should we allow the repository to specify in the role
-      dictionary the algorithm used for these generated hashed paths?
+        <Arguments>
+        child_role:
+            The delegation targets role object of 'child_role', containing its
+            paths, path_hash_prefixes, keys, and so on.
 
-    <Arguments>
-      child_role:
-        The delegation targets role object of 'child_role', containing its
-        paths, path_hash_prefixes, keys, and so on.
+        target_filepath:
+            The path to the target file on the repository. This will be relative
+            to the 'targets' (or equivalent) directory on a given mirror.
 
-      target_filepath:
-        The path to the target file on the repository. This will be relative to
-        the 'targets' (or equivalent) directory on a given mirror.
+        <Exceptions>
+        None.
 
-    <Exceptions>
-      None.
+        <Side Effects>
+        None.
 
-    <Side Effects>
-      None.
+        <Returns>
+        If 'child_role' has been delegated the target with the name
+        'target_filepath', then we return the role name of 'child_role'.
 
-    <Returns>
-      If 'child_role' has been delegated the target with the name
-      'target_filepath', then we return the role name of 'child_role'.
+        Otherwise, we return None.
+        """
 
-      Otherwise, we return None.
-    """
+        child_role_name = child_role["name"]
+        child_role_paths = child_role.get("paths")
+        child_role_path_hash_prefixes = child_role.get("path_hash_prefixes")
 
-    child_role_name = child_role["name"]
-    child_role_paths = child_role.get("paths")
-    child_role_path_hash_prefixes = child_role.get("path_hash_prefixes")
+        if child_role_path_hash_prefixes is not None:
+            target_filepath_hash = self._get_target_hash(target_filepath)
+            for child_role_path_hash_prefix in child_role_path_hash_prefixes:
+                if target_filepath_hash.startswith(child_role_path_hash_prefix):
+                    return child_role_name
 
-    if child_role_path_hash_prefixes is not None:
-        target_filepath_hash = _get_target_hash(target_filepath)
-        for child_role_path_hash_prefix in child_role_path_hash_prefixes:
-            if not target_filepath_hash.startswith(child_role_path_hash_prefix):
                 continue
 
-            return child_role_name
+        elif child_role_paths is not None:
+            # Is 'child_role_name' allowed to sign for 'target_filepath'?
+            for child_role_path in child_role_paths:
+                # A child role path may be an explicit path or glob pattern
+                # (Unix shell-style wildcards).  The child role
+                # 'child_role_name' is returned if 'target_filepath' is equal
+                # to or matches 'child_role_path'. Explicit filepaths are also
+                # considered matches.  A repo maintainer might delegate a glob
+                # pattern with a leading path separator, while the client
+                # requests a matching target without a leading path separator -
+                # make sure to strip any leading path separators so that a match
+                # is made.  Example: "foo.tgz" should match with "/*.tgz".
+                if fnmatch.fnmatch(
+                    target_filepath.lstrip(os.sep),
+                    child_role_path.lstrip(os.sep),
+                ):
+                    logger.debug(
+                        "Child role " + repr(child_role_name) + " is allowed to"
+                        " sign for " + repr(target_filepath)
+                    )
 
-    elif child_role_paths is not None:
-        # Is 'child_role_name' allowed to sign for 'target_filepath'?
-        for child_role_path in child_role_paths:
-            # A child role path may be an explicit path or glob pattern (Unix
-            # shell-style wildcards).  The child role 'child_role_name' is
-            # returned if 'target_filepath' is equal to or matches
-            # 'child_role_path'. Explicit filepaths are also considered
-            # matches. A repo maintainer might delegate a glob pattern with a
-            # leading path separator, while the client requests a matching
-            # target without a leading path separator - make sure to strip any
-            # leading path separators so that a match is made.
-            # Example: "foo.tgz" should match with "/*.tgz".
-            if fnmatch.fnmatch(
-                target_filepath.lstrip(os.sep), child_role_path.lstrip(os.sep)
-            ):
+                    return child_role_name
+
                 logger.debug(
-                    "Child role "
-                    + repr(child_role_name)
-                    + " is allowed to sign for "
+                    "The given target path "
                     + repr(target_filepath)
+                    + " does not"
+                    " match the trusted path or glob pattern: "
+                    + repr(child_role_path)
+                )
+                continue
+
+        else:
+            # 'role_name' should have been validated when it was downloaded.
+            # The 'paths' or 'path_hash_prefixes' fields should not be missing,
+            # so we raise a format error here in case they are both missing.
+            raise sslib_exceptions.FormatError(
+                repr(child_role_name) + " "
+                'has neither a "paths" nor "path_hash_prefixes".  At least'
+                " one of these attributes must be present."
+            )
+
+        return None
+
+    @staticmethod
+    def _get_target_hash(target_filepath, hash_function="sha256"):
+        """
+        TODO
+        """
+        # Calculate the hash of the filepath to determine which bin to find the
+        # target.  The client currently assumes the repository (i.e., repository
+        # tool) uses 'hash_function' to generate hashes and UTF-8.
+        digest_object = sslib_hash.digest(hash_function)
+        encoded_target_filepath = target_filepath.encode("utf-8")
+        digest_object.update(encoded_target_filepath)
+        target_filepath_hash = digest_object.hexdigest()
+
+        return target_filepath_hash
+
+    def _mirror_meta_download(self, filename: str, upper_length: int) -> TextIO:
+        """
+        Download metadata file from the list of metadata mirrors
+        """
+        file_mirrors = mirrors.get_list_of_mirrors(
+            "meta", filename, self._mirrors
+        )
+
+        file_mirror_errors = {}
+        for file_mirror in file_mirrors:
+            try:
+                temp_obj = download.unsafe_download(
+                    file_mirror, upper_length, self._fetcher
                 )
 
-                return child_role_name
+                temp_obj.seek(0)
+                yield temp_obj
 
-            logger.debug(
-                "The given target path "
-                + repr(target_filepath)
-                + " does not match the trusted path or glob pattern: "
-                + repr(child_role_path)
-            )
-            continue
+            # pylint: disable=broad-except
+            except Exception as exception:
+                file_mirror_errors[file_mirror] = exception
 
-    else:
-        # 'role_name' should have been validated when it was downloaded.
-        # The 'paths' or 'path_hash_prefixes' fields should not be missing,
-        # so we raise a format error here in case they are both missing.
-        raise exceptions.FormatError(
-            repr(child_role_name) + " "
-            'has neither a "paths" nor "path_hash_prefixes".  At least'
-            " one of these attributes must be present."
-        )
+            finally:
+                if file_mirror_errors:
+                    raise exceptions.NoWorkingMirrorError(file_mirror_errors)
 
-    return None
-
-
-def _check_file_length(file_object, trusted_file_length):
-    """
-    TODO
-    """
-    file_object.seek(0, 2)
-    observed_length = file_object.tell()
-
-    # Return and log a message if the length 'file_object' is equal to
-    # 'trusted_file_length', otherwise raise an exception.  A hard check
-    # ensures that a downloaded file strictly matches a known, or trusted,
-    # file length.
-    if observed_length != trusted_file_length:
-        raise exceptions.DownloadLengthMismatchError(
-            trusted_file_length, observed_length
-        )
+    @staticmethod
+    def neither_403_nor_404(mirror_error):
+        """
+        TODO
+        """
+        if isinstance(mirror_error, exceptions.FetcherHTTPError):
+            if mirror_error.status_code in {403, 404}:
+                return False
+        return True
 
 
+# FIXME: _check_hashes is moved outside the classes so that it can be reused.
+# Find a proper class design to avoid this.
 def _check_hashes(file_object, trusted_hashes):
     """
     TODO
@@ -820,28 +881,3 @@ def _check_hashes(file_object, trusted_hashes):
         logger.info(
             "The file's " + algorithm + " hash is" " correct: " + trusted_hash
         )
-
-
-def _get_target_hash(target_filepath, hash_function="sha256"):
-    """
-    TODO
-    """
-    # Calculate the hash of the filepath to determine which bin to find the
-    # target.  The client currently assumes the repository (i.e., repository
-    # tool) uses 'hash_function' to generate hashes and UTF-8.
-    digest_object = sslib_hash.digest(hash_function)
-    encoded_target_filepath = target_filepath.encode("utf-8")
-    digest_object.update(encoded_target_filepath)
-    target_filepath_hash = digest_object.hexdigest()
-
-    return target_filepath_hash
-
-
-def neither_403_nor_404(mirror_error):
-    """
-    TODO
-    """
-    if isinstance(mirror_error, exceptions.FetcherHTTPError):
-        if mirror_error.status_code in {403, 404}:
-            return False
-    return True
