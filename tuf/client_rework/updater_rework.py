@@ -10,7 +10,7 @@ TODO
 import fnmatch
 import logging
 import os
-from typing import BinaryIO, Dict, Optional, TextIO
+from typing import Dict, Optional, TextIO
 
 import securesystemslib.exceptions
 import securesystemslib.util
@@ -58,16 +58,14 @@ class Updater:
         fetcher: Optional[FetcherInterface] = None,
     ):
 
-        self._mirrors = repository_mirrors
-
         if fetcher is None:
-            self._fetcher = RequestsFetcher()
-        else:
-            self._fetcher = fetcher
+            fetcher = RequestsFetcher()
 
         self._metadata = MetadataUpdater(
-            repository_name, self._mirrors, self._fetcher
+            repository_name, repository_mirrors, fetcher
         )
+
+        self._target_updater = TargetUpdater(repository_mirrors, fetcher)
 
     def refresh(self) -> None:
         """
@@ -93,8 +91,9 @@ class Updater:
         """
         return self._metadata.preorder_depth_first_walk(filename)
 
-    @staticmethod
-    def updated_targets(targets: Dict, destination_directory: str) -> Dict:
+    def updated_targets(
+        self, targets: Dict, destination_directory: str
+    ) -> Dict:
         """
         After the client has retrieved the target information for those targets
         they are interested in updating, they would call this method to
@@ -102,110 +101,17 @@ class Updater:
         All the targets that have changed are returns in a list.  From this
         list, they can request a download by calling 'download_target()'.
         """
-        # Keep track of the target objects and filepaths of updated targets.
-        # Return 'updated_targets' and use 'updated_targetpaths' to avoid
-        # duplicates.
-        updated_targets = []
-        updated_targetpaths = []
+        return self._target_updater.updated_targets(
+            targets, destination_directory
+        )
 
-        for target in targets:
-            # Prepend 'destination_directory' to the target's relative filepath
-            # (as stored in metadata.)  Verify the hash of 'target_filepath'
-            # against each hash listed for its fileinfo.  Note: join() discards
-            # 'destination_directory' if 'filepath' contains a leading path
-            # separator (i.e., is treated as an absolute path).
-            filepath = target["filepath"]
-            target_filepath = os.path.join(destination_directory, filepath)
-
-            if target_filepath in updated_targetpaths:
-                continue
-
-            # Try one of the algorithm/digest combos for a mismatch.  We break
-            # as soon as we find a mismatch.
-            for algorithm, digest in target["fileinfo"]["hashes"].items():
-                digest_object = None
-                try:
-                    digest_object = securesystemslib.hash.digest_filename(
-                        target_filepath, algorithm=algorithm
-                    )
-
-                # This exception will occur if the target does not exist
-                # locally.
-                except securesystemslib.exceptions.StorageError:
-                    updated_targets.append(target)
-                    updated_targetpaths.append(target_filepath)
-                    break
-
-                # The file does exist locally, check if its hash differs.
-                if digest_object.hexdigest() != digest:
-                    updated_targets.append(target)
-                    updated_targetpaths.append(target_filepath)
-                    break
-
-        return updated_targets
-
-    def download_target(self, target: Dict, destination_directory: str):
+    def download_target(self, target: Dict, destination_directory: str) -> None:
         """
         This method performs the actual download of the specified target.
         The file is saved to the 'destination_directory' argument.
         """
 
-        for temp_obj in mirrors._mirror_target_download(
-            target, self._mirrors, self._fetcher
-        ):
-
-            try:
-                self._verify_target_file(temp_obj, target)
-                # break? should we break after first successful download?
-
-                filepath = os.path.join(
-                    destination_directory, target["filepath"]
-                )
-                securesystemslib.util.persist_temp_file(temp_obj, filepath)
-            # pylint: disable=try-except-raise
-            except Exception:
-                # TODO: do something with exceptions
-                raise
-
-    def _verify_target_file(self, temp_obj: BinaryIO, targetinfo: Dict) -> None:
-        """
-        TODO
-        """
-
-        self._check_file_length(temp_obj, targetinfo["fileinfo"]["length"])
-        _check_hashes(temp_obj, targetinfo["fileinfo"]["hashes"])
-
-    @staticmethod
-    def _check_file_length(file_object, trusted_file_length):
-        """
-        TODO
-        """
-        file_object.seek(0, 2)
-        observed_length = file_object.tell()
-
-        # Return and log a message if the length 'file_object' is equal to
-        # 'trusted_file_length', otherwise raise an exception.  A hard check
-        # ensures that a downloaded file strictly matches a known, or trusted,
-        # file length.
-        if observed_length != trusted_file_length:
-            raise tuf.exceptions.DownloadLengthMismatchError(
-                trusted_file_length, observed_length
-            )
-
-    @staticmethod
-    def _get_target_hash(target_filepath, hash_function="sha256"):
-        """
-        TODO
-        """
-        # Calculate the hash of the filepath to determine which bin to find the
-        # target.  The client currently assumes the repository (i.e., repository
-        # tool) uses 'hash_function' to generate hashes and UTF-8.
-        digest_object = securesystemslib.hash.digest(hash_function)
-        encoded_target_filepath = target_filepath.encode("utf-8")
-        digest_object.update(encoded_target_filepath)
-        target_filepath_hash = digest_object.hexdigest()
-
-        return target_filepath_hash
+        self._target_updater.download_target(target, destination_directory)
 
 
 class MetadataUpdater:
@@ -836,6 +742,109 @@ class MetadataUpdater:
             if mirror_error.status_code in {403, 404}:
                 return False
         return True
+
+
+class TargetUpdater:
+    def __init__(
+        self,
+        repository_mirrors: Dict,
+        fetcher: FetcherInterface,
+    ):
+
+        self._mirrors = repository_mirrors
+        self._fetcher = fetcher
+
+    @staticmethod
+    def updated_targets(targets: Dict, destination_directory: str) -> Dict:
+        """
+        After the client has retrieved the target information for those targets
+        they are interested in updating, they would call this method to
+        determine which targets have changed from those saved locally on disk.
+        All the targets that have changed are returns in a list.  From this
+        list, they can request a download by calling 'download_target()'.
+        """
+        # Keep track of the target objects and filepaths of updated targets.
+        # Return 'updated_targets' and use 'updated_targetpaths' to avoid
+        # duplicates.
+        updated_targets = []
+        updated_targetpaths = []
+
+        for target in targets:
+            # Prepend 'destination_directory' to the target's relative filepath
+            # (as stored in metadata.)  Verify the hash of 'target_filepath'
+            # against each hash listed for its fileinfo.  Note: join() discards
+            # 'destination_directory' if 'filepath' contains a leading path
+            # separator (i.e., is treated as an absolute path).
+            filepath = target["filepath"]
+            target_filepath = os.path.join(destination_directory, filepath)
+
+            if target_filepath in updated_targetpaths:
+                continue
+
+            # Try one of the algorithm/digest combos for a mismatch.  We break
+            # as soon as we find a mismatch.
+            for algorithm, digest in target["fileinfo"]["hashes"].items():
+                digest_object = None
+                try:
+                    digest_object = securesystemslib.hash.digest_filename(
+                        target_filepath, algorithm=algorithm
+                    )
+
+                # This exception will occur if the target does not exist
+                # locally.
+                except securesystemslib.exceptions.StorageError:
+                    updated_targets.append(target)
+                    updated_targetpaths.append(target_filepath)
+                    break
+
+                # The file does exist locally, check if its hash differs.
+                if digest_object.hexdigest() != digest:
+                    updated_targets.append(target)
+                    updated_targetpaths.append(target_filepath)
+                    break
+
+        return updated_targets
+
+    def download_target(self, target: Dict, destination_directory: str):
+        """
+        This method performs the actual download of the specified target.
+        The file is saved to the 'destination_directory' argument.
+        """
+
+        for temp_obj in mirrors._mirror_target_download(
+            target, self._mirrors, self._fetcher
+        ):
+
+            try:
+                self._check_file_length(temp_obj, target["fileinfo"]["length"])
+                _check_hashes(temp_obj, target["fileinfo"]["hashes"])
+                # break? should we break after first successful download?
+
+                filepath = os.path.join(
+                    destination_directory, target["filepath"]
+                )
+                securesystemslib.util.persist_temp_file(temp_obj, filepath)
+            # pylint: disable=try-except-raise
+            except Exception:
+                # TODO: do something with exceptions
+                raise
+
+    @staticmethod
+    def _check_file_length(file_object, trusted_file_length):
+        """
+        TODO
+        """
+        file_object.seek(0, 2)
+        observed_length = file_object.tell()
+
+        # Return and log a message if the length 'file_object' is equal to
+        # 'trusted_file_length', otherwise raise an exception.  A hard check
+        # ensures that a downloaded file strictly matches a known, or trusted,
+        # file length.
+        if observed_length != trusted_file_length:
+            raise tuf.exceptions.DownloadLengthMismatchError(
+                trusted_file_length, observed_length
+            )
 
 
 # FIXME: _check_hashes is moved outside the classes so that it can be reused.
