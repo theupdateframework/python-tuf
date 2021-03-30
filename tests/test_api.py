@@ -30,6 +30,7 @@ from tuf.api.metadata import (
     Key,
     Role,
     MetaFile,
+    TargetFile,
     Delegations,
     DelegatedRole,
 )
@@ -540,22 +541,23 @@ class TestMetadata(unittest.TestCase):
             "sha512": "ef5beafa16041bcdd2937140afebd485296cd54f7348ecd5a4d035c09759608de467a7ac0eb58753d0242df873c305e8bffad2454aa48f44480f15efae1cacd0"
         },
 
-        fileinfo = {
-            'hashes': hashes,
-            'length': 28
-        }
+        fileinfo = TargetFile(length=28, hashes=hashes)
 
         # Assert that data is not aleady equal
-        self.assertNotEqual(targets.signed.targets[filename], fileinfo)
+        self.assertNotEqual(
+            targets.signed.targets[filename].to_dict(), fileinfo.to_dict()
+        )
         # Update an already existing fileinfo
-        targets.signed.update(filename, fileinfo)
+        targets.signed.update(filename, fileinfo.to_dict())
         # Verify that data is updated
-        self.assertEqual(targets.signed.targets[filename], fileinfo)
+        self.assertEqual(
+            targets.signed.targets[filename].to_dict(), fileinfo.to_dict()
+        )
 
         # Test from_dict/to_dict Targets without delegations
         targets_dict = targets.to_dict()
         del targets_dict["signed"]["delegations"]
-        tmp_dict = targets_dict["signed"].copy()
+        tmp_dict = copy.deepcopy(targets_dict["signed"])
         targets_obj = Targets.from_dict(tmp_dict)
         self.assertEqual(targets_dict["signed"], targets_obj.to_dict())
 

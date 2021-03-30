@@ -889,6 +889,57 @@ class Delegations:
         }
 
 
+class TargetFile:
+    """A container with information about a particular target file.
+
+    Attributes:
+        length: An integer indicating the length of the target file.
+        hashes: A dictionary mapping hash algorithms to the
+            hashes resulting from applying them over the metadata file
+            contents::
+
+              'hashes': {
+                    '<HASH ALGO 1>': '<TARGET FILE HASH 1>',
+                    '<HASH ALGO 2>': '<TARGET FILE HASH 2>',
+                    ...
+                }
+        unrecognized_fields: Dictionary of all unrecognized fields.
+
+    """
+
+    @property
+    def custom(self):
+        if self.unrecognized_fields is None:
+            return None
+        return self.unrecognized_fields.get("custom", None)
+
+    def __init__(
+        self,
+        length: int,
+        hashes: Dict[str, str],
+        unrecognized_fields: Optional[Mapping[str, Any]] = None,
+    ) -> None:
+        self.length = length
+        self.hashes = hashes
+        self.unrecognized_fields = unrecognized_fields or {}
+
+    @classmethod
+    def from_dict(cls, target_dict: Dict[str, Any]) -> "TargetFile":
+        """Creates TargetFile object from its dict representation."""
+        length = target_dict.pop("length")
+        hashes = target_dict.pop("hashes")
+        # All fields left in the target_dict are unrecognized.
+        return cls(length, hashes, target_dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Returns the JSON-serializable dictionary representation of self."""
+        return {
+            "length": self.length,
+            "hashes": self.hashes,
+            **self.unrecognized_fields,
+        }
+
+
 class Targets(Signed):
     """A container for the signed part of targets metadata.
 
@@ -896,15 +947,7 @@ class Targets(Signed):
         targets: A dictionary that contains information about target files::
 
             {
-                '<TARGET FILE NAME>': {
-                    'length': <TARGET FILE SIZE>,
-                    'hashes': {
-                        '<HASH ALGO 1>': '<TARGET FILE HASH 1>',
-                        '<HASH ALGO 2>': '<TARGETS FILE HASH 2>',
-                        ...
-                    },
-                    'custom': <CUSTOM OPAQUE DICT> // optional
-                },
+                '<TARGET FILE NAME>': <TargetFile INSTANCE>,
                 ...
             }
 
@@ -925,12 +968,11 @@ class Targets(Signed):
         version: int,
         spec_version: str,
         expires: datetime,
-        targets: Dict[str, Any],
+        targets: Dict[str, TargetFile],
         delegations: Optional[Delegations] = None,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
         super().__init__(version, spec_version, expires, unrecognized_fields)
-        # TODO: Add class for meta
         self.targets = targets
         self.delegations = delegations
 
@@ -945,13 +987,19 @@ class Targets(Signed):
             delegations = None
         else:
             delegations = Delegations.from_dict(delegations_dict)
+        res_targets = {}
+        for target_path, target_info in targets.items():
+            res_targets[target_path] = TargetFile.from_dict(target_info)
         # All fields left in the targets_dict are unrecognized.
-        return cls(*common_args, targets, delegations, targets_dict)
+        return cls(*common_args, res_targets, delegations, targets_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
         targets_dict = self._common_fields_to_dict()
-        targets_dict["targets"] = self.targets
+        targets = {}
+        for target_path, target_file_obj in self.targets.items():
+            targets[target_path] = target_file_obj.to_dict()
+        targets_dict["targets"] = targets
         if self.delegations is not None:
             targets_dict["delegations"] = self.delegations.to_dict()
         return targets_dict
@@ -959,4 +1007,4 @@ class Targets(Signed):
     # Modification.
     def update(self, filename: str, fileinfo: Dict[str, Any]) -> None:
         """Assigns passed target file info to meta dict."""
-        self.targets[filename] = fileinfo
+        self.targets[filename] = TargetFile.from_dict(fileinfo)
