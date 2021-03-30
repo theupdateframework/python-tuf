@@ -29,6 +29,7 @@ from tuf.api.metadata import (
     Targets,
     Key,
     Role,
+    MetaFile,
     Delegations,
     DelegatedRole,
 )
@@ -246,28 +247,31 @@ class TestMetadata(unittest.TestCase):
                 self.repo_dir, 'metadata', 'snapshot.json')
         snapshot = Metadata.from_file(snapshot_path)
 
-        # Create a dict representing what we expect the updated data to be
-        fileinfo = copy.deepcopy(snapshot.signed.meta)
+        # Create a MetaFile instance representing what we expect
+        # the updated data to be.
         hashes = {'sha256': 'c2986576f5fdfd43944e2b19e775453b96748ec4fe2638a6d2f32f1310967095'}
-        fileinfo['role1.json']['version'] = 2
-        fileinfo['role1.json']['hashes'] = hashes
-        fileinfo['role1.json']['length'] = 123
+        fileinfo = MetaFile(2, 123, hashes)
 
-
-        self.assertNotEqual(snapshot.signed.meta, fileinfo)
+        self.assertNotEqual(
+            snapshot.signed.meta['role1.json'].to_dict(), fileinfo.to_dict()
+        )
         snapshot.signed.update('role1', 2, 123, hashes)
-        self.assertEqual(snapshot.signed.meta, fileinfo)
+        self.assertEqual(
+            snapshot.signed.meta['role1.json'].to_dict(), fileinfo.to_dict()
+        )
 
         # Update only version. Length and hashes are optional.
         snapshot.signed.update('role2', 3)
-        fileinfo['role2.json'] = {'version': 3}
-        self.assertEqual(snapshot.signed.meta, fileinfo)
+        fileinfo = MetaFile(3)
+        self.assertEqual(
+            snapshot.signed.meta['role2.json'].to_dict(), fileinfo.to_dict()
+        )
 
         # Test from_dict and to_dict without hashes and length.
         snapshot_dict = snapshot.to_dict()
-        test_dict = snapshot_dict['signed'].copy()
-        del test_dict['meta']['role1.json']['length']
-        del test_dict['meta']['role1.json']['hashes']
+        del snapshot_dict['signed']['meta']['role1.json']['length']
+        del snapshot_dict['signed']['meta']['role1.json']['hashes']
+        test_dict = copy.deepcopy(snapshot_dict['signed'])
         snapshot = Snapshot.from_dict(test_dict)
         self.assertEqual(snapshot_dict['signed'], snapshot.to_dict())
 
@@ -295,28 +299,33 @@ class TestMetadata(unittest.TestCase):
         timestamp.signed.bump_expiration(delta)
         self.assertEqual(timestamp.signed.expires, datetime(2036, 1, 3, 0, 0))
 
+        # Create a MetaFile instance representing what we expect
+        # the updated data to be.
         hashes = {'sha256': '0ae9664468150a9aa1e7f11feecb32341658eb84292851367fea2da88e8a58dc'}
-        fileinfo = copy.deepcopy(timestamp.signed.meta['snapshot.json'])
-        fileinfo['hashes'] = hashes
-        fileinfo['version'] = 2
-        fileinfo['length'] = 520
+        fileinfo = MetaFile(2, 520, hashes)
 
-        self.assertNotEqual(timestamp.signed.meta['snapshot.json'], fileinfo)
+        self.assertNotEqual(
+            timestamp.signed.meta['snapshot.json'].to_dict(), fileinfo.to_dict()
+        )
         timestamp.signed.update(2, 520, hashes)
-        self.assertEqual(timestamp.signed.meta['snapshot.json'], fileinfo)
+        self.assertEqual(
+            timestamp.signed.meta['snapshot.json'].to_dict(), fileinfo.to_dict()
+        )
 
         # Test from_dict and to_dict without hashes and length.
         timestamp_dict = timestamp.to_dict()
-        test_dict = timestamp_dict['signed'].copy()
-        del test_dict['meta']['snapshot.json']['length']
-        del test_dict['meta']['snapshot.json']['hashes']
+        del timestamp_dict['signed']['meta']['snapshot.json']['length']
+        del timestamp_dict['signed']['meta']['snapshot.json']['hashes']
+        test_dict = copy.deepcopy(timestamp_dict['signed'])
         timestamp_test = Timestamp.from_dict(test_dict)
         self.assertEqual(timestamp_dict['signed'], timestamp_test.to_dict())
 
         # Update only version. Length and hashes are optional.
         timestamp.signed.update(3)
-        fileinfo = {'version': 3}
-        self.assertEqual(timestamp.signed.meta['snapshot.json'], fileinfo)
+        fileinfo = MetaFile(version=3)
+        self.assertEqual(
+            timestamp.signed.meta['snapshot.json'].to_dict(), fileinfo.to_dict()
+        )
 
     def test_key_class(self):
         keys = {
