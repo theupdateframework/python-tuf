@@ -58,15 +58,16 @@ class Updater:
         fetcher: Optional[FetcherInterface] = None,
     ):
 
-        self._repository_name = repository_name
         self._mirrors = repository_mirrors
-        self._consistent_snapshot = False
-        self._metadata = {}
 
         if fetcher is None:
             self._fetcher = RequestsFetcher()
         else:
             self._fetcher = fetcher
+
+        self._metadata = MetadataUpdater(
+            repository_name, self._mirrors, self._fetcher
+        )
 
     def refresh(self) -> None:
         """
@@ -82,10 +83,7 @@ class Updater:
         requests.
         """
 
-        self._load_root()
-        self._load_timestamp()
-        self._load_snapshot()
-        self._load_targets("targets", "root")
+        self._metadata.refresh()
 
     def get_one_valid_targetinfo(self, filename: str) -> Dict:
         """
@@ -93,7 +91,7 @@ class Updater:
         file path.  This target method also downloads the metadata of updated
         targets.
         """
-        return self._preorder_depth_first_walk(filename)
+        return self._metadata.preorder_depth_first_walk(filename)
 
     @staticmethod
     def updated_targets(targets: Dict, destination_directory: str) -> Dict:
@@ -152,9 +150,9 @@ class Updater:
         The file is saved to the 'destination_directory' argument.
         """
 
-        for temp_obj in mirrors._mirror_target_download(target,
-            self._mirrors,
-            self._fetcher):
+        for temp_obj in mirrors._mirror_target_download(
+            target, self._mirrors, self._fetcher
+        ):
 
             try:
                 self._verify_target_file(temp_obj, target)
@@ -169,8 +167,79 @@ class Updater:
                 # TODO: do something with exceptions
                 raise
 
+    def _verify_target_file(self, temp_obj: BinaryIO, targetinfo: Dict) -> None:
+        """
+        TODO
+        """
+
+        self._check_file_length(temp_obj, targetinfo["fileinfo"]["length"])
+        _check_hashes(temp_obj, targetinfo["fileinfo"]["hashes"])
+
+    @staticmethod
+    def _check_file_length(file_object, trusted_file_length):
+        """
+        TODO
+        """
+        file_object.seek(0, 2)
+        observed_length = file_object.tell()
+
+        # Return and log a message if the length 'file_object' is equal to
+        # 'trusted_file_length', otherwise raise an exception.  A hard check
+        # ensures that a downloaded file strictly matches a known, or trusted,
+        # file length.
+        if observed_length != trusted_file_length:
+            raise tuf.exceptions.DownloadLengthMismatchError(
+                trusted_file_length, observed_length
+            )
+
+    @staticmethod
+    def _get_target_hash(target_filepath, hash_function="sha256"):
+        """
+        TODO
+        """
+        # Calculate the hash of the filepath to determine which bin to find the
+        # target.  The client currently assumes the repository (i.e., repository
+        # tool) uses 'hash_function' to generate hashes and UTF-8.
+        digest_object = securesystemslib.hash.digest(hash_function)
+        encoded_target_filepath = target_filepath.encode("utf-8")
+        digest_object.update(encoded_target_filepath)
+        target_filepath_hash = digest_object.hexdigest()
+
+        return target_filepath_hash
 
 
+class MetadataUpdater:
+    def __init__(
+        self,
+        repository_name: str,
+        repository_mirrors: Dict,
+        fetcher: FetcherInterface,
+    ):
+
+        self._repository_name = repository_name
+        self._mirrors = repository_mirrors
+        self._fetcher = fetcher
+
+        self._metadata = {}
+
+    def refresh(self) -> None:
+        """
+        This method downloads, verifies, and loads metadata for the top-level
+        roles in a specific order (root -> timestamp -> snapshot -> targets)
+        The expiration time for downloaded metadata is also verified.
+
+        The metadata for delegated roles are not refreshed by this method, but
+        by the method that returns targetinfo (i.e.,
+        get_one_valid_targetinfo()).
+
+        The refresh() method should be called by the client before any target
+        requests.
+        """
+
+        self._load_root()
+        self._load_timestamp()
+        self._load_snapshot()
+        self._load_targets("targets", "root")
 
     def _get_full_meta_name(
         self, role: str, extension: str = ".json", version: int = None
@@ -226,10 +295,11 @@ class Updater:
         for next_version in range(lower_bound, upper_bound):
             try:
                 mirror_download = mirrors._mirror_meta_download(
-                    self._get_relative_meta_name('root', version=next_version),
+                    self._get_relative_meta_name("root", version=next_version),
                     tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH,
                     self._mirrors,
-                    self._fetcher)
+                    self._fetcher,
+                )
 
                 for temp_obj in mirror_download:
                     try:
@@ -287,10 +357,12 @@ class Updater:
         TODO
         """
         # TODO Check if timestamp exists locally
-        for temp_obj in mirrors._mirror_meta_download('timestamp.json',
+        for temp_obj in mirrors._mirror_meta_download(
+            "timestamp.json",
             tuf.settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH,
             self._mirrors,
-            self._fetcher):
+            self._fetcher,
+        ):
 
             try:
                 verified_tampstamp = self._verify_timestamp(temp_obj)
@@ -327,9 +399,8 @@ class Updater:
         # Check if exists locally
         # self.loadLocal('snapshot', snapshotVerifier)
         for temp_obj in mirrors._mirror_meta_download(
-            'snapshot.json', length,
-            self._mirrors,
-            self._fetcher):
+            "snapshot.json", length, self._mirrors, self._fetcher
+        ):
 
             try:
                 verified_snapshot = self._verify_snapshot(temp_obj)
@@ -367,9 +438,8 @@ class Updater:
         # self.loadLocal('snapshot', targetsVerifier)
 
         for temp_obj in mirrors._mirror_meta_download(
-            targets_role + '.json', length,
-            self._mirrors,
-            self._fetcher):
+            targets_role + ".json", length, self._mirrors, self._fetcher
+        ):
 
             try:
                 verified_targets = self._verify_targets(
@@ -464,7 +534,7 @@ class Updater:
 
         # Check against timestamp metadata
         if self._metadata["timestamp"].snapshot.get("hash"):
-            self._check_hashes(
+            _check_hashes(
                 temp_obj, self._metadata["timestamp"].snapshot.get("hash")
             )
 
@@ -506,7 +576,7 @@ class Updater:
 
         # Check against timestamp metadata
         if self._metadata["snapshot"].role(filename).get("hash"):
-            self._check_hashes(
+            _check_hashes(
                 temp_obj, self._metadata["snapshot"].targets.get("hash")
             )
 
@@ -529,16 +599,7 @@ class Updater:
 
         return intermediate_targets
 
-
-    def _verify_target_file(self, temp_obj: BinaryIO, targetinfo: Dict) -> None:
-        """
-        TODO
-        """
-
-        self._check_file_length(temp_obj, targetinfo["fileinfo"]["length"])
-        self._check_hashes(temp_obj, targetinfo["fileinfo"]["hashes"])
-
-    def _preorder_depth_first_walk(self, target_filepath) -> Dict:
+    def preorder_depth_first_walk(self, target_filepath) -> Dict:
         """
         TODO
         """
@@ -699,7 +760,9 @@ class Updater:
         if child_role_path_hash_prefixes is not None:
             target_filepath_hash = self._get_target_hash(target_filepath)
             for child_role_path_hash_prefix in child_role_path_hash_prefixes:
-                if not target_filepath_hash.startswith(child_role_path_hash_prefix):
+                if not target_filepath_hash.startswith(
+                    child_role_path_hash_prefix
+                ):
                     continue
 
                 return child_role_name
@@ -717,7 +780,8 @@ class Updater:
                 # leading path separators so that a match is made.
                 # Example: "foo.tgz" should match with "/*.tgz".
                 if fnmatch.fnmatch(
-                    target_filepath.lstrip(os.sep), child_role_path.lstrip(os.sep)
+                    target_filepath.lstrip(os.sep),
+                    child_role_path.lstrip(os.sep),
                 ):
                     logger.debug(
                         "Child role "
@@ -749,49 +813,6 @@ class Updater:
         return None
 
     @staticmethod
-    def _check_file_length(file_object, trusted_file_length):
-        """
-        TODO
-        """
-        file_object.seek(0, 2)
-        observed_length = file_object.tell()
-
-        # Return and log a message if the length 'file_object' is equal to
-        # 'trusted_file_length', otherwise raise an exception.  A hard check
-        # ensures that a downloaded file strictly matches a known, or trusted,
-        # file length.
-        if observed_length != trusted_file_length:
-            raise tuf.exceptions.DownloadLengthMismatchError(
-                trusted_file_length, observed_length
-            )
-
-    @staticmethod
-    def _check_hashes(file_object, trusted_hashes):
-        """
-        TODO
-        """
-        # Verify each trusted hash of 'trusted_hashes'.  If all are valid, simply
-        # return.
-        for algorithm, trusted_hash in trusted_hashes.items():
-            digest_object = securesystemslib.hash.digest(algorithm)
-            # Ensure we read from the beginning of the file object
-            # TODO: should we store file position (before the loop) and reset
-            # after we seek about?
-            file_object.seek(0)
-            digest_object.update(file_object.read())
-            computed_hash = digest_object.hexdigest()
-
-            # Raise an exception if any of the hashes are incorrect.
-            if trusted_hash != computed_hash:
-                raise securesystemslib.exceptions.BadHashError(
-                    trusted_hash, computed_hash
-                )
-
-            logger.info(
-                "The file's " + algorithm + " hash is" " correct: " + trusted_hash
-            )
-
-    @staticmethod
     def _get_target_hash(target_filepath, hash_function="sha256"):
         """
         TODO
@@ -815,3 +836,31 @@ class Updater:
             if mirror_error.status_code in {403, 404}:
                 return False
         return True
+
+
+# FIXME: _check_hashes is moved outside the classes so that it can be reused.
+# Find a proper class design to avoid this.
+def _check_hashes(file_object, trusted_hashes):
+    """
+    TODO
+    """
+    # Verify each trusted hash of 'trusted_hashes'.  If all are valid, simply
+    # return.
+    for algorithm, trusted_hash in trusted_hashes.items():
+        digest_object = securesystemslib.hash.digest(algorithm)
+        # Ensure we read from the beginning of the file object
+        # TODO: should we store file position (before the loop) and reset
+        # after we seek about?
+        file_object.seek(0)
+        digest_object.update(file_object.read())
+        computed_hash = digest_object.hexdigest()
+
+        # Raise an exception if any of the hashes are incorrect.
+        if trusted_hash != computed_hash:
+            raise securesystemslib.exceptions.BadHashError(
+                trusted_hash, computed_hash
+            )
+
+        logger.info(
+            "The file's " + algorithm + " hash is" " correct: " + trusted_hash
+        )
