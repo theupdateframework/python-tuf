@@ -147,7 +147,7 @@ See: https://github.com/samuelcolvin/pydantic/issues/1098
 
 * Good, because it provides additional custom types (with their own built-in
 validation) like `FilePath`/`DirectoryPath` (like `typing.Path`, but there is also
-validation that the file/directory exists), `PostivieInt`, `IPvAnyAddress`
+validation that the file/directory exists), `PositiveInt`, `IPvAnyAddress`
 (for IP versions 4 and 6), `HttpUrl` (for HTTP and HTTPS URLs) etc.
 Also, `pydantic` has field (class attributes) constraints. This could be useful
 when verifying that a HEX string has the expected length.
