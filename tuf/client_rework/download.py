@@ -47,103 +47,7 @@ import tuf.formats
 logger = logging.getLogger(__name__)
 
 
-def safe_download(url, required_length, fetcher):
-  """
-  <Purpose>
-    Given the 'url' and 'required_length' of the desired file, open a connection
-    to 'url', download it, and return the contents of the file.  Also ensure
-    the length of the downloaded file matches 'required_length' exactly.
-    tuf.download.unsafe_download() may be called if an upper download limit is
-    preferred.
-
-  <Arguments>
-    url:
-      A URL string that represents the location of the file.
-
-    required_length:
-      An integer value representing the length of the file.  This is an exact
-      limit.
-
-    fetcher:
-      An object implementing FetcherInterface that performs the network IO
-      operations.
-
-  <Side Effects>
-    A file object is created on disk to store the contents of 'url'.
-
-  <Exceptions>
-    tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if there was a
-    mismatch of observed vs expected lengths while downloading the file.
-
-    securesystemslib.exceptions.FormatError, if any of the arguments are
-    improperly formatted.
-
-    Any other unforeseen runtime exception.
-
-  <Returns>
-    A file object that points to the contents of 'url'.
-  """
-
-  # Do all of the arguments have the appropriate format?
-  # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.URL_SCHEMA.check_match(url)
-  tuf.formats.LENGTH_SCHEMA.check_match(required_length)
-
-  return _download_file(url, required_length, fetcher, STRICT_REQUIRED_LENGTH=True)
-
-
-
-
-
-def unsafe_download(url, required_length, fetcher):
-  """
-  <Purpose>
-    Given the 'url' and 'required_length' of the desired file, open a connection
-    to 'url', download it, and return the contents of the file.  Also ensure
-    the length of the downloaded file is up to 'required_length', and no larger.
-    tuf.download.safe_download() may be called if an exact download limit is
-    preferred.
-
-  <Arguments>
-    url:
-      A URL string that represents the location of the file.
-
-    required_length:
-      An integer value representing the length of the file.  This is an upper
-      limit.
-
-    fetcher:
-      An object implementing FetcherInterface that performs the network IO
-      operations.
-
-  <Side Effects>
-    A file object is created on disk to store the contents of 'url'.
-
-  <Exceptions>
-    tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if there was a
-    mismatch of observed vs expected lengths while downloading the file.
-
-    securesystemslib.exceptions.FormatError, if any of the arguments are
-    improperly formatted.
-
-    Any other unforeseen runtime exception.
-
-  <Returns>
-    A file object that points to the contents of 'url'.
-  """
-
-  # Do all of the arguments have the appropriate format?
-  # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.URL_SCHEMA.check_match(url)
-  tuf.formats.LENGTH_SCHEMA.check_match(required_length)
-
-  return _download_file(url, required_length, fetcher, STRICT_REQUIRED_LENGTH=False)
-
-
-
-
-
-def _download_file(url, required_length, fetcher, STRICT_REQUIRED_LENGTH=True):
+def download_file(url, required_length, fetcher, STRICT_REQUIRED_LENGTH=True):
   """
   <Purpose>
     Given the url and length of the desired file, this function opens a
@@ -180,6 +84,11 @@ def _download_file(url, required_length, fetcher, STRICT_REQUIRED_LENGTH=True):
   <Returns>
     A file object that points to the contents of 'url'.
   """
+  # Do all of the arguments have the appropriate format?
+  # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
+  securesystemslib.formats.URL_SCHEMA.check_match(url)
+  tuf.formats.LENGTH_SCHEMA.check_match(required_length)
+
   # 'url.replace('\\', '/')' is needed for compatibility with Windows-based
   # systems, because they might use back-slashes in place of forward-slashes.
   # This converts it to the common format.  unquote() replaces %xx escapes in a

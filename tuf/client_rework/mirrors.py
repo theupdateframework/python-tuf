@@ -148,10 +148,11 @@ def _mirror_meta_download(filename: str, upper_length: int,
    file_mirror_errors = {}
    for file_mirror in file_mirrors:
        try:
-           temp_obj = download.unsafe_download(
+           temp_obj = download.download_file(
                file_mirror,
                upper_length,
-               fetcher)
+               fetcher,
+               STRICT_REQUIRED_LENGTH=False)
 
            temp_obj.seek(0)
            yield temp_obj
@@ -177,7 +178,7 @@ def _mirror_target_download(fileinfo: str, mirrors_config: Dict,
    file_mirror_errors = {}
    for file_mirror in file_mirrors:
        try:
-           temp_obj = download.safe_download(
+           temp_obj = download.download_file(
                file_mirror,
                fileinfo['fileinfo']['length'],
                fetcher)
