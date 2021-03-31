@@ -18,7 +18,8 @@ from securesystemslib import util as sslib_util
 
 from tuf import exceptions, settings
 from tuf.client.fetcher import FetcherInterface
-from tuf.client_rework import download, mirrors, requests_fetcher
+from tuf.client_rework.mirrors import Mirrors
+from tuf.client_rework.requests_fetcher import RequestsFetcher
 
 from .metadata_wrapper import (
     RootWrapper,
@@ -60,9 +61,11 @@ class Updater:
         self._metadata = {}
 
         if fetcher is None:
-            self._fetcher = requests_fetcher.RequestsFetcher()
+            self._fetcher = RequestsFetcher()
         else:
             self._fetcher = fetcher
+
+        self._mirrors = Mirrors(repository_mirrors)
 
     def refresh(self) -> None:
         """
@@ -148,8 +151,8 @@ class Updater:
         The file is saved to the 'destination_directory' argument.
         """
 
-        for temp_obj in mirrors._mirror_target_download(
-            target, self._mirrors, self._fetcher
+        for temp_obj in self._mirrors.target_download(
+            target["filepath"], target["fileinfo"]["length"], self._fetcher
         ):
 
             try:
@@ -218,10 +221,9 @@ class Updater:
         verified_root = None
         for next_version in range(lower_bound, upper_bound):
             try:
-                mirror_download = mirrors._mirror_meta_download(
+                mirror_download = self._mirrors.meta_download(
                     self._get_relative_meta_name("root", version=next_version),
                     settings.DEFAULT_ROOT_REQUIRED_LENGTH,
-                    self._mirrors,
                     self._fetcher,
                 )
 
@@ -281,10 +283,9 @@ class Updater:
         TODO
         """
         # TODO Check if timestamp exists locally
-        for temp_obj in mirrors._mirror_meta_download(
+        for temp_obj in self._mirrors.meta_download(
             "timestamp.json",
             settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH,
-            self._mirrors,
             self._fetcher,
         ):
 
@@ -322,8 +323,8 @@ class Updater:
 
         # Check if exists locally
         # self.loadLocal('snapshot', snapshotVerifier)
-        for temp_obj in mirrors._mirror_meta_download(
-            "snapshot.json", length, self._mirrors, self._fetcher
+        for temp_obj in self._mirrors.meta_download(
+            "snapshot.json", length, self._fetcher
         ):
 
             try:
@@ -361,8 +362,8 @@ class Updater:
         # Check if exists locally
         # self.loadLocal('snapshot', targetsVerifier)
 
-        for temp_obj in mirrors._mirror_meta_download(
-            targets_role + ".json", length, self._mirrors, self._fetcher
+        for temp_obj in self._mirrors.meta_download(
+            targets_role + ".json", length, self._fetcher
         ):
 
             try:
