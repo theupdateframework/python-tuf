@@ -18,7 +18,7 @@ import securesystemslib.util
 import tuf.exceptions
 import tuf.formats
 import tuf.settings
-from tuf.client_rework.mirrors import Mirrors
+from tuf.client_rework.mirrors_download import Mirrors
 
 from .metadata_wrapper import (
     RootWrapper,
