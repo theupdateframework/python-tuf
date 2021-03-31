@@ -10,25 +10,16 @@ TODO
 import fnmatch
 import logging
 import os
+
 from typing import BinaryIO, Dict, Optional, TextIO
 
-import securesystemslib.exceptions
-import securesystemslib.util
+from securesystemslib import exceptions, util
 
-import tuf.download
-import tuf.exceptions
-import tuf.formats
-import tuf.mirrors
-import tuf.settings
+from tuf import download, exceptions, formats, mirrors, settings
 from tuf.client.fetcher import FetcherInterface
 from tuf.requests_fetcher import RequestsFetcher
 
-from .metadata_wrapper import (
-    RootWrapper,
-    SnapshotWrapper,
-    TargetsWrapper,
-    TimestampWrapper,
-)
+from .metadata_wrapper import RootWrapper, SnapshotWrapper, TargetsWrapper, TimestampWrapper
 
 # Globals
 logger = logging.getLogger(__name__)
@@ -132,7 +123,7 @@ class Updater:
 
                 # This exception will occur if the target does not exist
                 # locally.
-                except securesystemslib.exceptions.StorageError:
+                except exceptions.StorageError:
                     updated_targets.append(target)
                     updated_targetpaths.append(target_filepath)
                     break
@@ -159,7 +150,7 @@ class Updater:
                 filepath = os.path.join(
                     destination_directory, target["filepath"]
                 )
-                securesystemslib.util.persist_temp_file(temp_obj, filepath)
+                util.persist_temp_file(temp_obj, filepath)
         # pylint: disable=try-except-raise
         except Exception:
             # TODO: do something with exceptions
@@ -169,14 +160,14 @@ class Updater:
         """
         Download metadata file from the list of metadata mirrors
         """
-        file_mirrors = tuf.mirrors.get_list_of_mirrors(
+        file_mirrors = mirrors.get_list_of_mirrors(
             "meta", filename, self._mirrors
         )
 
         file_mirror_errors = {}
         for file_mirror in file_mirrors:
             try:
-                temp_obj = tuf.download.unsafe_download(
+                temp_obj = download.unsafe_download(
                     file_mirror, upper_length, self._fetcher
                 )
 
@@ -189,7 +180,7 @@ class Updater:
 
             finally:
                 if file_mirror_errors:
-                    raise tuf.exceptions.NoWorkingMirrorError(
+                    raise exceptions.NoWorkingMirrorError(
                         file_mirror_errors
                     )
 
@@ -198,14 +189,14 @@ class Updater:
         Download target file from the list of target mirrors
         """
         # full_filename = _get_full_name(filename)
-        file_mirrors = tuf.mirrors.get_list_of_mirrors(
+        file_mirrors = mirrors.get_list_of_mirrors(
             "target", fileinfo["filepath"], self._mirrors
         )
 
         file_mirror_errors = {}
         for file_mirror in file_mirrors:
             try:
-                temp_obj = tuf.download.safe_download(
+                temp_obj = download.safe_download(
                     file_mirror, fileinfo["fileinfo"]["length"], self._fetcher
                 )
 
@@ -217,7 +208,7 @@ class Updater:
 
             finally:
                 if file_mirror_errors:
-                    raise tuf.exceptions.NoWorkingMirrorError(
+                    raise exceptions.NoWorkingMirrorError(
                         file_mirror_errors
                     )
 
@@ -233,7 +224,7 @@ class Updater:
         else:
             filename = str(version) + "." + role + extension
         return os.path.join(
-            tuf.settings.repositories_directory,
+            settings.repositories_directory,
             self._repository_name,
             "metadata",
             "current",
@@ -269,14 +260,14 @@ class Updater:
         # 1.1. Let N denote the version number of the trusted
         # root metadata file.
         lower_bound = self._metadata["root"].version
-        upper_bound = lower_bound + tuf.settings.MAX_NUMBER_ROOT_ROTATIONS
+        upper_bound = lower_bound + settings.MAX_NUMBER_ROOT_ROTATIONS
 
         verified_root = None
         for next_version in range(lower_bound, upper_bound):
             try:
                 mirror_download = self._mirror_meta_download(
                     self._get_relative_meta_name("root", version=next_version),
-                    tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH,
+                    settings.DEFAULT_ROOT_REQUIRED_LENGTH,
                 )
 
                 for temp_obj in mirror_download:
@@ -286,7 +277,7 @@ class Updater:
                     except Exception:
                         raise
 
-            except tuf.exceptions.NoWorkingMirrorError as exception:
+            except exceptions.NoWorkingMirrorError as exception:
                 for mirror_error in exception.mirror_errors.values():
                     if neither_403_nor_404(mirror_error):
                         temp_obj.close()
@@ -298,7 +289,7 @@ class Updater:
         # than the expiration timestamp in the trusted root metadata file
         try:
             verified_root.expires()
-        except tuf.exceptions.ExpiredMetadataError:
+        except exceptions.ExpiredMetadataError:
             temp_obj.close()  # pylint: disable=undefined-loop-variable
 
         # 1.9. If the timestamp and / or snapshot keys have been rotated,
@@ -336,7 +327,7 @@ class Updater:
         """
         # TODO Check if timestamp exists locally
         for temp_obj in self._mirror_meta_download(
-            "timestamp.json", tuf.settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
+            "timestamp.json", settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
         ):
             try:
                 verified_tampstamp = self._verify_timestamp(temp_obj)
@@ -362,7 +353,7 @@ class Updater:
         try:
             length = self._metadata["timestamp"].snapshot["length"]
         except KeyError:
-            length = tuf.settings.DEFAULT_SNAPSHOT_REQUIRED_LENGTH
+            length = settings.DEFAULT_SNAPSHOT_REQUIRED_LENGTH
 
         # Uncomment when implementing consistent_snapshot
         # if self._consistent_snapshot:
@@ -397,7 +388,7 @@ class Updater:
         try:
             length = self._metadata["snapshot"].role(targets_role)["length"]
         except KeyError:
-            length = tuf.settings.DEFAULT_TARGETS_REQUIRED_LENGTH
+            length = settings.DEFAULT_TARGETS_REQUIRED_LENGTH
 
         # Uncomment when implementing consistent_snapshot
         # if self._consistent_snapshot:
@@ -448,7 +439,7 @@ class Updater:
         # Check for a rollback attack.
         if intermediate_root.version < trusted_root.version:
             temp_obj.close()
-            raise tuf.exceptions.ReplayedMetadataError(
+            raise exceptions.ReplayedMetadataError(
                 "root", intermediate_root.version(), trusted_root.version()
             )
         # Note that the expiration of the new (intermediate) root metadata
@@ -475,7 +466,7 @@ class Updater:
                 <= self._metadata["timestamp"].version
             ):
                 temp_obj.close()
-                raise tuf.exceptions.ReplayedMetadataError(
+                raise exceptions.ReplayedMetadataError(
                     "root",
                     intermediate_timestamp.version(),
                     self._metadata["timestamp"].version(),
@@ -487,7 +478,7 @@ class Updater:
                 <= self._metadata["timestamp"].snapshot["version"]
             ):
                 temp_obj.close()
-                raise tuf.exceptions.ReplayedMetadataError(
+                raise exceptions.ReplayedMetadataError(
                     "root",
                     intermediate_timestamp.snapshot.version(),
                     self._metadata["snapshot"].version(),
@@ -515,7 +506,7 @@ class Updater:
             != self._metadata["timestamp"].snapshot["version"]
         ):
             temp_obj.close()
-            raise tuf.exceptions.BadVersionNumberError
+            raise exceptions.BadVersionNumberError
 
         # Check for an arbitrary software attack
         trusted_root = self._metadata["root"]
@@ -531,7 +522,7 @@ class Updater:
                     != self._metadata["snapshot"].meta[target_role]["version"]
                 ):
                     temp_obj.close()
-                    raise tuf.exceptions.BadVersionNumberError
+                    raise exceptions.BadVersionNumberError
 
         intermediate_snapshot.expires()
 
@@ -556,7 +547,7 @@ class Updater:
             != self._metadata["snapshot"].role(filename)["version"]
         ):
             temp_obj.close()
-            raise tuf.exceptions.BadVersionNumberError
+            raise exceptions.BadVersionNumberError
 
         # Check for an arbitrary software attack
         parent_role = self._metadata[parent_role]
@@ -586,12 +577,12 @@ class Updater:
         target = None
         role_names = [("targets", "root")]
         visited_role_names = set()
-        number_of_delegations = tuf.settings.MAX_NUMBER_OF_DELEGATIONS
+        number_of_delegations = settings.MAX_NUMBER_OF_DELEGATIONS
 
         # Ensure the client has the most up-to-date version of 'targets.json'.
-        # Raise 'tuf.exceptions.NoWorkingMirrorError' if the changed metadata
+        # Raise 'exceptions.NoWorkingMirrorError' if the changed metadata
         # cannot be successfully downloaded and
-        # 'tuf.exceptions.RepositoryError' if the referenced metadata is
+        # 'exceptions.RepositoryError' if the referenced metadata is
         # missing.  Target methods such as this one are called after the
         # top-level metadata have been refreshed (i.e., updater.refresh()).
         # self._update_metadata_if_changed('targets')
@@ -684,7 +675,7 @@ class Updater:
             msg = (
                 f"{len(role_names)}  roles left to visit, ",
                 "but allowed to visit at most ",
-                f"{tuf.settings.MAX_NUMBER_OF_DELEGATIONS}",
+                f"{settings.MAX_NUMBER_OF_DELEGATIONS}",
                 " delegations.",
             )
             logger.debug(msg)
@@ -780,7 +771,7 @@ def _visit_child_role(child_role: Dict, target_filepath: str) -> str:
         # 'role_name' should have been validated when it was downloaded.
         # The 'paths' or 'path_hash_prefixes' fields should not be missing,
         # so we raise a format error here in case they are both missing.
-        raise tuf.exceptions.FormatError(
+        raise exceptions.FormatError(
             repr(child_role_name) + " "
             'has neither a "paths" nor "path_hash_prefixes".  At least'
             " one of these attributes must be present."
@@ -801,7 +792,7 @@ def _check_file_length(file_object, trusted_file_length):
     # ensures that a downloaded file strictly matches a known, or trusted,
     # file length.
     if observed_length != trusted_file_length:
-        raise tuf.exceptions.DownloadLengthMismatchError(
+        raise exceptions.DownloadLengthMismatchError(
             trusted_file_length, observed_length
         )
 
@@ -851,7 +842,7 @@ def neither_403_nor_404(mirror_error):
     """
     TODO
     """
-    if isinstance(mirror_error, tuf.exceptions.FetcherHTTPError):
+    if isinstance(mirror_error, exceptions.FetcherHTTPError):
         if mirror_error.status_code in {403, 404}:
             return False
     return True
