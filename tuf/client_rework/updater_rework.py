@@ -18,9 +18,8 @@ import securesystemslib.util
 import tuf.exceptions
 import tuf.formats
 import tuf.settings
-
-from tuf.client_rework import mirrors
 from tuf.client.fetcher import FetcherInterface
+from tuf.client_rework.mirrors import Mirrors
 from tuf.requests_fetcher import RequestsFetcher
 
 from .metadata_wrapper import (
@@ -29,7 +28,6 @@ from .metadata_wrapper import (
     TargetsWrapper,
     TimestampWrapper,
 )
-
 
 # Globals
 logger = logging.getLogger(__name__)
@@ -61,11 +59,9 @@ class Updater:
         if fetcher is None:
             fetcher = RequestsFetcher()
 
-        self._metadata = MetadataUpdater(
-            repository_name, repository_mirrors, fetcher
-        )
-
-        self._target_updater = TargetUpdater(repository_mirrors, fetcher)
+        mirrors = Mirrors(repository_mirrors)
+        self._metadata = MetadataUpdater(repository_name, mirrors, fetcher)
+        self._target_updater = TargetUpdater(mirrors, fetcher)
 
     def refresh(self) -> None:
         """
@@ -118,12 +114,12 @@ class MetadataUpdater:
     def __init__(
         self,
         repository_name: str,
-        repository_mirrors: Dict,
+        mirrors: "Mirrors",
         fetcher: FetcherInterface,
     ):
 
         self._repository_name = repository_name
-        self._mirrors = repository_mirrors
+        self._mirrors = mirrors
         self._fetcher = fetcher
 
         self._metadata = {}
@@ -200,10 +196,9 @@ class MetadataUpdater:
         verified_root = None
         for next_version in range(lower_bound, upper_bound):
             try:
-                mirror_download = mirrors._mirror_meta_download(
+                mirror_download = self._mirrors.meta_download(
                     self._get_relative_meta_name("root", version=next_version),
                     tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH,
-                    self._mirrors,
                     self._fetcher,
                 )
 
@@ -263,10 +258,9 @@ class MetadataUpdater:
         TODO
         """
         # TODO Check if timestamp exists locally
-        for temp_obj in mirrors._mirror_meta_download(
+        for temp_obj in self._mirrors.meta_download(
             "timestamp.json",
             tuf.settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH,
-            self._mirrors,
             self._fetcher,
         ):
 
@@ -304,8 +298,8 @@ class MetadataUpdater:
 
         # Check if exists locally
         # self.loadLocal('snapshot', snapshotVerifier)
-        for temp_obj in mirrors._mirror_meta_download(
-            "snapshot.json", length, self._mirrors, self._fetcher
+        for temp_obj in self._mirrors.meta_download(
+            "snapshot.json", length, self._fetcher
         ):
 
             try:
@@ -343,8 +337,8 @@ class MetadataUpdater:
         # Check if exists locally
         # self.loadLocal('snapshot', targetsVerifier)
 
-        for temp_obj in mirrors._mirror_meta_download(
-            targets_role + ".json", length, self._mirrors, self._fetcher
+        for temp_obj in self._mirrors.meta_download(
+            targets_role + ".json", length, self._fetcher
         ):
 
             try:
@@ -745,13 +739,9 @@ class MetadataUpdater:
 
 
 class TargetUpdater:
-    def __init__(
-        self,
-        repository_mirrors: Dict,
-        fetcher: FetcherInterface,
-    ):
+    def __init__(self, mirrors: "Mirrors", fetcher: FetcherInterface):
 
-        self._mirrors = repository_mirrors
+        self._mirrors = mirrors
         self._fetcher = fetcher
 
     @staticmethod
@@ -811,8 +801,8 @@ class TargetUpdater:
         The file is saved to the 'destination_directory' argument.
         """
 
-        for temp_obj in mirrors._mirror_target_download(
-            target, self._mirrors, self._fetcher
+        for temp_obj in self._mirrors.target_download(
+            target["filepath"], target["fileinfo"]["length"], self._fetcher
         ):
 
             try:
