@@ -17,7 +17,7 @@ from securesystemslib import hash as sslib_hash
 from securesystemslib import util as sslib_util
 
 from tuf import exceptions, settings
-from tuf.client_rework.mirrors import Mirrors
+from tuf.client_rework.mirrors_download import Mirrors
 
 from .metadata_wrapper import (
     RootWrapper,
