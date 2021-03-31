@@ -2,10 +2,12 @@ include LICENSE*
 include README.md
 include tox.ini
 include tests/repository_data/keystore/delegation_key
-include tests/repository_data/keystore/root_key
+include tests/repository_data/keystore/root_key*
 include tests/repository_data/keystore/snapshot_key
 include tests/repository_data/keystore/targets_key
 include tests/repository_data/keystore/timestamp_key
+include tests/ssl_certs/*.crt
+include tests/ssl_certs/*.key
 
 recursive-include docs *.txt
 recursive-include docs *.md
