@@ -34,7 +34,7 @@ from __future__ import (
 )
 
 import os
-from typing import BinaryIO, Dict, TextIO
+from typing import BinaryIO, Dict, Optional, TextIO
 
 import securesystemslib
 import six
@@ -42,6 +42,7 @@ import six
 import tuf
 import tuf.client_rework.download as download
 import tuf.formats
+from tuf.requests_fetcher import RequestsFetcher
 
 # The type of file to be downloaded from a repository.  The
 # 'get_list_of_mirrors' function supports these file types.
@@ -49,9 +50,16 @@ _SUPPORTED_FILE_TYPES = ["meta", "target"]
 
 
 class Mirrors:
-    def __init__(self, mirrors_dict: Dict):
+    def __init__(
+        self, mirrors_dict: Dict, fetcher: Optional["FetcherInterface"] = None
+    ):
         tuf.formats.MIRRORDICT_SCHEMA.check_match(mirrors_dict)
         self._config = mirrors_dict
+
+        if fetcher is None:
+            self._fetcher = RequestsFetcher()
+        else:
+            self._fetcher = fetcher
 
     def _get_list_of_mirrors(self, file_type, file_path):
         """
@@ -125,9 +133,7 @@ class Mirrors:
 
         return list_of_mirrors
 
-    def meta_download(
-        self, filename: str, upper_length: int, fetcher: "FetcherInterface"
-    ) -> TextIO:
+    def meta_download(self, filename: str, upper_length: int) -> TextIO:
         """
         Download metadata file from the list of metadata mirrors
         """
@@ -139,7 +145,7 @@ class Mirrors:
                 temp_obj = download.download_file(
                     file_mirror,
                     upper_length,
-                    fetcher,
+                    self._fetcher,
                     STRICT_REQUIRED_LENGTH=False,
                 )
 
@@ -155,9 +161,7 @@ class Mirrors:
                         file_mirror_errors
                     )
 
-    def target_download(
-        self, filename: str, strict_length: int, fetcher: "FetcherInterface"
-    ) -> BinaryIO:
+    def target_download(self, filename: str, strict_length: int) -> BinaryIO:
         """
         Download target file from the list of target mirrors
         """
@@ -167,7 +171,7 @@ class Mirrors:
         for file_mirror in file_mirrors:
             try:
                 temp_obj = download.download_file(
-                    file_mirror, strict_length, fetcher
+                    file_mirror, strict_length, self._fetcher
                 )
 
                 temp_obj.seek(0)

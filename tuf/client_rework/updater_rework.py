@@ -17,9 +17,7 @@ from securesystemslib import hash as sslib_hash
 from securesystemslib import util as sslib_util
 
 from tuf import exceptions, settings
-from tuf.client.fetcher import FetcherInterface
 from tuf.client_rework.mirrors import Mirrors
-from tuf.client_rework.requests_fetcher import RequestsFetcher
 
 from .metadata_wrapper import (
     RootWrapper,
@@ -52,7 +50,7 @@ class Updater:
         self,
         repository_name: str,
         repository_mirrors: Dict,
-        fetcher: Optional[FetcherInterface] = None,
+        fetcher: Optional["FetcherInterface"] = None,
     ):
 
         self._repository_name = repository_name
@@ -60,12 +58,7 @@ class Updater:
         self._consistent_snapshot = False
         self._metadata = {}
 
-        if fetcher is None:
-            self._fetcher = RequestsFetcher()
-        else:
-            self._fetcher = fetcher
-
-        self._mirrors = Mirrors(repository_mirrors)
+        self._mirrors = Mirrors(repository_mirrors, fetcher)
 
     def refresh(self) -> None:
         """
@@ -152,7 +145,7 @@ class Updater:
         """
 
         for temp_obj in self._mirrors.target_download(
-            target["filepath"], target["fileinfo"]["length"], self._fetcher
+            target["filepath"], target["fileinfo"]["length"]
         ):
 
             try:
@@ -224,7 +217,6 @@ class Updater:
                 mirror_download = self._mirrors.meta_download(
                     self._get_relative_meta_name("root", version=next_version),
                     settings.DEFAULT_ROOT_REQUIRED_LENGTH,
-                    self._fetcher,
                 )
 
                 for temp_obj in mirror_download:
@@ -284,9 +276,7 @@ class Updater:
         """
         # TODO Check if timestamp exists locally
         for temp_obj in self._mirrors.meta_download(
-            "timestamp.json",
-            settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH,
-            self._fetcher,
+            "timestamp.json", settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
         ):
 
             try:
@@ -323,9 +313,7 @@ class Updater:
 
         # Check if exists locally
         # self.loadLocal('snapshot', snapshotVerifier)
-        for temp_obj in self._mirrors.meta_download(
-            "snapshot.json", length, self._fetcher
-        ):
+        for temp_obj in self._mirrors.meta_download("snapshot.json", length):
 
             try:
                 verified_snapshot = self._verify_snapshot(temp_obj)
@@ -363,7 +351,7 @@ class Updater:
         # self.loadLocal('snapshot', targetsVerifier)
 
         for temp_obj in self._mirrors.meta_download(
-            targets_role + ".json", length, self._fetcher
+            targets_role + ".json", length
         ):
 
             try:
