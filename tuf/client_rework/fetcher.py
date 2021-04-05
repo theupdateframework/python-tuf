@@ -26,14 +26,16 @@ class FetcherInterface:
         Ensures the length of the downloaded data is up to 'required_length'.
 
         Arguments:
-          url: A URL string that represents a file location.
-          required_length: An integer value representing the file length in bytes.
+            url: A URL string that represents a file location.
+            required_length: An integer value representing the file length in
+                bytes.
 
         Raises:
-          tuf.exceptions.SlowRetrievalError: A timeout occurs while receiving data.
-          tuf.exceptions.FetcherHTTPError: An HTTP error code is received.
+            tuf.exceptions.SlowRetrievalError: A timeout occurs while receiving
+                data.
+            tuf.exceptions.FetcherHTTPError: An HTTP error code is received.
 
         Returns:
-          A bytes iterator
+            A bytes iterator
         """
         raise NotImplementedError  # pragma: no cover
