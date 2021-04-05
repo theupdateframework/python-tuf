@@ -41,6 +41,7 @@ from typing import BinaryIO, Dict, Optional, TextIO
 
 import securesystemslib
 import six
+from securesystemslib import exceptions, util
 
 import tuf
 import tuf.formats
@@ -55,6 +56,8 @@ _SUPPORTED_FILE_TYPES = ["meta", "target"]
 
 
 class Mirrors:
+    """TODO"""
+
     def __init__(
         self, mirrors_dict: Dict, fetcher: Optional["FetcherInterface"] = None
     ):
@@ -99,14 +102,14 @@ class Mirrors:
 
         # Verify 'file_type' is supported.
         if file_type not in _SUPPORTED_FILE_TYPES:
-            raise sslib_exceptions.Error(
+            raise exceptions.Error(
                 "Invalid file_type argument."
                 "  Supported file types: " + repr(_SUPPORTED_FILE_TYPES)
             )
         path_key = "metadata_path" if file_type == "meta" else "targets_path"
 
         list_of_mirrors = []
-        for junk, mirror_info in six.iteritems(self._config):
+        for dummy, mirror_info in six.iteritems(self._config):
             # Does mirror serve this file type at all?
             path = mirror_info.get(path_key)
             if path is None:
@@ -119,8 +122,11 @@ class Mirrors:
                 # confined_target_dirs is optional and can used to confine the
                 # client to certain paths on a repository mirror when fetching
                 # target files.
-                if confined_target_dirs and not file_in_confined_directories(
-                    full_filepath, confined_target_dirs
+                if (
+                    confined_target_dirs
+                    and not util.file_in_confined_directories(
+                        full_filepath, confined_target_dirs
+                    )
                 ):
                     continue
 
@@ -152,7 +158,7 @@ class Mirrors:
                 temp_obj = self._download_file(
                     file_mirror,
                     upper_length,
-                    STRICT_REQUIRED_LENGTH=False,
+                    strict_required_length=False,
                 )
 
                 temp_obj.seek(0)
@@ -190,7 +196,7 @@ class Mirrors:
                         file_mirror_errors
                     )
 
-    def _download_file(self, url, required_length, STRICT_REQUIRED_LENGTH=True):
+    def _download_file(self, url, required_length, strict_required_length=True):
         """
         <Purpose>
         Given the url and length of the desired file, this function opens a
@@ -206,7 +212,7 @@ class Mirrors:
         required_length:
             An integer value representing the length of the file.
 
-        STRICT_REQUIRED_LENGTH:
+        strict_required_length:
             A Boolean indicator used to signal whether we should perform strict
             checking of required_length. True by default. We explicitly set this
             to False when we know that we want to turn this off for downloading
@@ -288,7 +294,7 @@ class Mirrors:
             self._check_downloaded_length(
                 number_of_bytes_received,
                 required_length,
-                STRICT_REQUIRED_LENGTH=STRICT_REQUIRED_LENGTH,
+                strict_required_length=strict_required_length,
                 average_download_speed=average_download_speed,
             )
 
@@ -306,7 +312,7 @@ class Mirrors:
     def _check_downloaded_length(
         total_downloaded,
         required_length,
-        STRICT_REQUIRED_LENGTH=True,
+        strict_required_length=True,
         average_download_speed=None,
     ):
         """
@@ -326,7 +332,7 @@ class Mirrors:
             of the required top-level roles.  In both cases, 'required_length'
             is actually an upper limit on the length of the downloaded file.
 
-        STRICT_REQUIRED_LENGTH:
+        strict_required_length:
             A Boolean indicator used to signal whether we should perform strict
             checking of required_length. True by default. We explicitly set this
             to False when we know that we want to turn this off for downloading
@@ -340,7 +346,7 @@ class Mirrors:
 
         <Exceptions>
         securesystemslib.exceptions.DownloadLengthMismatchError, if
-        STRICT_REQUIRED_LENGTH is True and total_downloaded is not equal
+        strict_required_length is True and total_downloaded is not equal
         required_length.
 
         tuf.exceptions.SlowRetrievalError, if the total downloaded was
@@ -363,7 +369,7 @@ class Mirrors:
 
             # What we downloaded is not equal to the required length, but did
             # we ask for strict checking of required length?
-            if STRICT_REQUIRED_LENGTH:
+            if strict_required_length:
                 msg = (
                     f"Downloaded {total_downloaded} bytes, but expected"
                     f"{required_length} bytes. There is a difference of"
