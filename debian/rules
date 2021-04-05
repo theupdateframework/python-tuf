@@ -15,12 +15,11 @@ override_dh_install:
 
 override_dh_auto_test:
 ifeq (,$(findstring nocheck,$(DEB_BUILD_OPTIONS)))
-	sed -e 's/--use-deprecated=legacy-resolver//g' -i tox.ini
 	tox -l
-	for py in $(PYVERS); do \
-  env=$$(echo "py$${py}" | tr -d '.') ; \
-  tox ${TOX_OPTIONS} -e "$${env}" -- -s ; \
-done
+	set -e ; for py in $(PYVERS); do \
+	  env=$$(echo "py$${py}" | tr -d '.') ; \
+	  tox ${TOX_OPTIONS} -e "$${env}" -- -s ; \
+	done
 endif
 
 override_dh_auto_clean:
