@@ -164,7 +164,10 @@ class Mirrors:
                 temp_obj.seek(0)
                 yield temp_obj
 
-            except Exception as exception:
+            # pylint cannot figure out that we store the exceptions
+            # in a dictionary to raise them later so we disable
+            # the warning. This should be reviewed in the future still.
+            except Exception as exception:  # pylint:  disable=broad-except
                 file_mirror_errors[file_mirror] = exception
 
             finally:
@@ -187,7 +190,10 @@ class Mirrors:
                 temp_obj.seek(0)
                 yield temp_obj
 
-            except Exception as exception:
+            # pylint cannot figure out that we store the exceptions
+            # in a dictionary to raise them later so we disable
+            # the warning. This should be reviewed in the future still.
+            except Exception as exception:  # pylint:  disable=broad-except
                 file_mirror_errors[file_mirror] = exception
 
             finally:
