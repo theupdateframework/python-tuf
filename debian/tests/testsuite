@@ -7,7 +7,11 @@ pys="$(py3versions -s 2> /dev/null)"
 cp -rva tests "$AUTOPKGTEST_TMP/"
 cd "$AUTOPKGTEST_TMP/tests"
 
+# Resolve "from tests import utils"
+PYTHONPATH=".."
+export PYTHONPATH
+
 for py in $pys; do
     echo "=== $py ==="
-    PYTHONPATH="../tests/.." $py aggregate_tests.py
+    $py aggregate_tests.py
 done
