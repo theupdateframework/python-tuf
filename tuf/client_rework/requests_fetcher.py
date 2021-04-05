@@ -116,15 +116,12 @@ class RequestsFetcher(FetcherInterface):
 
                     # We might have no more data to read. Check number of bytes
                     #  downloaded.
+                    msg = (
+                        f"Downloaded {bytes_received}/{required_length}"
+                        f"bytes."
+                    )
                     if not data:
-                        logger.debug(
-                            "Downloaded "
-                            + repr(bytes_received)
-                            + "/"
-                            + repr(required_length)
-                            + " bytes."
-                        )
-
+                        logger.debug(msg)
                         # Finally, we signal that the download is complete.
                         break
 
@@ -156,8 +153,9 @@ class RequestsFetcher(FetcherInterface):
 
         session_index = parsed_url.scheme + "+" + parsed_url.hostname
 
-        logger.debug("url: " + url)
-        logger.debug("session index: " + session_index)
+        msg = f"""url: {url}
+                  session index: {session_index}"""
+        logger.debug(msg)
 
         session = self._sessions.get(session_index)
 
@@ -180,10 +178,11 @@ class RequestsFetcher(FetcherInterface):
                     "User-Agent": tuf_user_agent,
                 }
             )
-
-            logger.debug("Made new session for " + session_index)
+            msg = f"Made new session for {session_index}"
 
         else:
-            logger.debug("Reusing session for " + session_index)
+            msg = f"Reusing session for {session_index}"
+
+        logger.debug(msg)
 
         return session

@@ -240,7 +240,8 @@ class Mirrors:
         # A back-slash may be encoded as %5c in the url, which should also be
         # replaced with a forward slash.
         url = six.moves.urllib.parse.unquote(url).replace("\\", "/")
-        logger.info("Downloading: " + repr(url))
+        msg = f"Downloading: {url}"
+        logger.info(msg)
 
         # This is the temporary file that we will return to contain the
         # contents of the downloaded file.
@@ -294,7 +295,8 @@ class Mirrors:
         except Exception:
             # Close 'temp_file'.  Any written data is lost.
             temp_file.close()
-            logger.debug("Could not download URL: " + repr(url))
+            msg = f"Could not download URL: {url}"
+            logger.debug(msg)
             raise
 
         else:
@@ -350,10 +352,11 @@ class Mirrors:
         """
 
         if total_downloaded == required_length:
-            logger.info(
-                "Downloaded " + str(total_downloaded) + " bytes out of the"
-                " expected " + str(required_length) + " bytes."
+            msg = (
+                f"Downloaded {total_downloaded} bytes out of the"
+                f" expected {required_length} bytes."
             )
+            logger.info(msg)
 
         else:
             difference_in_bytes = abs(total_downloaded - required_length)
@@ -361,23 +364,21 @@ class Mirrors:
             # What we downloaded is not equal to the required length, but did
             # we ask for strict checking of required length?
             if STRICT_REQUIRED_LENGTH:
-                logger.info(
-                    "Downloaded " + str(total_downloaded) + " bytes, but"
-                    " expected "
-                    + str(required_length)
-                    + " bytes. There is a difference"
-                    " of " + str(difference_in_bytes) + " bytes."
+                msg = (
+                    f"Downloaded {total_downloaded} bytes, but expected"
+                    f"{required_length} bytes. There is a difference of"
+                    f"{difference_in_bytes} bytes."
                 )
+                logger.info(msg)
 
                 # If the average download speed is below a certain threshold,
                 # we flag this as a possible slow-retrieval attack.
-                logger.debug(
-                    "Average download speed: " + repr(average_download_speed)
+                msg = (
+                    f"Average download speed: {average_download_speed}\n"
+                    f"Minimum average download speed: "
+                    f"{tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED}"
                 )
-                logger.debug(
-                    "Minimum average download speed: "
-                    + repr(tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED)
-                )
+                logger.debug(msg)
 
                 if (
                     average_download_speed
@@ -388,11 +389,11 @@ class Mirrors:
                     )
 
                 else:
-                    logger.debug(
-                        "Good average download speed: "
-                        + repr(average_download_speed)
-                        + " bytes per second"
+                    msg = (
+                        f"Good average download speed: "
+                        f"{average_download_speed} bytes per second"
                     )
+                    logger.debug(msg)
 
                 raise tuf.exceptions.DownloadLengthMismatchError(
                     required_length, total_downloaded
@@ -413,13 +414,14 @@ class Mirrors:
                     )
 
                 else:
-                    logger.debug(
-                        "Good average download speed: "
-                        + repr(average_download_speed)
-                        + " bytes per second"
+                    msg = (
+                        f"Good average download speed: "
+                        f"{average_download_speed} bytes per second"
                     )
+                    logger.debug(msg)
 
-                logger.info(
-                    "Downloaded " + str(total_downloaded) + " bytes out of an"
-                    " upper limit of " + str(required_length) + " bytes."
+                msg = (
+                    f"Downloaded {total_downloaded} bytes out of an "
+                    f"upper limit of {required_length} bytes."
                 )
+                logger.info(msg)
