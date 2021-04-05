@@ -1,2 +1,3 @@
 0001-test-Ignore-pinned-deps-use-systems-ones.patch
 0002-test-Use-python3-coverage-from-sitepackages.patch
+0003-ci-Remove-workaround-for-pip-resolver-issue.patch

@@ -23,7 +23,7 @@ Signed-off-by: Philippe Coval <rzr@users.sf.net>
  1 file changed, 7 insertions(+), 4 deletions(-)
 
 diff --git a/tox.ini b/tox.ini
-index c98517e..d8d1b34 100644
+index c98517e..6327265 100644
 --- a/tox.ini
 +++ b/tox.ini
 @@ -13,10 +13,13 @@ skipsdist = true

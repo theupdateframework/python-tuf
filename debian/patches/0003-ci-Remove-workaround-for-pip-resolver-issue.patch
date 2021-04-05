@@ -1,0 +1,28 @@
+From: Jussi Kukkonen <jkukkonen@vmware.com>
+Date: Mon, 22 Feb 2021 11:07:45 +0200
+Subject: ci: Remove workaround for pip resolver issue
+
+Workaround was added for pip issue 9215 and does not _seem_ to appear
+anymore with pip 21.0.1.
+
+Signed-off-by: Jussi Kukkonen <jkukkonen@vmware.com>
+Origin: upstream#2de2758393883ae0f96c30b43cc6b2b2107bf921
+---
+ tox.ini | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/tox.ini b/tox.ini
+index 6327265..17dfdef 100644
+--- a/tox.ini
++++ b/tox.ini
+@@ -26,9 +26,7 @@ deps =
+     # installation (see `skipsdist`), to get relative paths in coverage reports
+     --editable {toxinidir}
+ 
+-# FIXME: use legacy resolver because https://github.com/pypa/pip/issues/9215
+-install_command = pip install --use-deprecated=legacy-resolver --pre {opts} {packages}
+-
++install_command = pip install --pre {opts} {packages}
+ 
+ # Develop test env to run tests against securesystemslib's master branch
+ # Must to be invoked explicitly with, e.g. `tox -e with-sslib-master`
