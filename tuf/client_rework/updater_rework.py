@@ -10,16 +10,21 @@ TODO
 import fnmatch
 import logging
 import os
-
 from typing import BinaryIO, Dict, Optional, TextIO
 
-from securesystemslib import exceptions, util
+from securesystemslib import exceptions as sslib_exceptions
+from securesystemslib import hash as sslib_hash
+from securesystemslib import util as sslib_util
 
-from tuf import download, exceptions, formats, mirrors, settings
+from tuf import download, exceptions, mirrors, requests_fetcher, settings
 from tuf.client.fetcher import FetcherInterface
-from tuf.requests_fetcher import RequestsFetcher
 
-from .metadata_wrapper import RootWrapper, SnapshotWrapper, TargetsWrapper, TimestampWrapper
+from .metadata_wrapper import (
+    RootWrapper,
+    SnapshotWrapper,
+    TargetsWrapper,
+    TimestampWrapper,
+)
 
 # Globals
 logger = logging.getLogger(__name__)
@@ -54,7 +59,7 @@ class Updater:
         self._metadata = {}
 
         if fetcher is None:
-            self._fetcher = RequestsFetcher()
+            self._fetcher = requests_fetcher.RequestsFetcher()
         else:
             self._fetcher = fetcher
 
@@ -117,13 +122,13 @@ class Updater:
             for algorithm, digest in target["fileinfo"]["hashes"].items():
                 digest_object = None
                 try:
-                    digest_object = securesystemslib.hash.digest_filename(
+                    digest_object = sslib_hash.digest_filename(
                         target_filepath, algorithm=algorithm
                     )
 
                 # This exception will occur if the target does not exist
                 # locally.
-                except exceptions.StorageError:
+                except sslib_exceptions.StorageError:
                     updated_targets.append(target)
                     updated_targetpaths.append(target_filepath)
                     break
@@ -150,7 +155,7 @@ class Updater:
                 filepath = os.path.join(
                     destination_directory, target["filepath"]
                 )
-                util.persist_temp_file(temp_obj, filepath)
+                sslib_util.persist_temp_file(temp_obj, filepath)
         # pylint: disable=try-except-raise
         except Exception:
             # TODO: do something with exceptions
@@ -180,9 +185,7 @@ class Updater:
 
             finally:
                 if file_mirror_errors:
-                    raise exceptions.NoWorkingMirrorError(
-                        file_mirror_errors
-                    )
+                    raise exceptions.NoWorkingMirrorError(file_mirror_errors)
 
     def _mirror_target_download(self, fileinfo: str) -> BinaryIO:
         """
@@ -208,9 +211,7 @@ class Updater:
 
             finally:
                 if file_mirror_errors:
-                    raise exceptions.NoWorkingMirrorError(
-                        file_mirror_errors
-                    )
+                    raise exceptions.NoWorkingMirrorError(file_mirror_errors)
 
     def _get_full_meta_name(
         self, role: str, extension: str = ".json", version: int = None
@@ -804,7 +805,7 @@ def _check_hashes(file_object, trusted_hashes):
     # Verify each trusted hash of 'trusted_hashes'.  If all are valid, simply
     # return.
     for algorithm, trusted_hash in trusted_hashes.items():
-        digest_object = securesystemslib.hash.digest(algorithm)
+        digest_object = sslib_hash.digest(algorithm)
         # Ensure we read from the beginning of the file object
         # TODO: should we store file position (before the loop) and reset
         # after we seek about?
@@ -814,9 +815,7 @@ def _check_hashes(file_object, trusted_hashes):
 
         # Raise an exception if any of the hashes are incorrect.
         if trusted_hash != computed_hash:
-            raise securesystemslib.exceptions.BadHashError(
-                trusted_hash, computed_hash
-            )
+            raise sslib_exceptions.BadHashError(trusted_hash, computed_hash)
 
         logger.info(
             "The file's " + algorithm + " hash is" " correct: " + trusted_hash
@@ -830,7 +829,7 @@ def _get_target_hash(target_filepath, hash_function="sha256"):
     # Calculate the hash of the filepath to determine which bin to find the
     # target.  The client currently assumes the repository (i.e., repository
     # tool) uses 'hash_function' to generate hashes and UTF-8.
-    digest_object = securesystemslib.hash.digest(hash_function)
+    digest_object = sslib_hash.digest(hash_function)
     encoded_target_filepath = target_filepath.encode("utf-8")
     digest_object.update(encoded_target_filepath)
     target_filepath_hash = digest_object.hexdigest()
