@@ -1,0 +1,41 @@
+From: Philippe Coval <rzr@users.sf.net>
+Date: Mon, 5 Apr 2021 16:47:55 +0200
+Subject: debian/patches: Use python3 explicitly
+
+python-is-python3. It's meant for end-users only
+
+Thanks-to: @tumbleweed
+Forwarded: Not-Needed
+Signed-off-by: Philippe Coval <rzr@users.sf.net>
+---
+ tox.ini | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/tox.ini b/tox.ini
+index 17dfdef..ab7196c 100644
+--- a/tox.ini
++++ b/tox.ini
+@@ -17,9 +17,9 @@ allowlist_externals = python3-coverage
+ 
+ 
+ commands =
+-    python --version
+-    python -m coverage run aggregate_tests.py
+-    python -m coverage report -m
++    python3 --version
++    python3 -m coverage run aggregate_tests.py
++    python3 -m coverage report -m
+ 
+ deps =
+     # Install TUF in editable mode, instead of tox default virtual environment
+@@ -36,8 +36,8 @@ deps =
+     --editable {toxinidir}
+ 
+ commands =
+-    python -m coverage run aggregate_tests.py
+-    python -m coverage report -m
++    python3 -m coverage run aggregate_tests.py
++    python3 -m coverage report -m
+ 
+ [testenv:lint]
+ commands =
