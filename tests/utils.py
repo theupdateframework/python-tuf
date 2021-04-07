@@ -25,6 +25,7 @@ from contextlib import contextmanager
 import errno
 import logging
 import socket
+import sys
 import time
 import subprocess
 import threading
@@ -186,7 +187,7 @@ class TestServerProcess():
     """Starts the process running the server."""
 
     # The "-u" option forces stdin, stdout and stderr to be unbuffered.
-    command = ['python', '-u', self.server] + extra_cmd_args
+    command = [sys.executable, '-u', self.server] + extra_cmd_args
 
     # Reusing one subprocess in multiple tests, but split up the logs for each.
     self.__server_process = subprocess.Popen(command,
