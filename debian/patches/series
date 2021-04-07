@@ -2,3 +2,4 @@
 0002-test-Use-python3-coverage-from-sitepackages.patch
 0003-ci-Remove-workaround-for-pip-resolver-issue.patch
 0004-debian-patches-Use-python3-explicitly.patch
+0005-tests-Use-current-python-interpreter-for-sub-tests.patch

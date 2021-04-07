@@ -1,0 +1,35 @@
+From: Philippe Coval <rzr@users.sf.net>
+Date: Wed, 7 Apr 2021 13:02:34 +0200
+Subject: tests: Use current python interpreter for sub tests
+
+Can be useful to run tests using distro runtimes,
+(like python3 on Debian).
+
+Relate-to: https://github.com/theupdateframework/tuf/issues/263
+Forwarded: https://github.com/theupdateframework/tuf/pull/1337
+Signed-off-by: Philippe Coval <rzr@users.sf.net>
+---
+ tests/utils.py | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/tests/utils.py b/tests/utils.py
+index 8e8c07b..df43a23 100644
+--- a/tests/utils.py
++++ b/tests/utils.py
+@@ -25,6 +25,7 @@ from contextlib import contextmanager
+ import errno
+ import logging
+ import socket
++import sys
+ import time
+ import subprocess
+ import threading
+@@ -200,7 +201,7 @@ class TestServerProcess():
+     """Starts the process running the server."""
+ 
+     # The "-u" option forces stdin, stdout and stderr to be unbuffered.
+-    command = ['python', '-u', self.server] + extra_cmd_args
++    command = [sys.executable, '-u', self.server] + extra_cmd_args
+ 
+     # Reusing one subprocess in multiple tests, but split up the logs for each.
+     self.__server_process = subprocess.Popen(command,
