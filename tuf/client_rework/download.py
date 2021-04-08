@@ -23,24 +23,13 @@
   metadata of that file.
 """
 
-
-# Help with Python 3 compatibility, where the print statement is a function, an
-# implicit relative import is invalid, and the '/' operator performs true
-# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
-from __future__ import (
-    absolute_import,
-    division,
-    print_function,
-    unicode_literals,
-)
-
 import logging
 import tempfile
 import timeit
+from urllib import parse
 
 import securesystemslib
 import securesystemslib.util
-import six
 
 import tuf
 import tuf.exceptions
@@ -98,7 +87,7 @@ def download_file(url, required_length, fetcher, strict_required_length=True):
     # a url with their single-character equivalent.  A back-slash may be
     # encoded as %5c in the url, which should also be replaced with a forward
     # slash.
-    url = six.moves.urllib.parse.unquote(url).replace("\\", "/")
+    url = parse.unquote(url).replace("\\", "/")
     logger.info("Downloading: " + repr(url))
 
     # This is the temporary file that we will return to contain the contents of

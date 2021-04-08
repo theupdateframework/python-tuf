@@ -22,22 +22,11 @@
   of the file with respect to the base url.
 """
 
-
-# Help with Python 3 compatibility, where the print statement is a function, an
-# implicit relative import is invalid, and the '/' operator performs true
-# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
-from __future__ import (
-    absolute_import,
-    division,
-    print_function,
-    unicode_literals,
-)
-
 import os
 from typing import BinaryIO, Dict, TextIO
+from urllib import parse
 
 import securesystemslib
-import six
 
 import tuf
 import tuf.client_rework.download as download
@@ -110,7 +99,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
     in_confined_directory = securesystemslib.util.file_in_confined_directories
 
     list_of_mirrors = []
-    for dummy, mirror_info in six.iteritems(mirrors_dict):
+    for mirror_info in mirrors_dict.values():
         # Does mirror serve this file type at all?
         path = mirror_info.get(path_key)
         if path is None:
@@ -131,7 +120,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
         # on the server side. Do *NOT* pass URLs with Unicode characters without
         # first encoding the URL as UTF-8. Needed a long-term solution with #61.
         # http://bugs.python.org/issue1712522
-        file_path = six.moves.urllib.parse.quote(file_path)
+        file_path = parse.quote(file_path)
         url = os.path.join(mirror_info["url_prefix"], path, file_path)
 
         # The above os.path.join() result as well as input file_path may be
