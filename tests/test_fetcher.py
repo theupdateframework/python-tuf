@@ -5,9 +5,6 @@
 
 """Unit test for RequestsFetcher.
 """
-# Help with Python 2 compatibility, where the '/' operator performs
-# integer division.
-from __future__ import division
 
 import logging
 import os
