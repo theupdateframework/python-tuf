@@ -50,7 +50,7 @@ import tuf.formats
 logger = logging.getLogger(__name__)
 
 
-def download_file(url, required_length, fetcher, STRICT_REQUIRED_LENGTH=True):
+def download_file(url, required_length, fetcher, strict_required_length=True):
     """
     <Purpose>
       Given the url and length of the desired file, this function opens a
@@ -66,7 +66,7 @@ def download_file(url, required_length, fetcher, STRICT_REQUIRED_LENGTH=True):
       required_length:
         An integer value representing the length of the file.
 
-      STRICT_REQUIRED_LENGTH:
+      strict_required_length:
         A Boolean indicator used to signal whether we should perform strict
         checking of required_length. True by default. We explicitly set this to
         False when we know that we want to turn this off for downloading the
@@ -141,7 +141,7 @@ def download_file(url, required_length, fetcher, STRICT_REQUIRED_LENGTH=True):
         _check_downloaded_length(
             number_of_bytes_received,
             required_length,
-            STRICT_REQUIRED_LENGTH=STRICT_REQUIRED_LENGTH,
+            strict_required_length=strict_required_length,
             average_download_speed=average_download_speed,
         )
 
@@ -158,7 +158,7 @@ def download_file(url, required_length, fetcher, STRICT_REQUIRED_LENGTH=True):
 def _check_downloaded_length(
     total_downloaded,
     required_length,
-    STRICT_REQUIRED_LENGTH=True,
+    strict_required_length=True,
     average_download_speed=None,
 ):
     """
@@ -178,7 +178,7 @@ def _check_downloaded_length(
         top-level roles.  In both cases, 'required_length' is actually an upper
         limit on the length of the downloaded file.
 
-      STRICT_REQUIRED_LENGTH:
+      strict_required_length:
         A Boolean indicator used to signal whether we should perform strict
         checking of required_length. True by default. We explicitly set this to
         False when we know that we want to turn this off for downloading the
@@ -192,7 +192,7 @@ def _check_downloaded_length(
 
     <Exceptions>
       securesystemslib.exceptions.DownloadLengthMismatchError, if
-      STRICT_REQUIRED_LENGTH is True and total_downloaded is not equal
+      strict_required_length is True and total_downloaded is not equal
       required_length.
 
       tuf.exceptions.SlowRetrievalError, if the total downloaded was
@@ -214,7 +214,7 @@ def _check_downloaded_length(
 
         # What we downloaded is not equal to the required length, but did we ask
         # for strict checking of required length?
-        if STRICT_REQUIRED_LENGTH:
+        if strict_required_length:
             logger.info(
                 "Downloaded " + str(total_downloaded) + " bytes, but"
                 " expected "

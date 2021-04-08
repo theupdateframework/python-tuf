@@ -110,7 +110,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
     in_confined_directory = securesystemslib.util.file_in_confined_directories
 
     list_of_mirrors = []
-    for junk, mirror_info in six.iteritems(mirrors_dict):
+    for dummy, mirror_info in six.iteritems(mirrors_dict):
         # Does mirror serve this file type at all?
         path = mirror_info.get(path_key)
         if path is None:
@@ -157,7 +157,7 @@ def mirror_meta_download(
     for file_mirror in file_mirrors:
         try:
             temp_obj = download.download_file(
-                file_mirror, upper_length, fetcher, STRICT_REQUIRED_LENGTH=False
+                file_mirror, upper_length, fetcher, strict_required_length=False
             )
 
             temp_obj.seek(0)
