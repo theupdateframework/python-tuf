@@ -26,11 +26,12 @@ import os
 from typing import BinaryIO, Dict, TextIO
 from urllib import parse
 
-import securesystemslib
+from securesystemslib import exceptions as sslib_exceptions
+from securesystemslib import formats as sslib_formats
+from securesystemslib import util as sslib_util
 
-import tuf
-import tuf.client_rework.download as download
-import tuf.formats
+from tuf import exceptions, formats
+from tuf.client_rework import download
 
 # The type of file to be downloaded from a repository.  The
 # 'get_list_of_mirrors' function supports these file types.
@@ -78,13 +79,13 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
     """
 
     # Checking if all the arguments have appropriate format.
-    tuf.formats.RELPATH_SCHEMA.check_match(file_path)
-    tuf.formats.MIRRORDICT_SCHEMA.check_match(mirrors_dict)
-    securesystemslib.formats.NAME_SCHEMA.check_match(file_type)
+    formats.RELPATH_SCHEMA.check_match(file_path)
+    formats.MIRRORDICT_SCHEMA.check_match(mirrors_dict)
+    sslib_formats.NAME_SCHEMA.check_match(file_type)
 
     # Verify 'file_type' is supported.
     if file_type not in _SUPPORTED_FILE_TYPES:
-        raise securesystemslib.exceptions.Error(
+        raise sslib_exceptions.Error(
             "Invalid file_type argument."
             "  Supported file types: " + repr(_SUPPORTED_FILE_TYPES)
         )
@@ -96,7 +97,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
     # on a repository mirror when fetching target files.  This field may be set
     # by the client when the repository mirror is added to the
     # 'tuf.client.updater.Updater' object.
-    in_confined_directory = securesystemslib.util.file_in_confined_directories
+    in_confined_directory = sslib_util.file_in_confined_directories
 
     list_of_mirrors = []
     for mirror_info in mirrors_dict.values():
@@ -160,7 +161,7 @@ def mirror_meta_download(
 
         finally:
             if file_mirror_errors:
-                raise tuf.exceptions.NoWorkingMirrorError(file_mirror_errors)
+                raise exceptions.NoWorkingMirrorError(file_mirror_errors)
 
 
 def mirror_target_download(
@@ -192,4 +193,4 @@ def mirror_target_download(
 
         finally:
             if file_mirror_errors:
-                raise tuf.exceptions.NoWorkingMirrorError(file_mirror_errors)
+                raise exceptions.NoWorkingMirrorError(file_mirror_errors)

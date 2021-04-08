@@ -28,12 +28,10 @@ import tempfile
 import timeit
 from urllib import parse
 
-import securesystemslib
-import securesystemslib.util
+from securesystemslib import formats as sslib_formats
 
 import tuf
-import tuf.exceptions
-import tuf.formats
+from tuf import exceptions, formats
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger(__name__)
@@ -65,7 +63,7 @@ def download_file(url, required_length, fetcher, strict_required_length=True):
       A file object is created on disk to store the contents of 'url'.
 
     <Exceptions>
-      tuf.exceptions.DownloadLengthMismatchError, if there was a
+      exceptions.DownloadLengthMismatchError, if there was a
       mismatch of observed vs expected lengths while downloading the file.
 
       securesystemslib.exceptions.FormatError, if any of the arguments are
@@ -78,8 +76,8 @@ def download_file(url, required_length, fetcher, strict_required_length=True):
     """
     # Do all of the arguments have the appropriate format?
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    securesystemslib.formats.URL_SCHEMA.check_match(url)
-    tuf.formats.LENGTH_SCHEMA.check_match(required_length)
+    sslib_formats.URL_SCHEMA.check_match(url)
+    formats.LENGTH_SCHEMA.check_match(required_length)
 
     # 'url.replace('\\', '/')' is needed for compatibility with Windows-based
     # systems, because they might use back-slashes in place of forward-slashes.
@@ -183,7 +181,7 @@ def _check_downloaded_length(
       strict_required_length is True and total_downloaded is not equal
       required_length.
 
-      tuf.exceptions.SlowRetrievalError, if the total downloaded was
+      exceptions.SlowRetrievalError, if the total downloaded was
       done in less than the acceptable download speed (as set in
       tuf.settings.py).
 
@@ -222,7 +220,7 @@ def _check_downloaded_length(
             )
 
             if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
-                raise tuf.exceptions.SlowRetrievalError(average_download_speed)
+                raise exceptions.SlowRetrievalError(average_download_speed)
 
             logger.debug(
                 "Good average download speed: "
@@ -230,7 +228,7 @@ def _check_downloaded_length(
                 + " bytes per second"
             )
 
-            raise tuf.exceptions.DownloadLengthMismatchError(
+            raise exceptions.DownloadLengthMismatchError(
                 required_length, total_downloaded
             )
 
@@ -240,7 +238,7 @@ def _check_downloaded_length(
         # signed metadata; so, we must guess a reasonable required_length
         # for it.
         if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
-            raise tuf.exceptions.SlowRetrievalError(average_download_speed)
+            raise exceptions.SlowRetrievalError(average_download_speed)
 
         logger.debug(
             "Good average download speed: "

@@ -18,7 +18,7 @@ from securesystemslib import util as sslib_util
 
 from tuf import exceptions, settings
 from tuf.client.fetcher import FetcherInterface
-from tuf.client_rework import download, mirrors, requests_fetcher
+from tuf.client_rework import mirrors, requests_fetcher
 
 from .metadata_wrapper import (
     RootWrapper,
