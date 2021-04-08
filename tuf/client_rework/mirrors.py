@@ -101,12 +101,12 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
         )
     path_key = "metadata_path" if file_type == "meta" else "targets_path"
 
-    # Reference to 'securesystemslib.util.file_in_confined_directories()' (improve
-    # readability).  This function checks whether a mirror should serve a file to
-    # the client.  A client may be confined to certain paths on a repository
-    # mirror when fetching target files.  This field may be set by the client
-    # when the repository mirror is added to the 'tuf.client.updater.Updater'
-    # object.
+    # Reference to 'securesystemslib.util.file_in_confined_directories()'
+    # (improve readability).  This function checks whether a mirror should
+    # serve a file to the client.  A client may be confined to certain paths
+    # on a repository mirror when fetching target files.  This field may be set
+    # by the client when the repository mirror is added to the
+    # 'tuf.client.updater.Updater' object.
     in_confined_directory = securesystemslib.util.file_in_confined_directories
 
     list_of_mirrors = []
@@ -126,10 +126,10 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
             ):
                 continue
 
-        # urllib.quote(string) replaces special characters in string using the %xx
-        # escape.  This is done to avoid parsing issues of the URL on the server
-        # side. Do *NOT* pass URLs with Unicode characters without first encoding
-        # the URL as UTF-8. We need a long-term solution with #61.
+        # urllib.quote(string) replaces special characters in string using
+        # the %xx escape.  This is done to avoid parsing issues of the URL
+        # on the server side. Do *NOT* pass URLs with Unicode characters without
+        # first encoding the URL as UTF-8. Needed a long-term solution with #61.
         # http://bugs.python.org/issue1712522
         file_path = six.moves.urllib.parse.quote(file_path)
         url = os.path.join(mirror_info["url_prefix"], path, file_path)

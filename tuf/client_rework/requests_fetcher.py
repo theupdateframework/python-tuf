@@ -26,24 +26,25 @@ class RequestsFetcher(FetcherInterface):
     library.
 
     Attributes:
-      _sessions: A dictionary of Requests.Session objects storing a separate
-        session per scheme+hostname combination.
+        _sessions: A dictionary of Requests.Session objects storing a separate
+            session per scheme+hostname combination.
     """
 
     def __init__(self):
-        # From http://docs.python-requests.org/en/master/user/advanced/#session-objects:
+        # http://docs.python-requests.org/en/master/user/advanced/#session-objects:
         #
         # "The Session object allows you to persist certain parameters across
         # requests. It also persists cookies across all requests made from the
-        # Session instance, and will use urllib3's connection pooling. So if you're
-        # making several requests to the same host, the underlying TCP connection
-        # will be reused, which can result in a significant performance increase
-        # (see HTTP persistent connection)."
+        # Session instance, and will use urllib3's connection pooling. So if
+        # you're making several requests to the same host, the underlying TCP
+        # connection will be reused, which can result in a significant
+        # performance increase (see HTTP persistent connection)."
         #
-        # NOTE: We use a separate requests.Session per scheme+hostname combination,
-        # in order to reuse connections to the same hostname to improve efficiency,
-        # but avoiding sharing state between different hosts-scheme combinations to
-        # minimize subtle security issues. Some cookies may not be HTTP-safe.
+        # NOTE: We use a separate requests.Session per scheme+hostname
+        # combination, in order to reuse connections to the same hostname to
+        # improve efficiency, but avoiding sharing state between different
+        # hosts-scheme combinations to minimize subtle security issues.
+        # Some cookies may not be HTTP-safe.
         self._sessions = {}
 
     def fetch(self, url, required_length):
@@ -52,15 +53,17 @@ class RequestsFetcher(FetcherInterface):
         Ensures the length of the downloaded data is up to 'required_length'.
 
         Arguments:
-          url: A URL string that represents a file location.
-          required_length: An integer value representing the file length in bytes.
+            url: A URL string that represents a file location.
+            required_length: An integer value representing the file length in
+                bytes.
 
         Raises:
-          tuf.exceptions.SlowRetrievalError: A timeout occurs while receiving data.
-          tuf.exceptions.FetcherHTTPError: An HTTP error code is received.
+            tuf.exceptions.SlowRetrievalError: A timeout occurs while receiving
+                data.
+            tuf.exceptions.FetcherHTTPError: An HTTP error code is received.
 
         Returns:
-          A bytes iterator
+            A bytes iterator
         """
         # Get a customized session for each new schema+hostname combination.
         session = self._get_session(url)
@@ -68,7 +71,8 @@ class RequestsFetcher(FetcherInterface):
         # Get the requests.Response object for this URL.
         #
         # Defer downloading the response body with stream=True.
-        # Always set the timeout. This timeout value is interpreted by requests as:
+        # Always set the timeout. This timeout value is interpreted by
+        # requests as:
         #  - connect timeout (max delay before first byte is received)
         #  - read (gap) timeout (max delay between bytes received)
         response = session.get(
@@ -82,18 +86,19 @@ class RequestsFetcher(FetcherInterface):
             status = e.response.status_code
             raise tuf.exceptions.FetcherHTTPError(str(e), status)
 
-        # Define a generator function to be returned by fetch. This way the caller
-        # of fetch can differentiate between connection and actual data download
-        # and measure download times accordingly.
+        # Define a generator function to be returned by fetch. This way the
+        # caller of fetch can differentiate between connection and actual data
+        # download and measure download times accordingly.
         def chunks():
             try:
                 bytes_received = 0
                 while True:
-                    # We download a fixed chunk of data in every round. This is so that we
-                    # can defend against slow retrieval attacks. Furthermore, we do not
-                    # wish to download an extremely large file in one shot.
-                    # Before beginning the round, sleep (if set) for a short amount of
-                    # time so that the CPU is not hogged in the while loop.
+                    # We download a fixed chunk of data in every round. This is
+                    # so that we can defend against slow retrieval attacks.
+                    # Furthermore, we do not wish to download an extremely
+                    # large file in one shot. Before beginning the round, sleep
+                    # (if set) for a short amount of time so that the CPU is not
+                    # hogged in the while loop.
                     if tuf.settings.SLEEP_BEFORE_ROUND:
                         time.sleep(tuf.settings.SLEEP_BEFORE_ROUND)
 
@@ -102,13 +107,15 @@ class RequestsFetcher(FetcherInterface):
                         required_length - bytes_received,
                     )
 
-                    # NOTE: This may not handle some servers adding a Content-Encoding
-                    # header, which may cause urllib3 to misbehave:
+                    # NOTE: This may not handle some servers adding a
+                    # Content-Encoding header, which may cause urllib3 to
+                    #  misbehave:
                     # https://github.com/pypa/pip/blob/404838abcca467648180b358598c597b74d568c9/src/pip/_internal/download.py#L547-L582
                     data = response.raw.read(read_amount)
                     bytes_received += len(data)
 
-                    # We might have no more data to read. Check number of bytes downloaded.
+                    # We might have no more data to read. Check number of bytes
+                    # downloaded.
                     if not data:
                         logger.debug(
                             "Downloaded "

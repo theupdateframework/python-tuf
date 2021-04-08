@@ -94,9 +94,10 @@ def download_file(url, required_length, fetcher, STRICT_REQUIRED_LENGTH=True):
 
     # 'url.replace('\\', '/')' is needed for compatibility with Windows-based
     # systems, because they might use back-slashes in place of forward-slashes.
-    # This converts it to the common format.  unquote() replaces %xx escapes in a
-    # url with their single-character equivalent.  A back-slash may be encoded as
-    # %5c in the url, which should also be replaced with a forward slash.
+    # This converts it to the common format.  unquote() replaces %xx escapes in
+    # a url with their single-character equivalent.  A back-slash may be
+    # encoded as %5c in the url, which should also be replaced with a forward
+    # slash.
     url = six.moves.urllib.parse.unquote(url).replace("\\", "/")
     logger.info("Downloading: " + repr(url))
 
@@ -125,8 +126,8 @@ def download_file(url, required_length, fetcher, STRICT_REQUIRED_LENGTH=True):
             if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
                 logger.debug(
                     "The average download speed dropped below the minimum"
-                    " average download speed set in tuf.settings.py. Stopping the"
-                    " download!"
+                    " average download speed set in tuf.settings.py."
+                    " Stopping the download!"
                 )
                 break
 
@@ -162,15 +163,16 @@ def _check_downloaded_length(
 ):
     """
     <Purpose>
-      A helper function which checks whether the total number of downloaded bytes
-      matches our expectation.
+      A helper function which checks whether the total number of downloaded
+      bytes matches our expectation.
 
     <Arguments>
       total_downloaded:
-        The total number of bytes supposedly downloaded for the file in question.
+        The total number of bytes supposedly downloaded for the file in
+        question.
 
       required_length:
-        The total number of bytes expected of the file as seen from its metadata.
+        The total number of bytes expected of the file as seen from its metadata
         The Timestamp role is always downloaded without a known file length, and
         the Root role when the client cannot download any of the required
         top-level roles.  In both cases, 'required_length' is actually an upper
@@ -221,8 +223,8 @@ def _check_downloaded_length(
                 " of " + str(difference_in_bytes) + " bytes."
             )
 
-            # If the average download speed is below a certain threshold, we flag
-            # this as a possible slow-retrieval attack.
+            # If the average download speed is below a certain threshold, we
+            # flag this as a possible slow-retrieval attack.
             logger.debug(
                 "Average download speed: " + repr(average_download_speed)
             )
@@ -246,10 +248,11 @@ def _check_downloaded_length(
             )
 
         else:
-            # We specifically disabled strict checking of required length, but we
-            # will log a warning anyway. This is useful when we wish to download the
-            # Timestamp or Root metadata, for which we have no signed metadata; so,
-            # we must guess a reasonable required_length for it.
+            # We specifically disabled strict checking of required length, but
+            # we will log a warning anyway. This is useful when we wish to
+            # download the Timestamp or Root metadata, for which we have no
+            # signed metadata; so, we must guess a reasonable required_length
+            # for it.
             if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
                 raise tuf.exceptions.SlowRetrievalError(average_download_speed)
 
