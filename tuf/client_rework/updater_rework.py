@@ -148,7 +148,7 @@ class Updater:
         The file is saved to the 'destination_directory' argument.
         """
         try:
-            for temp_obj in mirrors._mirror_target_download(
+            for temp_obj in mirrors.mirror_target_download(
                 target, self._mirrors, self._fetcher
             ):
 
@@ -217,7 +217,7 @@ class Updater:
         verified_root = None
         for next_version in range(lower_bound, upper_bound):
             try:
-                mirror_download = mirrors._mirror_meta_download(
+                mirror_download = mirrors.mirror_meta_download(
                     self._get_relative_meta_name("root", version=next_version),
                     settings.DEFAULT_ROOT_REQUIRED_LENGTH,
                     self._mirrors,
@@ -280,7 +280,7 @@ class Updater:
         TODO
         """
         # TODO Check if timestamp exists locally
-        for temp_obj in mirrors._mirror_meta_download(
+        for temp_obj in mirrors.mirror_meta_download(
             "timestamp.json",
             settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH,
             self._mirrors,
@@ -321,7 +321,7 @@ class Updater:
 
         # Check if exists locally
         # self.loadLocal('snapshot', snapshotVerifier)
-        for temp_obj in mirrors._mirror_meta_download(
+        for temp_obj in mirrors.mirror_meta_download(
             "snapshot.json", length, self._mirrors, self._fetcher
         ):
 
@@ -360,7 +360,7 @@ class Updater:
         # Check if exists locally
         # self.loadLocal('snapshot', targetsVerifier)
 
-        for temp_obj in mirrors._mirror_meta_download(
+        for temp_obj in mirrors.mirror_meta_download(
             targets_role + ".json", length, self._mirrors, self._fetcher
         ):
 

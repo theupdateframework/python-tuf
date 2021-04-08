@@ -142,7 +142,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
     return list_of_mirrors
 
 
-def _mirror_meta_download(
+def mirror_meta_download(
     filename: str,
     upper_length: int,
     mirrors_config: Dict,
@@ -171,7 +171,7 @@ def _mirror_meta_download(
                 raise tuf.exceptions.NoWorkingMirrorError(file_mirror_errors)
 
 
-def _mirror_target_download(
+def mirror_target_download(
     fileinfo: str, mirrors_config: Dict, fetcher: "FetcherInterface"
 ) -> BinaryIO:
     """
