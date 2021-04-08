@@ -59,8 +59,6 @@ from securesystemslib import formats as sslib_formats
 from tuf import exceptions
 from tuf import formats
 
-import six
-
 # See 'tuf.log' to learn how logging is handled in TUF.
 logger = logging.getLogger(__name__)
 
@@ -135,7 +133,7 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
 
   # Iterate the roles found in 'root_metadata' and add them to '_roledb_dict'.
   # Duplicates are avoided.
-  for rolename, roleinfo in six.iteritems(root_metadata['roles']):
+  for rolename, roleinfo in root_metadata['roles'].items():
     if rolename == 'root':
       roleinfo['version'] = root_metadata['version']
       roleinfo['expires'] = root_metadata['expires']

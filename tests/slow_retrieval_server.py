@@ -32,13 +32,12 @@ from __future__ import unicode_literals
 import os
 import sys
 import time
-
-import six
+import http.server
 
 
 
 # HTTP request handler.
-class Handler(six.moves.BaseHTTPServer.BaseHTTPRequestHandler):
+class Handler(http.server.BaseHTTPRequestHandler):
 
   # Overwrite do_GET.
   def do_GET(self):
@@ -66,7 +65,7 @@ class Handler(six.moves.BaseHTTPServer.BaseHTTPRequestHandler):
 if __name__ == '__main__':
   server_address = ('localhost', 0)
 
-  httpd = six.moves.BaseHTTPServer.HTTPServer(server_address, Handler)
+  httpd = http.server.HTTPServer(server_address, Handler)
   port_message = 'bind succeeded, server port is: ' \
       + str(httpd.server_address[1])
   print(port_message)

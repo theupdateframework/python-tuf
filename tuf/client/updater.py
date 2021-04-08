@@ -128,7 +128,6 @@ import shutil
 import time
 import fnmatch
 import copy
-import six
 import warnings
 import io
 
@@ -388,7 +387,7 @@ class MultiRepoUpdater(object):
       # a threshold of 2:
       # [A, B, C, B, A, C]
       # In this case, targetinfo B is returned.
-      for valid_updater, compared_targetinfo in six.iteritems(valid_targetinfo):
+      for valid_updater, compared_targetinfo in valid_targetinfo.items():
 
         if not self._targetinfo_match(
             targetinfo, compared_targetinfo, match_custom_field):
@@ -960,7 +959,7 @@ class Updater(object):
     logger.debug('Adding roles delegated from ' + repr(parent_role) + '.')
 
     # Iterate the keys of the delegated roles of 'parent_role' and load them.
-    for keyid, keyinfo in six.iteritems(keys_info):
+    for keyid, keyinfo in keys_info.items():
       if keyinfo['keytype'] in ['rsa', 'ed25519', 'ecdsa-sha2-nistp256']:
 
         # We specify the keyid to ensure that it's the correct keyid
@@ -1205,7 +1204,7 @@ class Updater(object):
     """
 
     # Verify each hash, raise an exception if any hash fails to verify
-    for algorithm, trusted_hash in six.iteritems(trusted_hashes):
+    for algorithm, trusted_hash in trusted_hashes.items():
       digest_object = sslib_hash.digest_fileobject(file_object,
           algorithm)
       computed_hash = digest_object.hexdigest()
@@ -1565,9 +1564,8 @@ class Updater(object):
                 ". The update will continue as the major versions match.")
 
         except (ValueError, TypeError) as error:
-          six.raise_from(sslib_exceptions.FormatError('Improperly'
-              ' formatted spec_version, which must be in major.minor.fix format'),
-              error)
+          raise sslib_exceptions.FormatError('Improperly'
+              ' formatted spec_version, which must be in major.minor.fix format') from error
 
         # If the version number is unspecified, ensure that the version number
         # downloaded is greater than the currently trusted version number for
@@ -2099,7 +2097,7 @@ class Updater(object):
     # without having that result in considering all files as needing to be
     # updated, or not all hash algorithms listed can be calculated on the
     # specific client.
-    for algorithm, hash_value in six.iteritems(new_fileinfo['hashes']):
+    for algorithm, hash_value in new_fileinfo['hashes'].items():
       # We're only looking for a single match. This isn't a security
       # check, we just want to prevent unnecessary downloads.
       if algorithm in current_fileinfo['hashes']:
@@ -2403,7 +2401,7 @@ class Updater(object):
 
     if refresh_all_delegated_roles:
 
-      for role in six.iterkeys(self.metadata['current']['snapshot']['meta']):
+      for role in self.metadata['current']['snapshot']['meta'].keys():
         # snapshot.json keeps track of root.json, targets.json, and delegated
         # roles (e.g., django.json, unclaimed.json).  Remove the 'targets' role
         # because it gets updated when the targets.json file is updated in
@@ -2493,7 +2491,7 @@ class Updater(object):
       return []
 
     # Get the targets specified by the role itself.
-    for filepath, fileinfo in six.iteritems(self.metadata['current'][rolename].get('targets', [])):
+    for filepath, fileinfo in self.metadata['current'][rolename].get('targets', []).items():
       new_target = {}
       new_target['filepath'] = filepath
       new_target['fileinfo'] = fileinfo
@@ -3084,7 +3082,7 @@ class Updater(object):
 
       # Try one of the algorithm/digest combos for a mismatch.  We break
       # as soon as we find a mismatch.
-      for algorithm, digest in six.iteritems(target['fileinfo']['hashes']):
+      for algorithm, digest in target['fileinfo']['hashes'].items():
         digest_object = None
         try:
           digest_object = sslib_hash.digest_filename(target_filepath,
