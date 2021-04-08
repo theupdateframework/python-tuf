@@ -44,7 +44,7 @@ import six
 from securesystemslib import exceptions, util
 
 import tuf
-import tuf.formats
+from tuf import formats
 from tuf.requests_fetcher import RequestsFetcher
 
 # See 'log.py' to learn how logging is handled in TUF.
@@ -61,7 +61,7 @@ class Mirrors:
     def __init__(
         self, mirrors_dict: Dict, fetcher: Optional["FetcherInterface"] = None
     ):
-        tuf.formats.MIRRORDICT_SCHEMA.check_match(mirrors_dict)
+        formats.MIRRORDICT_SCHEMA.check_match(mirrors_dict)
         self._config = mirrors_dict
 
         if fetcher is None:
@@ -97,7 +97,7 @@ class Mirrors:
         """
 
         # Checking if all the arguments have appropriate format.
-        tuf.formats.RELPATH_SCHEMA.check_match(file_path)
+        formats.RELPATH_SCHEMA.check_match(file_path)
         securesystemslib.formats.NAME_SCHEMA.check_match(file_type)
 
         # Verify 'file_type' is supported.
@@ -243,7 +243,7 @@ class Mirrors:
         # Raise 'securesystemslib.exceptions.FormatError' if there is
         # a mismatch.
         securesystemslib.formats.URL_SCHEMA.check_match(url)
-        tuf.formats.LENGTH_SCHEMA.check_match(required_length)
+        formats.LENGTH_SCHEMA.check_match(required_length)
 
         # 'url.replace('\\', '/')' is needed for compatibility with
         # Windows-based systems, because they might use back-slashes in place

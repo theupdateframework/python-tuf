@@ -9,7 +9,7 @@ import time
 
 from securesystemslib.keys import format_metadata_to_key
 
-import tuf.exceptions
+from tuf import exceptions, formats
 from tuf.api import metadata
 
 
@@ -64,7 +64,7 @@ class MetadataWrapper:
             verified += 1
 
         if verified < threshold:
-            raise tuf.exceptions.InsufficientKeysError
+            raise exceptions.InsufficientKeysError
 
     def persist(self, filename):
         """
@@ -77,13 +77,13 @@ class MetadataWrapper:
         TODO
         """
         if reference_time is None:
-            expires_timestamp = tuf.formats.datetime_to_unix_timestamp(
+            expires_timestamp = formats.datetime_to_unix_timestamp(
                 self._meta.signed.expires
             )
             reference_time = int(time.time())
 
         if expires_timestamp < reference_time:
-            raise tuf.exceptions.ExpiredMetadataError
+            raise exceptions.ExpiredMetadataError
 
 
 class RootWrapper(MetadataWrapper):
