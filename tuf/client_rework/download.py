@@ -131,11 +131,10 @@ def download_file(url, required_length, fetcher, strict_required_length=True):
                 )
                 break
 
-            else:
-                logger.debug(
-                    "The average download speed has not dipped below the"
-                    " minimum average download speed set in tuf.settings.py."
-                )
+            logger.debug(
+                "The average download speed has not dipped below the"
+                " minimum average download speed set in tuf.settings.py."
+            )
 
         # Does the total number of downloaded bytes match the required length?
         _check_downloaded_length(
@@ -236,34 +235,31 @@ def _check_downloaded_length(
             if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
                 raise tuf.exceptions.SlowRetrievalError(average_download_speed)
 
-            else:
-                logger.debug(
-                    "Good average download speed: "
-                    + repr(average_download_speed)
-                    + " bytes per second"
-                )
+            logger.debug(
+                "Good average download speed: "
+                + repr(average_download_speed)
+                + " bytes per second"
+            )
 
             raise tuf.exceptions.DownloadLengthMismatchError(
                 required_length, total_downloaded
             )
 
-        else:
-            # We specifically disabled strict checking of required length, but
-            # we will log a warning anyway. This is useful when we wish to
-            # download the Timestamp or Root metadata, for which we have no
-            # signed metadata; so, we must guess a reasonable required_length
-            # for it.
-            if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
-                raise tuf.exceptions.SlowRetrievalError(average_download_speed)
+        # We specifically disabled strict checking of required length, but
+        # we will log a warning anyway. This is useful when we wish to
+        # download the Timestamp or Root metadata, for which we have no
+        # signed metadata; so, we must guess a reasonable required_length
+        # for it.
+        if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
+            raise tuf.exceptions.SlowRetrievalError(average_download_speed)
 
-            else:
-                logger.debug(
-                    "Good average download speed: "
-                    + repr(average_download_speed)
-                    + " bytes per second"
-                )
+        logger.debug(
+            "Good average download speed: "
+            + repr(average_download_speed)
+            + " bytes per second"
+        )
 
-            logger.info(
-                "Downloaded " + str(total_downloaded) + " bytes out of an"
-                " upper limit of " + str(required_length) + " bytes."
-            )
+        logger.info(
+            "Downloaded " + str(total_downloaded) + " bytes out of an"
+            " upper limit of " + str(required_length) + " bytes."
+        )
