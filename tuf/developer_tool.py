@@ -37,7 +37,6 @@ import logging
 import shutil
 import tempfile
 import json
-import six
 
 
 import securesystemslib # pylint: disable=unused-import
@@ -948,7 +947,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
       roleinfo['expires'] = metadata_object['expires']
       roleinfo['paths'] = {}
 
-      for filepath, fileinfo in six.iteritems(metadata_object['targets']):
+      for filepath, fileinfo in metadata_object['targets'].items():
         roleinfo['paths'].update({filepath: fileinfo.get('custom', {})})
       roleinfo['delegations'] = metadata_object['delegations']
       roleinfo['partial_loaded'] = False

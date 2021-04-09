@@ -46,6 +46,7 @@ import json
 import logging
 import unittest
 import sys
+from urllib import request
 
 import tuf
 import tuf.formats
@@ -57,7 +58,6 @@ import tuf.roledb
 from tests import utils
 
 import securesystemslib
-import six
 
 logger = logging.getLogger(__name__)
 
@@ -176,7 +176,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
 
     # On Windows, the URL portion should not contain backslashes.
-    six.moves.urllib.request.urlretrieve(url_file.replace('\\', '/'), client_target_path)
+    request.urlretrieve(url_file.replace('\\', '/'), client_target_path)
 
     self.assertTrue(os.path.exists(client_target_path))
     length, hashes = securesystemslib.util.get_file_details(client_target_path)
@@ -194,7 +194,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     self.assertTrue(large_length > length)
 
     # On Windows, the URL portion should not contain backslashes.
-    six.moves.urllib.request.urlretrieve(url_file.replace('\\', '/'), client_target_path)
+    request.urlretrieve(url_file.replace('\\', '/'), client_target_path)
 
     length, hashes = securesystemslib.util.get_file_details(client_target_path)
     download_fileinfo = tuf.formats.make_targets_fileinfo(length, hashes)
@@ -269,7 +269,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
       self.repository_updater.refresh()
 
     except tuf.exceptions.NoWorkingMirrorError as exception:
-      for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
+      for mirror_url, mirror_error in exception.mirror_errors.items():
         self.assertTrue(isinstance(mirror_error, securesystemslib.exceptions.Error))
 
     else:

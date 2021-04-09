@@ -60,8 +60,6 @@ import tuf.keydb
 
 from tests import utils
 
-import six
-
 logger = logging.getLogger(__name__)
 repo_tool.disable_console_log_messages()
 
@@ -218,7 +216,7 @@ class TestSlowRetrieval(unittest_toolbox.Modified_TestCase):
     # Verify that the specific 'tuf.exceptions.SlowRetrievalError' exception is raised by
     # each mirror.
     except tuf.exceptions.NoWorkingMirrorError as exception:
-      for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
+      for mirror_url, mirror_error in exception.mirror_errors.items():
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
         url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
 

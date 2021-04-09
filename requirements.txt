@@ -43,4 +43,3 @@
 #
 securesystemslib[crypto, pynacl]
 requests
-six

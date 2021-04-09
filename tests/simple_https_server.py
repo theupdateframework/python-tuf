@@ -40,7 +40,7 @@ from __future__ import unicode_literals
 import sys
 import ssl
 import os
-import six
+import http.server
 
 keyfile = os.path.join('ssl_certs', 'ssl_cert.key')
 certfile = os.path.join('ssl_certs', 'ssl_cert.crt')
@@ -49,8 +49,8 @@ certfile = os.path.join('ssl_certs', 'ssl_cert.crt')
 if len(sys.argv) > 1 and os.path.exists(sys.argv[1]):
     certfile = sys.argv[1]
 
-httpd = six.moves.BaseHTTPServer.HTTPServer(('localhost', 0),
-    six.moves.SimpleHTTPServer.SimpleHTTPRequestHandler)
+httpd = http.server.HTTPServer(('localhost', 0),
+   http.server.SimpleHTTPRequestHandler)
 
 httpd.socket = ssl.wrap_socket(
     httpd.socket, keyfile=keyfile, certfile=certfile, server_side=True)

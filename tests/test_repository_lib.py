@@ -57,7 +57,6 @@ import securesystemslib.exceptions
 import securesystemslib.rsa_keys
 import securesystemslib.interface
 import securesystemslib.storage
-import six
 
 logger = logging.getLogger(__name__)
 
@@ -271,7 +270,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       '/README.txt': '8faee106f1bb69f34aaf1df1e3c2e87d763c4d878cb96b91db13495e32ceb0b0',
       '/packages/file2.txt': 'c9c4a5cdd84858dd6a23d98d7e6e6b2aec45034946c16b2200bc317c75415e92'
     }
-    for filepath, target_hash in six.iteritems(expected_target_hashes):
+    for filepath, target_hash in expected_target_hashes.items():
       self.assertTrue(tuf.formats.RELPATH_SCHEMA.matches(filepath))
       self.assertTrue(securesystemslib.formats.HASH_SCHEMA.matches(target_hash))
       self.assertEqual(repo_lib.get_target_hash(filepath), target_hash)

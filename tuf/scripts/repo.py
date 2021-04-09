@@ -146,7 +146,6 @@ import argparse
 import shutil
 import time
 import fnmatch
-import six
 
 import securesystemslib # pylint: disable=unused-import
 from securesystemslib import exceptions as sslib_exceptions
@@ -469,9 +468,9 @@ def import_privatekey_from_file(keypath, password=None):
           encrypted_key, 'rsassa-pss-sha256', password)
 
     except sslib_exceptions.CryptoError as error:
-      six.raise_from(exceptions.Error(repr(keypath) + ' cannot be '
+      raise exceptions.Error(repr(keypath) + ' cannot be '
           ' imported, possibly because an invalid key file is given or '
-          ' the decryption password is incorrect.'), error)
+          ' the decryption password is incorrect.') from error
 
   if key_object['keytype'] not in SUPPORTED_KEY_TYPES:
     raise exceptions.Error('Trying to import an unsupported key'
@@ -752,7 +751,7 @@ def remove_target_files_from_metadata(parsed_arguments, repository):
         parsed_arguments.role, repository._repository_name)
 
     for glob_pattern in parsed_arguments.remove:
-      for path in list(six.iterkeys(roleinfo['paths'])):
+      for path in list(roleinfo['paths'].keys()):
         if fnmatch.fnmatch(path, glob_pattern):
           del roleinfo['paths'][path]
 

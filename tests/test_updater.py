@@ -79,7 +79,6 @@ import tuf.client.updater as updater
 from tests import utils
 
 import securesystemslib
-import six
 
 logger = logging.getLogger(__name__)
 repo_tool.disable_console_log_messages()
@@ -775,7 +774,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                                                DEFAULT_TARGETS_FILELENGTH, 88)
 
     except tuf.exceptions.NoWorkingMirrorError as e:
-      for mirror_error in six.itervalues(e.mirror_errors):
+      for mirror_error in e.mirror_errors.values():
         assert isinstance(mirror_error, tuf.exceptions.BadVersionNumberError)
 
     else:
@@ -791,7 +790,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                                                88)
 
     except tuf.exceptions.NoWorkingMirrorError as e:
-      for mirror_error in six.itervalues(e.mirror_errors):
+      for mirror_error in e.mirror_errors.values():
         assert isinstance(mirror_error, tuf.exceptions.BadVersionNumberError)
 
     else:
@@ -839,7 +838,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       # Note that this test provides a piece of metadata which would fail to
       # be accepted -- with a different error -- if the specification version
       # number were not a problem.
-      for mirror_error in six.itervalues(e.mirror_errors):
+      for mirror_error in e.mirror_errors.values():
         assert isinstance(
             mirror_error, tuf.exceptions.UnsupportedSpecificationError)
 
@@ -921,7 +920,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # target files.
     self.assertTrue(tuf.formats.TARGETINFOS_SCHEMA.matches(targetinfos_list))
     for targetinfo in targetinfos_list:
-      self.assertTrue((targetinfo['filepath'], targetinfo['fileinfo']) in six.iteritems(targets_in_metadata))
+      self.assertTrue((targetinfo['filepath'], targetinfo['fileinfo']) in targets_in_metadata.items())
 
 
 
@@ -1084,7 +1083,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # target files.
     self.assertTrue(tuf.formats.TARGETINFOS_SCHEMA.matches(targetinfos))
     for targetinfo in targetinfos:
-      self.assertTrue((targetinfo['filepath'], targetinfo['fileinfo']) in six.iteritems(expected_targets))
+      self.assertTrue((targetinfo['filepath'], targetinfo['fileinfo']) in expected_targets.items())
 
     # Test: Invalid arguments.
     # targets_of_role() expected a string rolename.
@@ -1368,7 +1367,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # field contains at least one confined target and excludes needed target
     # file.
     mirrors = self.repository_updater.mirrors
-    for mirror_name, mirror_info in six.iteritems(mirrors):
+    for mirror_name, mirror_info in mirrors.items():
       mirrors[mirror_name]['confined_target_dirs'] = [self.random_path()]
 
     try:
@@ -1630,7 +1629,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       '/file1.txt': 'e3a3d89eb3b70ce3fbce6017d7b8c12d4abd5635427a0e8a238f53157df85b3d',
       '/Jalape\xc3\xb1o': '78bfd5c314680545eb48ecad508aceb861f8d6e680f4fe1b791da45c298cda88'
     }
-    for filepath, target_hash in six.iteritems(expected_target_hashes):
+    for filepath, target_hash in expected_target_hashes.items():
       self.assertTrue(tuf.formats.RELPATH_SCHEMA.matches(filepath))
       self.assertTrue(securesystemslib.formats.HASH_SCHEMA.matches(target_hash))
       self.assertEqual(self.repository_updater._get_target_hash(filepath), target_hash)

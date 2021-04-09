@@ -32,9 +32,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import logging
-import six
 import timeit
 import tempfile
+from urllib import parse
 
 import securesystemslib # pylint: disable=unused-import
 from securesystemslib import formats as sslib_formats
@@ -185,7 +185,7 @@ def _download_file(url, required_length, fetcher, STRICT_REQUIRED_LENGTH=True):
   # This converts it to the common format.  unquote() replaces %xx escapes in a
   # url with their single-character equivalent.  A back-slash may be encoded as
   # %5c in the url, which should also be replaced with a forward slash.
-  url = six.moves.urllib.parse.unquote(url).replace('\\', '/')
+  url = parse.unquote(url).replace('\\', '/')
   logger.info('Downloading: ' + repr(url))
 
   # This is the temporary file that we will return to contain the contents of

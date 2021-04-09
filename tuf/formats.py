@@ -76,8 +76,6 @@ from securesystemslib import schema as SCHEMA
 import tuf
 from tuf import exceptions
 
-import six
-
 # As per TUF spec 1.0.0 the spec version field must follow the Semantic
 # Versioning 2.0.0 (semver) format. The regex pattern is provided by semver.
 # https://semver.org/spec/v2.0.0.html#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
@@ -638,9 +636,8 @@ def expiry_string_to_datetime(expires):
   try:
     return datetime.datetime.strptime(expires, "%Y-%m-%dT%H:%M:%SZ")
   except ValueError as error:
-    six.raise_from(sslib_exceptions.FormatError(
-        'Failed to parse ' + repr(expires) + ' as an expiry time'),
-        error)
+    raise sslib_exceptions.FormatError(
+        'Failed to parse ' + repr(expires) + ' as an expiry time') from error
 
 
 
@@ -781,7 +778,7 @@ def parse_base64(base64_string):
     'base64_string'.
   """
 
-  if not isinstance(base64_string, six.string_types):
+  if not isinstance(base64_string, str):
     message = 'Invalid argument: '+repr(base64_string)
     raise sslib_exceptions.FormatError(message)
 
@@ -991,15 +988,14 @@ def check_signable_object_format(signable):
     role_type = signable['signed']['_type']
 
   except (KeyError, TypeError) as error:
-    six.raise_from(sslib_exceptions.FormatError(
-        'Untyped signable object.'), error)
+    raise sslib_exceptions.FormatError('Untyped signable object.') from error
 
   try:
     schema = SCHEMAS_BY_TYPE[role_type]
 
   except KeyError as error:
-    six.raise_from(sslib_exceptions.FormatError(
-        'Unrecognized type ' + repr(role_type)), error)
+    raise sslib_exceptions.FormatError('Unrecognized type ' 
+      + repr(role_type)) from error
 
   if not signable['signatures']:
     raise exceptions.UnsignedMetadataError('Signable object of type ' +

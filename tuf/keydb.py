@@ -52,8 +52,6 @@ from securesystemslib import keys as sslib_keys
 from tuf import exceptions
 from tuf import formats
 
-import six
-
 # List of strings representing the key types supported by TUF.
 _SUPPORTED_KEY_TYPES = ['rsa', 'ed25519', 'ecdsa-sha2-nistp256']
 
@@ -119,7 +117,7 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
   # Iterate the keys found in 'root_metadata' by converting them to
   # 'RSAKEY_SCHEMA' if their type is 'rsa', and then adding them to the
   # key database using the provided keyid.
-  for keyid, key_metadata in six.iteritems(root_metadata['keys']):
+  for keyid, key_metadata in root_metadata['keys'].items():
     if key_metadata['keytype'] in _SUPPORTED_KEY_TYPES:
       # 'key_metadata' is stored in 'KEY_SCHEMA' format.  Call
       # create_from_metadata_format() to get the key in 'RSAKEY_SCHEMA' format,
@@ -348,7 +346,7 @@ def get_key(keyid, repository_name='default'):
     return copy.deepcopy(_keydb_dict[repository_name][keyid])
 
   except KeyError as error:
-    six.raise_from(exceptions.UnknownKeyError('Key: ' + keyid), error)
+    raise exceptions.UnknownKeyError('Key: ' + keyid) from error
 
 
 
