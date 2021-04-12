@@ -85,12 +85,13 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
   # Stop server process and perform clean up.
   def tearDown(self):
-    unittest_toolbox.Modified_TestCase.tearDown(self)
-
     # Cleans the resources and flush the logged lines (if any).
     self.server_process_handler.clean()
 
     self.target_fileobj.close()
+
+    # Remove temp directory
+    unittest_toolbox.Modified_TestCase.tearDown(self)
 
 
   # Test: Normal case.
