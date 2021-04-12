@@ -219,7 +219,25 @@ class TestMetadata(unittest.TestCase):
         md.signed.bump_expiration(timedelta(days=365))
         self.assertEqual(md.signed.expires, datetime(2031, 1, 2, 0, 0))
 
+        # Test is_expired with reference_time provided
+        is_expired = md.signed.is_expired(md.signed.expires)
+        self.assertTrue(is_expired)
+        is_expired = md.signed.is_expired(md.signed.expires + timedelta(days=1))
+        self.assertTrue(is_expired)
+        is_expired = md.signed.is_expired(md.signed.expires - timedelta(days=1))
+        self.assertFalse(is_expired)
 
+        # Test is_expired without reference_time, 
+        # manipulating md.signed.expires
+        expires = md.signed.expires
+        md.signed.expires = datetime.utcnow()
+        is_expired = md.signed.is_expired()
+        self.assertTrue(is_expired)
+        md.signed.expires = datetime.utcnow() + timedelta(days=1)
+        is_expired = md.signed.is_expired()
+        self.assertFalse(is_expired)
+        md.signed.expires = expires
+        
     def test_metadata_snapshot(self):
         snapshot_path = os.path.join(
                 self.repo_dir, 'metadata', 'snapshot.json')

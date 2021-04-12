@@ -351,6 +351,22 @@ class Signed:
             "expires": self.expires.isoformat() + "Z",
         }
 
+    def is_expired(self, reference_time: datetime = None) -> bool:
+        """Checks metadata expiration against a reference time.
+
+        Args:
+            reference_time: Optional; The time to check expiration date against.
+                A naive datetime in UTC expected.
+                If not provided, checks against the current UTC date and time.
+
+        Returns:
+            True if expiration time is less than the reference time.
+        """
+        if reference_time is None:
+            reference_time = datetime.utcnow()
+
+        return reference_time >= self.expires
+
     # Modification.
     def bump_expiration(self, delta: timedelta = timedelta(days=1)) -> None:
         """Increments the expires attribute by the passed timedelta. """
