@@ -4,25 +4,14 @@ Uploaders: Philippe Coval <rzr@users.sf.net>
 Section: python
 Priority: optional
 Build-Depends: dh-python,
-               black,
                debhelper-compat (= 13),
                python3-all,
-               python3-astroid,
-               python3-bandit,
-               python3-certifi,
-               python3-cffi,
-               python3-chardet,
                python3-coverage,
                python3-cryptography,
                python3-dateutil,
-               python3-idna,
                python3-nacl,
-               python3-pycparser,
                python3-requests,
                python3-securesystemslib,
-               python3-setuptools,
-               python3-six,
-               python3-urllib3,
                tox
 Standards-Version: 4.5.1
 Rules-Requires-Root: no
