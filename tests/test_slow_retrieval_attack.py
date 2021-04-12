@@ -60,22 +60,17 @@ repo_tool.disable_console_log_messages()
 class TestSlowRetrieval(unittest_toolbox.Modified_TestCase):
 
   def setUp(self):
-    # We are inheriting from custom class.
+    # Modified_Testcase can handle temp dir removal
     unittest_toolbox.Modified_TestCase.setUp(self)
+    self.temporary_directory = self.make_temp_directory(directory=os.getcwd())
 
     self.repository_name = 'test_repository1'
-
-    # Create a temporary directory to store the repository, metadata, and target
-    # files.  'temporary_directory' must be deleted in TearDownModule() so that
-    # temporary files are always removed, even when exceptions occur.
-    self.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
 
     # Copy the original repository files provided in the test folder so that
     # any modifications made to repository files are restricted to the copies.
     # The 'repository_data' directory is expected to exist in 'tuf/tests/'.
     original_repository_files = os.path.join(os.getcwd(), 'repository_data')
-    temporary_repository_root = \
-      self.make_temp_directory(directory=self.temporary_directory)
+    temporary_repository_root = tempfile.mkdtemp(dir=self.temporary_directory)
 
     # The original repository, keystore, and client directories will be copied
     # for each test case.
@@ -179,19 +174,14 @@ class TestSlowRetrieval(unittest_toolbox.Modified_TestCase):
 
 
   def tearDown(self):
-    # Modified_TestCase.tearDown() automatically deletes temporary files and
-    # directories that may have been created during each test case.
-    unittest_toolbox.Modified_TestCase.tearDown(self)
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 
     # Cleans the resources and flush the logged lines (if any).
     self.server_process_handler.clean()
 
-    # Remove the temporary repository directory, which should contain all the
-    # metadata, targets, and key files generated of all the test cases.
-    shutil.rmtree(self.temporary_directory)
-
+    # Remove temporary directory
+    unittest_toolbox.Modified_TestCase.tearDown(self)
 
 
   def test_delay_before_send(self):

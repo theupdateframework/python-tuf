@@ -55,13 +55,14 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
 
   # Stop server process and perform clean up.
   def tearDown(self):
-    unittest_toolbox.Modified_TestCase.tearDown(self)
-
     # Cleans the resources and flush the logged lines (if any).
     self.server_process_handler.clean()
 
     self.target_fileobj.close()
     self.temp_file.close()
+
+    # Remove temporary directory
+    unittest_toolbox.Modified_TestCase.tearDown(self)
 
 
   # Test: Normal case.

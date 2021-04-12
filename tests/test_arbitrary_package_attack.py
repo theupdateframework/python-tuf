@@ -134,15 +134,15 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
 
 
   def tearDown(self):
-    # Modified_TestCase.tearDown() automatically deletes temporary files and
-    # directories that may have been created during each test case.
-    unittest_toolbox.Modified_TestCase.tearDown(self)
     # updater.Updater() populates the roledb with the name "test_repository1"
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 
     # Logs stdout and stderr from the sever subprocess.
     self.server_process_handler.flush_log()
+
+    # Remove temporary directory
+    unittest_toolbox.Modified_TestCase.tearDown(self)
 
 
 
