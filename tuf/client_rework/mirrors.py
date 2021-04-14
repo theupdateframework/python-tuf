@@ -1,0 +1,196 @@
+#!/usr/bin/env python
+
+# Copyright 2012 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+"""
+<Program Name>
+  mirrors.py
+
+<Author>
+  Konstantin Andrianov.
+  Derived from original mirrors.py written by Geremy Condra.
+
+<Started>
+  March 12, 2012.
+
+<Copyright>
+  See LICENSE-MIT OR LICENSE for licensing information.
+
+<Purpose>
+  Extract a list of mirror urls corresponding to the file type and the location
+  of the file with respect to the base url.
+"""
+
+import os
+from typing import BinaryIO, Dict, TextIO
+from urllib import parse
+
+from securesystemslib import exceptions as sslib_exceptions
+from securesystemslib import formats as sslib_formats
+from securesystemslib import util as sslib_util
+
+from tuf import exceptions, formats
+from tuf.client_rework import download
+
+# The type of file to be downloaded from a repository.  The
+# 'get_list_of_mirrors' function supports these file types.
+_SUPPORTED_FILE_TYPES = ["meta", "target"]
+
+
+def get_list_of_mirrors(file_type, file_path, mirrors_dict):
+    """
+    <Purpose>
+      Get a list of mirror urls from a mirrors dictionary, provided the type
+      and the path of the file with respect to the base url.
+
+    <Arguments>
+      file_type:
+        Type of data needed for download, must correspond to one of the strings
+        in the list ['meta', 'target'].  'meta' for metadata file type or
+        'target' for target file type.  It should correspond to
+        NAME_SCHEMA format.
+
+      file_path:
+        A relative path to the file that corresponds to RELPATH_SCHEMA format.
+        Ex: 'http://url_prefix/targets_path/file_path'
+
+      mirrors_dict:
+        A mirrors_dict object that corresponds to MIRRORDICT_SCHEMA, where
+        keys are strings and values are MIRROR_SCHEMA. An example format
+        of MIRROR_SCHEMA:
+
+        {'url_prefix': 'http://localhost:8001',
+         'metadata_path': 'metadata/',
+         'targets_path': 'targets/',
+         'confined_target_dirs': ['targets/snapshot1/', ...],
+         'custom': {...}}
+
+        The 'custom' field is optional.
+
+    <Exceptions>
+      securesystemslib.exceptions.Error, on unsupported 'file_type'.
+
+      securesystemslib.exceptions.FormatError, on bad argument.
+
+    <Return>
+      List of mirror urls corresponding to the file_type and file_path.  If no
+      match is found, empty list is returned.
+    """
+
+    # Checking if all the arguments have appropriate format.
+    formats.RELPATH_SCHEMA.check_match(file_path)
+    formats.MIRRORDICT_SCHEMA.check_match(mirrors_dict)
+    sslib_formats.NAME_SCHEMA.check_match(file_type)
+
+    # Verify 'file_type' is supported.
+    if file_type not in _SUPPORTED_FILE_TYPES:
+        raise sslib_exceptions.Error(
+            "Invalid file_type argument."
+            "  Supported file types: " + repr(_SUPPORTED_FILE_TYPES)
+        )
+    path_key = "metadata_path" if file_type == "meta" else "targets_path"
+
+    # Reference to 'securesystemslib.util.file_in_confined_directories()'
+    # (improve readability).  This function checks whether a mirror should
+    # serve a file to the client.  A client may be confined to certain paths
+    # on a repository mirror when fetching target files.  This field may be set
+    # by the client when the repository mirror is added to the
+    # 'tuf.client.updater.Updater' object.
+    in_confined_directory = sslib_util.file_in_confined_directories
+
+    list_of_mirrors = []
+    for mirror_info in mirrors_dict.values():
+        # Does mirror serve this file type at all?
+        path = mirror_info.get(path_key)
+        if path is None:
+            continue
+
+        # for targets, ensure directory confinement
+        if path_key == "targets_path":
+            full_filepath = os.path.join(path, file_path)
+            confined_target_dirs = mirror_info.get("confined_target_dirs")
+            # confined_target_dirs is an optional field
+            if confined_target_dirs and not in_confined_directory(
+                full_filepath, confined_target_dirs
+            ):
+                continue
+
+        # urllib.quote(string) replaces special characters in string using
+        # the %xx escape.  This is done to avoid parsing issues of the URL
+        # on the server side. Do *NOT* pass URLs with Unicode characters without
+        # first encoding the URL as UTF-8. Needed a long-term solution with #61.
+        # http://bugs.python.org/issue1712522
+        file_path = parse.quote(file_path)
+        url = os.path.join(mirror_info["url_prefix"], path, file_path)
+
+        # The above os.path.join() result as well as input file_path may be
+        # invalid on windows (might contain both separator types), see #1077.
+        # Make sure the URL doesn't contain backward slashes on Windows.
+        list_of_mirrors.append(url.replace("\\", "/"))
+
+    return list_of_mirrors
+
+
+def mirror_meta_download(
+    filename: str,
+    upper_length: int,
+    mirrors_config: Dict,
+    fetcher: "FetcherInterface",
+) -> TextIO:
+    """
+    Download metadata file from the list of metadata mirrors
+    """
+    file_mirrors = get_list_of_mirrors("meta", filename, mirrors_config)
+
+    file_mirror_errors = {}
+    for file_mirror in file_mirrors:
+        try:
+            temp_obj = download.download_file(
+                file_mirror, upper_length, fetcher, strict_required_length=False
+            )
+
+            temp_obj.seek(0)
+            yield temp_obj
+
+        # pylint cannot figure out that we store the exceptions
+        # in a dictionary to raise them later so we disable
+        # the warning. This should be reviewed in the future still.
+        except Exception as exception:  # pylint:  disable=broad-except
+            file_mirror_errors[file_mirror] = exception
+
+        finally:
+            if file_mirror_errors:
+                raise exceptions.NoWorkingMirrorError(file_mirror_errors)
+
+
+def mirror_target_download(
+    fileinfo: str, mirrors_config: Dict, fetcher: "FetcherInterface"
+) -> BinaryIO:
+    """
+    Download target file from the list of target mirrors
+    """
+    # full_filename = _get_full_name(filename)
+    file_mirrors = get_list_of_mirrors(
+        "target", fileinfo["filepath"], mirrors_config
+    )
+
+    file_mirror_errors = {}
+    for file_mirror in file_mirrors:
+        try:
+            temp_obj = download.download_file(
+                file_mirror, fileinfo["fileinfo"]["length"], fetcher
+            )
+
+            temp_obj.seek(0)
+            yield temp_obj
+
+        # pylint cannot figure out that we store the exceptions
+        # in a dictionary to raise them later so we disable
+        # the warning. This should be reviewed in the future still.
+        except Exception as exception:  # pylint:  disable=broad-except
+            file_mirror_errors[file_mirror] = exception
+
+        finally:
+            if file_mirror_errors:
+                raise exceptions.NoWorkingMirrorError(file_mirror_errors)

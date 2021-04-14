@@ -16,8 +16,9 @@ from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import hash as sslib_hash
 from securesystemslib import util as sslib_util
 
-from tuf import download, exceptions, mirrors, requests_fetcher, settings
+from tuf import exceptions, settings
 from tuf.client.fetcher import FetcherInterface
+from tuf.client_rework import mirrors, requests_fetcher
 
 from .metadata_wrapper import (
     RootWrapper,
@@ -146,9 +147,11 @@ class Updater:
         This method performs the actual download of the specified target.
         The file is saved to the 'destination_directory' argument.
         """
-
         try:
-            for temp_obj in self._mirror_target_download(target):
+            for temp_obj in mirrors.mirror_target_download(
+                target, self._mirrors, self._fetcher
+            ):
+
                 self._verify_target_file(temp_obj, target)
                 # break? should we break after first successful download?
 
@@ -160,58 +163,6 @@ class Updater:
         except Exception:
             # TODO: do something with exceptions
             raise
-
-    def _mirror_meta_download(self, filename: str, upper_length: int) -> TextIO:
-        """
-        Download metadata file from the list of metadata mirrors
-        """
-        file_mirrors = mirrors.get_list_of_mirrors(
-            "meta", filename, self._mirrors
-        )
-
-        file_mirror_errors = {}
-        for file_mirror in file_mirrors:
-            try:
-                temp_obj = download.unsafe_download(
-                    file_mirror, upper_length, self._fetcher
-                )
-
-                temp_obj.seek(0)
-                yield temp_obj
-
-            # pylint: disable=broad-except
-            except Exception as exception:
-                file_mirror_errors[file_mirror] = exception
-
-            finally:
-                if file_mirror_errors:
-                    raise exceptions.NoWorkingMirrorError(file_mirror_errors)
-
-    def _mirror_target_download(self, fileinfo: str) -> BinaryIO:
-        """
-        Download target file from the list of target mirrors
-        """
-        # full_filename = _get_full_name(filename)
-        file_mirrors = mirrors.get_list_of_mirrors(
-            "target", fileinfo["filepath"], self._mirrors
-        )
-
-        file_mirror_errors = {}
-        for file_mirror in file_mirrors:
-            try:
-                temp_obj = download.safe_download(
-                    file_mirror, fileinfo["fileinfo"]["length"], self._fetcher
-                )
-
-                temp_obj.seek(0)
-                yield temp_obj
-            # pylint: disable=broad-except
-            except Exception as exception:
-                file_mirror_errors[file_mirror] = exception
-
-            finally:
-                if file_mirror_errors:
-                    raise exceptions.NoWorkingMirrorError(file_mirror_errors)
 
     def _get_full_meta_name(
         self, role: str, extension: str = ".json", version: int = None
@@ -266,9 +217,11 @@ class Updater:
         verified_root = None
         for next_version in range(lower_bound, upper_bound):
             try:
-                mirror_download = self._mirror_meta_download(
+                mirror_download = mirrors.mirror_meta_download(
                     self._get_relative_meta_name("root", version=next_version),
                     settings.DEFAULT_ROOT_REQUIRED_LENGTH,
+                    self._mirrors,
+                    self._fetcher,
                 )
 
                 for temp_obj in mirror_download:
@@ -327,9 +280,13 @@ class Updater:
         TODO
         """
         # TODO Check if timestamp exists locally
-        for temp_obj in self._mirror_meta_download(
-            "timestamp.json", settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
+        for temp_obj in mirrors.mirror_meta_download(
+            "timestamp.json",
+            settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH,
+            self._mirrors,
+            self._fetcher,
         ):
+
             try:
                 verified_tampstamp = self._verify_timestamp(temp_obj)
                 # break? should we break after first successful download?
@@ -364,7 +321,10 @@ class Updater:
 
         # Check if exists locally
         # self.loadLocal('snapshot', snapshotVerifier)
-        for temp_obj in self._mirror_meta_download("snapshot.json", length):
+        for temp_obj in mirrors.mirror_meta_download(
+            "snapshot.json", length, self._mirrors, self._fetcher
+        ):
+
             try:
                 verified_snapshot = self._verify_snapshot(temp_obj)
                 # break? should we break after first successful download?
@@ -400,9 +360,10 @@ class Updater:
         # Check if exists locally
         # self.loadLocal('snapshot', targetsVerifier)
 
-        for temp_obj in self._mirror_meta_download(
-            targets_role + ".json", length
+        for temp_obj in mirrors.mirror_meta_download(
+            targets_role + ".json", length, self._mirrors, self._fetcher
         ):
+
             try:
                 verified_targets = self._verify_targets(
                     temp_obj, targets_role, parent_role
