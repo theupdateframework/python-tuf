@@ -38,6 +38,8 @@ from tuf.api.serialization.json import (
     CanonicalJSONSerializer
 )
 
+import tuf.api.validators as validators
+
 from securesystemslib.interface import (
     import_ed25519_publickey_from_file,
     import_ed25519_privatekey_from_file
@@ -378,6 +380,46 @@ class TestMetadata(unittest.TestCase):
             self.assertNotEqual(
                 metadata_obj.signed.to_dict(), metadata_obj2.signed.to_dict()
             )
+
+
+    def test_validate_signed_attr(self):
+        # spec_version validation
+        for val in [None, True, 111, 1.1]:
+            with self.assertRaises(TypeError):
+                validators.validate_spec_version(val)
+        for val in ["", "1.11", "2", "0.1.1"]:
+            with self.assertRaises(ValueError):
+                validators.validate_spec_version(val)
+        validators.validate_spec_version("1.0.0")
+
+        # _type validation
+        for val in [None, True, 111, 1.1]:
+            with self.assertRaises(TypeError):
+                validators.validate_type(val)
+        for val in ["wrong", "", "ROOT", "timestamp1"]:
+            with self.assertRaises(ValueError):
+                validators.validate_type(val)
+        for val in ["root", "snapshot", "targets", "timestamp"]:
+            validators.validate_type(val)
+
+        # version validation
+        for val in [None, True, "1", "", 1.0]:
+            with self.assertRaises(TypeError):
+                validators.validate_version(val)
+        with self.assertRaises(ValueError):
+            validators.validate_version(-1)
+            validators.validate_version(0)
+        validators.validate_version(1)
+
+        # expiry validation
+        for val in [None, True, "1", "", 1.0]:
+            with self.assertRaises(TypeError):
+                validators.validate_expires(val)
+        past_time = datetime(1990, 1, 1)
+        with self.assertRaises(ValueError):
+            validators.validate_expires(past_time)
+        future_time = datetime(2050, 1, 1)
+        validators.validate_expires(future_time)
 
 
 # Run unit test.
