@@ -10,7 +10,7 @@ TODO
 import fnmatch
 import logging
 import os
-from typing import BinaryIO, Dict, Optional, TextIO
+from typing import Dict, Optional
 
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import hash as sslib_hash
@@ -159,9 +159,9 @@ class Updater:
                 temp_obj = download.download_file(
                     file_mirror, target["fileinfo"]["length"], self._fetcher
                 )
-
+                _check_file_length(temp_obj, target["fileinfo"]["length"])
                 temp_obj.seek(0)
-                self._verify_target_file(temp_obj, target)
+                _check_hashes_obj(temp_obj, target["fileinfo"]["hashes"])
                 break
 
             except Exception as exception:  # pylint:  disable=broad-except
@@ -308,7 +308,7 @@ class Updater:
                 )
 
                 temp_obj.seek(0)
-                intermediate_root = self._verify_root(temp_obj)
+                intermediate_root = self._verify_root(temp_obj.read())
                 # When we reach this point, a root file has been successfully
                 # downloaded and verified so we can exit the loop.
                 break
@@ -356,7 +356,7 @@ class Updater:
                 )
 
                 temp_obj.seek(0)
-                verified_timestamp = self._verify_timestamp(temp_obj)
+                verified_timestamp = self._verify_timestamp(temp_obj.read())
                 break
 
             except Exception as exception:  # pylint:  disable=broad-except
@@ -410,7 +410,7 @@ class Updater:
                 )
 
                 temp_obj.seek(0)
-                verified_snapshot = self._verify_snapshot(temp_obj)
+                verified_snapshot = self._verify_snapshot(temp_obj.read())
                 break
 
             except Exception as exception:  # pylint:  disable=broad-except
@@ -465,7 +465,7 @@ class Updater:
 
                 temp_obj.seek(0)
                 verified_targets = self._verify_targets(
-                    temp_obj, targets_role, parent_role
+                    temp_obj.read(), targets_role, parent_role
                 )
                 break
 
@@ -487,12 +487,12 @@ class Updater:
             self._get_full_meta_name(targets_role, extension=".json")
         )
 
-    def _verify_root(self, temp_obj: TextIO) -> RootWrapper:
+    def _verify_root(self, file_content: bytes) -> RootWrapper:
         """
         TODO
         """
 
-        intermediate_root = RootWrapper.from_json_object(temp_obj)
+        intermediate_root = RootWrapper.from_json_object(file_content)
 
         # Check for an arbitrary software attack
         trusted_root = self._metadata["root"]
@@ -505,7 +505,6 @@ class Updater:
 
         # Check for a rollback attack.
         if intermediate_root.version < trusted_root.version:
-            temp_obj.close()
             raise exceptions.ReplayedMetadataError(
                 "root", intermediate_root.version(), trusted_root.version()
             )
@@ -514,11 +513,11 @@ class Updater:
 
         return intermediate_root
 
-    def _verify_timestamp(self, temp_obj: TextIO) -> TimestampWrapper:
+    def _verify_timestamp(self, file_content: bytes) -> TimestampWrapper:
         """
         TODO
         """
-        intermediate_timestamp = TimestampWrapper.from_json_object(temp_obj)
+        intermediate_timestamp = TimestampWrapper.from_json_object(file_content)
 
         # Check for an arbitrary software attack
         trusted_root = self._metadata["root"]
@@ -532,7 +531,6 @@ class Updater:
                 intermediate_timestamp.signed.version
                 <= self._metadata["timestamp"].version
             ):
-                temp_obj.close()
                 raise exceptions.ReplayedMetadataError(
                     "root",
                     intermediate_timestamp.version(),
@@ -544,7 +542,6 @@ class Updater:
                 intermediate_timestamp.snapshot.version
                 <= self._metadata["timestamp"].snapshot["version"]
             ):
-                temp_obj.close()
                 raise exceptions.ReplayedMetadataError(
                     "root",
                     intermediate_timestamp.snapshot.version(),
@@ -555,7 +552,7 @@ class Updater:
 
         return intermediate_timestamp
 
-    def _verify_snapshot(self, temp_obj: TextIO) -> SnapshotWrapper:
+    def _verify_snapshot(self, file_content: bytes) -> SnapshotWrapper:
         """
         TODO
         """
@@ -563,16 +560,15 @@ class Updater:
         # Check against timestamp metadata
         if self._metadata["timestamp"].snapshot.get("hash"):
             _check_hashes(
-                temp_obj, self._metadata["timestamp"].snapshot.get("hash")
+                file_content, self._metadata["timestamp"].snapshot.get("hash")
             )
 
-        intermediate_snapshot = SnapshotWrapper.from_json_object(temp_obj)
+        intermediate_snapshot = SnapshotWrapper.from_json_object(file_content)
 
         if (
             intermediate_snapshot.version
             != self._metadata["timestamp"].snapshot["version"]
         ):
-            temp_obj.close()
             raise exceptions.BadVersionNumberError
 
         # Check for an arbitrary software attack
@@ -588,7 +584,6 @@ class Updater:
                     target_role["version"]
                     != self._metadata["snapshot"].meta[target_role]["version"]
                 ):
-                    temp_obj.close()
                     raise exceptions.BadVersionNumberError
 
         intermediate_snapshot.expires()
@@ -596,7 +591,7 @@ class Updater:
         return intermediate_snapshot
 
     def _verify_targets(
-        self, temp_obj: TextIO, filename: str, parent_role: str
+        self, file_content: bytes, filename: str, parent_role: str
     ) -> TargetsWrapper:
         """
         TODO
@@ -605,15 +600,14 @@ class Updater:
         # Check against timestamp metadata
         if self._metadata["snapshot"].role(filename).get("hash"):
             _check_hashes(
-                temp_obj, self._metadata["snapshot"].targets.get("hash")
+                file_content, self._metadata["snapshot"].targets.get("hash")
             )
 
-        intermediate_targets = TargetsWrapper.from_json_object(temp_obj)
+        intermediate_targets = TargetsWrapper.from_json_object(file_content)
         if (
             intermediate_targets.version
             != self._metadata["snapshot"].role(filename)["version"]
         ):
-            temp_obj.close()
             raise exceptions.BadVersionNumberError
 
         # Check for an arbitrary software attack
@@ -626,15 +620,6 @@ class Updater:
         intermediate_targets.expires()
 
         return intermediate_targets
-
-    @staticmethod
-    def _verify_target_file(temp_obj: BinaryIO, targetinfo: Dict) -> None:
-        """
-        TODO
-        """
-
-        _check_file_length(temp_obj, targetinfo["fileinfo"]["length"])
-        _check_hashes(temp_obj, targetinfo["fileinfo"]["hashes"])
 
     def _preorder_depth_first_walk(self, target_filepath) -> Dict:
         """
@@ -864,7 +849,25 @@ def _check_file_length(file_object, trusted_file_length):
         )
 
 
-def _check_hashes(file_object, trusted_hashes):
+def _check_hashes_obj(file_object, trusted_hashes):
+    """
+    TODO
+    """
+    for algorithm, trusted_hash in trusted_hashes.items():
+        digest_object = sslib_hash.digest_fileobject(file_object, algorithm)
+
+        computed_hash = digest_object.hexdigest()
+
+        # Raise an exception if any of the hashes are incorrect.
+        if trusted_hash != computed_hash:
+            raise sslib_exceptions.BadHashError(trusted_hash, computed_hash)
+
+        logger.info(
+            "The file's " + algorithm + " hash is" " correct: " + trusted_hash
+        )
+
+
+def _check_hashes(file_content, trusted_hashes):
     """
     TODO
     """
@@ -872,11 +875,8 @@ def _check_hashes(file_object, trusted_hashes):
     # return.
     for algorithm, trusted_hash in trusted_hashes.items():
         digest_object = sslib_hash.digest(algorithm)
-        # Ensure we read from the beginning of the file object
-        # TODO: should we store file position (before the loop) and reset
-        # after we seek about?
-        file_object.seek(0)
-        digest_object.update(file_object.read())
+
+        digest_object.update(file_content)
         computed_hash = digest_object.hexdigest()
 
         # Raise an exception if any of the hashes are incorrect.
