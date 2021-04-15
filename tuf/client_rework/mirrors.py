@@ -23,15 +23,13 @@
 """
 
 import os
-from typing import BinaryIO, Dict, TextIO
 from urllib import parse
 
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
 from securesystemslib import util as sslib_util
 
-from tuf import exceptions, formats
-from tuf.client_rework import download
+from tuf import formats
 
 # The type of file to be downloaded from a repository.  The
 # 'get_list_of_mirrors' function supports these file types.
@@ -130,67 +128,3 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
         list_of_mirrors.append(url.replace("\\", "/"))
 
     return list_of_mirrors
-
-
-def mirror_meta_download(
-    filename: str,
-    upper_length: int,
-    mirrors_config: Dict,
-    fetcher: "FetcherInterface",
-) -> TextIO:
-    """
-    Download metadata file from the list of metadata mirrors
-    """
-    file_mirrors = get_list_of_mirrors("meta", filename, mirrors_config)
-
-    file_mirror_errors = {}
-    for file_mirror in file_mirrors:
-        try:
-            temp_obj = download.download_file(
-                file_mirror, upper_length, fetcher, strict_required_length=False
-            )
-
-            temp_obj.seek(0)
-            yield temp_obj
-
-        # pylint cannot figure out that we store the exceptions
-        # in a dictionary to raise them later so we disable
-        # the warning. This should be reviewed in the future still.
-        except Exception as exception:  # pylint:  disable=broad-except
-            file_mirror_errors[file_mirror] = exception
-
-        finally:
-            if file_mirror_errors:
-                raise exceptions.NoWorkingMirrorError(file_mirror_errors)
-
-
-def mirror_target_download(
-    fileinfo: str, mirrors_config: Dict, fetcher: "FetcherInterface"
-) -> BinaryIO:
-    """
-    Download target file from the list of target mirrors
-    """
-    # full_filename = _get_full_name(filename)
-    file_mirrors = get_list_of_mirrors(
-        "target", fileinfo["filepath"], mirrors_config
-    )
-
-    file_mirror_errors = {}
-    for file_mirror in file_mirrors:
-        try:
-            temp_obj = download.download_file(
-                file_mirror, fileinfo["fileinfo"]["length"], fetcher
-            )
-
-            temp_obj.seek(0)
-            yield temp_obj
-
-        # pylint cannot figure out that we store the exceptions
-        # in a dictionary to raise them later so we disable
-        # the warning. This should be reviewed in the future still.
-        except Exception as exception:  # pylint:  disable=broad-except
-            file_mirror_errors[file_mirror] = exception
-
-        finally:
-            if file_mirror_errors:
-                raise exceptions.NoWorkingMirrorError(file_mirror_errors)
