@@ -202,20 +202,6 @@ class Updater:
             filename,
         )
 
-    @staticmethod
-    def _get_relative_meta_name(
-        role: str, extension: str = ".json", version: int = None
-    ) -> str:
-        """
-        Helper method returning full metadata file path given the role name
-        and file extension.
-        """
-        if version is None:
-            filename = role + extension
-        else:
-            filename = str(version) + "." + role + extension
-        return filename
-
     def _load_root(self) -> None:
         """
         If metadata file for 'root' role does not exist locally, download it
@@ -239,7 +225,7 @@ class Updater:
             try:
                 root_mirrors = mirrors.get_list_of_mirrors(
                     "meta",
-                    self._get_relative_meta_name("root", version=next_version),
+                    f"{next_version}.root.json",
                     self._mirrors,
                 )
 
