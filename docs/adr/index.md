@@ -11,6 +11,9 @@ This log lists the architectural decisions for tuf.
 - [ADR-0004](0004-extent-of-OOP-in-metadata-model.md) - Add classes for complex metadata attributes
 - [ADR-0005](0005-use-google-python-style-guide.md) - Use Google Python style guide with minimal refinements
 
+
+- [ADR-0008](0008-accept-unrecognised-fields.md) - Accept metadata that includes unrecognized fields
+
 <!-- adrlogstop -->
 
 For new ADRs, please use [template.md](template.md) as basis.
