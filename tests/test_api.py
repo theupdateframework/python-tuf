@@ -105,8 +105,7 @@ class TestMetadata(unittest.TestCase):
             path = os.path.join(self.repo_dir, 'metadata', metadata + '.json')
             metadata_obj = Metadata.from_file(path)
             with open(path, 'rb') as f:
-                metadata_str = f.read()
-            metadata_obj2 = JSONDeserializer().deserialize(metadata_str)
+                metadata_obj2 = Metadata.from_bytes(f.read())
 
             # Assert that both methods instantiate the right inner class for
             # each metadata type and ...
@@ -119,15 +118,17 @@ class TestMetadata(unittest.TestCase):
             self.assertDictEqual(
                     metadata_obj.to_dict(), metadata_obj2.to_dict())
 
-
         # Assert that it chokes correctly on an unknown metadata type
         bad_metadata_path = 'bad-metadata.json'
         bad_metadata = {'signed': {'_type': 'bad-metadata'}}
+        bad_string = json.dumps(bad_metadata).encode('utf-8')
         with open(bad_metadata_path, 'wb') as f:
-            f.write(json.dumps(bad_metadata).encode('utf-8'))
+            f.write(bad_string)
 
         with self.assertRaises(DeserializationError):
             Metadata.from_file(bad_metadata_path)
+        with self.assertRaises(DeserializationError):
+            Metadata.from_bytes(bad_string)
 
         os.remove(bad_metadata_path)
 
