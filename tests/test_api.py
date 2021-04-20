@@ -306,21 +306,21 @@ class TestMetadata(unittest.TestCase):
             root_key2['keytype'], root_key2['scheme'], root_key2['keyval'])
 
         # Assert that root does not contain the new key
-        self.assertNotIn(keyid, root.signed.roles['root']['keyids'])
+        self.assertNotIn(keyid, root.signed.roles['root'].keyids)
         self.assertNotIn(keyid, root.signed.keys)
 
         # Add new root key
         root.signed.add_key('root', keyid, key_metadata)
 
         # Assert that key is added
-        self.assertIn(keyid, root.signed.roles['root']['keyids'])
+        self.assertIn(keyid, root.signed.roles['root'].keyids)
         self.assertIn(keyid, root.signed.keys)
 
         # Remove the key
         root.signed.remove_key('root', keyid)
 
         # Assert that root does not contain the new key anymore
-        self.assertNotIn(keyid, root.signed.roles['root']['keyids'])
+        self.assertNotIn(keyid, root.signed.roles['root'].keyids)
         self.assertNotIn(keyid, root.signed.keys)
 
 
@@ -369,6 +369,9 @@ class TestMetadata(unittest.TestCase):
             if metadata == "root":
                 for keyid in dict1["signed"]["keys"].keys():
                     dict1["signed"]["keys"][keyid]["d"] = "c"
+                for role_str in dict1["signed"]["roles"].keys():
+                    dict1["signed"]["roles"][role_str]["e"] = "g"
+
             temp_copy = copy.deepcopy(dict1)
             metadata_obj = Metadata.from_dict(temp_copy)
 

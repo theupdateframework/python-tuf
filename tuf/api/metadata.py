@@ -440,6 +440,37 @@ class Key:
         }
 
 
+class Role:
+    """A container class containing the set of keyids and threshold associated
+    with a particular role.
+
+    Attributes:
+        keyids: A set of strings each of which represents a given key.
+        threshold: An integer representing the required number of keys for that
+            particular role.
+        unrecognized_fields: Dictionary of all unrecognized fields.
+
+    """
+
+    def __init__(
+        self,
+        keyids: set,
+        threshold: int,
+        unrecognized_fields: Optional[Mapping[str, Any]] = None,
+    ) -> None:
+        self.keyids = keyids
+        self.threshold = threshold
+        self.unrecognized_fields = unrecognized_fields or {}
+
+    def to_dict(self) -> Dict:
+        """Returns the dictionary representation of self."""
+        return {
+            "keyids": self.keyids,
+            "threshold": self.threshold,
+            **self.unrecognized_fields,
+        }
+
+
 class Root(Signed):
     """A container for the signed part of root metadata.
 
@@ -455,10 +486,7 @@ class Root(Signed):
         roles: A dictionary that contains a list of signing keyids and
             a signature threshold for each top level role::
             {
-                '<ROLE>': {
-                    'keyids': ['<SIGNING KEY KEYID>', ...],
-                    'threshold': <SIGNATURE THRESHOLD>,
-                },
+                '<ROLE>': <Role istance>,
                 ...
             }
 
@@ -476,13 +504,12 @@ class Root(Signed):
         expires: datetime,
         consistent_snapshot: bool,
         keys: Mapping[str, Key],
-        roles: Mapping[str, Any],
+        roles: Mapping[str, Role],
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
         super().__init__(
             _type, version, spec_version, expires, unrecognized_fields
         )
-        # TODO: Add a class for roles
         self.consistent_snapshot = consistent_snapshot
         self.keys = keys
         self.roles = roles
@@ -502,6 +529,13 @@ class Root(Signed):
             # All fields left in the key_dict are unrecognized.
             keys[keyid] = Key(keytype, scheme, keyval, key_dict)
 
+        for role_str, role_dict in roles.items():
+            keyids = role_dict.pop("keyids")
+            threshold = role_dict.pop("threshold")
+            # All fields left in the role_dict are unrecognized.
+            unrecognized_role_fields = role_dict
+            roles[role_str] = Role(keyids, threshold, unrecognized_role_fields)
+
         # All fields left in the root_dict are unrecognized.
         return cls(*common_args, consistent_snapshot, keys, roles, root_dict)
 
@@ -509,12 +543,15 @@ class Root(Signed):
         """Returns the dict representation of self."""
         root_dict = self._common_fields_to_dict()
         keys = {keyid: key.to_dict() for (keyid, key) in self.keys.items()}
+        roles = {}
+        for role_name, role in self.roles.items():
+            roles[role_name] = role.to_dict()
 
         root_dict.update(
             {
                 "consistent_snapshot": self.consistent_snapshot,
                 "keys": keys,
-                "roles": self.roles,
+                "roles": roles,
             }
         )
         return root_dict
@@ -524,17 +561,17 @@ class Root(Signed):
         self, role: str, keyid: str, key_metadata: Mapping[str, Any]
     ) -> None:
         """Adds new key for 'role' and updates the key store."""
-        if keyid not in self.roles[role]["keyids"]:
-            self.roles[role]["keyids"].append(keyid)
+        if keyid not in self.roles[role].keyids:
+            self.roles[role].keyids.append(keyid)
             self.keys[keyid] = key_metadata
 
     # Remove key for a role.
     def remove_key(self, role: str, keyid: str) -> None:
         """Removes key for 'role' and updates the key store."""
-        if keyid in self.roles[role]["keyids"]:
-            self.roles[role]["keyids"].remove(keyid)
+        if keyid in self.roles[role].keyids:
+            self.roles[role].keyids.remove(keyid)
             for keyinfo in self.roles.values():
-                if keyid in keyinfo["keyids"]:
+                if keyid in keyinfo.keyids:
                     return
 
             del self.keys[keyid]
