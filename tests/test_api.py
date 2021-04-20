@@ -365,6 +365,10 @@ class TestMetadata(unittest.TestCase):
             # Test that the metadata classes store unrecognized fields when
             # initializing and passes them when casting the instance to a dict.
 
+            # Add unrecognized fields to all metadata sub (helper) classes.
+            if metadata == "root":
+                for keyid in dict1["signed"]["keys"].keys():
+                    dict1["signed"]["keys"][keyid]["d"] = "c"
             temp_copy = copy.deepcopy(dict1)
             metadata_obj = Metadata.from_dict(temp_copy)
 

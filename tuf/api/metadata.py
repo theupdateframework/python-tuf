@@ -405,6 +405,41 @@ class Signed:
         self.version += 1
 
 
+class Key:
+    """A container class representing the public portion of a Key.
+
+    Attributes:
+        keytype: A string denoting a public key signature system,
+            such as "rsa", "ed25519", and "ecdsa-sha2-nistp256".
+        scheme: A string denoting a corresponding signature scheme. For example:
+            "rsassa-pss-sha256", "ed25519", and "ecdsa-sha2-nistp256".
+        keyval: A dictionary containing the public portion of the key.
+        unrecognized_fields: Dictionary of all unrecognized fields.
+
+    """
+
+    def __init__(
+        self,
+        keytype: str,
+        scheme: str,
+        keyval: Mapping[str, str],
+        unrecognized_fields: Optional[Mapping[str, Any]] = None,
+    ) -> None:
+        self.keytype = keytype
+        self.scheme = scheme
+        self.keyval = keyval
+        self.unrecognized_fields = unrecognized_fields or {}
+
+    def to_dict(self) -> Dict:
+        """Returns the dictionary representation of self."""
+        return {
+            "keytype": self.keytype,
+            "scheme": self.scheme,
+            "keyval": self.keyval,
+            **self.unrecognized_fields,
+        }
+
+
 class Root(Signed):
     """A container for the signed part of root metadata.
 
@@ -414,18 +449,7 @@ class Root(Signed):
         keys: A dictionary that contains a public key store used to verify
             top level roles metadata signatures::
             {
-                '<KEYID>': {
-                    'keytype': '<KEY TYPE>',
-                    'scheme': '<KEY SCHEME>',
-                    'keyid_hash_algorithms': [
-                        '<HASH ALGO 1>',
-                        '<HASH ALGO 2>'
-                        ...
-                    ],
-                    'keyval': {
-                        'public': '<PUBLIC KEY HEX REPRESENTATION>'
-                    }
-                },
+                '<KEYID>': <Key instance>,
                 ...
             },
         roles: A dictionary that contains a list of signing keyids and
@@ -451,14 +475,14 @@ class Root(Signed):
         spec_version: str,
         expires: datetime,
         consistent_snapshot: bool,
-        keys: Mapping[str, Any],
+        keys: Mapping[str, Key],
         roles: Mapping[str, Any],
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
         super().__init__(
             _type, version, spec_version, expires, unrecognized_fields
         )
-        # TODO: Add classes for keys and roles
+        # TODO: Add a class for roles
         self.consistent_snapshot = consistent_snapshot
         self.keys = keys
         self.roles = roles
@@ -470,16 +494,26 @@ class Root(Signed):
         consistent_snapshot = root_dict.pop("consistent_snapshot")
         keys = root_dict.pop("keys")
         roles = root_dict.pop("roles")
+
+        for keyid, key_dict in keys.items():
+            keytype = key_dict.pop("keytype")
+            scheme = key_dict.pop("scheme")
+            keyval = key_dict.pop("keyval")
+            # All fields left in the key_dict are unrecognized.
+            keys[keyid] = Key(keytype, scheme, keyval, key_dict)
+
         # All fields left in the root_dict are unrecognized.
         return cls(*common_args, consistent_snapshot, keys, roles, root_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
         root_dict = self._common_fields_to_dict()
+        keys = {keyid: key.to_dict() for (keyid, key) in self.keys.items()}
+
         root_dict.update(
             {
                 "consistent_snapshot": self.consistent_snapshot,
-                "keys": self.keys,
+                "keys": keys,
                 "roles": self.roles,
             }
         )
