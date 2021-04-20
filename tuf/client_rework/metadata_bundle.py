@@ -98,9 +98,7 @@ def from_string(data: str) -> Metadata:
 
 class MetadataBundle(abc.Mapping):
     def __init__(self, path: str):
-        """Initialize by loading existing metadata from disk
-
-        This includes root, timestamp, snapshot and _top-level_ targets .
+        """Initialize by loading root metadata from disk
         """
         self._path = path
         self._bundle = {}  # type: Dict[str: Metadata]
