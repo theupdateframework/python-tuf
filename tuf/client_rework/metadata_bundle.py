@@ -108,14 +108,6 @@ def verify_with_threshold(delegator: Metadata, role_name: str, unverified: Metad
     return len(unique_keys) >= role["threshold"]
 
 
-# TODO issue 1336: implement in metadata api
-from tuf.api.serialization.json import JSONDeserializer
-
-
-def from_string(data: str) -> Metadata:
-    return JSONDeserializer().deserialize(data)
-
-
 class MetadataBundle(abc.Mapping):
     def __init__(self, path: str):
         """Initialize by loading root metadata from disk
@@ -144,7 +136,7 @@ class MetadataBundle(abc.Mapping):
         Returns True if 'role_name' is now in the bundle
         """
         if self.get(role_name) is not None:
-            logger.debug("Already loaded %s.json", role_name)
+            logger.debug("Already loaded local %s.json", role_name)
             return True
 
         logger.debug("Loading local %s.json", role_name)
@@ -173,28 +165,28 @@ class MetadataBundle(abc.Mapping):
             # TODO delete local file (except probably should not delete root.json?)
             return False
 
-    def update_metadata(self, metadata_str: str, role_name: str, delegator_name: str = None):
+    def update_metadata(self, data: bytes, role_name: str, delegator_name: str = None):
         logger.debug("Updating %s", role_name)
 
         self._raise_on_unsupported_state(role_name)
 
         if role_name == "root":
             self.load_local_metadata("root")
-            self._load_intermediate_root(metadata_str)
+            self._load_intermediate_root(data)
             self.root.to_file(os.path.join(self._path, "root.json"))
         elif role_name == "timestamp":
             self.load_local_metadata("timestamp")
-            self._load_timestamp(metadata_str)
+            self._load_timestamp(data)
             self.timestamp.to_file(os.path.join(self._path, "timestamp.json"))
         elif role_name == "snapshot":
             self.load_local_metadata("snapshot")
-            self._load_snapshot(metadata_str)
+            self._load_snapshot(data)
             self.snapshot.to_file(os.path.join(self._path, "snapshot.json"))
         elif role_name == "targets":
-            self._load_targets(metadata_str)
+            self._load_targets(data)
             self.targets.to_file(os.path.join(self._path, "targets.json"))
         else:
-            self._load_delegated_targets(metadata_str, role_name, delegator_name)
+            self._load_delegated_targets(data, role_name, delegator_name)
             self[role_name].to_file(os.path.join(self._path, f"{role_name}.json"))
 
     def root_update_finished(self):
@@ -262,12 +254,12 @@ class MetadataBundle(abc.Mapping):
     def targets(self):
         return self._bundle.get("targets")
 
-    def _load_intermediate_root(self, data: str):
+    def _load_intermediate_root(self, data: bytes):
         """Verify the new root using current root (if any) and use it as current root
 
         Raises if root fails verification
         """
-        new_root = from_string(data)
+        new_root = Metadata.from_bytes(data)
         if new_root.signed._type != "root":
             raise exceptions.RepositoryError
 
@@ -291,7 +283,7 @@ class MetadataBundle(abc.Mapping):
         self._bundle["root"] = new_root
         logger.debug("Loaded root")
 
-    def _load_timestamp(self, data: str):
+    def _load_timestamp(self, data: bytes):
         """Verifies the new timestamp and uses it as current timestamp
 
         Raises if verification fails
@@ -300,7 +292,7 @@ class MetadataBundle(abc.Mapping):
             # bundle does not support this order of ops
             raise exceptions.RepositoryError
 
-        new_timestamp = from_string(data)
+        new_timestamp = Metadata.from_bytes(data)
         if new_timestamp.signed._type != "timestamp":
             raise exceptions.RepositoryError
 
@@ -335,7 +327,7 @@ class MetadataBundle(abc.Mapping):
         self._bundle["timestamp"] = new_timestamp
         logger.debug("Loaded timestamp")
 
-    def _load_snapshot(self, data: str):
+    def _load_snapshot(self, data: bytes):
         if self.root is None or self.timestamp is None:
             # bundle does not support this order of ops
             raise exceptions.RepositoryError
@@ -351,7 +343,7 @@ class MetadataBundle(abc.Mapping):
             digest_object.update(data)
             if digest_object.hexdigest() != _hash:
                 raise exceptions.BadHashError()
-        new_snapshot = from_string(data)
+        new_snapshot = Metadata.from_bytes(data)
         if new_snapshot.signed._type != "snapshot":
             raise exceptions.RepositoryError
 
@@ -384,10 +376,10 @@ class MetadataBundle(abc.Mapping):
         self._bundle["snapshot"] = new_snapshot
         logger.debug("Loaded snapshot")
 
-    def _load_targets(self, data: str):
+    def _load_targets(self, data: bytes):
         self._load_delegated_targets(data, "targets", "root")
 
-    def _load_delegated_targets(self, data: str, role_name: str, delegator_name: str):
+    def _load_delegated_targets(self, data: bytes, role_name: str, delegator_name: str):
         logger.debug(f"Loading {role_name} delegated by {delegator_name}")
         delegator = self.get(delegator_name)
         if delegator == None:
@@ -405,7 +397,7 @@ class MetadataBundle(abc.Mapping):
             if digest_object.hexdigest() != _hash:
                 raise exceptions.BadHashError()
 
-        new_delegate = from_string(data)
+        new_delegate = Metadata.from_bytes(data)
         if new_delegate.signed._type != "targets":
             raise exceptions.RepositoryError
 
