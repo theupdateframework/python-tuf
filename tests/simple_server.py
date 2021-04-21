@@ -25,19 +25,10 @@
     http://docs.python.org/library/simplehttpserver.html#module-SimpleHTTPServer
 """
 
-# Help with Python 3 compatibility, where the print statement is a function, an
-# implicit relative import is invalid, and the '/' operator performs true
-# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 import sys
 import random
-
-import six
-from six.moves.SimpleHTTPServer import SimpleHTTPRequestHandler
+import socketserver
+from http.server import SimpleHTTPRequestHandler
 
 
 class QuietHTTPRequestHandler(SimpleHTTPRequestHandler):
@@ -64,9 +55,9 @@ else:
 
 # Allow re-use so you can re-run tests as often as you want even if the
 # tests re-use ports. Otherwise TCP TIME-WAIT prevents reuse for ~1 minute
-six.moves.socketserver.TCPServer.allow_reuse_address = True
+socketserver.TCPServer.allow_reuse_address = True
 
-httpd = six.moves.socketserver.TCPServer(('localhost', 0), handler)
+httpd = socketserver.TCPServer(('localhost', 0), handler)
 port_message = 'bind succeeded, server port is: ' \
     + str(httpd.server_address[1])
 print(port_message)

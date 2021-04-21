@@ -41,14 +41,6 @@
   optional.
 """
 
-# Help with Python 3 compatibility, where the print statement is a function, an
-# implicit relative import is invalid, and the '/' operator performs true
-# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 import logging
 import copy
 
@@ -58,8 +50,6 @@ from securesystemslib import formats as sslib_formats
 
 from tuf import exceptions
 from tuf import formats
-
-import six
 
 # See 'tuf.log' to learn how logging is handled in TUF.
 logger = logging.getLogger(__name__)
@@ -135,7 +125,7 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
 
   # Iterate the roles found in 'root_metadata' and add them to '_roledb_dict'.
   # Duplicates are avoided.
-  for rolename, roleinfo in six.iteritems(root_metadata['roles']):
+  for rolename, roleinfo in root_metadata['roles'].items():
     if rolename == 'root':
       roleinfo['version'] = root_metadata['version']
       roleinfo['expires'] = root_metadata['expires']

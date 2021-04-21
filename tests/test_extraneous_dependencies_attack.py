@@ -34,14 +34,6 @@
   There is no difference between 'updates' and 'target' files.
 """
 
-# Help with Python 3 compatibility, where the print statement is a function, an
-# implicit relative import is invalid, and the '/' operator performs true
-# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 import os
 import tempfile
 import shutil
@@ -60,7 +52,6 @@ import tuf.unittest_toolbox as unittest_toolbox
 from tests import utils
 
 import securesystemslib
-import six
 
 logger = logging.getLogger(__name__)
 
@@ -150,14 +141,14 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
 
 
   def tearDown(self):
-    # Modified_TestCase.tearDown() automatically deletes temporary files and
-    # directories that may have been created during each test case.
-    unittest_toolbox.Modified_TestCase.tearDown(self)
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 
     # Logs stdout and stderr from the sever subprocess.
     self.server_process_handler.flush_log()
+
+    # Remove temporary directory
+    unittest_toolbox.Modified_TestCase.tearDown(self)
 
 
   def test_with_tuf(self):
@@ -206,7 +197,7 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
     # Verify that the specific 'tuf.exceptions.ForbiddenTargetError' exception is raised
     # by each mirror.
     except tuf.exceptions.NoWorkingMirrorError as exception:
-      for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
+      for mirror_url, mirror_error in exception.mirror_errors.items():
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
         url_file = os.path.join(url_prefix, 'metadata', 'role1.json')
 
