@@ -128,6 +128,32 @@ class Metadata:
             A TUF Metadata object.
 
         """
+        if storage_backend is None:
+            storage_backend = FilesystemBackend()
+
+        with storage_backend.get(filename) as file_obj:
+            return cls.from_bytes(file_obj.read(), deserializer)
+
+    @staticmethod
+    def from_bytes(
+        data: bytes,
+        deserializer: Optional[MetadataDeserializer] = None,
+    ) -> "Metadata":
+        """Loads TUF metadata from raw data.
+
+        Arguments:
+            data: metadata content as bytes.
+            deserializer: Optional; A MetadataDeserializer instance that
+                implements deserialization. Default is JSONDeserializer.
+
+        Raises:
+            tuf.api.serialization.DeserializationError:
+                The file cannot be deserialized.
+
+        Returns:
+            A TUF Metadata object.
+        """
+
         if deserializer is None:
             # Use local scope import to avoid circular import errors
             # pylint: disable=import-outside-toplevel
@@ -135,13 +161,7 @@ class Metadata:
 
             deserializer = JSONDeserializer()
 
-        if storage_backend is None:
-            storage_backend = FilesystemBackend()
-
-        with storage_backend.get(filename) as file_obj:
-            raw_data = file_obj.read()
-
-        return deserializer.deserialize(raw_data)
+        return deserializer.deserialize(data)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self. """
