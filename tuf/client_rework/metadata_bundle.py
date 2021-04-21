@@ -78,19 +78,34 @@ logger = logging.getLogger(__name__)
 
 # This is a placeholder until ...
 # TODO issue 1306: implement this in Metadata API
-def verify_with_threshold(root: Metadata, role: str, unverified: Metadata):
+def verify_with_threshold(delegator: Metadata, role_name: str, unverified: Metadata):
+    if delegator.signed._type == 'root':
+        keys = delegator.signed.keys
+        role = delegator.signed.roles.get(role_name)
+    elif delegator.signed._type == 'targets':
+        keys = delegator.signed.delegations["keys"]
+        # role names are unique: first match is enough
+        roles = delegator.signed.delegations["roles"]
+        role = next((role for role in roles if role["name"] == role_name), None)
+    else:
+        raise ValueError('Call is valid only on delegator metadata')
+
+    if role is None:
+        raise exceptions.UnknownRoleError
+
+    # verify that delegate is signed by correct threshold of unique keys
     unique_keys = set()
-    for keyid in root.signed.roles[role]["keyids"]:
-        key_metadata = root.signed.keys[keyid]
-        key, _ = sslib_keys.format_metadata_to_key(key_metadata)
+    for keyid in role["keyids"]:
+        key_metadata = keys[keyid]
+        key, dummy = sslib_keys.format_metadata_to_key(key_metadata)
 
         try:
             if unverified.verify(key):
                 unique_keys.add(key["keyval"]["public"])
-        except:
+        except:  # TODO specify the Exceptions
             pass
 
-    return len(unique_keys) >= root.signed.roles[role]["threshold"]
+    return len(unique_keys) >= role["threshold"]
 
 
 # TODO issue 1336: implement in metadata api
@@ -149,7 +164,7 @@ class MetadataBundle(abc.Mapping):
             elif role_name == "targets":
                 self._load_targets(data)
             else:
-                self._load_delegate(data, delegator_name)
+                self._load_delegated_targets(data, role_name, delegator_name)
 
             return True
         except Exception as e:
@@ -164,19 +179,23 @@ class MetadataBundle(abc.Mapping):
         self._raise_on_unsupported_state(role_name)
 
         if role_name == "root":
+            self.load_local_metadata("root")
             self._load_intermediate_root(metadata_str)
             self.root.to_file(os.path.join(self._path, "root.json"))
         elif role_name == "timestamp":
+            self.load_local_metadata("timestamp")
             self._load_timestamp(metadata_str)
             self.timestamp.to_file(os.path.join(self._path, "timestamp.json"))
         elif role_name == "snapshot":
+            self.load_local_metadata("snapshot")
             self._load_snapshot(metadata_str)
             self.snapshot.to_file(os.path.join(self._path, "snapshot.json"))
         elif role_name == "targets":
             self._load_targets(metadata_str)
             self.targets.to_file(os.path.join(self._path, "targets.json"))
         else:
-            raise NotImplementedError
+            self._load_delegated_targets(metadata_str, role_name, delegator_name)
+            self[role_name].to_file(os.path.join(self._path, f"{role_name}.json"))
 
     def root_update_finished(self):
         if self.timestamp is not None:
@@ -202,13 +221,17 @@ class MetadataBundle(abc.Mapping):
             if self.snapshot is not None:
                 raise exceptions.RepositoryError
         elif role_name == "snapshot":
+            if self.timestamp is None:
+                raise exceptions.RepositoryError
             if self.targets is not None:
                 raise exceptions.RepositoryError
         elif role_name == "targets":
+            if self.snapshot is None:
+                raise exceptions.RepositoryError
             if len(self) > 4:
                 # delegates have been loaded already
                 raise exceptions.RepositoryError
-        else:
+        else: # delegated role
             if self.targets is None:
                 raise exceptions.RepositoryError
 
@@ -266,6 +289,7 @@ class MetadataBundle(abc.Mapping):
             )
 
         self._bundle["root"] = new_root
+        logger.debug("Loaded root")
 
     def _load_timestamp(self, data: str):
         """Verifies the new timestamp and uses it as current timestamp
@@ -309,6 +333,7 @@ class MetadataBundle(abc.Mapping):
             raise exceptions.ExpiredMetadataError
 
         self._bundle["timestamp"] = new_timestamp
+        logger.debug("Loaded timestamp")
 
     def _load_snapshot(self, data: str):
         if self.root is None or self.timestamp is None:
@@ -316,7 +341,10 @@ class MetadataBundle(abc.Mapping):
             raise exceptions.RepositoryError
 
         # Verify against the hashes in timestamp, if any
-        meta = self.timestamp.signed.meta["snapshot.json"]
+        meta = self.timestamp.signed.meta.get("snapshot.json")
+        if meta is None:
+            raise exceptions.RepositoryError
+
         hashes = meta.get("hashes") or {}
         for algo, _hash in meta["hashes"].items():
             digest_object = sslib_hash.digest(algo)
@@ -354,14 +382,21 @@ class MetadataBundle(abc.Mapping):
             raise exceptions.ExpiredMetadataError
 
         self._bundle["snapshot"] = new_snapshot
+        logger.debug("Loaded snapshot")
 
     def _load_targets(self, data: str):
-        if self.root is None or self.snapshot is None:
-            # bundle does not support this order of ops
+        self._load_delegated_targets(data, "targets", "root")
+
+    def _load_delegated_targets(self, data: str, role_name: str, delegator_name: str):
+        logger.debug(f"Loading {role_name} delegated by {delegator_name}")
+        delegator = self.get(delegator_name)
+        if delegator == None:
             raise exceptions.RepositoryError
 
         # Verify against the hashes in snapshot, if any
-        meta = self.snapshot.signed.meta["targets.json"]
+        meta = self.snapshot.signed.meta.get(f"{role_name}.json")
+        if meta is None:
+            raise exceptions.RepositoryError
 
         hashes = meta.get("hashes") or {}
         for algo, _hash in hashes.items():
@@ -370,23 +405,20 @@ class MetadataBundle(abc.Mapping):
             if digest_object.hexdigest() != _hash:
                 raise exceptions.BadHashError()
 
-        new_targets = from_string(data)
-        if new_targets.signed._type != "targets":
+        new_delegate = from_string(data)
+        if new_delegate.signed._type != "targets":
             raise exceptions.RepositoryError
 
-        if not verify_with_threshold(self.root, "targets", new_targets):
+        if not verify_with_threshold(delegator, role_name, new_delegate):
             raise exceptions.UnsignedMetadataError(
-                "New targets is not signed by root", new_targets.signed
+                f"New {role_name} is not signed by {delegator_name}"
             )
 
-        if new_targets.signed.version != meta["version"]:
+        if new_delegate.signed.version != meta["version"]:
             raise exceptions.BadVersionNumberError
 
-        if new_targets.signed.is_expired(self.reference_time):
+        if new_delegate.signed.is_expired(self.reference_time):
             raise exceptions.ExpiredMetadataError
 
-        self._bundle["targets"] = new_targets
-
-
-    def _load_delegate(self, data: str, delegator_name: str = None):
-        pass
+        self._bundle[role_name] = new_delegate
+        logger.debug("Loaded {role_name}")
