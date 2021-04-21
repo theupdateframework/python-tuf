@@ -41,14 +41,6 @@
   less dependent than 2.
 """
 
-# Help with Python 3 compatibility, where the print statement is a function, an
-# implicit relative import is invalid, and the '/' operator performs true
-# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 import os
 import time
 import shutil
@@ -79,7 +71,6 @@ import tuf.client.updater as updater
 from tests import utils
 
 import securesystemslib
-import six
 
 logger = logging.getLogger(__name__)
 repo_tool.disable_console_log_messages()
@@ -191,13 +182,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
   def tearDown(self):
-    # We are inheriting from custom class.
-    unittest_toolbox.Modified_TestCase.tearDown(self)
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 
     # Logs stdout and stderr from the sever subprocess.
     self.server_process_handler.flush_log()
+
+    # Remove temporary directory
+    unittest_toolbox.Modified_TestCase.tearDown(self)
 
 
   # UNIT TESTS.
@@ -775,7 +767,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                                                DEFAULT_TARGETS_FILELENGTH, 88)
 
     except tuf.exceptions.NoWorkingMirrorError as e:
-      for mirror_error in six.itervalues(e.mirror_errors):
+      for mirror_error in e.mirror_errors.values():
         assert isinstance(mirror_error, tuf.exceptions.BadVersionNumberError)
 
     else:
@@ -791,7 +783,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                                                88)
 
     except tuf.exceptions.NoWorkingMirrorError as e:
-      for mirror_error in six.itervalues(e.mirror_errors):
+      for mirror_error in e.mirror_errors.values():
         assert isinstance(mirror_error, tuf.exceptions.BadVersionNumberError)
 
     else:
@@ -839,7 +831,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       # Note that this test provides a piece of metadata which would fail to
       # be accepted -- with a different error -- if the specification version
       # number were not a problem.
-      for mirror_error in six.itervalues(e.mirror_errors):
+      for mirror_error in e.mirror_errors.values():
         assert isinstance(
             mirror_error, tuf.exceptions.UnsupportedSpecificationError)
 
@@ -921,7 +913,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # target files.
     self.assertTrue(tuf.formats.TARGETINFOS_SCHEMA.matches(targetinfos_list))
     for targetinfo in targetinfos_list:
-      self.assertTrue((targetinfo['filepath'], targetinfo['fileinfo']) in six.iteritems(targets_in_metadata))
+      self.assertTrue((targetinfo['filepath'], targetinfo['fileinfo']) in targets_in_metadata.items())
 
 
 
@@ -1084,7 +1076,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # target files.
     self.assertTrue(tuf.formats.TARGETINFOS_SCHEMA.matches(targetinfos))
     for targetinfo in targetinfos:
-      self.assertTrue((targetinfo['filepath'], targetinfo['fileinfo']) in six.iteritems(expected_targets))
+      self.assertTrue((targetinfo['filepath'], targetinfo['fileinfo']) in expected_targets.items())
 
     # Test: Invalid arguments.
     # targets_of_role() expected a string rolename.
@@ -1368,7 +1360,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # field contains at least one confined target and excludes needed target
     # file.
     mirrors = self.repository_updater.mirrors
-    for mirror_name, mirror_info in six.iteritems(mirrors):
+    for mirror_name, mirror_info in mirrors.items():
       mirrors[mirror_name]['confined_target_dirs'] = [self.random_path()]
 
     try:
@@ -1630,7 +1622,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       '/file1.txt': 'e3a3d89eb3b70ce3fbce6017d7b8c12d4abd5635427a0e8a238f53157df85b3d',
       '/Jalape\xc3\xb1o': '78bfd5c314680545eb48ecad508aceb861f8d6e680f4fe1b791da45c298cda88'
     }
-    for filepath, target_hash in six.iteritems(expected_target_hashes):
+    for filepath, target_hash in expected_target_hashes.items():
       self.assertTrue(tuf.formats.RELPATH_SCHEMA.matches(filepath))
       self.assertTrue(securesystemslib.formats.HASH_SCHEMA.matches(target_hash))
       self.assertEqual(self.repository_updater._get_target_hash(filepath), target_hash)
@@ -1782,18 +1774,16 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
 
   def setUp(self):
-    # We are inheriting from custom class.
+    # Modified_Testcase can handle temp dir removal
     unittest_toolbox.Modified_TestCase.setUp(self)
-
-    self.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
+    self.temporary_directory = self.make_temp_directory(directory=os.getcwd())
 
     # Copy the original repository files provided in the test folder so that
     # any modifications made to repository files are restricted to the copies.
     # The 'repository_data' directory is expected to exist in 'tuf/tests/'.
     original_repository_files = os.path.join(os.getcwd(), 'repository_data')
 
-    self.temporary_repository_root = self.make_temp_directory(directory=
-        self.temporary_directory)
+    self.temporary_repository_root = tempfile.mkdtemp(dir=self.temporary_directory)
 
     # Needed because in some tests simple_server.py cannot be found.
     # The reason is that the current working directory
@@ -1908,9 +1898,6 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
 
 
   def tearDown(self):
-    # Modified_TestCase.tearDown() automatically deletes temporary files and
-    # directories that may have been created during each test case.
-    unittest_toolbox.Modified_TestCase.tearDown(self)
 
     # Cleans the resources and flush the logged lines (if any).
     self.server_process_handler.clean()
@@ -1920,9 +1907,8 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 
-    # Remove the temporary repository directory, which should contain all the
-    # metadata, targets, and key files generated of all the test cases
-    shutil.rmtree(self.temporary_directory)
+    # Remove top-level temporary directory
+    unittest_toolbox.Modified_TestCase.tearDown(self)
 
 
 

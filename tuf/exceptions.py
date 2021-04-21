@@ -22,15 +22,7 @@
   there is a good reason not to, and provide that reason in those cases.
 """
 
-# Help with Python 3 compatibility, where the print statement is a function, an
-# implicit relative import is invalid, and the '/' operator performs true
-# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
-import six
+from urllib import parse
 
 import logging
 logger = logging.getLogger(__name__)
@@ -296,10 +288,10 @@ class NoWorkingMirrorError(Error):
   def __str__(self):
     all_errors = 'No working mirror was found:'
 
-    for mirror_url, mirror_error in six.iteritems(self.mirror_errors):
+    for mirror_url, mirror_error in self.mirror_errors.items():
       try:
         # http://docs.python.org/2/library/urlparse.html#urlparse.urlparse
-        mirror_url_tokens = six.moves.urllib.parse.urlparse(mirror_url)
+        mirror_url_tokens = parse.urlparse(mirror_url)
 
       except Exception:
         logger.exception('Failed to parse mirror URL: ' + repr(mirror_url))

@@ -113,8 +113,7 @@ setup(
   python_requires="~=3.6",
   install_requires = [
     'requests>=2.19.1',
-    'securesystemslib>=0.20.0',
-    'six>=1.11.0'
+    'securesystemslib>=0.20.0'
   ],
   packages = find_packages(exclude=['tests']),
   scripts = [

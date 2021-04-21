@@ -287,7 +287,7 @@ ignore-on-opaque-inference=yes
 # List of class names for which member attributes should not be checked (useful
 # for classes with dynamically set attributes). This supports the use of
 # qualified names.
-ignored-classes=optparse.Values,thread._local,_thread._local, six.moves
+ignored-classes=optparse.Values,thread._local,_thread._local
 
 # List of module names for which member attributes should not be checked
 # (useful for modules/projects where namespaces are manipulated during runtime
@@ -334,7 +334,7 @@ init-import=no
 
 # List of qualified module names which can have objects that can redefine
 # builtins.
-redefining-builtins-modules=six.moves,future.builtins
+redefining-builtins-modules=future.builtins
 
 
 [CLASSES]

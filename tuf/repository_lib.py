@@ -23,21 +23,12 @@
   complete guide to using 'tuf.repository_tool.py'.
 """
 
-# Help with Python 3 compatibility, where the print statement is a function, an
-# implicit relative import is invalid, and the '/' operator performs true
-# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 import os
 import errno
 import time
 import logging
 import shutil
 import json
-import six
 import tempfile
 
 import securesystemslib # pylint: disable=unused-import
@@ -542,8 +533,8 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     consistent_snapshot = root_metadata['consistent_snapshot']
 
   except sslib_exceptions.StorageError as error:
-    six.raise_from(exceptions.RepositoryError('Cannot load the required'
-        ' root file: ' + repr(root_filename)), error)
+    raise exceptions.RepositoryError('Cannot load the required'
+        ' root file: ' + repr(root_filename)) from error
 
   # Load 'timestamp.json'.  A Timestamp role file without a version number is
   # always written.
@@ -571,8 +562,8 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
         repository_name=repository_name)
 
   except sslib_exceptions.StorageError as error:
-    six.raise_from(exceptions.RepositoryError('Cannot load the Timestamp '
-        'file: ' + repr(timestamp_filename)), error)
+    raise exceptions.RepositoryError('Cannot load the Timestamp '
+        'file: ' + repr(timestamp_filename)) from error
 
   # Load 'snapshot.json'.  A consistent snapshot.json must be calculated if
   # 'consistent_snapshot' is True.
@@ -617,8 +608,8 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
         repository_name=repository_name)
 
   except sslib_exceptions.StorageError as error:
-    six.raise_from(exceptions.RepositoryError('The Snapshot file '
-        'cannot be loaded: '+ repr(snapshot_filename)), error)
+    raise exceptions.RepositoryError('The Snapshot file '
+        'cannot be loaded: '+ repr(snapshot_filename)) from error
 
   # Load 'targets.json'.  A consistent snapshot of the Targets role must be
   # calculated if 'consistent_snapshot' is True.
@@ -661,7 +652,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
         repository_name=repository_name)
 
     # Add the keys specified in the delegations field of the Targets role.
-    for keyid, key_metadata in six.iteritems(targets_metadata['delegations']['keys']):
+    for keyid, key_metadata in targets_metadata['delegations']['keys'].items():
 
       # Use the keyid found in the delegation
       key_object, _ = sslib_keys.format_metadata_to_key(key_metadata,
@@ -680,8 +671,8 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
         pass
 
   except sslib_exceptions.StorageError as error:
-    six.raise_from(exceptions.RepositoryError('The Targets file '
-        'can not be loaded: ' + repr(targets_filename)), error)
+    raise exceptions.RepositoryError('The Targets file '
+        'can not be loaded: ' + repr(targets_filename)) from error
 
   return repository, consistent_snapshot
 
@@ -1428,7 +1419,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
   if use_existing_fileinfo:
     # Use the provided fileinfo dicts, conforming to FILEINFO_SCHEMA, rather than
     # generating fileinfo
-    for target, fileinfo in six.iteritems(target_files):
+    for target, fileinfo in target_files.items():
 
       # Ensure all fileinfo entries in target_files have a non-empty hashes dict
       if not fileinfo.get('hashes', None):
@@ -1497,7 +1488,7 @@ def _generate_targets_fileinfo(target_files, targets_directory,
   filedict = {}
 
   # Generate the fileinfo of all the target files listed in 'target_files'.
-  for target, fileinfo in six.iteritems(target_files):
+  for target, fileinfo in target_files.items():
 
     # The root-most folder of the targets directory should not be included in
     # target paths listed in targets metadata.
@@ -1518,7 +1509,7 @@ def _generate_targets_fileinfo(target_files, targets_directory,
 
     # Copy 'target_path' to 'digest_target' if consistent hashing is enabled.
     if write_consistent_targets:
-      for target_digest in six.itervalues(filedict[relative_targetpath]['hashes']):
+      for target_digest in filedict[relative_targetpath]['hashes'].values():
         dirname, basename = os.path.split(target_path)
         digest_filename = target_digest + '.' + basename
         digest_target = os.path.join(dirname, digest_filename)

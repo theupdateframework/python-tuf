@@ -128,6 +128,32 @@ class Metadata:
             A TUF Metadata object.
 
         """
+        if storage_backend is None:
+            storage_backend = FilesystemBackend()
+
+        with storage_backend.get(filename) as file_obj:
+            return cls.from_bytes(file_obj.read(), deserializer)
+
+    @staticmethod
+    def from_bytes(
+        data: bytes,
+        deserializer: Optional[MetadataDeserializer] = None,
+    ) -> "Metadata":
+        """Loads TUF metadata from raw data.
+
+        Arguments:
+            data: metadata content as bytes.
+            deserializer: Optional; A MetadataDeserializer instance that
+                implements deserialization. Default is JSONDeserializer.
+
+        Raises:
+            tuf.api.serialization.DeserializationError:
+                The file cannot be deserialized.
+
+        Returns:
+            A TUF Metadata object.
+        """
+
         if deserializer is None:
             # Use local scope import to avoid circular import errors
             # pylint: disable=import-outside-toplevel
@@ -135,13 +161,7 @@ class Metadata:
 
             deserializer = JSONDeserializer()
 
-        if storage_backend is None:
-            storage_backend = FilesystemBackend()
-
-        with storage_backend.get(filename) as file_obj:
-            raw_data = file_obj.read()
-
-        return deserializer.deserialize(raw_data)
+        return deserializer.deserialize(data)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self. """
@@ -311,13 +331,12 @@ class Signed:
     ) -> None:
 
         self._type = _type
-        self.version = version
         self.spec_version = spec_version
         self.expires = expires
 
         # TODO: Should we separate data validation from constructor?
         if version < 0:
-            raise ValueError(f"version must be < 0, got {version}")
+            raise ValueError(f"version must be >= 0, got {version}")
         self.version = version
 
     @staticmethod
@@ -351,6 +370,22 @@ class Signed:
             "spec_version": self.spec_version,
             "expires": self.expires.isoformat() + "Z",
         }
+
+    def is_expired(self, reference_time: datetime = None) -> bool:
+        """Checks metadata expiration against a reference time.
+
+        Args:
+            reference_time: Optional; The time to check expiration date against.
+                A naive datetime in UTC expected.
+                If not provided, checks against the current UTC date and time.
+
+        Returns:
+            True if expiration time is less than the reference time.
+        """
+        if reference_time is None:
+            reference_time = datetime.utcnow()
+
+        return reference_time >= self.expires
 
     # Modification.
     def bump_expiration(self, delta: timedelta = timedelta(days=1)) -> None:

@@ -33,14 +33,6 @@
   less dependent than 2.
 """
 
-# Help with Python 3 compatibility, where the print statement is a function, an
-# implicit relative import is invalid, and the '/' operator performs true
-# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 import os
 import shutil
 import tempfile
@@ -62,7 +54,6 @@ import tuf.settings
 from tests import utils
 
 import securesystemslib
-import six
 
 logger = logging.getLogger(__name__)
 repo_tool.disable_console_log_messages()
@@ -164,13 +155,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
   def tearDown(self):
-    # We are inheriting from custom class.
-    unittest_toolbox.Modified_TestCase.tearDown(self)
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 
     # Logs stdout and stderr from the sever subprocess.
     self.server_process_handler.flush_log()
+
+    # Remove temporary directory
+    unittest_toolbox.Modified_TestCase.tearDown(self)
 
 
   # UNIT TESTS.
@@ -248,7 +240,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
      with self.assertRaises(tuf.exceptions.NoWorkingMirrorError) as cm:
        self.repository_updater.refresh()
 
-     for mirror_url, mirror_error in six.iteritems(cm.exception.mirror_errors):
+     for mirror_url, mirror_error in cm.exception.mirror_errors.items():
        self.assertTrue(mirror_url.endswith('/2.root.json'))
        self.assertTrue(isinstance(mirror_error,
            securesystemslib.exceptions.BadSignatureError))
@@ -307,7 +299,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
      with self.assertRaises(tuf.exceptions.NoWorkingMirrorError) as cm:
        self.repository_updater.refresh()
 
-     for mirror_url, mirror_error in six.iteritems(cm.exception.mirror_errors):
+     for mirror_url, mirror_error in cm.exception.mirror_errors.items():
        self.assertTrue(mirror_url.endswith('/2.root.json'))
        self.assertTrue(isinstance(mirror_error,
            securesystemslib.exceptions.BadSignatureError))
@@ -450,7 +442,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     with self.assertRaises(tuf.exceptions.NoWorkingMirrorError) as cm:
       self.repository_updater.refresh()
 
-    for mirror_url, mirror_error in six.iteritems(cm.exception.mirror_errors):
+    for mirror_url, mirror_error in cm.exception.mirror_errors.items():
       self.assertTrue(mirror_url.endswith('/2.root.json'))
       self.assertTrue(isinstance(mirror_error,
           securesystemslib.exceptions.BadSignatureError))
@@ -525,7 +517,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     with self.assertRaises(tuf.exceptions.NoWorkingMirrorError) as cm:
       self.repository_updater.refresh()
 
-    for mirror_url, mirror_error in six.iteritems(cm.exception.mirror_errors):
+    for mirror_url, mirror_error in cm.exception.mirror_errors.items():
       self.assertTrue(mirror_url.endswith('/3.root.json'))
       self.assertTrue(isinstance(mirror_error,
           securesystemslib.exceptions.BadSignatureError))
@@ -571,7 +563,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     with self.assertRaises(tuf.exceptions.NoWorkingMirrorError) as cm:
       self.repository_updater.refresh()
 
-    for mirror_url, mirror_error in six.iteritems(cm.exception.mirror_errors):
+    for mirror_url, mirror_error in cm.exception.mirror_errors.items():
       self.assertTrue(mirror_url.endswith('/3.root.json'))
       self.assertTrue(isinstance(mirror_error,
           securesystemslib.exceptions.BadSignatureError))
@@ -606,7 +598,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     with self.assertRaises(tuf.exceptions.NoWorkingMirrorError) as cm:
       self.repository_updater.refresh()
 
-    for mirror_url, mirror_error in six.iteritems(cm.exception.mirror_errors):
+    for mirror_url, mirror_error in cm.exception.mirror_errors.items():
       self.assertTrue(mirror_url.endswith('/2.root.json'))
       self.assertTrue(isinstance(mirror_error,
           securesystemslib.exceptions.BadSignatureError))

@@ -31,14 +31,6 @@
   There is no difference between 'updates' and 'target' files.
 """
 
-# Help with Python 3 compatibility, where the print statement is a function, an
-# implicit relative import is invalid, and the '/' operator performs true
-# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 import os
 import tempfile
 import shutil
@@ -46,6 +38,7 @@ import json
 import logging
 import unittest
 import sys
+from urllib import request
 
 import tuf
 import tuf.formats
@@ -57,7 +50,6 @@ import tuf.roledb
 from tests import utils
 
 import securesystemslib
-import six
 
 logger = logging.getLogger(__name__)
 
@@ -143,15 +135,14 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
 
 
   def tearDown(self):
-    # Modified_TestCase.tearDown() automatically deletes temporary files and
-    # directories that may have been created during each test case.
-    unittest_toolbox.Modified_TestCase.tearDown(self)
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 
     # Logs stdout and stderr from the sever subprocess.
     self.server_process_handler.flush_log()
 
+    # Remove temporary directory
+    unittest_toolbox.Modified_TestCase.tearDown(self)
 
 
   def test_without_tuf(self):
@@ -176,7 +167,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
 
     # On Windows, the URL portion should not contain backslashes.
-    six.moves.urllib.request.urlretrieve(url_file.replace('\\', '/'), client_target_path)
+    request.urlretrieve(url_file.replace('\\', '/'), client_target_path)
 
     self.assertTrue(os.path.exists(client_target_path))
     length, hashes = securesystemslib.util.get_file_details(client_target_path)
@@ -194,7 +185,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     self.assertTrue(large_length > length)
 
     # On Windows, the URL portion should not contain backslashes.
-    six.moves.urllib.request.urlretrieve(url_file.replace('\\', '/'), client_target_path)
+    request.urlretrieve(url_file.replace('\\', '/'), client_target_path)
 
     length, hashes = securesystemslib.util.get_file_details(client_target_path)
     download_fileinfo = tuf.formats.make_targets_fileinfo(length, hashes)
@@ -269,7 +260,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
       self.repository_updater.refresh()
 
     except tuf.exceptions.NoWorkingMirrorError as exception:
-      for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
+      for mirror_url, mirror_error in exception.mirror_errors.items():
         self.assertTrue(isinstance(mirror_error, securesystemslib.exceptions.Error))
 
     else:

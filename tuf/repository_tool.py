@@ -24,14 +24,6 @@
   'tuf.repository_tool.py'.
 """
 
-# Help with Python 3 compatibility, where the print statement is a function, an
-# implicit relative import is invalid, and the '/' operator performs true
-# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 import os
 import time
 import datetime
@@ -39,7 +31,6 @@ import logging
 import tempfile
 import shutil
 import json
-import six
 
 from collections import deque
 
@@ -3160,7 +3151,7 @@ def load_repository(repository_directory, repository_name='default',
     # log a warning here as there may be many such duplicate key warnings.
     # The repository maintainer should have also been made aware of the
     # duplicate key when it was added.
-    for key_metadata in six.itervalues(metadata_object['delegations']['keys']):
+    for key_metadata in metadata_object['delegations']['keys'].values():
 
       # The repo may have used hashing algorithms for the generated keyids
       # that doesn't match the client's set of hash algorithms.  Make sure
