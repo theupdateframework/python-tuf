@@ -477,6 +477,15 @@ class TestMetadata(unittest.TestCase):
                     dict1["signed"]["keys"][keyid]["d"] = "c"
                 for role_str in dict1["signed"]["roles"].keys():
                     dict1["signed"]["roles"][role_str]["e"] = "g"
+            elif metadata == "targets" and dict1["signed"].get("delegations"):
+                for keyid in dict1["signed"]["delegations"]["keys"].keys():
+                    dict1["signed"]["delegations"]["keys"][keyid]["d"] = "c"
+                new_roles = []
+                for role in dict1["signed"]["delegations"]["roles"]:
+                    role["e"] = "g"
+                    new_roles.append(role)
+                dict1["signed"]["delegations"]["roles"] = new_roles
+                dict1["signed"]["delegations"]["foo"] = "bar"
 
             temp_copy = copy.deepcopy(dict1)
             metadata_obj = Metadata.from_dict(temp_copy)

@@ -738,6 +738,131 @@ class Snapshot(Signed):
             self.meta[metadata_fn]["hashes"] = hashes
 
 
+class DelegatedRole(Role):
+    """A container with information about particular delegated role.
+
+    Attributes:
+        name: A string giving the name of the delegated role.
+        keyids: A set of strings each of which represents a given key.
+        threshold: An integer representing the required number of keys for that
+            particular role.
+        terminating: A boolean indicating whether subsequent delegations
+            should be considered.
+        paths: An optional list of strings, where each string describes
+            a path that the role is trusted to provide.
+        path_hash_prefixes: An optional list of HEX_DIGESTs used to succinctly
+            describe a set of target paths. Only one of the attributes "paths"
+            and "path_hash_prefixes" is allowed to be set.
+        unrecognized_fields: Dictionary of all unrecognized fields.
+
+    """
+
+    def __init__(
+        self,
+        name: str,
+        keyids: List[str],
+        threshold: int,
+        terminating: bool,
+        paths: Optional[List[str]] = None,
+        path_hash_prefixes: Optional[List[str]] = None,
+        unrecognized_fields: Optional[Mapping[str, Any]] = None,
+    ) -> None:
+        super().__init__(keyids, threshold, unrecognized_fields)
+        self.name = name
+        self.terminating = terminating
+        if paths and path_hash_prefixes:
+            raise ValueError(
+                "Only one of the attributes 'paths' and"
+                "'path_hash_prefixes' can be set!"
+            )
+        if paths:
+            self.paths = paths
+        elif path_hash_prefixes:
+            self.path_hash_prefixes = path_hash_prefixes
+
+    @classmethod
+    def from_dict(cls, role_dict: Mapping[str, Any]) -> "Role":
+        """Creates DelegatedRole object from its dict representation."""
+        name = role_dict.pop("name")
+        keyids = role_dict.pop("keyids")
+        threshold = role_dict.pop("threshold")
+        terminating = role_dict.pop("terminating")
+        paths = role_dict.pop("paths", None)
+        path_hash_prefixes = role_dict.pop("path_hash_prefixes", None)
+        # All fields left in the role_dict are unrecognized.
+        return cls(
+            name,
+            keyids,
+            threshold,
+            terminating,
+            paths,
+            path_hash_prefixes,
+            role_dict,
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Returns the dict representation of self."""
+        base_role_dict = super().to_dict()
+        res_dict = {
+            "name": self.name,
+            "terminating": self.terminating,
+            **base_role_dict,
+        }
+        if self.paths:
+            res_dict["paths"] = self.paths
+        elif self.path_hash_prefixes:
+            res_dict["path_hash_prefixes"] = self.path_hash_prefixes
+        return res_dict
+
+
+class Delegations:
+    """A container object storing information about all delegations.
+
+    Attributes:
+        keys: A dictionary of keyids and key objects containing information
+            about the corresponding key.
+        roles: A list of DelegatedRole instances containing information about
+            all delegated roles.
+        unrecognized_fields: Dictionary of all unrecognized fields.
+
+    """
+
+    def __init__(
+        self,
+        keys: Mapping[str, Key],
+        roles: List[DelegatedRole],
+        unrecognized_fields: Optional[Mapping[str, Any]] = None,
+    ) -> None:
+        self.keys = keys
+        self.roles = roles
+        self.unrecognized_fields = unrecognized_fields or {}
+
+    @classmethod
+    def from_dict(cls, delegations_dict: Mapping[str, Any]) -> "Delegations":
+        """Creates Delegations object from its dict representation."""
+        keys = delegations_dict.pop("keys")
+        keys_res = {}
+        for keyid, key_dict in keys.items():
+            keys_res[keyid] = Key.from_dict(key_dict)
+        roles = delegations_dict.pop("roles")
+        roles_res = []
+        for role_dict in roles:
+            new_role = DelegatedRole.from_dict(role_dict)
+            roles_res.append(new_role)
+        # All fields left in the delegations_dict are unrecognized.
+        return cls(keys_res, roles_res, delegations_dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Returns the dict representation of self."""
+        keys = {keyid: key.to_dict() for keyid, key in self.keys.items()}
+        roles = [role_obj.to_dict() for role_obj in self.roles]
+        return {
+            "keys": keys,
+            "roles": roles,
+            **self.unrecognized_fields,
+        }
+
+
 class Targets(Signed):
     """A container for the signed part of targets metadata.
 
@@ -757,38 +882,9 @@ class Targets(Signed):
                 ...
             }
 
-        delegations: A dictionary that contains a list of delegated target
+        delegations: An optional object containing a list of delegated target
             roles and public key store used to verify their metadata
-            signatures::
-
-                {
-                    'keys' : {
-                        '<KEYID>': {
-                            'keytype': '<KEY TYPE>',
-                            'scheme': '<KEY SCHEME>',
-                            'keyid_hash_algorithms': [
-                                '<HASH ALGO 1>',
-                                '<HASH ALGO 2>'
-                                ...
-                            ],
-                            'keyval': {
-                                'public': '<PUBLIC KEY HEX REPRESENTATION>'
-                            }
-                        },
-                        ...
-                    },
-                    'roles': [
-                        {
-                            'name': '<ROLENAME>',
-                            'keyids': ['<SIGNING KEY KEYID>', ...],
-                            'threshold': <SIGNATURE THRESHOLD>,
-                            'terminating': <TERMINATING BOOLEAN>,
-                            'path_hash_prefixes': ['<HEX DIGEST>', ... ], // or
-                            'paths' : ['PATHPATTERN', ... ],
-                        },
-                    ...
-                    ]
-                }
+            signatures.
 
     """
 
@@ -804,7 +900,7 @@ class Targets(Signed):
         spec_version: str,
         expires: datetime,
         targets: Dict[str, Any],
-        delegations: Optional[Dict[str, Any]] = None,
+        delegations: Optional[Delegations] = None,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
         super().__init__(version, spec_version, expires, unrecognized_fields)
@@ -818,6 +914,8 @@ class Targets(Signed):
         common_args = cls._common_fields_from_dict(targets_dict)
         targets = targets_dict.pop("targets")
         delegations = targets_dict.pop("delegations", None)
+        if delegations:
+            delegations = Delegations.from_dict(delegations)
         # All fields left in the targets_dict are unrecognized.
         return cls(*common_args, targets, delegations, targets_dict)
 
@@ -826,7 +924,7 @@ class Targets(Signed):
         targets_dict = self._common_fields_to_dict()
         targets_dict["targets"] = self.targets
         if self.delegations:
-            targets_dict["delegations"] = self.delegations
+            targets_dict["delegations"] = self.delegations.to_dict()
         return targets_dict
 
     # Modification.
