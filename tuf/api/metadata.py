@@ -425,6 +425,8 @@ class Key:
         keyval: Mapping[str, str],
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
+        if not keyval.get("public"):
+            raise ValueError("keyval doesn't follow the specification format!")
         self.keytype = keytype
         self.scheme = scheme
         self.keyval = keyval
