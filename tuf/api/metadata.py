@@ -463,11 +463,17 @@ class Role:
 
     def __init__(
         self,
-        keyids: set,
+        keyids: list,
         threshold: int,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
-        self.keyids = keyids
+        keyids_set = set(keyids)
+        if len(keyids_set) != len(keyids):
+            raise ValueError(
+                f"keyids should be a list of unique strings,"
+                f" instead got {keyids}"
+            )
+        self.keyids = keyids_set
         self.threshold = threshold
         self.unrecognized_fields = unrecognized_fields or {}
 
@@ -482,7 +488,7 @@ class Role:
     def to_dict(self) -> Dict:
         """Returns the dictionary representation of self."""
         return {
-            "keyids": self.keyids,
+            "keyids": list(self.keyids),
             "threshold": self.threshold,
             **self.unrecognized_fields,
         }
@@ -570,7 +576,7 @@ class Root(Signed):
     ) -> None:
         """Adds new key for 'role' and updates the key store."""
         if keyid not in self.roles[role].keyids:
-            self.roles[role].keyids.append(keyid)
+            self.roles[role].keyids.add(keyid)
             self.keys[keyid] = key_metadata
 
     # Remove key for a role.
