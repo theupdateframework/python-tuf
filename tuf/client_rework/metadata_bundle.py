@@ -62,10 +62,6 @@ Example (with hypothetical download function):
 
 
 TODO:
- * Delegated targets are implemented but they are not covered
-   by same immutability guarantees: the top-level metadata is handled
-   by hard-coded rules (can't update root if snapshot is loaded)
-   but delegations would require storing the delegation tree ...
  * exceptions are all over the place and not thought out at all
  * usefulness of root_update_finished() can be debated: it could be done
    in the beginning of _load_timestamp()...
@@ -129,14 +125,14 @@ def verify_with_threshold(delegator: Metadata, role_name: str, unverified: Metad
 
 
 class MetadataBundle(abc.Mapping):
-    def __init__(self, path: str):
+    def __init__(self, repository_path: str):
         """Initialize by loading root metadata from disk"""
-        self._path = path
+        self._path = repository_path
         self._bundle = {}  # type: Dict[str: Metadata]
         self._local_load_attempted = {}
         self.reference_time = None
 
-        if not os.path.exists(path):
+        if not os.path.exists(self._path):
             # TODO try to create dir instead?
             raise exceptions.RepositoryError("Repository does not exist")
 
@@ -353,7 +349,7 @@ class MetadataBundle(abc.Mapping):
                 new_timestamp.signed.meta["snapshot.json"]["version"]
                 < self.timestamp.signed.meta["snapshot.json"]["version"]
             ):
-                # TODO not sure about the
+                # TODO not sure about the correct exception here
                 raise exceptions.ReplayedMetadataError(
                     "snapshot",
                     new_timestamp.signed.meta["snapshot.json"]["version"],
