@@ -237,9 +237,12 @@ class MetadataBundle(abc.Mapping):
 
     def _raise_on_unsupported_state(self, role_name: str):
         """Raise if updating 'role_name' is not supported at this state"""
+
+        # Special rules for top-level roles. We want to enforce a strict order
+        # root->snapshot->timestamp->targets where loading a metadata is no
+        # longer allowed when the next metadata in the order has been loaded
         if role_name == "root":
-            if self.timestamp is not None:
-                raise exceptions.RepositoryError
+            pass
         elif role_name == "timestamp":
             if self.reference_time is None:
                 # root_update_finished() not called
@@ -254,12 +257,18 @@ class MetadataBundle(abc.Mapping):
         elif role_name == "targets":
             if self.snapshot is None:
                 raise exceptions.RepositoryError
-            if len(self) > 4:
-                # delegates have been loaded already
-                raise exceptions.RepositoryError
         else:  # delegated role
             if self.targets is None:
                 raise exceptions.RepositoryError
+
+        # Generic rule: Updating a role is not allowed if
+        #  * role is already loaded AND
+        #  * role has a delegate that is already loaded
+        role = self.get(role_name)
+        if role is not None and role.signed.delegations is not None:
+            for delegate in role.signed.delegations["roles"]:
+                if self.get(delegate["name"]) is not None:
+                    raise exceptions.RepositoryError
 
     # Implement Mapping
     def __getitem__(self, key: str):
@@ -322,10 +331,6 @@ class MetadataBundle(abc.Mapping):
 
         Raises if verification fails
         """
-        if self.root is None:
-            # bundle does not support this order of ops
-            raise exceptions.RepositoryError
-
         new_timestamp = Metadata.from_bytes(data)
         if new_timestamp.signed._type != "timestamp":
             raise exceptions.RepositoryError
@@ -362,9 +367,6 @@ class MetadataBundle(abc.Mapping):
         logger.debug("Loaded timestamp")
 
     def _load_snapshot(self, data: bytes):
-        if self.root is None or self.timestamp is None:
-            # bundle does not support this order of ops
-            raise exceptions.RepositoryError
 
         # Verify against the hashes in timestamp, if any
         meta = self.timestamp.signed.meta.get("snapshot.json")
