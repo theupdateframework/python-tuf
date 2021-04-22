@@ -320,6 +320,7 @@ class Signed:
         spec_version: The TUF specification version number (semver) the
             metadata format adheres to.
         expires: The metadata expiration datetime object.
+        unrecognized_fields: Dictionary of all unrecognized fields.
 
     """
 
@@ -327,7 +328,12 @@ class Signed:
     # we keep it to match spec terminology (I often refer to this as "payload",
     # or "inner metadata")
     def __init__(
-        self, _type: str, version: int, spec_version: str, expires: datetime
+        self,
+        _type: str,
+        version: int,
+        spec_version: str,
+        expires: datetime,
+        unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
 
         self._type = _type
@@ -338,6 +344,7 @@ class Signed:
         if version < 0:
             raise ValueError(f"version must be >= 0, got {version}")
         self.version = version
+        self.unrecognized_fields = unrecognized_fields or {}
 
     @staticmethod
     def _common_fields_from_dict(signed_dict: Mapping[str, Any]) -> list:
@@ -369,6 +376,7 @@ class Signed:
             "version": self.version,
             "spec_version": self.spec_version,
             "expires": self.expires.isoformat() + "Z",
+            **self.unrecognized_fields,
         }
 
     def is_expired(self, reference_time: datetime = None) -> bool:
@@ -445,8 +453,11 @@ class Root(Signed):
         consistent_snapshot: bool,
         keys: Mapping[str, Any],
         roles: Mapping[str, Any],
+        unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
-        super().__init__(_type, version, spec_version, expires)
+        super().__init__(
+            _type, version, spec_version, expires, unrecognized_fields
+        )
         # TODO: Add classes for keys and roles
         self.consistent_snapshot = consistent_snapshot
         self.keys = keys
@@ -459,7 +470,8 @@ class Root(Signed):
         consistent_snapshot = root_dict.pop("consistent_snapshot")
         keys = root_dict.pop("keys")
         roles = root_dict.pop("roles")
-        return cls(*common_args, consistent_snapshot, keys, roles)
+        # All fields left in the root_dict are unrecognized.
+        return cls(*common_args, consistent_snapshot, keys, roles, root_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self. """
@@ -521,8 +533,11 @@ class Timestamp(Signed):
         spec_version: str,
         expires: datetime,
         meta: Mapping[str, Any],
+        unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
-        super().__init__(_type, version, spec_version, expires)
+        super().__init__(
+            _type, version, spec_version, expires, unrecognized_fields
+        )
         # TODO: Add class for meta
         self.meta = meta
 
@@ -531,7 +546,8 @@ class Timestamp(Signed):
         """Creates Timestamp object from its dict representation. """
         common_args = cls._common_fields_from_dict(timestamp_dict)
         meta = timestamp_dict.pop("meta")
-        return cls(*common_args, meta)
+        # All fields left in the timestamp_dict are unrecognized.
+        return cls(*common_args, meta, timestamp_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self. """
@@ -585,8 +601,11 @@ class Snapshot(Signed):
         spec_version: str,
         expires: datetime,
         meta: Mapping[str, Any],
+        unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
-        super().__init__(_type, version, spec_version, expires)
+        super().__init__(
+            _type, version, spec_version, expires, unrecognized_fields
+        )
         # TODO: Add class for meta
         self.meta = meta
 
@@ -595,7 +614,8 @@ class Snapshot(Signed):
         """Creates Snapshot object from its dict representation. """
         common_args = cls._common_fields_from_dict(snapshot_dict)
         meta = snapshot_dict.pop("meta")
-        return cls(*common_args, meta)
+        # All fields left in the snapshot_dict are unrecognized.
+        return cls(*common_args, meta, snapshot_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self. """
@@ -688,8 +708,11 @@ class Targets(Signed):
         expires: datetime,
         targets: Mapping[str, Any],
         delegations: Mapping[str, Any],
+        unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
-        super().__init__(_type, version, spec_version, expires)
+        super().__init__(
+            _type, version, spec_version, expires, unrecognized_fields
+        )
         # TODO: Add class for meta
         self.targets = targets
         self.delegations = delegations
@@ -700,7 +723,8 @@ class Targets(Signed):
         common_args = cls._common_fields_from_dict(targets_dict)
         targets = targets_dict.pop("targets")
         delegations = targets_dict.pop("delegations")
-        return cls(*common_args, targets, delegations)
+        # All fields left in the targets_dict are unrecognized.
+        return cls(*common_args, targets, delegations, targets_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self. """

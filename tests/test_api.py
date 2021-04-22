@@ -349,6 +349,37 @@ class TestMetadata(unittest.TestCase):
         # Verify that data is updated
         self.assertEqual(targets.signed.targets[filename], fileinfo)
 
+    def setup_dict_with_unrecognized_field(self, file_path, field, value):
+        json_dict = {}
+        with open(file_path) as f:
+            json_dict = json.loads(f.read())
+        # We are changing the json dict without changing the signature.
+        # This could be a problem if we want to do verification on this dict.
+        json_dict["signed"][field] = value
+        return json_dict
+
+    def test_support_for_unrecognized_fields(self):
+        for metadata in ["root", "timestamp", "snapshot", "targets"]:
+            path = os.path.join(self.repo_dir, "metadata", metadata + ".json")
+            dict1 = self.setup_dict_with_unrecognized_field(path, "f", "b")
+            # Test that the metadata classes store unrecognized fields when
+            # initializing and passes them when casting the instance to a dict.
+
+            temp_copy = copy.deepcopy(dict1)
+            metadata_obj = Metadata.from_dict(temp_copy)
+
+            self.assertEqual(dict1["signed"], metadata_obj.signed.to_dict())
+
+            # Test that two instances of the same class could have different
+            # unrecognized fields.
+            dict2 = self.setup_dict_with_unrecognized_field(path, "f2", "b2")
+            temp_copy2 = copy.deepcopy(dict2)
+            metadata_obj2 = Metadata.from_dict(temp_copy2)
+            self.assertNotEqual(
+                metadata_obj.signed.to_dict(), metadata_obj2.signed.to_dict()
+            )
+
+
 # Run unit test.
 if __name__ == '__main__':
     utils.configure_test_logging(sys.argv)
