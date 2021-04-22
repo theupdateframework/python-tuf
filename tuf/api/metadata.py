@@ -266,6 +266,61 @@ class Metadata:
 
         return signature
 
+    def verify_delegate(
+        self,
+        role_name: str,
+        delegate: "Metadata",
+        signed_serializer: Optional[SignedSerializer] = None,
+    ):
+        """Verifies that 'delegate' is signed with the required threshold of
+        keys for the delegated role 'role_name'.
+
+        Args:
+            role_name: Name of the delegated role to verify
+            delegate: The Metadata object for the delegated role
+            signed_serializer: Optional; serializer used for delegate
+                serialization. Default is CanonicalJSONSerializer.
+
+        Raises:
+            UnsignedMetadataError: 'delegate' was not signed with required
+                threshold of keys for 'role_name'
+        """
+
+        # Find the keys and role in our metadata
+        role = None
+        if isinstance(self.signed, Root):
+            keys = self.signed.keys
+            role = self.signed.roles.get(role_name)
+        elif isinstance(self.signed, Targets):
+            if self.signed.delegations:
+                keys = self.signed.delegations.keys
+                # Assume role names are unique in delegations.roles: #1426
+                roles = self.signed.delegations.roles
+                role = next((r for r in roles if r.name == role_name), None)
+        else:
+            raise ValueError("Call is valid only on delegator metadata")
+
+        if role is None:
+            raise ValueError(f"No delegation found for {role_name}")
+
+        # verify that delegate is signed by required threshold of unique keys
+        signing_keys = set()
+        for keyid in role.keyids:
+            key = keys[keyid]
+            try:
+                key.verify_signature(delegate, signed_serializer)
+                # keyids are unique. Try to make sure the public keys are too
+                signing_keys.add(key.keyval["public"])
+            except exceptions.UnsignedMetadataError:
+                pass
+
+        if len(signing_keys) < role.threshold:
+            raise exceptions.UnsignedMetadataError(
+                f"{role_name} was signed by {len(signing_keys)}/"
+                f"{role.threshold} keys",
+                delegate.signed,
+            )
+
 
 class Signed(metaclass=abc.ABCMeta):
     """A base class for the signed part of TUF metadata.
@@ -966,7 +1021,7 @@ class Delegations:
 
     def __init__(
         self,
-        keys: Mapping[str, Key],
+        keys: Dict[str, Key],
         roles: List[DelegatedRole],
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:

@@ -333,6 +333,55 @@ class TestMetadata(unittest.TestCase):
         )
 
 
+    def test_metadata_verify_delegate(self):
+        root_path = os.path.join(self.repo_dir, 'metadata', 'root.json')
+        root = Metadata.from_file(root_path)
+        snapshot_path = os.path.join(
+                self.repo_dir, 'metadata', 'snapshot.json')
+        snapshot = Metadata.from_file(snapshot_path)
+        targets_path = os.path.join(
+                self.repo_dir, 'metadata', 'targets.json')
+        targets = Metadata.from_file(targets_path)
+        role1_path = os.path.join(
+                self.repo_dir, 'metadata', 'role1.json')
+        role1 = Metadata.from_file(role1_path)
+        role2_path = os.path.join(
+                self.repo_dir, 'metadata', 'role2.json')
+        role2 = Metadata.from_file(role2_path)
+
+        # test the expected delegation tree
+        root.verify_delegate('root', root)
+        root.verify_delegate('snapshot', snapshot)
+        root.verify_delegate('targets', targets)
+        targets.verify_delegate('role1', role1)
+        role1.verify_delegate('role2', role2)
+
+        # only root and targets can verify delegates
+        with self.assertRaises(ValueError):
+            snapshot.verify_delegate('snapshot', snapshot)
+        # verify fails for roles that are not delegated by delegator
+        with self.assertRaises(ValueError):
+            root.verify_delegate('role1', role1)
+        with self.assertRaises(ValueError):
+            targets.verify_delegate('targets', targets)
+
+        # verify fails when delegate content is modified
+        expires = snapshot.signed.expires
+        snapshot.signed.bump_expiration()
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            root.verify_delegate('snapshot', snapshot)
+        snapshot.signed.expires = expires
+
+        # verify fails if roles keys do not sign the metadata
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            root.verify_delegate('timestamp', snapshot)
+
+        # verify fails if threshold of signatures is not reached
+        root.signed.roles['snapshot'].threshold = 2
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            root.verify_delegate('snapshot', snapshot)
+
+        # TODO test successful verify with higher thresholds
 
     def test_key_class(self):
         keys = {
