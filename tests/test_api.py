@@ -17,6 +17,7 @@ import copy
 
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
+from typing import Any, Dict
 
 from tests import utils
 
@@ -526,52 +527,40 @@ class TestMetadata(unittest.TestCase):
         targets_obj = Targets.from_dict(tmp_dict)
         self.assertEqual(targets_dict["signed"], targets_obj.to_dict())
 
-    def setup_dict_with_unrecognized_field(self, file_path, field, value):
-        json_dict = {}
-        with open(file_path) as f:
-            json_dict = json.loads(f.read())
-        # We are changing the json dict without changing the signature.
-        # This could be a problem if we want to do verification on this dict.
-        json_dict["signed"][field] = value
-        return json_dict
+    # Insert item into every dictionary in signed (where allowed by spec)
+    @staticmethod
+    def poison_signed(signed: Dict[str, Any], key: str):
+        named_dicts = [("signed", signed)]
+        while named_dicts:
+            name, container = named_dicts.pop()
+
+            # Process all child dicts. spec does not contain any
+            # dicts inside arrays so no need to check those
+            for valname, value in container.items():
+                if isinstance(value, dict):
+                    named_dicts.append((valname, value))
+
+            # if dicts keys are limited in spec or if dicts values are
+            # strictly defined, skip it
+            if name in ["hashes", "keys", "meta", "roles", "targets"]:
+                continue
+
+            # Add a custom item to this dict
+            container[key]="dummyvalue"
 
     def test_support_for_unrecognized_fields(self):
         for metadata in ["root", "timestamp", "snapshot", "targets"]:
             path = os.path.join(self.repo_dir, "metadata", metadata + ".json")
-            dict1 = self.setup_dict_with_unrecognized_field(path, "f", "b")
-            # Test that the metadata classes store unrecognized fields when
-            # initializing and passes them when casting the instance to a dict.
+            with open(path) as f:
+                json_dict = json.loads(f.read())
 
-            # Add unrecognized fields to all metadata sub (helper) classes.
-            if metadata == "root":
-                for keyid in dict1["signed"]["keys"].keys():
-                    dict1["signed"]["keys"][keyid]["d"] = "c"
-                for role_str in dict1["signed"]["roles"].keys():
-                    dict1["signed"]["roles"][role_str]["e"] = "g"
-            elif metadata == "targets" and dict1["signed"].get("delegations"):
-                for keyid in dict1["signed"]["delegations"]["keys"].keys():
-                    dict1["signed"]["delegations"]["keys"][keyid]["d"] = "c"
-                new_roles = []
-                for role in dict1["signed"]["delegations"]["roles"]:
-                    role["e"] = "g"
-                    new_roles.append(role)
-                dict1["signed"]["delegations"]["roles"] = new_roles
-                dict1["signed"]["delegations"]["foo"] = "bar"
+            # insert extra items into signed
+            self.poison_signed(json_dict["signed"], "keythatwontcollide")
 
-            temp_copy = copy.deepcopy(dict1)
-            metadata_obj = Metadata.from_dict(temp_copy)
-
-            self.assertEqual(dict1["signed"], metadata_obj.signed.to_dict())
-
-            # Test that two instances of the same class could have different
-            # unrecognized fields.
-            dict2 = self.setup_dict_with_unrecognized_field(path, "f2", "b2")
-            temp_copy2 = copy.deepcopy(dict2)
-            metadata_obj2 = Metadata.from_dict(temp_copy2)
-            self.assertNotEqual(
-                metadata_obj.signed.to_dict(), metadata_obj2.signed.to_dict()
-            )
-
+            # All unrecognized fields should stay intact through a
+            # deserialize/serialize cycle
+            md = Metadata.from_dict(copy.deepcopy(json_dict))
+            self.assertEqual(json_dict["signed"], md.signed.to_dict())
 
 # Run unit test.
 if __name__ == '__main__':
