@@ -430,6 +430,15 @@ class Key:
         self.keyval = keyval
         self.unrecognized_fields = unrecognized_fields or {}
 
+    @classmethod
+    def from_dict(cls, key_dict: Mapping[str, Any]) -> "Key":
+        """Creates Key object from its dict representation."""
+        keytype = key_dict.pop("keytype")
+        scheme = key_dict.pop("scheme")
+        keyval = key_dict.pop("keyval")
+        # All fields left in the key_dict are unrecognized.
+        return cls(keytype, scheme, keyval, key_dict)
+
     def to_dict(self) -> Dict:
         """Returns the dictionary representation of self."""
         return {
@@ -461,6 +470,14 @@ class Role:
         self.keyids = keyids
         self.threshold = threshold
         self.unrecognized_fields = unrecognized_fields or {}
+
+    @classmethod
+    def from_dict(cls, role_dict: Mapping[str, Any]) -> "Role":
+        """Creates Role object from its dict representation."""
+        keyids = role_dict.pop("keyids")
+        threshold = role_dict.pop("threshold")
+        # All fields left in the role_dict are unrecognized.
+        return cls(keyids, threshold, role_dict)
 
     def to_dict(self) -> Dict:
         """Returns the dictionary representation of self."""
@@ -523,18 +540,9 @@ class Root(Signed):
         roles = root_dict.pop("roles")
 
         for keyid, key_dict in keys.items():
-            keytype = key_dict.pop("keytype")
-            scheme = key_dict.pop("scheme")
-            keyval = key_dict.pop("keyval")
-            # All fields left in the key_dict are unrecognized.
-            keys[keyid] = Key(keytype, scheme, keyval, key_dict)
-
-        for role_str, role_dict in roles.items():
-            keyids = role_dict.pop("keyids")
-            threshold = role_dict.pop("threshold")
-            # All fields left in the role_dict are unrecognized.
-            unrecognized_role_fields = role_dict
-            roles[role_str] = Role(keyids, threshold, unrecognized_role_fields)
+            keys[keyid] = Key.from_dict(key_dict)
+        for role_name, role_dict in roles.items():
+            roles[role_name] = Role.from_dict(role_dict)
 
         # All fields left in the root_dict are unrecognized.
         return cls(*common_args, consistent_snapshot, keys, roles, root_dict)
