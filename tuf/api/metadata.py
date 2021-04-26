@@ -341,8 +341,8 @@ class Signed:
         self.expires = expires
 
         # TODO: Should we separate data validation from constructor?
-        if version < 0:
-            raise ValueError(f"version must be >= 0, got {version}")
+        if version <= 0:
+            raise ValueError(f"version must be > 0, got {version}")
         self.version = version
         self.unrecognized_fields = unrecognized_fields or {}
 
