@@ -89,6 +89,7 @@ from securesystemslib import keys as sslib_keys
 
 from tuf import exceptions
 from tuf.api.metadata import Metadata
+from tuf.api.serialization import SerializationError
 
 logger = logging.getLogger(__name__)
 
@@ -178,9 +179,8 @@ class MetadataBundle(abc.Mapping):
                 self._load_delegated_targets(data, role_name, delegator_name)
 
             return True
-        except Exception as e:
-            # TODO only handle specific errors
-            logger.debug("Failed to load local %s.json", role_name)
+        except (OSError, exceptions.RepositoryError) as e:
+            logger.debug("Failed to load local %s: %s", role_name, e)
             # TODO delete local file (except probably should not delete root.json?)
             return False
 
@@ -196,7 +196,9 @@ class MetadataBundle(abc.Mapping):
         self._raise_on_unsupported_state(role_name)
 
         if not self._local_load_attempted.get(role_name):
-            raise exceptions.RepositoryError
+            raise ValueError(
+                f"Cannot update {role_name} before loading local metadata"
+            )
 
         if role_name == "root":
             self._load_intermediate_root(data)
@@ -220,14 +222,13 @@ class MetadataBundle(abc.Mapping):
         Raises if root update is not a valid operation at this state
         Raises if validation fails
         """
-        if self.timestamp is not None:
-            # bundle does not support this order of ops
-            raise exceptions.RepositoryError
+        if self.timestamp is None:
+            raise ValueError("Root update is already finished")
 
         # Store our reference "now", verify root expiry
         self.reference_time = datetime.utcnow()
         if self.root.signed.is_expired(self.reference_time):
-            raise exceptions.ExpiredMetadataError
+            raise exceptions.ExpiredMetadataError("New root.json is expired")
 
         logger.debug("Verified final root.json")
 
@@ -242,20 +243,22 @@ class MetadataBundle(abc.Mapping):
         elif role_name == "timestamp":
             if self.reference_time is None:
                 # root_update_finished() not called
-                raise exceptions.RepositoryError
+                raise ValueError("Cannot load timestamp before root")
             if self.snapshot is not None:
-                raise exceptions.RepositoryError
+                raise ValueError("Cannot load timestamp after snapshot")
         elif role_name == "snapshot":
             if self.timestamp is None:
-                raise exceptions.RepositoryError
+                raise ValueError("Cannot load snapshot before timestamp")
             if self.targets is not None:
-                raise exceptions.RepositoryError
+                raise ValueError("Cannot load snapshot after targets")
         elif role_name == "targets":
             if self.snapshot is None:
-                raise exceptions.RepositoryError
-        else:  # delegated role
+                raise ValueError("Cannot load targets before snapshot")
+        else:
             if self.targets is None:
-                raise exceptions.RepositoryError
+                raise ValueError(
+                    "Cannot load delegated targets before targets"
+                )
 
         # Generic rule: Updating a role is not allowed if
         #  * role is already loaded AND
@@ -263,8 +266,12 @@ class MetadataBundle(abc.Mapping):
         role = self.get(role_name)
         if role is not None and role.signed.delegations is not None:
             for delegate in role.signed.delegations["roles"]:
-                if self.get(delegate["name"]) is not None:
-                    raise exceptions.RepositoryError
+                delegate_name = delegate["name"]
+                if self.get(delegate_name) is not None:
+                    raise ValueError(
+                        f"Cannot load {role_name} after delegate"
+                        f"{delegate_name}"
+                    )
 
     # Implement Mapping
     def __getitem__(self, key: str):
@@ -298,9 +305,15 @@ class MetadataBundle(abc.Mapping):
 
         Raises if root fails verification
         """
-        new_root = Metadata.from_bytes(data)
+        try:
+            new_root = Metadata.from_bytes(data)
+        except SerializationError as e:
+            raise exceptions.RepositoryError("Failed to load root") from e
+
         if new_root.signed._type != "root":
-            raise exceptions.RepositoryError
+            raise exceptions.RepositoryError(
+                f"Expected 'root', got '{new_root.signed._type}'"
+            )
 
         if self.root is not None:
             if not verify_with_threshold(self.root, "root", new_root):
@@ -327,9 +340,15 @@ class MetadataBundle(abc.Mapping):
 
         Raises if verification fails
         """
-        new_timestamp = Metadata.from_bytes(data)
+        try:
+            new_timestamp = Metadata.from_bytes(data)
+        except SerializationError as e:
+            raise exceptions.RepositoryError("Failed to load timestamp") from e
+
         if new_timestamp.signed._type != "timestamp":
-            raise exceptions.RepositoryError
+            raise exceptions.RepositoryError(
+                f"Expected 'timestamp', got '{new_timestamp.signed._type}'"
+            )
 
         if not verify_with_threshold(self.root, "timestamp", new_timestamp):
             raise exceptions.UnsignedMetadataError(
@@ -357,27 +376,33 @@ class MetadataBundle(abc.Mapping):
                 )
 
         if new_timestamp.signed.is_expired(self.reference_time):
-            raise exceptions.ExpiredMetadataError
+            raise exceptions.ExpiredMetadataError("New timestamp is expired")
 
         self._bundle["timestamp"] = new_timestamp
         logger.debug("Loaded timestamp")
 
     def _load_snapshot(self, data: bytes):
 
-        # Verify against the hashes in timestamp, if any
-        meta = self.timestamp.signed.meta.get("snapshot.json")
-        if meta is None:
-            raise exceptions.RepositoryError
+        meta = self.timestamp.signed.meta["snapshot.json"]
 
+        # Verify against the hashes in timestamp, if any
         hashes = meta.get("hashes") or {}
         for algo, _hash in meta["hashes"].items():
             digest_object = sslib_hash.digest(algo)
             digest_object.update(data)
-            if digest_object.hexdigest() != _hash:
-                raise exceptions.BadHashError()
-        new_snapshot = Metadata.from_bytes(data)
+            observed_hash = digest_object.hexdigest()
+            if observed_hash != _hash:
+                raise exceptions.BadHashError(_hash, observed_hash)
+
+        try:
+            new_snapshot = Metadata.from_bytes(data)
+        except SerializationError as e:
+            raise exceptions.RepositoryError("Failed to load snapshot") from e
+
         if new_snapshot.signed._type != "snapshot":
-            raise exceptions.RepositoryError
+            raise exceptions.RepositoryError(
+                f"Expected 'snapshot', got '{new_snapshot.signed._type}'"
+            )
 
         if not verify_with_threshold(self.root, "snapshot", new_snapshot):
             raise exceptions.UnsignedMetadataError(
@@ -388,7 +413,11 @@ class MetadataBundle(abc.Mapping):
             new_snapshot.signed.version
             != self.timestamp.signed.meta["snapshot.json"]["version"]
         ):
-            raise exceptions.BadVersionNumberError
+            raise exceptions.BadVersionNumberError(
+                f"Expected snapshot version"
+                f"{self.timestamp.signed.meta['snapshot.json']['version']},"
+                f"got {new_snapshot.signed.version}"
+            )
 
         if self.snapshot:
             for filename, fileinfo in self.snapshot.signed.meta.items():
@@ -396,14 +425,19 @@ class MetadataBundle(abc.Mapping):
 
                 # Prevent removal of any metadata in meta
                 if new_fileinfo is None:
-                    raise exceptions.ReplayedMetadataError
+                    raise exceptions.RepositoryError(
+                        f"New snapshot is missing info for '{filename}'"
+                    )
 
                 # Prevent rollback of any metadata versions
                 if new_fileinfo["version"] < fileinfo["version"]:
-                    raise exceptions.ReplayedMetadataError
+                    raise exceptions.BadVersionNumberError(
+                        f"Expected {filename} version"
+                        f"{new_fileinfo['version']}, got {fileinfo['version']}"
+                    )
 
         if new_snapshot.signed.is_expired(self.reference_time):
-            raise exceptions.ExpiredMetadataError
+            raise exceptions.ExpiredMetadataError("New snapshot is expired")
 
         self._bundle["snapshot"] = new_snapshot
         logger.debug("Loaded snapshot")
@@ -413,25 +447,38 @@ class MetadataBundle(abc.Mapping):
 
     def _load_delegated_targets(self, data: bytes, role_name: str, delegator_name: str):
         logger.debug(f"Loading {role_name} delegated by {delegator_name}")
+
         delegator = self.get(delegator_name)
+        # TODO this check could maybe be done in _raise_on_unspported_state
         if delegator == None:
-            raise exceptions.RepositoryError
+            raise exceptions.ValueError(
+                "Cannot load delegated target before delegator"
+            )
 
         # Verify against the hashes in snapshot, if any
         meta = self.snapshot.signed.meta.get(f"{role_name}.json")
         if meta is None:
-            raise exceptions.RepositoryError
+            raise exceptions.RepositoryError(
+                f"Snapshot does not contain information for '{role_name}'"
+            )
 
         hashes = meta.get("hashes") or {}
         for algo, _hash in hashes.items():
             digest_object = sslib_hash.digest(algo)
             digest_object.update(data)
-            if digest_object.hexdigest() != _hash:
-                raise exceptions.BadHashError()
+            observed_hash = digest_object.hexdigest()
+            if observed_hash != _hash:
+                raise exceptions.BadHashError(_hash, observed_hash)
 
-        new_delegate = Metadata.from_bytes(data)
+        try:
+            new_delegate = Metadata.from_bytes(data)
+        except SerializationError as e:
+            raise exceptions.RepositoryError("Failed to load snapshot") from e
+
         if new_delegate.signed._type != "targets":
-            raise exceptions.RepositoryError
+            raise exceptions.RepositoryError(
+                f"Expected 'targets', got '{new_delegate.signed._type}'"
+            )
 
         if not verify_with_threshold(delegator, role_name, new_delegate):
             raise exceptions.UnsignedMetadataError(
@@ -439,10 +486,13 @@ class MetadataBundle(abc.Mapping):
             )
 
         if new_delegate.signed.version != meta["version"]:
-            raise exceptions.BadVersionNumberError
+            raise exceptions.BadVersionNumberError(
+                        f"Expected {role_name} version"
+                        f"{meta['version']}, got {new_delegate.signed.version}"
+            )
 
         if new_delegate.signed.is_expired(self.reference_time):
-            raise exceptions.ExpiredMetadataError
+            raise exceptions.ExpiredMetadataError(f"New {role_name} is expired")
 
         self._bundle[role_name] = new_delegate
         logger.debug(f"Loaded {role_name}")
