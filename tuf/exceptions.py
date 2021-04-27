@@ -89,12 +89,6 @@ class BadHashError(Error):
     #     repr(self.observed_hash) + ')')
 
 
-
-
-class BadVersionNumberError(Error):
-  """Indicate an error for metadata that contains an invalid version number."""
-
-
 class BadPasswordError(Error):
   """Indicate an error after encountering an invalid password."""
 
@@ -105,6 +99,10 @@ class UnknownKeyError(Error):
 
 class RepositoryError(Error):
   """Indicate an error with a repository's state, such as a missing file."""
+
+
+class BadVersionNumberError(RepositoryError):
+  """Indicate an error for metadata that contains an invalid version number."""
 
 
 class MissingLocalRepositoryError(RepositoryError):
@@ -119,35 +117,28 @@ class ForbiddenTargetError(RepositoryError):
   """Indicate that a role signed for a target that it was not delegated to."""
 
 
-class ExpiredMetadataError(Error):
+class ExpiredMetadataError(RepositoryError):
   """Indicate that a TUF Metadata file has expired."""
 
 
 class ReplayedMetadataError(RepositoryError):
   """Indicate that some metadata has been replayed to the client."""
 
-  def __init__(self, metadata_role, previous_version, current_version):
+  def __init__(self, metadata_role, downloaded_version, current_version):
     super(ReplayedMetadataError, self).__init__()
 
     self.metadata_role = metadata_role
-    self.previous_version = previous_version
+    self.downloaded_version = downloaded_version
     self.current_version = current_version
-
 
   def __str__(self):
     return (
         'Downloaded ' + repr(self.metadata_role) + ' is older (' +
-        repr(self.previous_version) + ') than the version currently '
+        repr(self.downloaded_version) + ') than the version currently '
         'installed (' + repr(self.current_version) + ').')
 
   def __repr__(self):
     return self.__class__.__name__ + ' : ' + str(self)
-
-    # # Directly instance-reproducing:
-    # return (
-    #     self.__class__.__name__ + '(' + repr(self.metadata_role) + ', ' +
-    #     repr(self.previous_version) + ', ' + repr(self.current_version) + ')')
-
 
 
 class CryptoError(Error):
@@ -250,7 +241,7 @@ class InvalidNameError(Error):
   """Indicate an error while trying to validate any type of named object."""
 
 
-class UnsignedMetadataError(Error):
+class UnsignedMetadataError(RepositoryError):
   """Indicate metadata object with insufficient threshold of signatures."""
 
   def __init__(self, message, signable):
