@@ -28,10 +28,10 @@ from tuf.api.serialization import (
 
 
 class JSONDeserializer(MetadataDeserializer):
-    """Provides JSON to Metadata deserialize method. """
+    """Provides JSON to Metadata deserialize method."""
 
     def deserialize(self, raw_data: bytes) -> Metadata:
-        """Deserialize utf-8 encoded JSON bytes into Metadata object. """
+        """Deserialize utf-8 encoded JSON bytes into Metadata object."""
         try:
             json_dict = json.loads(raw_data.decode("utf-8"))
             metadata_obj = Metadata.from_dict(json_dict)
@@ -55,7 +55,7 @@ class JSONSerializer(MetadataSerializer):
         self.compact = compact
 
     def serialize(self, metadata_obj: Metadata) -> bytes:
-        """Serialize Metadata object into utf-8 encoded JSON bytes. """
+        """Serialize Metadata object into utf-8 encoded JSON bytes."""
         try:
             indent = None if self.compact else 1
             separators = (",", ":") if self.compact else (",", ": ")
@@ -73,7 +73,7 @@ class JSONSerializer(MetadataSerializer):
 
 
 class CanonicalJSONSerializer(SignedSerializer):
-    """Provides Signed to OLPC Canonical JSON serialize method. """
+    """Provides Signed to OLPC Canonical JSON serialize method."""
 
     def serialize(self, signed_obj: Signed) -> bytes:
         """Serialize Signed object into utf-8 encoded OLPC Canonical JSON
