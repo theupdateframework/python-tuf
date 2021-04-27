@@ -382,6 +382,8 @@ class TestMetadata(unittest.TestCase):
             )
 
 
+class TestValidation(unittest.TestCase):
+
     def test_validate_signed_attr(self):
         # spec_version validation
         for val in [None, True, 111, 1.1]:
@@ -420,6 +422,64 @@ class TestMetadata(unittest.TestCase):
             validators.validate_expires(past_time)
         future_time = datetime(2050, 1, 1)
         validators.validate_expires(future_time)
+
+
+    def test_root_specific_attr(self):
+        # consistent_snapshot Root attribute
+        for val in [None, "1", "", "False", 1]:
+            with self.assertRaises(TypeError):
+                validators.validate_consistent_snapshot(val)
+        validators.validate_consistent_snapshot(True)
+
+        # keyid Key attribute
+        for val in [None, False, 1]:
+            with self.assertRaises(TypeError):
+                validators.validate_keyid(val)
+        for val in ["", "12345"]:
+            with self.assertRaises(ValueError):
+                validators.validate_keyid(val)
+        validators.validate_keyid("4e777de0d275f9d28588dd9a1606cc748e548f9e22b6795b7cb3f63f98035fcb")
+
+        # keytype Key attribute
+        for val in [None, False, 1]:
+            with self.assertRaises(TypeError):
+                validators.validate_keytype(val)
+        validators.validate_keytype("rsa")
+
+        # scheme Key attribute
+        for val in [None, False, 1]:
+            with self.assertRaises(TypeError):
+                validators.validate_scheme(val)
+        validators.validate_scheme("rsassa-pss-sha256")
+
+        # keyval Key attribute
+        for val in [None, False, 1, ""]:
+            with self.assertRaises(TypeError):
+                validators.validate_keyval(val)
+        for val in [{}, {"a": 3}, {"public": "123456"}]:
+            with self.assertRaises(ValueError):
+                validators.validate_keyval(val)
+        validators.validate_keyval({
+            "public": "edcd0a32a07dce33f7c7873aaffbff36d20ea30787574ead335eefd337e4dacd"
+        })
+
+        # role Root attribute
+        for val in [None, False, 1]:
+            with self.assertRaises(TypeError):
+                validators.validate_role(val)
+        for val in ["", "123456"]:
+            with self.assertRaises(ValueError):
+                validators.validate_role(val)
+        validators.validate_role("timestamp")
+
+        # threshold Root attribute
+        for val in [None, False, "0", "1.0", 1.0]:
+            with self.assertRaises(TypeError):
+                validators.validate_threshold(val)
+        for val in [-1, 0]:
+            with self.assertRaises(ValueError):
+                validators.validate_threshold(val)
+        validators.validate_threshold(1)
 
 
 # Run unit test.
