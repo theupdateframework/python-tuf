@@ -860,7 +860,7 @@ def _check_hashes_obj(file_object, trusted_hashes):
 
         # Raise an exception if any of the hashes are incorrect.
         if trusted_hash != computed_hash:
-            raise sslib_exceptions.BadHashError(trusted_hash, computed_hash)
+            raise exceptions.BadHashError(trusted_hash, computed_hash)
 
         logger.info(
             "The file's " + algorithm + " hash is" " correct: " + trusted_hash
@@ -881,7 +881,7 @@ def _check_hashes(file_content, trusted_hashes):
 
         # Raise an exception if any of the hashes are incorrect.
         if trusted_hash != computed_hash:
-            raise sslib_exceptions.BadHashError(trusted_hash, computed_hash)
+            raise exceptions.BadHashError(trusted_hash, computed_hash)
 
         logger.info(
             "The file's " + algorithm + " hash is" " correct: " + trusted_hash
