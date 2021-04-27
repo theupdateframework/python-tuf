@@ -23,6 +23,7 @@ from tests import utils
 import tuf.exceptions
 from tuf.api.metadata import (
     Metadata,
+    Root,
     Snapshot,
     Timestamp,
     Targets
@@ -480,6 +481,72 @@ class TestValidation(unittest.TestCase):
             with self.assertRaises(ValueError):
                 validators.validate_threshold(val)
         validators.validate_threshold(1)
+
+
+    def test_descriptors_example_usage(self):
+        data = {
+            '_type': 'snapshot',
+            'spec_version': '1.2.3',
+            'expires': datetime.now() + timedelta(hours=1),
+            'version': 3,
+            "consistent_snapshot": False,
+            "keys": {
+                "59a4df8af818e9ed7abe0764c0b47b4240952aa0d179b5b78346c470ac30278d": {
+                    "keytype": "ed25519",
+                    "keyval": {
+                    "public": "edcd0a32a07dce33f7c7873aaffbff36d20ea30787574ead335eefd337e4dacd"
+                    },
+                    "scheme": "ed25519"
+                },
+            },
+            "roles": {
+                "root": {
+                    "keyids": [
+                    "4e777de0d275f9d28588dd9a1606cc748e548f9e22b6795b7cb3f63f98035fcb"
+                    ],
+                    "threshold": 1
+                },
+            }
+        }
+        # Validation happens on initialization and during assigment
+        root = Root(**data)
+
+        # _type validation checks that the type is one of our expected roles
+        data['_type'] = 'wrong'
+        with self.assertRaises(ValueError):
+            root = Root(**data)
+        data['_type'] = 'snapshot'
+
+        # spec_version should be a specific string in sem format
+        # and be the same major version as the current tuf version
+        for val in ['', '1.11', '2', '0.1.1']:
+            with self.assertRaises(ValueError):
+                root.spec_version = val
+
+        # Version should be an int above 0.
+        with self.assertRaises(ValueError):
+            root.version = -1
+
+        # consistent_snapshot should be boolean
+        with self.assertRaises(TypeError):
+            root.consistent_snapshot = -1
+        
+        # If we want to change root with a totally different role dict
+        # Without the neceserry format
+        new_roles = {
+            "roles" : 
+                {
+                    "DDS": {
+                        "keyids": [
+                        "4e777de0d275f9d28588dd9a1606cc748e548f9e22b6795b7cb3f63f98035fcb"
+                        ],
+                        "threshold": 1
+                    },
+                }
+        }
+        with self.assertRaises(ValueError):
+            root.roles = new_roles
+
 
 
 # Run unit test.

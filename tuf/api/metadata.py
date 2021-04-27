@@ -30,6 +30,18 @@ from tuf.api.serialization import (
     MetadataSerializer,
     SignedSerializer,
 )
+from tuf.api.validators import (
+    METADATA_TYPES,
+    Bool,
+    DateTime,
+    Dictionary,
+    Integer,
+    OneOf,
+    String,
+    _check_dict_elements_uniqueness,
+    _check_semantic_versioning,
+    _check_str_one_of_metadata_types,
+)
 
 
 class Metadata:
@@ -324,6 +336,13 @@ class Signed:
 
     """
 
+    _type = OneOf(METADATA_TYPES)
+    version = Integer(minvalue=1)
+    # The minimum length is 5 because "X.Y.Z" has 5 characters.
+    spec_version = String(minsize=5, predicate=_check_semantic_versioning)
+    expires = DateTime()
+    unrecognized_fields = Dictionary(keys_type=str)
+
     # NOTE: Signed is a stupid name, because this might not be signed yet, but
     # we keep it to match spec terminology (I often refer to this as "payload",
     # or "inner metadata")
@@ -440,6 +459,11 @@ class Root(Signed):
 
     """
 
+    consistent_snapshot = Bool()
+    keys = Dictionary(keys_type=str)
+    roles = Dictionary(
+        keys_type=str, predicate_keys=_check_str_one_of_metadata_types
+    )
     # TODO: determine an appropriate value for max-args and fix places where
     # we violate that. This __init__ function takes 7 arguments, whereas the
     # default max-args value for pylint is 5
