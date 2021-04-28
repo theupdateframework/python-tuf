@@ -445,6 +445,14 @@ class TestMetadata(unittest.TestCase):
         # Verify that data is updated
         self.assertEqual(targets.signed.targets[filename], fileinfo)
 
+        # Test from_dict/to_dict Targets without delegations
+        targets_dict = targets.to_dict()
+        del targets_dict["signed"]["delegations"]
+        tmp_dict = targets_dict["signed"].copy()
+        targets_obj = Targets.from_dict(tmp_dict)
+        tar_d = targets_obj.to_dict()
+        self.assertEqual(targets_dict["signed"], targets_obj.to_dict())
+
     def setup_dict_with_unrecognized_field(self, file_path, field, value):
         json_dict = {}
         with open(file_path) as f:
