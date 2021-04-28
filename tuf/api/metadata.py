@@ -577,9 +577,8 @@ class Root(Signed):
         self, role: str, keyid: str, key_metadata: Mapping[str, Any]
     ) -> None:
         """Adds new key for 'role' and updates the key store."""
-        if keyid not in self.roles[role].keyids:
-            self.roles[role].keyids.add(keyid)
-            self.keys[keyid] = key_metadata
+        self.roles[role].keyids.add(keyid)
+        self.keys[keyid] = key_metadata
 
     # Remove key for a role.
     def remove_key(self, role: str, keyid: str) -> None:

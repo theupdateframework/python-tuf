@@ -381,6 +381,11 @@ class TestMetadata(unittest.TestCase):
         self.assertIn(keyid, root.signed.roles['root'].keyids)
         self.assertIn(keyid, root.signed.keys)
 
+        # Try adding the same key again and assert its ignored.
+        pre_add_keyid = root.signed.roles['root'].keyids.copy()
+        root.signed.add_key('root', keyid, key_metadata)
+        self.assertEqual(pre_add_keyid, root.signed.roles['root'].keyids)
+
         # Remove the key
         root.signed.remove_key('root', keyid)
 
