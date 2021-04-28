@@ -22,9 +22,8 @@ class MetadataWrapper:
         self._meta = meta
 
     @classmethod
-    def from_json_object(cls, tmp_file):
+    def from_json_object(cls, raw_data):
         """Loads JSON-formatted TUF metadata from a file object."""
-        raw_data = tmp_file.read()
         # Use local scope import to avoid circular import errors
         # pylint: disable=import-outside-toplevel
         from tuf.api.serialization.json import JSONDeserializer
