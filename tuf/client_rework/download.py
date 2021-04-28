@@ -90,7 +90,7 @@ def download_file(url, required_length, fetcher, strict_required_length=True):
 
     # This is the temporary file that we will return to contain the contents of
     # the downloaded file.
-    temp_file = tempfile.TemporaryFile()
+    temp_file = tempfile.TemporaryFile()  # pylint: disable=consider-using-with
 
     average_download_speed = 0
     number_of_bytes_received = 0

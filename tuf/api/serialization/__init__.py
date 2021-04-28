@@ -19,35 +19,35 @@ import abc
 
 # TODO: Should these be in tuf.exceptions or inherit from tuf.exceptions.Error?
 class SerializationError(Exception):
-    """Error during serialization. """
+    """Error during serialization."""
 
 
 class DeserializationError(Exception):
-    """Error during deserialization. """
+    """Error during deserialization."""
 
 
 class MetadataDeserializer(metaclass=abc.ABCMeta):
-    """Abstract base class for deserialization of Metadata objects. """
+    """Abstract base class for deserialization of Metadata objects."""
 
     @abc.abstractmethod
     def deserialize(self, raw_data: bytes) -> "Metadata":
-        """Deserialize passed bytes to Metadata object. """
+        """Deserialize passed bytes to Metadata object."""
         raise NotImplementedError
 
 
 class MetadataSerializer(metaclass=abc.ABCMeta):
-    """Abstract base class for serialization of Metadata objects. """
+    """Abstract base class for serialization of Metadata objects."""
 
     @abc.abstractmethod
     def serialize(self, metadata_obj: "Metadata") -> bytes:
-        """Serialize passed Metadata object to bytes. """
+        """Serialize passed Metadata object to bytes."""
         raise NotImplementedError
 
 
 class SignedSerializer(metaclass=abc.ABCMeta):
-    """Abstract base class for serialization of Signed objects. """
+    """Abstract base class for serialization of Signed objects."""
 
     @abc.abstractmethod
     def serialize(self, signed_obj: "Signed") -> bytes:
-        """Serialize passed Signed object to bytes. """
+        """Serialize passed Signed object to bytes."""
         raise NotImplementedError
