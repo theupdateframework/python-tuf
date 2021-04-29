@@ -223,37 +223,42 @@ class Updater:
 
         for next_version in range(lower_bound, upper_bound):
             try:
+                # Get the list of mirrors but we'll use only the first one
                 root_mirrors = mirrors.get_list_of_mirrors(
                     "meta",
                     f"{next_version}.root.json",
                     self._mirrors,
                 )
 
+                temp_obj = None
                 # For each version of root iterate over the list of mirrors
                 # until an intermediate root is successfully downloaded and
                 # verified.
-                intermediate_root = self._root_mirrors_download(root_mirrors)
+                temp_obj = download.download_file(
+                    root_mirrors[0],
+                    settings.DEFAULT_ROOT_REQUIRED_LENGTH,
+                    self._fetcher,
+                    strict_required_length=False,
+                )
 
-            # Exit the loop when all mirrors have raised only 403 / 404 errors,
-            # which indicates that a bigger root version does not exist.
-            except exceptions.NoWorkingMirrorError as exception:
-                for mirror_error in exception.mirror_errors.values():
-                    # Otherwise, reraise the error, because it is not a simple
-                    # HTTP error.
-                    if neither_403_nor_404(mirror_error):
-                        logger.info(
-                            "Misc error for root version " + str(next_version)
-                        )
-                        raise
+                temp_obj.seek(0)
+                intermediate_root = self._verify_root(temp_obj.read())
+                # TODO: persist should happen here for each intermediate
+                # root according to the spec
 
-                logger.debug("HTTP error for root version " + str(next_version))
-                # If we are here, then we ran into only 403 / 404 errors, which
-                # are good reasons to suspect that the next root metadata file
-                # does not exist.
+            except exceptions.FetcherHTTPError as exception:
+                if exception.status_code not in {403, 404}:
+                    raise
+                # Stop looking for a bigger version if "File not found"
+                # error is received
                 break
 
-        # Continue only if a newer root version is found
-        if intermediate_root is not None:
+            finally:
+                if temp_obj:
+                    temp_obj.close()
+                    temp_obj = None
+
+        if intermediate_root:
             # Check for a freeze attack. The latest known time MUST be lower
             # than the expiration timestamp in the trusted root metadata file
             # TODO define which exceptions are part of the public API
@@ -288,52 +293,6 @@ class Updater:
                 "root"
             ].signed.consistent_snapshot
 
-    def _root_mirrors_download(self, root_mirrors: Dict) -> "RootWrapper":
-        """Iterate over the list of "root_mirrors" until an intermediate
-        root is successfully downloaded and verified.
-        Raise "NoWorkingMirrorError" if a root file cannot be downloaded or
-        verified from any mirror"""
-
-        file_mirror_errors = {}
-        temp_obj = None
-        intermediate_root = None
-
-        for root_mirror in root_mirrors:
-            try:
-                temp_obj = download.download_file(
-                    root_mirror,
-                    settings.DEFAULT_ROOT_REQUIRED_LENGTH,
-                    self._fetcher,
-                    strict_required_length=False,
-                )
-
-                temp_obj.seek(0)
-                intermediate_root = self._verify_root(temp_obj.read())
-                # When we reach this point, a root file has been successfully
-                # downloaded and verified so we can exit the loop.
-                break
-
-            # pylint cannot figure out that we store the exceptions
-            # in a dictionary to raise them later so we disable
-            # the warning. This should be reviewed in the future still.
-            except Exception as exception:  # pylint:  disable=broad-except
-                # Store the exceptions until all mirrors are iterated.
-                # If an exception is raised from one mirror but a valid
-                # file is found in the next one, the first exception is ignored.
-                file_mirror_errors[root_mirror] = exception
-
-            finally:
-                if temp_obj:
-                    temp_obj.close()
-                    temp_obj = None
-
-        if not intermediate_root:
-            # If all mirrors are tried but a valid root file is not found,
-            # then raise an exception with the stored errors
-            raise exceptions.NoWorkingMirrorError(file_mirror_errors)
-
-        return intermediate_root
-
     def _load_timestamp(self) -> None:
         """
         TODO
@@ -344,31 +303,27 @@ class Updater:
             "meta", "timestamp.json", self._mirrors
         )
 
-        file_mirror_errors = {}
         verified_timestamp = None
-        for file_mirror in file_mirrors:
-            try:
-                temp_obj = download.download_file(
-                    file_mirror,
-                    settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH,
-                    self._fetcher,
-                    strict_required_length=False,
-                )
+        temp_obj = None
+        try:
+            temp_obj = download.download_file(
+                file_mirrors[0],
+                settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH,
+                self._fetcher,
+                strict_required_length=False,
+            )
 
-                temp_obj.seek(0)
-                verified_timestamp = self._verify_timestamp(temp_obj.read())
-                break
+            temp_obj.seek(0)
+            verified_timestamp = self._verify_timestamp(temp_obj.read())
 
-            except Exception as exception:  # pylint:  disable=broad-except
-                file_mirror_errors[file_mirror] = exception
+        except Exception as e:
+            # TODO: do we reraise a NoWorkingMirrorError or just
+            # let exceptions propagate?
+            raise exceptions.NoWorkingMirrorError({file_mirrors[0]: e}) from e
 
-            finally:
-                if temp_obj:
-                    temp_obj.close()
-                    temp_obj = None
-
-        if not verified_timestamp:
-            raise exceptions.NoWorkingMirrorError(file_mirror_errors)
+        finally:
+            if temp_obj:
+                temp_obj.close()
 
         self._metadata["timestamp"] = verified_timestamp
         # Persist root metadata. The client MUST write the file to
@@ -393,36 +348,31 @@ class Updater:
         #     version = None
 
         # TODO: Check if exists locally
-
         file_mirrors = mirrors.get_list_of_mirrors(
             "meta", "snapshot.json", self._mirrors
         )
 
-        file_mirror_errors = {}
         verified_snapshot = False
-        for file_mirror in file_mirrors:
-            try:
-                temp_obj = download.download_file(
-                    file_mirror,
-                    length,
-                    self._fetcher,
-                    strict_required_length=False,
-                )
+        temp_obj = None
+        try:
+            temp_obj = download.download_file(
+                file_mirrors[0],
+                length,
+                self._fetcher,
+                strict_required_length=False,
+            )
 
-                temp_obj.seek(0)
-                verified_snapshot = self._verify_snapshot(temp_obj.read())
-                break
+            temp_obj.seek(0)
+            verified_snapshot = self._verify_snapshot(temp_obj.read())
 
-            except Exception as exception:  # pylint:  disable=broad-except
-                file_mirror_errors[file_mirror] = exception
+        except Exception as e:
+            # TODO: do we reraise a NoWorkingMirrorError or just
+            # let exceptions propagate?
+            raise exceptions.NoWorkingMirrorError({file_mirrors[0]: e}) from e
 
-            finally:
-                if temp_obj:
-                    temp_obj.close()
-                    temp_obj = None
-
-        if not verified_snapshot:
-            raise exceptions.NoWorkingMirrorError(file_mirror_errors)
+        finally:
+            if temp_obj:
+                temp_obj.close()
 
         self._metadata["snapshot"] = verified_snapshot
         # Persist root metadata. The client MUST write the file to
@@ -452,33 +402,29 @@ class Updater:
             "meta", f"{targets_role}.json", self._mirrors
         )
 
-        file_mirror_errors = {}
         verified_targets = False
-        for file_mirror in file_mirrors:
-            try:
-                temp_obj = download.download_file(
-                    file_mirror,
-                    length,
-                    self._fetcher,
-                    strict_required_length=False,
-                )
+        temp_obj = None
+        try:
+            temp_obj = download.download_file(
+                file_mirrors[0],
+                length,
+                self._fetcher,
+                strict_required_length=False,
+            )
 
-                temp_obj.seek(0)
-                verified_targets = self._verify_targets(
-                    temp_obj.read(), targets_role, parent_role
-                )
-                break
+            temp_obj.seek(0)
+            verified_targets = self._verify_targets(
+                temp_obj.read(), targets_role, parent_role
+            )
 
-            except Exception as exception:  # pylint:  disable=broad-except
-                file_mirror_errors[file_mirror] = exception
+        except Exception as e:
+            # TODO: do we reraise a NoWorkingMirrorError or just
+            # let exceptions propagate?
+            raise exceptions.NoWorkingMirrorError({file_mirrors[0]: e}) from e
 
-            finally:
-                if temp_obj:
-                    temp_obj.close()
-                    temp_obj = None
-
-        if not verified_targets:
-            raise exceptions.NoWorkingMirrorError(file_mirror_errors)
+        finally:
+            if temp_obj:
+                temp_obj.close()
 
         self._metadata[targets_role] = verified_targets
         # Persist root metadata. The client MUST write the file to
