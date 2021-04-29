@@ -775,10 +775,8 @@ class DelegatedRole(Role):
                 "Only one of the attributes 'paths' and"
                 "'path_hash_prefixes' can be set!"
             )
-        if paths:
-            self.paths = paths
-        elif path_hash_prefixes:
-            self.path_hash_prefixes = path_hash_prefixes
+        self.paths = paths
+        self.path_hash_prefixes = path_hash_prefixes
 
     @classmethod
     def from_dict(cls, role_dict: Mapping[str, Any]) -> "Role":
