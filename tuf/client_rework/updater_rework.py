@@ -11,6 +11,7 @@ import fnmatch
 import logging
 import os
 from typing import Dict, Optional
+from urllib import parse
 
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import hash as sslib_hash
@@ -18,7 +19,7 @@ from securesystemslib import util as sslib_util
 
 from tuf import exceptions, settings
 from tuf.client.fetcher import FetcherInterface
-from tuf.client_rework import download, mirrors, requests_fetcher
+from tuf.client_rework import download, requests_fetcher
 
 from .metadata_wrapper import (
     RootWrapper,
@@ -35,27 +36,26 @@ class Updater:
     """
     Provides a class that can download target files securely.
 
-    Attributes:
-        metadata:
-
-        repository_name:
-
-        mirrors:
-
-        fetcher:
-
-        consistent_snapshot:
+    TODO
     """
 
     def __init__(
         self,
         repository_name: str,
-        repository_mirrors: Dict,
+        metadata_url: str,
+        default_target_url: Optional[str] = None,
         fetcher: Optional[FetcherInterface] = None,
     ):
 
         self._repository_name = repository_name
-        self._mirrors = repository_mirrors
+        self._metadata_url = metadata_url
+        # Should we accept metadata url as a default for targets or
+        # targets_url should be provided either in this constructor
+        # or as a download_target parameter?
+        if default_target_url is None:
+            self._default_target_url = metadata_url
+        else:
+            self._default_target_url = default_target_url
         self._consistent_snapshot = False
         self._metadata = {}
 
@@ -142,44 +142,38 @@ class Updater:
 
         return updated_targets
 
-    def download_target(self, target: Dict, destination_directory: str):
+    def download_target(
+        self,
+        targetinfo: Dict,
+        destination_directory: str,
+        target_url: Optional[str] = None,
+    ):
         """
         This method performs the actual download of the specified target.
         The file is saved to the 'destination_directory' argument.
         """
+        if target_url is None:
+            target_url = self._default_target_url
+
+        full_url = _build_full_url(target_url, targetinfo["filepath"])
 
         temp_obj = None
-        file_mirror_errors = {}
-        file_mirrors = mirrors.get_list_of_mirrors(
-            "target", target["filepath"], self._mirrors
-        )
+        try:
+            temp_obj = download.download_file(
+                full_url, targetinfo["fileinfo"]["length"], self._fetcher
+            )
+            _check_file_length(temp_obj, targetinfo["fileinfo"]["length"])
+            temp_obj.seek(0)
+            _check_hashes_obj(temp_obj, targetinfo["fileinfo"]["hashes"])
 
-        for file_mirror in file_mirrors:
-            try:
-                temp_obj = download.download_file(
-                    file_mirror, target["fileinfo"]["length"], self._fetcher
-                )
-                _check_file_length(temp_obj, target["fileinfo"]["length"])
-                temp_obj.seek(0)
-                _check_hashes_obj(temp_obj, target["fileinfo"]["hashes"])
-                break
+        except Exception as e:
+            if temp_obj:
+                temp_obj.close()
+            # TODO: do we reraise a NoWorkingMirrorError or just
+            # let exceptions propagate?
+            raise exceptions.NoWorkingMirrorError({full_url: e}) from e
 
-            except Exception as exception:  # pylint:  disable=broad-except
-                # Store the exceptions until all mirrors are iterated.
-                # If an exception is raised from one mirror but a valid
-                # file is found in the next one, the first exception is ignored.
-                file_mirror_errors[file_mirror] = exception
-
-                if temp_obj:
-                    temp_obj.close()
-                    temp_obj = None
-
-        # If all mirrors are iterated but a file object is not successfully
-        # downloaded and verifies, raise the collected errors
-        if not temp_obj:
-            raise exceptions.NoWorkingMirrorError(file_mirror_errors)
-
-        filepath = os.path.join(destination_directory, target["filepath"])
+        filepath = os.path.join(destination_directory, targetinfo["filepath"])
         sslib_util.persist_temp_file(temp_obj, filepath)
         temp_obj.close()
 
@@ -223,19 +217,15 @@ class Updater:
 
         for next_version in range(lower_bound, upper_bound):
             try:
-                # Get the list of mirrors but we'll use only the first one
-                root_mirrors = mirrors.get_list_of_mirrors(
-                    "meta",
-                    f"{next_version}.root.json",
-                    self._mirrors,
+                root_url = _build_full_url(
+                    self._metadata_url, f"{next_version}.root.json"
                 )
-
                 temp_obj = None
                 # For each version of root iterate over the list of mirrors
                 # until an intermediate root is successfully downloaded and
                 # verified.
                 temp_obj = download.download_file(
-                    root_mirrors[0],
+                    root_url,
                     settings.DEFAULT_ROOT_REQUIRED_LENGTH,
                     self._fetcher,
                     strict_required_length=False,
@@ -298,16 +288,12 @@ class Updater:
         TODO
         """
         # TODO Check if timestamp exists locally
-
-        file_mirrors = mirrors.get_list_of_mirrors(
-            "meta", "timestamp.json", self._mirrors
-        )
-
+        timestamp_url = _build_full_url(self._metadata_url, "timestamp.json")
         verified_timestamp = None
         temp_obj = None
         try:
             temp_obj = download.download_file(
-                file_mirrors[0],
+                timestamp_url,
                 settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH,
                 self._fetcher,
                 strict_required_length=False,
@@ -319,7 +305,7 @@ class Updater:
         except Exception as e:
             # TODO: do we reraise a NoWorkingMirrorError or just
             # let exceptions propagate?
-            raise exceptions.NoWorkingMirrorError({file_mirrors[0]: e}) from e
+            raise exceptions.NoWorkingMirrorError({timestamp_url: e}) from e
 
         finally:
             if temp_obj:
@@ -348,15 +334,12 @@ class Updater:
         #     version = None
 
         # TODO: Check if exists locally
-        file_mirrors = mirrors.get_list_of_mirrors(
-            "meta", "snapshot.json", self._mirrors
-        )
-
+        snapshot_url = _build_full_url(self._metadata_url, "snapshot.json")
         verified_snapshot = False
         temp_obj = None
         try:
             temp_obj = download.download_file(
-                file_mirrors[0],
+                snapshot_url,
                 length,
                 self._fetcher,
                 strict_required_length=False,
@@ -368,7 +351,7 @@ class Updater:
         except Exception as e:
             # TODO: do we reraise a NoWorkingMirrorError or just
             # let exceptions propagate?
-            raise exceptions.NoWorkingMirrorError({file_mirrors[0]: e}) from e
+            raise exceptions.NoWorkingMirrorError({snapshot_url: e}) from e
 
         finally:
             if temp_obj:
@@ -398,15 +381,14 @@ class Updater:
 
         # TODO: Check if exists locally
 
-        file_mirrors = mirrors.get_list_of_mirrors(
-            "meta", f"{targets_role}.json", self._mirrors
+        targets_url = _build_full_url(
+            self._metadata_url, f"{targets_role}.json"
         )
-
         verified_targets = False
         temp_obj = None
         try:
             temp_obj = download.download_file(
-                file_mirrors[0],
+                targets_url,
                 length,
                 self._fetcher,
                 strict_required_length=False,
@@ -420,7 +402,7 @@ class Updater:
         except Exception as e:
             # TODO: do we reraise a NoWorkingMirrorError or just
             # let exceptions propagate?
-            raise exceptions.NoWorkingMirrorError({file_mirrors[0]: e}) from e
+            raise exceptions.NoWorkingMirrorError({targets_url: e}) from e
 
         finally:
             if temp_obj:
@@ -849,11 +831,17 @@ def _get_target_hash(target_filepath, hash_function="sha256"):
     return target_filepath_hash
 
 
-def neither_403_nor_404(mirror_error):
+def _build_full_url(base_url, filepath):
     """
-    TODO
+    Build a full “absolute" URL by combining a base URL with
+    a relative file path.
     """
-    if isinstance(mirror_error, exceptions.FetcherHTTPError):
-        if mirror_error.status_code in {403, 404}:
-            return False
-    return True
+    # Are these steps enough? Or too much? Is this the right place?
+    filepath = parse.quote(filepath)
+    # Assuming that base_url ends with a '/' character, otherwise parse.urljoin
+    # omits (correcly) the last part of the base URL path
+    full_url = parse.urljoin(base_url, filepath)
+    # Avoid windows path separators. Should we keep this check? Or correct
+    # paths should be required from the user?
+    # full_url.replace("\\", "/")
+    return full_url

@@ -123,14 +123,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # directory copied from the original repository files.
     tuf.settings.repositories_directory = self.client_directory
 
-    self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
-                                           'metadata_path': 'metadata',
-                                           'targets_path': 'targets'}}
-
+    metadata_url = os.path.join(url_prefix, 'metadata/')
+    targets_url = os.path.join(url_prefix, 'targets/')
     # Creating a repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
     self.repository_updater = updater.Updater(self.repository_name,
-                                              self.repository_mirrors)
+                                              metadata_url,
+                                              targets_url)
 
     # Metadata role keys are needed by the test cases to make changes to the
     # repository (e.g., adding a new target file to 'targets.json' and then
