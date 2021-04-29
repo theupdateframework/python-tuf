@@ -405,6 +405,97 @@ class Signed:
         self.version += 1
 
 
+class Key:
+    """A container class representing the public portion of a Key.
+
+    Attributes:
+        keytype: A string denoting a public key signature system,
+            such as "rsa", "ed25519", and "ecdsa-sha2-nistp256".
+        scheme: A string denoting a corresponding signature scheme. For example:
+            "rsassa-pss-sha256", "ed25519", and "ecdsa-sha2-nistp256".
+        keyval: A dictionary containing the public portion of the key.
+        unrecognized_fields: Dictionary of all unrecognized fields.
+
+    """
+
+    def __init__(
+        self,
+        keytype: str,
+        scheme: str,
+        keyval: Mapping[str, str],
+        unrecognized_fields: Optional[Mapping[str, Any]] = None,
+    ) -> None:
+        if not keyval.get("public"):
+            raise ValueError("keyval doesn't follow the specification format!")
+        self.keytype = keytype
+        self.scheme = scheme
+        self.keyval = keyval
+        self.unrecognized_fields = unrecognized_fields or {}
+
+    @classmethod
+    def from_dict(cls, key_dict: Mapping[str, Any]) -> "Key":
+        """Creates Key object from its dict representation."""
+        keytype = key_dict.pop("keytype")
+        scheme = key_dict.pop("scheme")
+        keyval = key_dict.pop("keyval")
+        # All fields left in the key_dict are unrecognized.
+        return cls(keytype, scheme, keyval, key_dict)
+
+    def to_dict(self) -> Dict:
+        """Returns the dictionary representation of self."""
+        return {
+            "keytype": self.keytype,
+            "scheme": self.scheme,
+            "keyval": self.keyval,
+            **self.unrecognized_fields,
+        }
+
+
+class Role:
+    """A container class containing the set of keyids and threshold associated
+    with a particular role.
+
+    Attributes:
+        keyids: A set of strings each of which represents a given key.
+        threshold: An integer representing the required number of keys for that
+            particular role.
+        unrecognized_fields: Dictionary of all unrecognized fields.
+
+    """
+
+    def __init__(
+        self,
+        keyids: list,
+        threshold: int,
+        unrecognized_fields: Optional[Mapping[str, Any]] = None,
+    ) -> None:
+        keyids_set = set(keyids)
+        if len(keyids_set) != len(keyids):
+            raise ValueError(
+                f"keyids should be a list of unique strings,"
+                f" instead got {keyids}"
+            )
+        self.keyids = keyids_set
+        self.threshold = threshold
+        self.unrecognized_fields = unrecognized_fields or {}
+
+    @classmethod
+    def from_dict(cls, role_dict: Mapping[str, Any]) -> "Role":
+        """Creates Role object from its dict representation."""
+        keyids = role_dict.pop("keyids")
+        threshold = role_dict.pop("threshold")
+        # All fields left in the role_dict are unrecognized.
+        return cls(keyids, threshold, role_dict)
+
+    def to_dict(self) -> Dict:
+        """Returns the dictionary representation of self."""
+        return {
+            "keyids": list(self.keyids),
+            "threshold": self.threshold,
+            **self.unrecognized_fields,
+        }
+
+
 class Root(Signed):
     """A container for the signed part of root metadata.
 
@@ -414,27 +505,13 @@ class Root(Signed):
         keys: A dictionary that contains a public key store used to verify
             top level roles metadata signatures::
             {
-                '<KEYID>': {
-                    'keytype': '<KEY TYPE>',
-                    'scheme': '<KEY SCHEME>',
-                    'keyid_hash_algorithms': [
-                        '<HASH ALGO 1>',
-                        '<HASH ALGO 2>'
-                        ...
-                    ],
-                    'keyval': {
-                        'public': '<PUBLIC KEY HEX REPRESENTATION>'
-                    }
-                },
+                '<KEYID>': <Key instance>,
                 ...
             },
         roles: A dictionary that contains a list of signing keyids and
             a signature threshold for each top level role::
             {
-                '<ROLE>': {
-                    'keyids': ['<SIGNING KEY KEYID>', ...],
-                    'threshold': <SIGNATURE THRESHOLD>,
-                },
+                '<ROLE>': <Role istance>,
                 ...
             }
 
@@ -451,14 +528,13 @@ class Root(Signed):
         spec_version: str,
         expires: datetime,
         consistent_snapshot: bool,
-        keys: Mapping[str, Any],
-        roles: Mapping[str, Any],
+        keys: Mapping[str, Key],
+        roles: Mapping[str, Role],
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
         super().__init__(
             _type, version, spec_version, expires, unrecognized_fields
         )
-        # TODO: Add classes for keys and roles
         self.consistent_snapshot = consistent_snapshot
         self.keys = keys
         self.roles = roles
@@ -470,17 +546,28 @@ class Root(Signed):
         consistent_snapshot = root_dict.pop("consistent_snapshot")
         keys = root_dict.pop("keys")
         roles = root_dict.pop("roles")
+
+        for keyid, key_dict in keys.items():
+            keys[keyid] = Key.from_dict(key_dict)
+        for role_name, role_dict in roles.items():
+            roles[role_name] = Role.from_dict(role_dict)
+
         # All fields left in the root_dict are unrecognized.
         return cls(*common_args, consistent_snapshot, keys, roles, root_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
         root_dict = self._common_fields_to_dict()
+        keys = {keyid: key.to_dict() for (keyid, key) in self.keys.items()}
+        roles = {}
+        for role_name, role in self.roles.items():
+            roles[role_name] = role.to_dict()
+
         root_dict.update(
             {
                 "consistent_snapshot": self.consistent_snapshot,
-                "keys": self.keys,
-                "roles": self.roles,
+                "keys": keys,
+                "roles": roles,
             }
         )
         return root_dict
@@ -490,17 +577,16 @@ class Root(Signed):
         self, role: str, keyid: str, key_metadata: Mapping[str, Any]
     ) -> None:
         """Adds new key for 'role' and updates the key store."""
-        if keyid not in self.roles[role]["keyids"]:
-            self.roles[role]["keyids"].append(keyid)
-            self.keys[keyid] = key_metadata
+        self.roles[role].keyids.add(keyid)
+        self.keys[keyid] = key_metadata
 
     # Remove key for a role.
     def remove_key(self, role: str, keyid: str) -> None:
         """Removes key for 'role' and updates the key store."""
-        if keyid in self.roles[role]["keyids"]:
-            self.roles[role]["keyids"].remove(keyid)
+        if keyid in self.roles[role].keyids:
+            self.roles[role].keyids.remove(keyid)
             for keyinfo in self.roles.values():
-                if keyid in keyinfo["keyids"]:
+                if keyid in keyinfo.keyids:
                     return
 
             del self.keys[keyid]
