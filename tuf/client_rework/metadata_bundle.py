@@ -13,63 +13,65 @@ Loaded metadata can be accessed via the index access with rolename as key
 or, in the case of top-level metadata using the helper properties like
 'MetadataBundle.root'
 
-Metadata can be loaded into bundle by two means:
- * loading from local storage: load_local_metadata()
-   (and, in the case of root metadata, the constuctor)
- * updating from remote repository: update_metadata()
-
 The rules for top-level metadata are
  * Metadata is loadable only if metadata it depends on is loaded
  * Metadata is immutable if any metadata depending on it has been loaded
- * Loading from local storage must be attempted before updating from remote
- * Updating from remote is never required
+ * Caller must load/update these in order:
+   root -> timestamp -> snapshot -> targets -> (other delegated targets)
+ * Caller should try loading local file before updating metadata from remote
 
-Exceptions are raised if metadata fails to load in any way (except in the
-case of local loads -- see load_local_metadata()).
+Exceptions are raised if metadata fails to load in any way. The exception
+to this is local loads -- only local root metadata needs to be valid:
+other local metadata is allowed to be invalid (e.g. no longer signed):
+it won't be loaded but there will not be an exception.
 
 Example (with hypothetical download function):
 
 >>> # Load local root
 >>> bundle = MetadataBundle("path/to/metadata")
 >>>
->>> # load more root versions from remote
+>>> # update root until no more are available from remote
 >>> with download("root", bundle.root.signed.version + 1) as f:
->>>     bundle.update_metadata(f.read())
->>> with download("root", bundle.root.signed.version + 1) as f:
->>>     bundle.update_metadata(f.read())
->>>
->>> # Finally, no more roots from remote
+>>>     bundle.update_root(f.read())
+>>> # ...
 >>> bundle.root_update_finished()
 >>>
->>> # load local timestamp, then update it
->>> bundle.load_local_metadata("timestamp")
+>>> # load timestamp, then update from remote
+>>> bundle.load_local_timestamp()
 >>> with download("timestamp") as f:
->>>     bundle.update_metadata(f.read())
+>>>     bundle.update_timestamp(f.read())
 >>>
->>> # load local snapshot, then update it if needed
->>> if not bundle.load_local_metadata("snapshot"):
->>>     # load snapshot (consistent snapshot not shown)
->>>     with download("snapshot") as f:
->>>         bundle.update_metadata(f.read())
+>>> # load snapshot, update from remote if needed
+>>> if not bundle.load_local_snapshot():
+>>>     # TODO get version from timestamp
+>>>     with download("snapshot", version) as f:
+>>>         bundle.update_snapshot(f.read())
 >>>
->>> # load local targets, then update it if needed
->>> if not bundle.load_local_metadata("targets"):
->>>     version = bundle.snapshot.signed.meta["targets.json"]["version"]
->>>     with download("snapshot", version + 1) as f:
->>>         bundle.update_metadata(f.read())
+>>> # load local targets, update from remote if needed
+>>> if not bundle.load_local_targets():
+>>>     # TODO get version from snapshot
+>>>     with download("targets", version) as f:
+>>>         bundle.update_targets(f.read())
 >>>
->>> # Top level metadata is now fully loaded and verified
+>>> # load local delegated role, update from remote if needed
+>>> if not bundle.load_local_delegated_targets("rolename", "targets"):
+>>>     # TODO get version from snapshot
+>>>     with download("rolename", version) as f:
+>>>         bundle.update_targets(f.read(), "rolename", "targets")
 
 
 TODO:
- * exceptions are all over the place and not thought out at all
+ * exceptions are all over the place: the idea is that client could just handle a
+   generic RepositoryError that covers every issue that server provided metadata
+   could inflict (other errors would be user errors), but this is not yet the case
  * usefulness of root_update_finished() can be debated: it could be done
-   in the beginning of _load_timestamp()...
+   in the beginning of load_timestamp()...
  * there are some divergences from spec:
    * 5.3.11: timestamp and snapshot are not deleted right away (only on next load):
      the load functions will refuse to load the files when they are not signed by
      current root keys. Deleting at the specified point is possible but means additional
      code with some quirks..
+   * in general local metadata files are not deleted (they just won't succesfully load)
  * a bit of repetition
  * No tests!
  * Naming maybe not final?
@@ -130,7 +132,6 @@ class MetadataBundle(abc.Mapping):
         """Initialize by loading root metadata from disk"""
         self._path = repository_path
         self._bundle = {}  # type: Dict[str: Metadata]
-        self._local_load_attempted = {}
         self.reference_time = None
 
         if not os.path.exists(self._path):
@@ -139,139 +140,12 @@ class MetadataBundle(abc.Mapping):
 
         # Load and validate the local root metadata
         # Valid root metadata is required
-        if not self.load_local_metadata("root"):
-            raise exceptions.RepositoryError("Failed to load local root metadata")
-
-    def load_local_metadata(self, role_name: str, delegator_name: str = None) -> bool:
-        """Loads metadata from local storage and inserts into bundle
-
-        If bundle already contains 'role_name', nothing is loaded.
-        Failure to read the file, failure to parse it and failure to
-        load it as valid metadata will not raise exceptions: the function
-        will just fail.
-
-        Raises if 'role_name' cannot be loaded from local storage at this state
-
-        Returns True if 'role_name' is now in the bundle
-        """
-        if self.get(role_name) is not None:
-            logger.debug("Already loaded local %s.json", role_name)
-            return True
-
-        logger.debug("Loading local %s.json", role_name)
-
-        self._raise_on_unsupported_state(role_name)
-        self._local_load_attempted[role_name] = True
-
+        logger.debug("Loading local root")
         try:
-            with open(os.path.join(self._path, f"{role_name}.json"), "rb") as f:
-                data = f.read()
-
-            if role_name == "root":
-                self._load_intermediate_root(data)
-            elif role_name == "timestamp":
-                self._load_timestamp(data)
-            elif role_name == "snapshot":
-                self._load_snapshot(data)
-            elif role_name == "targets":
-                self._load_targets(data)
-            else:
-                self._load_delegated_targets(data, role_name, delegator_name)
-
-            return True
+            with open(os.path.join(self._path, "root.json"), "rb") as f:
+                self._load_intermediate_root(f.read())
         except (OSError, exceptions.RepositoryError) as e:
-            logger.debug("Failed to load local %s: %s", role_name, e)
-            # TODO delete local file (except probably should not delete root.json?)
-            return False
-
-    def update_metadata(self, data: bytes, role_name: str, delegator_name: str = None):
-        """Takes new metadata (from remote repository) and loads it into bundle
-
-        Raises if 'role_name' cannot be update from remote at this state
-        Raises if 'data' cannot be parsed or validated
-        Raises if the new metadata cannot be verified by the bundle
-        """
-        logger.debug("Updating %s", role_name)
-
-        self._raise_on_unsupported_state(role_name)
-
-        if not self._local_load_attempted.get(role_name):
-            raise ValueError(
-                f"Cannot update {role_name} before loading local metadata"
-            )
-
-        if role_name == "root":
-            self._load_intermediate_root(data)
-            self.root.to_file(os.path.join(self._path, "root.json"))
-        elif role_name == "timestamp":
-            self._load_timestamp(data)
-            self.timestamp.to_file(os.path.join(self._path, "timestamp.json"))
-        elif role_name == "snapshot":
-            self._load_snapshot(data)
-            self.snapshot.to_file(os.path.join(self._path, "snapshot.json"))
-        elif role_name == "targets":
-            self._load_targets(data)
-            self.targets.to_file(os.path.join(self._path, "targets.json"))
-        else:
-            self._load_delegated_targets(data, role_name, delegator_name)
-            self[role_name].to_file(os.path.join(self._path, f"{role_name}.json"))
-
-    def root_update_finished(self):
-        """Marks root update as finished, validates the root metadata
-
-        Raises if root update is not a valid operation at this state
-        Raises if validation fails
-        """
-        if self.timestamp is None:
-            raise ValueError("Root update is already finished")
-
-        # Store our reference "now", verify root expiry
-        self.reference_time = datetime.utcnow()
-        if self.root.signed.is_expired(self.reference_time):
-            raise exceptions.ExpiredMetadataError("New root.json is expired")
-
-        logger.debug("Verified final root.json")
-
-    def _raise_on_unsupported_state(self, role_name: str):
-        """Raise if updating 'role_name' is not supported at this state"""
-
-        # Special rules for top-level roles. We want to enforce a strict order
-        # root->snapshot->timestamp->targets where loading a metadata is no
-        # longer allowed when the next metadata in the order has been loaded
-        if role_name == "root":
-            pass
-        elif role_name == "timestamp":
-            if self.reference_time is None:
-                # root_update_finished() not called
-                raise ValueError("Cannot load timestamp before root")
-            if self.snapshot is not None:
-                raise ValueError("Cannot load timestamp after snapshot")
-        elif role_name == "snapshot":
-            if self.timestamp is None:
-                raise ValueError("Cannot load snapshot before timestamp")
-            if self.targets is not None:
-                raise ValueError("Cannot load snapshot after targets")
-        elif role_name == "targets":
-            if self.snapshot is None:
-                raise ValueError("Cannot load targets before snapshot")
-        else:
-            if self.targets is None:
-                raise ValueError(
-                    "Cannot load delegated targets before targets"
-                )
-
-        # Generic rule: Updating a role is not allowed if
-        #  * role is already loaded AND
-        #  * role has a delegate that is already loaded
-        role = self.get(role_name)
-        if role is not None and role.signed.delegations is not None:
-            for delegate in role.signed.delegations["roles"]:
-                delegate_name = delegate["name"]
-                if self.get(delegate_name) is not None:
-                    raise ValueError(
-                        f"Cannot load {role_name} after delegate"
-                        f"{delegate_name}"
-                    )
+            raise exceptions.RepositoryError("Failed to load local root metadata")
 
     # Implement Mapping
     def __getitem__(self, key: str):
@@ -300,11 +174,100 @@ class MetadataBundle(abc.Mapping):
     def targets(self):
         return self._bundle.get("targets")
 
+    # Public methods
+    def update_root(self, data: bytes):
+        logger.debug("Updating root")
+
+        self._load_intermediate_root(data)
+        self.root.to_file(os.path.join(self._path, "root.json"))
+
+    def root_update_finished(self):
+        if self.reference_time is not None:
+            raise ValueError("Root update is already finished")
+
+        # Store our reference "now", verify root expiry
+        self.reference_time = datetime.utcnow()
+        if self.root.signed.is_expired(self.reference_time):
+            raise exceptions.ExpiredMetadataError("New root.json is expired")
+
+        logger.debug("Verified final root.json")
+
+    def load_local_timestamp(self):
+        logger.debug("Loading local timestamp")
+
+        try:
+            with open(os.path.join(self._path, "timestamp.json"), "rb") as f:
+                self._load_timestamp(f.read())
+            return True
+        except (OSError, exceptions.RepositoryError) as e:
+            logger.debug("Failed to load local timestamp: %s", e)
+            return False
+
+    def update_timestamp(self, data: bytes):
+        logger.debug("Updating timestamp")
+
+        self._load_timestamp(data)
+        self.timestamp.to_file(os.path.join(self._path, "timestamp.json"))
+
+    def load_local_snapshot(self):
+        logger.debug("Loading local snapshot")
+
+        try:
+            with open(os.path.join(self._path, "snapshot.json"), "rb") as f:
+                self._load_snapshot(f.read())
+            return True
+        except (OSError, exceptions.RepositoryError) as e:
+            logger.debug("Failed to load local snapshot: %s", e)
+            return False
+
+    def update_snapshot(self, data: bytes):
+        logger.debug("Updating snapshot")
+
+        self._load_snapshot(data)
+        self.snapshot.to_file(os.path.join(self._path, "snapshot.json"))
+
+    def load_local_targets(self):
+        logger.debug("Loading local targets")
+
+        try:
+            with open(os.path.join(self._path, "targets.json"), "rb") as f:
+                self._load_targets(f.read())
+            return True
+        except (OSError, exceptions.RepositoryError) as e:
+            logger.debug("Failed to load local targets: %s", e)
+            return False
+
+    def update_targets(self, data: bytes):
+        logger.debug("Updating targets")
+
+        self._load_targets(data)
+        self.targets.to_file(os.path.join(self._path, "targets.json"))
+
+    def load_local_delegated_targets(self, role_name: str, delegator_name: str):
+        logger.debug("Loading local %s", role_name)
+
+        try:
+            with open(os.path.join(self._path, f"{role_name}.json"), "rb") as f:
+                self._load_delegated_targets(f.read(), role_name, delegator_name)
+            return True
+        except (OSError, exceptions.RepositoryError) as e:
+            logger.debug("Failed to load local %s: %s", role_name, e)
+            return False
+
+    def update_delegated_targets(self, data: bytes, role_name: str, delegator_name: str = None):
+        logger.debug("Updating %s", role_name)
+
+        self._load_delegated_targets(data, role_name, delegator_name)
+        self[role_name].to_file(os.path.join(self._path, f"{role_name}.json"))
+
     def _load_intermediate_root(self, data: bytes):
         """Verify the new root using current root (if any) and use it as current root
 
         Raises if root fails verification
         """
+        if self.reference_time is not None:
+            raise ValueError("Cannot update root after root update is finished")
+
         try:
             new_root = Metadata.from_bytes(data)
         except SerializationError as e:
@@ -340,6 +303,12 @@ class MetadataBundle(abc.Mapping):
 
         Raises if verification fails
         """
+        if self.reference_time is None:
+            # root_update_finished() not called
+            raise ValueError("Cannot update timestamp before root")
+        if self.snapshot is not None:
+            raise ValueError("Cannot update timestamp after snapshot")
+
         try:
             new_timestamp = Metadata.from_bytes(data)
         except SerializationError as e:
@@ -382,6 +351,15 @@ class MetadataBundle(abc.Mapping):
         logger.debug("Loaded timestamp")
 
     def _load_snapshot(self, data: bytes):
+        """Verifies the new snapshot and uses it as current snapshot
+
+        Raises if verification fails
+        """
+
+        if self.timestamp is None:
+            raise ValueError("Cannot update snapshot before timestamp")
+        if self.targets is not None:
+            raise ValueError("Cannot update snapshot after targets")
 
         meta = self.timestamp.signed.meta["snapshot.json"]
 
@@ -443,13 +421,21 @@ class MetadataBundle(abc.Mapping):
         logger.debug("Loaded snapshot")
 
     def _load_targets(self, data: bytes):
+        """Verifies the new targets and uses it as current targets
+
+        Raises if verification fails
+        """
+        if self.snapshot is None:
+            raise ValueError("Cannot load targets before snapshot")
+
         self._load_delegated_targets(data, "targets", "root")
 
     def _load_delegated_targets(self, data: bytes, role_name: str, delegator_name: str):
-        logger.debug(f"Loading {role_name} delegated by {delegator_name}")
+        """Verifies the new delegated 'role_name' and uses it as current 'role_name'
 
+        Raises if verification fails
+        """
         delegator = self.get(delegator_name)
-        # TODO this check could maybe be done in _raise_on_unspported_state
         if delegator == None:
             raise exceptions.ValueError(
                 "Cannot load delegated target before delegator"
@@ -495,4 +481,4 @@ class MetadataBundle(abc.Mapping):
             raise exceptions.ExpiredMetadataError(f"New {role_name} is expired")
 
         self._bundle[role_name] = new_delegate
-        logger.debug(f"Loaded {role_name}")
+        logger.debug(f"Loaded {role_name} delegated by {delegator_name}")
