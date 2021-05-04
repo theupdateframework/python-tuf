@@ -640,7 +640,7 @@ def _visit_child_role(child_role: Dict, target_filepath: str) -> str:
     child_role_path_hash_prefixes = child_role.get("path_hash_prefixes")
 
     if child_role_path_hash_prefixes is not None:
-        target_filepath_hash = _get_target_hash(target_filepath)
+        target_filepath_hash = _get_filepath_hash(target_filepath)
         for child_role_path_hash_prefix in child_role_path_hash_prefixes:
             if not target_filepath_hash.startswith(child_role_path_hash_prefix):
                 continue
@@ -749,7 +749,7 @@ def _check_hashes(file_content, trusted_hashes):
         )
 
 
-def _get_target_hash(target_filepath, hash_function="sha256"):
+def _get_filepath_hash(target_filepath, hash_function="sha256"):
     """
     TODO
     """
