@@ -46,10 +46,12 @@ class Updater:
         target_base_url: Optional[str] = None,
         fetcher: Optional[FetcherInterface] = None,
     ):
-
         self._repository_name = repository_name
-        self._metadata_base_url = metadata_base_url
-        self._target_base_url = target_base_url
+        self._metadata_base_url = _ensure_trailing_slash(metadata_base_url)
+        if target_base_url is None:
+            self._target_base_url = None
+        else:
+            self._target_base_url = _ensure_trailing_slash(target_base_url)
         self._consistent_snapshot = False
         self._metadata = {}
 
@@ -77,13 +79,18 @@ class Updater:
         self._load_snapshot()
         self._load_targets("targets", "root")
 
-    def get_one_valid_targetinfo(self, filename: str) -> Dict:
+    def get_one_valid_targetinfo(self, target_path: str) -> Dict:
         """
-        Returns the target information for a specific file identified by its
-        file path.  This target method also downloads the metadata of updated
-        targets.
+        Returns the target information for a target identified by target_path.
+
+        As a side-effect this method downloads all the metadata it needs to
+        return the target information.
+
+        Args:
+            target_path: A path-relative-URL string
+                (https://url.spec.whatwg.org/#path-relative-url-string)
         """
-        return self._preorder_depth_first_walk(filename)
+        return self._preorder_depth_first_walk(target_path)
 
     @staticmethod
     def updated_targets(targets: Dict, destination_directory: str) -> Dict:
@@ -151,10 +158,12 @@ class Updater:
                 "target_base_url must be set in either download_target() or "
                 "constructor"
             )
-        elif target_base_url is None:
+        if target_base_url is None:
             target_base_url = self._target_base_url
+        else:
+            target_base_url = _ensure_trailing_slash(target_base_url)
 
-        full_url = _build_full_url(target_base_url, targetinfo["filepath"])
+        full_url = parse.urljoin(target_base_url, targetinfo["filepath"])
 
         with download.download_file(
             full_url, targetinfo["fileinfo"]["length"], self._fetcher
@@ -207,7 +216,7 @@ class Updater:
 
         for next_version in range(lower_bound, upper_bound):
             try:
-                root_url = _build_full_url(
+                root_url = parse.urljoin(
                     self._metadata_base_url, f"{next_version}.root.json"
                 )
                 # For each version of root iterate over the list of mirrors
@@ -271,9 +280,7 @@ class Updater:
         TODO
         """
         # TODO Check if timestamp exists locally
-        timestamp_url = _build_full_url(
-            self._metadata_base_url, "timestamp.json"
-        )
+        timestamp_url = parse.urljoin(self._metadata_base_url, "timestamp.json")
         data = download.download_bytes(
             timestamp_url,
             settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH,
@@ -301,7 +308,7 @@ class Updater:
         #     version = None
 
         # TODO: Check if exists locally
-        snapshot_url = _build_full_url(self._metadata_base_url, "snapshot.json")
+        snapshot_url = parse.urljoin(self._metadata_base_url, "snapshot.json")
         data = download.download_bytes(
             snapshot_url,
             length,
@@ -331,7 +338,7 @@ class Updater:
 
         # TODO: Check if exists locally
 
-        targets_url = _build_full_url(
+        targets_url = parse.urljoin(
             self._metadata_base_url, f"{targets_role}.json"
         )
         data = download.download_bytes(
@@ -761,17 +768,6 @@ def _get_filepath_hash(target_filepath, hash_function="sha256"):
     return target_filepath_hash
 
 
-def _build_full_url(base_url, filepath):
-    """
-    Build a full “absolute" URL by combining a base URL with
-    a relative file path.
-    """
-    # Are these steps enough? Or too much? Is this the right place?
-    filepath = parse.quote(filepath)
-    # Assuming that base_url ends with a '/' character, otherwise parse.urljoin
-    # omits (correcly) the last part of the base URL path
-    full_url = parse.urljoin(base_url, filepath)
-    # Avoid windows path separators. Should we keep this check? Or correct
-    # paths should be required from the user?
-    # full_url.replace("\\", "/")
-    return full_url
+def _ensure_trailing_slash(url: str):
+    """Return url guaranteed to end in a slash"""
+    return url if url.endswith("/") else f"{url}/"
