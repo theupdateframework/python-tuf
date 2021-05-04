@@ -163,7 +163,6 @@ class Updater:
                 full_url, targetinfo["fileinfo"]["length"], self._fetcher
             )
             _check_file_length(temp_obj, targetinfo["fileinfo"]["length"])
-            temp_obj.seek(0)
             _check_hashes_obj(temp_obj, targetinfo["fileinfo"]["hashes"])
 
         except Exception as e:
@@ -766,6 +765,7 @@ def _check_file_length(file_object, trusted_file_length):
     """
     file_object.seek(0, 2)
     observed_length = file_object.tell()
+    file_object.seek(0)
 
     # Return and log a message if the length 'file_object' is equal to
     # 'trusted_file_length', otherwise raise an exception.  A hard check
