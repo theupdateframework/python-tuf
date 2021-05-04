@@ -157,24 +157,16 @@ class Updater:
 
         full_url = _build_full_url(target_url, targetinfo["filepath"])
 
-        temp_obj = None
-        try:
-            temp_obj = download.download_file(
-                full_url, targetinfo["fileinfo"]["length"], self._fetcher
+        with download.download_file(
+            full_url, targetinfo["fileinfo"]["length"], self._fetcher
+        ) as target_file:
+            _check_file_length(target_file, targetinfo["fileinfo"]["length"])
+            _check_hashes_obj(target_file, targetinfo["fileinfo"]["hashes"])
+
+            filepath = os.path.join(
+                destination_directory, targetinfo["filepath"]
             )
-            _check_file_length(temp_obj, targetinfo["fileinfo"]["length"])
-            _check_hashes_obj(temp_obj, targetinfo["fileinfo"]["hashes"])
-
-        except Exception as e:
-            if temp_obj:
-                temp_obj.close()
-            # TODO: do we reraise a NoWorkingMirrorError or just
-            # let exceptions propagate?
-            raise exceptions.NoWorkingMirrorError({full_url: e}) from e
-
-        filepath = os.path.join(destination_directory, targetinfo["filepath"])
-        sslib_util.persist_temp_file(temp_obj, filepath)
-        temp_obj.close()
+            sslib_util.persist_temp_file(target_file, filepath)
 
     def _get_full_meta_name(
         self, role: str, extension: str = ".json", version: int = None
@@ -219,19 +211,17 @@ class Updater:
                 root_url = _build_full_url(
                     self._metadata_url, f"{next_version}.root.json"
                 )
-                temp_obj = None
                 # For each version of root iterate over the list of mirrors
                 # until an intermediate root is successfully downloaded and
                 # verified.
-                temp_obj = download.download_file(
+                data = download.download_bytes(
                     root_url,
                     settings.DEFAULT_ROOT_REQUIRED_LENGTH,
                     self._fetcher,
                     strict_required_length=False,
                 )
 
-                temp_obj.seek(0)
-                intermediate_root = self._verify_root(temp_obj.read())
+                intermediate_root = self._verify_root(data)
                 # TODO: persist should happen here for each intermediate
                 # root according to the spec
 
@@ -241,11 +231,6 @@ class Updater:
                 # Stop looking for a bigger version if "File not found"
                 # error is received
                 break
-
-            finally:
-                if temp_obj:
-                    temp_obj.close()
-                    temp_obj = None
 
         if intermediate_root:
             # Check for a freeze attack. The latest known time MUST be lower
@@ -288,31 +273,13 @@ class Updater:
         """
         # TODO Check if timestamp exists locally
         timestamp_url = _build_full_url(self._metadata_url, "timestamp.json")
-        verified_timestamp = None
-        temp_obj = None
-        try:
-            temp_obj = download.download_file(
-                timestamp_url,
-                settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH,
-                self._fetcher,
-                strict_required_length=False,
-            )
-
-            temp_obj.seek(0)
-            verified_timestamp = self._verify_timestamp(temp_obj.read())
-
-        except Exception as e:
-            # TODO: do we reraise a NoWorkingMirrorError or just
-            # let exceptions propagate?
-            raise exceptions.NoWorkingMirrorError({timestamp_url: e}) from e
-
-        finally:
-            if temp_obj:
-                temp_obj.close()
-
-        self._metadata["timestamp"] = verified_timestamp
-        # Persist root metadata. The client MUST write the file to
-        # non-volatile storage as FILENAME.EXT (e.g. root.json).
+        data = download.download_bytes(
+            timestamp_url,
+            settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH,
+            self._fetcher,
+            strict_required_length=False,
+        )
+        self._metadata["timestamp"] = self._verify_timestamp(data)
         self._metadata["timestamp"].persist(
             self._get_full_meta_name("timestamp.json")
         )
@@ -334,31 +301,14 @@ class Updater:
 
         # TODO: Check if exists locally
         snapshot_url = _build_full_url(self._metadata_url, "snapshot.json")
-        verified_snapshot = False
-        temp_obj = None
-        try:
-            temp_obj = download.download_file(
-                snapshot_url,
-                length,
-                self._fetcher,
-                strict_required_length=False,
-            )
+        data = download.download_bytes(
+            snapshot_url,
+            length,
+            self._fetcher,
+            strict_required_length=False,
+        )
 
-            temp_obj.seek(0)
-            verified_snapshot = self._verify_snapshot(temp_obj.read())
-
-        except Exception as e:
-            # TODO: do we reraise a NoWorkingMirrorError or just
-            # let exceptions propagate?
-            raise exceptions.NoWorkingMirrorError({snapshot_url: e}) from e
-
-        finally:
-            if temp_obj:
-                temp_obj.close()
-
-        self._metadata["snapshot"] = verified_snapshot
-        # Persist root metadata. The client MUST write the file to
-        # non-volatile storage as FILENAME.EXT (e.g. root.json).
+        self._metadata["snapshot"] = self._verify_snapshot(data)
         self._metadata["snapshot"].persist(
             self._get_full_meta_name("snapshot.json")
         )
@@ -383,33 +333,16 @@ class Updater:
         targets_url = _build_full_url(
             self._metadata_url, f"{targets_role}.json"
         )
-        verified_targets = False
-        temp_obj = None
-        try:
-            temp_obj = download.download_file(
-                targets_url,
-                length,
-                self._fetcher,
-                strict_required_length=False,
-            )
+        data = download.download_bytes(
+            targets_url,
+            length,
+            self._fetcher,
+            strict_required_length=False,
+        )
 
-            temp_obj.seek(0)
-            verified_targets = self._verify_targets(
-                temp_obj.read(), targets_role, parent_role
-            )
-
-        except Exception as e:
-            # TODO: do we reraise a NoWorkingMirrorError or just
-            # let exceptions propagate?
-            raise exceptions.NoWorkingMirrorError({targets_url: e}) from e
-
-        finally:
-            if temp_obj:
-                temp_obj.close()
-
-        self._metadata[targets_role] = verified_targets
-        # Persist root metadata. The client MUST write the file to
-        # non-volatile storage as FILENAME.EXT (e.g. root.json).
+        self._metadata[targets_role] = self._verify_targets(
+            data, targets_role, parent_role
+        )
         self._metadata[targets_role].persist(
             self._get_full_meta_name(targets_role, extension=".json")
         )
