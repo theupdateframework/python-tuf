@@ -700,10 +700,6 @@ def _check_file_length(file_object, trusted_file_length):
     observed_length = file_object.tell()
     file_object.seek(0)
 
-    # Return and log a message if the length 'file_object' is equal to
-    # 'trusted_file_length', otherwise raise an exception.  A hard check
-    # ensures that a downloaded file strictly matches a known, or trusted,
-    # file length.
     if observed_length != trusted_file_length:
         raise exceptions.DownloadLengthMismatchError(
             trusted_file_length, observed_length
