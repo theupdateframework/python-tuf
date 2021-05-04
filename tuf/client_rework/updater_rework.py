@@ -42,20 +42,14 @@ class Updater:
     def __init__(
         self,
         repository_name: str,
-        metadata_url: str,
-        default_target_url: Optional[str] = None,
+        metadata_base_url: str,
+        target_base_url: Optional[str] = None,
         fetcher: Optional[FetcherInterface] = None,
     ):
 
         self._repository_name = repository_name
-        self._metadata_url = metadata_url
-        # Should we accept metadata url as a default for targets or
-        # targets_url should be provided either in this constructor
-        # or as a download_target parameter?
-        if default_target_url is None:
-            self._default_target_url = metadata_url
-        else:
-            self._default_target_url = default_target_url
+        self._metadata_base_url = metadata_base_url
+        self._target_base_url = target_base_url
         self._consistent_snapshot = False
         self._metadata = {}
 
@@ -146,16 +140,21 @@ class Updater:
         self,
         targetinfo: Dict,
         destination_directory: str,
-        target_url: Optional[str] = None,
+        target_base_url: Optional[str] = None,
     ):
         """
         This method performs the actual download of the specified target.
         The file is saved to the 'destination_directory' argument.
         """
-        if target_url is None:
-            target_url = self._default_target_url
+        if target_base_url is None and self._target_base_url is None:
+            raise ValueError(
+                "target_base_url must be set in either download_target() or "
+                "constructor"
+            )
+        elif target_base_url is None:
+            target_base_url = self._target_base_url
 
-        full_url = _build_full_url(target_url, targetinfo["filepath"])
+        full_url = _build_full_url(target_base_url, targetinfo["filepath"])
 
         with download.download_file(
             full_url, targetinfo["fileinfo"]["length"], self._fetcher
@@ -209,7 +208,7 @@ class Updater:
         for next_version in range(lower_bound, upper_bound):
             try:
                 root_url = _build_full_url(
-                    self._metadata_url, f"{next_version}.root.json"
+                    self._metadata_base_url, f"{next_version}.root.json"
                 )
                 # For each version of root iterate over the list of mirrors
                 # until an intermediate root is successfully downloaded and
@@ -272,7 +271,9 @@ class Updater:
         TODO
         """
         # TODO Check if timestamp exists locally
-        timestamp_url = _build_full_url(self._metadata_url, "timestamp.json")
+        timestamp_url = _build_full_url(
+            self._metadata_base_url, "timestamp.json"
+        )
         data = download.download_bytes(
             timestamp_url,
             settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH,
@@ -300,7 +301,7 @@ class Updater:
         #     version = None
 
         # TODO: Check if exists locally
-        snapshot_url = _build_full_url(self._metadata_url, "snapshot.json")
+        snapshot_url = _build_full_url(self._metadata_base_url, "snapshot.json")
         data = download.download_bytes(
             snapshot_url,
             length,
@@ -331,7 +332,7 @@ class Updater:
         # TODO: Check if exists locally
 
         targets_url = _build_full_url(
-            self._metadata_url, f"{targets_role}.json"
+            self._metadata_base_url, f"{targets_role}.json"
         )
         data = download.download_bytes(
             targets_url,
