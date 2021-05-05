@@ -233,6 +233,10 @@ class MetadataBundle(abc.Mapping):
         self.update_delegated_targets(data, "targets", "root")
 
     def load_local_delegated_targets(self, role_name: str, delegator_name: str):
+        if self.get(role_name):
+            logger.debug("Local %s already loaded", role_name)
+            return True
+
         logger.debug("Loading local %s", role_name)
 
         try:
