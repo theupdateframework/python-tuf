@@ -227,21 +227,10 @@ class MetadataBundle(abc.Mapping):
         self.snapshot.to_file(os.path.join(self._path, "snapshot.json"))
 
     def load_local_targets(self):
-        logger.debug("Loading local targets")
-
-        try:
-            with open(os.path.join(self._path, "targets.json"), "rb") as f:
-                self._load_targets(f.read())
-            return True
-        except (OSError, exceptions.RepositoryError) as e:
-            logger.debug("Failed to load local targets: %s", e)
-            return False
+        return self.load_local_delegated_targets("targets", "root")
 
     def update_targets(self, data: bytes):
-        logger.debug("Updating targets")
-
-        self._load_targets(data)
-        self.targets.to_file(os.path.join(self._path, "targets.json"))
+        self.update_delegated_targets(data, "targets", "root")
 
     def load_local_delegated_targets(self, role_name: str, delegator_name: str):
         logger.debug("Loading local %s", role_name)
@@ -420,21 +409,14 @@ class MetadataBundle(abc.Mapping):
         self._bundle["snapshot"] = new_snapshot
         logger.debug("Loaded snapshot")
 
-    def _load_targets(self, data: bytes):
-        """Verifies the new targets and uses it as current targets
+    def _load_delegated_targets(self, data: bytes, role_name: str, delegator_name: str):
+        """Verifies the new delegated 'role_name' and uses it as current 'role_name'
 
         Raises if verification fails
         """
         if self.snapshot is None:
             raise ValueError("Cannot load targets before snapshot")
 
-        self._load_delegated_targets(data, "targets", "root")
-
-    def _load_delegated_targets(self, data: bytes, role_name: str, delegator_name: str):
-        """Verifies the new delegated 'role_name' and uses it as current 'role_name'
-
-        Raises if verification fails
-        """
         delegator = self.get(delegator_name)
         if delegator == None:
             raise exceptions.ValueError(
