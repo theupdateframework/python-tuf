@@ -84,7 +84,7 @@ from collections import abc
 from datetime import datetime
 import logging
 import os
-from typing import Dict
+from typing import Dict, Iterator, Optional
 
 from securesystemslib import hash as sslib_hash
 from securesystemslib import keys as sslib_keys
@@ -97,7 +97,7 @@ logger = logging.getLogger(__name__)
 
 # This is a placeholder until ...
 # TODO issue 1306: implement this in Metadata API
-def verify_with_threshold(delegator: Metadata, role_name: str, unverified: Metadata):
+def verify_with_threshold(delegator: Metadata, role_name: str, unverified: Metadata) -> bool:
     if delegator.signed._type == "root":
         keys = delegator.signed.keys
         role = delegator.signed.roles.get(role_name)
@@ -148,40 +148,42 @@ class MetadataBundle(abc.Mapping):
             raise exceptions.RepositoryError("Failed to load local root metadata")
 
     # Implement Mapping
-    def __getitem__(self, key: str):
+    def __getitem__(self, key: str) -> Metadata:
         return self._bundle[key]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._bundle)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Metadata]:
         return iter(self._bundle)
 
     # Helper properties for top level metadata
     @property
-    def root(self):
+    def root(self) -> Optional[Metadata]:
         return self._bundle.get("root")
 
     @property
-    def timestamp(self):
+    def timestamp(self) -> Optional[Metadata]:
         return self._bundle.get("timestamp")
 
     @property
-    def snapshot(self):
+    def snapshot(self) -> Optional[Metadata]:
         return self._bundle.get("snapshot")
 
     @property
-    def targets(self):
+    def targets(self) -> Optional[Metadata]:
         return self._bundle.get("targets")
 
     # Public methods
     def update_root(self, data: bytes):
+        """Update root metadata with data from remote repository."""
         logger.debug("Updating root")
 
         self._load_intermediate_root(data)
         self.root.to_file(os.path.join(self._path, "root.json"))
 
     def root_update_finished(self):
+        """Mark root metadata as final."""
         if self.reference_time is not None:
             raise ValueError("Root update is already finished")
 
@@ -192,7 +194,10 @@ class MetadataBundle(abc.Mapping):
 
         logger.debug("Verified final root.json")
 
-    def load_local_timestamp(self):
+    def load_local_timestamp(self) -> bool:
+        """Load cached timestamp metadata from local storage.
+
+        Returns True if timestamp was succesfully loaded"""
         logger.debug("Loading local timestamp")
 
         try:
@@ -204,12 +209,16 @@ class MetadataBundle(abc.Mapping):
             return False
 
     def update_timestamp(self, data: bytes):
+        """Update timestamp metadata with data from remote repository."""
         logger.debug("Updating timestamp")
 
         self._load_timestamp(data)
         self.timestamp.to_file(os.path.join(self._path, "timestamp.json"))
 
-    def load_local_snapshot(self):
+    def load_local_snapshot(self) -> bool:
+        """Load cached snapshot metadata from local storage.
+
+        Returns True if snapshot was succesfully loaded"""
         logger.debug("Loading local snapshot")
 
         try:
@@ -221,18 +230,28 @@ class MetadataBundle(abc.Mapping):
             return False
 
     def update_snapshot(self, data: bytes):
+        """Update snapshot metadata with data from remote repository."""
         logger.debug("Updating snapshot")
 
         self._load_snapshot(data)
         self.snapshot.to_file(os.path.join(self._path, "snapshot.json"))
 
-    def load_local_targets(self):
+    def load_local_targets(self) -> bool:
+        """Load cached targets metadata from local storage.
+
+        Returns True if targets was succesfully loaded"""
         return self.load_local_delegated_targets("targets", "root")
 
     def update_targets(self, data: bytes):
+        """Update targets metadata with data from remote repository."""
         self.update_delegated_targets(data, "targets", "root")
 
-    def load_local_delegated_targets(self, role_name: str, delegator_name: str):
+    def load_local_delegated_targets(self, role_name: str, delegator_name: str) -> bool:
+        """Load cached metadata for 'role_name' from local storage.
+
+        Metadata for 'delegator_name' must be loaded already.
+
+        Returns True if metadata was succesfully loaded"""
         if self.get(role_name):
             logger.debug("Local %s already loaded", role_name)
             return True
@@ -248,16 +267,19 @@ class MetadataBundle(abc.Mapping):
             return False
 
     def update_delegated_targets(self, data: bytes, role_name: str, delegator_name: str = None):
+        """Update 'rolename' metadata with data from remote repository.
+
+        Metadata for 'delegator_name' must be loaded already."""
         logger.debug("Updating %s", role_name)
 
         self._load_delegated_targets(data, role_name, delegator_name)
         self[role_name].to_file(os.path.join(self._path, f"{role_name}.json"))
 
     def _load_intermediate_root(self, data: bytes):
-        """Verify the new root using current root (if any) and use it as current root
+        """Verifies and loads 'data' as new root metadata.
 
-        Raises if root fails verification
-        """
+        Note that an expired intermediate root is considered valid: expiry is
+        only checked for the final root in root_update_finished()."""
         if self.reference_time is not None:
             raise ValueError("Cannot update root after root update is finished")
 
@@ -292,10 +314,7 @@ class MetadataBundle(abc.Mapping):
         logger.debug("Loaded root")
 
     def _load_timestamp(self, data: bytes):
-        """Verifies the new timestamp and uses it as current timestamp
-
-        Raises if verification fails
-        """
+        """Verifies and loads 'data' as new timestamp metadata."""
         if self.reference_time is None:
             # root_update_finished() not called
             raise ValueError("Cannot update timestamp before root")
@@ -344,10 +363,7 @@ class MetadataBundle(abc.Mapping):
         logger.debug("Loaded timestamp")
 
     def _load_snapshot(self, data: bytes):
-        """Verifies the new snapshot and uses it as current snapshot
-
-        Raises if verification fails
-        """
+        """Verifies and loads 'data' as new snapshot metadata."""
 
         if self.timestamp is None:
             raise ValueError("Cannot update snapshot before timestamp")
@@ -414,7 +430,7 @@ class MetadataBundle(abc.Mapping):
         logger.debug("Loaded snapshot")
 
     def _load_delegated_targets(self, data: bytes, role_name: str, delegator_name: str):
-        """Verifies the new delegated 'role_name' and uses it as current 'role_name'
+        """Verifies and loads 'data' as new metadata for delegated target 'role_name'.
 
         Raises if verification fails
         """
