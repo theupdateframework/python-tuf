@@ -86,7 +86,7 @@ import logging
 import os
 from typing import Dict
 
-from securesystemslib import keys as sslib_hash
+from securesystemslib import hash as sslib_hash
 from securesystemslib import keys as sslib_keys
 
 from tuf import exceptions
@@ -358,7 +358,7 @@ class MetadataBundle(abc.Mapping):
 
         # Verify against the hashes in timestamp, if any
         hashes = meta.get("hashes") or {}
-        for algo, _hash in meta["hashes"].items():
+        for algo, _hash in hashes.items():
             digest_object = sslib_hash.digest(algo)
             digest_object.update(data)
             observed_hash = digest_object.hexdigest()
