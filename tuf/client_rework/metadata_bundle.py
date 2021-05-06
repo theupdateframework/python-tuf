@@ -134,10 +134,6 @@ class MetadataBundle(abc.Mapping):
         self._bundle = {}  # type: Dict[str: Metadata]
         self.reference_time = None
 
-        if not os.path.exists(self._path):
-            # TODO try to create dir instead?
-            raise exceptions.RepositoryError("Repository does not exist")
-
         # Load and validate the local root metadata
         # Valid root metadata is required
         logger.debug("Loading local root")
