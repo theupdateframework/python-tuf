@@ -17,7 +17,7 @@ available in the class model.
 """
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 from securesystemslib.keys import verify_signature
 from securesystemslib.signer import Signature, Signer
@@ -42,25 +42,17 @@ class Metadata:
         signed: A subclass of Signed, which has the actual metadata payload,
             i.e. one of Targets, Snapshot, Timestamp or Root.
 
-        signatures: A list of signatures over the canonical representation of
-            the value of the signed attribute::
-
-            [
-                {
-                    'keyid': '<SIGNING KEY KEYID>',
-                    'sig':' '<SIGNATURE HEX REPRESENTATION>'
-                },
-                ...
-            ]
+        signatures: A list of Securesystemslib Signature objects, each signing
+            the canonical serialized representation of 'signed'.
 
     """
 
-    def __init__(self, signed: "Signed", signatures: list) -> None:
+    def __init__(self, signed: "Signed", signatures: List[Signature]) -> None:
         self.signed = signed
         self.signatures = signatures
 
     @classmethod
-    def from_dict(cls, metadata: Mapping[str, Any]) -> "Metadata":
+    def from_dict(cls, metadata: Dict[str, Any]) -> "Metadata":
         """Creates Metadata object from its dict representation.
 
         Arguments:
@@ -71,7 +63,7 @@ class Metadata:
             ValueError: The metadata has an unrecognized signed._type field.
 
         Side Effect:
-            Destroys the metadata Mapping passed by reference.
+            Destroys the metadata dict passed by reference.
 
         Returns:
             A TUF Metadata object.
@@ -348,10 +340,10 @@ class Signed:
         if version <= 0:
             raise ValueError(f"version must be > 0, got {version}")
         self.version = version
-        self.unrecognized_fields = unrecognized_fields or {}
+        self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
 
     @classmethod
-    def _common_fields_from_dict(cls, signed_dict: Mapping[str, Any]) -> list:
+    def _common_fields_from_dict(cls, signed_dict: Dict[str, Any]) -> List[Any]:
         """Returns common fields of 'Signed' instances from the passed dict
         representation, and returns an ordered list to be passed as leading
         positional arguments to a subclass constructor.
@@ -429,7 +421,7 @@ class Key:
         self,
         keytype: str,
         scheme: str,
-        keyval: Mapping[str, str],
+        keyval: Dict[str, str],
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
         if not keyval.get("public"):
@@ -437,10 +429,10 @@ class Key:
         self.keytype = keytype
         self.scheme = scheme
         self.keyval = keyval
-        self.unrecognized_fields = unrecognized_fields or {}
+        self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
 
     @classmethod
-    def from_dict(cls, key_dict: Mapping[str, Any]) -> "Key":
+    def from_dict(cls, key_dict: Dict[str, Any]) -> "Key":
         """Creates Key object from its dict representation."""
         keytype = key_dict.pop("keytype")
         scheme = key_dict.pop("scheme")
@@ -448,7 +440,7 @@ class Key:
         # All fields left in the key_dict are unrecognized.
         return cls(keytype, scheme, keyval, key_dict)
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> Dict[str, Any]:
         """Returns the dictionary representation of self."""
         return {
             "keytype": self.keytype,
@@ -472,7 +464,7 @@ class Role:
 
     def __init__(
         self,
-        keyids: list,
+        keyids: List[str],
         threshold: int,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
@@ -484,17 +476,17 @@ class Role:
             )
         self.keyids = keyids_set
         self.threshold = threshold
-        self.unrecognized_fields = unrecognized_fields or {}
+        self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
 
     @classmethod
-    def from_dict(cls, role_dict: Mapping[str, Any]) -> "Role":
+    def from_dict(cls, role_dict: Dict[str, Any]) -> "Role":
         """Creates Role object from its dict representation."""
         keyids = role_dict.pop("keyids")
         threshold = role_dict.pop("threshold")
         # All fields left in the role_dict are unrecognized.
         return cls(keyids, threshold, role_dict)
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> Dict[str, Any]:
         """Returns the dictionary representation of self."""
         return {
             "keyids": list(self.keyids),
@@ -539,8 +531,8 @@ class Root(Signed):
         spec_version: str,
         expires: datetime,
         consistent_snapshot: bool,
-        keys: Mapping[str, Key],
-        roles: Mapping[str, Role],
+        keys: Dict[str, Key],
+        roles: Dict[str, Role],
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
         super().__init__(version, spec_version, expires, unrecognized_fields)
@@ -549,7 +541,7 @@ class Root(Signed):
         self.roles = roles
 
     @classmethod
-    def from_dict(cls, root_dict: Mapping[str, Any]) -> "Root":
+    def from_dict(cls, root_dict: Dict[str, Any]) -> "Root":
         """Creates Root object from its dict representation."""
         common_args = cls._common_fields_from_dict(root_dict)
         consistent_snapshot = root_dict.pop("consistent_snapshot")
@@ -583,7 +575,7 @@ class Root(Signed):
 
     # Update key for a role.
     def add_key(
-        self, role: str, keyid: str, key_metadata: Mapping[str, Any]
+        self, role: str, keyid: str, key_metadata: Dict[str, Any]
     ) -> None:
         """Adds new key for 'role' and updates the key store."""
         self.roles[role].keyids.add(keyid)
@@ -630,7 +622,7 @@ class Timestamp(Signed):
         version: int,
         spec_version: str,
         expires: datetime,
-        meta: Mapping[str, Any],
+        meta: Dict[str, Any],
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
         super().__init__(version, spec_version, expires, unrecognized_fields)
@@ -638,7 +630,7 @@ class Timestamp(Signed):
         self.meta = meta
 
     @classmethod
-    def from_dict(cls, timestamp_dict: Mapping[str, Any]) -> "Timestamp":
+    def from_dict(cls, timestamp_dict: Dict[str, Any]) -> "Timestamp":
         """Creates Timestamp object from its dict representation."""
         common_args = cls._common_fields_from_dict(timestamp_dict)
         meta = timestamp_dict.pop("meta")
@@ -656,7 +648,7 @@ class Timestamp(Signed):
         self,
         version: int,
         length: Optional[int] = None,
-        hashes: Optional[Mapping[str, Any]] = None,
+        hashes: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Assigns passed info about snapshot metadata to meta dict."""
         self.meta["snapshot.json"] = {"version": version}
@@ -702,7 +694,7 @@ class Snapshot(Signed):
         version: int,
         spec_version: str,
         expires: datetime,
-        meta: Mapping[str, Any],
+        meta: Dict[str, Any],
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
         super().__init__(version, spec_version, expires, unrecognized_fields)
@@ -710,7 +702,7 @@ class Snapshot(Signed):
         self.meta = meta
 
     @classmethod
-    def from_dict(cls, snapshot_dict: Mapping[str, Any]) -> "Snapshot":
+    def from_dict(cls, snapshot_dict: Dict[str, Any]) -> "Snapshot":
         """Creates Snapshot object from its dict representation."""
         common_args = cls._common_fields_from_dict(snapshot_dict)
         meta = snapshot_dict.pop("meta")
@@ -729,7 +721,7 @@ class Snapshot(Signed):
         rolename: str,
         version: int,
         length: Optional[int] = None,
-        hashes: Optional[Mapping[str, Any]] = None,
+        hashes: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Assigns passed (delegated) targets role info to meta dict."""
         metadata_fn = f"{rolename}.json"
@@ -807,8 +799,8 @@ class Targets(Signed):
         version: int,
         spec_version: str,
         expires: datetime,
-        targets: Mapping[str, Any],
-        delegations: Optional[Mapping[str, Any]] = None,
+        targets: Dict[str, Any],
+        delegations: Optional[Dict[str, Any]] = None,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
         super().__init__(version, spec_version, expires, unrecognized_fields)
@@ -817,7 +809,7 @@ class Targets(Signed):
         self.delegations = delegations
 
     @classmethod
-    def from_dict(cls, targets_dict: Mapping[str, Any]) -> "Targets":
+    def from_dict(cls, targets_dict: Dict[str, Any]) -> "Targets":
         """Creates Targets object from its dict representation."""
         common_args = cls._common_fields_from_dict(targets_dict)
         targets = targets_dict.pop("targets")
@@ -834,6 +826,6 @@ class Targets(Signed):
         return targets_dict
 
     # Modification.
-    def update(self, filename: str, fileinfo: Mapping[str, Any]) -> None:
+    def update(self, filename: str, fileinfo: Dict[str, Any]) -> None:
         """Assigns passed target file info to meta dict."""
         self.targets[filename] = fileinfo
