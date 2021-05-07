@@ -46,6 +46,16 @@ class Updater:
         target_base_url: Optional[str] = None,
         fetcher: Optional[FetcherInterface] = None,
     ):
+        """
+        Args:
+            repository_name: directory name (within a local directory
+                defined by 'tuf.settings.repositories_directory')
+            metadata_base_url: Base URL for all remote metadata downloads
+            target_base_url: Optional; Default base URL for all remote target
+                downloads. Can be individually set in download_target()
+            fetcher: Optional; FetcherInterface implementation used to download
+                both metadata and targets. Default is RequestsFetcher
+        """
         self._repository_name = repository_name
         self._metadata_base_url = _ensure_trailing_slash(metadata_base_url)
         if target_base_url is None:
@@ -87,8 +97,10 @@ class Updater:
         return the target information.
 
         Args:
-            target_path: A path-relative-URL string
-                (https://url.spec.whatwg.org/#path-relative-url-string)
+            target_path: A target identifier that is a path-relative-URL string
+                (https://url.spec.whatwg.org/#path-relative-url-string).
+                Typically this is also the unix file path of the eventually
+                downloaded file.
         """
         return self._preorder_depth_first_walk(target_path)
 
@@ -150,8 +162,15 @@ class Updater:
         target_base_url: Optional[str] = None,
     ):
         """
-        This method performs the actual download of the specified target.
-        The file is saved to the 'destination_directory' argument.
+        Download target specified by 'targetinfo' into 'destination_directory'.
+
+        Args:
+            targetinfo: data received from get_one_valid_targetinfo()
+            destination_directory: existing local directory to download into.
+                Note that new directories may be created inside
+                destination_directory as required.
+            target_base_url: Optional; Base URL used to form the final target
+                download URL. Default is the value provided in Updater()
         """
         if target_base_url is None and self._target_base_url is None:
             raise ValueError(
