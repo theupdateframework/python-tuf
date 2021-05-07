@@ -315,20 +315,24 @@ class Signed:
     are common for all TUF metadata types (roles).
 
     Attributes:
-        _type: The metadata type string.
+        _type: The metadata type string. Also available without underscore.
         version: The metadata version number.
         spec_version: The TUF specification version number (semver) the
             metadata format adheres to.
         expires: The metadata expiration datetime object.
         unrecognized_fields: Dictionary of all unrecognized fields.
-
     """
 
     # Signed implementations are expected to override this
     _signed_type = None
 
+    # _type and type are identical: 1st replicates file format, 2nd passes lint
     @property
     def _type(self):
+        return self._signed_type
+
+    @property
+    def type(self):
         return self._signed_type
 
     # NOTE: Signed is a stupid name, because this might not be signed yet, but
