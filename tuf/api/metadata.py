@@ -589,16 +589,18 @@ class Root(Signed):
         self.roles[role].keyids.add(keyid)
         self.keys[keyid] = key_metadata
 
-    # Remove key for a role.
     def remove_key(self, role: str, keyid: str) -> None:
-        """Removes key for 'role' and updates the key store."""
-        if keyid in self.roles[role].keyids:
-            self.roles[role].keyids.remove(keyid)
-            for keyinfo in self.roles.values():
-                if keyid in keyinfo.keyids:
-                    return
+        """Removes key from 'role' and updates the key store.
 
-            del self.keys[keyid]
+        Raises:
+            KeyError: If 'role' does not include the key
+        """
+        self.roles[role].keyids.remove(keyid)
+        for keyinfo in self.roles.values():
+            if keyid in keyinfo.keyids:
+                return
+
+        del self.keys[keyid]
 
 
 class Timestamp(Signed):
