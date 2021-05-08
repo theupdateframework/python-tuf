@@ -85,19 +85,19 @@ updater systems, TUF's design and implementation details, attacks on
 package managers, and package management security:
 
 -  `Mercury: Bandwidth-Effective Prevention of Rollback Attacks Against Community Repositories
-   <papers/prevention-rollback-attacks-atc2017.pdf?raw=true>`_
+   <https://theupdateframework.io/papers/attacks-on-package-managers-ccs2008.pdf>`
 
 -  `Diplomat: Using Delegations to Protect Community Repositories
-   <papers/protect-community-repositories-nsdi2016.pdf?raw=true>`_
+   <https://theupdateframework.io/papers/protect-community-repositories-nsdi2016.pdf>`
 
 -  `Survivable Key Compromise in Software Update
-   Systems <papers/survivable-key-compromise-ccs2010.pdf?raw=true>`_
+   Systems <https://theupdateframework.io/papers/survivable-key-compromise-ccs2010.pdf>`
 
 -  `A Look In the Mirror: Attacks on Package
-   Managers <papers/package-management-security-tr08-02.pdf?raw=true>`_
+   Managers <https://theupdateframework.io/papers/package-management-security-tr08-02.pdf>`
 
 -  `Package Management
-   Security <papers/attacks-on-package-managers-ccs2008.pdf?raw=true>`_
+   Security <https://theupdateframework.io/papers/attacks-on-package-managers-ccs2008.pdf>`
 
 What TUF Does
 -------------
