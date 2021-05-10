@@ -15,6 +15,11 @@ base classes defined in this __init__.py module.
 
 """
 import abc
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # pylint: disable=cyclic-import
+    from tuf.api.metadata import Metadata, Signed
 
 
 # TODO: Should these be in tuf.exceptions or inherit from tuf.exceptions.Error?
