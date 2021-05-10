@@ -524,7 +524,6 @@ class TestMetadata(unittest.TestCase):
         del targets_dict["signed"]["delegations"]
         tmp_dict = targets_dict["signed"].copy()
         targets_obj = Targets.from_dict(tmp_dict)
-        tar_d = targets_obj.to_dict()
         self.assertEqual(targets_dict["signed"], targets_obj.to_dict())
 
     def setup_dict_with_unrecognized_field(self, file_path, field, value):
