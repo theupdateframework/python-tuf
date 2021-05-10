@@ -15,6 +15,7 @@ in 'tuf.api.serialization', and may use the [to|from]_dict convenience methods
 available in the class model.
 
 """
+import abc
 import tempfile
 from datetime import datetime, timedelta
 from typing import Any, ClassVar, Dict, List, Mapping, Optional
@@ -304,7 +305,7 @@ class Metadata:
         )
 
 
-class Signed:
+class Signed(metaclass=abc.ABCMeta):
     """A base class for the signed part of TUF metadata.
 
     Objects with base class Signed are usually included in a Metadata object
@@ -350,6 +351,17 @@ class Signed:
             raise ValueError(f"version must be > 0, got {version}")
         self.version = version
         self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
+
+    @abc.abstractmethod
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialization helper that returns dict representation of self"""
+        raise NotImplementedError
+
+    @classmethod
+    @abc.abstractmethod
+    def from_dict(cls, signed_dict: Dict[str, Any]) -> "Signed":
+        """Deserialization helper, creates object from dict representation"""
+        raise NotImplementedError
 
     @classmethod
     def _common_fields_from_dict(cls, signed_dict: Dict[str, Any]) -> List[Any]:
@@ -550,20 +562,20 @@ class Root(Signed):
         self.roles = roles
 
     @classmethod
-    def from_dict(cls, root_dict: Dict[str, Any]) -> "Root":
+    def from_dict(cls, signed_dict: Dict[str, Any]) -> "Root":
         """Creates Root object from its dict representation."""
-        common_args = cls._common_fields_from_dict(root_dict)
-        consistent_snapshot = root_dict.pop("consistent_snapshot", None)
-        keys = root_dict.pop("keys")
-        roles = root_dict.pop("roles")
+        common_args = cls._common_fields_from_dict(signed_dict)
+        consistent_snapshot = signed_dict.pop("consistent_snapshot", None)
+        keys = signed_dict.pop("keys")
+        roles = signed_dict.pop("roles")
 
         for keyid, key_dict in keys.items():
             keys[keyid] = Key.from_dict(key_dict)
         for role_name, role_dict in roles.items():
             roles[role_name] = Role.from_dict(role_dict)
 
-        # All fields left in the root_dict are unrecognized.
-        return cls(*common_args, keys, roles, consistent_snapshot, root_dict)
+        # All fields left in the signed_dict are unrecognized.
+        return cls(*common_args, keys, roles, consistent_snapshot, signed_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
@@ -683,13 +695,13 @@ class Timestamp(Signed):
         self.meta = meta
 
     @classmethod
-    def from_dict(cls, timestamp_dict: Dict[str, Any]) -> "Timestamp":
+    def from_dict(cls, signed_dict: Dict[str, Any]) -> "Timestamp":
         """Creates Timestamp object from its dict representation."""
-        common_args = cls._common_fields_from_dict(timestamp_dict)
-        meta_dict = timestamp_dict.pop("meta")
+        common_args = cls._common_fields_from_dict(signed_dict)
+        meta_dict = signed_dict.pop("meta")
         meta = {"snapshot.json": MetaFile.from_dict(meta_dict["snapshot.json"])}
         # All fields left in the timestamp_dict are unrecognized.
-        return cls(*common_args, meta, timestamp_dict)
+        return cls(*common_args, meta, signed_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
@@ -733,15 +745,15 @@ class Snapshot(Signed):
         self.meta = meta
 
     @classmethod
-    def from_dict(cls, snapshot_dict: Dict[str, Any]) -> "Snapshot":
+    def from_dict(cls, signed_dict: Dict[str, Any]) -> "Snapshot":
         """Creates Snapshot object from its dict representation."""
-        common_args = cls._common_fields_from_dict(snapshot_dict)
-        meta_dicts = snapshot_dict.pop("meta")
+        common_args = cls._common_fields_from_dict(signed_dict)
+        meta_dicts = signed_dict.pop("meta")
         meta = {}
         for meta_path, meta_dict in meta_dicts.items():
             meta[meta_path] = MetaFile.from_dict(meta_dict)
         # All fields left in the snapshot_dict are unrecognized.
-        return cls(*common_args, meta, snapshot_dict)
+        return cls(*common_args, meta, signed_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
@@ -971,12 +983,12 @@ class Targets(Signed):
         self.delegations = delegations
 
     @classmethod
-    def from_dict(cls, targets_dict: Dict[str, Any]) -> "Targets":
+    def from_dict(cls, signed_dict: Dict[str, Any]) -> "Targets":
         """Creates Targets object from its dict representation."""
-        common_args = cls._common_fields_from_dict(targets_dict)
-        targets = targets_dict.pop("targets")
+        common_args = cls._common_fields_from_dict(signed_dict)
+        targets = signed_dict.pop("targets")
         try:
-            delegations_dict = targets_dict.pop("delegations")
+            delegations_dict = signed_dict.pop("delegations")
         except KeyError:
             delegations = None
         else:
@@ -985,7 +997,7 @@ class Targets(Signed):
         for target_path, target_info in targets.items():
             res_targets[target_path] = TargetFile.from_dict(target_info)
         # All fields left in the targets_dict are unrecognized.
-        return cls(*common_args, res_targets, delegations, targets_dict)
+        return cls(*common_args, res_targets, delegations, signed_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
