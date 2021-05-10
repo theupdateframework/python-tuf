@@ -836,7 +836,7 @@ class Delegations:
         self.unrecognized_fields = unrecognized_fields or {}
 
     @classmethod
-    def from_dict(cls, delegations_dict: Mapping[str, Any]) -> "Delegations":
+    def from_dict(cls, delegations_dict: Dict[str, Any]) -> "Delegations":
         """Creates Delegations object from its dict representation."""
         keys = delegations_dict.pop("keys")
         keys_res = {}
