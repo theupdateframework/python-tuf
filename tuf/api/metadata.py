@@ -511,16 +511,19 @@ class Root(Signed):
             supports consistent snapshots.
         keys: A dictionary that contains a public key store used to verify
             top level roles metadata signatures::
-            {
-                '<KEYID>': <Key instance>,
-                ...
-            },
+
+                {
+                    '<KEYID>': <Key instance>,
+                    ...
+                },
+
         roles: A dictionary that contains a list of signing keyids and
             a signature threshold for each top level role::
-            {
-                '<ROLE>': <Role istance>,
-                ...
-            }
+
+                {
+                    '<ROLE>': <Role istance>,
+                    ...
+                }
 
     """
 
@@ -612,7 +615,7 @@ class Timestamp(Signed):
                         '<HASH ALGO 1>': '<SNAPSHOT METADATA FILE HASH 1>',
                         '<HASH ALGO 2>': '<SNAPSHOT METADATA FILE HASH 2>',
                         ...
-                    }
+                    } // optional
                 }
             }
 
@@ -648,14 +651,19 @@ class Timestamp(Signed):
 
     # Modification.
     def update(
-        self, version: int, length: int, hashes: Mapping[str, Any]
+        self,
+        version: int,
+        length: Optional[int] = None,
+        hashes: Optional[Mapping[str, Any]] = None,
     ) -> None:
         """Assigns passed info about snapshot metadata to meta dict."""
-        self.meta["snapshot.json"] = {
-            "version": version,
-            "length": length,
-            "hashes": hashes,
-        }
+        self.meta["snapshot.json"] = {"version": version}
+
+        if length is not None:
+            self.meta["snapshot.json"]["length"] = length
+
+        if hashes is not None:
+            self.meta["snapshot.json"]["hashes"] = hashes
 
 
 class Snapshot(Signed):
@@ -755,34 +763,34 @@ class Targets(Signed):
             roles and public key store used to verify their metadata
             signatures::
 
-            {
-                'keys' : {
-                    '<KEYID>': {
-                        'keytype': '<KEY TYPE>',
-                        'scheme': '<KEY SCHEME>',
-                        'keyid_hash_algorithms': [
-                            '<HASH ALGO 1>',
-                            '<HASH ALGO 2>'
-                            ...
-                        ],
-                        'keyval': {
-                            'public': '<PUBLIC KEY HEX REPRESENTATION>'
-                        }
+                {
+                    'keys' : {
+                        '<KEYID>': {
+                            'keytype': '<KEY TYPE>',
+                            'scheme': '<KEY SCHEME>',
+                            'keyid_hash_algorithms': [
+                                '<HASH ALGO 1>',
+                                '<HASH ALGO 2>'
+                                ...
+                            ],
+                            'keyval': {
+                                'public': '<PUBLIC KEY HEX REPRESENTATION>'
+                            }
+                        },
+                        ...
                     },
+                    'roles': [
+                        {
+                            'name': '<ROLENAME>',
+                            'keyids': ['<SIGNING KEY KEYID>', ...],
+                            'threshold': <SIGNATURE THRESHOLD>,
+                            'terminating': <TERMINATING BOOLEAN>,
+                            'path_hash_prefixes': ['<HEX DIGEST>', ... ], // or
+                            'paths' : ['PATHPATTERN', ... ],
+                        },
                     ...
-                },
-                'roles': [
-                    {
-                        'name': '<ROLENAME>',
-                        'keyids': ['<SIGNING KEY KEYID>', ...],
-                        'threshold': <SIGNATURE THRESHOLD>,
-                        'terminating': <TERMINATING BOOLEAN>,
-                        'path_hash_prefixes': ['<HEX DIGEST>', ... ], // or
-                        'paths' : ['PATHPATTERN', ... ],
-                    },
-                ...
-                ]
-            }
+                    ]
+                }
 
     """
 
@@ -798,7 +806,7 @@ class Targets(Signed):
         spec_version: str,
         expires: datetime,
         targets: Mapping[str, Any],
-        delegations: Mapping[str, Any],
+        delegations: Optional[Mapping[str, Any]] = None,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
         super().__init__(version, spec_version, expires, unrecognized_fields)
@@ -811,19 +819,16 @@ class Targets(Signed):
         """Creates Targets object from its dict representation."""
         common_args = cls._common_fields_from_dict(targets_dict)
         targets = targets_dict.pop("targets")
-        delegations = targets_dict.pop("delegations")
+        delegations = targets_dict.pop("delegations", None)
         # All fields left in the targets_dict are unrecognized.
         return cls(*common_args, targets, delegations, targets_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
         targets_dict = self._common_fields_to_dict()
-        targets_dict.update(
-            {
-                "targets": self.targets,
-                "delegations": self.delegations,
-            }
-        )
+        targets_dict["targets"] = self.targets
+        if self.delegations:
+            targets_dict["delegations"] = self.delegations
         return targets_dict
 
     # Modification.

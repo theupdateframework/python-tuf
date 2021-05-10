@@ -23,6 +23,7 @@ from tests import utils
 import tuf.exceptions
 from tuf.api.metadata import (
     Metadata,
+    Root,
     Snapshot,
     Timestamp,
     Targets,
@@ -98,6 +99,7 @@ class TestMetadata(unittest.TestCase):
 
     def test_generic_read(self):
         for metadata, inner_metadata_cls in [
+                ('root', Root),
                 ('snapshot', Snapshot),
                 ('timestamp', Timestamp),
                 ('targets', Targets)]:
@@ -144,7 +146,7 @@ class TestMetadata(unittest.TestCase):
 
 
     def test_read_write_read_compare(self):
-        for metadata in ['snapshot', 'timestamp', 'targets']:
+        for metadata in ['root', 'snapshot', 'timestamp', 'targets']:
             path = os.path.join(self.repo_dir, 'metadata', metadata + '.json')
             metadata_obj = Metadata.from_file(path)
 
@@ -258,6 +260,18 @@ class TestMetadata(unittest.TestCase):
         snapshot.signed.update('role1', 2, 123, hashes)
         self.assertEqual(snapshot.signed.meta, fileinfo)
 
+        # Update only version. Length and hashes are optional.
+        snapshot.signed.update('role2', 3)
+        fileinfo['role2.json'] = {'version': 3}
+        self.assertEqual(snapshot.signed.meta, fileinfo)
+
+        # Test from_dict and to_dict without hashes and length.
+        snapshot_dict = snapshot.to_dict()
+        test_dict = snapshot_dict['signed'].copy()
+        del test_dict['meta']['role1.json']['length']
+        del test_dict['meta']['role1.json']['hashes']
+        snapshot = Snapshot.from_dict(test_dict)
+        self.assertEqual(snapshot_dict['signed'], snapshot.to_dict())
 
     def test_metadata_timestamp(self):
         timestamp_path = os.path.join(
@@ -293,6 +307,18 @@ class TestMetadata(unittest.TestCase):
         timestamp.signed.update(2, 520, hashes)
         self.assertEqual(timestamp.signed.meta['snapshot.json'], fileinfo)
 
+        # Test from_dict and to_dict without hashes and length.
+        timestamp_dict = timestamp.to_dict()
+        test_dict = timestamp_dict['signed'].copy()
+        del test_dict['meta']['snapshot.json']['length']
+        del test_dict['meta']['snapshot.json']['hashes']
+        timestamp_test = Timestamp.from_dict(test_dict)
+        self.assertEqual(timestamp_dict['signed'], timestamp_test.to_dict())
+
+        # Update only version. Length and hashes are optional.
+        timestamp.signed.update(3)
+        fileinfo = {'version': 3}
+        self.assertEqual(timestamp.signed.meta['snapshot.json'], fileinfo)
 
     def test_key_class(self):
         keys = {
@@ -418,6 +444,14 @@ class TestMetadata(unittest.TestCase):
         targets.signed.update(filename, fileinfo)
         # Verify that data is updated
         self.assertEqual(targets.signed.targets[filename], fileinfo)
+
+        # Test from_dict/to_dict Targets without delegations
+        targets_dict = targets.to_dict()
+        del targets_dict["signed"]["delegations"]
+        tmp_dict = targets_dict["signed"].copy()
+        targets_obj = Targets.from_dict(tmp_dict)
+        tar_d = targets_obj.to_dict()
+        self.assertEqual(targets_dict["signed"], targets_obj.to_dict())
 
     def setup_dict_with_unrecognized_field(self, file_path, field, value):
         json_dict = {}
