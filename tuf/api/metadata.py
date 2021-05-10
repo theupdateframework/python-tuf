@@ -18,7 +18,7 @@ available in the class model.
 import abc
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, Dict, List, Mapping, Optional, Type
+from typing import Any, ClassVar, Dict, List, Mapping, Optional, Tuple, Type
 
 from securesystemslib.keys import verify_signature
 from securesystemslib.signer import Signature, Signer
@@ -364,7 +364,9 @@ class Signed(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @classmethod
-    def _common_fields_from_dict(cls, signed_dict: Dict[str, Any]) -> List[Any]:
+    def _common_fields_from_dict(
+        cls, signed_dict: Dict[str, Any]
+    ) -> Tuple[int, str, datetime]:
         """Returns common fields of 'Signed' instances from the passed dict
         representation, and returns an ordered list to be passed as leading
         positional arguments to a subclass constructor.
@@ -383,7 +385,7 @@ class Signed(metaclass=abc.ABCMeta):
         # what the constructor expects and what we store. The inverse operation
         # is implemented in '_common_fields_to_dict'.
         expires = formats.expiry_string_to_datetime(expires_str)
-        return [version, spec_version, expires]
+        return version, spec_version, expires
 
     def _common_fields_to_dict(self) -> Dict[str, Any]:
         """Returns dict representation of common fields of 'Signed' instances.
