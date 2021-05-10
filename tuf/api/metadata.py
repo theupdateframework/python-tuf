@@ -18,7 +18,7 @@ available in the class model.
 import abc
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, Dict, List, Mapping, Optional
+from typing import Any, ClassVar, Dict, List, Mapping, Optional, Type
 
 from securesystemslib.keys import verify_signature
 from securesystemslib.signer import Signature, Signer
@@ -79,7 +79,7 @@ class Metadata:
         _type = metadata["signed"]["_type"]
 
         if _type == "targets":
-            inner_cls = Targets
+            inner_cls: Type[Signed] = Targets
         elif _type == "snapshot":
             inner_cls = Snapshot
         elif _type == "timestamp":
