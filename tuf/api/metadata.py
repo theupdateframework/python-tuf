@@ -17,7 +17,7 @@ available in the class model.
 """
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, ClassVar, Dict, List, Mapping, Optional
 
 from securesystemslib.keys import verify_signature
 from securesystemslib.signer import Signature, Signer
@@ -321,7 +321,7 @@ class Signed:
     """
 
     # Signed implementations are expected to override this
-    _signed_type = None
+    _signed_type: ClassVar[str] = "signed"
 
     # _type and type are identical: 1st replicates file format, 2nd passes lint
     @property
