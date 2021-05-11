@@ -419,6 +419,8 @@ class TestMetadata(unittest.TestCase):
         self.assertNotIn(keyid, root.signed.roles['root'].keyids)
         self.assertNotIn(keyid, root.signed.keys)
 
+        with self.assertRaises(KeyError):
+            root.signed.remove_key('root', 'nosuchkey')
 
 
     def test_metadata_targets(self):
