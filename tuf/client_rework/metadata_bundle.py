@@ -4,10 +4,11 @@
 """TUF client bundle-of-metadata
 
 MetadataBundle keeps track of current valid set of metadata for the client,
-and handles almost every step of the "Detailed client workflow" in the TUF
-specification (the remaining steps are download related). The bundle takes
-care of persisting valid metadata on disk, loading local metadata from disk
-and deleting invalid local metadata.
+and handles almost every step of the "Detailed client workflow" (
+https://theupdateframework.github.io/specification/latest#detailed-client-workflow)
+in the TUF specification (the remaining steps are download related). The
+bundle takes care of persisting valid metadata on disk and loading local
+metadata from disk.
 
 Loaded metadata can be accessed via the index access with rolename as key
 or, in the case of top-level metadata using the helper properties like
@@ -16,9 +17,12 @@ or, in the case of top-level metadata using the helper properties like
 The rules for top-level metadata are
  * Metadata is loadable only if metadata it depends on is loaded
  * Metadata is immutable if any metadata depending on it has been loaded
- * Caller must load/update these in order:
+ * Metadata must be loaded/updated in order:
    root -> timestamp -> snapshot -> targets -> (other delegated targets)
- * Caller should try loading local file before updating metadata from remote
+ * For each metadata either local load or the remote update must succeed
+ * Caller should try loading local version before updating metadata from remote
+   (the exception is root where local data is loaded at MetadataBundle
+   initialization: the initialization fails if local data cannot be loaded)
 
 Exceptions are raised if metadata fails to load in any way. The exception
 to this is local loads -- only local root metadata needs to be valid:
@@ -104,7 +108,7 @@ logger = logging.getLogger(__name__)
 def verify_with_threshold(
     delegator: Metadata, role_name: str, unverified: Metadata
 ) -> bool:
-    """Verify 'unverified' with keys and treshold defined in delegator"""
+    """Verify 'unverified' with keys and threshold defined in delegator"""
     if delegator.signed._type == "root":
         keys = delegator.signed.keys
         role = delegator.signed.roles.get(role_name)
