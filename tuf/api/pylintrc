@@ -44,7 +44,7 @@ max-line-length=80
 single-line-if-stmt=yes
 
 [LOGGING]
-logging-format-style=new
+logging-format-style=old
 
 [MISCELLANEOUS]
 notes=TODO
