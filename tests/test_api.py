@@ -243,6 +243,51 @@ class TestMetadata(unittest.TestCase):
         self.assertFalse(is_expired)
         md.signed.expires = expires
 
+
+    def test_metafile_class(self):
+        # Test from_dict and to_dict with all attributes.
+        data = {
+            "hashes": {
+                "sha256": "8f88e2ba48b412c3843e9bb26e1b6f8fc9e98aceb0fbaa97ba37b4c98717d7ab"
+            },
+            "length": 515,
+            "version": 1
+        }
+        metafile_obj = MetaFile.from_dict(copy.copy(data))
+        self.assertEqual(metafile_obj.to_dict(), data)
+
+        # Test from_dict and to_dict without length.
+        del data["length"]
+        metafile_obj = MetaFile.from_dict(copy.copy(data))
+        self.assertEqual(metafile_obj.to_dict(), data)
+
+        # Test from_dict and to_dict without length and hashes.
+        del data["hashes"]
+        metafile_obj = MetaFile.from_dict(copy.copy(data))
+        self.assertEqual(metafile_obj.to_dict(), data)
+
+
+    def test_targetfile_class(self):
+        # Test from_dict and to_dict with all attributes.
+        data = {
+            "custom": {
+                "file_permissions": "0644"
+            },
+            "hashes": {
+                "sha256": "65b8c67f51c993d898250f40aa57a317d854900b3a04895464313e48785440da",
+                "sha512": "467430a68afae8e9f9c0771ea5d78bf0b3a0d79a2d3d3b40c69fde4dd42c461448aef76fcef4f5284931a1ffd0ac096d138ba3a0d6ca83fa8d7285a47a296f77"
+            },
+            "length": 31
+        }
+        targetfile_obj = TargetFile.from_dict(copy.copy(data))
+        self.assertEqual(targetfile_obj.to_dict(), data)
+
+        # Test from_dict and to_dict without custom.
+        del data["custom"]
+        targetfile_obj = TargetFile.from_dict(copy.copy(data))
+        self.assertEqual(targetfile_obj.to_dict(), data)
+
+
     def test_metadata_snapshot(self):
         snapshot_path = os.path.join(
                 self.repo_dir, 'metadata', 'snapshot.json')
