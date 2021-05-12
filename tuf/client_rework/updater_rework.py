@@ -11,6 +11,7 @@ import fnmatch
 import logging
 import os
 from typing import Dict, Optional
+from urllib import parse
 
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import hash as sslib_hash
@@ -18,7 +19,7 @@ from securesystemslib import util as sslib_util
 
 from tuf import exceptions, settings
 from tuf.client.fetcher import FetcherInterface
-from tuf.client_rework import download, mirrors, requests_fetcher
+from tuf.client_rework import download, requests_fetcher
 
 from .metadata_wrapper import (
     RootWrapper,
@@ -35,27 +36,32 @@ class Updater:
     """
     Provides a class that can download target files securely.
 
-    Attributes:
-        metadata:
-
-        repository_name:
-
-        mirrors:
-
-        fetcher:
-
-        consistent_snapshot:
+    TODO
     """
 
     def __init__(
         self,
         repository_name: str,
-        repository_mirrors: Dict,
+        metadata_base_url: str,
+        target_base_url: Optional[str] = None,
         fetcher: Optional[FetcherInterface] = None,
     ):
-
+        """
+        Args:
+            repository_name: directory name (within a local directory
+                defined by 'tuf.settings.repositories_directory')
+            metadata_base_url: Base URL for all remote metadata downloads
+            target_base_url: Optional; Default base URL for all remote target
+                downloads. Can be individually set in download_target()
+            fetcher: Optional; FetcherInterface implementation used to download
+                both metadata and targets. Default is RequestsFetcher
+        """
         self._repository_name = repository_name
-        self._mirrors = repository_mirrors
+        self._metadata_base_url = _ensure_trailing_slash(metadata_base_url)
+        if target_base_url is None:
+            self._target_base_url = None
+        else:
+            self._target_base_url = _ensure_trailing_slash(target_base_url)
         self._consistent_snapshot = False
         self._metadata = {}
 
@@ -83,13 +89,20 @@ class Updater:
         self._load_snapshot()
         self._load_targets("targets", "root")
 
-    def get_one_valid_targetinfo(self, filename: str) -> Dict:
+    def get_one_valid_targetinfo(self, target_path: str) -> Dict:
         """
-        Returns the target information for a specific file identified by its
-        file path.  This target method also downloads the metadata of updated
-        targets.
+        Returns the target information for a target identified by target_path.
+
+        As a side-effect this method downloads all the metadata it needs to
+        return the target information.
+
+        Args:
+            target_path: A target identifier that is a path-relative-URL string
+                (https://url.spec.whatwg.org/#path-relative-url-string).
+                Typically this is also the unix file path of the eventually
+                downloaded file.
         """
-        return self._preorder_depth_first_walk(filename)
+        return self._preorder_depth_first_walk(target_path)
 
     @staticmethod
     def updated_targets(targets: Dict, destination_directory: str) -> Dict:
@@ -142,46 +155,45 @@ class Updater:
 
         return updated_targets
 
-    def download_target(self, target: Dict, destination_directory: str):
+    def download_target(
+        self,
+        targetinfo: Dict,
+        destination_directory: str,
+        target_base_url: Optional[str] = None,
+    ):
         """
-        This method performs the actual download of the specified target.
-        The file is saved to the 'destination_directory' argument.
+        Download target specified by 'targetinfo' into 'destination_directory'.
+
+        Args:
+            targetinfo: data received from get_one_valid_targetinfo()
+            destination_directory: existing local directory to download into.
+                Note that new directories may be created inside
+                destination_directory as required.
+            target_base_url: Optional; Base URL used to form the final target
+                download URL. Default is the value provided in Updater()
         """
+        if target_base_url is None and self._target_base_url is None:
+            raise ValueError(
+                "target_base_url must be set in either download_target() or "
+                "constructor"
+            )
+        if target_base_url is None:
+            target_base_url = self._target_base_url
+        else:
+            target_base_url = _ensure_trailing_slash(target_base_url)
 
-        temp_obj = None
-        file_mirror_errors = {}
-        file_mirrors = mirrors.get_list_of_mirrors(
-            "target", target["filepath"], self._mirrors
-        )
+        full_url = parse.urljoin(target_base_url, targetinfo["filepath"])
 
-        for file_mirror in file_mirrors:
-            try:
-                temp_obj = download.download_file(
-                    file_mirror, target["fileinfo"]["length"], self._fetcher
-                )
-                _check_file_length(temp_obj, target["fileinfo"]["length"])
-                temp_obj.seek(0)
-                _check_hashes_obj(temp_obj, target["fileinfo"]["hashes"])
-                break
+        with download.download_file(
+            full_url, targetinfo["fileinfo"]["length"], self._fetcher
+        ) as target_file:
+            _check_file_length(target_file, targetinfo["fileinfo"]["length"])
+            _check_hashes_obj(target_file, targetinfo["fileinfo"]["hashes"])
 
-            except Exception as exception:  # pylint:  disable=broad-except
-                # Store the exceptions until all mirrors are iterated.
-                # If an exception is raised from one mirror but a valid
-                # file is found in the next one, the first exception is ignored.
-                file_mirror_errors[file_mirror] = exception
-
-                if temp_obj:
-                    temp_obj.close()
-                    temp_obj = None
-
-        # If all mirrors are iterated but a file object is not successfully
-        # downloaded and verifies, raise the collected errors
-        if not temp_obj:
-            raise exceptions.NoWorkingMirrorError(file_mirror_errors)
-
-        filepath = os.path.join(destination_directory, target["filepath"])
-        sslib_util.persist_temp_file(temp_obj, filepath)
-        temp_obj.close()
+            filepath = os.path.join(
+                destination_directory, targetinfo["filepath"]
+            )
+            sslib_util.persist_temp_file(target_file, filepath)
 
     def _get_full_meta_name(
         self, role: str, extension: str = ".json", version: int = None
@@ -223,37 +235,31 @@ class Updater:
 
         for next_version in range(lower_bound, upper_bound):
             try:
-                root_mirrors = mirrors.get_list_of_mirrors(
-                    "meta",
-                    f"{next_version}.root.json",
-                    self._mirrors,
+                root_url = parse.urljoin(
+                    self._metadata_base_url, f"{next_version}.root.json"
                 )
-
                 # For each version of root iterate over the list of mirrors
                 # until an intermediate root is successfully downloaded and
                 # verified.
-                intermediate_root = self._root_mirrors_download(root_mirrors)
+                data = download.download_bytes(
+                    root_url,
+                    settings.DEFAULT_ROOT_REQUIRED_LENGTH,
+                    self._fetcher,
+                    strict_required_length=False,
+                )
 
-            # Exit the loop when all mirrors have raised only 403 / 404 errors,
-            # which indicates that a bigger root version does not exist.
-            except exceptions.NoWorkingMirrorError as exception:
-                for mirror_error in exception.mirror_errors.values():
-                    # Otherwise, reraise the error, because it is not a simple
-                    # HTTP error.
-                    if neither_403_nor_404(mirror_error):
-                        logger.info(
-                            "Misc error for root version " + str(next_version)
-                        )
-                        raise
+                intermediate_root = self._verify_root(data)
+                # TODO: persist should happen here for each intermediate
+                # root according to the spec
 
-                logger.debug("HTTP error for root version " + str(next_version))
-                # If we are here, then we ran into only 403 / 404 errors, which
-                # are good reasons to suspect that the next root metadata file
-                # does not exist.
+            except exceptions.FetcherHTTPError as exception:
+                if exception.status_code not in {403, 404}:
+                    raise
+                # Stop looking for a bigger version if "File not found"
+                # error is received
                 break
 
-        # Continue only if a newer root version is found
-        if intermediate_root is not None:
+        if intermediate_root:
             # Check for a freeze attack. The latest known time MUST be lower
             # than the expiration timestamp in the trusted root metadata file
             # TODO define which exceptions are part of the public API
@@ -288,91 +294,19 @@ class Updater:
                 "root"
             ].signed.consistent_snapshot
 
-    def _root_mirrors_download(self, root_mirrors: Dict) -> "RootWrapper":
-        """Iterate over the list of "root_mirrors" until an intermediate
-        root is successfully downloaded and verified.
-        Raise "NoWorkingMirrorError" if a root file cannot be downloaded or
-        verified from any mirror"""
-
-        file_mirror_errors = {}
-        temp_obj = None
-        intermediate_root = None
-
-        for root_mirror in root_mirrors:
-            try:
-                temp_obj = download.download_file(
-                    root_mirror,
-                    settings.DEFAULT_ROOT_REQUIRED_LENGTH,
-                    self._fetcher,
-                    strict_required_length=False,
-                )
-
-                temp_obj.seek(0)
-                intermediate_root = self._verify_root(temp_obj.read())
-                # When we reach this point, a root file has been successfully
-                # downloaded and verified so we can exit the loop.
-                break
-
-            # pylint cannot figure out that we store the exceptions
-            # in a dictionary to raise them later so we disable
-            # the warning. This should be reviewed in the future still.
-            except Exception as exception:  # pylint:  disable=broad-except
-                # Store the exceptions until all mirrors are iterated.
-                # If an exception is raised from one mirror but a valid
-                # file is found in the next one, the first exception is ignored.
-                file_mirror_errors[root_mirror] = exception
-
-            finally:
-                if temp_obj:
-                    temp_obj.close()
-                    temp_obj = None
-
-        if not intermediate_root:
-            # If all mirrors are tried but a valid root file is not found,
-            # then raise an exception with the stored errors
-            raise exceptions.NoWorkingMirrorError(file_mirror_errors)
-
-        return intermediate_root
-
     def _load_timestamp(self) -> None:
         """
         TODO
         """
         # TODO Check if timestamp exists locally
-
-        file_mirrors = mirrors.get_list_of_mirrors(
-            "meta", "timestamp.json", self._mirrors
+        timestamp_url = parse.urljoin(self._metadata_base_url, "timestamp.json")
+        data = download.download_bytes(
+            timestamp_url,
+            settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH,
+            self._fetcher,
+            strict_required_length=False,
         )
-
-        file_mirror_errors = {}
-        verified_timestamp = None
-        for file_mirror in file_mirrors:
-            try:
-                temp_obj = download.download_file(
-                    file_mirror,
-                    settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH,
-                    self._fetcher,
-                    strict_required_length=False,
-                )
-
-                temp_obj.seek(0)
-                verified_timestamp = self._verify_timestamp(temp_obj.read())
-                break
-
-            except Exception as exception:  # pylint:  disable=broad-except
-                file_mirror_errors[file_mirror] = exception
-
-            finally:
-                if temp_obj:
-                    temp_obj.close()
-                    temp_obj = None
-
-        if not verified_timestamp:
-            raise exceptions.NoWorkingMirrorError(file_mirror_errors)
-
-        self._metadata["timestamp"] = verified_timestamp
-        # Persist root metadata. The client MUST write the file to
-        # non-volatile storage as FILENAME.EXT (e.g. root.json).
+        self._metadata["timestamp"] = self._verify_timestamp(data)
         self._metadata["timestamp"].persist(
             self._get_full_meta_name("timestamp.json")
         )
@@ -393,40 +327,15 @@ class Updater:
         #     version = None
 
         # TODO: Check if exists locally
-
-        file_mirrors = mirrors.get_list_of_mirrors(
-            "meta", "snapshot.json", self._mirrors
+        snapshot_url = parse.urljoin(self._metadata_base_url, "snapshot.json")
+        data = download.download_bytes(
+            snapshot_url,
+            length,
+            self._fetcher,
+            strict_required_length=False,
         )
 
-        file_mirror_errors = {}
-        verified_snapshot = False
-        for file_mirror in file_mirrors:
-            try:
-                temp_obj = download.download_file(
-                    file_mirror,
-                    length,
-                    self._fetcher,
-                    strict_required_length=False,
-                )
-
-                temp_obj.seek(0)
-                verified_snapshot = self._verify_snapshot(temp_obj.read())
-                break
-
-            except Exception as exception:  # pylint:  disable=broad-except
-                file_mirror_errors[file_mirror] = exception
-
-            finally:
-                if temp_obj:
-                    temp_obj.close()
-                    temp_obj = None
-
-        if not verified_snapshot:
-            raise exceptions.NoWorkingMirrorError(file_mirror_errors)
-
-        self._metadata["snapshot"] = verified_snapshot
-        # Persist root metadata. The client MUST write the file to
-        # non-volatile storage as FILENAME.EXT (e.g. root.json).
+        self._metadata["snapshot"] = self._verify_snapshot(data)
         self._metadata["snapshot"].persist(
             self._get_full_meta_name("snapshot.json")
         )
@@ -448,41 +357,19 @@ class Updater:
 
         # TODO: Check if exists locally
 
-        file_mirrors = mirrors.get_list_of_mirrors(
-            "meta", f"{targets_role}.json", self._mirrors
+        targets_url = parse.urljoin(
+            self._metadata_base_url, f"{targets_role}.json"
+        )
+        data = download.download_bytes(
+            targets_url,
+            length,
+            self._fetcher,
+            strict_required_length=False,
         )
 
-        file_mirror_errors = {}
-        verified_targets = False
-        for file_mirror in file_mirrors:
-            try:
-                temp_obj = download.download_file(
-                    file_mirror,
-                    length,
-                    self._fetcher,
-                    strict_required_length=False,
-                )
-
-                temp_obj.seek(0)
-                verified_targets = self._verify_targets(
-                    temp_obj.read(), targets_role, parent_role
-                )
-                break
-
-            except Exception as exception:  # pylint:  disable=broad-except
-                file_mirror_errors[file_mirror] = exception
-
-            finally:
-                if temp_obj:
-                    temp_obj.close()
-                    temp_obj = None
-
-        if not verified_targets:
-            raise exceptions.NoWorkingMirrorError(file_mirror_errors)
-
-        self._metadata[targets_role] = verified_targets
-        # Persist root metadata. The client MUST write the file to
-        # non-volatile storage as FILENAME.EXT (e.g. root.json).
+        self._metadata[targets_role] = self._verify_targets(
+            data, targets_role, parent_role
+        )
         self._metadata[targets_role].persist(
             self._get_full_meta_name(targets_role, extension=".json")
         )
@@ -780,7 +667,7 @@ def _visit_child_role(child_role: Dict, target_filepath: str) -> str:
     child_role_path_hash_prefixes = child_role.get("path_hash_prefixes")
 
     if child_role_path_hash_prefixes is not None:
-        target_filepath_hash = _get_target_hash(target_filepath)
+        target_filepath_hash = _get_filepath_hash(target_filepath)
         for child_role_path_hash_prefix in child_role_path_hash_prefixes:
             if not target_filepath_hash.startswith(child_role_path_hash_prefix):
                 continue
@@ -838,11 +725,8 @@ def _check_file_length(file_object, trusted_file_length):
     """
     file_object.seek(0, 2)
     observed_length = file_object.tell()
+    file_object.seek(0)
 
-    # Return and log a message if the length 'file_object' is equal to
-    # 'trusted_file_length', otherwise raise an exception.  A hard check
-    # ensures that a downloaded file strictly matches a known, or trusted,
-    # file length.
     if observed_length != trusted_file_length:
         raise exceptions.DownloadLengthMismatchError(
             trusted_file_length, observed_length
@@ -888,7 +772,7 @@ def _check_hashes(file_content, trusted_hashes):
         )
 
 
-def _get_target_hash(target_filepath, hash_function="sha256"):
+def _get_filepath_hash(target_filepath, hash_function="sha256"):
     """
     TODO
     """
@@ -903,11 +787,6 @@ def _get_target_hash(target_filepath, hash_function="sha256"):
     return target_filepath_hash
 
 
-def neither_403_nor_404(mirror_error):
-    """
-    TODO
-    """
-    if isinstance(mirror_error, exceptions.FetcherHTTPError):
-        if mirror_error.status_code in {403, 404}:
-            return False
-    return True
+def _ensure_trailing_slash(url: str):
+    """Return url guaranteed to end in a slash"""
+    return url if url.endswith("/") else f"{url}/"

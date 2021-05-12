@@ -138,7 +138,19 @@ def download_file(url, required_length, fetcher, strict_required_length=True):
         raise
 
     else:
+        temp_file.seek(0)
         return temp_file
+
+
+def download_bytes(url, required_length, fetcher, strict_required_length=True):
+    """Download bytes from given url
+
+    Returns the downloaded bytes, otherwise like download_file()
+    """
+    with download_file(
+        url, required_length, fetcher, strict_required_length
+    ) as dl_file:
+        return dl_file.read()
 
 
 def _check_downloaded_length(
