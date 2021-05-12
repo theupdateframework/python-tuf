@@ -23,9 +23,14 @@ from tests import utils
 import tuf.exceptions
 from tuf.api.metadata import (
     Metadata,
+    Root,
     Snapshot,
     Timestamp,
-    Targets
+    Targets,
+    Key,
+    Role,
+    Delegations,
+    DelegatedRole,
 )
 
 from tuf.api.serialization import (
@@ -96,6 +101,7 @@ class TestMetadata(unittest.TestCase):
 
     def test_generic_read(self):
         for metadata, inner_metadata_cls in [
+                ('root', Root),
                 ('snapshot', Snapshot),
                 ('timestamp', Timestamp),
                 ('targets', Targets)]:
@@ -142,7 +148,7 @@ class TestMetadata(unittest.TestCase):
 
 
     def test_read_write_read_compare(self):
-        for metadata in ['snapshot', 'timestamp', 'targets']:
+        for metadata in ['root', 'snapshot', 'timestamp', 'targets']:
             path = os.path.join(self.repo_dir, 'metadata', metadata + '.json')
             metadata_obj = Metadata.from_file(path)
 
@@ -256,6 +262,18 @@ class TestMetadata(unittest.TestCase):
         snapshot.signed.update('role1', 2, 123, hashes)
         self.assertEqual(snapshot.signed.meta, fileinfo)
 
+        # Update only version. Length and hashes are optional.
+        snapshot.signed.update('role2', 3)
+        fileinfo['role2.json'] = {'version': 3}
+        self.assertEqual(snapshot.signed.meta, fileinfo)
+
+        # Test from_dict and to_dict without hashes and length.
+        snapshot_dict = snapshot.to_dict()
+        test_dict = snapshot_dict['signed'].copy()
+        del test_dict['meta']['role1.json']['length']
+        del test_dict['meta']['role1.json']['hashes']
+        snapshot = Snapshot.from_dict(test_dict)
+        self.assertEqual(snapshot_dict['signed'], snapshot.to_dict())
 
     def test_metadata_timestamp(self):
         timestamp_path = os.path.join(
@@ -291,6 +309,81 @@ class TestMetadata(unittest.TestCase):
         timestamp.signed.update(2, 520, hashes)
         self.assertEqual(timestamp.signed.meta['snapshot.json'], fileinfo)
 
+        # Test from_dict and to_dict without hashes and length.
+        timestamp_dict = timestamp.to_dict()
+        test_dict = timestamp_dict['signed'].copy()
+        del test_dict['meta']['snapshot.json']['length']
+        del test_dict['meta']['snapshot.json']['hashes']
+        timestamp_test = Timestamp.from_dict(test_dict)
+        self.assertEqual(timestamp_dict['signed'], timestamp_test.to_dict())
+
+        # Update only version. Length and hashes are optional.
+        timestamp.signed.update(3)
+        fileinfo = {'version': 3}
+        self.assertEqual(timestamp.signed.meta['snapshot.json'], fileinfo)
+
+    def test_key_class(self):
+        keys = {
+            "59a4df8af818e9ed7abe0764c0b47b4240952aa0d179b5b78346c470ac30278d":{
+                "keytype": "ed25519",
+                "keyval": {
+                    "public": "edcd0a32a07dce33f7c7873aaffbff36d20ea30787574ead335eefd337e4dacd"
+                },
+                "scheme": "ed25519"
+            },
+        }
+        for key_dict in keys.values():
+            # Testing that the workflow of deserializing and serializing
+            # a key dictionary doesn't change the content.
+            test_key_dict = key_dict.copy()
+            key_obj = Key.from_dict(test_key_dict)
+            self.assertEqual(key_dict, key_obj.to_dict())
+            # Test creating an instance without a required attribute.
+            for key in key_dict.keys():
+                test_key_dict = key_dict.copy()
+                del test_key_dict[key]
+                with self.assertRaises(KeyError):
+                    Key.from_dict(test_key_dict)
+            # Test creating a Key instance with wrong keyval format.
+            key_dict["keyval"] = {}
+            with self.assertRaises(ValueError):
+                Key.from_dict(key_dict)
+
+
+    def test_role_class(self):
+        roles = {
+            "root": {
+                "keyids": [
+                    "4e777de0d275f9d28588dd9a1606cc748e548f9e22b6795b7cb3f63f98035fcb"
+                ],
+                "threshold": 1
+            },
+            "snapshot": {
+                "keyids": [
+                    "59a4df8af818e9ed7abe0764c0b47b4240952aa0d179b5b78346c470ac30278d"
+                ],
+                "threshold": 1
+            },
+        }
+        for role_dict in roles.values():
+            # Testing that the workflow of deserializing and serializing
+            # a role dictionary doesn't change the content.
+            test_role_dict = role_dict.copy()
+            role_obj = Role.from_dict(test_role_dict)
+            self.assertEqual(role_dict, role_obj.to_dict())
+            # Test creating an instance without a required attribute.
+            for role_attr in role_dict.keys():
+                test_role_dict = role_dict.copy()
+                del test_role_dict[role_attr]
+                with self.assertRaises(KeyError):
+                    Key.from_dict(test_role_dict)
+            # Test creating a Role instance with keyid dublicates.
+            # for keyid in role_dict["keyids"]:
+            role_dict["keyids"].append(role_dict["keyids"][0])
+            test_role_dict = role_dict.copy()
+            with self.assertRaises(ValueError):
+                Role.from_dict(test_role_dict)
+
 
     def test_metadata_root(self):
         root_path = os.path.join(
@@ -306,23 +399,100 @@ class TestMetadata(unittest.TestCase):
             root_key2['keytype'], root_key2['scheme'], root_key2['keyval'])
 
         # Assert that root does not contain the new key
-        self.assertNotIn(keyid, root.signed.roles['root']['keyids'])
+        self.assertNotIn(keyid, root.signed.roles['root'].keyids)
         self.assertNotIn(keyid, root.signed.keys)
 
         # Add new root key
         root.signed.add_key('root', keyid, key_metadata)
 
         # Assert that key is added
-        self.assertIn(keyid, root.signed.roles['root']['keyids'])
+        self.assertIn(keyid, root.signed.roles['root'].keyids)
         self.assertIn(keyid, root.signed.keys)
+
+        # Try adding the same key again and assert its ignored.
+        pre_add_keyid = root.signed.roles['root'].keyids.copy()
+        root.signed.add_key('root', keyid, key_metadata)
+        self.assertEqual(pre_add_keyid, root.signed.roles['root'].keyids)
 
         # Remove the key
         root.signed.remove_key('root', keyid)
 
         # Assert that root does not contain the new key anymore
-        self.assertNotIn(keyid, root.signed.roles['root']['keyids'])
+        self.assertNotIn(keyid, root.signed.roles['root'].keyids)
         self.assertNotIn(keyid, root.signed.keys)
 
+        with self.assertRaises(KeyError):
+            root.signed.remove_key('root', 'nosuchkey')
+
+    def test_delegated_role_class(self):
+        roles = [
+            {
+                "keyids": [
+                    "c8022fa1e9b9cb239a6b362bbdffa9649e61ad2cb699d2e4bc4fdf7930a0e64a"
+                ],
+                "name": "role1",
+                "paths": [
+                    "file3.txt"
+                ],
+                "terminating": False,
+                "threshold": 1
+            }
+        ]
+        for role in roles:
+            # Testing that the workflow of deserializing and serializing
+            # a delegation role dictionary doesn't change the content.
+            key_obj = DelegatedRole.from_dict(role.copy())
+            self.assertEqual(role, key_obj.to_dict())
+
+            # Test creating a DelegatedRole object with both "paths" and
+            # "path_hash_prefixes" set.
+            role["path_hash_prefixes"] = "foo"
+            with self.assertRaises(ValueError):
+                DelegatedRole.from_dict(role.copy())
+
+            # Test creating DelegatedRole only with "path_hash_prefixes"
+            del role["paths"]
+            DelegatedRole.from_dict(role.copy())
+            role["paths"] = "foo"
+
+            # Test creating DelegatedRole only with "paths"
+            del role["path_hash_prefixes"]
+            DelegatedRole.from_dict(role.copy())
+            role["path_hash_prefixes"] = "foo"
+
+            # Test creating DelegatedRole without "paths" and
+            # "path_hash_prefixes" set
+            del role["paths"]
+            del role["path_hash_prefixes"]
+            DelegatedRole.from_dict(role)
+
+
+    def test_delegation_class(self):
+        roles = [
+                {
+                    "keyids": [
+                        "c8022fa1e9b9cb239a6b362bbdffa9649e61ad2cb699d2e4bc4fdf7930a0e64a"
+                    ],
+                    "name": "role1",
+                    "paths": [
+                        "file3.txt"
+                    ],
+                    "terminating": False,
+                    "threshold": 1
+                }
+            ]
+        keys = {
+                "59a4df8af818e9ed7abe0764c0b47b4240952aa0d179b5b78346c470ac30278d":{
+                    "keytype": "ed25519",
+                    "keyval": {
+                        "public": "edcd0a32a07dce33f7c7873aaffbff36d20ea30787574ead335eefd337e4dacd"
+                    },
+                    "scheme": "ed25519"
+                },
+            }
+        delegations_dict = {"keys": keys, "roles": roles}
+        delegations = Delegations.from_dict(copy.deepcopy(delegations_dict))
+        self.assertEqual(delegations_dict, delegations.to_dict())
 
 
     def test_metadata_targets(self):
@@ -349,6 +519,13 @@ class TestMetadata(unittest.TestCase):
         # Verify that data is updated
         self.assertEqual(targets.signed.targets[filename], fileinfo)
 
+        # Test from_dict/to_dict Targets without delegations
+        targets_dict = targets.to_dict()
+        del targets_dict["signed"]["delegations"]
+        tmp_dict = targets_dict["signed"].copy()
+        targets_obj = Targets.from_dict(tmp_dict)
+        self.assertEqual(targets_dict["signed"], targets_obj.to_dict())
+
     def setup_dict_with_unrecognized_field(self, file_path, field, value):
         json_dict = {}
         with open(file_path) as f:
@@ -364,6 +541,22 @@ class TestMetadata(unittest.TestCase):
             dict1 = self.setup_dict_with_unrecognized_field(path, "f", "b")
             # Test that the metadata classes store unrecognized fields when
             # initializing and passes them when casting the instance to a dict.
+
+            # Add unrecognized fields to all metadata sub (helper) classes.
+            if metadata == "root":
+                for keyid in dict1["signed"]["keys"].keys():
+                    dict1["signed"]["keys"][keyid]["d"] = "c"
+                for role_str in dict1["signed"]["roles"].keys():
+                    dict1["signed"]["roles"][role_str]["e"] = "g"
+            elif metadata == "targets" and dict1["signed"].get("delegations"):
+                for keyid in dict1["signed"]["delegations"]["keys"].keys():
+                    dict1["signed"]["delegations"]["keys"][keyid]["d"] = "c"
+                new_roles = []
+                for role in dict1["signed"]["delegations"]["roles"]:
+                    role["e"] = "g"
+                    new_roles.append(role)
+                dict1["signed"]["delegations"]["roles"] = new_roles
+                dict1["signed"]["delegations"]["foo"] = "bar"
 
             temp_copy = copy.deepcopy(dict1)
             metadata_obj = Metadata.from_dict(temp_copy)
