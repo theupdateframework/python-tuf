@@ -123,8 +123,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # directory copied from the original repository files.
     tuf.settings.repositories_directory = self.client_directory
 
-    metadata_url = os.path.join(url_prefix, 'metadata/')
-    targets_url = os.path.join(url_prefix, 'targets/')
+    metadata_url = f"{url_prefix}/metadata/"
+    targets_url = f"{url_prefix}/targets/"
     # Creating a repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
     self.repository_updater = updater.Updater(self.repository_name,
