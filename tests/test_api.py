@@ -28,7 +28,9 @@ from tuf.api.metadata import (
     Timestamp,
     Targets,
     Key,
-    Role
+    Role,
+    Delegations,
+    DelegatedRole,
 )
 
 from tuf.api.serialization import (
@@ -328,7 +330,7 @@ class TestMetadata(unittest.TestCase):
                     "public": "edcd0a32a07dce33f7c7873aaffbff36d20ea30787574ead335eefd337e4dacd"
                 },
                 "scheme": "ed25519"
-                        },
+            },
         }
         for key_dict in keys.values():
             # Testing that the workflow of deserializing and serializing
@@ -422,6 +424,76 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(KeyError):
             root.signed.remove_key('root', 'nosuchkey')
 
+    def test_delegated_role_class(self):
+        roles = [
+            {
+                "keyids": [
+                    "c8022fa1e9b9cb239a6b362bbdffa9649e61ad2cb699d2e4bc4fdf7930a0e64a"
+                ],
+                "name": "role1",
+                "paths": [
+                    "file3.txt"
+                ],
+                "terminating": False,
+                "threshold": 1
+            }
+        ]
+        for role in roles:
+            # Testing that the workflow of deserializing and serializing
+            # a delegation role dictionary doesn't change the content.
+            key_obj = DelegatedRole.from_dict(role.copy())
+            self.assertEqual(role, key_obj.to_dict())
+
+            # Test creating a DelegatedRole object with both "paths" and
+            # "path_hash_prefixes" set.
+            role["path_hash_prefixes"] = "foo"
+            with self.assertRaises(ValueError):
+                DelegatedRole.from_dict(role.copy())
+
+            # Test creating DelegatedRole only with "path_hash_prefixes"
+            del role["paths"]
+            DelegatedRole.from_dict(role.copy())
+            role["paths"] = "foo"
+
+            # Test creating DelegatedRole only with "paths"
+            del role["path_hash_prefixes"]
+            DelegatedRole.from_dict(role.copy())
+            role["path_hash_prefixes"] = "foo"
+
+            # Test creating DelegatedRole without "paths" and
+            # "path_hash_prefixes" set
+            del role["paths"]
+            del role["path_hash_prefixes"]
+            DelegatedRole.from_dict(role)
+
+
+    def test_delegation_class(self):
+        roles = [
+                {
+                    "keyids": [
+                        "c8022fa1e9b9cb239a6b362bbdffa9649e61ad2cb699d2e4bc4fdf7930a0e64a"
+                    ],
+                    "name": "role1",
+                    "paths": [
+                        "file3.txt"
+                    ],
+                    "terminating": False,
+                    "threshold": 1
+                }
+            ]
+        keys = {
+                "59a4df8af818e9ed7abe0764c0b47b4240952aa0d179b5b78346c470ac30278d":{
+                    "keytype": "ed25519",
+                    "keyval": {
+                        "public": "edcd0a32a07dce33f7c7873aaffbff36d20ea30787574ead335eefd337e4dacd"
+                    },
+                    "scheme": "ed25519"
+                },
+            }
+        delegations_dict = {"keys": keys, "roles": roles}
+        delegations = Delegations.from_dict(copy.deepcopy(delegations_dict))
+        self.assertEqual(delegations_dict, delegations.to_dict())
+
 
     def test_metadata_targets(self):
         targets_path = os.path.join(
@@ -452,7 +524,6 @@ class TestMetadata(unittest.TestCase):
         del targets_dict["signed"]["delegations"]
         tmp_dict = targets_dict["signed"].copy()
         targets_obj = Targets.from_dict(tmp_dict)
-        tar_d = targets_obj.to_dict()
         self.assertEqual(targets_dict["signed"], targets_obj.to_dict())
 
     def setup_dict_with_unrecognized_field(self, file_path, field, value):
@@ -477,6 +548,15 @@ class TestMetadata(unittest.TestCase):
                     dict1["signed"]["keys"][keyid]["d"] = "c"
                 for role_str in dict1["signed"]["roles"].keys():
                     dict1["signed"]["roles"][role_str]["e"] = "g"
+            elif metadata == "targets" and dict1["signed"].get("delegations"):
+                for keyid in dict1["signed"]["delegations"]["keys"].keys():
+                    dict1["signed"]["delegations"]["keys"][keyid]["d"] = "c"
+                new_roles = []
+                for role in dict1["signed"]["delegations"]["roles"]:
+                    role["e"] = "g"
+                    new_roles.append(role)
+                dict1["signed"]["delegations"]["roles"] = new_roles
+                dict1["signed"]["delegations"]["foo"] = "bar"
 
             temp_copy = copy.deepcopy(dict1)
             metadata_obj = Metadata.from_dict(temp_copy)
