@@ -31,6 +31,11 @@ from tuf.api.serialization import (
     SignedSerializer,
 )
 
+# Disable the "C0302: Too many lines in module" warning which warns for modules
+# with more 1000 lines, because all of the code here is logically connected
+# and currently, we are above 1000 lines by a small margin.
+# pylint: disable=C0302
+
 
 class Metadata:
     """A container for signed TUF metadata.
