@@ -557,8 +557,9 @@ class Updater:
 
             # And also decrement number of visited roles.
             number_of_delegations -= 1
-            delegations = role_metadata.delegations
-            child_roles = delegations.roles
+            child_roles = []
+            if role_metadata.delegations is not None:
+                child_roles = role_metadata.delegations.roles
 
             if target is None:
 
