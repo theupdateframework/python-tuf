@@ -95,8 +95,8 @@ class RootWrapper(MetadataWrapper):
         TODO
         """
         keys = []
-        for keyid in self._meta.signed.roles[role]["keyids"]:
-            key_metadata = self._meta.signed.keys[keyid]
+        for keyid in self._meta.signed.roles[role].keyids:
+            key_metadata = self._meta.signed.keys[keyid].to_dict()
             key, dummy = format_metadata_to_key(key_metadata)
             keys.append(key)
 
@@ -106,7 +106,7 @@ class RootWrapper(MetadataWrapper):
         """
         TODO
         """
-        return self._meta.signed.roles[role]["threshold"]
+        return self._meta.signed.roles[role].threshold
 
 
 class TimestampWrapper(MetadataWrapper):
@@ -158,20 +158,26 @@ class TargetsWrapper(MetadataWrapper):
         TODO
         """
         keys = []
-        for delegation in self._meta.signed.delegations["roles"]:
-            if delegation["name"] == role:
-                for keyid in delegation["keyids"]:
-                    key_metadata = self._meta.signed.delegations["keys"][keyid]
-                    key, dummy = format_metadata_to_key(key_metadata)
-                    keys.append(key)
-            return keys
+        if self._meta.signed.delegations is not None:
+            for delegation in self._meta.signed.delegations.roles:
+                if delegation.name == role:
+                    for keyid in delegation.keyids:
+                        key_metadata = self._meta.signed.delegations.keys[keyid]
+                        key, dummy = format_metadata_to_key(
+                            key_metadata.to_dict()
+                        )
+                        keys.append(key)
+                return keys
+
+        return keys
 
     def threshold(self, role):
         """
         TODO
         """
-        for delegation in self._meta.signed.delegations["roles"]:
-            if delegation["name"] == role:
-                return delegation["threshold"]
+        if self._meta.signed.delegations is not None:
+            for delegation in self._meta.signed.delegations.roles:
+                if delegation.name == role:
+                    return delegation.threshold
 
         return None

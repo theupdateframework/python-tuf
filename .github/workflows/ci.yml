@@ -69,6 +69,9 @@ jobs:
         run: tox
 
       - name: Publish on coveralls.io
+        # A failure to publish coverage results on coveralls should not
+        # be a reason for a job failure.
+        continue-on-error: true
         # TODO: Maybe make 'lint' a separate job instead of case handling here
         if: ${{ env.TOXENV != 'lint' }}
         env:

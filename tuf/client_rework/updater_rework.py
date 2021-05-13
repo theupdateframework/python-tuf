@@ -557,8 +557,9 @@ class Updater:
 
             # And also decrement number of visited roles.
             number_of_delegations -= 1
-            delegations = role_metadata.delegations
-            child_roles = delegations.get("roles", [])
+            child_roles = []
+            if role_metadata.delegations is not None:
+                child_roles = role_metadata.delegations.roles
 
             if target is None:
 
@@ -570,10 +571,7 @@ class Updater:
                         child_role, target_filepath
                     )
 
-                    if (
-                        child_role["terminating"]
-                        and child_role_name is not None
-                    ):
+                    if child_role.terminating and child_role_name is not None:
                         msg = (
                             f"Adding child role {child_role_name}.\n",
                             "Not backtracking to other roles.",
@@ -662,9 +660,9 @@ def _visit_child_role(child_role: Dict, target_filepath: str) -> str:
       Otherwise, we return None.
     """
 
-    child_role_name = child_role["name"]
-    child_role_paths = child_role.get("paths")
-    child_role_path_hash_prefixes = child_role.get("path_hash_prefixes")
+    child_role_name = child_role.name
+    child_role_paths = child_role.paths
+    child_role_path_hash_prefixes = child_role.path_hash_prefixes
 
     if child_role_path_hash_prefixes is not None:
         target_filepath_hash = _get_filepath_hash(target_filepath)
