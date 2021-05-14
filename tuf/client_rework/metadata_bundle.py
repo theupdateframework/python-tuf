@@ -204,6 +204,9 @@ class MetadataBundle(abc.Mapping):
         if self.root.signed.is_expired(self.reference_time):
             raise exceptions.ExpiredMetadataError("New root.json is expired")
 
+        # We skip specification step 5.3.11: deleting timestamp and snapshot
+        # with rotated keys is not needed as they will be invalid, are not
+        # loaded and cannot be loaded
         self._root_update_finished = True
         logger.debug("Verified final root.json")
 
@@ -316,6 +319,7 @@ class MetadataBundle(abc.Mapping):
             )
 
         if self.root is not None:
+            # We are not loading initial trusted root: verify the new one
             if not verify_with_threshold(self.root, "root", new_root):
                 raise exceptions.UnsignedMetadataError(
                     "New root is not signed by root", new_root.signed
