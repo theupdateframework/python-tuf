@@ -770,7 +770,7 @@ class DelegatedRole(Role):
         super().__init__(keyids, threshold, unrecognized_fields)
         self.name = name
         self.terminating = terminating
-        if paths and path_hash_prefixes:
+        if paths is not None and path_hash_prefixes is not None:
             raise ValueError(
                 "Only one of the attributes 'paths' and"
                 "'path_hash_prefixes' can be set!"
@@ -806,9 +806,9 @@ class DelegatedRole(Role):
             "terminating": self.terminating,
             **base_role_dict,
         }
-        if self.paths:
+        if self.paths is not None:
             res_dict["paths"] = self.paths
-        elif self.path_hash_prefixes:
+        elif self.path_hash_prefixes is not None:
             res_dict["path_hash_prefixes"] = self.path_hash_prefixes
         return res_dict
 

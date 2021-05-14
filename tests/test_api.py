@@ -450,21 +450,23 @@ class TestMetadata(unittest.TestCase):
             with self.assertRaises(ValueError):
                 DelegatedRole.from_dict(role.copy())
 
-            # Test creating DelegatedRole only with "path_hash_prefixes"
+            # Test creating DelegatedRole only with "path_hash_prefixes" (an empty one)
             del role["paths"]
-            DelegatedRole.from_dict(role.copy())
-            role["paths"] = "foo"
+            role["path_hash_prefixes"] = []
+            role_obj = DelegatedRole.from_dict(role.copy())
+            self.assertEqual(role_obj.to_dict(), role)
 
-            # Test creating DelegatedRole only with "paths"
+            # Test creating DelegatedRole only with "paths" (now an empty one)
             del role["path_hash_prefixes"]
-            DelegatedRole.from_dict(role.copy())
-            role["path_hash_prefixes"] = "foo"
+            role["paths"] = []
+            role_obj = DelegatedRole.from_dict(role.copy())
+            self.assertEqual(role_obj.to_dict(), role)
 
             # Test creating DelegatedRole without "paths" and
             # "path_hash_prefixes" set
             del role["paths"]
-            del role["path_hash_prefixes"]
-            DelegatedRole.from_dict(role)
+            role_obj = DelegatedRole.from_dict(role.copy())
+            self.assertEqual(role_obj.to_dict(), role)
 
 
     def test_delegation_class(self):
