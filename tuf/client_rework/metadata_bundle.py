@@ -92,7 +92,7 @@ from securesystemslib import keys as sslib_keys
 
 from tuf import exceptions
 from tuf.api.metadata import Metadata, Root, Targets
-from tuf.api.serialization import SerializationError
+from tuf.api.serialization import DeserializationError
 
 logger = logging.getLogger(__name__)
 
@@ -310,7 +310,7 @@ class MetadataBundle(abc.Mapping):
 
         try:
             new_root = Metadata.from_bytes(data)
-        except SerializationError as e:
+        except DeserializationError as e:
             raise exceptions.RepositoryError("Failed to load root") from e
 
         if new_root.signed.type != "root":
@@ -348,7 +348,7 @@ class MetadataBundle(abc.Mapping):
 
         try:
             new_timestamp = Metadata.from_bytes(data)
-        except SerializationError as e:
+        except DeserializationError as e:
             raise exceptions.RepositoryError("Failed to load timestamp") from e
 
         if new_timestamp.signed.type != "timestamp":
@@ -409,7 +409,7 @@ class MetadataBundle(abc.Mapping):
 
         try:
             new_snapshot = Metadata.from_bytes(data)
-        except SerializationError as e:
+        except DeserializationError as e:
             raise exceptions.RepositoryError("Failed to load snapshot") from e
 
         if new_snapshot.signed.type != "snapshot":
@@ -486,7 +486,7 @@ class MetadataBundle(abc.Mapping):
 
         try:
             new_delegate = Metadata.from_bytes(data)
-        except SerializationError as e:
+        except DeserializationError as e:
             raise exceptions.RepositoryError("Failed to load snapshot") from e
 
         if new_delegate.signed.type != "targets":
