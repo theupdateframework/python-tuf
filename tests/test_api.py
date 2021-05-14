@@ -301,14 +301,14 @@ class TestMetadata(unittest.TestCase):
         self.assertNotEqual(
             snapshot.signed.meta['role1.json'].to_dict(), fileinfo.to_dict()
         )
-        snapshot.signed.update('role1', 2, 123, hashes)
+        snapshot.signed.update('role1', fileinfo)
         self.assertEqual(
             snapshot.signed.meta['role1.json'].to_dict(), fileinfo.to_dict()
         )
 
         # Update only version. Length and hashes are optional.
-        snapshot.signed.update('role2', 3)
         fileinfo = MetaFile(3)
+        snapshot.signed.update('role2', fileinfo)
         self.assertEqual(
             snapshot.signed.meta['role2.json'].to_dict(), fileinfo.to_dict()
         )
@@ -353,7 +353,7 @@ class TestMetadata(unittest.TestCase):
         self.assertNotEqual(
             timestamp.signed.meta['snapshot.json'].to_dict(), fileinfo.to_dict()
         )
-        timestamp.signed.update(2, 520, hashes)
+        timestamp.signed.update(fileinfo)
         self.assertEqual(
             timestamp.signed.meta['snapshot.json'].to_dict(), fileinfo.to_dict()
         )
@@ -367,8 +367,8 @@ class TestMetadata(unittest.TestCase):
         self.assertEqual(timestamp_dict['signed'], timestamp_test.to_dict())
 
         # Update only version. Length and hashes are optional.
-        timestamp.signed.update(3)
         fileinfo = MetaFile(version=3)
+        timestamp.signed.update(fileinfo)
         self.assertEqual(
             timestamp.signed.meta['snapshot.json'].to_dict(), fileinfo.to_dict()
         )
@@ -593,7 +593,7 @@ class TestMetadata(unittest.TestCase):
             targets.signed.targets[filename].to_dict(), fileinfo.to_dict()
         )
         # Update an already existing fileinfo
-        targets.signed.update(filename, fileinfo.to_dict())
+        targets.signed.update(filename, fileinfo)
         # Verify that data is updated
         self.assertEqual(
             targets.signed.targets[filename].to_dict(), fileinfo.to_dict()

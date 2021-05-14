@@ -700,14 +700,9 @@ class Timestamp(Signed):
         return res_dict
 
     # Modification.
-    def update(
-        self,
-        version: int,
-        length: Optional[int] = None,
-        hashes: Optional[Dict[str, Any]] = None,
-    ) -> None:
+    def update(self, snapshot_meta: MetaFile) -> None:
         """Assigns passed info about snapshot metadata to meta dict."""
-        self.meta["snapshot.json"] = MetaFile(version, length, hashes)
+        self.meta["snapshot.json"] = snapshot_meta
 
 
 class Snapshot(Signed):
@@ -759,16 +754,10 @@ class Snapshot(Signed):
         return snapshot_dict
 
     # Modification.
-    def update(
-        self,
-        rolename: str,
-        version: int,
-        length: Optional[int] = None,
-        hashes: Optional[Dict[str, Any]] = None,
-    ) -> None:
+    def update(self, rolename: str, role_info: MetaFile) -> None:
         """Assigns passed (delegated) targets role info to meta dict."""
         metadata_fn = f"{rolename}.json"
-        self.meta[metadata_fn] = MetaFile(version, length, hashes)
+        self.meta[metadata_fn] = role_info
 
 
 class DelegatedRole(Role):
@@ -1010,6 +999,6 @@ class Targets(Signed):
         return targets_dict
 
     # Modification.
-    def update(self, filename: str, fileinfo: Dict[str, Any]) -> None:
+    def update(self, filename: str, fileinfo: TargetFile) -> None:
         """Assigns passed target file info to meta dict."""
-        self.targets[filename] = TargetFile.from_dict(fileinfo)
+        self.targets[filename] = fileinfo
