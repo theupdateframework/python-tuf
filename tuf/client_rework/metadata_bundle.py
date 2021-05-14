@@ -204,7 +204,7 @@ class MetadataBundle(abc.Mapping):
     def root_update_finished(self):
         """Mark root metadata as final."""
         if self.reference_time is not None:
-            raise ValueError("Root update is already finished")
+            raise RuntimeError("Root update is already finished")
 
         # Store our reference "now", verify root expiry
         self.reference_time = datetime.utcnow()
@@ -306,7 +306,7 @@ class MetadataBundle(abc.Mapping):
         Note that an expired intermediate root is considered valid: expiry is
         only checked for the final root in root_update_finished()."""
         if self.reference_time is not None:
-            raise ValueError("Cannot update root after root update is finished")
+            raise RuntimeError("Cannot update root after root update is finished")
 
         try:
             new_root = Metadata.from_bytes(data)
@@ -341,9 +341,9 @@ class MetadataBundle(abc.Mapping):
         """Verifies and loads 'data' as new timestamp metadata."""
         if self.reference_time is None:
             # root_update_finished() not called
-            raise ValueError("Cannot update timestamp before root")
+            raise RuntimeError("Cannot update timestamp before root")
         if self.snapshot is not None:
-            raise ValueError("Cannot update timestamp after snapshot")
+            raise RuntimeError("Cannot update timestamp after snapshot")
 
         try:
             new_timestamp = Metadata.from_bytes(data)
@@ -391,9 +391,9 @@ class MetadataBundle(abc.Mapping):
         """Verifies and loads 'data' as new snapshot metadata."""
 
         if self.timestamp is None:
-            raise ValueError("Cannot update snapshot before timestamp")
+            raise RuntimeError("Cannot update snapshot before timestamp")
         if self.targets is not None:
-            raise ValueError("Cannot update snapshot after targets")
+            raise RuntimeError("Cannot update snapshot after targets")
 
         meta = self.timestamp.signed.meta["snapshot.json"]
 
@@ -462,11 +462,11 @@ class MetadataBundle(abc.Mapping):
         Raises if verification fails
         """
         if self.snapshot is None:
-            raise ValueError("Cannot load targets before snapshot")
+            raise RuntimeError("Cannot load targets before snapshot")
 
         delegator = self.get(delegator_name)
         if delegator is None:
-            raise ValueError("Cannot load targets before delegator")
+            raise RuntimeError("Cannot load targets before delegator")
 
         # Verify against the hashes in snapshot, if any
         meta = self.snapshot.signed.meta.get(f"{role_name}.json")
