@@ -199,7 +199,8 @@ class MetadataBundle(abc.Mapping):
         logger.debug("Updating root")
 
         self._load_intermediate_root(data)
-        self.root.to_file(os.path.join(self._path, "root.json"))
+        with open(os.path.join(self._path, "root.json"), "wb") as f:
+            f.write(data)
 
     def root_update_finished(self):
         """Mark root metadata as final."""
@@ -232,7 +233,8 @@ class MetadataBundle(abc.Mapping):
         logger.debug("Updating timestamp")
 
         self._load_timestamp(data)
-        self.timestamp.to_file(os.path.join(self._path, "timestamp.json"))
+        with open(os.path.join(self._path, "timestamp.json"), "wb") as f:
+            f.write(data)
 
     def load_local_snapshot(self) -> bool:
         """Load cached snapshot metadata from local storage.
@@ -253,7 +255,8 @@ class MetadataBundle(abc.Mapping):
         logger.debug("Updating snapshot")
 
         self._load_snapshot(data)
-        self.snapshot.to_file(os.path.join(self._path, "snapshot.json"))
+        with open(os.path.join(self._path, "snapshot.json"), "wb") as f:
+            f.write(data)
 
     def load_local_targets(self) -> bool:
         """Load cached targets metadata from local storage.
@@ -298,7 +301,8 @@ class MetadataBundle(abc.Mapping):
         logger.debug("Updating %s", role_name)
 
         self._load_delegated_targets(data, role_name, delegator_name)
-        self[role_name].to_file(os.path.join(self._path, f"{role_name}.json"))
+        with open(os.path.join(self._path, f"{role_name}.json"), "wb") as f:
+            f.write(data)
 
     def _load_intermediate_root(self, data: bytes):
         """Verifies and loads 'data' as new root metadata.
