@@ -578,9 +578,7 @@ class Root(Signed):
         return root_dict
 
     # Update key for a role.
-    def add_key(
-        self, role: str, keyid: str, key_metadata: Dict[str, Any]
-    ) -> None:
+    def add_key(self, role: str, keyid: str, key_metadata: Key) -> None:
         """Adds new key for 'role' and updates the key store."""
         self.roles[role].keyids.add(keyid)
         self.keys[keyid] = key_metadata

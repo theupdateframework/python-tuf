@@ -48,10 +48,6 @@ from securesystemslib.interface import (
     import_ed25519_privatekey_from_file
 )
 
-from securesystemslib.keys import (
-    format_keyval_to_metadata
-)
-
 from securesystemslib.signer import (
     SSlibSigner
 )
@@ -234,7 +230,7 @@ class TestMetadata(unittest.TestCase):
         is_expired = md.signed.is_expired(md.signed.expires - timedelta(days=1))
         self.assertFalse(is_expired)
 
-        # Test is_expired without reference_time, 
+        # Test is_expired without reference_time,
         # manipulating md.signed.expires
         expires = md.signed.expires
         md.signed.expires = datetime.utcnow()
@@ -244,7 +240,7 @@ class TestMetadata(unittest.TestCase):
         is_expired = md.signed.is_expired()
         self.assertFalse(is_expired)
         md.signed.expires = expires
-        
+
     def test_metadata_snapshot(self):
         snapshot_path = os.path.join(
                 self.repo_dir, 'metadata', 'snapshot.json')
@@ -394,9 +390,10 @@ class TestMetadata(unittest.TestCase):
         root_key2 =  import_ed25519_publickey_from_file(
                     os.path.join(self.keystore_dir, 'root_key2.pub'))
 
+
         keyid = root_key2['keyid']
-        key_metadata = format_keyval_to_metadata(
-            root_key2['keytype'], root_key2['scheme'], root_key2['keyval'])
+        key_metadata = Key(root_key2['keytype'], root_key2['scheme'],
+            root_key2['keyval'])
 
         # Assert that root does not contain the new key
         self.assertNotIn(keyid, root.signed.roles['root'].keyids)
@@ -408,6 +405,10 @@ class TestMetadata(unittest.TestCase):
         # Assert that key is added
         self.assertIn(keyid, root.signed.roles['root'].keyids)
         self.assertIn(keyid, root.signed.keys)
+
+        # Confirm that the newly added key does not break
+        # the object serialization
+        root.to_dict()
 
         # Try adding the same key again and assert its ignored.
         pre_add_keyid = root.signed.roles['root'].keyids.copy()
