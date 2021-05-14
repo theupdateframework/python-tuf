@@ -91,7 +91,7 @@ from securesystemslib import hash as sslib_hash
 from securesystemslib import keys as sslib_keys
 
 from tuf import exceptions
-from tuf.api.metadata import Metadata
+from tuf.api.metadata import Metadata, Root, Targets
 from tuf.api.serialization import SerializationError
 
 # TODO: Either enaable old-style logging in pylintc (issue #1334)
@@ -109,14 +109,17 @@ def verify_with_threshold(
     delegator: Metadata, role_name: str, unverified: Metadata
 ) -> bool:
     """Verify 'unverified' with keys and threshold defined in delegator"""
-    if delegator.signed._type == "root":
+    role = None
+    keys = {}
+    if isinstance(delegator.signed, Root):
         keys = delegator.signed.keys
         role = delegator.signed.roles.get(role_name)
-    elif delegator.signed._type == "targets":
-        keys = delegator.signed.delegations["keys"]
-        # role names are unique: first match is enough
-        roles = delegator.signed.delegations["roles"]
-        role = next((role for role in roles if role["name"] == role_name), None)
+    elif isinstance(delegator.signed, Targets):
+        if delegator.signed.delegations:
+            keys = delegator.signed.delegations.keys
+            # role names are unique: first match is enough
+            roles = delegator.signed.delegations.roles
+            role = next((r for r in roles if r.name == role_name), None)
     else:
         raise ValueError("Call is valid only on delegator metadata")
 
@@ -125,9 +128,9 @@ def verify_with_threshold(
 
     # verify that delegate is signed by correct threshold of unique keys
     unique_keys = set()
-    for keyid in role["keyids"]:
-        key_metadata = keys[keyid]
-        key, dummy = sslib_keys.format_metadata_to_key(key_metadata)
+    for keyid in role.keyids:
+        key_dict = keys[keyid].to_dict()
+        key, dummy = sslib_keys.format_metadata_to_key(key_dict)
 
         try:
             if unverified.verify(key):
@@ -136,7 +139,7 @@ def verify_with_threshold(
             # TODO specify the Exceptions (see issue #1351)
             logger.info("verify failed: %s", e)
 
-    return len(unique_keys) >= role["threshold"]
+    return len(unique_keys) >= role.threshold
 
 
 class MetadataBundle(abc.Mapping):
