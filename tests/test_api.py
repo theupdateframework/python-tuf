@@ -497,6 +497,21 @@ class TestMetadata(unittest.TestCase):
         delegations = Delegations.from_dict(copy.deepcopy(delegations_dict))
         self.assertEqual(delegations_dict, delegations.to_dict())
 
+        # empty keys and roles
+        delegations_dict = {"keys":{}, "roles":[]}
+        delegations = Delegations.from_dict(delegations_dict.copy())
+        self.assertEqual(delegations_dict, delegations.to_dict())
+
+        # Test some basic missing or broken input
+        invalid_delegations_dicts = [
+            {},
+            {"keys":None, "roles":None},
+            {"keys":{"foo":0}, "roles":[]},
+            {"keys":{}, "roles":["foo"]},
+        ]
+        for d in invalid_delegations_dicts:
+            with self.assertRaises((KeyError, AttributeError)):
+                Delegations.from_dict(d)
 
     def test_metadata_targets(self):
         targets_path = os.path.join(
