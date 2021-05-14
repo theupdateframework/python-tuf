@@ -153,7 +153,8 @@ class MetadataBundle(abc.Mapping):
         """Initialize by loading root metadata from disk"""
         self._path = repository_path
         self._bundle = {}  # type: Dict[str: Metadata]
-        self.reference_time = None
+        self.reference_time = datetime.utcnow()
+        self._root_update_finished = False
 
         # Load and validate the local root metadata
         # Valid root metadata is required
@@ -204,14 +205,13 @@ class MetadataBundle(abc.Mapping):
 
     def root_update_finished(self):
         """Mark root metadata as final."""
-        if self.reference_time is not None:
+        if self._root_update_finished:
             raise RuntimeError("Root update is already finished")
 
-        # Store our reference "now", verify root expiry
-        self.reference_time = datetime.utcnow()
         if self.root.signed.is_expired(self.reference_time):
             raise exceptions.ExpiredMetadataError("New root.json is expired")
 
+        self._root_update_finished = True
         logger.debug("Verified final root.json")
 
     def load_local_timestamp(self) -> bool:
@@ -309,7 +309,7 @@ class MetadataBundle(abc.Mapping):
 
         Note that an expired intermediate root is considered valid: expiry is
         only checked for the final root in root_update_finished()."""
-        if self.reference_time is not None:
+        if self._root_update_finished:
             raise RuntimeError("Cannot update root after root update is finished")
 
         try:
@@ -343,7 +343,7 @@ class MetadataBundle(abc.Mapping):
 
     def _load_timestamp(self, data: bytes):
         """Verifies and loads 'data' as new timestamp metadata."""
-        if self.reference_time is None:
+        if not self._root_update_finished:
             # root_update_finished() not called
             raise RuntimeError("Cannot update timestamp before root")
         if self.snapshot is not None:
