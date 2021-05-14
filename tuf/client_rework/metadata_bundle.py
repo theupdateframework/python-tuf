@@ -94,13 +94,6 @@ from tuf import exceptions
 from tuf.api.metadata import Metadata, Root, Targets
 from tuf.api.serialization import SerializationError
 
-# TODO: Either enaable old-style logging in pylintc (issue #1334)
-# or change this file to use f-strings for logging
-# pylint: disable=logging-too-many-args
-
-# TODO: signed._type really does not work issue #1375:
-# pylint: disable=protected-access
-
 logger = logging.getLogger(__name__)
 
 # This is a placeholder until ...
@@ -317,9 +310,9 @@ class MetadataBundle(abc.Mapping):
         except SerializationError as e:
             raise exceptions.RepositoryError("Failed to load root") from e
 
-        if new_root.signed._type != "root":
+        if new_root.signed.type != "root":
             raise exceptions.RepositoryError(
-                f"Expected 'root', got '{new_root.signed._type}'"
+                f"Expected 'root', got '{new_root.signed.type}'"
             )
 
         if self.root is not None:
@@ -354,9 +347,9 @@ class MetadataBundle(abc.Mapping):
         except SerializationError as e:
             raise exceptions.RepositoryError("Failed to load timestamp") from e
 
-        if new_timestamp.signed._type != "timestamp":
+        if new_timestamp.signed.type != "timestamp":
             raise exceptions.RepositoryError(
-                f"Expected 'timestamp', got '{new_timestamp.signed._type}'"
+                f"Expected 'timestamp', got '{new_timestamp.signed.type}'"
             )
 
         if not verify_with_threshold(self.root, "timestamp", new_timestamp):
@@ -415,9 +408,9 @@ class MetadataBundle(abc.Mapping):
         except SerializationError as e:
             raise exceptions.RepositoryError("Failed to load snapshot") from e
 
-        if new_snapshot.signed._type != "snapshot":
+        if new_snapshot.signed.type != "snapshot":
             raise exceptions.RepositoryError(
-                f"Expected 'snapshot', got '{new_snapshot.signed._type}'"
+                f"Expected 'snapshot', got '{new_snapshot.signed.type}'"
             )
 
         if not verify_with_threshold(self.root, "snapshot", new_snapshot):
@@ -492,9 +485,9 @@ class MetadataBundle(abc.Mapping):
         except SerializationError as e:
             raise exceptions.RepositoryError("Failed to load snapshot") from e
 
-        if new_delegate.signed._type != "targets":
+        if new_delegate.signed.type != "targets":
             raise exceptions.RepositoryError(
-                f"Expected 'targets', got '{new_delegate.signed._type}'"
+                f"Expected 'targets', got '{new_delegate.signed.type}'"
             )
 
         if not verify_with_threshold(delegator, role_name, new_delegate):
