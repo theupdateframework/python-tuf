@@ -210,19 +210,17 @@ class MetadataBundle(abc.Mapping):
         self._root_update_finished = True
         logger.debug("Verified final root.json")
 
-    def load_local_timestamp(self) -> bool:
-        """Load cached timestamp metadata from local storage.
-
-        Returns True if timestamp was succesfully loaded"""
+    def load_local_timestamp(self):
+        """Load cached timestamp metadata from local storage."""
         logger.debug("Loading local timestamp")
 
         try:
             with open(os.path.join(self._path, "timestamp.json"), "rb") as f:
                 self._load_timestamp(f.read())
-            return True
-        except (OSError, exceptions.RepositoryError) as e:
-            logger.debug("Failed to load local timestamp: %s", e)
-            return False
+        except OSError as e:
+            raise exceptions.RepositoryError(
+                "Failed to load local timestamp"
+            ) from e
 
     def update_timestamp(self, data: bytes):
         """Update timestamp metadata with data from remote repository."""
@@ -232,19 +230,17 @@ class MetadataBundle(abc.Mapping):
         with open(os.path.join(self._path, "timestamp.json"), "wb") as f:
             f.write(data)
 
-    def load_local_snapshot(self) -> bool:
-        """Load cached snapshot metadata from local storage.
-
-        Returns True if snapshot was succesfully loaded"""
+    def load_local_snapshot(self):
+        """Load cached snapshot metadata from local storage."""
         logger.debug("Loading local snapshot")
 
         try:
             with open(os.path.join(self._path, "snapshot.json"), "rb") as f:
                 self._load_snapshot(f.read())
-            return True
-        except (OSError, exceptions.RepositoryError) as e:
-            logger.debug("Failed to load local snapshot: %s", e)
-            return False
+        except OSError as e:
+            raise exceptions.RepositoryError(
+                "Failed to load local snapshot"
+            ) from e
 
     def update_snapshot(self, data: bytes):
         """Update snapshot metadata with data from remote repository."""
@@ -254,27 +250,21 @@ class MetadataBundle(abc.Mapping):
         with open(os.path.join(self._path, "snapshot.json"), "wb") as f:
             f.write(data)
 
-    def load_local_targets(self) -> bool:
-        """Load cached targets metadata from local storage.
-
-        Returns True if targets was succesfully loaded"""
-        return self.load_local_delegated_targets("targets", "root")
+    def load_local_targets(self):
+        """Load cached targets metadata from local storage."""
+        self.load_local_delegated_targets("targets", "root")
 
     def update_targets(self, data: bytes):
         """Update targets metadata with data from remote repository."""
         self.update_delegated_targets(data, "targets", "root")
 
-    def load_local_delegated_targets(
-        self, role_name: str, delegator_name: str
-    ) -> bool:
+    def load_local_delegated_targets(self, role_name: str, delegator_name: str):
         """Load cached metadata for 'role_name' from local storage.
 
         Metadata for 'delegator_name' must be loaded already.
-
-        Returns True if metadata was succesfully loaded"""
+        """
         if self.get(role_name):
             logger.debug("Local %s already loaded", role_name)
-            return True
 
         logger.debug("Loading local %s", role_name)
 
@@ -283,10 +273,10 @@ class MetadataBundle(abc.Mapping):
                 self._load_delegated_targets(
                     f.read(), role_name, delegator_name
                 )
-            return True
-        except (OSError, exceptions.RepositoryError) as e:
-            logger.debug("Failed to load local %s: %s", role_name, e)
-            return False
+        except OSError as e:
+            raise exceptions.RepositoryError(
+                f"Failed to load local {role_name}"
+            ) from e
 
     def update_delegated_targets(
         self, data: bytes, role_name: str, delegator_name: str = None
@@ -306,7 +296,9 @@ class MetadataBundle(abc.Mapping):
         Note that an expired intermediate root is considered valid: expiry is
         only checked for the final root in root_update_finished()."""
         if self._root_update_finished:
-            raise RuntimeError("Cannot update root after root update is finished")
+            raise RuntimeError(
+                "Cannot update root after root update is finished"
+            )
 
         try:
             new_root = Metadata.from_bytes(data)
@@ -405,6 +397,7 @@ class MetadataBundle(abc.Mapping):
             digest_object.update(data)
             observed_hash = digest_object.hexdigest()
             if observed_hash != stored_hash:
+                # TODO: Error should derive from RepositoryError
                 raise exceptions.BadHashError(stored_hash, observed_hash)
 
         try:
@@ -482,6 +475,7 @@ class MetadataBundle(abc.Mapping):
             digest_object.update(data)
             observed_hash = digest_object.hexdigest()
             if observed_hash != stored_hash:
+                # TODO: Error should derive from RepositoryError
                 raise exceptions.BadHashError(stored_hash, observed_hash)
 
         try:
