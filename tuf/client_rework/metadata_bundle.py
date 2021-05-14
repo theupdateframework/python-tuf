@@ -117,7 +117,7 @@ def verify_with_threshold(
         raise ValueError("Call is valid only on delegator metadata")
 
     if role is None:
-        raise exceptions.UnknownRoleError
+        raise ValueError(f"Delegated role {role_name} not found")
 
     # verify that delegate is signed by correct threshold of unique keys
     unique_keys = set()
