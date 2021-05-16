@@ -66,7 +66,11 @@ class UnsupportedAlgorithmError(Error):
   """Indicate an error while trying to identify a user-specified algorithm."""
 
 
-class BadHashError(Error):
+class RepositoryError(Error):
+  """Indicate an error with a repository's state, such as a missing file."""
+
+
+class BadHashError(RepositoryError):
   """Indicate an error while checking the value of a hash object."""
 
   def __init__(self, expected_hash, observed_hash):
@@ -95,10 +99,6 @@ class BadPasswordError(Error):
 
 class UnknownKeyError(Error):
   """Indicate an error while verifying key-like objects (e.g., keyids)."""
-
-
-class RepositoryError(Error):
-  """Indicate an error with a repository's state, such as a missing file."""
 
 
 class BadVersionNumberError(RepositoryError):
