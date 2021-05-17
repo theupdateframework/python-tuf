@@ -92,7 +92,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # for each test case.
     original_repository = os.path.join(original_repository_files, 'repository')
     original_keystore = os.path.join(original_repository_files, 'keystore')
-    original_client = os.path.join(original_repository_files, 'client')
+    original_client = os.path.join(original_repository_files, 'client', 'test_repository1', 'metadata', 'current')
 
     # Save references to the often-needed client repository directories.
     # Test cases need these references to access metadata and target files.
@@ -101,12 +101,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.keystore_directory = \
       os.path.join(temporary_repository_root, 'keystore')
 
-    self.client_directory = os.path.join(temporary_repository_root,
-        'client')
-    self.client_metadata = os.path.join(self.client_directory,
-        self.repository_name, 'metadata')
-    self.client_metadata_current = os.path.join(self.client_metadata,
-        'current')
+    self.client_directory = os.path.join(temporary_repository_root, 'client')
 
     # Copy the original 'repository', 'client', and 'keystore' directories
     # to the temporary repository the test cases can use.
@@ -119,15 +114,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     url_prefix = 'http://' + utils.TEST_HOST_ADDRESS + ':' \
         + str(self.server_process_handler.port) + repository_basepath
 
-    # Setting 'tuf.settings.repository_directory' with the temporary client
-    # directory copied from the original repository files.
-    tuf.settings.repositories_directory = self.client_directory
-
     metadata_url = f"{url_prefix}/metadata/"
     targets_url = f"{url_prefix}/targets/"
     # Creating a repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
-    self.repository_updater = updater.Updater(self.repository_name,
+    self.repository_updater = updater.Updater(self.client_directory,
                                               metadata_url,
                                               targets_url)
 
@@ -154,7 +145,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     for role in ['root', 'timestamp', 'snapshot', 'targets']:
         metadata_obj = metadata.Metadata.from_file(os.path.join(
-            self.client_metadata_current, role + '.json'))
+            self.client_directory, role + '.json'))
 
         metadata_obj_2 = metadata.Metadata.from_file(os.path.join(
             self.repository_directory, 'metadata', role + '.json'))
