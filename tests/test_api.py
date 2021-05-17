@@ -306,13 +306,6 @@ class TestMetadata(unittest.TestCase):
             snapshot.signed.meta['role1.json'].to_dict(), fileinfo.to_dict()
         )
 
-        # Update only version. Length and hashes are optional.
-        fileinfo = MetaFile(3)
-        snapshot.signed.update('role2', fileinfo)
-        self.assertEqual(
-            snapshot.signed.meta['role2.json'].to_dict(), fileinfo.to_dict()
-        )
-
         # Test from_dict and to_dict without hashes and length.
         snapshot_dict = snapshot.to_dict()
         del snapshot_dict['signed']['meta']['role1.json']['length']
@@ -365,13 +358,6 @@ class TestMetadata(unittest.TestCase):
         test_dict = copy.deepcopy(timestamp_dict['signed'])
         timestamp_test = Timestamp.from_dict(test_dict)
         self.assertEqual(timestamp_dict['signed'], timestamp_test.to_dict())
-
-        # Update only version. Length and hashes are optional.
-        fileinfo = MetaFile(version=3)
-        timestamp.signed.update(fileinfo)
-        self.assertEqual(
-            timestamp.signed.meta['snapshot.json'].to_dict(), fileinfo.to_dict()
-        )
 
     def test_key_class(self):
         keys = {
