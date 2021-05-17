@@ -19,6 +19,7 @@ The rules for top-level metadata are
  * Metadata must be loaded/updated in order:
    root -> timestamp -> snapshot -> targets -> (other delegated targets)
 
+
 Exceptions are raised if metadata fails to load in any way.
 
 Example of loading root, timestamp and snapshot:
@@ -121,46 +122,63 @@ def verify_with_threshold(
 class MetadataBundle(abc.Mapping):
     """Internal class to keep track of valid metadata in Updater
 
-    MetadataBundle ensures that metadata is valid. It provides easy ways to
-    update the metadata with the caller making decisions on what is updated.
+    MetadataBundle ensures that the collection of metadata in the bundle is
+    valid. It provides easy ways to update the metadata with the caller making
+    decisions on what is updated.
     """
 
-    def __init__(self, data: bytes):
-        """Initialize by loading trusted root metadata"""
+    def __init__(self, root_data: bytes):
+        """Initialize bundle by loading trusted root metadata
+
+        Args:
+            root_data: Trusted root metadata as bytes. Note that this metadata
+                will only be verified by itself: it is the source of trust for
+                all metadata in the bundle.
+
+        Raises:
+            RepositoryError: Metadata failed to load or verify. The actual
+                error type and content will contain more details.
+        """
         self._bundle = {}  # type: Dict[str: Metadata]
         self.reference_time = datetime.utcnow()
         self._root_update_finished = False
 
-        # Load and validate the local root metadata
-        # Valid root metadata is required
+        # Load and validate the local root metadata. Valid initial trusted root
+        # metadata is required
         logger.debug("Updating initial trusted root")
-        self.update_root(data)
+        self.update_root(root_data)
 
-    # Implement Mapping
-    def __getitem__(self, key: str) -> Metadata:
-        return self._bundle[key]
+    def __getitem__(self, role: str) -> Metadata:
+        """Returns current Metadata for 'role'"""
+        return self._bundle[role]
 
     def __len__(self) -> int:
+        """Returns number of Metadata objects in bundle"""
         return len(self._bundle)
 
     def __iter__(self) -> Iterator[Metadata]:
+        """Returns iterator over all Metadata objects in bundle"""
         return iter(self._bundle)
 
     # Helper properties for top level metadata
     @property
     def root(self) -> Optional[Metadata]:
+        """Current root Metadata or None"""
         return self._bundle.get("root")
 
     @property
     def timestamp(self) -> Optional[Metadata]:
+        """Current timestamp Metadata or None"""
         return self._bundle.get("timestamp")
 
     @property
     def snapshot(self) -> Optional[Metadata]:
+        """Current snapshot Metadata or None"""
         return self._bundle.get("snapshot")
 
     @property
     def targets(self) -> Optional[Metadata]:
+        """Current targets Metadata or None"""
         return self._bundle.get("targets")
 
     # Methods for updating metadata
@@ -168,7 +186,15 @@ class MetadataBundle(abc.Mapping):
         """Verifies and loads 'data' as new root metadata.
 
         Note that an expired intermediate root is considered valid: expiry is
-        only checked for the final root in root_update_finished()."""
+        only checked for the final root in root_update_finished().
+
+        Args:
+            data: unverified new root metadata as bytes
+
+        Raises:
+            RepositoryError: Metadata failed to load or verify. The actual
+                error type and content will contain more details.
+        """
         if self._root_update_finished:
             raise RuntimeError(
                 "Cannot update root after root update is finished"
@@ -206,21 +232,30 @@ class MetadataBundle(abc.Mapping):
         logger.debug("Updated root")
 
     def root_update_finished(self):
-        """Mark root metadata as final."""
+        """Marks root metadata as final and verifies it is not expired
+
+        Raises:
+            ExpiredMetadataError: The final root metadata is expired.
+        """
         if self._root_update_finished:
             raise RuntimeError("Root update is already finished")
 
         if self.root.signed.is_expired(self.reference_time):
             raise exceptions.ExpiredMetadataError("New root.json is expired")
 
-        # We skip specification step 5.3.11: deleting timestamp and snapshot
-        # with rotated keys is not needed as they will be invalid, are not
-        # loaded and cannot be loaded
         self._root_update_finished = True
         logger.debug("Verified final root.json")
 
     def update_timestamp(self, data: bytes):
-        """Verifies and loads 'data' as new timestamp metadata."""
+        """Verifies and loads 'data' as new timestamp metadata.
+
+        Args:
+            data: unverified new timestamp metadata as bytes
+
+        Raises:
+            RepositoryError: Metadata failed to load or verify. The actual
+                error type and content will contain more details.
+        """
         if not self._root_update_finished:
             # root_update_finished() not called
             raise RuntimeError("Cannot update timestamp before root")
@@ -270,7 +305,15 @@ class MetadataBundle(abc.Mapping):
 
     # TODO: remove pylint disable once the hash verification is in metadata.py
     def update_snapshot(self, data: bytes):  # pylint: disable=too-many-branches
-        """Verifies and loads 'data' as new snapshot metadata."""
+        """Verifies and loads 'data' as new snapshot metadata.
+
+        Args:
+            data: unverified new snapshot metadata as bytes
+
+        Raises:
+            RepositoryError: Metadata failed to load or verify. The actual
+                error type and content will contain more details.
+        """
 
         if self.timestamp is None:
             raise RuntimeError("Cannot update snapshot before timestamp")
@@ -339,7 +382,15 @@ class MetadataBundle(abc.Mapping):
         logger.debug("Updated snapshot")
 
     def update_targets(self, data: bytes):
-        """Verifies and loads 'data' as new top-level targets metadata."""
+        """Verifies and loads 'data' as new top-level targets metadata.
+
+        Args:
+            data: unverified new targets metadata as bytes
+
+        Raises:
+            RepositoryError: Metadata failed to load or verify. The actual
+                error type and content will contain more details.
+        """
         self.update_delegated_targets(data, "targets", "root")
 
     def update_delegated_targets(
@@ -347,7 +398,14 @@ class MetadataBundle(abc.Mapping):
     ):
         """Verifies and loads 'data' as new metadata for target 'role_name'.
 
-        Raises if verification fails
+        Args:
+            data: unverified new metadata as bytes
+            role_name: The role name of the new metadata
+            delegator_name: The name of the role delegating the new metadata
+
+        Raises:
+            RepositoryError: Metadata failed to load or verify. The actual
+                error type and content will contain more details.
         """
         if self.snapshot is None:
             raise RuntimeError("Cannot load targets before snapshot")
