@@ -48,12 +48,17 @@ class Updater:
     ):
         """
         Args:
-            repository_dir: Local metadata directory. Must contain root.json
+            repository_dir: Local metadata directory. Directory must be
+                writable and it must contain at least a root.json file.
             metadata_base_url: Base URL for all remote metadata downloads
             target_base_url: Optional; Default base URL for all remote target
                 downloads. Can be individually set in download_target()
             fetcher: Optional; FetcherInterface implementation used to download
                 both metadata and targets. Default is RequestsFetcher
+
+        Raises:
+            OSError: Local root.json cannot be read
+            RepositoryError: Local root.json is invalid
         """
         self._dir = repository_dir
         self._metadata_base_url = _ensure_trailing_slash(metadata_base_url)
@@ -83,6 +88,11 @@ class Updater:
 
         The refresh() method should be called by the client before any target
         requests.
+
+        Raises:
+            OSError: New metadata could not be written to disk
+            RepositoryError: Metadata failed to verify in some way
+            TODO: download-related errors
         """
 
         self._load_root()
@@ -102,6 +112,11 @@ class Updater:
                 (https://url.spec.whatwg.org/#path-relative-url-string).
                 Typically this is also the unix file path of the eventually
                 downloaded file.
+
+        Raises:
+            OSError: New metadata could not be written to disk
+            RepositoryError: Metadata failed to verify in some way
+            TODO: download-related errors
         """
         return self._preorder_depth_first_walk(target_path)
 
@@ -172,6 +187,10 @@ class Updater:
                 destination_directory as required.
             target_base_url: Optional; Base URL used to form the final target
                 download URL. Default is the value provided in Updater()
+
+        Raises:
+            TODO: download-related errors
+            TODO: file write errors
         """
         if target_base_url is None and self._target_base_url is None:
             raise ValueError(
@@ -269,6 +288,7 @@ class Updater:
         try:
             data = self._load_local_metadata("snapshot")
             self._bundle.update_snapshot(data)
+            logger.debug("Local snapshot is valid: not downloading new one")
         except (OSError, exceptions.RepositoryError) as e:
             # Local load failed: we must update from remote
             logger.debug("Failed to load local snapshot %s", e)
@@ -288,6 +308,7 @@ class Updater:
         try:
             data = self._load_local_metadata(role)
             self._bundle.update_delegated_targets(data, role, parent_role)
+            logger.debug("Local %s is valid: not downloading new one", role)
         except (OSError, exceptions.RepositoryError) as e:
             # Local load failed: we must update from remote
             logger.debug("Failed to load local %s: %s", role, e)
