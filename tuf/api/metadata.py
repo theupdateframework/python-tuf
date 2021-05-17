@@ -815,7 +815,7 @@ class DelegatedRole(Role):
         self.path_hash_prefixes = path_hash_prefixes
 
     @classmethod
-    def from_dict(cls, role_dict: Mapping[str, Any]) -> "Role":
+    def from_dict(cls, role_dict: Dict[str, Any]) -> "DelegatedRole":
         """Creates DelegatedRole object from its dict representation."""
         name = role_dict.pop("name")
         keyids = role_dict.pop("keyids")
