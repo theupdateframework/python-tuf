@@ -768,7 +768,7 @@ class DelegatedRole(Role):
         super().__init__(keyids, threshold, unrecognized_fields)
         self.name = name
         self.terminating = terminating
-        if paths and path_hash_prefixes:
+        if paths is not None and path_hash_prefixes is not None:
             raise ValueError(
                 "Only one of the attributes 'paths' and"
                 "'path_hash_prefixes' can be set!"
@@ -804,9 +804,9 @@ class DelegatedRole(Role):
             "terminating": self.terminating,
             **base_role_dict,
         }
-        if self.paths:
+        if self.paths is not None:
             res_dict["paths"] = self.paths
-        elif self.path_hash_prefixes:
+        elif self.path_hash_prefixes is not None:
             res_dict["path_hash_prefixes"] = self.path_hash_prefixes
         return res_dict
 
@@ -909,9 +909,12 @@ class Targets(Signed):
         """Creates Targets object from its dict representation."""
         common_args = cls._common_fields_from_dict(targets_dict)
         targets = targets_dict.pop("targets")
-        delegations = targets_dict.pop("delegations", None)
-        if delegations:
-            delegations = Delegations.from_dict(delegations)
+        try:
+            delegations_dict = targets_dict.pop("delegations")
+        except KeyError:
+            delegations = None
+        else:
+            delegations = Delegations.from_dict(delegations_dict)
         # All fields left in the targets_dict are unrecognized.
         return cls(*common_args, targets, delegations, targets_dict)
 
@@ -919,7 +922,7 @@ class Targets(Signed):
         """Returns the dict representation of self."""
         targets_dict = self._common_fields_to_dict()
         targets_dict["targets"] = self.targets
-        if self.delegations:
+        if self.delegations is not None:
             targets_dict["delegations"] = self.delegations.to_dict()
         return targets_dict
 

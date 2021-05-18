@@ -451,21 +451,23 @@ class TestMetadata(unittest.TestCase):
             with self.assertRaises(ValueError):
                 DelegatedRole.from_dict(role.copy())
 
-            # Test creating DelegatedRole only with "path_hash_prefixes"
+            # Test creating DelegatedRole only with "path_hash_prefixes" (an empty one)
             del role["paths"]
-            DelegatedRole.from_dict(role.copy())
-            role["paths"] = "foo"
+            role["path_hash_prefixes"] = []
+            role_obj = DelegatedRole.from_dict(role.copy())
+            self.assertEqual(role_obj.to_dict(), role)
 
-            # Test creating DelegatedRole only with "paths"
+            # Test creating DelegatedRole only with "paths" (now an empty one)
             del role["path_hash_prefixes"]
-            DelegatedRole.from_dict(role.copy())
-            role["path_hash_prefixes"] = "foo"
+            role["paths"] = []
+            role_obj = DelegatedRole.from_dict(role.copy())
+            self.assertEqual(role_obj.to_dict(), role)
 
             # Test creating DelegatedRole without "paths" and
             # "path_hash_prefixes" set
             del role["paths"]
-            del role["path_hash_prefixes"]
-            DelegatedRole.from_dict(role)
+            role_obj = DelegatedRole.from_dict(role.copy())
+            self.assertEqual(role_obj.to_dict(), role)
 
 
     def test_delegation_class(self):
@@ -495,6 +497,21 @@ class TestMetadata(unittest.TestCase):
         delegations = Delegations.from_dict(copy.deepcopy(delegations_dict))
         self.assertEqual(delegations_dict, delegations.to_dict())
 
+        # empty keys and roles
+        delegations_dict = {"keys":{}, "roles":[]}
+        delegations = Delegations.from_dict(delegations_dict.copy())
+        self.assertEqual(delegations_dict, delegations.to_dict())
+
+        # Test some basic missing or broken input
+        invalid_delegations_dicts = [
+            {},
+            {"keys":None, "roles":None},
+            {"keys":{"foo":0}, "roles":[]},
+            {"keys":{}, "roles":["foo"]},
+        ]
+        for d in invalid_delegations_dicts:
+            with self.assertRaises((KeyError, AttributeError)):
+                Delegations.from_dict(d)
 
     def test_metadata_targets(self):
         targets_path = os.path.join(
