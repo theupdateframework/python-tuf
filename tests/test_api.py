@@ -425,6 +425,12 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(KeyError):
             root.signed.remove_key('root', 'nosuchkey')
 
+        # Test serializing and deserializing without consistent_snapshot.
+        root_dict = root.to_dict()
+        del root_dict["signed"]["consistent_snapshot"]
+        root = Root.from_dict(copy.deepcopy(root_dict["signed"]))
+        self.assertEqual(root_dict["signed"], root.to_dict())
+
     def test_delegated_role_class(self):
         roles = [
             {

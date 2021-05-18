@@ -503,8 +503,8 @@ class Root(Signed):
     """A container for the signed part of root metadata.
 
     Attributes:
-        consistent_snapshot: A boolean indicating whether the repository
-            supports consistent snapshots.
+        consistent_snapshot: An optional boolean indicating whether the
+            repository supports consistent snapshots.
         keys: A dictionary that contains a public key store used to verify
             top level roles metadata signatures::
 
@@ -534,9 +534,9 @@ class Root(Signed):
         version: int,
         spec_version: str,
         expires: datetime,
-        consistent_snapshot: bool,
         keys: Dict[str, Key],
         roles: Dict[str, Role],
+        consistent_snapshot: Optional[bool] = None,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
         super().__init__(version, spec_version, expires, unrecognized_fields)
@@ -548,7 +548,7 @@ class Root(Signed):
     def from_dict(cls, root_dict: Dict[str, Any]) -> "Root":
         """Creates Root object from its dict representation."""
         common_args = cls._common_fields_from_dict(root_dict)
-        consistent_snapshot = root_dict.pop("consistent_snapshot")
+        consistent_snapshot = root_dict.pop("consistent_snapshot", None)
         keys = root_dict.pop("keys")
         roles = root_dict.pop("roles")
 
@@ -558,7 +558,7 @@ class Root(Signed):
             roles[role_name] = Role.from_dict(role_dict)
 
         # All fields left in the root_dict are unrecognized.
-        return cls(*common_args, consistent_snapshot, keys, roles, root_dict)
+        return cls(*common_args, keys, roles, consistent_snapshot, root_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
@@ -567,10 +567,11 @@ class Root(Signed):
         roles = {}
         for role_name, role in self.roles.items():
             roles[role_name] = role.to_dict()
+        if self.consistent_snapshot is not None:
+            root_dict["consistent_snapshot"] = self.consistent_snapshot
 
         root_dict.update(
             {
-                "consistent_snapshot": self.consistent_snapshot,
                 "keys": keys,
                 "roles": roles,
             }
