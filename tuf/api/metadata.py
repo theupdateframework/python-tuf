@@ -31,6 +31,11 @@ from tuf.api.serialization import (
     SignedSerializer,
 )
 
+# Disable the "C0302: Too many lines in module" warning which warns for modules
+# with more 1000 lines, because all of the code here is logically connected
+# and currently, we are above 1000 lines by a small margin.
+# pylint: disable=C0302
+
 
 class Metadata:
     """A container for signed TUF metadata.
@@ -598,6 +603,60 @@ class Root(Signed):
         del self.keys[keyid]
 
 
+class MetaFile:
+    """A container with information about a particular metadata file.
+
+    Attributes:
+        version: An integer indicating the version of the metadata file.
+        length: An optional integer indicating the length of the metadata file.
+        hashes: An optional dictionary mapping hash algorithms to the
+            hashes resulting from applying them over the metadata file
+            contents.::
+
+                'hashes': {
+                    '<HASH ALGO 1>': '<METADATA FILE HASH 1>',
+                    '<HASH ALGO 2>': '<METADATA FILE HASH 2>',
+                    ...
+                }
+
+        unrecognized_fields: Dictionary of all unrecognized fields.
+
+    """
+
+    def __init__(
+        self,
+        version: int,
+        length: Optional[int] = None,
+        hashes: Optional[Dict[str, str]] = None,
+        unrecognized_fields: Optional[Mapping[str, Any]] = None,
+    ) -> None:
+        self.version = version
+        self.length = length
+        self.hashes = hashes
+        self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
+
+    @classmethod
+    def from_dict(cls, meta_dict: Dict[str, Any]) -> "MetaFile":
+        """Creates MetaFile object from its dict representation."""
+        version = meta_dict.pop("version")
+        length = meta_dict.pop("length", None)
+        hashes = meta_dict.pop("hashes", None)
+        # All fields left in the meta_dict are unrecognized.
+        return cls(version, length, hashes, meta_dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Returns the dictionary representation of self."""
+        res_dict = {"version": self.version, **self.unrecognized_fields}
+
+        if self.length is not None:
+            res_dict["length"] = self.length
+
+        if self.hashes is not None:
+            res_dict["hashes"] = self.hashes
+
+        return res_dict
+
+
 class Timestamp(Signed):
     """A container for the signed part of timestamp metadata.
 
@@ -605,15 +664,7 @@ class Timestamp(Signed):
         meta: A dictionary that contains information about snapshot metadata::
 
             {
-                'snapshot.json': {
-                    'version': <SNAPSHOT METADATA VERSION NUMBER>,
-                    'length': <SNAPSHOT METADATA FILE SIZE>, // optional
-                    'hashes': {
-                        '<HASH ALGO 1>': '<SNAPSHOT METADATA FILE HASH 1>',
-                        '<HASH ALGO 2>': '<SNAPSHOT METADATA FILE HASH 2>',
-                        ...
-                    } // optional
-                }
+                'snapshot.json': <MetaFile INSTANCE>
             }
 
     """
@@ -625,42 +676,33 @@ class Timestamp(Signed):
         version: int,
         spec_version: str,
         expires: datetime,
-        meta: Dict[str, Any],
+        meta: Dict[str, MetaFile],
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
         super().__init__(version, spec_version, expires, unrecognized_fields)
-        # TODO: Add class for meta
         self.meta = meta
 
     @classmethod
     def from_dict(cls, timestamp_dict: Dict[str, Any]) -> "Timestamp":
         """Creates Timestamp object from its dict representation."""
         common_args = cls._common_fields_from_dict(timestamp_dict)
-        meta = timestamp_dict.pop("meta")
+        meta_dict = timestamp_dict.pop("meta")
+        meta = {"snapshot.json": MetaFile.from_dict(meta_dict["snapshot.json"])}
         # All fields left in the timestamp_dict are unrecognized.
         return cls(*common_args, meta, timestamp_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
-        timestamp_dict = self._common_fields_to_dict()
-        timestamp_dict.update({"meta": self.meta})
-        return timestamp_dict
+        res_dict = self._common_fields_to_dict()
+        res_dict["meta"] = {
+            "snapshot.json": self.meta["snapshot.json"].to_dict()
+        }
+        return res_dict
 
     # Modification.
-    def update(
-        self,
-        version: int,
-        length: Optional[int] = None,
-        hashes: Optional[Dict[str, Any]] = None,
-    ) -> None:
+    def update(self, snapshot_meta: MetaFile) -> None:
         """Assigns passed info about snapshot metadata to meta dict."""
-        self.meta["snapshot.json"] = {"version": version}
-
-        if length is not None:
-            self.meta["snapshot.json"]["length"] = length
-
-        if hashes is not None:
-            self.meta["snapshot.json"]["hashes"] = hashes
+        self.meta["snapshot.json"] = snapshot_meta
 
 
 class Snapshot(Signed):
@@ -670,22 +712,9 @@ class Snapshot(Signed):
         meta: A dictionary that contains information about targets metadata::
 
             {
-                'targets.json': {
-                    'version': <TARGETS METADATA VERSION NUMBER>,
-                    'length': <TARGETS METADATA FILE SIZE>, // optional
-                    'hashes': {
-                        '<HASH ALGO 1>': '<TARGETS METADATA FILE HASH 1>',
-                        '<HASH ALGO 2>': '<TARGETS METADATA FILE HASH 2>',
-                        ...
-                    } // optional
-                },
-                '<DELEGATED TARGETS ROLE 1>.json': {
-                    ...
-                },
-                '<DELEGATED TARGETS ROLE 2>.json': {
-                    ...
-                },
-                ...
+                'targets.json': <MetaFile INSTANCE>,
+                '<DELEGATED TARGETS ROLE 1>.json': <MetaFile INSTANCE>,
+                '<DELEGATED TARGETS ROLE 2>.json': <MetaFile INSTANCE>,
             }
 
     """
@@ -697,44 +726,38 @@ class Snapshot(Signed):
         version: int,
         spec_version: str,
         expires: datetime,
-        meta: Dict[str, Any],
+        meta: Dict[str, MetaFile],
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
         super().__init__(version, spec_version, expires, unrecognized_fields)
-        # TODO: Add class for meta
         self.meta = meta
 
     @classmethod
     def from_dict(cls, snapshot_dict: Dict[str, Any]) -> "Snapshot":
         """Creates Snapshot object from its dict representation."""
         common_args = cls._common_fields_from_dict(snapshot_dict)
-        meta = snapshot_dict.pop("meta")
+        meta_dicts = snapshot_dict.pop("meta")
+        meta = {}
+        for meta_path, meta_dict in meta_dicts.items():
+            meta[meta_path] = MetaFile.from_dict(meta_dict)
         # All fields left in the snapshot_dict are unrecognized.
         return cls(*common_args, meta, snapshot_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
         snapshot_dict = self._common_fields_to_dict()
-        snapshot_dict.update({"meta": self.meta})
+        meta_dict = {}
+        for meta_path, meta_info in self.meta.items():
+            meta_dict[meta_path] = meta_info.to_dict()
+
+        snapshot_dict["meta"] = meta_dict
         return snapshot_dict
 
     # Modification.
-    def update(
-        self,
-        rolename: str,
-        version: int,
-        length: Optional[int] = None,
-        hashes: Optional[Dict[str, Any]] = None,
-    ) -> None:
+    def update(self, rolename: str, role_info: MetaFile) -> None:
         """Assigns passed (delegated) targets role info to meta dict."""
         metadata_fn = f"{rolename}.json"
-
-        self.meta[metadata_fn] = {"version": version}
-        if length is not None:
-            self.meta[metadata_fn]["length"] = length
-
-        if hashes is not None:
-            self.meta[metadata_fn]["hashes"] = hashes
+        self.meta[metadata_fn] = role_info
 
 
 class DelegatedRole(Role):
@@ -860,6 +883,57 @@ class Delegations:
         }
 
 
+class TargetFile:
+    """A container with information about a particular target file.
+
+    Attributes:
+        length: An integer indicating the length of the target file.
+        hashes: A dictionary mapping hash algorithms to the
+            hashes resulting from applying them over the metadata file
+            contents::
+
+              'hashes': {
+                    '<HASH ALGO 1>': '<TARGET FILE HASH 1>',
+                    '<HASH ALGO 2>': '<TARGET FILE HASH 2>',
+                    ...
+                }
+        unrecognized_fields: Dictionary of all unrecognized fields.
+
+    """
+
+    @property
+    def custom(self):
+        if self.unrecognized_fields is None:
+            return None
+        return self.unrecognized_fields.get("custom", None)
+
+    def __init__(
+        self,
+        length: int,
+        hashes: Dict[str, str],
+        unrecognized_fields: Optional[Mapping[str, Any]] = None,
+    ) -> None:
+        self.length = length
+        self.hashes = hashes
+        self.unrecognized_fields = unrecognized_fields or {}
+
+    @classmethod
+    def from_dict(cls, target_dict: Dict[str, Any]) -> "TargetFile":
+        """Creates TargetFile object from its dict representation."""
+        length = target_dict.pop("length")
+        hashes = target_dict.pop("hashes")
+        # All fields left in the target_dict are unrecognized.
+        return cls(length, hashes, target_dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Returns the JSON-serializable dictionary representation of self."""
+        return {
+            "length": self.length,
+            "hashes": self.hashes,
+            **self.unrecognized_fields,
+        }
+
+
 class Targets(Signed):
     """A container for the signed part of targets metadata.
 
@@ -867,15 +941,7 @@ class Targets(Signed):
         targets: A dictionary that contains information about target files::
 
             {
-                '<TARGET FILE NAME>': {
-                    'length': <TARGET FILE SIZE>,
-                    'hashes': {
-                        '<HASH ALGO 1>': '<TARGET FILE HASH 1>',
-                        '<HASH ALGO 2>': '<TARGETS FILE HASH 2>',
-                        ...
-                    },
-                    'custom': <CUSTOM OPAQUE DICT> // optional
-                },
+                '<TARGET FILE NAME>': <TargetFile INSTANCE>,
                 ...
             }
 
@@ -896,12 +962,11 @@ class Targets(Signed):
         version: int,
         spec_version: str,
         expires: datetime,
-        targets: Dict[str, Any],
+        targets: Dict[str, TargetFile],
         delegations: Optional[Delegations] = None,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
         super().__init__(version, spec_version, expires, unrecognized_fields)
-        # TODO: Add class for meta
         self.targets = targets
         self.delegations = delegations
 
@@ -916,18 +981,24 @@ class Targets(Signed):
             delegations = None
         else:
             delegations = Delegations.from_dict(delegations_dict)
+        res_targets = {}
+        for target_path, target_info in targets.items():
+            res_targets[target_path] = TargetFile.from_dict(target_info)
         # All fields left in the targets_dict are unrecognized.
-        return cls(*common_args, targets, delegations, targets_dict)
+        return cls(*common_args, res_targets, delegations, targets_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
         targets_dict = self._common_fields_to_dict()
-        targets_dict["targets"] = self.targets
+        targets = {}
+        for target_path, target_file_obj in self.targets.items():
+            targets[target_path] = target_file_obj.to_dict()
+        targets_dict["targets"] = targets
         if self.delegations is not None:
             targets_dict["delegations"] = self.delegations.to_dict()
         return targets_dict
 
     # Modification.
-    def update(self, filename: str, fileinfo: Dict[str, Any]) -> None:
+    def update(self, filename: str, fileinfo: TargetFile) -> None:
         """Assigns passed target file info to meta dict."""
         self.targets[filename] = fileinfo
