@@ -273,7 +273,7 @@ class Updater:
             data = self._load_local_metadata("timestamp")
             self._bundle.update_timestamp(data)
         except (OSError, exceptions.RepositoryError) as e:
-            # Local load can fail: it's not fatal
+            # Local timestamp does not exist or is invalid
             logger.debug("Failed to load local timestamp %s", e)
 
         # Load from remote (whether local load succeeded or not)
@@ -290,7 +290,7 @@ class Updater:
             self._bundle.update_snapshot(data)
             logger.debug("Local snapshot is valid: not downloading new one")
         except (OSError, exceptions.RepositoryError) as e:
-            # Local load failed: we must update from remote
+            # Local snapshot does not exist or is invalid: update from remote
             logger.debug("Failed to load local snapshot %s", e)
 
             metainfo = self._bundle.timestamp.signed.meta["snapshot.json"]
@@ -310,7 +310,7 @@ class Updater:
             self._bundle.update_delegated_targets(data, role, parent_role)
             logger.debug("Local %s is valid: not downloading new one", role)
         except (OSError, exceptions.RepositoryError) as e:
-            # Local load failed: we must update from remote
+            # Local 'role' does not exist or is invalid: update from remote
             logger.debug("Failed to load local %s: %s", role, e)
 
             metainfo = self._bundle.snapshot.signed.meta[f"{role}.json"]
@@ -333,14 +333,6 @@ class Updater:
         visited_role_names = set()
         number_of_delegations = MAX_DELEGATIONS
 
-        # Ensure the client has the most up-to-date version of 'targets.json'.
-        # Raise 'exceptions.NoWorkingMirrorError' if the changed metadata
-        # cannot be successfully downloaded and
-        # 'exceptions.RepositoryError' if the referenced metadata is
-        # missing.  Target methods such as this one are called after the
-        # top-level metadata have been refreshed (i.e., updater.refresh()).
-        # self._update_metadata_if_changed('targets')
-
         # Preorder depth-first traversal of the graph of target delegations.
         while (
             target is None and number_of_delegations > 0 and len(role_names) > 0
@@ -357,11 +349,6 @@ class Updater:
 
             # The metadata for 'role_name' must be downloaded/updated before
             # its targets, delegations, and child roles can be inspected.
-            # _refresh_targets_metadata() does not refresh 'targets.json', it
-            # expects _update_metadata_if_changed() to have already refreshed
-            # it, which this function has checked above.
-            # self._refresh_targets_metadata(role_name,
-            #     refresh_all_delegated_roles=False)
 
             role_metadata = self._bundle[role_name].signed
             target = role_metadata.targets.get(target_filepath)

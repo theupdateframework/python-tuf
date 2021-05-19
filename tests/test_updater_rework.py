@@ -79,8 +79,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.setUp(self)
 
-    self.repository_name = 'test_repository1'
-
     # Copy the original repository files provided in the test folder so that
     # any modifications made to repository files are restricted to the copies.
     # The 'repository_data' directory is expected to exist in 'tuf.tests/'.
@@ -130,7 +128,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.server_process_handler.flush_log()
 
   def test_refresh(self):
-
+    # All metadata is in local directory already
     self.repository_updater.refresh()
 
     # Get targetinfo for 'file1.txt' listed in targets
