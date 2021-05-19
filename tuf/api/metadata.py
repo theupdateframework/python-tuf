@@ -660,7 +660,10 @@ class MetaFile:
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dictionary representation of self."""
-        res_dict = {"version": self.version, **self.unrecognized_fields}
+        res_dict: Dict[str, Any] = {
+            "version": self.version,
+            **self.unrecognized_fields,
+        }
 
         if self.length is not None:
             res_dict["length"] = self.length
