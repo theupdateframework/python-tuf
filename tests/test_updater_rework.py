@@ -79,8 +79,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.setUp(self)
 
-    self.repository_name = 'test_repository1'
-
     # Copy the original repository files provided in the test folder so that
     # any modifications made to repository files are restricted to the copies.
     # The 'repository_data' directory is expected to exist in 'tuf.tests/'.
@@ -92,7 +90,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # for each test case.
     original_repository = os.path.join(original_repository_files, 'repository')
     original_keystore = os.path.join(original_repository_files, 'keystore')
-    original_client = os.path.join(original_repository_files, 'client')
+    original_client = os.path.join(original_repository_files, 'client', 'test_repository1', 'metadata', 'current')
 
     # Save references to the often-needed client repository directories.
     # Test cases need these references to access metadata and target files.
@@ -101,12 +99,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.keystore_directory = \
       os.path.join(temporary_repository_root, 'keystore')
 
-    self.client_directory = os.path.join(temporary_repository_root,
-        'client')
-    self.client_metadata = os.path.join(self.client_directory,
-        self.repository_name, 'metadata')
-    self.client_metadata_current = os.path.join(self.client_metadata,
-        'current')
+    self.client_directory = os.path.join(temporary_repository_root, 'client')
 
     # Copy the original 'repository', 'client', and 'keystore' directories
     # to the temporary repository the test cases can use.
@@ -119,24 +112,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     url_prefix = 'http://' + utils.TEST_HOST_ADDRESS + ':' \
         + str(self.server_process_handler.port) + repository_basepath
 
-    # Setting 'tuf.settings.repository_directory' with the temporary client
-    # directory copied from the original repository files.
-    tuf.settings.repositories_directory = self.client_directory
-
     metadata_url = f"{url_prefix}/metadata/"
     targets_url = f"{url_prefix}/targets/"
     # Creating a repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
-    self.repository_updater = updater.Updater(self.repository_name,
+    self.repository_updater = updater.Updater(self.client_directory,
                                               metadata_url,
                                               targets_url)
-
-    # Metadata role keys are needed by the test cases to make changes to the
-    # repository (e.g., adding a new target file to 'targets.json' and then
-    # requesting a refresh()).
-    self.role_keys = _load_role_keys(self.keystore_directory)
-
-
 
   def tearDown(self):
     # We are inheriting from custom class.
@@ -145,23 +127,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Logs stdout and stderr from the sever subprocess.
     self.server_process_handler.flush_log()
 
-
-
-  # UNIT TESTS.
   def test_refresh(self):
-
+    # All metadata is in local directory already
     self.repository_updater.refresh()
-
-    for role in ['root', 'timestamp', 'snapshot', 'targets']:
-        metadata_obj = metadata.Metadata.from_file(os.path.join(
-            self.client_metadata_current, role + '.json'))
-
-        metadata_obj_2 = metadata.Metadata.from_file(os.path.join(
-            self.repository_directory, 'metadata', role + '.json'))
-
-
-        self.assertDictEqual(metadata_obj.to_dict(),
-                             metadata_obj_2.to_dict())
 
     # Get targetinfo for 'file1.txt' listed in targets
     targetinfo1 = self.repository_updater.get_one_valid_targetinfo('file1.txt')
@@ -187,60 +155,16 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     self.assertListEqual(updated_targets, [])
 
+  def test_refresh_with_only_local_root(self):
+    os.remove(os.path.join(self.client_directory, "timestamp.json"))
+    os.remove(os.path.join(self.client_directory, "snapshot.json"))
+    os.remove(os.path.join(self.client_directory, "targets.json"))
+    os.remove(os.path.join(self.client_directory, "role1.json"))
 
-def _load_role_keys(keystore_directory):
+    self.repository_updater.refresh()
 
-  # Populating 'self.role_keys' by importing the required public and private
-  # keys of 'tuf/tests/repository_data/'.  The role keys are needed when
-  # modifying the remote repository used by the test cases in this unit test.
-
-  # The pre-generated key files in 'repository_data/keystore' are all encrypted with
-  # a 'password' passphrase.
-  EXPECTED_KEYFILE_PASSWORD = 'password'
-
-  # Store and return the cryptography keys of the top-level roles, including 1
-  # delegated role.
-  role_keys = {}
-
-  root_key_file = os.path.join(keystore_directory, 'root_key')
-  targets_key_file = os.path.join(keystore_directory, 'targets_key')
-  snapshot_key_file = os.path.join(keystore_directory, 'snapshot_key')
-  timestamp_key_file = os.path.join(keystore_directory, 'timestamp_key')
-  delegation_key_file = os.path.join(keystore_directory, 'delegation_key')
-
-  role_keys = {'root': {}, 'targets': {}, 'snapshot': {}, 'timestamp': {},
-               'role1': {}}
-
-  # Import the top-level and delegated role public keys.
-  role_keys['root']['public'] = \
-    repo_tool.import_rsa_publickey_from_file(root_key_file+'.pub')
-  role_keys['targets']['public'] = \
-    repo_tool.import_ed25519_publickey_from_file(targets_key_file+'.pub')
-  role_keys['snapshot']['public'] = \
-    repo_tool.import_ed25519_publickey_from_file(snapshot_key_file+'.pub')
-  role_keys['timestamp']['public'] = \
-      repo_tool.import_ed25519_publickey_from_file(timestamp_key_file+'.pub')
-  role_keys['role1']['public'] = \
-      repo_tool.import_ed25519_publickey_from_file(delegation_key_file+'.pub')
-
-  # Import the private keys of the top-level and delegated roles.
-  role_keys['root']['private'] = \
-    repo_tool.import_rsa_privatekey_from_file(root_key_file,
-                                              EXPECTED_KEYFILE_PASSWORD)
-  role_keys['targets']['private'] = \
-    repo_tool.import_ed25519_privatekey_from_file(targets_key_file,
-                                              EXPECTED_KEYFILE_PASSWORD)
-  role_keys['snapshot']['private'] = \
-    repo_tool.import_ed25519_privatekey_from_file(snapshot_key_file,
-                                              EXPECTED_KEYFILE_PASSWORD)
-  role_keys['timestamp']['private'] = \
-    repo_tool.import_ed25519_privatekey_from_file(timestamp_key_file,
-                                              EXPECTED_KEYFILE_PASSWORD)
-  role_keys['role1']['private'] = \
-    repo_tool.import_ed25519_privatekey_from_file(delegation_key_file,
-                                              EXPECTED_KEYFILE_PASSWORD)
-
-  return role_keys
+    # Get targetinfo for 'file3.txt' listed in the delegated role1
+    targetinfo3= self.repository_updater.get_one_valid_targetinfo('file3.txt')
 
 if __name__ == '__main__':
   utils.configure_test_logging(sys.argv)
