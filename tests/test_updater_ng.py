@@ -28,10 +28,10 @@ import tuf.exceptions
 import tuf.log
 import tuf.repository_tool as repo_tool
 import tuf.unittest_toolbox as unittest_toolbox
-import tuf.ngclient.updater as updater
 
 from tests import utils
 from tuf.api import metadata
+from tuf import ngclient
 
 import securesystemslib
 
@@ -116,7 +116,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     targets_url = f"{url_prefix}/targets/"
     # Creating a repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
-    self.repository_updater = updater.Updater(self.client_directory,
+    self.repository_updater = ngclient.Updater(self.client_directory,
                                               metadata_url,
                                               targets_url)
 
