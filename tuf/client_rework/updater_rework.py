@@ -149,7 +149,7 @@ class Updater:
 
             # Try one of the algorithm/digest combos for a mismatch.  We break
             # as soon as we find a mismatch.
-            for algorithm, digest in target["fileinfo"]["hashes"].items():
+            for algorithm, digest in target["fileinfo"].hashes.items():
                 digest_object = None
                 try:
                     digest_object = sslib_hash.digest_filename(
@@ -205,10 +205,10 @@ class Updater:
         full_url = parse.urljoin(target_base_url, targetinfo["filepath"])
 
         with download.download_file(
-            full_url, targetinfo["fileinfo"]["length"], self._fetcher
+            full_url, targetinfo["fileinfo"].length, self._fetcher
         ) as target_file:
-            _check_file_length(target_file, targetinfo["fileinfo"]["length"])
-            _check_hashes_obj(target_file, targetinfo["fileinfo"]["hashes"])
+            _check_file_length(target_file, targetinfo["fileinfo"].length)
+            _check_hashes_obj(target_file, targetinfo["fileinfo"].hashes)
 
             filepath = os.path.join(
                 destination_directory, targetinfo["filepath"]
@@ -294,10 +294,10 @@ class Updater:
             logger.debug("Failed to load local snapshot %s", e)
 
             metainfo = self._bundle.timestamp.signed.meta["snapshot.json"]
-            length = metainfo.get("length") or DEFAULT_SNAPSHOT_MAX_LENGTH
+            length = metainfo.length or DEFAULT_SNAPSHOT_MAX_LENGTH
             version = None
             if self._bundle.root.signed.consistent_snapshot:
-                version = metainfo["version"]
+                version = metainfo.version
 
             data = self._download_metadata("snapshot", length, version)
             self._bundle.update_snapshot(data)
@@ -314,10 +314,10 @@ class Updater:
             logger.debug("Failed to load local %s: %s", role, e)
 
             metainfo = self._bundle.snapshot.signed.meta[f"{role}.json"]
-            length = metainfo.get("length") or DEFAULT_TARGETS_MAX_LENGTH
+            length = metainfo.length or DEFAULT_TARGETS_MAX_LENGTH
             version = None
             if self._bundle.root.signed.consistent_snapshot:
-                version = metainfo["version"]
+                version = metainfo.version
 
             data = self._download_metadata(role, length, version)
             self._bundle.update_delegated_targets(data, role, parent_role)
