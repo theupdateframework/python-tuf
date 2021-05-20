@@ -28,7 +28,7 @@ import tuf.exceptions
 import tuf.log
 import tuf.repository_tool as repo_tool
 import tuf.unittest_toolbox as unittest_toolbox
-import tuf.client_rework.updater_rework as updater
+import tuf.ngclient.updater as updater
 
 from tests import utils
 from tuf.api import metadata

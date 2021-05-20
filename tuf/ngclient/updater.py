@@ -18,8 +18,8 @@ from securesystemslib import hash as sslib_hash
 from securesystemslib import util as sslib_util
 
 from tuf import exceptions
-from tuf.client.fetcher import FetcherInterface
-from tuf.client_rework import download, metadata_bundle, requests_fetcher
+from tuf.ngclient import download, metadata_bundle, requests_fetcher
+from tuf.ngclient.fetcher import FetcherInterface
 
 # Globals
 MAX_ROOT_ROTATIONS = 32

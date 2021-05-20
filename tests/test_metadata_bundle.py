@@ -8,7 +8,7 @@ import unittest
 
 from tuf import exceptions
 from tuf.api.metadata import Metadata
-from tuf.client_rework.metadata_bundle import MetadataBundle
+from tuf.ngclient.metadata_bundle import MetadataBundle
 
 from tests import utils
 
