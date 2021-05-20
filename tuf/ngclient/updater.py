@@ -18,7 +18,7 @@ from securesystemslib import hash as sslib_hash
 from securesystemslib import util as sslib_util
 
 from tuf import exceptions
-from tuf.ngclient import download, metadata_bundle, requests_fetcher
+from tuf.ngclient._internal import download, metadata_bundle, requests_fetcher
 from tuf.ngclient.fetcher import FetcherInterface
 
 # Globals
