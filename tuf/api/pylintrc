@@ -14,7 +14,6 @@
 disable=fixme,
         too-few-public-methods,
         too-many-arguments,
-        logging-not-lazy,
 
 [BASIC]
 good-names=i,j,k,v,e,f,fn,fp,_type

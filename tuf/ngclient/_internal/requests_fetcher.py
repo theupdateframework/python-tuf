@@ -118,11 +118,9 @@ class RequestsFetcher(FetcherInterface):
                     # downloaded.
                     if not data:
                         logger.debug(
-                            "Downloaded "
-                            + repr(bytes_received)
-                            + "/"
-                            + repr(required_length)
-                            + " bytes."
+                            "Downloaded %d out of %d bytes",
+                            bytes_received,
+                            required_length,
                         )
 
                         # Finally, we signal that the download is complete.
@@ -156,8 +154,8 @@ class RequestsFetcher(FetcherInterface):
 
         session_index = parsed_url.scheme + "+" + parsed_url.hostname
 
-        logger.debug("url: " + url)
-        logger.debug("session index: " + session_index)
+        logger.debug("url: %s", url)
+        logger.debug("session index: %s", session_index)
 
         session = self._sessions.get(session_index)
 
@@ -181,9 +179,9 @@ class RequestsFetcher(FetcherInterface):
                 }
             )
 
-            logger.debug("Made new session for " + session_index)
+            logger.debug("Made new session %s", session_index)
 
         else:
-            logger.debug("Reusing session for " + session_index)
+            logger.debug("Reusing session %s", session_index)
 
         return session
