@@ -585,6 +585,13 @@ class TestMetadata(unittest.TestCase):
             targets.signed.targets[filename].to_dict(), fileinfo.to_dict()
         )
 
+        # Test from_dict/to_dict Targets with empty targets.
+        targets_dict = copy.deepcopy(targets.to_dict())
+        targets_dict["signed"]["targets"] = {}
+        tmp_dict = copy.deepcopy(targets_dict["signed"])
+        targets_obj = Targets.from_dict(tmp_dict)
+        self.assertEqual(targets_dict["signed"], targets_obj.to_dict())
+
         # Test from_dict/to_dict Targets without delegations
         targets_dict = targets.to_dict()
         del targets_dict["signed"]["delegations"]
