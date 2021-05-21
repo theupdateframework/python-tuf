@@ -29,6 +29,8 @@ from tuf.api.metadata import (
     Targets,
     Key,
     Role,
+    MetaFile,
+    TargetFile,
     Delegations,
     DelegatedRole,
 )
@@ -46,10 +48,6 @@ from tuf.api.serialization.json import (
 from securesystemslib.interface import (
     import_ed25519_publickey_from_file,
     import_ed25519_privatekey_from_file
-)
-
-from securesystemslib.keys import (
-    format_keyval_to_metadata
 )
 
 from securesystemslib.signer import (
@@ -234,7 +232,7 @@ class TestMetadata(unittest.TestCase):
         is_expired = md.signed.is_expired(md.signed.expires - timedelta(days=1))
         self.assertFalse(is_expired)
 
-        # Test is_expired without reference_time, 
+        # Test is_expired without reference_time,
         # manipulating md.signed.expires
         expires = md.signed.expires
         md.signed.expires = datetime.utcnow()
@@ -244,34 +242,75 @@ class TestMetadata(unittest.TestCase):
         is_expired = md.signed.is_expired()
         self.assertFalse(is_expired)
         md.signed.expires = expires
-        
+
+
+    def test_metafile_class(self):
+        # Test from_dict and to_dict with all attributes.
+        data = {
+            "hashes": {
+                "sha256": "8f88e2ba48b412c3843e9bb26e1b6f8fc9e98aceb0fbaa97ba37b4c98717d7ab"
+            },
+            "length": 515,
+            "version": 1
+        }
+        metafile_obj = MetaFile.from_dict(copy.copy(data))
+        self.assertEqual(metafile_obj.to_dict(), data)
+
+        # Test from_dict and to_dict without length.
+        del data["length"]
+        metafile_obj = MetaFile.from_dict(copy.copy(data))
+        self.assertEqual(metafile_obj.to_dict(), data)
+
+        # Test from_dict and to_dict without length and hashes.
+        del data["hashes"]
+        metafile_obj = MetaFile.from_dict(copy.copy(data))
+        self.assertEqual(metafile_obj.to_dict(), data)
+
+
+    def test_targetfile_class(self):
+        # Test from_dict and to_dict with all attributes.
+        data = {
+            "custom": {
+                "file_permissions": "0644"
+            },
+            "hashes": {
+                "sha256": "65b8c67f51c993d898250f40aa57a317d854900b3a04895464313e48785440da",
+                "sha512": "467430a68afae8e9f9c0771ea5d78bf0b3a0d79a2d3d3b40c69fde4dd42c461448aef76fcef4f5284931a1ffd0ac096d138ba3a0d6ca83fa8d7285a47a296f77"
+            },
+            "length": 31
+        }
+        targetfile_obj = TargetFile.from_dict(copy.copy(data))
+        self.assertEqual(targetfile_obj.to_dict(), data)
+
+        # Test from_dict and to_dict without custom.
+        del data["custom"]
+        targetfile_obj = TargetFile.from_dict(copy.copy(data))
+        self.assertEqual(targetfile_obj.to_dict(), data)
+
+
     def test_metadata_snapshot(self):
         snapshot_path = os.path.join(
                 self.repo_dir, 'metadata', 'snapshot.json')
         snapshot = Metadata.from_file(snapshot_path)
 
-        # Create a dict representing what we expect the updated data to be
-        fileinfo = copy.deepcopy(snapshot.signed.meta)
+        # Create a MetaFile instance representing what we expect
+        # the updated data to be.
         hashes = {'sha256': 'c2986576f5fdfd43944e2b19e775453b96748ec4fe2638a6d2f32f1310967095'}
-        fileinfo['role1.json']['version'] = 2
-        fileinfo['role1.json']['hashes'] = hashes
-        fileinfo['role1.json']['length'] = 123
+        fileinfo = MetaFile(2, 123, hashes)
 
-
-        self.assertNotEqual(snapshot.signed.meta, fileinfo)
-        snapshot.signed.update('role1', 2, 123, hashes)
-        self.assertEqual(snapshot.signed.meta, fileinfo)
-
-        # Update only version. Length and hashes are optional.
-        snapshot.signed.update('role2', 3)
-        fileinfo['role2.json'] = {'version': 3}
-        self.assertEqual(snapshot.signed.meta, fileinfo)
+        self.assertNotEqual(
+            snapshot.signed.meta['role1.json'].to_dict(), fileinfo.to_dict()
+        )
+        snapshot.signed.update('role1', fileinfo)
+        self.assertEqual(
+            snapshot.signed.meta['role1.json'].to_dict(), fileinfo.to_dict()
+        )
 
         # Test from_dict and to_dict without hashes and length.
         snapshot_dict = snapshot.to_dict()
-        test_dict = snapshot_dict['signed'].copy()
-        del test_dict['meta']['role1.json']['length']
-        del test_dict['meta']['role1.json']['hashes']
+        del snapshot_dict['signed']['meta']['role1.json']['length']
+        del snapshot_dict['signed']['meta']['role1.json']['hashes']
+        test_dict = copy.deepcopy(snapshot_dict['signed'])
         snapshot = Snapshot.from_dict(test_dict)
         self.assertEqual(snapshot_dict['signed'], snapshot.to_dict())
 
@@ -299,28 +338,26 @@ class TestMetadata(unittest.TestCase):
         timestamp.signed.bump_expiration(delta)
         self.assertEqual(timestamp.signed.expires, datetime(2036, 1, 3, 0, 0))
 
+        # Create a MetaFile instance representing what we expect
+        # the updated data to be.
         hashes = {'sha256': '0ae9664468150a9aa1e7f11feecb32341658eb84292851367fea2da88e8a58dc'}
-        fileinfo = copy.deepcopy(timestamp.signed.meta['snapshot.json'])
-        fileinfo['hashes'] = hashes
-        fileinfo['version'] = 2
-        fileinfo['length'] = 520
+        fileinfo = MetaFile(2, 520, hashes)
 
-        self.assertNotEqual(timestamp.signed.meta['snapshot.json'], fileinfo)
-        timestamp.signed.update(2, 520, hashes)
-        self.assertEqual(timestamp.signed.meta['snapshot.json'], fileinfo)
+        self.assertNotEqual(
+            timestamp.signed.meta['snapshot.json'].to_dict(), fileinfo.to_dict()
+        )
+        timestamp.signed.update(fileinfo)
+        self.assertEqual(
+            timestamp.signed.meta['snapshot.json'].to_dict(), fileinfo.to_dict()
+        )
 
         # Test from_dict and to_dict without hashes and length.
         timestamp_dict = timestamp.to_dict()
-        test_dict = timestamp_dict['signed'].copy()
-        del test_dict['meta']['snapshot.json']['length']
-        del test_dict['meta']['snapshot.json']['hashes']
+        del timestamp_dict['signed']['meta']['snapshot.json']['length']
+        del timestamp_dict['signed']['meta']['snapshot.json']['hashes']
+        test_dict = copy.deepcopy(timestamp_dict['signed'])
         timestamp_test = Timestamp.from_dict(test_dict)
         self.assertEqual(timestamp_dict['signed'], timestamp_test.to_dict())
-
-        # Update only version. Length and hashes are optional.
-        timestamp.signed.update(3)
-        fileinfo = {'version': 3}
-        self.assertEqual(timestamp.signed.meta['snapshot.json'], fileinfo)
 
     def test_key_class(self):
         keys = {
@@ -394,9 +431,10 @@ class TestMetadata(unittest.TestCase):
         root_key2 =  import_ed25519_publickey_from_file(
                     os.path.join(self.keystore_dir, 'root_key2.pub'))
 
+
         keyid = root_key2['keyid']
-        key_metadata = format_keyval_to_metadata(
-            root_key2['keytype'], root_key2['scheme'], root_key2['keyval'])
+        key_metadata = Key(root_key2['keytype'], root_key2['scheme'],
+            root_key2['keyval'])
 
         # Assert that root does not contain the new key
         self.assertNotIn(keyid, root.signed.roles['root'].keyids)
@@ -408,6 +446,10 @@ class TestMetadata(unittest.TestCase):
         # Assert that key is added
         self.assertIn(keyid, root.signed.roles['root'].keyids)
         self.assertIn(keyid, root.signed.keys)
+
+        # Confirm that the newly added key does not break
+        # the object serialization
+        root.to_dict()
 
         # Try adding the same key again and assert its ignored.
         pre_add_keyid = root.signed.roles['root'].keyids.copy()
@@ -423,6 +465,12 @@ class TestMetadata(unittest.TestCase):
 
         with self.assertRaises(KeyError):
             root.signed.remove_key('root', 'nosuchkey')
+
+        # Test serializing and deserializing without consistent_snapshot.
+        root_dict = root.to_dict()
+        del root_dict["signed"]["consistent_snapshot"]
+        root = Root.from_dict(copy.deepcopy(root_dict["signed"]))
+        self.assertEqual(root_dict["signed"], root.to_dict())
 
     def test_delegated_role_class(self):
         roles = [
@@ -524,22 +572,23 @@ class TestMetadata(unittest.TestCase):
             "sha512": "ef5beafa16041bcdd2937140afebd485296cd54f7348ecd5a4d035c09759608de467a7ac0eb58753d0242df873c305e8bffad2454aa48f44480f15efae1cacd0"
         },
 
-        fileinfo = {
-            'hashes': hashes,
-            'length': 28
-        }
+        fileinfo = TargetFile(length=28, hashes=hashes)
 
         # Assert that data is not aleady equal
-        self.assertNotEqual(targets.signed.targets[filename], fileinfo)
+        self.assertNotEqual(
+            targets.signed.targets[filename].to_dict(), fileinfo.to_dict()
+        )
         # Update an already existing fileinfo
         targets.signed.update(filename, fileinfo)
         # Verify that data is updated
-        self.assertEqual(targets.signed.targets[filename], fileinfo)
+        self.assertEqual(
+            targets.signed.targets[filename].to_dict(), fileinfo.to_dict()
+        )
 
         # Test from_dict/to_dict Targets without delegations
         targets_dict = targets.to_dict()
         del targets_dict["signed"]["delegations"]
-        tmp_dict = targets_dict["signed"].copy()
+        tmp_dict = copy.deepcopy(targets_dict["signed"])
         targets_obj = Targets.from_dict(tmp_dict)
         self.assertEqual(targets_dict["signed"], targets_obj.to_dict())
 

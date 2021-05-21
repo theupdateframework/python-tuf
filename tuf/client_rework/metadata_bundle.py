@@ -287,14 +287,14 @@ class MetadataBundle(abc.Mapping):
                 )
             # Prevent rolling back snapshot version
             if (
-                new_timestamp.signed.meta["snapshot.json"]["version"]
-                < self.timestamp.signed.meta["snapshot.json"]["version"]
+                new_timestamp.signed.meta["snapshot.json"].version
+                < self.timestamp.signed.meta["snapshot.json"].version
             ):
                 # TODO not sure about the correct exception here
                 raise exceptions.ReplayedMetadataError(
                     "snapshot",
-                    new_timestamp.signed.meta["snapshot.json"]["version"],
-                    self.timestamp.signed.meta["snapshot.json"]["version"],
+                    new_timestamp.signed.meta["snapshot.json"].version,
+                    self.timestamp.signed.meta["snapshot.json"].version,
                 )
 
         if new_timestamp.signed.is_expired(self.reference_time):
@@ -324,7 +324,7 @@ class MetadataBundle(abc.Mapping):
         meta = self.timestamp.signed.meta["snapshot.json"]
 
         # Verify against the hashes in timestamp, if any
-        hashes = meta.get("hashes") or {}
+        hashes = meta.hashes or {}
         for algo, stored_hash in hashes.items():
             digest_object = sslib_hash.digest(algo)
             digest_object.update(data)
@@ -350,11 +350,11 @@ class MetadataBundle(abc.Mapping):
 
         if (
             new_snapshot.signed.version
-            != self.timestamp.signed.meta["snapshot.json"]["version"]
+            != self.timestamp.signed.meta["snapshot.json"].version
         ):
             raise exceptions.BadVersionNumberError(
                 f"Expected snapshot version"
-                f"{self.timestamp.signed.meta['snapshot.json']['version']},"
+                f"{self.timestamp.signed.meta['snapshot.json'].version},"
                 f"got {new_snapshot.signed.version}"
             )
 
@@ -369,10 +369,10 @@ class MetadataBundle(abc.Mapping):
                     )
 
                 # Prevent rollback of any metadata versions
-                if new_fileinfo["version"] < fileinfo["version"]:
+                if new_fileinfo.version < fileinfo.version:
                     raise exceptions.BadVersionNumberError(
                         f"Expected {filename} version"
-                        f"{new_fileinfo['version']}, got {fileinfo['version']}"
+                        f"{new_fileinfo.version}, got {fileinfo.version}"
                     )
 
         if new_snapshot.signed.is_expired(self.reference_time):
@@ -423,7 +423,7 @@ class MetadataBundle(abc.Mapping):
                 f"Snapshot does not contain information for '{role_name}'"
             )
 
-        hashes = meta.get("hashes") or {}
+        hashes = meta.hashes or {}
         for algo, stored_hash in hashes.items():
             digest_object = sslib_hash.digest(algo)
             digest_object.update(data)
@@ -448,10 +448,10 @@ class MetadataBundle(abc.Mapping):
                 new_delegate,
             )
 
-        if new_delegate.signed.version != meta["version"]:
+        if new_delegate.signed.version != meta.version:
             raise exceptions.BadVersionNumberError(
                 f"Expected {role_name} version"
-                f"{meta['version']}, got {new_delegate.signed.version}"
+                f"{meta.version}, got {new_delegate.signed.version}"
             )
 
         if new_delegate.signed.is_expired(self.reference_time):
