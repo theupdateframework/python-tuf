@@ -86,7 +86,7 @@ def download_file(url, required_length, fetcher, strict_required_length=True):
     # encoded as %5c in the url, which should also be replaced with a forward
     # slash.
     url = parse.unquote(url).replace("\\", "/")
-    logger.info("Downloading: " + repr(url))
+    logger.info("Downloading: %s", url)
 
     # This is the temporary file that we will return to contain the contents of
     # the downloaded file.
@@ -134,7 +134,7 @@ def download_file(url, required_length, fetcher, strict_required_length=True):
     except Exception:
         # Close 'temp_file'.  Any written data is lost.
         temp_file.close()
-        logger.debug("Could not download URL: " + repr(url))
+        logger.debug("Could not download URL: %s", url)
         raise
 
     else:
@@ -202,43 +202,22 @@ def _check_downloaded_length(
     """
 
     if total_downloaded == required_length:
-        logger.info(
-            "Downloaded " + str(total_downloaded) + " bytes out of the"
-            " expected " + str(required_length) + " bytes."
-        )
+        logger.info("Downloaded %d bytes as expected.", total_downloaded)
 
     else:
-        difference_in_bytes = abs(total_downloaded - required_length)
-
         # What we downloaded is not equal to the required length, but did we ask
         # for strict checking of required length?
         if strict_required_length:
             logger.info(
-                "Downloaded " + str(total_downloaded) + " bytes, but"
-                " expected "
-                + str(required_length)
-                + " bytes. There is a difference"
-                " of " + str(difference_in_bytes) + " bytes."
+                "Downloaded %d bytes, but expected %d bytes",
+                total_downloaded,
+                required_length,
             )
 
             # If the average download speed is below a certain threshold, we
             # flag this as a possible slow-retrieval attack.
-            logger.debug(
-                "Average download speed: " + repr(average_download_speed)
-            )
-            logger.debug(
-                "Minimum average download speed: "
-                + repr(tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED)
-            )
-
             if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
                 raise exceptions.SlowRetrievalError(average_download_speed)
-
-            logger.debug(
-                "Good average download speed: "
-                + repr(average_download_speed)
-                + " bytes per second"
-            )
 
             raise exceptions.DownloadLengthMismatchError(
                 required_length, total_downloaded
@@ -253,12 +232,12 @@ def _check_downloaded_length(
             raise exceptions.SlowRetrievalError(average_download_speed)
 
         logger.debug(
-            "Good average download speed: "
-            + repr(average_download_speed)
-            + " bytes per second"
+            "Good average download speed: %f bytes per second",
+            average_download_speed,
         )
 
         logger.info(
-            "Downloaded " + str(total_downloaded) + " bytes out of an"
-            " upper limit of " + str(required_length) + " bytes."
+            "Downloaded %d bytes out of upper limit of %d bytes.",
+            total_downloaded,
+            required_length,
         )
