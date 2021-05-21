@@ -15,7 +15,7 @@ import urllib3.exceptions
 
 import tuf
 from tuf import exceptions, settings
-from tuf.client_rework.fetcher import FetcherInterface
+from tuf.ngclient.fetcher import FetcherInterface
 
 # Globals
 logger = logging.getLogger(__name__)
