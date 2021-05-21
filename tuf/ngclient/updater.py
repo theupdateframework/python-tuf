@@ -1,10 +1,7 @@
 # Copyright 2020, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""TUF client 1.0.0 draft
-
-TODO
-
+"""TUF client workflow implementation.
 """
 
 import fnmatch
@@ -34,9 +31,8 @@ logger = logging.getLogger(__name__)
 # Classes
 class Updater:
     """
-    Provides a class that can download target files securely.
-
-    TODO
+    An implemetation of the TUF client workflow.
+    Provides a public API for integration in client applications.
     """
 
     def __init__(
@@ -218,7 +214,7 @@ class Updater:
     def _download_metadata(
         self, rolename: str, length: int, version: Optional[int] = None
     ) -> bytes:
-        """download a metadata file and return it as bytes"""
+        """Download a metadata file and return it as bytes"""
         if version is None:
             filename = f"{rolename}.json"
         else:
@@ -325,7 +321,9 @@ class Updater:
 
     def _preorder_depth_first_walk(self, target_filepath) -> Dict:
         """
-        TODO
+        Interrogates the tree of target delegations in order of appearance
+        (which implicitly order trustworthiness), and returns the matching
+        target found in the most trusted role.
         """
 
         target = None
@@ -518,7 +516,12 @@ def _visit_child_role(child_role: Dict, target_filepath: str) -> str:
 
 def _check_file_length(file_object, trusted_file_length):
     """
-    TODO
+    Given a file_object, checks whether its length matches
+    trusted_file_length.
+
+    Raises:
+        DownloadLengthMismatchError: File length does not match
+            expected length.
     """
     file_object.seek(0, 2)
     observed_length = file_object.tell()
@@ -532,7 +535,11 @@ def _check_file_length(file_object, trusted_file_length):
 
 def _check_hashes_obj(file_object, trusted_hashes):
     """
-    TODO
+    Given a file_object, checks whether its hash matches
+    trusted_hashes.
+
+    Raises:
+        BadHashError: Hashes do not match
     """
     for algorithm, trusted_hash in trusted_hashes.items():
         digest_object = sslib_hash.digest_fileobject(file_object, algorithm)
@@ -550,10 +557,10 @@ def _check_hashes_obj(file_object, trusted_hashes):
 
 def _get_filepath_hash(target_filepath, hash_function="sha256"):
     """
-    TODO
+    Calculate the hash of the filepath to determine which bin to find the
+    target.
     """
-    # Calculate the hash of the filepath to determine which bin to find the
-    # target.  The client currently assumes the repository (i.e., repository
+    # The client currently assumes the repository (i.e., repository
     # tool) uses 'hash_function' to generate hashes and UTF-8.
     digest_object = sslib_hash.digest(hash_function)
     encoded_target_filepath = target_filepath.encode("utf-8")
