@@ -417,6 +417,7 @@ class Key:
     """A container class representing the public portion of a Key.
 
     Attributes:
+        keyid: An identifier string
         keytype: A string denoting a public key signature system,
             such as "rsa", "ed25519", and "ecdsa-sha2-nistp256".
         scheme: A string denoting a corresponding signature scheme. For example:
@@ -428,6 +429,7 @@ class Key:
 
     def __init__(
         self,
+        keyid: str,
         keytype: str,
         scheme: str,
         keyval: Dict[str, str],
@@ -435,19 +437,20 @@ class Key:
     ) -> None:
         if not keyval.get("public"):
             raise ValueError("keyval doesn't follow the specification format!")
+        self.keyid = keyid
         self.keytype = keytype
         self.scheme = scheme
         self.keyval = keyval
         self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
 
     @classmethod
-    def from_dict(cls, key_dict: Dict[str, Any]) -> "Key":
+    def from_dict(cls, keyid: str, key_dict: Dict[str, Any]) -> "Key":
         """Creates Key object from its dict representation."""
         keytype = key_dict.pop("keytype")
         scheme = key_dict.pop("scheme")
         keyval = key_dict.pop("keyval")
         # All fields left in the key_dict are unrecognized.
-        return cls(keytype, scheme, keyval, key_dict)
+        return cls(keyid, keytype, scheme, keyval, key_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dictionary representation of self."""
@@ -558,7 +561,7 @@ class Root(Signed):
         roles = root_dict.pop("roles")
 
         for keyid, key_dict in keys.items():
-            keys[keyid] = Key.from_dict(key_dict)
+            keys[keyid] = Key.from_dict(keyid, key_dict)
         for role_name, role_dict in roles.items():
             roles[role_name] = Role.from_dict(role_dict)
 
@@ -584,10 +587,10 @@ class Root(Signed):
         return root_dict
 
     # Update key for a role.
-    def add_key(self, role: str, keyid: str, key_metadata: Key) -> None:
-        """Adds new key for 'role' and updates the key store."""
-        self.roles[role].keyids.add(keyid)
-        self.keys[keyid] = key_metadata
+    def add_key(self, role: str, key: Key) -> None:
+        """Adds new signing key for delegated role 'role'."""
+        self.roles[role].keyids.add(key.keyid)
+        self.keys[key.keyid] = key
 
     def remove_key(self, role: str, keyid: str) -> None:
         """Removes key from 'role' and updates the key store.
@@ -863,7 +866,7 @@ class Delegations:
         keys = delegations_dict.pop("keys")
         keys_res = {}
         for keyid, key_dict in keys.items():
-            keys_res[keyid] = Key.from_dict(key_dict)
+            keys_res[keyid] = Key.from_dict(keyid, key_dict)
         roles = delegations_dict.pop("roles")
         roles_res = []
         for role_dict in roles:

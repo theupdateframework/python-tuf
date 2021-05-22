@@ -373,18 +373,18 @@ class TestMetadata(unittest.TestCase):
             # Testing that the workflow of deserializing and serializing
             # a key dictionary doesn't change the content.
             test_key_dict = key_dict.copy()
-            key_obj = Key.from_dict(test_key_dict)
+            key_obj = Key.from_dict("id", test_key_dict)
             self.assertEqual(key_dict, key_obj.to_dict())
             # Test creating an instance without a required attribute.
             for key in key_dict.keys():
                 test_key_dict = key_dict.copy()
                 del test_key_dict[key]
                 with self.assertRaises(KeyError):
-                    Key.from_dict(test_key_dict)
+                    Key.from_dict("id", test_key_dict)
             # Test creating a Key instance with wrong keyval format.
             key_dict["keyval"] = {}
             with self.assertRaises(ValueError):
-                Key.from_dict(key_dict)
+                Key.from_dict("id", key_dict)
 
 
     def test_role_class(self):
@@ -413,7 +413,7 @@ class TestMetadata(unittest.TestCase):
                 test_role_dict = role_dict.copy()
                 del test_role_dict[role_attr]
                 with self.assertRaises(KeyError):
-                    Key.from_dict(test_role_dict)
+                    Key.from_dict("id", test_role_dict)
             # Test creating a Role instance with keyid dublicates.
             # for keyid in role_dict["keyids"]:
             role_dict["keyids"].append(role_dict["keyids"][0])
@@ -433,7 +433,7 @@ class TestMetadata(unittest.TestCase):
 
 
         keyid = root_key2['keyid']
-        key_metadata = Key(root_key2['keytype'], root_key2['scheme'],
+        key_metadata = Key(keyid, root_key2['keytype'], root_key2['scheme'],
             root_key2['keyval'])
 
         # Assert that root does not contain the new key
@@ -441,7 +441,7 @@ class TestMetadata(unittest.TestCase):
         self.assertNotIn(keyid, root.signed.keys)
 
         # Add new root key
-        root.signed.add_key('root', keyid, key_metadata)
+        root.signed.add_key('root', key_metadata)
 
         # Assert that key is added
         self.assertIn(keyid, root.signed.roles['root'].keyids)
@@ -453,7 +453,7 @@ class TestMetadata(unittest.TestCase):
 
         # Try adding the same key again and assert its ignored.
         pre_add_keyid = root.signed.roles['root'].keyids.copy()
-        root.signed.add_key('root', keyid, key_metadata)
+        root.signed.add_key('root', key_metadata)
         self.assertEqual(pre_add_keyid, root.signed.roles['root'].keyids)
 
         # Remove the key
