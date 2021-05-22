@@ -81,13 +81,10 @@ class TestMetadata(unittest.TestCase):
         # Load keys into memory
         cls.keystore = {}
         for role in ['delegation', 'snapshot', 'targets', 'timestamp']:
-            cls.keystore[role] = {
-                'private': import_ed25519_privatekey_from_file(
-                        os.path.join(cls.keystore_dir, role + '_key'),
-                        password="password"),
-                'public': import_ed25519_publickey_from_file(
-                        os.path.join(cls.keystore_dir, role + '_key.pub'))
-            }
+            cls.keystore[role] = import_ed25519_privatekey_from_file(
+                os.path.join(cls.keystore_dir, role + '_key'),
+                password="password"
+            )
 
 
     @classmethod
@@ -162,6 +159,17 @@ class TestMetadata(unittest.TestCase):
 
 
     def test_sign_verify(self):
+        root_path = os.path.join(self.repo_dir, 'metadata', 'root.json')
+        root:Root = Metadata.from_file(root_path).signed
+
+        # Locate the public keys we need from root
+        targets_keyid = next(iter(root.roles["targets"].keyids))
+        targets_key = root.keys[targets_keyid]
+        snapshot_keyid = next(iter(root.roles["snapshot"].keyids))
+        snapshot_key = root.keys[snapshot_keyid]
+        timestamp_keyid = next(iter(root.roles["timestamp"].keyids))
+        timestamp_key = root.keys[timestamp_keyid]
+
         # Load sample metadata (targets) and assert ...
         path = os.path.join(self.repo_dir, 'metadata', 'targets.json')
         metadata_obj = Metadata.from_file(path)
@@ -169,43 +177,28 @@ class TestMetadata(unittest.TestCase):
         # ... it has a single existing signature,
         self.assertTrue(len(metadata_obj.signatures) == 1)
         # ... which is valid for the correct key.
-        self.assertTrue(metadata_obj.verify(
-                self.keystore['targets']['public']))
+        targets_key.verify_signature(metadata_obj)
+        with self.assertRaises(tuf.exceptions.UnsignedMetadataError):
+            snapshot_key.verify_signature(metadata_obj)
 
-        sslib_signer = SSlibSigner(self.keystore['snapshot']['private'])
+        sslib_signer = SSlibSigner(self.keystore['snapshot'])
         # Append a new signature with the unrelated key and assert that ...
         metadata_obj.sign(sslib_signer, append=True)
         # ... there are now two signatures, and
         self.assertTrue(len(metadata_obj.signatures) == 2)
         # ... both are valid for the corresponding keys.
-        self.assertTrue(metadata_obj.verify(
-                self.keystore['targets']['public']))
-        self.assertTrue(metadata_obj.verify(
-                self.keystore['snapshot']['public']))
+        targets_key.verify_signature(metadata_obj)
+        snapshot_key.verify_signature(metadata_obj)
 
-        sslib_signer.key_dict = self.keystore['timestamp']['private']
+        sslib_signer = SSlibSigner(self.keystore['timestamp'])
         # Create and assign (don't append) a new signature and assert that ...
         metadata_obj.sign(sslib_signer, append=False)
         # ... there now is only one signature,
         self.assertTrue(len(metadata_obj.signatures) == 1)
         # ... valid for that key.
-        self.assertTrue(metadata_obj.verify(
-                self.keystore['timestamp']['public']))
-
-        # Assert exception if there are more than one signatures for a key
-        metadata_obj.sign(sslib_signer, append=True)
-        with self.assertRaises(tuf.exceptions.Error) as ctx:
-            metadata_obj.verify(self.keystore['timestamp']['public'])
-        self.assertTrue(
-                '2 signatures for key' in str(ctx.exception),
-                str(ctx.exception))
-
-        # Assert exception if there is no signature for a key
-        with self.assertRaises(tuf.exceptions.Error) as ctx:
-            metadata_obj.verify(self.keystore['targets']['public'])
-        self.assertTrue(
-                'no signature for' in str(ctx.exception),
-                str(ctx.exception))
+        timestamp_key.verify_signature(metadata_obj)
+        with self.assertRaises(tuf.exceptions.UnsignedMetadataError):
+            targets_key.verify_signature(metadata_obj)
 
 
     def test_metadata_base(self):
