@@ -243,49 +243,6 @@ class TestMetadata(unittest.TestCase):
             Metadata.from_dict(data)
 
 
-    def test_metafile_class(self):
-        # Test from_dict and to_dict with all attributes.
-        data = {
-            "hashes": {
-                "sha256": "8f88e2ba48b412c3843e9bb26e1b6f8fc9e98aceb0fbaa97ba37b4c98717d7ab"
-            },
-            "length": 515,
-            "version": 1
-        }
-        metafile_obj = MetaFile.from_dict(copy.copy(data))
-        self.assertEqual(metafile_obj.to_dict(), data)
-
-        # Test from_dict and to_dict without length.
-        del data["length"]
-        metafile_obj = MetaFile.from_dict(copy.copy(data))
-        self.assertEqual(metafile_obj.to_dict(), data)
-
-        # Test from_dict and to_dict without length and hashes.
-        del data["hashes"]
-        metafile_obj = MetaFile.from_dict(copy.copy(data))
-        self.assertEqual(metafile_obj.to_dict(), data)
-
-
-    def test_targetfile_class(self):
-        # Test from_dict and to_dict with all attributes.
-        data = {
-            "custom": {
-                "file_permissions": "0644"
-            },
-            "hashes": {
-                "sha256": "65b8c67f51c993d898250f40aa57a317d854900b3a04895464313e48785440da",
-                "sha512": "467430a68afae8e9f9c0771ea5d78bf0b3a0d79a2d3d3b40c69fde4dd42c461448aef76fcef4f5284931a1ffd0ac096d138ba3a0d6ca83fa8d7285a47a296f77"
-            },
-            "length": 31
-        }
-        targetfile_obj = TargetFile.from_dict(copy.copy(data))
-        self.assertEqual(targetfile_obj.to_dict(), data)
-
-        # Test from_dict and to_dict without custom.
-        del data["custom"]
-        targetfile_obj = TargetFile.from_dict(copy.copy(data))
-        self.assertEqual(targetfile_obj.to_dict(), data)
-
     def test_metadata_snapshot(self):
         snapshot_path = os.path.join(
                 self.repo_dir, 'metadata', 'snapshot.json')
@@ -304,13 +261,6 @@ class TestMetadata(unittest.TestCase):
             snapshot.signed.meta['role1.json'].to_dict(), fileinfo.to_dict()
         )
 
-        # Test from_dict and to_dict without hashes and length.
-        snapshot_dict = snapshot.to_dict()
-        del snapshot_dict['signed']['meta']['role1.json']['length']
-        del snapshot_dict['signed']['meta']['role1.json']['hashes']
-        test_dict = copy.deepcopy(snapshot_dict['signed'])
-        snapshot = Snapshot.from_dict(test_dict)
-        self.assertEqual(snapshot_dict['signed'], snapshot.to_dict())
 
     def test_metadata_timestamp(self):
         timestamp_path = os.path.join(
@@ -349,13 +299,6 @@ class TestMetadata(unittest.TestCase):
             timestamp.signed.meta['snapshot.json'].to_dict(), fileinfo.to_dict()
         )
 
-        # Test from_dict and to_dict without hashes and length.
-        timestamp_dict = timestamp.to_dict()
-        del timestamp_dict['signed']['meta']['snapshot.json']['length']
-        del timestamp_dict['signed']['meta']['snapshot.json']['hashes']
-        test_dict = copy.deepcopy(timestamp_dict['signed'])
-        timestamp_test = Timestamp.from_dict(test_dict)
-        self.assertEqual(timestamp_dict['signed'], timestamp_test.to_dict())
 
 
     def test_key_class(self):
@@ -369,21 +312,12 @@ class TestMetadata(unittest.TestCase):
             },
         }
         for key_dict in keys.values():
-            # Testing that the workflow of deserializing and serializing
-            # a key dictionary doesn't change the content.
-            test_key_dict = key_dict.copy()
-            key_obj = Key.from_dict("id", test_key_dict)
-            self.assertEqual(key_dict, key_obj.to_dict())
             # Test creating an instance without a required attribute.
             for key in key_dict.keys():
                 test_key_dict = key_dict.copy()
                 del test_key_dict[key]
                 with self.assertRaises(KeyError):
                     Key.from_dict("id", test_key_dict)
-            # Test creating a Key instance with wrong keyval format.
-            key_dict["keyval"] = {}
-            with self.assertRaises(KeyError):
-                Key.from_dict("id", key_dict)
 
 
     def test_role_class(self):
@@ -402,23 +336,12 @@ class TestMetadata(unittest.TestCase):
             },
         }
         for role_dict in roles.values():
-            # Testing that the workflow of deserializing and serializing
-            # a role dictionary doesn't change the content.
-            test_role_dict = role_dict.copy()
-            role_obj = Role.from_dict(test_role_dict)
-            self.assertEqual(role_dict, role_obj.to_dict())
             # Test creating an instance without a required attribute.
             for role_attr in role_dict.keys():
                 test_role_dict = role_dict.copy()
                 del test_role_dict[role_attr]
                 with self.assertRaises(KeyError):
-                    Key.from_dict("id", test_role_dict)
-            # Test creating a Role instance with keyid dublicates.
-            # for keyid in role_dict["keyids"]:
-            role_dict["keyids"].append(role_dict["keyids"][0])
-            test_role_dict = role_dict.copy()
-            with self.assertRaises(ValueError):
-                Role.from_dict(test_role_dict)
+                    Role.from_dict(test_role_dict)
 
 
     def test_metadata_root(self):
@@ -465,84 +388,8 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(KeyError):
             root.signed.remove_key('root', 'nosuchkey')
 
-        # Test serializing and deserializing without consistent_snapshot.
-        root_dict = root.to_dict()
-        del root_dict["signed"]["consistent_snapshot"]
-        root = Root.from_dict(copy.deepcopy(root_dict["signed"]))
-        self.assertEqual(root_dict["signed"], root.to_dict())
-
-    def test_delegated_role_class(self):
-        roles = [
-            {
-                "keyids": [
-                    "c8022fa1e9b9cb239a6b362bbdffa9649e61ad2cb699d2e4bc4fdf7930a0e64a"
-                ],
-                "name": "role1",
-                "paths": [
-                    "file3.txt"
-                ],
-                "terminating": False,
-                "threshold": 1
-            }
-        ]
-        for role in roles:
-            # Testing that the workflow of deserializing and serializing
-            # a delegation role dictionary doesn't change the content.
-            key_obj = DelegatedRole.from_dict(role.copy())
-            self.assertEqual(role, key_obj.to_dict())
-
-            # Test creating a DelegatedRole object with both "paths" and
-            # "path_hash_prefixes" set.
-            role["path_hash_prefixes"] = "foo"
-            with self.assertRaises(ValueError):
-                DelegatedRole.from_dict(role.copy())
-
-            # Test creating DelegatedRole only with "path_hash_prefixes" (an empty one)
-            del role["paths"]
-            role["path_hash_prefixes"] = []
-            role_obj = DelegatedRole.from_dict(role.copy())
-            self.assertEqual(role_obj.to_dict(), role)
-
-            # Test creating DelegatedRole only with "paths" (now an empty one)
-            del role["path_hash_prefixes"]
-            role["paths"] = []
-            role_obj = DelegatedRole.from_dict(role.copy())
-            self.assertEqual(role_obj.to_dict(), role)
-
-            # Test creating DelegatedRole without "paths" and
-            # "path_hash_prefixes" set
-            del role["paths"]
-            role_obj = DelegatedRole.from_dict(role.copy())
-            self.assertEqual(role_obj.to_dict(), role)
-
 
     def test_delegation_class(self):
-        roles = [
-                {
-                    "keyids": [
-                        "c8022fa1e9b9cb239a6b362bbdffa9649e61ad2cb699d2e4bc4fdf7930a0e64a"
-                    ],
-                    "name": "role1",
-                    "paths": [
-                        "file3.txt"
-                    ],
-                    "terminating": False,
-                    "threshold": 1
-                }
-            ]
-        keys = {
-                "59a4df8af818e9ed7abe0764c0b47b4240952aa0d179b5b78346c470ac30278d":{
-                    "keytype": "ed25519",
-                    "keyval": {
-                        "public": "edcd0a32a07dce33f7c7873aaffbff36d20ea30787574ead335eefd337e4dacd"
-                    },
-                    "scheme": "ed25519"
-                },
-            }
-        delegations_dict = {"keys": keys, "roles": roles}
-        delegations = Delegations.from_dict(copy.deepcopy(delegations_dict))
-        self.assertEqual(delegations_dict, delegations.to_dict())
-
         # empty keys and roles
         delegations_dict = {"keys":{}, "roles":[]}
         delegations = Delegations.from_dict(delegations_dict.copy())
@@ -584,19 +431,6 @@ class TestMetadata(unittest.TestCase):
             targets.signed.targets[filename].to_dict(), fileinfo.to_dict()
         )
 
-        # Test from_dict/to_dict Targets with empty targets.
-        targets_dict = copy.deepcopy(targets.to_dict())
-        targets_dict["signed"]["targets"] = {}
-        tmp_dict = copy.deepcopy(targets_dict["signed"])
-        targets_obj = Targets.from_dict(tmp_dict)
-        self.assertEqual(targets_dict["signed"], targets_obj.to_dict())
-
-        # Test from_dict/to_dict Targets without delegations
-        targets_dict = targets.to_dict()
-        del targets_dict["signed"]["delegations"]
-        tmp_dict = copy.deepcopy(targets_dict["signed"])
-        targets_obj = Targets.from_dict(tmp_dict)
-        self.assertEqual(targets_dict["signed"], targets_obj.to_dict())
 
     def setup_dict_with_unrecognized_field(self, file_path, field, value):
         json_dict = {}
