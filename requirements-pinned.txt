@@ -7,4 +7,4 @@ pycparser==2.20           # via cffi
 pynacl==1.4.0             # via securesystemslib
 requests==2.25.1
 securesystemslib[crypto,pynacl]==0.20.1
-urllib3==1.26.4           # via requests
+urllib3==1.26.5           # via requests
