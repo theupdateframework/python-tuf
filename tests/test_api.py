@@ -175,7 +175,7 @@ class TestMetadata(unittest.TestCase):
         metadata_obj = Metadata.from_file(path)
 
         # ... it has a single existing signature,
-        self.assertTrue(len(metadata_obj.signatures) == 1)
+        self.assertEqual(len(metadata_obj.signatures), 1)
         # ... which is valid for the correct key.
         targets_key.verify_signature(metadata_obj)
         with self.assertRaises(tuf.exceptions.UnsignedMetadataError):
@@ -185,7 +185,7 @@ class TestMetadata(unittest.TestCase):
         # Append a new signature with the unrelated key and assert that ...
         metadata_obj.sign(sslib_signer, append=True)
         # ... there are now two signatures, and
-        self.assertTrue(len(metadata_obj.signatures) == 2)
+        self.assertEqual(len(metadata_obj.signatures), 2)
         # ... both are valid for the corresponding keys.
         targets_key.verify_signature(metadata_obj)
         snapshot_key.verify_signature(metadata_obj)
@@ -194,7 +194,7 @@ class TestMetadata(unittest.TestCase):
         # Create and assign (don't append) a new signature and assert that ...
         metadata_obj.sign(sslib_signer, append=False)
         # ... there now is only one signature,
-        self.assertTrue(len(metadata_obj.signatures) == 1)
+        self.assertEqual(len(metadata_obj.signatures), 1)
         # ... valid for that key.
         timestamp_key.verify_signature(metadata_obj)
         with self.assertRaises(tuf.exceptions.UnsignedMetadataError):
@@ -235,6 +235,12 @@ class TestMetadata(unittest.TestCase):
         is_expired = md.signed.is_expired()
         self.assertFalse(is_expired)
         md.signed.expires = expires
+
+        # Test deserializing metadata with non-unique signatures:
+        data = md.to_dict()
+        data["signatures"].append({"keyid": data["signatures"][0]["keyid"], "sig": "foo"})
+        with self.assertRaises(ValueError):
+            Metadata.from_dict(data)
 
 
     def test_metafile_class(self):
