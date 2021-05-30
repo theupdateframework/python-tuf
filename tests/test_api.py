@@ -205,6 +205,25 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(exceptions.UnsignedMetadataError):
             targets_key.verify_signature(metadata_obj)
 
+        # Test failure on broken public key data (securesystemslib CryptoError)
+        public = timestamp_key.keyval["public"]
+        timestamp_key.keyval["public"] = "ffff"
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            timestamp_key.verify_signature(metadata_obj)
+        timestamp_key.keyval["public"] = public
+
+        # Test failure with invalid signature (securesystemslib FormatError)
+        sig = metadata_obj.signatures[timestamp_keyid]
+        correct_sig = sig.signature
+        sig.signature = "foo"
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            timestamp_key.verify_signature(metadata_obj)
+
+        # Test failure with valid but incorrect signature
+        sig.signature = "52af76354db3403242e1437b1fbf1c7edc4e66b81dfd63b3026ff681d57e88e11a697cca78061a376a9dd8d7fde5777b14d4e6d8e75f976101cbc61321642f06"
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            timestamp_key.verify_signature(metadata_obj)
+        sig.signature = correct_sig
 
     def test_metadata_base(self):
         # Use of Snapshot is arbitrary, we're just testing the base class features
