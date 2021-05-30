@@ -181,6 +181,11 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(exceptions.UnsignedMetadataError):
             snapshot_key.verify_signature(metadata_obj)
 
+        # Test verifying with explicitly set serializer
+        targets_key.verify_signature(metadata_obj, CanonicalJSONSerializer())
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            targets_key.verify_signature(metadata_obj, JSONSerializer())
+
         sslib_signer = SSlibSigner(self.keystore['snapshot'])
         # Append a new signature with the unrelated key and assert that ...
         metadata_obj.sign(sslib_signer, append=True)
