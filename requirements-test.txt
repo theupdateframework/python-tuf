@@ -11,4 +11,5 @@ coverage
 black
 isort
 pylint
+mypy
 bandit
