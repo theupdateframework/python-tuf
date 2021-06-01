@@ -293,7 +293,6 @@ class Signed(metaclass=abc.ABCMeta):
         self.spec_version = spec_version
         self.expires = expires
 
-        # TODO: Should we separate data validation from constructor?
         if version <= 0:
             raise ValueError(f"version must be > 0, got {version}")
         self.version = version
