@@ -17,6 +17,7 @@ available in the class model.
 """
 import abc
 import tempfile
+from collections import OrderedDict
 from datetime import datetime, timedelta
 from typing import Any, ClassVar, Dict, List, Mapping, Optional, Tuple, Type
 
@@ -48,11 +49,13 @@ class Metadata:
         signed: A subclass of Signed, which has the actual metadata payload,
             i.e. one of Targets, Snapshot, Timestamp or Root.
 
-        signatures: A dict of keyids to Securesystemslib Signature objects,
-            each signing the canonical serialized representation of 'signed'.
+        signatures: An ordered dictionary of keyids to Signature objects, each
+            signing the canonical serialized representation of 'signed'.
     """
 
-    def __init__(self, signed: "Signed", signatures: Dict[str, Signature]):
+    def __init__(
+        self, signed: "Signed", signatures: "OrderedDict[str, Signature]"
+    ):
         self.signed = signed
         self.signatures = signatures
 
@@ -89,7 +92,7 @@ class Metadata:
             raise ValueError(f'unrecognized metadata type "{_type}"')
 
         # Make sure signatures are unique
-        signatures: Dict[str, Signature] = {}
+        signatures: "OrderedDict[str, Signature]" = OrderedDict()
         for sig_dict in metadata.pop("signatures"):
             sig = Signature.from_dict(sig_dict)
             if sig.keyid in signatures:
@@ -249,7 +252,7 @@ class Metadata:
         if append:
             self.signatures[signature.keyid] = signature
         else:
-            self.signatures = {signature.keyid: signature}
+            self.signatures = OrderedDict({signature.keyid: signature})
 
         return signature
 
