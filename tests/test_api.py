@@ -20,7 +20,7 @@ from dateutil.relativedelta import relativedelta
 
 from tests import utils
 
-import tuf.exceptions
+from tuf import exceptions
 from tuf.api.metadata import (
     Metadata,
     Root,
@@ -178,7 +178,7 @@ class TestMetadata(unittest.TestCase):
         self.assertTrue(len(metadata_obj.signatures) == 1)
         # ... which is valid for the correct key.
         targets_key.verify_signature(metadata_obj)
-        with self.assertRaises(tuf.exceptions.UnsignedMetadataError):
+        with self.assertRaises(exceptions.UnsignedMetadataError):
             snapshot_key.verify_signature(metadata_obj)
 
         sslib_signer = SSlibSigner(self.keystore['snapshot'])
@@ -197,7 +197,7 @@ class TestMetadata(unittest.TestCase):
         self.assertTrue(len(metadata_obj.signatures) == 1)
         # ... valid for that key.
         timestamp_key.verify_signature(metadata_obj)
-        with self.assertRaises(tuf.exceptions.UnsignedMetadataError):
+        with self.assertRaises(exceptions.UnsignedMetadataError):
             targets_key.verify_signature(metadata_obj)
 
 
@@ -280,7 +280,6 @@ class TestMetadata(unittest.TestCase):
         targetfile_obj = TargetFile.from_dict(copy.copy(data))
         self.assertEqual(targetfile_obj.to_dict(), data)
 
-
     def test_metadata_snapshot(self):
         snapshot_path = os.path.join(
                 self.repo_dir, 'metadata', 'snapshot.json')
@@ -351,6 +350,7 @@ class TestMetadata(unittest.TestCase):
         test_dict = copy.deepcopy(timestamp_dict['signed'])
         timestamp_test = Timestamp.from_dict(test_dict)
         self.assertEqual(timestamp_dict['signed'], timestamp_test.to_dict())
+
 
     def test_key_class(self):
         keys = {
@@ -637,6 +637,66 @@ class TestMetadata(unittest.TestCase):
             self.assertNotEqual(
                 metadata_obj.signed.to_dict(), metadata_obj2.signed.to_dict()
             )
+
+    def  test_length_and_hash_validation(self):
+
+        # Test metadata files' hash and length verification.
+        # Use timestamp to get a MetaFile object and snapshot
+        # for untrusted metadata file to verify.
+        timestamp_path = os.path.join(
+            self.repo_dir, 'metadata', 'timestamp.json')
+        timestamp = Metadata.from_file(timestamp_path)
+        snapshot_metafile = timestamp.signed.meta["snapshot.json"]
+
+        snapshot_path = os.path.join(
+            self.repo_dir, 'metadata', 'snapshot.json')
+
+        with open(snapshot_path, "rb") as file:
+            # test with  data as a file object
+            snapshot_metafile.verify_length_and_hashes(file)
+            file.seek(0)
+            data = file.read()
+            # test with data as bytes
+            snapshot_metafile.verify_length_and_hashes(data)
+
+            # test exceptions
+            expected_length = snapshot_metafile.length
+            snapshot_metafile.length = 2345
+            self.assertRaises(exceptions.LengthOrHashMismatchError,
+                snapshot_metafile.verify_length_and_hashes, data)
+
+            snapshot_metafile.length = expected_length
+            snapshot_metafile.hashes = {'sha256': 'incorrecthash'}
+            self.assertRaises(exceptions.LengthOrHashMismatchError,
+                snapshot_metafile.verify_length_and_hashes, data)
+
+            # test optional length and hashes
+            snapshot_metafile.length = None
+            snapshot_metafile.hashes = None
+            snapshot_metafile.verify_length_and_hashes(data)
+
+
+        # Test target files' hash and length verification
+        targets_path = os.path.join(
+            self.repo_dir, 'metadata', 'targets.json')
+        targets = Metadata.from_file(targets_path)
+        file1_targetfile = targets.signed.targets['file1.txt']
+        filepath = os.path.join(
+            self.repo_dir, 'targets', 'file1.txt')
+
+        with open(filepath, "rb") as file1:
+            file1_targetfile.verify_length_and_hashes(file1)
+
+            # test exceptions
+            expected_length = file1_targetfile.length
+            file1_targetfile.length = 2345
+            self.assertRaises(exceptions.LengthOrHashMismatchError,
+                file1_targetfile.verify_length_and_hashes, file1)
+
+            file1_targetfile.length = expected_length
+            file1_targetfile.hashes = {'sha256': 'incorrecthash'}
+            self.assertRaises(exceptions.LengthOrHashMismatchError,
+                file1_targetfile.verify_length_and_hashes, file1)
 
 
 # Run unit test.
