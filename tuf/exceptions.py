@@ -65,6 +65,8 @@ class InvalidMetadataJSONError(FormatError):
 class UnsupportedAlgorithmError(Error):
   """Indicate an error while trying to identify a user-specified algorithm."""
 
+class LengthOrHashMismatchError(Error):
+  """Indicate an error while checking the length and hash values of an object"""
 
 class BadHashError(Error):
   """Indicate an error while checking the value of a hash object."""
@@ -87,9 +89,6 @@ class BadHashError(Error):
     # return (
     #     self.__class__.__name__ + '(' + repr(self.expected_hash) + ', ' +
     #     repr(self.observed_hash) + ')')
-
-
-
 
 class BadVersionNumberError(Error):
   """Indicate an error for metadata that contains an invalid version number."""
