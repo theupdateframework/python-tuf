@@ -719,6 +719,13 @@ class MetaFile(BaseFile):
         version = meta_dict.pop("version")
         length = meta_dict.pop("length", None)
         hashes = meta_dict.pop("hashes", None)
+
+        # Do some basic input validation
+        if version <= 0:
+            raise ValueError(f"Metafile version must be > 0, got {version}")
+        if length is not None and length <= 0:
+            raise ValueError(f"Metafile length must be > 0, got {length}")
+
         # All fields left in the meta_dict are unrecognized.
         return cls(version, length, hashes, meta_dict)
 
@@ -1019,6 +1026,13 @@ class TargetFile(BaseFile):
         """Creates TargetFile object from its dict representation."""
         length = target_dict.pop("length")
         hashes = target_dict.pop("hashes")
+
+        # Do some basic validation checks
+        if length <= 0:
+            raise ValueError(f"Targetfile length must be > 0, got {length}")
+        if not hashes:
+            raise ValueError("Missing targetfile hashes")
+
         # All fields left in the target_dict are unrecognized.
         return cls(length, hashes, target_dict)
 
