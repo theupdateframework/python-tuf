@@ -20,7 +20,7 @@ import tempfile
 from datetime import datetime, timedelta
 from typing import Any, ClassVar, Dict, List, Mapping, Optional, Tuple, Type
 
-from securesystemslib.keys import verify_signature
+from securesystemslib import keys as sslib_keys
 from securesystemslib.signer import Signature, Signer
 from securesystemslib.storage import FilesystemBackend, StorageBackendInterface
 from securesystemslib.util import persist_temp_file
@@ -251,59 +251,6 @@ class Metadata:
 
         return signature
 
-    def verify(
-        self,
-        key: Mapping[str, Any],
-        signed_serializer: Optional[SignedSerializer] = None,
-    ) -> bool:
-        """Verifies 'signatures' over 'signed' that match the passed key by id.
-
-        Arguments:
-            key: A securesystemslib-style public key object.
-            signed_serializer: A SignedSerializer subclass instance that
-                implements the desired canonicalization format. Per default a
-                CanonicalJSONSerializer is used.
-
-        Raises:
-            # TODO: Revise exception taxonomy
-            tuf.exceptions.Error: None or multiple signatures found for key.
-            securesystemslib.exceptions.FormatError: Key argument is malformed.
-            tuf.api.serialization.SerializationError:
-                'signed' cannot be serialized.
-            securesystemslib.exceptions.CryptoError, \
-                    securesystemslib.exceptions.UnsupportedAlgorithmError:
-                Signing errors.
-
-        Returns:
-            A boolean indicating if the signature is valid for the passed key.
-
-        """
-        signatures_for_keyid = list(
-            filter(lambda sig: sig.keyid == key["keyid"], self.signatures)
-        )
-
-        if not signatures_for_keyid:
-            raise exceptions.Error(f"no signature for key {key['keyid']}.")
-
-        if len(signatures_for_keyid) > 1:
-            raise exceptions.Error(
-                f"{len(signatures_for_keyid)} signatures for key "
-                f"{key['keyid']}, not sure which one to verify."
-            )
-
-        if signed_serializer is None:
-            # Use local scope import to avoid circular import errors
-            # pylint: disable=import-outside-toplevel
-            from tuf.api.serialization.json import CanonicalJSONSerializer
-
-            signed_serializer = CanonicalJSONSerializer()
-
-        return verify_signature(
-            key,
-            signatures_for_keyid[0].to_dict(),
-            signed_serializer.serialize(self.signed),
-        )
-
 
 class Signed(metaclass=abc.ABCMeta):
     """A base class for the signed part of TUF metadata.
@@ -431,6 +378,9 @@ class Key:
     """A container class representing the public portion of a Key.
 
     Attributes:
+        keyid: An identifier string that must uniquely identify a key within
+            the metadata it is used in. This implementation does not verify
+            that keyid is the hash of a specific representation of the key.
         keytype: A string denoting a public key signature system,
             such as "rsa", "ed25519", and "ecdsa-sha2-nistp256".
         scheme: A string denoting a corresponding signature scheme. For example:
@@ -442,6 +392,7 @@ class Key:
 
     def __init__(
         self,
+        keyid: str,
         keytype: str,
         scheme: str,
         keyval: Dict[str, str],
@@ -449,19 +400,20 @@ class Key:
     ) -> None:
         if not keyval.get("public"):
             raise ValueError("keyval doesn't follow the specification format!")
+        self.keyid = keyid
         self.keytype = keytype
         self.scheme = scheme
         self.keyval = keyval
         self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
 
     @classmethod
-    def from_dict(cls, key_dict: Dict[str, Any]) -> "Key":
+    def from_dict(cls, keyid: str, key_dict: Dict[str, Any]) -> "Key":
         """Creates Key object from its dict representation."""
         keytype = key_dict.pop("keytype")
         scheme = key_dict.pop("scheme")
         keyval = key_dict.pop("keyval")
         # All fields left in the key_dict are unrecognized.
-        return cls(keytype, scheme, keyval, key_dict)
+        return cls(keyid, keytype, scheme, keyval, key_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dictionary representation of self."""
@@ -471,6 +423,59 @@ class Key:
             "keyval": self.keyval,
             **self.unrecognized_fields,
         }
+
+    def to_securesystemslib_key(self) -> Dict[str, Any]:
+        """Returns a Securesystemslib compatible representation of self."""
+        return {
+            "keyid": self.keyid,
+            "keytype": self.keytype,
+            "scheme": self.scheme,
+            "keyval": self.keyval,
+        }
+
+    def verify_signature(
+        self,
+        metadata: Metadata,
+        signed_serializer: Optional[SignedSerializer] = None,
+    ):
+        """Verifies that the 'metadata.signatures' contains a signature made
+        with this key, correctly signing 'metadata.signed'.
+
+        Arguments:
+            metadata: Metadata to verify
+            signed_serializer: Optional; SignedSerializer to serialize
+                'metadata.signed' with. Default is CanonicalJSONSerializer.
+
+        Raises:
+            UnsignedMetadataError: The signature could not be verified for a
+                variety of possible reasons: see error message.
+            TODO: Various other errors currently bleed through from lower
+                level components: Issue #1351
+        """
+        try:
+            sigs = metadata.signatures
+            signature = next(sig for sig in sigs if sig.keyid == self.keyid)
+        except StopIteration:
+            raise exceptions.UnsignedMetadataError(
+                f"no signature for key {self.keyid} found in metadata",
+                metadata.signed,
+            ) from None
+
+        if signed_serializer is None:
+            # pylint: disable=import-outside-toplevel
+            from tuf.api.serialization.json import CanonicalJSONSerializer
+
+            signed_serializer = CanonicalJSONSerializer()
+
+        if not sslib_keys.verify_signature(
+            self.to_securesystemslib_key(),
+            signature.to_dict(),
+            signed_serializer.serialize(metadata.signed),
+        ):
+            raise exceptions.UnsignedMetadataError(
+                f"Failed to verify {self.keyid} signature for metadata",
+                metadata.signed,
+            )
 
 
 class Role:
@@ -572,7 +577,7 @@ class Root(Signed):
         roles = signed_dict.pop("roles")
 
         for keyid, key_dict in keys.items():
-            keys[keyid] = Key.from_dict(key_dict)
+            keys[keyid] = Key.from_dict(keyid, key_dict)
         for role_name, role_dict in roles.items():
             roles[role_name] = Role.from_dict(role_dict)
 
@@ -598,10 +603,10 @@ class Root(Signed):
         return root_dict
 
     # Update key for a role.
-    def add_key(self, role: str, keyid: str, key_metadata: Key) -> None:
-        """Adds new key for 'role' and updates the key store."""
-        self.roles[role].keyids.add(keyid)
-        self.keys[keyid] = key_metadata
+    def add_key(self, role: str, key: Key) -> None:
+        """Adds new signing key for delegated role 'role'."""
+        self.roles[role].keyids.add(key.keyid)
+        self.keys[key.keyid] = key
 
     def remove_key(self, role: str, keyid: str) -> None:
         """Removes key from 'role' and updates the key store.
@@ -880,7 +885,7 @@ class Delegations:
         keys = delegations_dict.pop("keys")
         keys_res = {}
         for keyid, key_dict in keys.items():
-            keys_res[keyid] = Key.from_dict(key_dict)
+            keys_res[keyid] = Key.from_dict(keyid, key_dict)
         roles = delegations_dict.pop("roles")
         roles_res = []
         for role_dict in roles:
