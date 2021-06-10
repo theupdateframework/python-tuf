@@ -35,25 +35,19 @@ from tuf import exceptions, formats
 logger = logging.getLogger(__name__)
 
 
-def download_file(url, required_length, fetcher, strict_required_length=True):
+def download_file(url, required_length, fetcher):
     """
     <Purpose>
       Given the url and length of the desired file, this function opens a
-      connection to 'url' and downloads the file while ensuring its length
-      matches 'required_length' if 'STRICT_REQUIRED_LENGTH' is True.
+      connection to 'url' and downloads the file up to 'required_length'.
 
     <Arguments>
       url:
         A URL string that represents the location of the file.
 
       required_length:
-        An integer value representing the length of the file.
-
-      strict_required_length:
-        A Boolean indicator used to signal whether we should perform strict
-        checking of required_length. True by default. We explicitly set this to
-        False when we know that we want to turn this off for downloading the
-        timestamp metadata, which has no signed required_length.
+        An integer value representing the length of the file or an
+        upper boundary.
 
     <Side Effects>
       A file object is created on disk to store the contents of 'url'.
@@ -96,12 +90,10 @@ def download_file(url, required_length, fetcher, strict_required_length=True):
             temp_file.write(chunk)
             number_of_bytes_received += len(chunk)
 
-        # Does the total number of downloaded bytes match the required length?
-        _check_downloaded_length(
-            number_of_bytes_received,
-            required_length,
-            strict_required_length=strict_required_length,
-        )
+        if number_of_bytes_received > required_length:
+            raise exceptions.DownloadLengthMismatchError(
+                required_length, number_of_bytes_received
+            )
 
     except Exception:
         # Close 'temp_file'.  Any written data is lost.
@@ -114,74 +106,10 @@ def download_file(url, required_length, fetcher, strict_required_length=True):
         return temp_file
 
 
-def download_bytes(url, required_length, fetcher, strict_required_length=True):
+def download_bytes(url, required_length, fetcher):
     """Download bytes from given url
 
     Returns the downloaded bytes, otherwise like download_file()
     """
-    with download_file(
-        url, required_length, fetcher, strict_required_length
-    ) as dl_file:
+    with download_file(url, required_length, fetcher) as dl_file:
         return dl_file.read()
-
-
-def _check_downloaded_length(
-    total_downloaded, required_length, strict_required_length=True
-):
-    """
-    <Purpose>
-      A helper function which checks whether the total number of downloaded
-      bytes matches our expectation.
-
-    <Arguments>
-      total_downloaded:
-        The total number of bytes supposedly downloaded for the file in
-        question.
-
-      required_length:
-        The total number of bytes expected of the file as seen from its metadata
-        The Timestamp role is always downloaded without a known file length, and
-        the Root role when the client cannot download any of the required
-        top-level roles.  In both cases, 'required_length' is actually an upper
-        limit on the length of the downloaded file.
-
-      strict_required_length:
-        A Boolean indicator used to signal whether we should perform strict
-        checking of required_length. True by default. We explicitly set this to
-        False when we know that we want to turn this off for downloading the
-        timestamp metadata, which has no signed required_length.
-
-    <Side Effects>
-      None.
-
-    <Exceptions>
-      securesystemslib.exceptions.DownloadLengthMismatchError, if
-      strict_required_length is True and total_downloaded is not equal
-      required_length.
-
-    <Returns>
-      None.
-    """
-
-    if total_downloaded == required_length:
-        logger.info("Downloaded %d bytes as expected.", total_downloaded)
-
-    else:
-        # What we downloaded is not equal to the required length, but did we ask
-        # for strict checking of required length?
-        if strict_required_length:
-            logger.info(
-                "Downloaded %d bytes, but expected %d bytes",
-                total_downloaded,
-                required_length,
-            )
-
-            raise exceptions.DownloadLengthMismatchError(
-                required_length, total_downloaded
-            )
-
-        logger.info(
-            "Downloaded %d bytes out of upper limit of %d bytes.",
-            total_downloaded,
-            required_length,
-        )

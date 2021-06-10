@@ -215,12 +215,7 @@ class Updater:
         else:
             filename = f"{version}.{rolename}.json"
         url = parse.urljoin(self._metadata_base_url, filename)
-        return download.download_bytes(
-            url,
-            length,
-            self._fetcher,
-            strict_required_length=False,
-        )
+        return download.download_bytes(url, length, self._fetcher)
 
     def _load_local_metadata(self, rolename: str) -> bytes:
         with open(os.path.join(self._dir, f"{rolename}.json"), "rb") as f:
