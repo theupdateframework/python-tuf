@@ -249,10 +249,10 @@ class Metadata:
 
         signature = signer.sign(signed_serializer.serialize(self.signed))
 
-        if append:
-            self.signatures[signature.keyid] = signature
-        else:
-            self.signatures = OrderedDict({signature.keyid: signature})
+        if not append:
+            self.signatures.clear()
+
+        self.signatures[signature.keyid] = signature
 
         return signature
 
