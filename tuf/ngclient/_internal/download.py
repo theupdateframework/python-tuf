@@ -22,14 +22,12 @@
   length of a downloaded file has to match the hash and length supplied by the
   metadata of that file.
 """
-
 import logging
 import tempfile
 from urllib import parse
 
 from tuf import exceptions
 
-# See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger(__name__)
 
 
@@ -66,7 +64,7 @@ def download_file(url, required_length, fetcher):
     # encoded as %5c in the url, which should also be replaced with a forward
     # slash.
     url = parse.unquote(url).replace("\\", "/")
-    logger.info("Downloading: %s", url)
+    logger.debug("Downloading: %s", url)
 
     # This is the temporary file that we will return to contain the contents of
     # the downloaded file.
@@ -88,7 +86,6 @@ def download_file(url, required_length, fetcher):
     except Exception:
         # Close 'temp_file'.  Any written data is lost.
         temp_file.close()
-        logger.debug("Could not download URL: %s", url)
         raise
 
     else:
