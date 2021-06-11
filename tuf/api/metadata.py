@@ -228,7 +228,7 @@ class Metadata:
         signer: Signer,
         append: bool = False,
         signed_serializer: Optional[SignedSerializer] = None,
-    ) -> Dict[str, Any]:
+    ) -> Signature:
         """Creates signature over 'signed' and assigns it to 'signatures'.
 
         Arguments:
@@ -247,7 +247,7 @@ class Metadata:
                 Signing errors.
 
         Returns:
-            A securesystemslib-style signature object.
+            Securesystemslib Signature object that was added into signatures.
         """
 
         if signed_serializer is None:

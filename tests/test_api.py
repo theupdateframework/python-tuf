@@ -188,12 +188,14 @@ class TestMetadata(unittest.TestCase):
 
         sslib_signer = SSlibSigner(self.keystore['snapshot'])
         # Append a new signature with the unrelated key and assert that ...
-        metadata_obj.sign(sslib_signer, append=True)
+        sig = metadata_obj.sign(sslib_signer, append=True)
         # ... there are now two signatures, and
         self.assertEqual(len(metadata_obj.signatures), 2)
         # ... both are valid for the corresponding keys.
         targets_key.verify_signature(metadata_obj)
         snapshot_key.verify_signature(metadata_obj)
+        # ... the returned (appended) signature is for snapshot key
+        self.assertEqual(sig.keyid, snapshot_keyid)
 
         sslib_signer = SSlibSigner(self.keystore['timestamp'])
         # Create and assign (don't append) a new signature and assert that ...
