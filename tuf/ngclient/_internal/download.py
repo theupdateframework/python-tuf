@@ -24,13 +24,14 @@
 """
 import logging
 import tempfile
+from contextlib import contextmanager
 from urllib import parse
 
 from tuf import exceptions
 
 logger = logging.getLogger(__name__)
 
-
+@contextmanager
 def download_file(url, required_length, fetcher):
     """
     <Purpose>
@@ -66,31 +67,19 @@ def download_file(url, required_length, fetcher):
     url = parse.unquote(url).replace("\\", "/")
     logger.debug("Downloading: %s", url)
 
-    # This is the temporary file that we will return to contain the contents of
-    # the downloaded file.
-    temp_file = tempfile.TemporaryFile()  # pylint: disable=consider-using-with
-
     number_of_bytes_received = 0
 
-    try:
+    with tempfile.TemporaryFile() as temp_file:
         chunks = fetcher.fetch(url, required_length)
         for chunk in chunks:
             temp_file.write(chunk)
             number_of_bytes_received += len(chunk)
-
         if number_of_bytes_received > required_length:
             raise exceptions.DownloadLengthMismatchError(
                 required_length, number_of_bytes_received
             )
-
-    except Exception:
-        # Close 'temp_file'.  Any written data is lost.
-        temp_file.close()
-        raise
-
-    else:
         temp_file.seek(0)
-        return temp_file
+        yield temp_file
 
 
 def download_bytes(url, required_length, fetcher):
