@@ -923,11 +923,11 @@ class MetaFile(BaseFile):
 class Timestamp(Signed):
     """A container for the signed part of timestamp metadata.
 
-    Timestamp contains information about the snapshot Metadata file.
+    TUF file format uses a dictionary to contain the snapshot information:
+    this is not the case with Timestamp.snapshot_meta which is a MetaFile.
 
     Attributes:
-        meta: A dictionary of filenames to MetaFiles. The only valid key value
-            is the snapshot filename, as defined by the specification.
+        snapshot_meta: MetaFile instance with the snapshot meta information.
     """
 
     _signed_type = "timestamp"
@@ -937,33 +937,31 @@ class Timestamp(Signed):
         version: int,
         spec_version: str,
         expires: datetime,
-        meta: Dict[str, MetaFile],
+        snapshot_meta: MetaFile,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
         super().__init__(version, spec_version, expires, unrecognized_fields)
-        self.meta = meta
+        self.snapshot_meta = snapshot_meta
 
     @classmethod
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Timestamp":
         """Creates Timestamp object from its dict representation."""
         common_args = cls._common_fields_from_dict(signed_dict)
         meta_dict = signed_dict.pop("meta")
-        meta = {"snapshot.json": MetaFile.from_dict(meta_dict["snapshot.json"])}
+        snapshot_meta = MetaFile.from_dict(meta_dict["snapshot.json"])
         # All fields left in the timestamp_dict are unrecognized.
-        return cls(*common_args, meta, signed_dict)
+        return cls(*common_args, snapshot_meta, signed_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
         res_dict = self._common_fields_to_dict()
-        res_dict["meta"] = {
-            "snapshot.json": self.meta["snapshot.json"].to_dict()
-        }
+        res_dict["meta"] = {"snapshot.json": self.snapshot_meta.to_dict()}
         return res_dict
 
     # Modification.
     def update(self, snapshot_meta: MetaFile) -> None:
-        """Assigns passed info about snapshot metadata to meta dict."""
-        self.meta["snapshot.json"] = snapshot_meta
+        """Assigns passed info about snapshot metadata."""
+        self.snapshot_meta = snapshot_meta
 
 
 class Snapshot(Signed):

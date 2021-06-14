@@ -70,8 +70,8 @@ class TestTrustedMetadataSet(unittest.TestCase):
             cls.keystore[role] = SSlibSigner(key_dict)
 
         def hashes_length_modifier(timestamp: Timestamp) -> None:
-            timestamp.meta["snapshot.json"].hashes = None
-            timestamp.meta["snapshot.json"].length = None
+            timestamp.snapshot_meta.hashes = None
+            timestamp.snapshot_meta.length = None
 
         cls.metadata["timestamp"] = cls.modify_metadata(
             cls, "timestamp", hashes_length_modifier
@@ -245,13 +245,13 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
     def test_update_timestamp_snapshot_ver_below_current(self):
         def bump_snapshot_version(timestamp: Timestamp) -> None:
-            timestamp.meta["snapshot.json"].version = 2
+            timestamp.snapshot_meta.version = 2
 
         # set current known snapshot.json version to 2
         timestamp = self.modify_metadata("timestamp", bump_snapshot_version)
         self.trusted_set.update_timestamp(timestamp)
 
-        # newtimestamp.meta["snapshot.json"].version < trusted_timestamp.meta["snapshot.json"].version
+        # newtimestamp.meta.version < trusted_timestamp.meta.version
         with self.assertRaises(exceptions.ReplayedMetadataError):
             self.trusted_set.update_timestamp(self.metadata["timestamp"])
 
@@ -271,7 +271,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
     def test_update_snapshot_length_or_hash_mismatch(self):
         def modify_snapshot_length(timestamp: Timestamp) -> None:
-            timestamp.meta["snapshot.json"].length = 1
+            timestamp.snapshot_meta.length = 1
 
         # set known snapshot.json length to 1
         timestamp = self.modify_metadata("timestamp", modify_snapshot_length)
@@ -289,7 +289,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
     def test_update_snapshot_version_different_timestamp_snapshot_version(self):
         def timestamp_version_modifier(timestamp: Timestamp) -> None:
-            timestamp.meta["snapshot.json"].version = 2
+            timestamp.snapshot_meta.version = 2
 
         timestamp = self.modify_metadata("timestamp", timestamp_version_modifier)
         self.trusted_set.update_timestamp(timestamp)
@@ -341,7 +341,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
     def test_update_snapshot_successful_rollback_checks(self):
         def meta_version_bump(timestamp: Timestamp) -> None:
-            timestamp.meta["snapshot.json"].version += 1
+            timestamp.snapshot_meta.version += 1
 
         def version_bump(snapshot: Snapshot) -> None:
             snapshot.version += 1
