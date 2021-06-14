@@ -697,6 +697,14 @@ class Timestamp(Signed):
 
     _signed_type = "timestamp"
 
+    @property
+    def snapshot_meta(self):
+        return self.meta["snapshot.json"]
+
+    @snapshot_meta.setter
+    def snapshot_meta(self, value):
+        self.meta["snapshot.json"] = value
+
     def __init__(
         self,
         version: int,
@@ -720,15 +728,13 @@ class Timestamp(Signed):
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
         res_dict = self._common_fields_to_dict()
-        res_dict["meta"] = {
-            "snapshot.json": self.meta["snapshot.json"].to_dict()
-        }
+        res_dict["meta"] = {"snapshot.json": self.snapshot_meta.to_dict()}
         return res_dict
 
     # Modification.
     def update(self, snapshot_meta: MetaFile) -> None:
         """Assigns passed info about snapshot metadata to meta dict."""
-        self.meta["snapshot.json"] = snapshot_meta
+        self.snapshot_meta = snapshot_meta
 
 
 class Snapshot(Signed):

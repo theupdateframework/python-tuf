@@ -343,11 +343,11 @@ class TestMetadata(unittest.TestCase):
         fileinfo = MetaFile(2, 520, hashes)
 
         self.assertNotEqual(
-            timestamp.signed.meta['snapshot.json'].to_dict(), fileinfo.to_dict()
+            timestamp.signed.snapshot_meta.to_dict(), fileinfo.to_dict()
         )
         timestamp.signed.update(fileinfo)
         self.assertEqual(
-            timestamp.signed.meta['snapshot.json'].to_dict(), fileinfo.to_dict()
+            timestamp.signed.snapshot_meta.to_dict(), fileinfo.to_dict()
         )
 
         # Test from_dict and to_dict without hashes and length.
