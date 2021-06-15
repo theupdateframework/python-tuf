@@ -398,8 +398,15 @@ class Key:
         keyval: Dict[str, str],
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
-        if not keyval.get("public"):
+        public_val = keyval.get("public")
+        if not public_val or not isinstance(public_val, str):
             raise ValueError("keyval doesn't follow the specification format!")
+        if not isinstance(scheme, str):
+            raise ValueError("scheme should be a string!")
+        if not isinstance(keytype, str):
+            raise ValueError("keytype should be a string!")
+        if not isinstance(keyid, str):
+            raise ValueError("keyid should be a string!")
         self.keyid = keyid
         self.keytype = keytype
         self.scheme = scheme
