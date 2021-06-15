@@ -26,12 +26,15 @@ from typing import (
     BinaryIO,
     ClassVar,
     Dict,
+    Generic,
     List,
     Mapping,
     Optional,
     Tuple,
     Type,
+    TypeVar,
     Union,
+    cast,
 )
 
 from securesystemslib import exceptions as sslib_exceptions
@@ -56,12 +59,30 @@ logger = logging.getLogger(__name__)
 # files to have the same major version (the first number) as ours.
 SPECIFICATION_VERSION = ["1", "0", "19"]
 
+# T is a Generic type constraint for Metadata.signed
+T = TypeVar("T", "Root", "Timestamp", "Snapshot", "Targets")
 
-class Metadata:
+
+class Metadata(Generic[T]):
     """A container for signed TUF metadata.
 
     Provides methods to convert to and from dictionary, read and write to and
     from file and to create and verify metadata signatures.
+
+    Metadata[T] is a generic container type where T can be any one type of
+    [Root, Timestamp, Snapshot, Targets]. The purpose of this is to allow
+    static type checking of the signed attribute in code using Metadata::
+
+        root_md = Metadata[Root].from_file("root.json")
+        # root_md type is now Metadata[Root]. This means signed and its
+        # attributes like consistent_snapshot are now statically typed and the
+        # types can be verified by static type checkers and shown by IDEs
+        print(root_md.signed.consistent_snapshot)
+
+    Using a type constraint is not required but not doing so means T is not a
+    specific type so static typing cannot happen. Note that the type constraint
+    "[Root]" is not validated at runtime (as pure annotations are not available
+    then).
 
     Attributes:
         signed: A subclass of Signed, which has the actual metadata payload,
@@ -70,10 +91,8 @@ class Metadata:
             signing the canonical serialized representation of 'signed'.
     """
 
-    def __init__(
-        self, signed: "Signed", signatures: "OrderedDict[str, Signature]"
-    ):
-        self.signed = signed
+    def __init__(self, signed: T, signatures: "OrderedDict[str, Signature]"):
+        self.signed: T = signed
         self.signatures = signatures
 
     @classmethod
@@ -119,7 +138,8 @@ class Metadata:
             signatures[sig.keyid] = sig
 
         return cls(
-            signed=inner_cls.from_dict(metadata.pop("signed")),
+            # Specific type T is not known at static type check time: use cast
+            signed=cast(T, inner_cls.from_dict(metadata.pop("signed"))),
             signatures=signatures,
         )
 
@@ -129,7 +149,7 @@ class Metadata:
         filename: str,
         deserializer: Optional[MetadataDeserializer] = None,
         storage_backend: Optional[StorageBackendInterface] = None,
-    ) -> "Metadata":
+    ) -> "Metadata[T]":
         """Loads TUF metadata from file storage.
 
         Arguments:
@@ -156,11 +176,12 @@ class Metadata:
         with storage_backend.get(filename) as file_obj:
             return cls.from_bytes(file_obj.read(), deserializer)
 
-    @staticmethod
+    @classmethod
     def from_bytes(
+        cls,
         data: bytes,
         deserializer: Optional[MetadataDeserializer] = None,
-    ) -> "Metadata":
+    ) -> "Metadata[T]":
         """Loads TUF metadata from raw data.
 
         Arguments:
