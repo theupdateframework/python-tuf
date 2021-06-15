@@ -124,12 +124,6 @@ class RequestsFetcher(FetcherInterface):
                 # We might have no more data to read. Check number of bytes
                 # downloaded.
                 if not data:
-                    logger.debug(
-                        "Downloaded %d out of %d bytes",
-                        bytes_received,
-                        required_length,
-                    )
-
                     # Finally, we signal that the download is complete.
                     break
 
@@ -137,6 +131,12 @@ class RequestsFetcher(FetcherInterface):
 
                 if bytes_received >= required_length:
                     break
+
+            logger.debug(
+                "Downloaded %d out of %d bytes",
+                bytes_received,
+                required_length,
+            )
 
         except urllib3.exceptions.ReadTimeoutError as e:
             raise exceptions.SlowRetrievalError(str(e))
@@ -158,10 +158,6 @@ class RequestsFetcher(FetcherInterface):
             )
 
         session_index = parsed_url.scheme + "+" + parsed_url.hostname
-
-        logger.debug("url: %s", url)
-        logger.debug("session index: %s", session_index)
-
         session = self._sessions.get(session_index)
 
         if not session:
