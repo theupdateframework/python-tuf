@@ -27,9 +27,7 @@ import logging
 import tempfile
 from urllib import parse
 
-from securesystemslib import formats as sslib_formats
-
-from tuf import exceptions, formats
+from tuf import exceptions
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger(__name__)
@@ -56,19 +54,11 @@ def download_file(url, required_length, fetcher):
       exceptions.DownloadLengthMismatchError, if there was a
       mismatch of observed vs expected lengths while downloading the file.
 
-      securesystemslib.exceptions.FormatError, if any of the arguments are
-      improperly formatted.
-
       Any other unforeseen runtime exception.
 
     <Returns>
       A file object that points to the contents of 'url'.
     """
-    # Do all of the arguments have the appropriate format?
-    # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    sslib_formats.URL_SCHEMA.check_match(url)
-    formats.LENGTH_SCHEMA.check_match(required_length)
-
     # 'url.replace('\\', '/')' is needed for compatibility with Windows-based
     # systems, because they might use back-slashes in place of forward-slashes.
     # This converts it to the common format.  unquote() replaces %xx escapes in
