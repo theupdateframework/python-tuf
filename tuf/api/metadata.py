@@ -506,6 +506,8 @@ class Role:
                 f"keyids should be a list of unique strings,"
                 f" instead got {keyids}"
             )
+        if threshold < 1:
+            raise ValueError("threshold should be at least 1!")
         self.keyids = keyids_set
         self.threshold = threshold
         self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
