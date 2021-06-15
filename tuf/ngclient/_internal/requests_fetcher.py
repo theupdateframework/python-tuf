@@ -7,7 +7,7 @@
 
 import logging
 import time
-from typing import Optional
+from typing import Iterator, Optional
 from urllib import parse
 
 # Imports
@@ -53,7 +53,7 @@ class RequestsFetcher(FetcherInterface):
         self.chunk_size: int = 400000  # bytes
         self.sleep_before_round: Optional[int] = None
 
-    def fetch(self, url, required_length):
+    def fetch(self, url: str, required_length: int) -> Iterator[bytes]:
         """Fetches the contents of HTTP/HTTPS url from a remote server.
 
         Ensures the length of the downloaded data is up to 'required_length'.
@@ -92,7 +92,9 @@ class RequestsFetcher(FetcherInterface):
 
         return self._chunks(response, required_length)
 
-    def _chunks(self, response, required_length):
+    def _chunks(
+        self, response: "requests.Response", required_length: int
+    ) -> Iterator[bytes]:
         """A generator function to be returned by fetch. This way the
         caller of fetch can differentiate between connection and actual data
         download."""

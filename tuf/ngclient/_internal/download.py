@@ -1,61 +1,37 @@
-#!/usr/bin/env python
-
 # Copyright 2012 - 2017, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
+"""Handles the download of URL contents to a file"
 """
-<Program Name>
-  download.py
 
-<Started>
-  February 21, 2012.  Based on previous version by Geremy Condra.
-
-<Author>
-  Konstantin Andrianov
-  Vladimir Diaz <vladimir.v.diaz@gmail.com>
-
-<Copyright>
-  See LICENSE-MIT OR LICENSE for licensing information.
-
-<Purpose>
-  Download metadata and target files and check their validity.  The hash and
-  length of a downloaded file has to match the hash and length supplied by the
-  metadata of that file.
-"""
 import logging
 import tempfile
 from contextlib import contextmanager
+from typing import IO, Iterator
 from urllib import parse
 
 from tuf import exceptions
 
 logger = logging.getLogger(__name__)
 
+
 @contextmanager
-def download_file(url, required_length, fetcher):
-    """
-    <Purpose>
-      Given the url and length of the desired file, this function opens a
-      connection to 'url' and downloads the file up to 'required_length'.
+def download_file(
+    url: str, required_length: int, fetcher: "FetcherInterface"
+) -> Iterator[IO]:
+    """Opens a connection to 'url' and downloads the content
+    up to 'required_length'.
 
-    <Arguments>
-      url:
-        A URL string that represents the location of the file.
+    Args:
+      url: a URL string that represents the location of the file.
+      required_length: an integer value representing the length of
+          the file or an upper boundary.
 
-      required_length:
-        An integer value representing the length of the file or an
-        upper boundary.
+    Raises:
+      DownloadLengthMismatchError: a mismatch of observed vs expected
+          lengths while downloading the file.
 
-    <Side Effects>
-      A file object is created on disk to store the contents of 'url'.
-
-    <Exceptions>
-      exceptions.DownloadLengthMismatchError, if there was a
-      mismatch of observed vs expected lengths while downloading the file.
-
-      Any other unforeseen runtime exception.
-
-    <Returns>
+    Returns:
       A file object that points to the contents of 'url'.
     """
     # 'url.replace('\\', '/')' is needed for compatibility with Windows-based
@@ -82,7 +58,9 @@ def download_file(url, required_length, fetcher):
         yield temp_file
 
 
-def download_bytes(url, required_length, fetcher):
+def download_bytes(
+    url: str, required_length: int, fetcher: "FetcherInterface"
+) -> bytes:
     """Download bytes from given url
 
     Returns the downloaded bytes, otherwise like download_file()

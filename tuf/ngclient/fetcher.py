@@ -6,6 +6,7 @@
 
 # Imports
 import abc
+from typing import Iterator
 
 
 # Classes
@@ -20,7 +21,7 @@ class FetcherInterface:
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def fetch(self, url, required_length):
+    def fetch(self, url: str, required_length: int) -> Iterator[bytes]:
         """Fetches the contents of HTTP/HTTPS url from a remote server.
 
         Ensures the length of the downloaded data is up to 'required_length'.
