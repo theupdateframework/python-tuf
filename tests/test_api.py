@@ -376,7 +376,7 @@ class TestMetadata(unittest.TestCase):
                     Key.from_dict("id", test_key_dict)
             # Test creating a Key instance with wrong keyval format.
             key_dict["keyval"] = {}
-            with self.assertRaises(ValueError):
+            with self.assertRaises(KeyError):
                 Key.from_dict("id", key_dict)
 
 
