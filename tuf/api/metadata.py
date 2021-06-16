@@ -793,8 +793,7 @@ class MetaFile(BaseFile):
         if self.length is not None:
             self._verify_length(data, self.length)
 
-        # Skip the check in case of an empty dictionary too
-        if self.hashes:
+        if self.hashes is not None:
             self._verify_hashes(data, self.hashes)
 
 
