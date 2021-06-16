@@ -122,7 +122,7 @@ class Updater:
         After the client has retrieved the target information for those targets
         they are interested in updating, they would call this method to
         determine which targets have changed from those saved locally on disk.
-        All the targets that have changed are returns in a list.  From this
+        All the targets that have changed are returned in a list.  From this
         list, they can request a download by calling 'download_target()'.
         """
         # Keep track of the target objects and filepaths of updated targets.
