@@ -394,6 +394,8 @@ class Signed(metaclass=abc.ABCMeta):
 
 class Key:
     """A container class representing the public portion of a Key.
+    Please note that "Key" instances are not semanticly validated during
+    initialization. We consider this as responsibility of securesystemslib.
 
     Attributes:
         keyid: An identifier string that must uniquely identify a key within
@@ -416,8 +418,9 @@ class Key:
         keyval: Dict[str, str],
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
-        if not keyval.get("public"):
-            raise ValueError("keyval doesn't follow the specification format!")
+        val = keyval["public"]
+        if not all(isinstance(at, str) for at in [keyid, keytype, scheme, val]):
+            raise ValueError("Unexpected Key attributes types!")
         self.keyid = keyid
         self.keytype = keytype
         self.scheme = scheme
