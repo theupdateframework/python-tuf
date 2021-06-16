@@ -569,7 +569,7 @@ class TestMetadata(unittest.TestCase):
         hashes = {
             "sha256": "141f740f53781d1ca54b8a50af22cbf74e44c21a998fa2a8a05aaac2c002886b",
             "sha512": "ef5beafa16041bcdd2937140afebd485296cd54f7348ecd5a4d035c09759608de467a7ac0eb58753d0242df873c305e8bffad2454aa48f44480f15efae1cacd0"
-        },
+        }
 
         fileinfo = TargetFile(length=28, hashes=hashes)
 
