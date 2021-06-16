@@ -240,6 +240,11 @@ class MetadataBundle(abc.Mapping):
         if self.root.signed.is_expired(self.reference_time):
             raise exceptions.ExpiredMetadataError("New root.json is expired")
 
+        # No need to recover from fast-forward attack here since
+        # timestamp and snapshot are not loaded at this point and
+        # when loaded later will be verified with the new rotated
+        # keys.
+
         self._root_update_finished = True
         logger.debug("Verified final root.json")
 
