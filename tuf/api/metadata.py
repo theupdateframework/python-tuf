@@ -16,11 +16,24 @@ available in the class model.
 
 """
 import abc
+import io
 import tempfile
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, Dict, List, Mapping, Optional, Tuple, Type
+from typing import (
+    Any,
+    BinaryIO,
+    ClassVar,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
+from securesystemslib import hash as sslib_hash
 from securesystemslib import keys as sslib_keys
 from securesystemslib.signer import Signature, Signer
 from securesystemslib.storage import FilesystemBackend, StorageBackendInterface
@@ -644,7 +657,53 @@ class Root(Signed):
         del self.keys[keyid]
 
 
-class MetaFile:
+class BaseFile:
+    """A base class of MetaFile and TargetFile.
+
+    Encapsulates common static methods for length and hash verification.
+    """
+
+    @staticmethod
+    def _verify_hashes(
+        data: Union[bytes, BinaryIO], expected_hashes: Dict[str, str]
+    ) -> None:
+        """Verifies that the hash of 'data' matches 'expected_hashes'"""
+        is_bytes = isinstance(data, bytes)
+        for algo, exp_hash in expected_hashes.items():
+            if is_bytes:
+                digest_object = sslib_hash.digest(algo)
+                digest_object.update(data)
+            else:
+                # if data is not bytes, assume it is a file object
+                digest_object = sslib_hash.digest_fileobject(data, algo)
+
+            observed_hash = digest_object.hexdigest()
+            if observed_hash != exp_hash:
+                raise exceptions.LengthOrHashMismatchError(
+                    f"Observed hash {observed_hash} does not match"
+                    f"expected hash {exp_hash}"
+                )
+
+    @staticmethod
+    def _verify_length(
+        data: Union[bytes, BinaryIO], expected_length: int
+    ) -> None:
+        """Verifies that the length of 'data' matches 'expected_length'"""
+        if isinstance(data, bytes):
+            observed_length = len(data)
+        else:
+            # if data is not bytes, assume it is a file object
+            data.seek(0, io.SEEK_END)
+            observed_length = data.tell()
+
+        if observed_length != expected_length:
+            raise exceptions.LengthOrHashMismatchError(
+                f"Observed length {observed_length} does not match"
+                f"expected length {expected_length}"
+            )
+
+
+class MetaFile(BaseFile):
     """A container with information about a particular metadata file.
 
     Attributes:
@@ -682,6 +741,13 @@ class MetaFile:
         version = meta_dict.pop("version")
         length = meta_dict.pop("length", None)
         hashes = meta_dict.pop("hashes", None)
+
+        # Do some basic input validation
+        if version <= 0:
+            raise ValueError(f"Metafile version must be > 0, got {version}")
+        if length is not None and length <= 0:
+            raise ValueError(f"Metafile length must be > 0, got {length}")
+
         # All fields left in the meta_dict are unrecognized.
         return cls(version, length, hashes, meta_dict)
 
@@ -699,6 +765,22 @@ class MetaFile:
             res_dict["hashes"] = self.hashes
 
         return res_dict
+
+    def verify_length_and_hashes(self, data: Union[bytes, BinaryIO]):
+        """Verifies that the length and hashes of "data" match expected
+            values.
+        Args:
+            data: File object or its content in bytes.
+        Raises:
+            LengthOrHashMismatchError: Calculated length or hashes do not
+                match expected values.
+        """
+        if self.length is not None:
+            self._verify_length(data, self.length)
+
+        # Skip the check in case of an empty dictionary too
+        if self.hashes:
+            self._verify_hashes(data, self.hashes)
 
 
 class Timestamp(Signed):
@@ -927,7 +1009,7 @@ class Delegations:
         }
 
 
-class TargetFile:
+class TargetFile(BaseFile):
     """A container with information about a particular target file.
 
     Attributes:
@@ -945,12 +1027,6 @@ class TargetFile:
 
     """
 
-    @property
-    def custom(self):
-        if self.unrecognized_fields is None:
-            return None
-        return self.unrecognized_fields.get("custom", None)
-
     def __init__(
         self,
         length: int,
@@ -961,11 +1037,24 @@ class TargetFile:
         self.hashes = hashes
         self.unrecognized_fields = unrecognized_fields or {}
 
+    @property
+    def custom(self):
+        if self.unrecognized_fields is None:
+            return None
+        return self.unrecognized_fields.get("custom", None)
+
     @classmethod
     def from_dict(cls, target_dict: Dict[str, Any]) -> "TargetFile":
         """Creates TargetFile object from its dict representation."""
         length = target_dict.pop("length")
         hashes = target_dict.pop("hashes")
+
+        # Do some basic validation checks
+        if length <= 0:
+            raise ValueError(f"Targetfile length must be > 0, got {length}")
+        if not hashes:
+            raise ValueError("Missing targetfile hashes")
+
         # All fields left in the target_dict are unrecognized.
         return cls(length, hashes, target_dict)
 
@@ -976,6 +1065,18 @@ class TargetFile:
             "hashes": self.hashes,
             **self.unrecognized_fields,
         }
+
+    def verify_length_and_hashes(self, data: Union[bytes, BinaryIO]):
+        """Verifies that the length and hashes of "data" match expected
+            values.
+        Args:
+            data: File object or its content in bytes.
+        Raises:
+            LengthOrHashMismatchError: Calculated length or hashes do not
+                match expected values.
+        """
+        self._verify_length(data, self.length)
+        self._verify_hashes(data, self.hashes)
 
 
 class Targets(Signed):
