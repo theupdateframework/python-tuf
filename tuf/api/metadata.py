@@ -38,6 +38,10 @@ from tuf.api.serialization import (
 # and currently, we are above 1000 lines by a small margin.
 # pylint: disable=C0302
 
+# We aim to support SPECIFICATION_VERSION and require the input metadata
+# files to have the same major version (the first number) as ours.
+SPECIFICATION_VERSION = ["1", "0", "19"]
+
 
 class Metadata:
     """A container for signed TUF metadata.
@@ -295,10 +299,19 @@ class Signed(metaclass=abc.ABCMeta):
         expires: datetime,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
+        spec_list = spec_version.split(".")
+        if (
+            len(spec_list) != 3
+            or not all(el.isdigit() for el in spec_list)
+            or spec_list[0] != SPECIFICATION_VERSION[0]
+        ):
+            raise ValueError(
+                f"Unsupported spec_version, got {spec_list}, "
+                f"supported {'.'.join(SPECIFICATION_VERSION)}"
+            )
         self.spec_version = spec_version
         self.expires = expires
 
-        # TODO: Should we separate data validation from constructor?
         if version <= 0:
             raise ValueError(f"version must be > 0, got {version}")
         self.version = version
