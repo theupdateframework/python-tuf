@@ -7,33 +7,15 @@
 """
 
 import os
-import time
 import shutil
-import copy
 import tempfile
 import logging
-import errno
 import sys
 import unittest
-import json
-import tracemalloc
-
-if sys.version_info >= (3, 3):
-  import unittest.mock as mock
-else:
-  import mock
-
-import tuf
-import tuf.exceptions
-import tuf.log
-import tuf.repository_tool as repo_tool
 import tuf.unittest_toolbox as unittest_toolbox
 
 from tests import utils
-from tuf.api import metadata
 from tuf import ngclient
-
-import securesystemslib
 
 logger = logging.getLogger(__name__)
 
