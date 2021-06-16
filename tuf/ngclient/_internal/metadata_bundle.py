@@ -356,7 +356,7 @@ class MetadataBundle(abc.Mapping):
 
         # If an existing trusted snapshot is updated,
         # check for a rollback attack
-        if self.snapshot:
+        if self.snapshot is not None:
             for filename, fileinfo in self.snapshot.signed.meta.items():
                 new_fileinfo = new_snapshot.signed.meta.get(filename)
 
