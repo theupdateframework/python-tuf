@@ -298,7 +298,7 @@ class Metadata:
                 roles = self.signed.delegations.roles
                 role = next((r for r in roles if r.name == role_name), None)
         else:
-            raise ValueError("Call is valid only on delegator metadata")
+            raise TypeError("Call is valid only on delegator metadata")
 
         if role is None:
             raise ValueError(f"No delegation found for {role_name}")
