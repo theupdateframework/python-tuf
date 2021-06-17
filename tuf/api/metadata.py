@@ -1025,8 +1025,6 @@ class TargetFile(BaseFile):
 
     @property
     def custom(self) -> Any:
-        if self.unrecognized_fields is None:
-            return None
         return self.unrecognized_fields.get("custom", None)
 
     @classmethod
