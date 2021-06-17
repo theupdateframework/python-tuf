@@ -45,7 +45,7 @@ from tuf import exceptions
 from tuf import formats
 
 # List of strings representing the key types supported by TUF.
-_SUPPORTED_KEY_TYPES = ['rsa', 'ed25519', 'ecdsa-sha2-nistp256']
+_SUPPORTED_KEY_TYPES = ['rsa', 'ed25519', 'ecdsa', 'ecdsa-sha2-nistp256']
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger(__name__)

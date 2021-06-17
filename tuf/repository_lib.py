@@ -75,7 +75,7 @@ TARGETS_EXPIRES_WARN_SECONDS = 864000
 TIMESTAMP_EXPIRES_WARN_SECONDS = 86400
 
 # Supported key types.
-SUPPORTED_KEY_TYPES = ['rsa', 'ed25519', 'ecdsa-sha2-nistp256']
+SUPPORTED_KEY_TYPES = ['rsa', 'ed25519', 'ecdsa', 'ecdsa-sha2-nistp256']
 
 # The algorithm used by the repository to generate the path hash prefixes
 # of hashed bin delegations.  Please see delegate_hashed_bins()
