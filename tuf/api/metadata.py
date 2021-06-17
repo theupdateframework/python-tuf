@@ -679,12 +679,20 @@ class BaseFile:
         """Verifies that the hash of 'data' matches 'expected_hashes'"""
         is_bytes = isinstance(data, bytes)
         for algo, exp_hash in expected_hashes.items():
-            if is_bytes:
-                digest_object = sslib_hash.digest(algo)
-                digest_object.update(data)
-            else:
-                # if data is not bytes, assume it is a file object
-                digest_object = sslib_hash.digest_fileobject(data, algo)
+            try:
+                if is_bytes:
+                    digest_object = sslib_hash.digest(algo)
+                    digest_object.update(data)
+                else:
+                    # if data is not bytes, assume it is a file object
+                    digest_object = sslib_hash.digest_fileobject(data, algo)
+            except (
+                sslib_exceptions.UnsupportedAlgorithmError,
+                sslib_exceptions.FormatError,
+            ) as e:
+                raise exceptions.LengthOrHashMismatchError(
+                    f"Unsupported algorithm '{algo}'"
+                ) from e
 
             observed_hash = digest_object.hexdigest()
             if observed_hash != exp_hash:
@@ -797,7 +805,7 @@ class MetaFile(BaseFile):
             data: File object or its content in bytes.
         Raises:
             LengthOrHashMismatchError: Calculated length or hashes do not
-                match expected values.
+                match expected values or hash algorithm is not supported.
         """
         if self.length is not None:
             self._verify_length(data, self.length)
@@ -1094,7 +1102,7 @@ class TargetFile(BaseFile):
             data: File object or its content in bytes.
         Raises:
             LengthOrHashMismatchError: Calculated length or hashes do not
-                match expected values.
+                match expected values or hash algorithm is not supported.
         """
         self._verify_length(data, self.length)
         self._verify_hashes(data, self.hashes)

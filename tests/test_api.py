@@ -707,6 +707,15 @@ class TestMetadata(unittest.TestCase):
             self.assertRaises(exceptions.LengthOrHashMismatchError,
                 snapshot_metafile.verify_length_and_hashes, data)
 
+            snapshot_metafile.hashes = {'unsupported-alg': "8f88e2ba48b412c3843e9bb26e1b6f8fc9e98aceb0fbaa97ba37b4c98717d7ab"}
+            self.assertRaises(exceptions.LengthOrHashMismatchError,
+            snapshot_metafile.verify_length_and_hashes, data)
+
+            # Test wrong algorithm format (sslib.FormatError)
+            snapshot_metafile.hashes = { 256: "8f88e2ba48b412c3843e9bb26e1b6f8fc9e98aceb0fbaa97ba37b4c98717d7ab"}
+            self.assertRaises(exceptions.LengthOrHashMismatchError,
+            snapshot_metafile.verify_length_and_hashes, data)
+
             # test optional length and hashes
             snapshot_metafile.length = None
             snapshot_metafile.hashes = None
