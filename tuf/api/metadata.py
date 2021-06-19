@@ -46,10 +46,7 @@ from tuf.api.serialization import (
     SignedSerializer,
 )
 
-# Disable the "C0302: Too many lines in module" warning which warns for modules
-# with more 1000 lines, because all of the code here is logically connected
-# and currently, we are above 1000 lines by a small margin.
-# pylint: disable=C0302
+# pylint: disable=too-many-lines
 
 # We aim to support SPECIFICATION_VERSION and require the input metadata
 # files to have the same major version (the first number) as ours.
@@ -65,7 +62,6 @@ class Metadata:
     Attributes:
         signed: A subclass of Signed, which has the actual metadata payload,
             i.e. one of Targets, Snapshot, Timestamp or Root.
-
         signatures: An ordered dictionary of keyids to Signature objects, each
             signing the canonical serialized representation of 'signed'.
     """
@@ -92,8 +88,8 @@ class Metadata:
 
         Returns:
             A TUF Metadata object.
-
         """
+
         # Dispatch to contained metadata class on metadata _type field.
         _type = metadata["signed"]["_type"]
 
@@ -148,8 +144,8 @@ class Metadata:
 
         Returns:
             A TUF Metadata object.
-
         """
+
         if storage_backend is None:
             storage_backend = FilesystemBackend()
 
@@ -202,20 +198,18 @@ class Metadata:
 
         Arguments:
             filename: The path to write the file to.
-            serializer: A MetadataSerializer subclass instance that implements
-                the desired wireline format serialization. Per default a
-                JSONSerializer is used.
-            storage_backend: An object that implements
-                securesystemslib.storage.StorageBackendInterface. Per default
-                a (local) FilesystemBackend is used.
+            serializer: A MetadataSerializer instance that implements the
+                desired serialization format. Default is JSONSerializer.
+            storage_backend: A StorageBackendInterface implementation. Default
+                is FilesystemBackend (i.e. a local file).
 
         Raises:
             tuf.api.serialization.SerializationError:
                 The metadata object cannot be serialized.
             securesystemslib.exceptions.StorageError:
                 The file cannot be written.
-
         """
+
         if serializer is None:
             # Use local scope import to avoid circular import errors
             # pylint: disable=import-outside-toplevel
@@ -237,14 +231,12 @@ class Metadata:
         """Creates signature over 'signed' and assigns it to 'signatures'.
 
         Arguments:
-            signer: An object implementing the securesystemslib.signer.Signer
-                interface.
+            signer: A securesystemslib.signer.Signer implementation.
             append: A boolean indicating if the signature should be appended to
                 the list of signatures or replace any existing signatures. The
                 default behavior is to replace signatures.
-            signed_serializer: A SignedSerializer subclass instance that
-                implements the desired canonicalization format. Per default a
-                CanonicalJSONSerializer is used.
+            signed_serializer: A SignedSerializer that implements the desired
+                serialization format. Default is CanonicalJSONSerializer.
 
         Raises:
             tuf.api.serialization.SerializationError:
@@ -255,8 +247,8 @@ class Metadata:
 
         Returns:
             A securesystemslib-style signature object.
-
         """
+
         if signed_serializer is None:
             # Use local scope import to avoid circular import errors
             # pylint: disable=import-outside-toplevel
@@ -407,8 +399,9 @@ class Signed(metaclass=abc.ABCMeta):
 
 class Key:
     """A container class representing the public portion of a Key.
+
     Please note that "Key" instances are not semanticly validated during
-    initialization. We consider this as responsibility of securesystemslib.
+    initialization: this only happens at signature verification time.
 
     Attributes:
         keyid: An identifier string that must uniquely identify a key within
@@ -420,7 +413,6 @@ class Key:
             "rsassa-pss-sha256", "ed25519", and "ecdsa-sha2-nistp256".
         keyval: A dictionary containing the public portion of the key.
         unrecognized_fields: Dictionary of all unrecognized fields.
-
     """
 
     def __init__(
@@ -512,15 +504,15 @@ class Key:
 
 
 class Role:
-    """A container class containing the set of keyids and threshold associated
-    with a particular role.
+    """Container that defines which keys are required to sign roles metadata.
+
+    Role defines how many keys are required to successfully sign the roles
+    metadata, and which keys are accepted.
 
     Attributes:
-        keyids: A set of strings each of which represents a given key.
-        threshold: An integer representing the required number of keys for that
-            particular role.
+        keyids: A set of strings representing signing keys for this role.
+        threshold: Number of keys required to sign this role's metadata.
         unrecognized_fields: Dictionary of all unrecognized fields.
-
     """
 
     def __init__(
@@ -564,29 +556,14 @@ class Root(Signed):
     Attributes:
         consistent_snapshot: An optional boolean indicating whether the
             repository supports consistent snapshots.
-        keys: A dictionary that contains a public key store used to verify
-            top level roles metadata signatures::
-
-                {
-                    '<KEYID>': <Key instance>,
-                    ...
-                },
-
-        roles: A dictionary that contains a list of signing keyids and
-            a signature threshold for each top level role::
-
-                {
-                    '<ROLE>': <Role istance>,
-                    ...
-                }
-
+        keys: Dictionary of keyids to Keys. Defines the keys used in 'roles'.
+        roles: Dictionary of role names to Roles. Defines which keys are
+            required to sign the metadata for a specific role.
     """
 
     _signed_type = "root"
 
-    # TODO: determine an appropriate value for max-args and fix places where
-    # we violate that. This __init__ function takes 7 arguments, whereas the
-    # default max-args value for pylint is 5
+    # TODO: determine an appropriate value for max-args
     # pylint: disable=too-many-arguments
     def __init__(
         self,
@@ -709,18 +686,8 @@ class MetaFile(BaseFile):
     Attributes:
         version: An integer indicating the version of the metadata file.
         length: An optional integer indicating the length of the metadata file.
-        hashes: An optional dictionary mapping hash algorithms to the
-            hashes resulting from applying them over the metadata file
-            contents.::
-
-                'hashes': {
-                    '<HASH ALGO 1>': '<METADATA FILE HASH 1>',
-                    '<HASH ALGO 2>': '<METADATA FILE HASH 2>',
-                    ...
-                }
-
+        hashes: An optional dictionary of hash algorithm names to hash values.
         unrecognized_fields: Dictionary of all unrecognized fields.
-
     """
 
     def __init__(
@@ -767,10 +734,11 @@ class MetaFile(BaseFile):
         return res_dict
 
     def verify_length_and_hashes(self, data: Union[bytes, BinaryIO]):
-        """Verifies that the length and hashes of "data" match expected
-            values.
+        """Verifies that the length and hashes of "data" match expected values.
+
         Args:
             data: File object or its content in bytes.
+
         Raises:
             LengthOrHashMismatchError: Calculated length or hashes do not
                 match expected values.
@@ -786,13 +754,11 @@ class MetaFile(BaseFile):
 class Timestamp(Signed):
     """A container for the signed part of timestamp metadata.
 
+    Timestamp contains information about the snapshot Metadata file.
+
     Attributes:
-        meta: A dictionary that contains information about snapshot metadata::
-
-            {
-                'snapshot.json': <MetaFile INSTANCE>
-            }
-
+        meta: A dictionary of filenames to MetaFiles. The only valid key value
+            is the snapshot filename, as defined by the specification.
     """
 
     _signed_type = "timestamp"
@@ -834,15 +800,10 @@ class Timestamp(Signed):
 class Snapshot(Signed):
     """A container for the signed part of snapshot metadata.
 
+    Snapshot contains information about all target Metadata files.
+
     Attributes:
-        meta: A dictionary that contains information about targets metadata::
-
-            {
-                'targets.json': <MetaFile INSTANCE>,
-                '<DELEGATED TARGETS ROLE 1>.json': <MetaFile INSTANCE>,
-                '<DELEGATED TARGETS ROLE 2>.json': <MetaFile INSTANCE>,
-            }
-
+        meta: A dictionary of target metadata filenames to MetaFile objects.
     """
 
     _signed_type = "snapshot"
@@ -891,18 +852,14 @@ class DelegatedRole(Role):
 
     Attributes:
         name: A string giving the name of the delegated role.
-        keyids: A set of strings each of which represents a given key.
-        threshold: An integer representing the required number of keys for that
-            particular role.
         terminating: A boolean indicating whether subsequent delegations
-            should be considered.
+            should be considered during a target lookup.
         paths: An optional list of strings, where each string describes
-            a path that the role is trusted to provide.
+            a path pattern that the role is trusted to provide.
         path_hash_prefixes: An optional list of HEX_DIGESTs used to succinctly
             describe a set of target paths. Only one of the attributes "paths"
-            and "path_hash_prefixes" is allowed to be set.
+            and "path_hash_prefixes" is allowed within a DelegatedRole.
         unrecognized_fields: Dictionary of all unrecognized fields.
-
     """
 
     def __init__(
@@ -965,12 +922,11 @@ class Delegations:
     """A container object storing information about all delegations.
 
     Attributes:
-        keys: A dictionary of keyids and key objects containing information
-            about the corresponding key.
-        roles: A list of DelegatedRole instances containing information about
-            all delegated roles.
+        keys: Dictionary of keyids to Keys. Defines the keys used in 'roles'.
+        roles: List of DelegatedRoles that define which keys are required to
+            sign the metadata for a specific role. The roles order also
+            defines the order that role delegations are considered in.
         unrecognized_fields: Dictionary of all unrecognized fields.
-
     """
 
     def __init__(
@@ -1014,17 +970,8 @@ class TargetFile(BaseFile):
 
     Attributes:
         length: An integer indicating the length of the target file.
-        hashes: A dictionary mapping hash algorithms to the
-            hashes resulting from applying them over the metadata file
-            contents::
-
-              'hashes': {
-                    '<HASH ALGO 1>': '<TARGET FILE HASH 1>',
-                    '<HASH ALGO 2>': '<TARGET FILE HASH 2>',
-                    ...
-                }
+        hashes: A dictionary of hash algorithm names to hash values.
         unrecognized_fields: Dictionary of all unrecognized fields.
-
     """
 
     def __init__(
@@ -1067,10 +1014,11 @@ class TargetFile(BaseFile):
         }
 
     def verify_length_and_hashes(self, data: Union[bytes, BinaryIO]):
-        """Verifies that the length and hashes of "data" match expected
-            values.
+        """Verifies that length and hashes of "data" match expected values.
+
         Args:
             data: File object or its content in bytes.
+
         Raises:
             LengthOrHashMismatchError: Calculated length or hashes do not
                 match expected values.
@@ -1082,25 +1030,18 @@ class TargetFile(BaseFile):
 class Targets(Signed):
     """A container for the signed part of targets metadata.
 
+    Targets contains verifying information about target files and also
+    delegates responsibility to other Targets roles.
+
     Attributes:
-        targets: A dictionary that contains information about target files::
-
-            {
-                '<TARGET FILE NAME>': <TargetFile INSTANCE>,
-                ...
-            }
-
-        delegations: An optional object containing a list of delegated target
-            roles and public key store used to verify their metadata
-            signatures.
-
+        targets: A dictionary of target filenames to TargetFiles
+        delegations: An optional Delegations that defines how this Targets
+            further delegates responsibility to other Targets Metadata files.
     """
 
     _signed_type = "targets"
 
-    # TODO: determine an appropriate value for max-args and fix places where
-    # we violate that. This __init__ function takes 7 arguments, whereas the
-    # default max-args value for pylint is 5
+    # TODO: determine an appropriate value for max-args
     # pylint: disable=too-many-arguments
     def __init__(
         self,
