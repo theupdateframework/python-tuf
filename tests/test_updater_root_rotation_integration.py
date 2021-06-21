@@ -643,7 +643,7 @@ def _load_role_keys(keystore_directory):
   role_keys['root2']['public'] = \
     repo_tool.import_ed25519_publickey_from_file(root2_key_file+'.pub')
   role_keys['root3']['public'] = \
-    repo_tool.import_ed25519_publickey_from_file(root3_key_file+'.pub')
+    repo_tool.import_ecdsa_publickey_from_file(root3_key_file+'.pub')
   role_keys['targets']['public'] = \
     repo_tool.import_ed25519_publickey_from_file(targets_key_file+'.pub')
   role_keys['snapshot']['public'] = \
@@ -661,7 +661,7 @@ def _load_role_keys(keystore_directory):
     repo_tool.import_ed25519_privatekey_from_file(root2_key_file,
                                               EXPECTED_KEYFILE_PASSWORD)
   role_keys['root3']['private'] = \
-    repo_tool.import_ed25519_privatekey_from_file(root3_key_file,
+    repo_tool.import_ecdsa_privatekey_from_file(root3_key_file,
                                               EXPECTED_KEYFILE_PASSWORD)
   role_keys['targets']['private'] = \
     repo_tool.import_ed25519_privatekey_from_file(targets_key_file,
