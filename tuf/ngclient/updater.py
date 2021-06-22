@@ -15,7 +15,11 @@ from securesystemslib import hash as sslib_hash
 from securesystemslib import util as sslib_util
 
 from tuf import exceptions
-from tuf.ngclient._internal import download, metadata_bundle, requests_fetcher
+from tuf.ngclient._internal import (
+    download,
+    requests_fetcher,
+    trusted_metadata_set,
+)
 from tuf.ngclient.fetcher import FetcherInterface
 
 # Globals
@@ -65,7 +69,7 @@ class Updater:
 
         # Read trusted local root metadata
         data = self._load_local_metadata("root")
-        self._bundle = metadata_bundle.MetadataBundle(data)
+        self._trusted_set = trusted_metadata_set.TrustedMetadataSet(data)
 
         if fetcher is None:
             self._fetcher = requests_fetcher.RequestsFetcher()
@@ -243,7 +247,7 @@ class Updater:
         """
 
         # Update the root role
-        lower_bound = self._bundle.root.signed.version + 1
+        lower_bound = self._trusted_set.root.signed.version + 1
         upper_bound = lower_bound + MAX_ROOT_ROTATIONS
 
         for next_version in range(lower_bound, upper_bound):
@@ -251,7 +255,7 @@ class Updater:
                 data = self._download_metadata(
                     "root", DEFAULT_ROOT_MAX_LENGTH, next_version
                 )
-                self._bundle.update_root(data)
+                self._trusted_set.update_root(data)
                 self._persist_metadata("root", data)
 
             except exceptions.FetcherHTTPError as exception:
@@ -261,13 +265,13 @@ class Updater:
                 break
 
         # Verify final root
-        self._bundle.root_update_finished()
+        self._trusted_set.root_update_finished()
 
     def _load_timestamp(self) -> None:
         """Load local and remote timestamp metadata"""
         try:
             data = self._load_local_metadata("timestamp")
-            self._bundle.update_timestamp(data)
+            self._trusted_set.update_timestamp(data)
         except (OSError, exceptions.RepositoryError) as e:
             # Local timestamp does not exist or is invalid
             logger.debug("Failed to load local timestamp %s", e)
@@ -276,47 +280,47 @@ class Updater:
         data = self._download_metadata(
             "timestamp", DEFAULT_TIMESTAMP_MAX_LENGTH
         )
-        self._bundle.update_timestamp(data)
+        self._trusted_set.update_timestamp(data)
         self._persist_metadata("timestamp", data)
 
     def _load_snapshot(self) -> None:
         """Load local (and if needed remote) snapshot metadata"""
         try:
             data = self._load_local_metadata("snapshot")
-            self._bundle.update_snapshot(data)
+            self._trusted_set.update_snapshot(data)
             logger.debug("Local snapshot is valid: not downloading new one")
         except (OSError, exceptions.RepositoryError) as e:
             # Local snapshot does not exist or is invalid: update from remote
             logger.debug("Failed to load local snapshot %s", e)
 
-            metainfo = self._bundle.timestamp.signed.meta["snapshot.json"]
+            metainfo = self._trusted_set.timestamp.signed.meta["snapshot.json"]
             length = metainfo.length or DEFAULT_SNAPSHOT_MAX_LENGTH
             version = None
-            if self._bundle.root.signed.consistent_snapshot:
+            if self._trusted_set.root.signed.consistent_snapshot:
                 version = metainfo.version
 
             data = self._download_metadata("snapshot", length, version)
-            self._bundle.update_snapshot(data)
+            self._trusted_set.update_snapshot(data)
             self._persist_metadata("snapshot", data)
 
     def _load_targets(self, role: str, parent_role: str) -> None:
         """Load local (and if needed remote) metadata for 'role'."""
         try:
             data = self._load_local_metadata(role)
-            self._bundle.update_delegated_targets(data, role, parent_role)
+            self._trusted_set.update_delegated_targets(data, role, parent_role)
             logger.debug("Local %s is valid: not downloading new one", role)
         except (OSError, exceptions.RepositoryError) as e:
             # Local 'role' does not exist or is invalid: update from remote
             logger.debug("Failed to load local %s: %s", role, e)
 
-            metainfo = self._bundle.snapshot.signed.meta[f"{role}.json"]
+            metainfo = self._trusted_set.snapshot.signed.meta[f"{role}.json"]
             length = metainfo.length or DEFAULT_TARGETS_MAX_LENGTH
             version = None
-            if self._bundle.root.signed.consistent_snapshot:
+            if self._trusted_set.root.signed.consistent_snapshot:
                 version = metainfo.version
 
             data = self._download_metadata(role, length, version)
-            self._bundle.update_delegated_targets(data, role, parent_role)
+            self._trusted_set.update_delegated_targets(data, role, parent_role)
             self._persist_metadata(role, data)
 
     def _preorder_depth_first_walk(self, target_filepath) -> Dict:
@@ -348,7 +352,7 @@ class Updater:
             # The metadata for 'role_name' must be downloaded/updated before
             # its targets, delegations, and child roles can be inspected.
 
-            role_metadata = self._bundle[role_name].signed
+            role_metadata = self._trusted_set[role_name].signed
             target = role_metadata.targets.get(target_filepath)
 
             # After preorder check, add current role to set of visited roles.
