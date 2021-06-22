@@ -702,6 +702,19 @@ class BaseFile:
                 f"expected length {expected_length}"
             )
 
+    @staticmethod
+    def _validate_hashes(hashes: Dict[str, str]) -> None:
+        if not hashes:
+            raise ValueError("Hashes must be a non empty dictionary")
+        for key, value in hashes.items():
+            if not (isinstance(key, str) and isinstance(value, str)):
+                raise TypeError("Hashes items must be strings")
+
+    @staticmethod
+    def _validate_length(length: int) -> None:
+        if length <= 0:
+            raise ValueError(f"Length must be > 0, got {length}")
+
 
 class MetaFile(BaseFile):
     """A container with information about a particular metadata file.
@@ -730,6 +743,14 @@ class MetaFile(BaseFile):
         hashes: Optional[Dict[str, str]] = None,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
+
+        if version <= 0:
+            raise ValueError(f"Metafile version must be > 0, got {version}")
+        if length is not None:
+            self._validate_length(length)
+        if hashes is not None:
+            self._validate_hashes(hashes)
+
         self.version = version
         self.length = length
         self.hashes = hashes
@@ -741,12 +762,6 @@ class MetaFile(BaseFile):
         version = meta_dict.pop("version")
         length = meta_dict.pop("length", None)
         hashes = meta_dict.pop("hashes", None)
-
-        # Do some basic input validation
-        if version <= 0:
-            raise ValueError(f"Metafile version must be > 0, got {version}")
-        if length is not None and length <= 0:
-            raise ValueError(f"Metafile length must be > 0, got {length}")
 
         # All fields left in the meta_dict are unrecognized.
         return cls(version, length, hashes, meta_dict)
@@ -778,8 +793,7 @@ class MetaFile(BaseFile):
         if self.length is not None:
             self._verify_length(data, self.length)
 
-        # Skip the check in case of an empty dictionary too
-        if self.hashes:
+        if self.hashes is not None:
             self._verify_hashes(data, self.hashes)
 
 
@@ -1033,6 +1047,10 @@ class TargetFile(BaseFile):
         hashes: Dict[str, str],
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
+
+        self._validate_length(length)
+        self._validate_hashes(hashes)
+
         self.length = length
         self.hashes = hashes
         self.unrecognized_fields = unrecognized_fields or {}
@@ -1048,12 +1066,6 @@ class TargetFile(BaseFile):
         """Creates TargetFile object from its dict representation."""
         length = target_dict.pop("length")
         hashes = target_dict.pop("hashes")
-
-        # Do some basic validation checks
-        if length <= 0:
-            raise ValueError(f"Targetfile length must be > 0, got {length}")
-        if not hashes:
-            raise ValueError("Missing targetfile hashes")
 
         # All fields left in the target_dict are unrecognized.
         return cls(length, hashes, target_dict)
