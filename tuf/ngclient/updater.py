@@ -407,36 +407,25 @@ class Updater:
                 child_roles = role_metadata.delegations.roles
 
             if target is None:
-
                 child_roles_to_visit = []
                 # NOTE: This may be a slow operation if there are many
                 # delegated roles.
                 for child_role in child_roles:
                     if child_role.is_delegated_path(target_filepath):
-                        child_role_name = child_role.name
-                    else:
-                        child_role_name = None
 
-                    if child_role.terminating and child_role_name is not None:
-                        logger.debug(
-                            "Adding child role %s.\n"
-                            "Not backtracking to other roles.",
-                            child_role_name,
-                        )
-                        role_names = []
+                        logger.debug("Adding child role %s", child_role.name)
+
                         child_roles_to_visit.append(
-                            (child_role_name, role_name)
+                            (child_role.name, role_name)
                         )
-                        break
 
-                    if child_role_name is None:
-                        logger.debug("Skipping child role %s", child_role_name)
+                        if child_role.terminating:
+                            logger.debug("Not backtracking to other roles.")
+                            role_names = []
+                            break
 
                     else:
-                        logger.debug("Adding child role %s", child_role_name)
-                        child_roles_to_visit.append(
-                            (child_role_name, role_name)
-                        )
+                        logger.debug("Skipping child role %s", child_role.name)
 
                 # Push 'child_roles_to_visit' in reverse order of appearance
                 # onto 'role_names'.  Roles are popped from the end of
