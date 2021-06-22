@@ -17,6 +17,7 @@ available in the class model.
 """
 import abc
 import io
+import logging
 import tempfile
 from collections import OrderedDict
 from datetime import datetime, timedelta
@@ -48,6 +49,8 @@ from tuf.api.serialization import (
 )
 
 # pylint: disable=too-many-lines
+
+logger = logging.getLogger(__name__)
 
 # We aim to support SPECIFICATION_VERSION and require the input metadata
 # files to have the same major version (the first number) as ours.
@@ -309,10 +312,9 @@ class Metadata:
             key = keys[keyid]
             try:
                 key.verify_signature(delegate, signed_serializer)
-                # keyids are unique. Try to make sure the public keys are too
-                signing_keys.add(key.keyval["public"])
+                signing_keys.add(key.keyid)
             except exceptions.UnsignedMetadataError:
-                pass
+                logger.info("Key %s failed to verify %s", keyid, role_name)
 
         if len(signing_keys) < role.threshold:
             raise exceptions.UnsignedMetadataError(
