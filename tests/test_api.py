@@ -181,6 +181,11 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(exceptions.UnsignedMetadataError):
             snapshot_key.verify_signature(metadata_obj)
 
+        # Test verifying with explicitly set serializer
+        targets_key.verify_signature(metadata_obj, CanonicalJSONSerializer())
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            targets_key.verify_signature(metadata_obj, JSONSerializer())
+
         sslib_signer = SSlibSigner(self.keystore['snapshot'])
         # Append a new signature with the unrelated key and assert that ...
         metadata_obj.sign(sslib_signer, append=True)
@@ -200,6 +205,32 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(exceptions.UnsignedMetadataError):
             targets_key.verify_signature(metadata_obj)
 
+        # Test failure on unknown scheme (securesystemslib UnsupportedAlgorithmError)
+        scheme = timestamp_key.scheme
+        timestamp_key.scheme = "foo"
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            timestamp_key.verify_signature(metadata_obj)
+        timestamp_key.scheme = scheme
+
+        # Test failure on broken public key data (securesystemslib CryptoError)
+        public = timestamp_key.keyval["public"]
+        timestamp_key.keyval["public"] = "ffff"
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            timestamp_key.verify_signature(metadata_obj)
+        timestamp_key.keyval["public"] = public
+
+        # Test failure with invalid signature (securesystemslib FormatError)
+        sig = metadata_obj.signatures[timestamp_keyid]
+        correct_sig = sig.signature
+        sig.signature = "foo"
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            timestamp_key.verify_signature(metadata_obj)
+
+        # Test failure with valid but incorrect signature
+        sig.signature = "ff"*64
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            timestamp_key.verify_signature(metadata_obj)
+        sig.signature = correct_sig
 
     def test_metadata_base(self):
         # Use of Snapshot is arbitrary, we're just testing the base class features

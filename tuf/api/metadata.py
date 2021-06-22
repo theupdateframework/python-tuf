@@ -33,6 +33,7 @@ from typing import (
     Union,
 )
 
+from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import hash as sslib_hash
 from securesystemslib import keys as sslib_keys
 from securesystemslib.signer import Signature, Signer
@@ -483,8 +484,6 @@ class Key:
         Raises:
             UnsignedMetadataError: The signature could not be verified for a
                 variety of possible reasons: see error message.
-            TODO: Various other errors currently bleed through from lower
-                level components: Issue #1351
         """
         try:
             signature = metadata.signatures[self.keyid]
@@ -500,15 +499,25 @@ class Key:
 
             signed_serializer = CanonicalJSONSerializer()
 
-        if not sslib_keys.verify_signature(
-            self.to_securesystemslib_key(),
-            signature.to_dict(),
-            signed_serializer.serialize(metadata.signed),
-        ):
+        try:
+            if not sslib_keys.verify_signature(
+                self.to_securesystemslib_key(),
+                signature.to_dict(),
+                signed_serializer.serialize(metadata.signed),
+            ):
+                raise exceptions.UnsignedMetadataError(
+                    f"Failed to verify {self.keyid} signature",
+                    metadata.signed,
+                )
+        except (
+            sslib_exceptions.CryptoError,
+            sslib_exceptions.FormatError,
+            sslib_exceptions.UnsupportedAlgorithmError,
+        ) as e:
             raise exceptions.UnsignedMetadataError(
-                f"Failed to verify {self.keyid} signature for metadata",
+                f"Failed to verify {self.keyid} signature",
                 metadata.signed,
-            )
+            ) from e
 
 
 class Role:
