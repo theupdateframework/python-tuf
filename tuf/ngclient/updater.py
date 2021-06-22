@@ -412,9 +412,10 @@ class Updater:
                 # NOTE: This may be a slow operation if there are many
                 # delegated roles.
                 for child_role in child_roles:
-                    child_role_name = child_role.visit_child_role(
-                        target_filepath
-                    )
+                    if child_role.is_delegated_path(target_filepath):
+                        child_role_name = child_role.name
+                    else:
+                        child_role_name = None
 
                     if child_role.terminating and child_role_name is not None:
                         logger.debug(

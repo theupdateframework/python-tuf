@@ -1033,48 +1033,29 @@ class DelegatedRole(Role):
             res_dict["path_hash_prefixes"] = self.path_hash_prefixes
         return res_dict
 
-    def visit_child_role(self, target_filepath: str) -> str:
-        """Determines whether the given 'target_filepath' is an
-        allowed path of DelegatedRole"""
+    def is_delegated_path(self, target_filepath: str) -> bool:
+        """Determines whether the given 'target_filepath' is in one of
+        the paths that DelegatedRole is trusted to provide"""
 
         if self.path_hash_prefixes is not None:
             target_filepath_hash = _get_filepath_hash(target_filepath)
             for path_hash_prefix in self.path_hash_prefixes:
-                if not target_filepath_hash.startswith(path_hash_prefix):
-                    continue
-
-                return self.name
+                if target_filepath_hash.startswith(path_hash_prefix):
+                    return True
 
         elif self.paths is not None:
-            for path in self.paths:
-                # A child role path may be an explicit path or glob pattern (Unix
-                # shell-style wildcards).  The child role 'child_role_name' is
-                # returned if 'target_filepath' is equal to or matches
-                # 'child_role_path'. Explicit filepaths are also considered
-                # matches. A repo maintainer might delegate a glob pattern with a
-                # leading path separator, while the client requests a matching
-                # target without a leading path separator - make sure to strip any
-                # leading path separators so that a match is made.
+            for pathpattern in self.paths:
+                # A delegated role path may be an explicit path or glob
+                # pattern (Unix shell-style wildcards). Explicit filepaths
+                # are also considered matches. Make sure to strip any leading
+                # path separators so that a match is made.
                 # Example: "foo.tgz" should match with "/*.tgz".
                 if fnmatch.fnmatch(
-                    target_filepath.lstrip(os.sep), path.lstrip(os.sep)
+                    target_filepath.lstrip(os.sep), pathpattern.lstrip(os.sep)
                 ):
+                    return True
 
-                    return self.name
-
-                continue
-
-        else:
-            # 'role_name' should have been validated when it was downloaded.
-            # The 'paths' or 'path_hash_prefixes' fields should not be missing,
-            # so we raise a format error here in case they are both missing.
-            raise exceptions.FormatError(
-                repr(self.name) + " "
-                'has neither a "paths" nor "path_hash_prefixes".  At least'
-                " one of these attributes must be present."
-            )
-
-        return None
+        return False
 
 
 def _get_filepath_hash(target_filepath, hash_function="sha256"):
