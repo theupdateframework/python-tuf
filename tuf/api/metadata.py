@@ -848,17 +848,21 @@ class Snapshot(Signed):
 
 
 class DelegatedRole(Role):
-    """A container with information about particular delegated role.
+    """A container with information about a delegated role.
+
+    A delegation can happen in three ways:
+        - paths is None and path_hash_prefixes is None: delegates all targets
+        - paths is set: delegates targets matching any path pattern in paths
+        - path_hash_prefixes is set: delegates targets whose target path hash
+            starts with any of the prefixes in path_hash_prefixes
+    paths and path_hash_prefixes are mutually exclusive: both cannot be set.
 
     Attributes:
         name: A string giving the name of the delegated role.
         terminating: A boolean indicating whether subsequent delegations
             should be considered during a target lookup.
-        paths: An optional list of strings, where each string describes
-            a path pattern that the role is trusted to provide.
-        path_hash_prefixes: An optional list of HEX_DIGESTs used to succinctly
-            describe a set of target paths. Only one of the attributes "paths"
-            and "path_hash_prefixes" is allowed within a DelegatedRole.
+        paths: An optional list of path pattern strings. See note above.
+        path_hash_prefixes: An optional list of hash prefixes. See note above.
         unrecognized_fields: Dictionary of all unrecognized fields.
     """
 
