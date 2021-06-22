@@ -16,8 +16,10 @@ available in the class model.
 
 """
 import abc
+import fnmatch
 import io
 import logging
+import os
 import tempfile
 from collections import OrderedDict
 from datetime import datetime, timedelta
@@ -1030,6 +1032,64 @@ class DelegatedRole(Role):
         elif self.path_hash_prefixes is not None:
             res_dict["path_hash_prefixes"] = self.path_hash_prefixes
         return res_dict
+
+    def visit_child_role(self, target_filepath: str) -> str:
+        """Determines whether the given 'target_filepath' is an
+        allowed path of DelegatedRole"""
+
+        if self.path_hash_prefixes is not None:
+            target_filepath_hash = _get_filepath_hash(target_filepath)
+            for path_hash_prefix in self.path_hash_prefixes:
+                if not target_filepath_hash.startswith(path_hash_prefix):
+                    continue
+
+                return self.name
+
+        elif self.paths is not None:
+            for path in self.paths:
+                # A child role path may be an explicit path or glob pattern (Unix
+                # shell-style wildcards).  The child role 'child_role_name' is
+                # returned if 'target_filepath' is equal to or matches
+                # 'child_role_path'. Explicit filepaths are also considered
+                # matches. A repo maintainer might delegate a glob pattern with a
+                # leading path separator, while the client requests a matching
+                # target without a leading path separator - make sure to strip any
+                # leading path separators so that a match is made.
+                # Example: "foo.tgz" should match with "/*.tgz".
+                if fnmatch.fnmatch(
+                    target_filepath.lstrip(os.sep), path.lstrip(os.sep)
+                ):
+
+                    return self.name
+
+                continue
+
+        else:
+            # 'role_name' should have been validated when it was downloaded.
+            # The 'paths' or 'path_hash_prefixes' fields should not be missing,
+            # so we raise a format error here in case they are both missing.
+            raise exceptions.FormatError(
+                repr(self.name) + " "
+                'has neither a "paths" nor "path_hash_prefixes".  At least'
+                " one of these attributes must be present."
+            )
+
+        return None
+
+
+def _get_filepath_hash(target_filepath, hash_function="sha256"):
+    """
+    Calculate the hash of the filepath to determine which bin to find the
+    target.
+    """
+    # The client currently assumes the repository (i.e., repository
+    # tool) uses 'hash_function' to generate hashes and UTF-8.
+    digest_object = sslib_hash.digest(hash_function)
+    encoded_target_filepath = target_filepath.encode("utf-8")
+    digest_object.update(encoded_target_filepath)
+    target_filepath_hash = digest_object.hexdigest()
+
+    return target_filepath_hash
 
 
 class Delegations:

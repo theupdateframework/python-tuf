@@ -58,13 +58,11 @@ Example::
     updater.download_target(targetinfo, "~/tufclient/downloads/")
 """
 
-import fnmatch
 import logging
 import os
 from typing import Any, Dict, List, Optional
 from urllib import parse
 
-from securesystemslib import hash as sslib_hash
 from securesystemslib import util as sslib_util
 
 from tuf import exceptions
@@ -414,8 +412,8 @@ class Updater:
                 # NOTE: This may be a slow operation if there are many
                 # delegated roles.
                 for child_role in child_roles:
-                    child_role_name = _visit_child_role(
-                        child_role, target_filepath
+                    child_role_name = child_role.visit_child_role(
+                        target_filepath
                     )
 
                     if child_role.terminating and child_role_name is not None:
@@ -461,117 +459,6 @@ class Updater:
             )
 
         return {"filepath": target_filepath, "fileinfo": target}
-
-
-def _visit_child_role(child_role: Dict, target_filepath: str) -> str:
-    """
-    <Purpose>
-      Non-public method that determines whether the given 'target_filepath'
-      is an allowed path of 'child_role'.
-
-      Ensure that we explore only delegated roles trusted with the target.  The
-      metadata for 'child_role' should have been refreshed prior to this point,
-      however, the paths/targets that 'child_role' signs for have not been
-      verified (as intended).  The paths/targets that 'child_role' is allowed
-      to specify in its metadata depends on the delegating role, and thus is
-      left to the caller to verify.  We verify here that 'target_filepath'
-      is an allowed path according to the delegated 'child_role'.
-
-      TODO: Should the TUF spec restrict the repository to one particular
-      algorithm?  Should we allow the repository to specify in the role
-      dictionary the algorithm used for these generated hashed paths?
-
-    <Arguments>
-      child_role:
-        The delegation targets role object of 'child_role', containing its
-        paths, path_hash_prefixes, keys, and so on.
-
-      target_filepath:
-        The path to the target file on the repository. This will be relative to
-        the 'targets' (or equivalent) directory on a given mirror.
-
-    <Exceptions>
-      None.
-
-    <Side Effects>
-      None.
-
-    <Returns>
-      If 'child_role' has been delegated the target with the name
-      'target_filepath', then we return the role name of 'child_role'.
-
-      Otherwise, we return None.
-    """
-
-    child_role_name = child_role.name
-    child_role_paths = child_role.paths
-    child_role_path_hash_prefixes = child_role.path_hash_prefixes
-
-    if child_role_path_hash_prefixes is not None:
-        target_filepath_hash = _get_filepath_hash(target_filepath)
-        for child_role_path_hash_prefix in child_role_path_hash_prefixes:
-            if not target_filepath_hash.startswith(child_role_path_hash_prefix):
-                continue
-
-            return child_role_name
-
-    elif child_role_paths is not None:
-        # Is 'child_role_name' allowed to sign for 'target_filepath'?
-        for child_role_path in child_role_paths:
-            # A child role path may be an explicit path or glob pattern (Unix
-            # shell-style wildcards).  The child role 'child_role_name' is
-            # returned if 'target_filepath' is equal to or matches
-            # 'child_role_path'. Explicit filepaths are also considered
-            # matches. A repo maintainer might delegate a glob pattern with a
-            # leading path separator, while the client requests a matching
-            # target without a leading path separator - make sure to strip any
-            # leading path separators so that a match is made.
-            # Example: "foo.tgz" should match with "/*.tgz".
-            if fnmatch.fnmatch(
-                target_filepath.lstrip(os.sep), child_role_path.lstrip(os.sep)
-            ):
-                logger.debug(
-                    "Child role %s is allowed to sign for %s",
-                    repr(child_role_name),
-                    repr(target_filepath),
-                )
-
-                return child_role_name
-
-            logger.debug(
-                "The given target path %s "
-                "does not match the trusted path or glob pattern: %s",
-                repr(target_filepath),
-                repr(child_role_path),
-            )
-            continue
-
-    else:
-        # 'role_name' should have been validated when it was downloaded.
-        # The 'paths' or 'path_hash_prefixes' fields should not be missing,
-        # so we raise a format error here in case they are both missing.
-        raise exceptions.FormatError(
-            repr(child_role_name) + " "
-            'has neither a "paths" nor "path_hash_prefixes".  At least'
-            " one of these attributes must be present."
-        )
-
-    return None
-
-
-def _get_filepath_hash(target_filepath, hash_function="sha256"):
-    """
-    Calculate the hash of the filepath to determine which bin to find the
-    target.
-    """
-    # The client currently assumes the repository (i.e., repository
-    # tool) uses 'hash_function' to generate hashes and UTF-8.
-    digest_object = sslib_hash.digest(hash_function)
-    encoded_target_filepath = target_filepath.encode("utf-8")
-    digest_object.update(encoded_target_filepath)
-    target_filepath_hash = digest_object.hexdigest()
-
-    return target_filepath_hash
 
 
 def _ensure_trailing_slash(url: str):
