@@ -366,26 +366,23 @@ class Updater:
             self._trusted_set.update_delegated_targets(data, role, parent_role)
             self._persist_metadata(role, data)
 
-    def _preorder_depth_first_walk(self, target_filepath) -> Dict:
+    def _preorder_depth_first_walk(self, target_filepath: str) -> Dict:
         """
         Interrogates the tree of target delegations in order of appearance
         (which implicitly order trustworthiness), and returns the matching
         target found in the most trusted role.
         """
 
-        target = None
         role_names = [("targets", "root")]
         visited_role_names = set()
         number_of_delegations = self.config.max_delegations
 
         # Preorder depth-first traversal of the graph of target delegations.
-        while (
-            target is None and number_of_delegations > 0 and len(role_names) > 0
-        ):
+        while number_of_delegations > 0 and len(role_names) > 0:
 
             # Pop the role name from the top of the stack.
             role_name, parent_role = role_names.pop(-1)
-            self._load_targets(role_name, parent_role)
+
             # Skip any visited current role to prevent cycles.
             if (role_name, parent_role) in visited_role_names:
                 logger.debug("Skipping visited current role %s", role_name)
@@ -393,54 +390,43 @@ class Updater:
 
             # The metadata for 'role_name' must be downloaded/updated before
             # its targets, delegations, and child roles can be inspected.
+            self._load_targets(role_name, parent_role)
 
             role_metadata = self._trusted_set[role_name].signed
             target = role_metadata.targets.get(target_filepath)
+
+            if target is not None:
+                logger.debug("Found target in current role %s", role_name)
+                return {"filepath": target_filepath, "fileinfo": target}
 
             # After preorder check, add current role to set of visited roles.
             visited_role_names.add((role_name, parent_role))
 
             # And also decrement number of visited roles.
             number_of_delegations -= 1
-            child_roles = []
-            if role_metadata.delegations is not None:
-                child_roles = role_metadata.delegations.roles
 
-            if target is None:
+            if role_metadata.delegations is not None:
                 child_roles_to_visit = []
                 # NOTE: This may be a slow operation if there are many
                 # delegated roles.
-                for child_role in child_roles:
+                for child_role in role_metadata.delegations.roles:
                     if child_role.is_delegated_path(target_filepath):
-
                         logger.debug("Adding child role %s", child_role.name)
 
                         child_roles_to_visit.append(
                             (child_role.name, role_name)
                         )
-
                         if child_role.terminating:
                             logger.debug("Not backtracking to other roles.")
                             role_names = []
                             break
-
-                    else:
-                        logger.debug("Skipping child role %s", child_role.name)
-
                 # Push 'child_roles_to_visit' in reverse order of appearance
                 # onto 'role_names'.  Roles are popped from the end of
                 # the 'role_names' list.
                 child_roles_to_visit.reverse()
                 role_names.extend(child_roles_to_visit)
 
-            else:
-                logger.debug("Found target in current role %s", role_name)
-
-        if (
-            target is None
-            and number_of_delegations == 0
-            and len(role_names) > 0
-        ):
+        if number_of_delegations == 0 and len(role_names) > 0:
             logger.debug(
                 "%d roles left to visit, but allowed to "
                 "visit at most %d delegations.",
@@ -448,7 +434,8 @@ class Updater:
                 self.config.max_delegations,
             )
 
-        return {"filepath": target_filepath, "fileinfo": target}
+        # If this point is reached then target is not found, return None
+        return None
 
 
 def _ensure_trailing_slash(url: str):
