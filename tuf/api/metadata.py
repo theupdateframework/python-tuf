@@ -416,7 +416,7 @@ class Key:
             the metadata it is used in. This implementation does not verify
             that keyid is the hash of a specific representation of the key.
         keytype: A string denoting a public key signature system,
-            such as "rsa", "ed25519", and "ecdsa-sha2-nistp256".
+            such as "rsa", "ed25519", "ecdsa" and "ecdsa-sha2-nistp256".
         scheme: A string denoting a corresponding signature scheme. For example:
             "rsassa-pss-sha256", "ed25519", and "ecdsa-sha2-nistp256".
         keyval: A dictionary containing the public portion of the key.

@@ -183,7 +183,7 @@ SUPPORTED_CLI_KEYTYPES = (ECDSA_KEYTYPE, ED25519_KEYTYPE, RSA_KEYTYPE)
 # The supported keytype strings (as they appear in metadata) are listed here
 # because they won't necessarily match the key types supported by
 # securesystemslib.
-SUPPORTED_KEY_TYPES = ('ed25519', 'ecdsa-sha2-nistp256', 'rsa')
+SUPPORTED_KEY_TYPES = ('rsa', 'ed25519', 'ecdsa', 'ecdsa-sha2-nistp256')
 
 # pylint: disable=protected-access
 # ... to allow use of sslib _generate_and_write_*_keypair convenience methods
