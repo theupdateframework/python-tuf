@@ -70,8 +70,6 @@ from collections import abc
 from datetime import datetime
 from typing import Dict, Iterator, Optional
 
-from securesystemslib import hash as sslib_hash
-
 from tuf import exceptions
 from tuf.api.metadata import Metadata, Root, Targets
 from tuf.api.serialization import DeserializationError
@@ -304,8 +302,7 @@ class TrustedMetadataSet(abc.Mapping):
         self._trusted_set["timestamp"] = new_timestamp
         logger.debug("Updated timestamp")
 
-    # TODO: remove pylint disable once the hash verification is in metadata.py
-    def update_snapshot(self, data: bytes):  # pylint: disable=too-many-branches
+    def update_snapshot(self, data: bytes):
         """Verifies and loads 'data' as new snapshot metadata.
 
         Args:
@@ -325,13 +322,12 @@ class TrustedMetadataSet(abc.Mapping):
         meta = self.timestamp.signed.meta["snapshot.json"]
 
         # Verify against the hashes in timestamp, if any
-        hashes = meta.hashes or {}
-        for algo, stored_hash in hashes.items():
-            digest_object = sslib_hash.digest(algo)
-            digest_object.update(data)
-            observed_hash = digest_object.hexdigest()
-            if observed_hash != stored_hash:
-                raise exceptions.BadHashError(stored_hash, observed_hash)
+        try:
+            meta.verify_length_and_hashes(data)
+        except exceptions.LengthOrHashMismatchError as e:
+            raise exceptions.RepositoryError(
+                "Snapshot length or hashes do not match"
+            ) from e
 
         try:
             new_snapshot = Metadata.from_bytes(data)
@@ -425,14 +421,12 @@ class TrustedMetadataSet(abc.Mapping):
                 f"Snapshot does not contain information for '{role_name}'"
             )
 
-        hashes = meta.hashes or {}
-        for algo, stored_hash in hashes.items():
-            digest_object = sslib_hash.digest(algo)
-            digest_object.update(data)
-            observed_hash = digest_object.hexdigest()
-            if observed_hash != stored_hash:
-                # TODO: Error should derive from RepositoryError
-                raise exceptions.BadHashError(stored_hash, observed_hash)
+        try:
+            meta.verify_length_and_hashes(data)
+        except exceptions.LengthOrHashMismatchError as e:
+            raise exceptions.RepositoryError(
+                f"{role_name} length or hashes do not match"
+            ) from e
 
         try:
             new_delegate = Metadata.from_bytes(data)
