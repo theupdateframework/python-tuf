@@ -205,17 +205,21 @@ class Updater:
         else:
             target_base_url = _ensure_trailing_slash(target_base_url)
 
-        full_url = parse.urljoin(target_base_url, targetinfo["filepath"])
+        target_filepath = targetinfo["filepath"]
+        target_fileinfo: "TargetFile" = targetinfo["fileinfo"]
+        full_url = parse.urljoin(target_base_url, target_filepath)
 
         with download.download_file(
-            full_url, targetinfo["fileinfo"].length, self._fetcher
+            full_url, target_fileinfo.length, self._fetcher
         ) as target_file:
-            _check_file_length(target_file, targetinfo["fileinfo"].length)
-            _check_hashes_obj(target_file, targetinfo["fileinfo"].hashes)
+            try:
+                target_fileinfo.verify_length_and_hashes(target_file)
+            except exceptions.LengthOrHashMismatchError as e:
+                raise exceptions.RepositoryError(
+                    f"{target_filepath} length or hashes do not match"
+                ) from e
 
-            filepath = os.path.join(
-                destination_directory, targetinfo["filepath"]
-            )
+            filepath = os.path.join(destination_directory, target_filepath)
             sslib_util.persist_temp_file(target_file, filepath)
 
     def _download_metadata(
@@ -519,47 +523,6 @@ def _visit_child_role(child_role: Dict, target_filepath: str) -> str:
         )
 
     return None
-
-
-def _check_file_length(file_object, trusted_file_length):
-    """
-    Given a file_object, checks whether its length matches
-    trusted_file_length.
-
-    Raises:
-        DownloadLengthMismatchError: File length does not match
-            expected length.
-    """
-    file_object.seek(0, 2)
-    observed_length = file_object.tell()
-    file_object.seek(0)
-
-    if observed_length != trusted_file_length:
-        raise exceptions.DownloadLengthMismatchError(
-            trusted_file_length, observed_length
-        )
-
-
-def _check_hashes_obj(file_object, trusted_hashes):
-    """
-    Given a file_object, checks whether its hash matches
-    trusted_hashes.
-
-    Raises:
-        BadHashError: Hashes do not match
-    """
-    for algorithm, trusted_hash in trusted_hashes.items():
-        digest_object = sslib_hash.digest_fileobject(file_object, algorithm)
-
-        computed_hash = digest_object.hexdigest()
-
-        # Raise an exception if any of the hashes are incorrect.
-        if trusted_hash != computed_hash:
-            raise exceptions.BadHashError(trusted_hash, computed_hash)
-
-        logger.info(
-            "The file's " + algorithm + " hash is" " correct: " + trusted_hash
-        )
 
 
 def _get_filepath_hash(target_filepath, hash_function="sha256"):
