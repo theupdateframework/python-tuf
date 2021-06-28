@@ -20,15 +20,8 @@ from tuf.ngclient._internal import (
     requests_fetcher,
     trusted_metadata_set,
 )
+from tuf.ngclient.config import UpdaterConfig
 from tuf.ngclient.fetcher import FetcherInterface
-
-# Globals
-MAX_ROOT_ROTATIONS = 32
-MAX_DELEGATIONS = 32
-DEFAULT_ROOT_MAX_LENGTH = 512000  # bytes
-DEFAULT_TIMESTAMP_MAX_LENGTH = 16384  # bytes
-DEFAULT_SNAPSHOT_MAX_LENGTH = 2000000  # bytes
-DEFAULT_TARGETS_MAX_LENGTH = 5000000  # bytes
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +38,7 @@ class Updater:
         metadata_base_url: str,
         target_base_url: Optional[str] = None,
         fetcher: Optional[FetcherInterface] = None,
+        config: Optional[UpdaterConfig] = None,
     ):
         """
         Args:
@@ -75,6 +69,8 @@ class Updater:
             self._fetcher = requests_fetcher.RequestsFetcher()
         else:
             self._fetcher = fetcher
+
+        self.config = config or UpdaterConfig()
 
     def refresh(self) -> None:
         """
@@ -251,12 +247,12 @@ class Updater:
 
         # Update the root role
         lower_bound = self._trusted_set.root.signed.version + 1
-        upper_bound = lower_bound + MAX_ROOT_ROTATIONS
+        upper_bound = lower_bound + self.config.MAX_ROOT_ROTATIONS
 
         for next_version in range(lower_bound, upper_bound):
             try:
                 data = self._download_metadata(
-                    "root", DEFAULT_ROOT_MAX_LENGTH, next_version
+                    "root", self.config.DEFAULT_ROOT_MAX_LENGTH, next_version
                 )
                 self._trusted_set.update_root(data)
                 self._persist_metadata("root", data)
@@ -281,7 +277,7 @@ class Updater:
 
         # Load from remote (whether local load succeeded or not)
         data = self._download_metadata(
-            "timestamp", DEFAULT_TIMESTAMP_MAX_LENGTH
+            "timestamp", self.config.DEFAULT_TIMESTAMP_MAX_LENGTH
         )
         self._trusted_set.update_timestamp(data)
         self._persist_metadata("timestamp", data)
@@ -297,7 +293,7 @@ class Updater:
             logger.debug("Failed to load local snapshot %s", e)
 
             metainfo = self._trusted_set.timestamp.signed.meta["snapshot.json"]
-            length = metainfo.length or DEFAULT_SNAPSHOT_MAX_LENGTH
+            length = metainfo.length or self.config.DEFAULT_SNAPSHOT_MAX_LENGTH
             version = None
             if self._trusted_set.root.signed.consistent_snapshot:
                 version = metainfo.version
@@ -317,7 +313,7 @@ class Updater:
             logger.debug("Failed to load local %s: %s", role, e)
 
             metainfo = self._trusted_set.snapshot.signed.meta[f"{role}.json"]
-            length = metainfo.length or DEFAULT_TARGETS_MAX_LENGTH
+            length = metainfo.length or self.config.DEFAULT_TARGETS_MAX_LENGTH
             version = None
             if self._trusted_set.root.signed.consistent_snapshot:
                 version = metainfo.version
@@ -336,7 +332,7 @@ class Updater:
         target = None
         role_names = [("targets", "root")]
         visited_role_names = set()
-        number_of_delegations = MAX_DELEGATIONS
+        number_of_delegations = self.config.MAX_DELEGATIONS
 
         # Preorder depth-first traversal of the graph of target delegations.
         while (
@@ -417,7 +413,7 @@ class Updater:
         ):
             msg = (
                 f"{len(role_names)} roles left to visit, but allowed to ",
-                f"visit at most {MAX_DELEGATIONS} delegations.",
+                f"visit at most {self.config.MAX_DELEGATIONS} delegations.",
             )
             logger.debug(msg)
 

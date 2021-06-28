@@ -4,5 +4,6 @@
 """TUF client public API
 """
 
+from tuf.ngclient.config import UpdaterConfig
 from tuf.ngclient.fetcher import FetcherInterface
 from tuf.ngclient.updater import Updater
