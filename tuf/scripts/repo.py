@@ -94,7 +94,7 @@
     
   --trust:
     Indicate trusted keys located in </path/to/pubkey> directory of a role.
-    
+
   --sign: 
     Sign metadata of target role(s) with keys in specified directory.
     
@@ -117,10 +117,11 @@
     
   --terminating:
     Mark delegation to --delegatee role from delegator as a terminating one.
-  
+
   --threshold:
-    Specify signature threshold of --delegatee role as the value <X>.
-    
+    Set the threshold number of signatures needed to validate a metadata file.
+    Can be used with --delegate and --trust.
+
   --revoke:
     Revoke trust of target files from delegated role (--delegatee)
     
@@ -282,24 +283,36 @@ def delegate(parsed_arguments):
       os.path.join(parsed_arguments.path, REPO_DIR))
 
   if parsed_arguments.role == 'targets':
-    repository.targets.delegate(parsed_arguments.delegatee, public_keys,
-        parsed_arguments.delegate, parsed_arguments.threshold,
-        parsed_arguments.terminating, list_of_targets=None,
-        path_hash_prefixes=None)
-
-    targets_private = import_privatekey_from_file(
-        os.path.join(parsed_arguments.path, KEYSTORE_DIR, TARGETS_KEY_NAME),
-        parsed_arguments.targets_pw)
-
-    repository.targets.load_signing_key(targets_private)
-
-  # A delegated (non-top-level-Targets) role.
+    parent_targets = repository.targets
+    # Use key from --sign if present or use the default targets_key
+    parent_targets_keys = parsed_arguments.sign or [os.path.join(KEYSTORE_DIR, TARGETS_KEY_NAME)]
   else:
-    repository.targets(parsed_arguments.role).delegate(
-        parsed_arguments.delegatee, public_keys,
-        parsed_arguments.delegate, parsed_arguments.threshold,
-        parsed_arguments.terminating, list_of_targets=None,
-        path_hash_prefixes=None)
+    parent_targets = repository.targets(parsed_arguments.role)
+    parent_targets_keys = parsed_arguments.sign
+
+  parent_targets.delegate(parsed_arguments.delegatee, public_keys,
+    parsed_arguments.delegate, parsed_arguments.threshold or 1,
+    parsed_arguments.terminating, list_of_targets=None,
+    path_hash_prefixes=None
+  )
+
+  # Load the private key for the parent targets
+  for key in parent_targets_keys:
+    targets_private = import_privatekey_from_file(
+      os.path.join(parsed_arguments.path, key),
+      parsed_arguments.targets_pw
+    )
+    parent_targets.load_signing_key(targets_private)
+
+  # Load the private keys of the delegatee targets to allow the generation of the delegatee targets file
+  for key in parsed_arguments.pubkeys:
+    # Expect the public key to be named public.key and private key public
+    delegatee_private = import_privatekey_from_file(
+      os.path.join(parsed_arguments.path, key[:-4]),
+      parsed_arguments.pw,
+    )
+    repository.targets(parsed_arguments.delegatee).load_signing_key(delegatee_private)
+
 
   # Update the required top-level roles, Snapshot and Timestamp, to make a new
   # release.  Automatically making a new release can be disabled via
@@ -514,19 +527,12 @@ def add_verification_key(parsed_arguments):
 
     if parsed_arguments.role not in ('root', 'targets', 'snapshot', 'timestamp'):
       raise exceptions.Error('The given --role is not a top-level role.')
-
-    elif parsed_arguments.role == 'root':
-      repository.root.add_verification_key(imported_pubkey)
-
-    elif parsed_arguments.role == 'targets':
-      repository.targets.add_verification_key(imported_pubkey)
-
-    elif parsed_arguments.role == 'snapshot':
-      repository.snapshot.add_verification_key(imported_pubkey)
-
-    # The timestamp role..
     else:
-      repository.timestamp.add_verification_key(imported_pubkey)
+      role = getattr(repository, parsed_arguments.role)
+      role.add_verification_key(imported_pubkey)
+      # If we ask to update the threshold update it
+      if role.threshold:
+        role.threshold = parsed_arguments.threshold
 
   consistent_snapshot = roledb.get_roleinfo('root',
       repository._repository_name)['consistent_snapshot']
@@ -592,7 +598,7 @@ def sign_role(parsed_arguments):
 
   for keypath in parsed_arguments.sign:
 
-    role_privatekey = import_privatekey_from_file(keypath)
+    role_privatekey = import_privatekey_from_file(keypath, parsed_arguments.pw)
 
     if parsed_arguments.role == 'targets':
       repository.targets.load_signing_key(role_privatekey)
@@ -1095,9 +1101,10 @@ def parse_arguments():
   parser.add_argument('-t', '--terminating', action='store_true',
       help='Set the terminating flag to True.  Can be used with --delegate.')
 
-  parser.add_argument('--threshold', type=int, default=1, metavar='<int>',
+  # By default is set to 1 on new metadata but on update, it doesn't change the threshold
+  parser.add_argument('--threshold', type=int, metavar='<int>',
       help='Set the threshold number of signatures'
-      ' needed to validate a metadata file.  Can be used with --delegate.')
+      ' needed to validate a metadata file.  Can be used with --delegate and --trust.')
 
   parser.add_argument('--pubkeys', type=str, nargs='+',
       metavar='</path/to/pubkey_file>', help='Specify one or more public keys'
