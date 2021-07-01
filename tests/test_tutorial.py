@@ -389,9 +389,6 @@ class TestTutorial(unittest.TestCase):
 
     # TODO: Run subprocess to simulate the following bash instructions:
 
-    # $ cd "repository/"; python -m SimpleHTTPServer 8001
-    # If running Python 3:
-
     # $ cd "repository/"; python3 -m http.server 8001
     # We next retrieve targets from the TUF repository and save them to client/. The client.py script is available to download metadata and files from a specified repository. In a different command-line prompt . . .
 

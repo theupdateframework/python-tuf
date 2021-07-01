@@ -13,7 +13,7 @@ Or by invoking `aggregate_tests.py` from the
 directory.
 
 ```
-$ python aggregate_tests.py
+$ python3 aggregate_tests.py
 ```
 
 Note: integration tests end in `_integration.py`.
@@ -22,13 +22,13 @@ If you wish to run a particular unit test, navigate to the tests directory and
 run that specific unit test.  For example:
 
 ```
-$ python test_updater.py
+$ python3 test_updater.py
 ```
 
 It it also possible to run the test cases of a unit test.  For instance:
 
 ```
-$ python -m unittest test_updater.TestMultiRepoUpdater.test_get_one_valid_targetinfo
+$ python3 -m unittest test_updater.TestMultiRepoUpdater.test_get_one_valid_targetinfo
 ```
 
 ## Setup

@@ -1018,6 +1018,6 @@ def _strip_prefix_from_targets_metadata(targets_metadata, prefix):
 if __name__ == '__main__':
   # The interactive sessions of the documentation strings can
   # be tested by running 'developer_tool.py' as a standalone module:
-  # $ python developer_tool.py
+  # $ python3 developer_tool.py
   import doctest
   doctest.testmod()

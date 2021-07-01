@@ -41,10 +41,10 @@ If you are only using ed25519-based cryptography, you can employ a pure-Python
 installation, done simply with one of the following commands:
 
 Installing from Python Package Index (https://pypi.python.org/pypi).
-(Note: Please use "pip install --no-use-wheel tuf" if your version
+(Note: Please use "python3 -m pip install --no-use-wheel tuf" if your version
 of pip <= 1.5.6)
 ::
-    $ pip install tuf
+    $ python3 -m pip install tuf
 
 
 **Alternatively**, if you wish to install from a GitHub release you've already
@@ -52,11 +52,11 @@ downloaded, or a package you obtained in another way, you can instead:
 
 Install from a local source archive:
 ::
-    $ pip install <path to archive>
+    $ python3 -m pip install <path to archive>
 
 Or install from the root directory of the unpacked archive:
 ::
-    $ pip install .
+    $ python3 -m pip install .
 
 
 
@@ -70,7 +70,7 @@ securesystemslib.  **Note**: that may require non-Python dependencies, so if
 you encounter an error attempting this pip command, see
 `more instructions below <#non-python-dependencies>`_).
 ::
-    $ pip install securesystemslib[crypto,pynacl] tuf
+    $ python3 -m pip install securesystemslib[crypto,pynacl] tuf
 
 
 
@@ -96,5 +96,5 @@ Fedora-based distributions can instead install these libraries with dnf.
 OS X users can install these header libraries with the `Homebrew <https://brew.sh/>`_
 package manager, among other options.
 ::
-    $ brew install python
+    $ brew install python3
     $ brew install libffi

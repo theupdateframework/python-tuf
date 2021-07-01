@@ -57,8 +57,8 @@
   multiple threads in a single process is also thread-safe.  The logging
   module is NOT thread-safe when logging to a single file across multiple
   processes:
-  http://docs.python.org/2/library/logging.html#thread-safety
-  http://docs.python.org/2/howto/logging-cookbook.html
+  http://docs.python.org/library/logging.html#thread-safety
+  http://docs.python.org/howto/logging-cookbook.html
 """
 
 import logging
@@ -88,7 +88,7 @@ _FORMAT_STRING = '[%(asctime)s UTC] [%(name)s] [%(levelname)s] '+\
 
 # Ask all Formatter instances to talk GMT.  Set the 'converter' attribute of
 # 'logging.Formatter' so that all formatters use Greenwich Mean Time.
-# http://docs.python.org/2/library/logging.html#logging.Formatter.formatTime
+# http://docs.python.org/library/logging.html#logging.Formatter.formatTime
 # The 2nd paragraph in the link above contains the relevant information.
 # GMT = UTC (Coordinated Universal Time). TUF metadata stores timestamps in UTC.
 # We previously displayed the local time but this lead to confusion when
@@ -144,8 +144,8 @@ class ConsoleFilter(logging.Filter):
       http://stackoverflow.com/q/6177520
       http://stackoverflow.com/q/5875225
       http://bugs.python.org/issue6435
-      http://docs.python.org/2/howto/logging-cookbook.html#filters-contextual
-      http://docs.python.org/2/library/logging.html#logrecord-attributes
+      http://docs.python.org/howto/logging-cookbook.html#filters-contextual
+      http://docs.python.org/library/logging.html#logrecord-attributes
 
     <Arguments>
       record:
@@ -169,7 +169,7 @@ class ConsoleFilter(logging.Filter):
       # with too much data. Assuming that this filter is not applied to the
       # file logging handler, the user may always consult the file log for the
       # original exception traceback. The exc_info is explained here:
-      # http://docs.python.org/2/library/sys.html#sys.exc_info
+      # http://docs.python.org/library/sys.html#sys.exc_info
       exc_type, _, _ = record.exc_info
 
       # Simply set the class name as the exception text.

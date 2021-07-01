@@ -629,7 +629,7 @@ class Repository(object):
 
     # FIXME: We need a way to tell Python 2, but not Python 3, to return
     # filenames in Unicode; see #61 and:
-    # http://docs.python.org/2/howto/unicode.html#unicode-filenames
+    # http://docs.python.org/howto/unicode.html#unicode-filenames
     for dirpath, dirnames, filenames in os.walk(files_directory,
                                                 followlinks=followlinks):
       for filename in filenames:
@@ -3286,6 +3286,6 @@ def append_signature(signature, metadata_filepath):
 if __name__ == '__main__':
   # The interactive sessions of the documentation strings can
   # be tested by running repository_tool.py as a standalone module:
-  # $ python repository_tool.py.
+  # $ python3 repository_tool.py.
   import doctest
   doctest.testmod()

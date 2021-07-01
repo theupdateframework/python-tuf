@@ -3,7 +3,7 @@
 The TUF command-line interface (CLI) requires a full
 [TUF installation](INSTALLATION.rst).  Be sure to include the installation of
 extra dependencies and C extensions (
-```pip install securesystemslib[crypto,pynacl]```).
+```python3 -m pip install securesystemslib[crypto,pynacl]```).
 
 The use of the CLI is documented with examples below.
 
@@ -279,12 +279,6 @@ Enter a password for the encrypted key (tufkeystore/mykey):
 
 Serve the repo
 ```Bash
-$ cd tufrepo/
-$ python -m SimpleHTTPServer 8001
-```
-
-If running python 3:
-```Bash
 $ python3 -m http.server 8001
 ```
 
@@ -411,12 +405,6 @@ $ repo.py --add README.txt --role role_x --sign tufkeystore/key_x tufkeystore/ke
 ```
 
 Serve the repo
-```Bash
-$ cd tufrepo/
-$ python -m SimpleHTTPServer 8001
-```
-
-If running python 3:
 ```Bash
 $ python3 -m http.server 8001
 ```
