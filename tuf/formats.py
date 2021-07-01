@@ -1004,6 +1004,6 @@ def check_signable_object_format(signable):
 if __name__ == '__main__':
   # The interactive sessions of the documentation strings can
   # be tested by running formats.py as a standalone module.
-  # python -B formats.py
+  # python3 -B formats.py
   import doctest
   doctest.testmod()

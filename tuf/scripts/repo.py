@@ -23,7 +23,7 @@
   developer_tool.py.
 
   Note:
-  'pip install securesystemslib[crypto,pynacl]' is required by the CLI,
+  'python3 -m pip install securesystemslib[crypto,pynacl]' is required by the CLI,
   which installs the 3rd-party dependencies: cryptography and pynacl.
 
 <Usage>
