@@ -288,11 +288,11 @@ class Signed(metaclass=abc.ABCMeta):
 
     # _type and type are identical: 1st replicates file format, 2nd passes lint
     @property
-    def _type(self):
+    def _type(self) -> str:
         return self._signed_type
 
     @property
-    def type(self):
+    def type(self) -> str:
         return self._signed_type
 
     # NOTE: Signed is a stupid name, because this might not be signed yet, but
@@ -372,7 +372,7 @@ class Signed(metaclass=abc.ABCMeta):
             **self.unrecognized_fields,
         }
 
-    def is_expired(self, reference_time: datetime = None) -> bool:
+    def is_expired(self, reference_time: Optional[datetime] = None) -> bool:
         """Checks metadata expiration against a reference time.
 
         Args:
@@ -464,7 +464,7 @@ class Key:
         self,
         metadata: Metadata,
         signed_serializer: Optional[SignedSerializer] = None,
-    ):
+    ) -> None:
         """Verifies that the 'metadata.signatures' contains a signature made
         with this key, correctly signing 'metadata.signed'.
 
@@ -765,7 +765,7 @@ class MetaFile(BaseFile):
 
         return res_dict
 
-    def verify_length_and_hashes(self, data: Union[bytes, BinaryIO]):
+    def verify_length_and_hashes(self, data: Union[bytes, BinaryIO]) -> None:
         """Verifies that the length and hashes of "data" match expected values.
 
         Args:
@@ -1024,9 +1024,7 @@ class TargetFile(BaseFile):
         self.unrecognized_fields = unrecognized_fields or {}
 
     @property
-    def custom(self):
-        if self.unrecognized_fields is None:
-            return None
+    def custom(self) -> Any:
         return self.unrecognized_fields.get("custom", None)
 
     @classmethod
@@ -1046,7 +1044,7 @@ class TargetFile(BaseFile):
             **self.unrecognized_fields,
         }
 
-    def verify_length_and_hashes(self, data: Union[bytes, BinaryIO]):
+    def verify_length_and_hashes(self, data: Union[bytes, BinaryIO]) -> None:
         """Verifies that length and hashes of "data" match expected values.
 
         Args:
