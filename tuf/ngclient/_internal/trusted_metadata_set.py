@@ -3,22 +3,21 @@
 
 """Trusted collection of client-side TUF Metadata
 
-TrustedMetadataSet keeps track of current valid set of metadata for the client,
-and handles almost every step of the "Detailed client workflow" (
+TrustedMetadataSet keeps track of the current valid set of metadata for the
+client, and handles almost every step of the "Detailed client workflow" (
 https://theupdateframework.github.io/specification/latest#detailed-client-workflow)
 in the TUF specification: the remaining steps are related to filesystem and
-network IO which is not handled here.
+network IO, which are not handled here.
 
-Loaded metadata can be accessed via the index access with rolename as key
-(trusted_set["root"]) or, in the case of top-level metadata using the helper
+Loaded metadata can be accessed via index access with rolename as key
+(trusted_set["root"]) or, in the case of top-level metadata, using the helper
 properties (trusted_set.root).
 
 The rules for top-level metadata are
- * Metadata is loadable only if metadata it depends on is loaded
- * Metadata is immutable if any metadata depending on it has been loaded
- * Metadata must be loaded/updated in order:
-   root -> timestamp -> snapshot -> targets -> (other delegated targets)
-
+ * Metadata is updatable only if metadata it depends on is loaded
+ * Metadata is not updatable if any metadata depending on it has been loaded
+ * Metadata must be updated in order:
+   root -> timestamp -> snapshot -> targets -> (delegated targets)
 
 Exceptions are raised if metadata fails to load in any way.
 
@@ -240,10 +239,10 @@ class TrustedMetadataSet(abc.Mapping):
         if self.root.signed.is_expired(self.reference_time):
             raise exceptions.ExpiredMetadataError("New root.json is expired")
 
-        # No need to recover from fast-forward attack here since
-        # timestamp and snapshot are not loaded at this point and
-        # when loaded later will be verified with the new rotated
-        # keys.
+        # No need to delete timestamp/snapshot here as specification instructs
+        # for fast-forward attack recovery: timestamp/snapshot can not be
+        # loaded at this point and when loaded later they will be verified
+        # with current root keys.
 
         self._root_update_finished = True
         logger.debug("Verified final root.json")
