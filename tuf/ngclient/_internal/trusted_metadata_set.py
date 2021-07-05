@@ -353,8 +353,8 @@ class TrustedMetadataSet(abc.Mapping):
             != self.timestamp.signed.meta["snapshot.json"].version
         ):
             raise exceptions.BadVersionNumberError(
-                f"Expected snapshot version"
-                f"{self.timestamp.signed.meta['snapshot.json'].version},"
+                f"Expected snapshot version "
+                f"{self.timestamp.signed.meta['snapshot.json'].version}, "
                 f"got {new_snapshot.signed.version}"
             )
 
@@ -373,8 +373,8 @@ class TrustedMetadataSet(abc.Mapping):
                 # Prevent rollback of any metadata versions
                 if new_fileinfo.version < fileinfo.version:
                     raise exceptions.BadVersionNumberError(
-                        f"Expected {filename} version"
-                        f"{new_fileinfo.version}, got {fileinfo.version}"
+                        f"Expected {filename} version "
+                        f"{new_fileinfo.version}, got {fileinfo.version}."
                     )
 
         if new_snapshot.signed.is_expired(self.reference_time):
@@ -403,7 +403,7 @@ class TrustedMetadataSet(abc.Mapping):
         Args:
             data: unverified new metadata as bytes
             role_name: The role name of the new metadata
-            delegator_name: The name of the role delegating the new metadata
+            delegator_name: The name of the role delegating to the new metadata
 
         Raises:
             RepositoryError: Metadata failed to load or verify. The actual
@@ -452,8 +452,8 @@ class TrustedMetadataSet(abc.Mapping):
 
         if new_delegate.signed.version != meta.version:
             raise exceptions.BadVersionNumberError(
-                f"Expected {role_name} version"
-                f"{meta.version}, got {new_delegate.signed.version}"
+                f"Expected {role_name} version "
+                f"{meta.version}, got {new_delegate.signed.version}."
             )
 
         if new_delegate.signed.is_expired(self.reference_time):

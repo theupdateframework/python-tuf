@@ -32,7 +32,7 @@ DEFAULT_TARGETS_MAX_LENGTH = 5000000  # bytes
 
 logger = logging.getLogger(__name__)
 
-# Classes
+
 class Updater:
     """
     An implemetation of the TUF client workflow.
@@ -79,7 +79,7 @@ class Updater:
     def refresh(self) -> None:
         """
         This method downloads, verifies, and loads metadata for the top-level
-        roles in a specific order (root -> timestamp -> snapshot -> targets)
+        roles in the specified order (root -> timestamp -> snapshot -> targets)
         The expiration time for downloaded metadata is also verified.
 
         The metadata for delegated roles are not refreshed by this method, but
@@ -104,8 +104,8 @@ class Updater:
         """
         Returns the target information for a target identified by target_path.
 
-        As a side-effect this method downloads all the metadata it needs to
-        return the target information.
+        As a side-effect this method downloads all the additional (delegated
+        targets) metadata required to return the target information.
 
         Args:
             target_path: A target identifier that is a path-relative-URL string
