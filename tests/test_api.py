@@ -365,6 +365,9 @@ class TestMetadata(unittest.TestCase):
             root.verify_delegate('role1', role1)
         with self.assertRaises(ValueError):
             targets.verify_delegate('targets', targets)
+        # verify fails when delegator has no delegations
+        with self.assertRaises(ValueError):
+            role2.verify_delegate('role1', role1)
 
         # verify fails when delegate content is modified
         expires = snapshot.signed.expires

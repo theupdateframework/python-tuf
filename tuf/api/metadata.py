@@ -271,16 +271,16 @@ class Metadata:
 
     def verify_delegate(
         self,
-        role_name: str,
-        delegate: "Metadata",
+        delegated_role: str,
+        delegated_metadata: "Metadata",
         signed_serializer: Optional[SignedSerializer] = None,
-    ):
-        """Verifies that 'delegate' is signed with the required threshold of
-        keys for the delegated role 'role_name'.
+    ) -> None:
+        """Verifies that 'delegated_metadata' is signed with the required
+        threshold of keys for the delegated role 'delegated_role'.
 
         Args:
-            role_name: Name of the delegated role to verify
-            delegate: The Metadata object for the delegated role
+            delegated_role: Name of the delegated role to verify
+            delegated_metadata: The Metadata object for the delegated role
             signed_serializer: Optional; serializer used for delegate
                 serialization. Default is CanonicalJSONSerializer.
 
@@ -289,38 +289,41 @@ class Metadata:
                 threshold of keys for 'role_name'
         """
 
-        # Find the keys and role in our metadata
+        # Find the keys and role in delegator metadata
         role = None
         if isinstance(self.signed, Root):
             keys = self.signed.keys
-            role = self.signed.roles.get(role_name)
+            role = self.signed.roles.get(delegated_role)
         elif isinstance(self.signed, Targets):
-            if self.signed.delegations:
-                keys = self.signed.delegations.keys
-                # Assume role names are unique in delegations.roles: #1426
-                roles = self.signed.delegations.roles
-                role = next((r for r in roles if r.name == role_name), None)
+            if self.signed.delegations is None:
+                raise ValueError(f"No delegation found for {delegated_role}")
+
+            keys = self.signed.delegations.keys
+            roles = self.signed.delegations.roles
+            # Assume role names are unique in delegations.roles: #1426
+            # Find first role in roles with matching name (or None if no match)
+            role = next((r for r in roles if r.name == delegated_role), None)
         else:
             raise TypeError("Call is valid only on delegator metadata")
 
         if role is None:
-            raise ValueError(f"No delegation found for {role_name}")
+            raise ValueError(f"No delegation found for {delegated_role}")
 
-        # verify that delegate is signed by required threshold of unique keys
+        # verify that delegated_metadata is signed by threshold of unique keys
         signing_keys = set()
         for keyid in role.keyids:
             key = keys[keyid]
             try:
-                key.verify_signature(delegate, signed_serializer)
+                key.verify_signature(delegated_metadata, signed_serializer)
                 signing_keys.add(key.keyid)
             except exceptions.UnsignedMetadataError:
-                logger.info("Key %s failed to verify %s", keyid, role_name)
+                logger.info("Key %s failed to verify %s", keyid, delegated_role)
 
         if len(signing_keys) < role.threshold:
             raise exceptions.UnsignedMetadataError(
-                f"{role_name} was signed by {len(signing_keys)}/"
+                f"{delegated_role} was signed by {len(signing_keys)}/"
                 f"{role.threshold} keys",
-                delegate.signed,
+                delegated_metadata.signed,
             )
 
 
