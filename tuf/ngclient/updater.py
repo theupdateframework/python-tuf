@@ -7,7 +7,7 @@
 import fnmatch
 import logging
 import os
-from typing import Dict, Optional
+from typing import Any, Dict, List, Optional
 from urllib import parse
 
 from securesystemslib import exceptions as sslib_exceptions
@@ -121,7 +121,9 @@ class Updater:
         return self._preorder_depth_first_walk(target_path)
 
     @staticmethod
-    def updated_targets(targets: Dict, destination_directory: str) -> Dict:
+    def updated_targets(
+        targets: List[Dict[str, Any]], destination_directory: str
+    ) -> List[Dict[str, Any]]:
         """
         After the client has retrieved the target information for those targets
         they are interested in updating, they would call this method to
@@ -181,7 +183,8 @@ class Updater:
         Download target specified by 'targetinfo' into 'destination_directory'.
 
         Args:
-            targetinfo: data received from get_one_valid_targetinfo()
+            targetinfo: data received from get_one_valid_targetinfo() or
+                updated_targets().
             destination_directory: existing local directory to download into.
                 Note that new directories may be created inside
                 destination_directory as required.
