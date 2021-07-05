@@ -424,8 +424,9 @@ class Key:
         keyval: Dict[str, str],
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
-        val = keyval["public"]
-        if not all(isinstance(at, str) for at in [keyid, keytype, scheme, val]):
+        if not all(
+            isinstance(at, str) for at in [keyid, keytype, scheme]
+        ) or not isinstance(keyval, Dict):
             raise ValueError("Unexpected Key attributes types!")
         self.keyid = keyid
         self.keytype = keytype
