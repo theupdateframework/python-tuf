@@ -10,7 +10,6 @@ import os
 from typing import Any, Dict, List, Optional
 from urllib import parse
 
-from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import hash as sslib_hash
 from securesystemslib import util as sslib_util
 
@@ -144,32 +143,21 @@ class Updater:
             # 'destination_directory' if 'filepath' contains a leading path
             # separator (i.e., is treated as an absolute path).
             filepath = target["filepath"]
+            target_fileinfo: "TargetFile" = target["fileinfo"]
+
             target_filepath = os.path.join(destination_directory, filepath)
 
             if target_filepath in updated_targetpaths:
                 continue
 
-            # Try one of the algorithm/digest combos for a mismatch.  We break
-            # as soon as we find a mismatch.
-            for algorithm, digest in target["fileinfo"].hashes.items():
-                digest_object = None
-                try:
-                    digest_object = sslib_hash.digest_filename(
-                        target_filepath, algorithm=algorithm
-                    )
-
-                # This exception will occur if the target does not exist
-                # locally.
-                except sslib_exceptions.StorageError:
-                    updated_targets.append(target)
-                    updated_targetpaths.append(target_filepath)
-                    break
-
-                # The file does exist locally, check if its hash differs.
-                if digest_object.hexdigest() != digest:
-                    updated_targets.append(target)
-                    updated_targetpaths.append(target_filepath)
-                    break
+            try:
+                with open(target_filepath, "rb") as target_file:
+                    target_fileinfo.verify_length_and_hashes(target_file)
+            # If the file does not exist locally or length and hashes
+            # do not match, append to updated targets.
+            except (OSError, exceptions.LengthOrHashMismatchError):
+                updated_targets.append(target)
+                updated_targetpaths.append(target_filepath)
 
         return updated_targets
 
