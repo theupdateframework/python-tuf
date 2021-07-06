@@ -53,15 +53,15 @@ class RequestsFetcher(FetcherInterface):
         self.chunk_size: int = 400000  # bytes
         self.sleep_before_round: Optional[int] = None
 
-    def fetch(self, url: str, required_length: int) -> Iterator[bytes]:
+    def fetch(self, url: str, max_length: int) -> Iterator[bytes]:
         """Fetches the contents of HTTP/HTTPS url from a remote server.
 
-        Ensures the length of the downloaded data is up to 'required_length'.
+        Ensures the length of the downloaded data is up to 'max_length'.
 
         Arguments:
             url: A URL string that represents a file location.
-            required_length: An integer value representing the file length in
-                bytes.
+            max_length: An integer value representing the maximum
+                number of bytes to be downloaded.
 
         Raises:
             exceptions.SlowRetrievalError: A timeout occurs while receiving
@@ -90,10 +90,10 @@ class RequestsFetcher(FetcherInterface):
             status = e.response.status_code
             raise exceptions.FetcherHTTPError(str(e), status)
 
-        return self._chunks(response, required_length)
+        return self._chunks(response, max_length)
 
     def _chunks(
-        self, response: "requests.Response", required_length: int
+        self, response: "requests.Response", max_length: int
     ) -> Iterator[bytes]:
         """A generator function to be returned by fetch. This way the
         caller of fetch can differentiate between connection and actual data
@@ -113,7 +113,7 @@ class RequestsFetcher(FetcherInterface):
 
                 read_amount = min(
                     self.chunk_size,
-                    required_length - bytes_received,
+                    max_length - bytes_received,
                 )
 
                 # NOTE: This may not handle some servers adding a
@@ -131,13 +131,13 @@ class RequestsFetcher(FetcherInterface):
 
                 yield data
 
-                if bytes_received >= required_length:
+                if bytes_received >= max_length:
                     break
 
             logger.debug(
                 "Downloaded %d out of %d bytes",
                 bytes_received,
-                required_length,
+                max_length,
             )
 
         except urllib3.exceptions.ReadTimeoutError as e:
