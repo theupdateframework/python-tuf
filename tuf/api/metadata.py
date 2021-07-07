@@ -427,7 +427,7 @@ class Key:
         if not all(
             isinstance(at, str) for at in [keyid, keytype, scheme]
         ) or not isinstance(keyval, Dict):
-            raise ValueError("Unexpected Key attributes types!")
+            raise TypeError("Unexpected Key attributes types!")
         self.keyid = keyid
         self.keytype = keytype
         self.scheme = scheme
