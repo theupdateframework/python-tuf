@@ -53,6 +53,10 @@ class TestSerialization(unittest.TestCase):
     valid_keys: DataSet = {
         "all": '{"keytype": "rsa", "scheme": "rsassa-pss-sha256", \
             "keyval": {"public": "foo"}}',
+        "unrecognized field": '{"keytype": "rsa", "scheme": "rsassa-pss-sha256", \
+            "keyval": {"public": "foo"}, "foo": "bar"}',
+        "unrecognized field in keyval": '{"keytype": "rsa", "scheme": "rsassa-pss-sha256", \
+            "keyval": {"public": "foo", "foo": "bar"}}',
     }
 
     @run_sub_tests_with_dataset(valid_keys)
@@ -63,7 +67,8 @@ class TestSerialization(unittest.TestCase):
 
 
     valid_roles: DataSet = {
-        "all": '{"keyids": ["keyid"], "threshold": 3}'
+        "all": '{"keyids": ["keyid"], "threshold": 3}',
+        "unrecognized field": '{"keyids": ["keyid"], "threshold": 3, "foo": "bar"}',
     }
 
     @run_sub_tests_with_dataset(valid_roles)
@@ -84,6 +89,11 @@ class TestSerialization(unittest.TestCase):
             "keys": {"keyid" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"} }}, \
             "roles": { "targets": {"keyids": ["keyid"], "threshold": 3} } \
             }',
+        "unrecognized field": '{"_type": "root", "spec_version": "1.0.0", "version": 1, \
+            "expires": "2030-01-01T00:00:00Z", "consistent_snapshot": false, \
+            "keys": {"keyid" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
+            "roles": { "targets": {"keyids": ["keyid"], "threshold": 3}}, \
+            "foo": "bar"}',
     }
 
     @run_sub_tests_with_dataset(valid_roots)
@@ -95,7 +105,9 @@ class TestSerialization(unittest.TestCase):
     valid_metafiles: DataSet = {
         "all": '{"hashes": {"sha256" : "abc"}, "length": 12, "version": 1}',
         "no length": '{"hashes": {"sha256" : "abc"}, "version": 1 }',
-        "no hashes": '{"length": 12, "version": 1}'
+        "no hashes": '{"length": 12, "version": 1}',
+        "unrecognized field": '{"hashes": {"sha256" : "abc"}, "length": 12, "version": 1, \
+            "foo": "bar"}',
     }
 
     @run_sub_tests_with_dataset(valid_metafiles)
@@ -107,7 +119,9 @@ class TestSerialization(unittest.TestCase):
 
     valid_timestamps: DataSet = {
         "all": '{ "_type": "timestamp", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
-            "meta": {"snapshot.json": {"hashes": {"sha256" : "abc"}, "version": 1}}}'
+            "meta": {"snapshot.json": {"hashes": {"sha256" : "abc"}, "version": 1}}}',
+        "unrecognized field": '{ "_type": "timestamp", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
+            "meta": {"snapshot.json": {"hashes": {"sha256" : "abc"}, "version": 1}}, "foo": "bar"}',
     }
 
     @run_sub_tests_with_dataset(valid_timestamps)
@@ -119,7 +133,9 @@ class TestSerialization(unittest.TestCase):
 
     valid_snapshots: DataSet = {
         "all": '{ "_type": "snapshot", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
-            "meta": { "file.txt": { "hashes": {"sha256" : "abc"}, "version": 1 }}}'
+            "meta": { "file.txt": { "hashes": {"sha256" : "abc"}, "version": 1 }}}',
+        "unrecognized field": '{ "_type": "snapshot", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
+            "meta": { "file.txt": { "hashes": {"sha256" : "abc"}, "version": 1 }}, "foo": "bar"}',
     }
 
     @run_sub_tests_with_dataset(valid_snapshots)
@@ -138,6 +154,8 @@ class TestSerialization(unittest.TestCase):
             "path_hash_prefixes": ["h1", "h2"], "threshold": 99}',
         "no hash or path prefix":
             '{"keyids": ["keyid"], "name": "a", "terminating": true, "threshold": 3}',
+        "unrecognized field":
+            '{"keyids": ["keyid"], "name": "a", "terminating": true, "threshold": 3, "foo": "bar"}',
     }
 
     @run_sub_tests_with_dataset(valid_delegated_roles)
@@ -149,7 +167,11 @@ class TestSerialization(unittest.TestCase):
 
     valid_delegations: DataSet = {
         "all": '{"keys": {"keyid" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
-            "roles": [ {"keyids": ["keyid"], "name": "a", "terminating": true, "threshold": 3} ]}'
+            "roles": [ {"keyids": ["keyid"], "name": "a", "terminating": true, "threshold": 3} ]}',
+        "unrecognized field":
+            '{"keys": {"keyid" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
+            "roles": [ {"keyids": ["keyid"], "name": "a", "terminating": true, "threshold": 3} ], \
+            "foo": "bar"}',
     }
 
     @run_sub_tests_with_dataset(valid_delegations)
@@ -162,7 +184,9 @@ class TestSerialization(unittest.TestCase):
     valid_targetfiles: DataSet = {
         "all": '{"length": 12, "hashes": {"sha256" : "abc"}, \
             "custom" : {"foo": "bar"} }',
-        "no custom": '{"length": 12, "hashes": {"sha256" : "abc"}}'
+        "no custom": '{"length": 12, "hashes": {"sha256" : "abc"}}',
+        "unrecognized field": '{"length": 12, "hashes": {"sha256" : "abc"}, \
+            "custom" : {"foo": "bar"}, "foo": "bar"}',
     }
 
     @run_sub_tests_with_dataset(valid_targetfiles)
@@ -187,7 +211,9 @@ class TestSerialization(unittest.TestCase):
             }',
         "no delegations": '{"_type": "targets", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
             "targets":  { "file.txt": {"length": 12, "hashes": {"sha256" : "abc"} } } \
-            }'
+            }',
+        "unrecognized_field": '{"_type": "targets", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
+            "targets":  {}, "foo": "bar"}',
     }
 
     @run_sub_tests_with_dataset(valid_targets)
