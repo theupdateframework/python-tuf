@@ -7,6 +7,7 @@
 
 import logging
 import time
+from typing import Optional
 from urllib import parse
 
 # Imports
@@ -14,7 +15,7 @@ import requests
 import urllib3.exceptions
 
 import tuf
-from tuf import exceptions, settings
+from tuf import exceptions
 from tuf.ngclient.fetcher import FetcherInterface
 
 # Globals
@@ -47,6 +48,11 @@ class RequestsFetcher(FetcherInterface):
         # Some cookies may not be HTTP-safe.
         self._sessions = {}
 
+        # Default settings
+        self.socket_timeout: int = 4  # seconds
+        self.chunk_size: int = 400000  # bytes
+        self.sleep_before_round: Optional[int] = None
+
     def fetch(self, url, required_length):
         """Fetches the contents of HTTP/HTTPS url from a remote server.
 
@@ -75,9 +81,7 @@ class RequestsFetcher(FetcherInterface):
         # requests as:
         #  - connect timeout (max delay before first byte is received)
         #  - read (gap) timeout (max delay between bytes received)
-        response = session.get(
-            url, stream=True, timeout=settings.SOCKET_TIMEOUT
-        )
+        response = session.get(url, stream=True, timeout=self.socket_timeout)
         # Check response status.
         try:
             response.raise_for_status()
@@ -99,11 +103,11 @@ class RequestsFetcher(FetcherInterface):
                     # large file in one shot. Before beginning the round, sleep
                     # (if set) for a short amount of time so that the CPU is not
                     # hogged in the while loop.
-                    if settings.SLEEP_BEFORE_ROUND:
-                        time.sleep(settings.SLEEP_BEFORE_ROUND)
+                    if self.sleep_before_round:
+                        time.sleep(self.sleep_before_round)
 
                     read_amount = min(
-                        settings.CHUNK_SIZE,
+                        self.chunk_size,
                         required_length - bytes_received,
                     )
 
