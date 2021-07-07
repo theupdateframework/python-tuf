@@ -1038,7 +1038,12 @@ class DelegatedRole(Role):
         the paths that DelegatedRole is trusted to provide"""
 
         if self.path_hash_prefixes is not None:
-            target_filepath_hash = _get_filepath_hash(target_filepath)
+            # Calculate the hash of the filepath
+            # to determine in which bin to find the target.
+            digest_object = sslib_hash.digest(algorithm="sha256")
+            digest_object.update(target_filepath.encode("utf-8"))
+            target_filepath_hash = digest_object.hexdigest()
+
             for path_hash_prefix in self.path_hash_prefixes:
                 if target_filepath_hash.startswith(path_hash_prefix):
                     return True
@@ -1056,21 +1061,6 @@ class DelegatedRole(Role):
                     return True
 
         return False
-
-
-def _get_filepath_hash(target_filepath, hash_function="sha256"):
-    """
-    Calculate the hash of the filepath to determine which bin to find the
-    target.
-    """
-    # The client currently assumes the repository (i.e., repository
-    # tool) uses 'hash_function' to generate hashes and UTF-8.
-    digest_object = sslib_hash.digest(hash_function)
-    encoded_target_filepath = target_filepath.encode("utf-8")
-    digest_object.update(encoded_target_filepath)
-    target_filepath_hash = digest_object.hexdigest()
-
-    return target_filepath_hash
 
 
 class Delegations:
