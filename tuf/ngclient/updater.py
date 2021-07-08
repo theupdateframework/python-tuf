@@ -60,12 +60,13 @@ Example::
 
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set, Tuple
 from urllib import parse
 
 from securesystemslib import util as sslib_util
 
 from tuf import exceptions
+from tuf.api.metadata import Targets
 from tuf.ngclient._internal import requests_fetcher, trusted_metadata_set
 from tuf.ngclient.config import UpdaterConfig
 from tuf.ngclient.fetcher import FetcherInterface
@@ -141,7 +142,9 @@ class Updater:
         self._load_snapshot()
         self._load_targets("targets", "root")
 
-    def get_one_valid_targetinfo(self, target_path: str) -> Dict:
+    def get_one_valid_targetinfo(
+        self, target_path: str
+    ) -> Optional[Dict[str, Any]]:
         """Returns target information for 'target_path'.
 
         The return value can be used as an argument to
@@ -366,7 +369,9 @@ class Updater:
             self._trusted_set.update_delegated_targets(data, role, parent_role)
             self._persist_metadata(role, data)
 
-    def _preorder_depth_first_walk(self, target_filepath: str) -> Dict:
+    def _preorder_depth_first_walk(
+        self, target_filepath: str
+    ) -> Optional[Dict[str, Any]]:
         """
         Interrogates the tree of target delegations in order of appearance
         (which implicitly order trustworthiness), and returns the matching
@@ -374,7 +379,7 @@ class Updater:
         """
 
         role_names = [("targets", "root")]
-        visited_role_names = set()
+        visited_role_names: Set[Tuple[str, str]] = set()
         number_of_delegations = self.config.max_delegations
 
         # Preorder depth-first traversal of the graph of target delegations.
@@ -392,7 +397,7 @@ class Updater:
             # its targets, delegations, and child roles can be inspected.
             self._load_targets(role_name, parent_role)
 
-            role_metadata = self._trusted_set[role_name].signed
+            role_metadata: Targets = self._trusted_set[role_name].signed
             target = role_metadata.targets.get(target_filepath)
 
             if target is not None:
