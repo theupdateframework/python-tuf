@@ -10,6 +10,7 @@ This log lists the architectural decisions for tuf.
 - [ADR-0003](0003-where-to-develop-TUF-1-0-0.md) - Develop TUF 1.0.0 in a subdirectory of the current TUF implementation
 - [ADR-0004](0004-extent-of-OOP-in-metadata-model.md) - Add classes for complex metadata attributes
 - [ADR-0005](0005-use-google-python-style-guide.md) - Use Google Python style guide with minimal refinements
+- [ADR-0006](0006-where-to-implemenent-model-serialization.md) - Separate metadata serialization from metadata class model but keep helpers
 
 
 - [ADR-0008](0008-accept-unrecognised-fields.md) - Accept metadata that includes unrecognized fields
