@@ -185,6 +185,29 @@ class Metadata:
 
         return deserializer.deserialize(data)
 
+    def to_bytes(
+        self, serializer: Optional[MetadataSerializer] = None
+    ) -> bytes:
+        """Return the serialized TUF file format as bytes.
+
+        Arguments:
+            serializer: A MetadataSerializer instance that implements the
+                desired serialization format. Default is JSONSerializer.
+
+        Raises:
+            tuf.api.serialization.SerializationError:
+                The metadata object cannot be serialized.
+        """
+
+        if serializer is None:
+            # Use local scope import to avoid circular import errors
+            # pylint: disable=import-outside-toplevel
+            from tuf.api.serialization.json import JSONSerializer
+
+            serializer = JSONSerializer(compact=True)
+
+        return serializer.serialize(self)
+
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
 
@@ -214,15 +237,10 @@ class Metadata:
                 The file cannot be written.
         """
 
-        if serializer is None:
-            # Use local scope import to avoid circular import errors
-            # pylint: disable=import-outside-toplevel
-            from tuf.api.serialization.json import JSONSerializer
-
-            serializer = JSONSerializer(compact=True)
+        bytes_data = self.to_bytes(serializer)
 
         with tempfile.TemporaryFile() as temp_file:
-            temp_file.write(serializer.serialize(self))
+            temp_file.write(bytes_data)
             persist_temp_file(temp_file, filename, storage_backend)
 
     # Signatures.

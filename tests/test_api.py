@@ -159,6 +159,28 @@ class TestMetadata(unittest.TestCase):
             os.remove(path_2)
 
 
+    def test_to_from_bytes(self):
+        for metadata in ["root", "snapshot", "timestamp", "targets"]:
+            path = os.path.join(self.repo_dir, 'metadata', metadata + '.json')
+            with open(path, 'rb') as f:
+                metadata_bytes = f.read()
+            metadata_obj = Metadata.from_bytes(metadata_bytes)
+            # Comparate that from_bytes/to_bytes doesn't change the content
+            # for two cases for the serializer: noncompact and compact.
+
+            # Case 1: test noncompact by overriding the default serializer.
+            self.assertEqual(
+                metadata_obj.to_bytes(JSONSerializer()), metadata_bytes
+            )
+
+            # Case 2: test compact by using the default serializer.
+            obj_bytes = metadata_obj.to_bytes()
+            metadata_obj_2 = Metadata.from_bytes(obj_bytes)
+            self.assertEqual(
+                metadata_obj_2.to_bytes(), obj_bytes
+            )
+
+
     def test_sign_verify(self):
         root_path = os.path.join(self.repo_dir, 'metadata', 'root.json')
         root:Root = Metadata.from_file(root_path).signed
