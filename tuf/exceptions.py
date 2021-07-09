@@ -24,6 +24,8 @@
 
 from urllib import parse
 
+from typing import Any, Dict
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -45,16 +47,16 @@ class FormatError(Error):
 class InvalidMetadataJSONError(FormatError):
   """Indicate that a metadata file is not valid JSON."""
 
-  def __init__(self, exception):
+  def __init__(self, exception: BaseException):
     super(InvalidMetadataJSONError, self).__init__()
 
     # Store the original exception.
     self.exception = exception
 
-  def __str__(self):
+  def __str__(self) -> str:
     return repr(self)
 
-  def __repr__(self):
+  def __repr__(self) -> str:
     # Show the original exception.
     return self.__class__.__name__ + ' : wraps error: ' + repr(self.exception)
 
@@ -68,30 +70,30 @@ class UnsupportedAlgorithmError(Error):
 class LengthOrHashMismatchError(Error):
   """Indicate an error while checking the length and hash values of an object"""
 
-class BadHashError(Error):
+class RepositoryError(Error):
+  """Indicate an error with a repository's state, such as a missing file."""
+
+class BadHashError(RepositoryError):
   """Indicate an error while checking the value of a hash object."""
 
-  def __init__(self, expected_hash, observed_hash):
+  def __init__(self, expected_hash: str, observed_hash: str):
     super(BadHashError, self).__init__()
 
     self.expected_hash = expected_hash
     self.observed_hash = observed_hash
 
-  def __str__(self):
+  def __str__(self) -> str:
     return (
         'Observed hash (' + repr(self.observed_hash) + ') != expected hash (' +
         repr(self.expected_hash) + ')')
 
-  def __repr__(self):
+  def __repr__(self) -> str:
     return self.__class__.__name__ + ' : ' + str(self)
 
     # # Directly instance-reproducing:
     # return (
     #     self.__class__.__name__ + '(' + repr(self.expected_hash) + ', ' +
     #     repr(self.observed_hash) + ')')
-
-class BadVersionNumberError(Error):
-  """Indicate an error for metadata that contains an invalid version number."""
 
 
 class BadPasswordError(Error):
@@ -102,8 +104,8 @@ class UnknownKeyError(Error):
   """Indicate an error while verifying key-like objects (e.g., keyids)."""
 
 
-class RepositoryError(Error):
-  """Indicate an error with a repository's state, such as a missing file."""
+class BadVersionNumberError(RepositoryError):
+  """Indicate an error for metadata that contains an invalid version number."""
 
 
 class MissingLocalRepositoryError(RepositoryError):
@@ -118,35 +120,28 @@ class ForbiddenTargetError(RepositoryError):
   """Indicate that a role signed for a target that it was not delegated to."""
 
 
-class ExpiredMetadataError(Error):
+class ExpiredMetadataError(RepositoryError):
   """Indicate that a TUF Metadata file has expired."""
 
 
 class ReplayedMetadataError(RepositoryError):
   """Indicate that some metadata has been replayed to the client."""
 
-  def __init__(self, metadata_role, previous_version, current_version):
+  def __init__(self, metadata_role: str, downloaded_version: int, current_version: int):
     super(ReplayedMetadataError, self).__init__()
 
     self.metadata_role = metadata_role
-    self.previous_version = previous_version
+    self.downloaded_version = downloaded_version
     self.current_version = current_version
 
-
-  def __str__(self):
+  def __str__(self) -> str:
     return (
         'Downloaded ' + repr(self.metadata_role) + ' is older (' +
-        repr(self.previous_version) + ') than the version currently '
+        repr(self.downloaded_version) + ') than the version currently '
         'installed (' + repr(self.current_version) + ').')
 
-  def __repr__(self):
+  def __repr__(self) -> str:
     return self.__class__.__name__ + ' : ' + str(self)
-
-    # # Directly instance-reproducing:
-    # return (
-    #     self.__class__.__name__ + '(' + repr(self.metadata_role) + ', ' +
-    #     repr(self.previous_version) + ', ' + repr(self.current_version) + ')')
-
 
 
 class CryptoError(Error):
@@ -156,15 +151,15 @@ class CryptoError(Error):
 class BadSignatureError(CryptoError):
   """Indicate that some metadata file has a bad signature."""
 
-  def __init__(self, metadata_role_name):
+  def __init__(self, metadata_role_name: str):
     super(BadSignatureError, self).__init__()
 
     self.metadata_role_name = metadata_role_name
 
-  def __str__(self):
+  def __str__(self) -> str:
     return repr(self.metadata_role_name) + ' metadata has a bad signature.'
 
-  def __repr__(self):
+  def __repr__(self) -> str:
     return self.__class__.__name__ + ' : ' + str(self)
 
     # # Directly instance-reproducing:
@@ -187,18 +182,18 @@ class DownloadError(Error):
 class DownloadLengthMismatchError(DownloadError):
   """Indicate that a mismatch of lengths was seen while downloading a file."""
 
-  def __init__(self, expected_length, observed_length):
+  def __init__(self, expected_length: int, observed_length: int):
     super(DownloadLengthMismatchError, self).__init__()
 
     self.expected_length = expected_length #bytes
     self.observed_length = observed_length #bytes
 
-  def __str__(self):
+  def __str__(self) -> str:
     return (
         'Observed length (' + repr(self.observed_length) +
         ') < expected length (' + repr(self.expected_length) + ').')
 
-  def __repr__(self):
+  def __repr__(self) -> str:
     return self.__class__.__name__ + ' : ' + str(self)
 
     # # Directly instance-reproducing:
@@ -211,17 +206,17 @@ class DownloadLengthMismatchError(DownloadError):
 class SlowRetrievalError(DownloadError):
   """"Indicate that downloading a file took an unreasonably long time."""
 
-  def __init__(self, average_download_speed):
+  def __init__(self, average_download_speed: int):
     super(SlowRetrievalError, self).__init__()
 
     self.__average_download_speed = average_download_speed #bytes/second
 
-  def __str__(self):
+  def __str__(self) -> str:
     return (
         'Download was too slow. Average speed: ' +
          repr(self.__average_download_speed) + ' bytes per second.')
 
-  def __repr__(self):
+  def __repr__(self) -> str:
     return self.__class__.__name__ + ' : ' + str(self)
 
     # # Directly instance-reproducing:
@@ -249,19 +244,20 @@ class InvalidNameError(Error):
   """Indicate an error while trying to validate any type of named object."""
 
 
-class UnsignedMetadataError(Error):
+class UnsignedMetadataError(RepositoryError):
   """Indicate metadata object with insufficient threshold of signatures."""
 
-  def __init__(self, message, signable):
+  # signable is not used but kept in method signature for backwards compat
+  def __init__(self, message: str, signable: Any = None):
     super(UnsignedMetadataError, self).__init__()
 
     self.exception_message = message
     self.signable = signable
 
-  def __str__(self):
+  def __str__(self) -> str:
     return self.exception_message
 
-  def __repr__(self):
+  def __repr__(self) -> str:
     return self.__class__.__name__ + ' : ' + str(self)
 
     # # Directly instance-reproducing:
@@ -278,13 +274,13 @@ class NoWorkingMirrorError(Error):
     provided.
   """
 
-  def __init__(self, mirror_errors):
+  def __init__(self, mirror_errors: Dict[str, BaseException]):
     super(NoWorkingMirrorError, self).__init__()
 
     # Dictionary of URL strings to Exception instances
     self.mirror_errors = mirror_errors
 
-  def __str__(self):
+  def __str__(self) -> str:
     all_errors = 'No working mirror was found:'
 
     for mirror_url, mirror_error in self.mirror_errors.items():
@@ -303,7 +299,7 @@ class NoWorkingMirrorError(Error):
 
     return all_errors
 
-  def __repr__(self):
+  def __repr__(self) -> str:
     return self.__class__.__name__ + ' : ' + str(self)
 
     # # Directly instance-reproducing:
@@ -334,6 +330,6 @@ class FetcherHTTPError(Exception):
     message (str): The HTTP error messsage
     status_code (int): The HTTP status code
   """
-  def __init__(self, message, status_code):
+  def __init__(self, message: str, status_code: int):
     super(FetcherHTTPError, self).__init__(message)
     self.status_code = status_code
