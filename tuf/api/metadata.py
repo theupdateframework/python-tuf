@@ -24,8 +24,8 @@ import tempfile
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from typing import (
+    IO,
     Any,
-    BinaryIO,
     ClassVar,
     Dict,
     Generic,
@@ -753,7 +753,7 @@ class BaseFile:
 
     @staticmethod
     def _verify_hashes(
-        data: Union[bytes, BinaryIO], expected_hashes: Dict[str, str]
+        data: Union[bytes, IO[bytes]], expected_hashes: Dict[str, str]
     ) -> None:
         """Verifies that the hash of 'data' matches 'expected_hashes'"""
         is_bytes = isinstance(data, bytes)
@@ -782,7 +782,7 @@ class BaseFile:
 
     @staticmethod
     def _verify_length(
-        data: Union[bytes, BinaryIO], expected_length: int
+        data: Union[bytes, IO[bytes]], expected_length: int
     ) -> None:
         """Verifies that the length of 'data' matches 'expected_length'"""
         if isinstance(data, bytes):
@@ -867,7 +867,7 @@ class MetaFile(BaseFile):
 
         return res_dict
 
-    def verify_length_and_hashes(self, data: Union[bytes, BinaryIO]) -> None:
+    def verify_length_and_hashes(self, data: Union[bytes, IO[bytes]]) -> None:
         """Verifies that the length and hashes of "data" match expected values.
 
         Args:
@@ -1182,7 +1182,7 @@ class TargetFile(BaseFile):
             **self.unrecognized_fields,
         }
 
-    def verify_length_and_hashes(self, data: Union[bytes, BinaryIO]) -> None:
+    def verify_length_and_hashes(self, data: Union[bytes, IO[bytes]]) -> None:
         """Verifies that length and hashes of "data" match expected values.
 
         Args:
