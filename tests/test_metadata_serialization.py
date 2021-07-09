@@ -141,6 +141,7 @@ class TestSerialization(unittest.TestCase):
 
     valid_roles: DataSet = {
         "all": '{"keyids": ["keyid"], "threshold": 3}',
+        "many keyids": '{"keyids": ["a", "b", "c", "d", "e"], "threshold": 1}',
         "unrecognized field": '{"keyids": ["keyid"], "threshold": 3, "foo": "bar"}',
     }
 
