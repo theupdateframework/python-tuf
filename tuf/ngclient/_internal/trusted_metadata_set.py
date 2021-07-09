@@ -92,7 +92,7 @@ class TrustedMetadataSet(abc.Mapping):
             RepositoryError: Metadata failed to load or verify. The actual
                 error type and content will contain more details.
         """
-        self._trusted_set = {}  # type: Dict[str: Metadata]
+        self._trusted_set: Dict[str, Metadata] = {}
         self.reference_time = datetime.utcnow()
 
         # Load and validate the local root metadata. Valid initial trusted root
@@ -134,7 +134,7 @@ class TrustedMetadataSet(abc.Mapping):
         return self._trusted_set.get("targets")
 
     # Methods for updating metadata
-    def update_root(self, data: bytes):
+    def update_root(self, data: bytes) -> None:
         """Verifies and loads 'data' as new root metadata.
 
         Note that an expired intermediate root is considered valid: expiry is
@@ -175,7 +175,7 @@ class TrustedMetadataSet(abc.Mapping):
         self._trusted_set["root"] = new_root
         logger.debug("Updated root")
 
-    def update_timestamp(self, data: bytes):
+    def update_timestamp(self, data: bytes) -> None:
         """Verifies and loads 'data' as new timestamp metadata.
 
         Note that an expired intermediate timestamp is considered valid so it
@@ -237,7 +237,7 @@ class TrustedMetadataSet(abc.Mapping):
         self._trusted_set["timestamp"] = new_timestamp
         logger.debug("Updated timestamp")
 
-    def update_snapshot(self, data: bytes):
+    def update_snapshot(self, data: bytes) -> None:
         """Verifies and loads 'data' as new snapshot metadata.
 
         Note that intermediate snapshot is considered valid even if it is
@@ -314,7 +314,9 @@ class TrustedMetadataSet(abc.Mapping):
         self._trusted_set["snapshot"] = new_snapshot
         logger.debug("Updated snapshot")
 
-    def _check_final_snapshot(self):
+    def _check_final_snapshot(self) -> None:
+        """Check snapshot expiry and version before targets is updated"""
+
         if self.snapshot.signed.is_expired(self.reference_time):
             raise exceptions.ExpiredMetadataError("snapshot.json is expired")
 
@@ -328,7 +330,7 @@ class TrustedMetadataSet(abc.Mapping):
                 f"got {self.snapshot.signed.version}"
             )
 
-    def update_targets(self, data: bytes):
+    def update_targets(self, data: bytes) -> None:
         """Verifies and loads 'data' as new top-level targets metadata.
 
         Args:
@@ -342,7 +344,7 @@ class TrustedMetadataSet(abc.Mapping):
 
     def update_delegated_targets(
         self, data: bytes, role_name: str, delegator_name: str
-    ):
+    ) -> None:
         """Verifies and loads 'data' as new metadata for target 'role_name'.
 
         Args:

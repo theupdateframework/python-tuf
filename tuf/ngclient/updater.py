@@ -112,12 +112,7 @@ class Updater:
         # Read trusted local root metadata
         data = self._load_local_metadata("root")
         self._trusted_set = trusted_metadata_set.TrustedMetadataSet(data)
-
-        if fetcher is None:
-            self._fetcher = requests_fetcher.RequestsFetcher()
-        else:
-            self._fetcher = fetcher
-
+        self._fetcher = fetcher or requests_fetcher.RequestsFetcher()
         self.config = config or UpdaterConfig()
 
     def refresh(self) -> None:
@@ -225,7 +220,7 @@ class Updater:
         targetinfo: TargetFile,
         destination_directory: str,
         target_base_url: Optional[str] = None,
-    ):
+    ) -> None:
         """Downloads the target file specified by 'targetinfo'.
 
         Args:
@@ -241,12 +236,14 @@ class Updater:
             TODO: download-related errors
             TODO: file write errors
         """
-        if target_base_url is None and self._target_base_url is None:
-            raise ValueError(
-                "target_base_url must be set in either download_target() or "
-                "constructor"
-            )
+
         if target_base_url is None:
+            if self._target_base_url is None:
+                raise ValueError(
+                    "target_base_url must be set in either "
+                    "download_target() or constructor"
+                )
+
             target_base_url = self._target_base_url
         else:
             target_base_url = _ensure_trailing_slash(target_base_url)
@@ -289,7 +286,7 @@ class Updater:
         with open(os.path.join(self._dir, f"{rolename}.json"), "rb") as f:
             return f.read()
 
-    def _persist_metadata(self, rolename: str, data: bytes):
+    def _persist_metadata(self, rolename: str, data: bytes) -> None:
         with open(os.path.join(self._dir, f"{rolename}.json"), "wb") as f:
             f.write(data)
 
@@ -450,6 +447,6 @@ class Updater:
         return None
 
 
-def _ensure_trailing_slash(url: str):
+def _ensure_trailing_slash(url: str) -> str:
     """Return url guaranteed to end in a slash"""
     return url if url.endswith("/") else f"{url}/"
