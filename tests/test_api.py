@@ -51,7 +51,8 @@ from securesystemslib.interface import (
 )
 
 from securesystemslib.signer import (
-    SSlibSigner
+    SSlibSigner,
+    Signature
 )
 
 logger = logging.getLogger(__name__)
@@ -332,6 +333,71 @@ class TestMetadata(unittest.TestCase):
             timestamp.signed.meta['snapshot.json'].to_dict(), fileinfo.to_dict()
         )
 
+
+    def test_metadata_verify_delegate(self):
+        root_path = os.path.join(self.repo_dir, 'metadata', 'root.json')
+        root = Metadata.from_file(root_path)
+        snapshot_path = os.path.join(
+                self.repo_dir, 'metadata', 'snapshot.json')
+        snapshot = Metadata.from_file(snapshot_path)
+        targets_path = os.path.join(
+                self.repo_dir, 'metadata', 'targets.json')
+        targets = Metadata.from_file(targets_path)
+        role1_path = os.path.join(
+                self.repo_dir, 'metadata', 'role1.json')
+        role1 = Metadata.from_file(role1_path)
+        role2_path = os.path.join(
+                self.repo_dir, 'metadata', 'role2.json')
+        role2 = Metadata.from_file(role2_path)
+
+        # test the expected delegation tree
+        root.verify_delegate('root', root)
+        root.verify_delegate('snapshot', snapshot)
+        root.verify_delegate('targets', targets)
+        targets.verify_delegate('role1', role1)
+        role1.verify_delegate('role2', role2)
+
+        # only root and targets can verify delegates
+        with self.assertRaises(TypeError):
+            snapshot.verify_delegate('snapshot', snapshot)
+        # verify fails for roles that are not delegated by delegator
+        with self.assertRaises(ValueError):
+            root.verify_delegate('role1', role1)
+        with self.assertRaises(ValueError):
+            targets.verify_delegate('targets', targets)
+        # verify fails when delegator has no delegations
+        with self.assertRaises(ValueError):
+            role2.verify_delegate('role1', role1)
+
+        # verify fails when delegate content is modified
+        expires = snapshot.signed.expires
+        snapshot.signed.bump_expiration()
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            root.verify_delegate('snapshot', snapshot)
+        snapshot.signed.expires = expires
+
+        # verify fails if roles keys do not sign the metadata
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            root.verify_delegate('timestamp', snapshot)
+
+        # Add a key to snapshot role, make sure the new sig fails to verify
+        ts_keyid = next(iter(root.signed.roles["timestamp"].keyids))
+        root.signed.add_key("snapshot", root.signed.keys[ts_keyid])
+        snapshot.signatures[ts_keyid] = Signature(ts_keyid, "ff"*64)
+
+        # verify succeeds if threshold is reached even if some signatures
+        # fail to verify
+        root.verify_delegate('snapshot', snapshot)
+
+        # verify fails if threshold of signatures is not reached
+        root.signed.roles['snapshot'].threshold = 2
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            root.verify_delegate('snapshot', snapshot)
+
+        # verify succeeds when we correct the new signature and reach the
+        # threshold of 2 keys
+        snapshot.sign(SSlibSigner(self.keystore['timestamp']), append=True)
+        root.verify_delegate('snapshot', snapshot)
 
 
     def test_key_class(self):
