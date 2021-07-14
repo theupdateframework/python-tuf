@@ -5,6 +5,6 @@ cryptography==3.4.7       # via securesystemslib
 idna==2.10                # via requests
 pycparser==2.20           # via cffi
 pynacl==1.4.0             # via securesystemslib
-requests==2.25.1
+requests==2.26.0
 securesystemslib[crypto,pynacl]==0.20.1
 urllib3==1.26.6           # via requests
