@@ -14,11 +14,7 @@ from securesystemslib import hash as sslib_hash
 from securesystemslib import util as sslib_util
 
 from tuf import exceptions
-from tuf.ngclient._internal import (
-    download,
-    requests_fetcher,
-    trusted_metadata_set,
-)
+from tuf.ngclient._internal import requests_fetcher, trusted_metadata_set
 from tuf.ngclient.config import UpdaterConfig
 from tuf.ngclient.fetcher import FetcherInterface
 
@@ -27,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 class Updater:
     """
-    An implemetation of the TUF client workflow.
+    An implementation of the TUF client workflow.
     Provides a public API for integration in client applications.
     """
 
@@ -193,8 +189,8 @@ class Updater:
         target_fileinfo: "TargetFile" = targetinfo["fileinfo"]
         full_url = parse.urljoin(target_base_url, target_filepath)
 
-        with download.download_file(
-            full_url, target_fileinfo.length, self._fetcher
+        with self._fetcher.download_file(
+            full_url, target_fileinfo.length
         ) as target_file:
             try:
                 target_fileinfo.verify_length_and_hashes(target_file)
@@ -215,12 +211,7 @@ class Updater:
         else:
             filename = f"{version}.{rolename}.json"
         url = parse.urljoin(self._metadata_base_url, filename)
-        return download.download_bytes(
-            url,
-            length,
-            self._fetcher,
-            strict_required_length=False,
-        )
+        return self._fetcher.download_bytes(url, length)
 
     def _load_local_metadata(self, rolename: str) -> bytes:
         with open(os.path.join(self._dir, f"{rolename}.json"), "rb") as f:

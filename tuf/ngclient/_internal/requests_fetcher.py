@@ -7,7 +7,7 @@
 
 import logging
 import time
-from typing import Optional
+from typing import Iterator, Optional
 from urllib import parse
 
 # Imports
@@ -21,7 +21,7 @@ from tuf.ngclient.fetcher import FetcherInterface
 # Globals
 logger = logging.getLogger(__name__)
 
-# Classess
+# Classes
 class RequestsFetcher(FetcherInterface):
     """A concrete implementation of FetcherInterface based on the Requests
     library.
@@ -53,15 +53,15 @@ class RequestsFetcher(FetcherInterface):
         self.chunk_size: int = 400000  # bytes
         self.sleep_before_round: Optional[int] = None
 
-    def fetch(self, url, required_length):
+    def fetch(self, url: str, max_length: int) -> Iterator[bytes]:
         """Fetches the contents of HTTP/HTTPS url from a remote server.
 
-        Ensures the length of the downloaded data is up to 'required_length'.
+        Ensures the length of the downloaded data is up to 'max_length'.
 
         Arguments:
             url: A URL string that represents a file location.
-            required_length: An integer value representing the file length in
-                bytes.
+            max_length: An integer value representing the maximum
+                number of bytes to be downloaded.
 
         Raises:
             exceptions.SlowRetrievalError: A timeout occurs while receiving
@@ -90,58 +90,61 @@ class RequestsFetcher(FetcherInterface):
             status = e.response.status_code
             raise exceptions.FetcherHTTPError(str(e), status)
 
-        # Define a generator function to be returned by fetch. This way the
-        # caller of fetch can differentiate between connection and actual data
-        # download and measure download times accordingly.
-        def chunks():
-            try:
-                bytes_received = 0
-                while True:
-                    # We download a fixed chunk of data in every round. This is
-                    # so that we can defend against slow retrieval attacks.
-                    # Furthermore, we do not wish to download an extremely
-                    # large file in one shot. Before beginning the round, sleep
-                    # (if set) for a short amount of time so that the CPU is not
-                    # hogged in the while loop.
-                    if self.sleep_before_round:
-                        time.sleep(self.sleep_before_round)
+        return self._chunks(response, max_length)
 
-                    read_amount = min(
-                        self.chunk_size,
-                        required_length - bytes_received,
-                    )
+    def _chunks(
+        self, response: "requests.Response", max_length: int
+    ) -> Iterator[bytes]:
+        """A generator function to be returned by fetch. This way the
+        caller of fetch can differentiate between connection and actual data
+        download."""
 
-                    # NOTE: This may not handle some servers adding a
-                    # Content-Encoding header, which may cause urllib3 to
-                    #  misbehave:
-                    # https://github.com/pypa/pip/blob/404838abcca467648180b358598c597b74d568c9/src/pip/_internal/download.py#L547-L582
-                    data = response.raw.read(read_amount)
-                    bytes_received += len(data)
+        try:
+            bytes_received = 0
+            while True:
+                # We download a fixed chunk of data in every round. This is
+                # so that we can defend against slow retrieval attacks.
+                # Furthermore, we do not wish to download an extremely
+                # large file in one shot. Before beginning the round, sleep
+                # (if set) for a short amount of time so that the CPU is not
+                # hogged in the while loop.
+                if self.sleep_before_round:
+                    time.sleep(self.sleep_before_round)
 
-                    # We might have no more data to read. Check number of bytes
-                    # downloaded.
-                    if not data:
-                        logger.debug(
-                            "Downloaded %d out of %d bytes",
-                            bytes_received,
-                            required_length,
-                        )
+                read_amount = min(
+                    self.chunk_size,
+                    max_length - bytes_received,
+                )
 
-                        # Finally, we signal that the download is complete.
-                        break
+                # NOTE: This may not handle some servers adding a
+                # Content-Encoding header, which may cause urllib3 to
+                #  misbehave:
+                # https://github.com/pypa/pip/blob/404838abcca467648180b358598c597b74d568c9/src/pip/_internal/download.py#L547-L582
+                data = response.raw.read(read_amount)
+                bytes_received += len(data)
 
-                    yield data
+                # We might have no more data to read. Check number of bytes
+                # downloaded.
+                if not data:
+                    # Finally, we signal that the download is complete.
+                    break
 
-                    if bytes_received >= required_length:
-                        break
+                yield data
 
-            except urllib3.exceptions.ReadTimeoutError as e:
-                raise exceptions.SlowRetrievalError(str(e))
+                if bytes_received >= max_length:
+                    break
 
-            finally:
-                response.close()
+            logger.debug(
+                "Downloaded %d out of %d bytes",
+                bytes_received,
+                max_length,
+            )
 
-        return chunks()
+        except urllib3.exceptions.ReadTimeoutError as e:
+            raise exceptions.SlowRetrievalError(str(e))
+
+        finally:
+            response.close()
 
     def _get_session(self, url):
         """Returns a different customized requests.Session per schema+hostname
@@ -157,10 +160,6 @@ class RequestsFetcher(FetcherInterface):
             )
 
         session_index = parsed_url.scheme + "+" + parsed_url.hostname
-
-        logger.debug("url: %s", url)
-        logger.debug("session index: %s", session_index)
-
         session = self._sessions.get(session_index)
 
         if not session:
