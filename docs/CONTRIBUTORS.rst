@@ -79,7 +79,7 @@ and instructions for installing locally from source are provided here:
     $ curl -O https://pypi.python.org/packages/source/v/virtualenv/virtualenv-15.0.3.tar.gz
     $ tar xvfz virtualenv-15.0.3.tar.gz
     $ cd virtualenv-15.0.3
-    $ python virtualenv.py myVE
+    $ python3 virtualenv.py myVE
 
 
 Development Installation
@@ -102,7 +102,7 @@ To work on the TUF project, it's best to perform a development install.
 
 ::
 
-    $ pip install -r requirements-dev.txt
+    $ python3 -m pip install -r requirements-dev.txt
 
 
 Auto-formatting
@@ -134,15 +134,15 @@ dependencies must already be installed (see above).
 ::
 
     $ cd tests
-    $ python aggregate_tests.py
+    $ python3 aggregate_tests.py
 
 Individual tests can also be executed. Optional '-v' flags can be added to
 increase log level up to DEBUG ('-vvvv').
 ::
 
-    $ python test_updater.py # run a specific test file
-    $ python test_updater.py TestUpdater.test_4_refresh # run a specific test
-    $ python test_updater.py -vvvv TestUpdater.test_4_refresh # run test with DEBUG log level
+    $ python3 test_updater.py # run a specific test file
+    $ python3 test_updater.py TestUpdater.test_4_refresh # run a specific test
+    $ python3 test_updater.py -vvvv TestUpdater.test_4_refresh # run test with DEBUG log level
 
 
 All of the log levels and the corresponding options that could be used for testing are:
@@ -180,9 +180,9 @@ a *venv*), and then install ``securesystemslib`` in editable mode too (in the sa
 ::
 
     $ cd path/to/tuf
-    $ pip install -r requirements-dev.txt
+    $ python3 -m pip install -r requirements-dev.txt
     $ cd path/to/securesystemslib
-    $ pip install -r requirements-dev.txt
+    $ python3 -m pip install -r requirements-dev.txt
 
 
 With `tox <https://testrun.org/tox/>`_ the test suite can be executed in a

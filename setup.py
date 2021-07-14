@@ -23,7 +23,7 @@
   distributed to other users.  The packaged source is saved to the 'dist'
   folder in the current directory.
 
-  $ python setup.py sdist
+  $ python3 setup.py sdist
 
 
   INSTALLATION OPTIONS
@@ -31,18 +31,18 @@
   pip - installing and managing Python packages (recommended):
 
   # Installing from Python Package Index (https://pypi.python.org/pypi).
-  $ pip install tuf
+  $ python3 -m pip install tuf
 
   # Installing from local source archive.
-  $ pip install <path to archive>
+  $ python3 -m pip install <path to archive>
 
   # Or from the root directory of the unpacked archive.
-  $ pip install .
+  $ python3 -m pip install .
 
   # Installing optional requirements (i.e., after installing tuf).
   # Support for creation of Ed25519 signatures and support for RSA and ECDSA
   # signatures in general requires optional dependencies:
-  $ pip install securesystemslib[crypto,pynacl]
+  $ python3 -m pip install securesystemslib[crypto,pynacl]
 
 
   Alternate installation options:
@@ -51,13 +51,13 @@
   run one of the following shell commands:
 
   Install to the global site-packages directory.
-  $ python setup.py install
+  $ python3 setup.py install
 
   Install to the user site-packages directory.
-  $ python setup.py install --user
+  $ python3 setup.py install --user
 
   Install to a chosen directory.
-  $ python setup.py install --home=<directory>
+  $ python3 setup.py install --home=<directory>
 
 
   Note: The last two installation options may require modification of
@@ -96,7 +96,6 @@ setup(
     'Operating System :: POSIX :: Linux',
     'Operating System :: MacOS :: MacOS X',
     'Operating System :: Microsoft :: Windows',
-    'Programming Language :: Python',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3.6',
     'Programming Language :: Python :: 3.7',

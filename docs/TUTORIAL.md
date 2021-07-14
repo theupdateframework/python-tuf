@@ -674,11 +674,6 @@ repository example created earlier in this document.
 ## Test TUF Locally ##
 Run the local TUF repository server.
 ```Bash
-$ cd "repository/"; python -m SimpleHTTPServer 8001
-```
-
-If running Python 3:
-```Bash
 $ cd "repository/"; python3 -m http.server 8001
 ```
 
