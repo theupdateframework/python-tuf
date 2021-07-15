@@ -614,7 +614,7 @@ class Role:
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dictionary representation of self."""
         return {
-            "keyids": list(self.keyids),
+            "keyids": sorted(self.keyids),
             "threshold": self.threshold,
             **self.unrecognized_fields,
         }
