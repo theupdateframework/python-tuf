@@ -1,10 +1,7 @@
-import copy
-import json
 import logging
 import os
 import sys
 import unittest
-from typing import Dict, Any
 from datetime import datetime
 
 from tuf import exceptions
@@ -128,7 +125,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
         root = Metadata.from_bytes(self.metadata["root"])
         root.signed.version += 1
         with self.assertRaises(exceptions.RepositoryError):
-            TrustedMetadataSet(json.dumps(root.to_dict()).encode())
+            TrustedMetadataSet(root.to_bytes())
 
         # update_root called with the wrong metadata type
         with self.assertRaises(exceptions.RepositoryError):
@@ -153,7 +150,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
             # metadata is invalid
             md.signed.version += 1
             with self.assertRaises(exceptions.RepositoryError):
-                update_func(json.dumps(md.to_dict()).encode())
+                update_func(md.to_bytes())
 
             # metadata is of wrong type
             with self.assertRaises(exceptions.RepositoryError):
@@ -164,14 +161,11 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
     def test_update_root_new_root_cannot_be_verified_with_threshold(self):
         # new_root data with threshold which cannot be verified.
-        modified_threshold_data = copy.deepcopy(
-            json.loads(self.metadata["root"])
-        )
-        # change something in root so signature doesn't match the content.
-        modified_threshold_data["signed"]["roles"]["root"]["version"] = 2
-        modified_threshold_data = json.dumps(modified_threshold_data).encode()
+        root = Metadata.from_bytes(self.metadata["root"])
+        # remove root role keyids representing root signatures
+        root.signed.roles["root"].keyids = []
         with self.assertRaises(exceptions.UnsignedMetadataError):
-            self.trusted_set.update_root(modified_threshold_data)
+            self.trusted_set.update_root(root.to_bytes())
 
     def test_update_root_new_root_ver_same_as_trusted_root_ver(self):
         with self.assertRaises(exceptions.ReplayedMetadataError):
@@ -182,8 +176,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
         root = Metadata.from_bytes(self.metadata["root"])
         root.signed.expires = datetime(1970, 1, 1)
         root.sign(self.keystore["root"])
-        modified_root_data = json.dumps(root.to_dict()).encode()
-        tmp_trusted_set = TrustedMetadataSet(modified_root_data)
+        tmp_trusted_set = TrustedMetadataSet(root.to_bytes())
         # call root_update_finished when trusted root has expired
         with self.assertRaises(exceptions.ExpiredMetadataError):
             tmp_trusted_set.root_update_finished()
@@ -209,9 +202,8 @@ class TestTrustedMetadataSet(unittest.TestCase):
         timestamp = Metadata.from_bytes(self.metadata["timestamp"])
         timestamp.signed.expires = datetime(1970, 1, 1)
         timestamp.sign(self.keystore["timestamp"])
-        new_timestamp_byte_data = json.dumps(timestamp.to_dict()).encode()
         with self.assertRaises(exceptions.ExpiredMetadataError):
-            self.trusted_set.update_timestamp(new_timestamp_byte_data)
+            self.trusted_set.update_timestamp(timestamp.to_bytes())
 
 
     def test_update_snapshot_cannot_verify_snapshot_with_threshold(self):
@@ -236,9 +228,8 @@ class TestTrustedMetadataSet(unittest.TestCase):
         snapshot.sign(self.keystore["snapshot"])
         self.trusted_set.timestamp.signed.meta["snapshot.json"].hashes = None
         self.trusted_set.timestamp.signed.meta["snapshot.json"].length = None
-        modified_snapshot_data = json.dumps(snapshot.to_dict()).encode()
         with self.assertRaises(exceptions.RepositoryError):
-            self.trusted_set.update_snapshot(modified_snapshot_data)
+            self.trusted_set.update_snapshot(snapshot.to_bytes())
 
     def test_update_snapshot_after_succesfull_update_new_snapshot_meta_version_different(self):
         self._update_all_besides_targets()
@@ -256,9 +247,8 @@ class TestTrustedMetadataSet(unittest.TestCase):
         snapshot.sign(self.keystore["snapshot"])
         self.trusted_set.timestamp.signed.meta["snapshot.json"].hashes = None
         self.trusted_set.timestamp.signed.meta["snapshot.json"].length = None
-        modified_snapshot_data = json.dumps(snapshot.to_dict()).encode()
         with self.assertRaises(exceptions.ExpiredMetadataError):
-            self.trusted_set.update_snapshot(modified_snapshot_data)
+            self.trusted_set.update_snapshot(snapshot.to_bytes())
 
 
     def test_update_targets_no_meta_in_snapshot(self):
@@ -290,9 +280,8 @@ class TestTrustedMetadataSet(unittest.TestCase):
         targets = Metadata.from_bytes(self.metadata["targets"])
         targets.signed.expires = datetime(1970, 1, 1)
         targets.sign(self.keystore["targets"])
-        modified_targets_data = json.dumps(targets.to_dict()).encode()
         with self.assertRaises(exceptions.ExpiredMetadataError):
-            self.trusted_set.update_targets(modified_targets_data)
+            self.trusted_set.update_targets(targets.to_bytes())
 
     # TODO test updating over initial metadata (new keys, newer timestamp, etc)
 
