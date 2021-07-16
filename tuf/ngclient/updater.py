@@ -327,8 +327,7 @@ class Updater:
             self._load_targets(role_name, parent_role)
             # Skip any visited current role to prevent cycles.
             if (role_name, parent_role) in visited_role_names:
-                msg = f"Skipping visited current role {role_name}"
-                logger.debug(msg)
+                logger.debug("Skipping visited current role %s", role_name)
                 continue
 
             # The metadata for 'role_name' must be downloaded/updated before
@@ -357,11 +356,11 @@ class Updater:
                     )
 
                     if child_role.terminating and child_role_name is not None:
-                        msg = (
-                            f"Adding child role {child_role_name}.\n",
+                        logger.debug(
+                            "Adding child role %s.\n"
                             "Not backtracking to other roles.",
+                            child_role_name,
                         )
-                        logger.debug(msg)
                         role_names = []
                         child_roles_to_visit.append(
                             (child_role_name, role_name)
@@ -369,12 +368,10 @@ class Updater:
                         break
 
                     if child_role_name is None:
-                        msg = f"Skipping child role {child_role_name}"
-                        logger.debug(msg)
+                        logger.debug("Skipping child role %s", child_role_name)
 
                     else:
-                        msg = f"Adding child role {child_role_name}"
-                        logger.debug(msg)
+                        logger.debug("Adding child role %s", child_role_name)
                         child_roles_to_visit.append(
                             (child_role_name, role_name)
                         )
@@ -386,19 +383,19 @@ class Updater:
                 role_names.extend(child_roles_to_visit)
 
             else:
-                msg = f"Found target in current role {role_name}"
-                logger.debug(msg)
+                logger.debug("Found target in current role %s", role_name)
 
         if (
             target is None
             and number_of_delegations == 0
             and len(role_names) > 0
         ):
-            msg = (
-                f"{len(role_names)} roles left to visit, but allowed to ",
-                f"visit at most {self.config.max_delegations} delegations.",
+            logger.debug(
+                "%d roles left to visit, but allowed to "
+                "visit at most %d delegations.",
+                len(role_names),
+                self.config.max_delegations,
             )
-            logger.debug(msg)
 
         return {"filepath": target_filepath, "fileinfo": target}
 
@@ -471,19 +468,18 @@ def _visit_child_role(child_role: Dict, target_filepath: str) -> str:
                 target_filepath.lstrip(os.sep), child_role_path.lstrip(os.sep)
             ):
                 logger.debug(
-                    "Child role "
-                    + repr(child_role_name)
-                    + " is allowed to sign for "
-                    + repr(target_filepath)
+                    "Child role %s is allowed to sign for %s",
+                    repr(child_role_name),
+                    repr(target_filepath),
                 )
 
                 return child_role_name
 
             logger.debug(
-                "The given target path "
-                + repr(target_filepath)
-                + " does not match the trusted path or glob pattern: "
-                + repr(child_role_path)
+                "The given target path %s "
+                "does not match the trusted path or glob pattern: %s",
+                repr(target_filepath),
+                repr(child_role_path),
             )
             continue
 
