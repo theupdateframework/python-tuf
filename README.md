@@ -9,7 +9,7 @@
 This repository is the **reference implementation** of
 [The Update Framework (TUF)](https://theupdateframework.github.io/).
 It is written in Python and intended to conform to version 1.0 of the
-[TUF specification](https://github.com/theupdateframework/specification/blob/master/tuf-spec.md).
+[TUF specification](https://theupdateframework.github.io/specification/latest/).
 This implementation is in use in production systems, but is also intended to be
 a readable guide and demonstration for those working on implementing TUF in
 their own languages, environments, or update systems.
@@ -39,7 +39,7 @@ Please see the [TUF Introduction](docs/OVERVIEW.rst) and
 Documentation
 -------------
 * [Introduction to TUF's Design](docs/OVERVIEW.rst)
-* [The TUF Specification](https://github.com/theupdateframework/specification/blob/master/tuf-spec.md)
+* [The TUF Specification](https://theupdateframework.github.io/specification/latest/)
 * [Getting Started with the TUF Reference Implementation](docs/GETTING_STARTED.rst)
 * [Governance](docs/GOVERNANCE.md) and [Maintainers](docs/MAINTAINERS.txt)
 for the reference implementation
