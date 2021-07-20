@@ -114,9 +114,9 @@ class TrustedMetadataSet(abc.Mapping):
 
     # Helper properties for top level metadata
     @property
-    def root(self) -> Optional[Metadata]:
-        """Current root Metadata or None"""
-        return self._trusted_set.get("root")
+    def root(self) -> Metadata:
+        """Current root Metadata"""
+        return self._trusted_set["root"]
 
     @property
     def timestamp(self) -> Optional[Metadata]:
@@ -161,7 +161,7 @@ class TrustedMetadataSet(abc.Mapping):
                 f"Expected 'root', got '{new_root.signed.type}'"
             )
 
-        if self.root is not None:
+        if self._trusted_set.get("root") is not None:
             # We are not loading initial trusted root: verify the new one
             self.root.verify_delegate("root", new_root)
 
