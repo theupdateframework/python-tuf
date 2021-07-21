@@ -242,10 +242,9 @@ class TestSerialization(unittest.TestCase):
         "no path attribute":
             '{"keyids": ["keyid"], "name": "a", "terminating": false, \
             "path_hash_prefixes": ["h1", "h2"], "threshold": 99}',
-        "no hash or path prefix":
-            '{"keyids": ["keyid"], "name": "a", "terminating": true, "threshold": 3}',
         "unrecognized field":
-            '{"keyids": ["keyid"], "name": "a", "terminating": true, "threshold": 3, "foo": "bar"}',
+            '{"keyids": ["keyid"], "name": "a", "paths": ["fn1", "fn2"], \
+            "terminating": true, "threshold": 3, "foo": "bar"}',
     }
 
     @run_sub_tests_with_dataset(valid_delegated_roles)
@@ -255,12 +254,27 @@ class TestSerialization(unittest.TestCase):
         self.assertDictEqual(case_dict, deserialized_role.to_dict())
 
 
+    invalid_delegated_roles: DataSet = {
+        "missing hash prefixes and paths":
+            '{"name": "a", "keyids": ["keyid"], "threshold": 1, "terminating": false}',
+        "both hash prefixes and paths":
+            '{"name": "a", "keyids": ["keyid"], "threshold": 1, "terminating": false, \
+            "paths": ["fn1", "fn2"], "path_hash_prefixes": ["h1", "h2"]}',
+    }
+
+    @run_sub_tests_with_dataset(invalid_delegated_roles)
+    def test_invalid_delegated_role_serialization(self, test_case_data: str):
+        case_dict = json.loads(test_case_data)
+        with self.assertRaises(ValueError):
+            DelegatedRole.from_dict(copy.copy(case_dict))
+
+
     valid_delegations: DataSet = {
         "all": '{"keys": {"keyid" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
-            "roles": [ {"keyids": ["keyid"], "name": "a", "terminating": true, "threshold": 3} ]}',
+            "roles": [ {"keyids": ["keyid"], "name": "a", "paths": ["fn1", "fn2"], "terminating": true, "threshold": 3} ]}',
         "unrecognized field":
             '{"keys": {"keyid" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
-            "roles": [ {"keyids": ["keyid"], "name": "a", "terminating": true, "threshold": 3} ], \
+            "roles": [ {"keyids": ["keyid"], "name": "a", "paths": ["fn1", "fn2"], "terminating": true, "threshold": 3} ], \
             "foo": "bar"}',
     }
 
@@ -305,13 +319,13 @@ class TestSerialization(unittest.TestCase):
             "targets": { "file.txt": {"length": 12, "hashes": {"sha256" : "abc"} } }, \
             "delegations": {"keys": {"keyid" : {"keytype": "rsa", \
                     "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"} }}, \
-                "roles": [ {"keyids": ["keyid"], "name": "a", "terminating": true, "threshold": 3} ]} \
+                "roles": [ {"keyids": ["keyid"], "name": "a", "paths": ["fn1", "fn2"], "terminating": true, "threshold": 3} ]} \
             }',
         "empty targets": '{"_type": "targets", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
             "targets": {}, \
             "delegations": {"keys": {"keyid" : {"keytype": "rsa", \
                     "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"} }}, \
-                "roles": [ {"keyids": ["keyid"], "name": "a", "terminating": true, "threshold": 3} ]} \
+                "roles": [ {"keyids": ["keyid"], "name": "a", "paths": ["fn1", "fn2"], "terminating": true, "threshold": 3} ]} \
             }',
         "no delegations": '{"_type": "targets", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
             "targets":  { "file.txt": {"length": 12, "hashes": {"sha256" : "abc"} } } \

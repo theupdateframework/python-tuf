@@ -962,12 +962,12 @@ class Snapshot(Signed):
 class DelegatedRole(Role):
     """A container with information about a delegated role.
 
-    A delegation can happen in three ways:
-        - paths is None and path_hash_prefixes is None: delegates all targets
+    A delegation can happen in two ways:
         - paths is set: delegates targets matching any path pattern in paths
         - path_hash_prefixes is set: delegates targets whose target path hash
             starts with any of the prefixes in path_hash_prefixes
-    paths and path_hash_prefixes are mutually exclusive: both cannot be set.
+    paths and path_hash_prefixes are mutually exclusive: both cannot be set,
+        at least one of them must be set.
 
     Attributes:
         name: A string giving the name of the delegated role.
@@ -992,10 +992,11 @@ class DelegatedRole(Role):
         self.name = name
         self.terminating = terminating
         if paths is not None and path_hash_prefixes is not None:
-            raise ValueError(
-                "Only one of the attributes 'paths' and"
-                "'path_hash_prefixes' can be set!"
-            )
+            raise ValueError("Either paths or path_hash_prefixes can be set")
+
+        if paths is None and path_hash_prefixes is None:
+            raise ValueError("One of paths or path_hash_prefixes must be set")
+
         self.paths = paths
         self.path_hash_prefixes = path_hash_prefixes
 
