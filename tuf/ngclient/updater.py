@@ -170,6 +170,9 @@ class Updater:
             OSError: New metadata could not be written to disk
             RepositoryError: Metadata failed to verify in some way
             TODO: download-related errors
+
+        Returns:
+            A targetinfo dictionary or None
         """
         return self._preorder_depth_first_walk(target_path)
 
@@ -378,15 +381,17 @@ class Updater:
         target found in the most trusted role.
         """
 
-        role_names = [("targets", "root")]
+        # List of delegations to be interrogated. A (role, parent role) pair
+        # is needed to load and verify the delegated targets metadata.
+        delegations_to_visit = [("targets", "root")]
         visited_role_names: Set[Tuple[str, str]] = set()
         number_of_delegations = self.config.max_delegations
 
         # Preorder depth-first traversal of the graph of target delegations.
-        while number_of_delegations > 0 and len(role_names) > 0:
+        while number_of_delegations > 0 and len(delegations_to_visit) > 0:
 
             # Pop the role name from the top of the stack.
-            role_name, parent_role = role_names.pop(-1)
+            role_name, parent_role = delegations_to_visit.pop(-1)
 
             # Skip any visited current role to prevent cycles.
             if (role_name, parent_role) in visited_role_names:
@@ -423,19 +428,19 @@ class Updater:
                         )
                         if child_role.terminating:
                             logger.debug("Not backtracking to other roles.")
-                            role_names = []
+                            delegations_to_visit = []
                             break
                 # Push 'child_roles_to_visit' in reverse order of appearance
-                # onto 'role_names'.  Roles are popped from the end of
-                # the 'role_names' list.
+                # onto 'delegations_to_visit'.  Roles are popped from the end of
+                # the list.
                 child_roles_to_visit.reverse()
-                role_names.extend(child_roles_to_visit)
+                delegations_to_visit.extend(child_roles_to_visit)
 
-        if number_of_delegations == 0 and len(role_names) > 0:
+        if number_of_delegations == 0 and len(delegations_to_visit) > 0:
             logger.debug(
                 "%d roles left to visit, but allowed to "
                 "visit at most %d delegations.",
-                len(role_names),
+                len(delegations_to_visit),
                 self.config.max_delegations,
             )
 
