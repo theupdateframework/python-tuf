@@ -153,7 +153,7 @@ itself.  The --trust command-line option, in conjunction with --pubkeys and
 --role, can be used to indicate the trusted keys of a role.
 
 ```Bash
-$ repo.py --trust --pubkeys </path/to/foo_key.pub>+ --role <rolename>
+$ repo.py --trust --pubkeys </path/to/foo_key.pub> --role <rolename>
 ```
 
 For example:
