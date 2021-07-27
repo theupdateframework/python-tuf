@@ -1771,6 +1771,35 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
+  def test_snapshot_rsa_acc(self):
+    # replace timestamp with an RSA accumulator timestamp and create the updater
+    rsa_acc_timestamp = os.path.join(self.repository_directory, 'metadata', 'timestamp-rsa.json')
+    timestamp = os.path.join(self.repository_directory, 'metadata', 'timestamp.json')
+
+    shutil.move(rsa_acc_timestamp, timestamp)
+
+    repository_updater = updater.Updater(self.repository_name,
+                                      self.repository_mirrors)
+    repository_updater.refresh()
+
+    # Test verify RSA accumulator proof
+    snapshot_info = repository_updater.verify_rsa_acc_proof('targets')
+    self.assertEqual(snapshot_info['version'], 1)
+
+    snapshot_info = repository_updater.verify_rsa_acc_proof('role1')
+    self.assertEqual(snapshot_info['version'], 1)
+
+    # verify RSA accumulator with invalid role
+    self.assertRaises(tuf.exceptions.NoWorkingMirrorError,
+        repository_updater.verify_rsa_acc_proof, 'foo')
+
+    # Test get_one_valid_targetinfo with snapshot RSA accumulator
+    repository_updater.get_one_valid_targetinfo('file1.txt')
+
+
+
+
+
 class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
 
   def setUp(self):

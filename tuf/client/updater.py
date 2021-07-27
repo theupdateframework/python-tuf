@@ -1087,8 +1087,12 @@ class Updater(object):
     # require strict checks on its required length.
     self._update_metadata('timestamp', DEFAULT_TIMESTAMP_UPPERLENGTH)
 
-    self._update_metadata_if_changed('snapshot',
-        referenced_metadata='timestamp')
+    if 'rsa_acc' not in self.metadata['current']['timestamp']:
+      # If an RSA Accumulator is defined, do not update snapshot metadata. Instead,
+      # we will download the relevant proof files later when downloading
+      # a target.
+      self._update_metadata_if_changed('snapshot',
+          referenced_metadata='timestamp')
     self._update_metadata_if_changed('targets')
 
 
@@ -1616,6 +1620,206 @@ class Updater(object):
 
 
 
+  def signable_verification(self, metadata_role, file_object, expected_version):
+    # Verify 'file_object' according to the callable function.
+    # 'file_object' is also verified if decompressed above (i.e., the
+    # uncompressed version).
+    metadata_signable = \
+      securesystemslib.util.load_json_string(file_object.read().decode('utf-8'))
+
+    # Determine if the specification version number is supported.  It is
+    # assumed that "spec_version" is in (major.minor.fix) format, (for
+    # example: "1.4.3") and that releases with the same major version
+    # number maintain backwards compatibility.  Consequently, if the major
+    # version number of new metadata equals our expected major version
+    # number, the new metadata is safe to parse.
+    try:
+      metadata_spec_version = metadata_signable['signed']['spec_version']
+      metadata_spec_version_split = metadata_spec_version.split('.')
+      metadata_spec_major_version = int(metadata_spec_version_split[0])
+      metadata_spec_minor_version = int(metadata_spec_version_split[1])
+
+      code_spec_version_split = tuf.SPECIFICATION_VERSION.split('.')
+      code_spec_major_version = int(code_spec_version_split[0])
+      code_spec_minor_version = int(code_spec_version_split[1])
+
+      if metadata_spec_major_version != code_spec_major_version:
+        raise tuf.exceptions.UnsupportedSpecificationError(
+            'Downloaded metadata that specifies an unsupported '
+            'spec_version.  This code supports major version number: ' +
+            repr(code_spec_major_version) + '; however, the obtained '
+            'metadata lists version number: ' + str(metadata_spec_version))
+
+      #report to user if minor versions do not match, continue with update
+      if metadata_spec_minor_version != code_spec_minor_version:
+        logger.info("Downloaded metadata that specifies a different minor " +
+            "spec_version. This code has version " +
+            str(tuf.SPECIFICATION_VERSION) +
+            " and the metadata lists version number " +
+            str(metadata_spec_version) +
+            ". The update will continue as the major versions match.")
+
+    except (ValueError, TypeError) as error:
+      six.raise_from(securesystemslib.exceptions.FormatError('Improperly'
+          ' formatted spec_version, which must be in major.minor.fix format'),
+          error)
+
+    # If the version number is unspecified, ensure that the version number
+    # downloaded is greater than the currently trusted version number for
+    # 'metadata_role'.
+    version_downloaded = metadata_signable['signed']['version']
+
+    if expected_version is not None:
+      # Verify that the downloaded version matches the version expected by
+      # the caller.
+      if version_downloaded != expected_version:
+        raise tuf.exceptions.BadVersionNumberError('Downloaded'
+          ' version number: ' + repr(version_downloaded) + '.  Version'
+          ' number MUST be: ' + repr(expected_version))
+
+    # The caller does not know which version to download.  Verify that the
+    # downloaded version is at least greater than the one locally
+    # available.
+    else:
+      # Verify that the version number of the locally stored
+      # 'timestamp.json', if available, is less than what was downloaded.
+      # Otherwise, accept the new timestamp with version number
+      # 'version_downloaded'.
+
+      try:
+        current_version = \
+          self.metadata['current'][metadata_role]['version']
+
+        if version_downloaded < current_version:
+          raise tuf.exceptions.ReplayedMetadataError(metadata_role,
+              version_downloaded, current_version)
+
+      except KeyError:
+        logger.info(metadata_role + ' not available locally.')
+
+    self._verify_metadata_file(file_object, metadata_role)
+
+
+
+
+
+
+  def _update_rsa_acc_metadata(self, proof_filename, upperbound_filelength,
+      version=None):
+    """
+    <Purpose>
+      Non-public method that downloads, verifies, and 'installs' the proof
+      metadata belonging to 'proof_filename'.  Calling this method implies
+      that the 'proof_filename' on the repository is newer than the client's,
+      and thus needs to be re-downloaded.  The current and previous metadata
+      stores are updated if the newly downloaded metadata is successfully
+      downloaded and verified.  This method also assumes that the store of
+      top-level metadata is the latest and exists.
+
+    <Arguments>
+      proof_filename:
+        The name of the metadata. This is an RSA accumulator proof file and should
+        not end in '.json'.  Examples: 'role1-snapshot', 'targets-snapshot'
+
+      upperbound_filelength:
+        The expected length, or upper bound, of the metadata file to be
+        downloaded.
+
+      version:
+        The expected and required version number of the 'proof_filename' file
+        downloaded.  'version' is an integer.
+
+    <Exceptions>
+      tuf.exceptions.NoWorkingMirrorError:
+        The metadata cannot be updated. This is not specific to a single
+        failure but rather indicates that all possible ways to update the
+        metadata have been tried and failed.
+
+    <Side Effects>
+      The metadata file belonging to 'proof_filename' is downloaded from a
+      repository mirror.  If the metadata is valid, it is stored in the
+      metadata store.
+
+    <Returns>
+      None.
+    """
+
+    # Construct the metadata filename as expected by the download/mirror
+    # modules.
+    metadata_filename = proof_filename + '.json'
+
+    # Attempt a file download from each mirror until the file is downloaded and
+    # verified.  If the signature of the downloaded file is valid, proceed,
+    # otherwise log a warning and try the next mirror.  'metadata_file_object'
+    # is the file-like object returned by 'download.py'.  'metadata_signable'
+    # is the object extracted from 'metadata_file_object'.  Metadata saved to
+    # files are regarded as 'signable' objects, conformant to
+    # 'tuf.formats.SIGNABLE_SCHEMA'.
+    #
+    # Some metadata (presently timestamp) will be downloaded "unsafely", in the
+    # sense that we can only estimate its true length and know nothing about
+    # its version.  This is because not all metadata will have other metadata
+    # for it; otherwise we will have an infinite regress of metadata signing
+    # for each other. In this case, we will download the metadata up to the
+    # best length we can get for it, not request a specific version, but
+    # perform the rest of the checks (e.g., signature verification).
+
+    remote_filename = metadata_filename
+    filename_version = ''
+
+    if self.consistent_snapshot and version:
+      filename_version = version
+      dirname, basename = os.path.split(remote_filename)
+      remote_filename = os.path.join(
+          dirname, str(filename_version) + '.' + basename)
+
+    verification_fn = None
+
+    metadata_file_object = \
+      self._get_metadata_file(proof_filename, remote_filename,
+        upperbound_filelength, version, verification_fn)
+
+    # The metadata has been verified. Move the metadata file into place.
+    # First, move the 'current' metadata file to the 'previous' directory
+    # if it exists.
+    current_filepath = os.path.join(self.metadata_directory['current'],
+                metadata_filename)
+    current_filepath = os.path.abspath(current_filepath)
+    securesystemslib.util.ensure_parent_dir(current_filepath)
+
+    previous_filepath = os.path.join(self.metadata_directory['previous'],
+        metadata_filename)
+    previous_filepath = os.path.abspath(previous_filepath)
+
+    if os.path.exists(current_filepath):
+      # Previous metadata might not exist, say when delegations are added.
+      securesystemslib.util.ensure_parent_dir(previous_filepath)
+      shutil.move(current_filepath, previous_filepath)
+
+    # Next, move the verified updated metadata file to the 'current' directory.
+    metadata_file_object.seek(0)
+    updated_metadata_object = \
+      securesystemslib.util.load_json_string(metadata_file_object.read().decode('utf-8'))
+
+    securesystemslib.util.persist_temp_file(metadata_file_object, current_filepath)
+
+    # Extract the metadata object so we can store it to the metadata store.
+    # 'current_metadata_object' set to 'None' if there is not an object
+    # stored for 'proof_filename'.
+    current_metadata_object = self.metadata['current'].get(proof_filename)
+
+    # Finally, update the metadata and fileinfo stores, and rebuild the
+    # key and role info for the top-level roles if 'proof_filename' is root.
+    # Rebuilding the key and role info is required if the newly-installed
+    # root metadata has revoked keys or updated any top-level role information.
+    logger.debug('Updated ' + repr(current_filepath) + '.')
+    self.metadata['previous'][proof_filename] = current_metadata_object
+    self.metadata['current'][proof_filename] = updated_metadata_object
+
+
+
+
+
 
   def _update_metadata(self, metadata_role, upperbound_filelength, version=None):
     """
@@ -1732,6 +1936,87 @@ class Updater(object):
 
 
 
+  def verify_rsa_acc_proof(self, metadata_role, version=None, rsa_acc=None):
+    """
+    <Purpose>
+      Download the RSA accumulator proof associated with metadata_role and verify the hashes.
+    <Arguments>
+      metadata_role:
+        The name of the metadata role. This should not include a file extension.
+    <Exceptions>
+      tuf.exceptions.RepositoryError:
+        If the snapshot rsa accumulator file is invalid or the verification fails
+    <Returns>
+      A dictionary containing the snapshot information about metadata role,
+      conforming to VERSIONINFO_SCHEMA or METADATA_FILEINFO_SCHEMA
+    """
+
+    # Modulus from https://en.wikipedia.org/wiki/RSA_numbers#RSA-2048
+    # We will want to generate a new one
+    # This is duplicate code from repo lib, should live somewhere else
+    Modulus = "2519590847565789349402718324004839857142928212620403202777713783604366202070759555626401852588078" + \
+      "4406918290641249515082189298559149176184502808489120072844992687392807287776735971418347270261896375014971" + \
+      "8246911650776133798590957000973304597488084284017974291006424586918171951187461215151726546322822168699875" + \
+      "4918242243363725908514186546204357679842338718477444792073993423658482382428119816381501067481045166037730" + \
+      "6056201619676256133844143603833904414952634432190114657544454178424020924616515723350778707749817125772467" + \
+      "962926386356373289912154831438167899885040445364023527381951378636564391212010397122822120720357"
+    m = int(Modulus, 10)
+
+
+    if not rsa_acc:
+      rsa_acc = self.metadata['current']['timestamp']['rsa_acc']
+
+    metadata_rolename = metadata_role + '-snapshot'
+
+    # Download RSA accumulator proof
+    upperbound_filelength = tuf.settings.MERKLE_FILELENGTH
+    self._update_rsa_acc_metadata(metadata_rolename, upperbound_filelength, version)
+    metadata_directory = self.metadata_directory['current']
+    metadata_filename = metadata_rolename + '.json'
+    metadata_filepath = os.path.join(metadata_directory, metadata_filename)
+
+    # Ensure the metadata path is valid/exists, else ignore the call.
+    if not os.path.exists(metadata_filepath):
+      # No RSA accumulator proof found
+      raise tuf.exceptions.RepositoryError('No snapshot rsa accumulator proof file for ' +
+          metadata_role)
+    try:
+      snapshot_rsa_acc_proof = securesystemslib.util.load_json_file(
+          metadata_filepath)
+
+    # Although the metadata file may exist locally, it may not
+    # be a valid json file.  On the next refresh cycle, it will be
+    # updated as required.  If Root if cannot be loaded from disk
+    # successfully, an exception should be raised by the caller.
+    except securesystemslib.exceptions.Error:
+      return
+
+    # check the format
+    tuf.formats.SNAPSHOT_RSA_ACC_SCHEMA.check_match(snapshot_rsa_acc_proof)
+
+    # canonicalize the contents to determine the RSA accumulator prime
+    contents = snapshot_rsa_acc_proof['leaf_contents']
+    json_contents = securesystemslib.formats.encode_canonical(contents)
+
+    prime = repository_lib.hash_to_prime(json_contents)
+
+    # RSA accumulator proof
+    proof = snapshot_rsa_acc_proof['rsa_acc_proof']
+    rsa_acc_proof_test = pow(proof, prime, m)
+
+    # Does the result match the RSA accumulator?
+    if rsa_acc_proof_test != rsa_acc:
+      raise tuf.exceptions.RepositoryError('RSA accumulator ' + rsa_acc +
+          ' does not match the proof ' + proof + ' for ' + metadata_role)
+
+    # return the verified snapshot contents
+    return contents
+
+
+
+
+
+
   def _update_metadata_if_changed(self, metadata_role,
     referenced_metadata='snapshot'):
     """
@@ -1801,7 +2086,9 @@ class Updater(object):
 
     # Ensure the referenced metadata has been loaded.  The 'root' role may be
     # updated without having 'snapshot' available.
-    if referenced_metadata not in self.metadata['current']:
+    # When a snapshot rsa accumulator is used, there will not be a snapshot file.
+    # Instead, if the snapshot rsa proof is missing, this will error below.
+    if 'rsa_acc' not in self.metadata['current']['timestamp'] and referenced_metadata not in self.metadata['current']:
       raise exceptions.RepositoryError('Cannot update'
         ' ' + repr(metadata_role) + ' because ' + referenced_metadata + ' is'
         ' missing.')
@@ -1813,12 +2100,18 @@ class Updater(object):
         repr(referenced_metadata)+ '.  ' + repr(metadata_role) +
         ' may be updated.')
 
-    # Simply return if the metadata for 'metadata_role' has not been updated,
-    # according to the uncompressed metadata provided by the referenced
-    # metadata.  The metadata is considered updated if its version number is
-    # strictly greater than its currently trusted version number.
-    expected_versioninfo = self.metadata['current'][referenced_metadata] \
-        ['meta'][metadata_filename]
+    if 'rsa_acc' in self.metadata['current']['timestamp']:
+      # Download version information from RSA accumulator proof
+      contents = self.verify_rsa_acc_proof(metadata_role)
+      expected_versioninfo = contents
+
+    else:
+      # Simply return if the metadata for 'metadata_role' has not been updated,
+      # according to the uncompressed metadata provided by the referenced
+      # metadata.  The metadata is considered updated if its version number is
+      # strictly greater than its currently trusted version number.
+      expected_versioninfo = self.metadata['current'][referenced_metadata] \
+          ['meta'][metadata_filename]
 
     if not self._versioninfo_has_been_updated(metadata_filename,
         expected_versioninfo):
@@ -2388,7 +2681,10 @@ class Updater(object):
 
     roles_to_update = []
 
-    if rolename + '.json' in self.metadata['current']['snapshot']['meta']:
+    # Add the role if it is listed in snapshot. If a snapshot rsa
+    # accumulator is used, the snapshot check will be done later when
+    # the proof is verified
+    if 'rsa_acc' in self.metadata['current']['timestamp'] or rolename + '.json' in self.metadata['current']['snapshot']['meta']:
       roles_to_update.append(rolename)
 
     if refresh_all_delegated_roles:
