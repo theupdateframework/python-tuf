@@ -1,7 +1,61 @@
 # Copyright 2020, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""TUF client workflow implementation.
+"""TUF module that implements the client update workflow.
+
+This module contains the Updater class that provides an implementation of the
+`TUF client workflow
+<https://theupdateframework.github.io/specification/latest/#detailed-client-workflow>`_.
+Updater provides an API to query available targets and to download them in a
+secure manner: All downloaded files are verified by signed metadata.
+
+High-level description of Updater functionality:
+  * Initializing an :class:`~tuf.ngclient.updater.Updater` loads and validates
+    the trusted local root metadata: This root metadata is used as the source
+    of trust for all other metadata.
+  * Calling :func:`~tuf.ngclient.updater.Updater.refresh()` will update root
+    metadata and load all other top-level metadata as described in the
+    specification, using both locally cached metadata and metadata downloaded
+    from the remote repository.
+  * When metadata is up-to-date, targets can be dowloaded. The repository
+    snapshot is consistent so multiple targets can be downloaded without
+    fear of repository content changing. For each target:
+      * :func:`~tuf.ngclient.updater.Updater.get_one_valid_targetinfo()` is
+        used to find information about a specific target. This will load new
+        targets metadata as needed (from local cache or remote repository).
+      * :func:`~tuf.ngclient.updater.Updater.updated_targets()` can be used to
+        check if target files are already locally cached.
+      * :func:`~tuf.ngclient.updater.Updater.download_target()` downloads a
+        target file and ensures it is verified correct by the metadata.
+
+Below is a simple example of using the Updater to download and verify
+"file.txt" from a remote repository. The required environment for this example
+is:
+    * A webserver running on http://localhost:8000, serving TUF repository
+      metadata at "/tuf-repo/" and targets at "/targets/"
+    * Local metadata directory "~/tufclient/metadata/" is writable and contains
+      a root metadata version for the remote repository
+    * Download directory "~/target-downloads/" is writable
+
+Example::
+
+    from tuf.ngclient import Updater
+
+    # Load trusted local root metadata from client metadata cache. Define the
+    # remote repository metadata URL prefix and target URL prefix.
+    updater = Updater(
+        repository_dir="~/tufclient/metadata/",
+        metadata_base_url="http://localhost:8000/tuf-repo/",
+        target_base_url="http://localhost:8000/targets/",
+    )
+
+    # Update top-level metadata from remote
+    updater.refresh()
+
+    # Securely download a target:
+    # Update target metadata, then download and verify target
+    targetinfo = updater.get_one_valid_targetinfo("file.txt")
+    updater.download_target(targetinfo, "~/tufclient/downloads/")
 """
 
 import fnmatch
@@ -22,10 +76,7 @@ logger = logging.getLogger(__name__)
 
 
 class Updater:
-    """
-    An implementation of the TUF client workflow.
-    Provides a public API for integration in client applications.
-    """
+    """Implementation of the TUF client workflow."""
 
     def __init__(
         self,
@@ -35,10 +86,11 @@ class Updater:
         fetcher: Optional[FetcherInterface] = None,
         config: Optional[UpdaterConfig] = None,
     ):
-        """
+        """Creates a new Updater instance and loads trusted root metadata.
+
         Args:
             repository_dir: Local metadata directory. Directory must be
-                writable and it must contain at least a root.json file.
+                writable and it must contain a trusted root.json file.
             metadata_base_url: Base URL for all remote metadata downloads
             target_base_url: Optional; Default base URL for all remote target
                 downloads. Can be individually set in download_target()
@@ -68,17 +120,17 @@ class Updater:
         self.config = config or UpdaterConfig()
 
     def refresh(self) -> None:
-        """
-        This method downloads, verifies, and loads metadata for the top-level
-        roles in the specified order (root -> timestamp -> snapshot -> targets)
-        The expiration time for downloaded metadata is also verified.
+        """Refreshes top-level metadata.
 
-        The metadata for delegated roles are not refreshed by this method, but
-        by the method that returns targetinfo (i.e.,
-        get_one_valid_targetinfo()).
+        Downloads, verifies, and loads metadata for the top-level roles in the
+        specified order (root -> timestamp -> snapshot -> targets) implementing
+        all the checks required in the TUF client workflow.
 
-        The refresh() method should be called by the client before any target
-        requests.
+        The metadata for delegated roles are not refreshed by this method as
+        that happens on demand during get_one_valid_targetinfo().
+
+        The refresh() method should be called by the client before any other
+        method calls.
 
         Raises:
             OSError: New metadata could not be written to disk
@@ -92,11 +144,20 @@ class Updater:
         self._load_targets("targets", "root")
 
     def get_one_valid_targetinfo(self, target_path: str) -> Dict:
-        """
-        Returns the target information for a target identified by target_path.
+        """Returns target information for 'target_path'.
+
+        The return value can be used as an argument to
+        :func:`download_target()` and :func:`updated_targets()`.
+
+        :func:`refresh()` must be called before calling
+        `get_one_valid_targetinfo()`. Subsequent calls to
+        `get_one_valid_targetinfo()` will use the same consistent repository
+        state: Changes that happen in the repository between calling
+        :func:`refresh()` and `get_one_valid_targetinfo()` will not be
+        seen by the updater.
 
         As a side-effect this method downloads all the additional (delegated
-        targets) metadata required to return the target information.
+        targets) metadata it needs to return the target information.
 
         Args:
             target_path: A target identifier that is a path-relative-URL string
@@ -115,12 +176,15 @@ class Updater:
     def updated_targets(
         targets: List[Dict[str, Any]], destination_directory: str
     ) -> List[Dict[str, Any]]:
-        """
-        After the client has retrieved the target information for those targets
-        they are interested in updating, they would call this method to
-        determine which targets have changed from those saved locally on disk.
-        All the targets that have changed are returned in a list.  From this
-        list, they can request a download by calling 'download_target()'.
+        """Checks whether local cached target files are up to date
+
+        After retrieving the target information for the targets that should be
+        updated, updated_targets() can be called to determine which targets
+        have changed compared to locally stored versions.
+
+        All the targets that are not up-to-date in destination_directory are
+        returned in a list. The list items can be downloaded with
+        'download_target()'.
         """
         # Keep track of the target objects and filepaths of updated targets.
         # Return 'updated_targets' and use 'updated_targetpaths' to avoid
@@ -159,8 +223,7 @@ class Updater:
         destination_directory: str,
         target_base_url: Optional[str] = None,
     ):
-        """
-        Download target specified by 'targetinfo' into 'destination_directory'.
+        """Downloads the target file specified by 'targetinfo'.
 
         Args:
             targetinfo: data received from get_one_valid_targetinfo() or
