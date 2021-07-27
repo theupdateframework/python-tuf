@@ -155,8 +155,12 @@ class TestSerialization(unittest.TestCase):
     valid_roots: DataSet = {
         "all": '{"_type": "root", "spec_version": "1.0.0", "version": 1, \
             "expires": "2030-01-01T00:00:00Z", "consistent_snapshot": false, \
-            "keys": {"keyid" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
-            "roles": { "targets": {"keyids": ["keyid"], "threshold": 3}} \
+            "keys": { \
+                "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}, \
+                "keyid2" : {"keytype": "ed25519", "scheme": "ed25519", "keyval": {"public": "bar"}}}, \
+            "roles": { \
+                "targets": {"keyids": ["keyid1"], "threshold": 1}, \
+                "snapshot": {"keyids": ["keyid2"], "threshold": 1}} \
             }',
         "no consistent_snapshot": '{ "_type": "root", "spec_version": "1.0.0", "version": 1, \
             "expires": "2030-01-01T00:00:00Z", \
@@ -198,6 +202,7 @@ class TestSerialization(unittest.TestCase):
         "no length": '{"hashes": {"sha256" : "abc"}, "version": 1 }',
         "no hashes": '{"length": 12, "version": 1}',
         "unrecognized field": '{"hashes": {"sha256" : "abc"}, "length": 12, "version": 1, "foo": "bar"}',
+        "many hashes": '{"hashes": {"sha256" : "abc", "sha512": "cde"}, "length": 12, "version": 1}',
     }
 
     @run_sub_tests_with_dataset(valid_metafiles)
@@ -205,6 +210,16 @@ class TestSerialization(unittest.TestCase):
         case_dict = json.loads(test_case_data)
         metafile = MetaFile.from_dict(copy.copy(case_dict))
         self.assertDictEqual(case_dict, metafile.to_dict())
+
+    invalid_timestamps: DataSet = {
+        "no metafile": '{ "_type": "timestamp", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z"}',
+    }
+
+    @run_sub_tests_with_dataset(invalid_timestamps)
+    def test_invalid_timestamp_serialization(self, test_case_data: Dict[str, str]):
+        case_dict = json.loads(test_case_data)
+        with self.assertRaises((ValueError, KeyError)):
+            Timestamp.from_dict(copy.deepcopy(case_dict))
 
 
     valid_timestamps: DataSet = {
@@ -223,7 +238,13 @@ class TestSerialization(unittest.TestCase):
 
     valid_snapshots: DataSet = {
         "all": '{ "_type": "snapshot", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
-            "meta": { "file.txt": { "hashes": {"sha256" : "abc"}, "version": 1 }}}',
+            "meta": { \
+                "file1.txt": {"hashes": {"sha256" : "abc"}, "version": 1}, \
+                "file2.txt": {"hashes": {"sha256" : "cde"}, "version": 1} \
+            }}',
+        "empty meta": '{ "_type": "snapshot", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
+            "meta": {} \
+            }',
         "unrecognized field": '{ "_type": "snapshot", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
             "meta": { "file.txt": { "hashes": {"sha256" : "abc"}, "version": 1 }}, "foo": "bar"}',
     }
@@ -243,8 +264,10 @@ class TestSerialization(unittest.TestCase):
             '{"keyids": ["keyid"], "name": "a", "terminating": false, \
             "path_hash_prefixes": ["h1", "h2"], "threshold": 99}',
         "unrecognized field":
-            '{"keyids": ["keyid"], "name": "a", "paths": ["fn1", "fn2"], \
-            "terminating": true, "threshold": 3, "foo": "bar"}',
+            '{"keyids": ["keyid"], "name": "a", "terminating": true, "paths": ["fn1"], "threshold": 3, "foo": "bar"}',
+        "many keyids":
+            '{"keyids": ["keyid1", "keyid2"], "name": "a", "paths": ["fn1", "fn2"], \
+            "terminating": false, "threshold": 1}',
     }
 
     @run_sub_tests_with_dataset(valid_delegated_roles)
@@ -270,12 +293,21 @@ class TestSerialization(unittest.TestCase):
 
 
     valid_delegations: DataSet = {
-        "all": '{"keys": {"keyid" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
-            "roles": [ {"keyids": ["keyid"], "name": "a", "paths": ["fn1", "fn2"], "terminating": true, "threshold": 3} ]}',
+        "all":
+            '{"keys": { \
+                "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}, \
+                "keyid2" : {"keytype": "ed25519", "scheme": "ed25519", "keyval": {"public": "bar"}}}, \
+            "roles": [ \
+                {"keyids": ["keyid"], "name": "a", "terminating": true, "paths": ["fn1"], "threshold": 3}, \
+                {"keyids": ["keyid2"], "name": "b", "terminating": true, "paths": ["fn2"], "threshold": 4} ] \
+            }',
         "unrecognized field":
             '{"keys": {"keyid" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
             "roles": [ {"keyids": ["keyid"], "name": "a", "paths": ["fn1", "fn2"], "terminating": true, "threshold": 3} ], \
             "foo": "bar"}',
+        "empty keys and roles": '{"keys": {}, \
+            "roles": [] \
+            }',
     }
 
     @run_sub_tests_with_dataset(valid_delegations)
@@ -316,11 +348,17 @@ class TestSerialization(unittest.TestCase):
 
     valid_targets: DataSet = {
         "all attributes": '{"_type": "targets", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
-            "targets": { "file.txt": {"length": 12, "hashes": {"sha256" : "abc"} } }, \
-            "delegations": {"keys": {"keyid" : {"keytype": "rsa", \
-                    "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"} }}, \
-                "roles": [ {"keyids": ["keyid"], "name": "a", "paths": ["fn1", "fn2"], "terminating": true, "threshold": 3} ]} \
-            }',
+            "targets": { \
+                "file.txt": {"length": 12, "hashes": {"sha256" : "abc"} }, \
+                "file2.txt": {"length": 50, "hashes": {"sha256" : "cde"} } }, \
+            "delegations": { \
+                "keys": { \
+                    "keyid" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}, \
+                    "keyid2": {"keytype": "ed25519", "scheme": "ed25519", "keyval": {"public": "bar"}}}, \
+                "roles": [ \
+                    {"keyids": ["keyid"], "name": "a", "terminating": true, "paths": ["fn1"], "threshold": 3}, \
+                    {"keyids": ["keyid2"], "name": "b", "terminating": true, "paths": ["fn2"], "threshold": 4} ] \
+            }}',
         "empty targets": '{"_type": "targets", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
             "targets": {}, \
             "delegations": {"keys": {"keyid" : {"keytype": "rsa", \
