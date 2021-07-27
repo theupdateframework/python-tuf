@@ -256,7 +256,7 @@ class Repository(object):
 
 
 
-  def writeall(self, consistent_snapshot=False, use_existing_fileinfo=False):
+  def writeall(self, consistent_snapshot=False, use_existing_fileinfo=False, rsa_acc=False):
     """
     <Purpose>
       Write all the JSON Metadata objects to their corresponding files for
@@ -285,6 +285,10 @@ class Repository(object):
         Boolean indicating whether the fileinfo dicts in the roledb should be
         written as-is (True) or whether hashes should be generated (False,
         requires access to the targets files on-disk).
+
+      rsa_acc:
+        Whether to generate snapshot rsa accululator metadata in addition to snapshot
+        metadata.
 
     <Exceptions>
       tuf.exceptions.UnsignedMetadataError, if any of the top-level
@@ -363,7 +367,8 @@ class Repository(object):
           consistent_snapshot, filenames,
           repository_name=self._repository_name,
           use_snapshot_length=self._use_snapshot_length,
-          use_snapshot_hashes=self._use_snapshot_hashes)
+          use_snapshot_hashes=self._use_snapshot_hashes,
+          rsa_acc=rsa_acc)
 
     # Generate the 'timestamp.json' metadata file.
     if 'timestamp' in dirty_rolenames:
@@ -372,7 +377,8 @@ class Repository(object):
           self._storage_backend, consistent_snapshot,
           filenames, repository_name=self._repository_name,
           use_timestamp_length=self._use_timestamp_length,
-          use_timestamp_hashes=self._use_timestamp_hashes)
+          use_timestamp_hashes=self._use_timestamp_hashes,
+          rsa_acc=rsa_acc)
 
     roledb.unmark_dirty(dirty_rolenames, self._repository_name)
 

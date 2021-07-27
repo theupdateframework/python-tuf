@@ -358,6 +358,11 @@ TARGETS_SCHEMA = SCHEMA.Object(
   targets = FILEDICT_SCHEMA,
   delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA))
 
+SNAPSHOT_RSA_ACC_SCHEMA = SCHEMA.Object(
+  leaf_contents = SCHEMA.OneOf([VERSIONINFO_SCHEMA,
+                              METADATA_FILEINFO_SCHEMA]),
+  rsa_acc_proof = SCHEMA.AnyString())
+
 # Snapshot role: indicates the latest versions of all metadata (except
 # timestamp).
 SNAPSHOT_SCHEMA = SCHEMA.Object(
@@ -375,7 +380,8 @@ TIMESTAMP_SCHEMA = SCHEMA.Object(
   spec_version = SPECIFICATION_VERSION_SCHEMA,
   version = METADATAVERSION_SCHEMA,
   expires = sslib_formats.ISO8601_DATETIME_SCHEMA,
-  meta = FILEINFODICT_SCHEMA)
+  meta = FILEINFODICT_SCHEMA,
+  rsa_acc = SCHEMA.Optional(HASH_SCHEMA))
 
 
 # project.cfg file: stores information about the project in a json dictionary

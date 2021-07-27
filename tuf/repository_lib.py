@@ -30,6 +30,8 @@ import logging
 import shutil
 import json
 import tempfile
+from pyblake2 import blake2b
+import random
 
 import securesystemslib # pylint: disable=unused-import
 from securesystemslib import exceptions as sslib_exceptions
@@ -90,7 +92,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
   increment_version_number=True, repository_name='default',
   use_existing_fileinfo=False, use_timestamp_length=True,
   use_timestamp_hashes=True, use_snapshot_length=False,
-  use_snapshot_hashes=False):
+  use_snapshot_hashes=False, rsa_acc=False):
   """
   Non-public function that can generate and write the metadata for the
   specified 'rolename'.  It also increments the version number of 'rolename' if
@@ -121,6 +123,16 @@ def _generate_and_write_metadata(rolename, metadata_filename,
         roleinfo['version'], roleinfo['expires'],
         storage_backend, consistent_snapshot, repository_name,
         use_length=use_snapshot_length, use_hashes=use_snapshot_hashes)
+
+    if rsa_acc:
+      root, leaves = _build_rsa_acc(fileinfodict)
+
+      # Add the rsa accumulator to the timestamp roleinfo
+      timestamp_roleinfo = tuf.roledb.get_roleinfo('timestamp', repository_name)
+      timestamp_roleinfo['rsa_acc'] = root
+
+      tuf.roledb.update_roleinfo('timestamp', timestamp_roleinfo,
+          repository_name=repository_name)
 
 
     _log_warning_if_expires_soon(SNAPSHOT_FILENAME, roleinfo['expires'],
@@ -179,6 +191,9 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
   else:
     logger.debug('Not incrementing ' + repr(rolename) + '\'s version number.')
+
+  if rolename == 'snapshot' and rsa_acc:
+    _write_rsa_proofs(root, leaves, storage_backend, metadata_directory, metadata['version'])
 
   if rolename in roledb.TOP_LEVEL_ROLES and not allow_partially_signed:
     # Verify that the top-level 'rolename' is fully signed.  Only a delegated
@@ -1541,6 +1556,169 @@ def _get_hashes_and_length_if_needed(use_length, use_hashes, full_file_path,
 
 
 
+
+# I couldn't find a currently maintained python library for this, so
+# implementing it here. It would be better to implement this in c,
+# even better to use an existing library
+# This is inspired by: https://www.literateprograms.org/miller-rabin_primality_test__python_.html
+def miller_rabin_round(a, s, d, n):
+  a_to_power = pow(a, d, n)
+  if a_to_power == 1:
+    return True
+  for i in range(s):
+    if a_to_power == n - 1:
+      return True
+    a_to_power = (a_to_power * a_to_power) % n
+  return False
+
+
+
+
+
+def miller_rabin(n, rounds):
+  if n == 1:
+    return false
+  if n == 2 or n == 3:
+    return true
+
+  d = n -1
+  s = 0
+  while d % 2 == 0:
+    d = d >> 1
+    s = s + 1
+
+  for i in range(rounds):
+    a = random.randrange(n)
+    if not miller_rabin_round(a, s, d, n):
+      return False
+  return True
+
+
+
+
+# RSA Accumulator code insprired by https://github.com/ElrondNetwork/elrond-go/blob/v1.0.30/crypto/accumulator/rsa/rsaAcc.go
+def hash_to_prime(data):
+  # TODO: move constant definitions
+  basesMillerRabin = 12
+
+  h = blake2b(str(data).encode('utf-8'))
+  p = int(h.hexdigest(), 16)
+
+  # use Miller-Rabin primality test, if p is not prime, do more rounds of hashing
+  while (not miller_rabin(p, basesMillerRabin)):
+    h = blake2b(str(p).encode('utf-8'))
+    p = int(h.hexdigest(), 16)
+
+  return p
+
+
+
+class acc_contents(object):
+  contents = None
+  name = None
+  proof = None
+
+  def __init__(self, name, contents):
+    # Include the name to ensure the digest differs between elements and cannot be replayed
+    contents["name"] = name
+    self.contents = contents
+    self.name = name
+
+  def set_proof(self, proof):
+    self.proof = proof
+
+
+
+def _build_rsa_acc(fileinfodict):
+  """
+  Create an RSA accululator from the snapshot fileinfo and writes it to individual snapshot files
+
+  Returns the root and leaves
+  """
+
+  # RSA accululator contants
+  # TODO: move constant definitions
+  g = 3
+  # Modulus from https://en.wikipedia.org/wiki/RSA_numbers#RSA-2048
+  # We will want to generate a new one
+  Modulus = "2519590847565789349402718324004839857142928212620403202777713783604366202070759555626401852588078" + \
+		"4406918290641249515082189298559149176184502808489120072844992687392807287776735971418347270261896375014971" + \
+		"8246911650776133798590957000973304597488084284017974291006424586918171951187461215151726546322822168699875" + \
+		"4918242243363725908514186546204357679842338718477444792073993423658482382428119816381501067481045166037730" + \
+		"6056201619676256133844143603833904414952634432190114657544454178424020924616515723350778707749817125772467" + \
+		"962926386356373289912154831438167899885040445364023527381951378636564391212010397122822120720357"
+  m = int(Modulus, 10)
+
+
+  # We will build the accumulator starting with the leaf nodes. Each
+  # leaf contains snapshot information for a single metadata file.
+  leaves = []
+  primes = []
+  acc_exp = 1
+  for name, contents in sorted(fileinfodict.items()):
+    if name.endswith(".json"):
+      name = os.path.splitext(name)[0]
+    cont = acc_contents(name, contents)
+    leaves.append(cont)
+
+    json_contents = securesystemslib.formats.encode_canonical(contents)
+    prime = hash_to_prime(json_contents)
+    primes.append(prime)
+    acc_exp = acc_exp * prime
+
+  acc = pow(g, acc_exp, m)
+
+  proofs = []
+  for i in range(len(leaves)):
+    proof_exp = acc_exp/primes[i]
+    proof = pow(g, int(proof_exp), m)
+    proofs.append(proof)
+    leaves[i].set_proof(proof)
+
+
+  root = acc
+
+  # Return the root (the total accumulator) and the leaves. The root must be used along with
+  # the proof. The root hash should be securely sent to
+  # each client. To do so, we will add it to the timestamp metadata.
+  # The leaves will be used for verification
+  return root, leaves
+
+def _write_rsa_proofs(root, leaves, storage_backend, rsa_acc_directory, version):
+  # The root and leaves must be part of the same fully constructed
+  # RSA accumulator.
+  # The contents and proof will be downloaded by
+  # the client and used for verification.
+
+  # Before writing each leaf, make sure the storage_backend
+  # is instantiated
+  if storage_backend is None:
+    storage_backend = securesystemslib.storage.FilesystemBackend()
+
+  for l in leaves:
+    # Write the leaf to the rsa_acc_directory
+    print(l)
+    file_contents = tuf.formats.build_dict_conforming_to_schema(
+        tuf.formats.SNAPSHOT_RSA_ACC_SCHEMA,
+        leaf_contents=l.contents,
+        rsa_acc_proof=str(l.proof))
+    file_content = _get_written_metadata(file_contents)
+    file_object = tempfile.TemporaryFile()
+    file_object.write(file_content)
+    filename = os.path.join(rsa_acc_directory, l.name + '-snapshot.json')
+
+    # Also write with consistent snapshots for auditing and client verification
+    consistent_filename = os.path.join(rsa_acc_directory, str(version) + '.'
+        + l.name + '-snapshot.json')
+    securesystemslib.util.persist_temp_file(file_object, consistent_filename,
+        should_close=False)
+
+    storage_backend.put(file_object, filename)
+    file_object.close()
+
+
+
+
 def generate_snapshot_metadata(metadata_directory, version, expiration_date,
     storage_backend, consistent_snapshot=False,
     repository_name='default', use_length=False, use_hashes=False):
@@ -1733,6 +1911,10 @@ def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
       metadata file in the timestamp metadata.
       Default is True.
 
+    roleinfo:
+      The roleinfo for the timestamp role. This is used when an RSA
+      accumulator is used.
+
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the generated timestamp metadata
     object cannot be formatted correctly, or one of the arguments is improperly
@@ -1767,6 +1949,15 @@ def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
   snapshot_fileinfo[snapshot_filename] = \
       formats.make_metadata_fileinfo(snapshot_version['version'],
           length, hashes)
+
+  if roleinfo and 'rsa_acc' in roleinfo:
+    rsa_acc = roleinfo['rsa_acc']
+    return tuf.formats.build_dict_conforming_to_schema(
+        tuf.formats.TIMESTAMP_SCHEMA,
+        version=version,
+        expires=expiration_date,
+        meta=snapshot_fileinfo,
+        rsa_acc=str(rsa_acc))
 
   # Generate the timestamp metadata object.
   # Use generalized build_dict_conforming_to_schema func to produce a dict that

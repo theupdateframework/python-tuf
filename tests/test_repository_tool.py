@@ -247,6 +247,21 @@ class TestRepository(unittest.TestCase):
     # Verify that status() does not raise an exception.
     repository.status()
 
+    # Test writeall with generating a snapshot RSA accumulator
+    repository.mark_dirty(['role1', 'targets', 'root', 'snapshot', 'timestamp'])
+    repository.writeall(rsa_acc=True)
+
+    # Were the RSA proof snapshots written?
+    targets_snapshot_filepath = os.path.join(metadata_directory,
+        'targets-snapshot.json')
+    targets_snapshot = securesystemslib.util.load_json_file(targets_snapshot_filepath)
+    tuf.formats.SNAPSHOT_RSA_ACC_SCHEMA.check_match(targets_snapshot)
+
+    # Does timestamp have the root hash?
+    timestamp_filepath = os.path.join(metadata_directory, 'timestamp.json')
+    timestamp = securesystemslib.util.load_json_file(timestamp_filepath)
+    timestamp['signed']['rsa_acc']
+
     # Verify that status() does not raise
     # 'tuf.exceptions.InsufficientKeysError' if a top-level role
     # does not contain a threshold of keys.
@@ -488,7 +503,13 @@ class TestRepository(unittest.TestCase):
     # Construct list of file paths expected, determining absolute paths.
     expected_files = []
     for filepath in ['1.root.json', 'root.json', 'targets.json',
+<<<<<<< HEAD
         'snapshot.json', 'timestamp.json', 'role1.json', 'role2.json']:
+=======
+        'snapshot.json', 'timestamp.json', 'role1.json', 'role2.json',
+        'targets-snapshot.json', 'timestamp-rsa.json',
+        'role1-snapshot.json', 'role2-snapshot.json']:
+>>>>>>> a71659bb (Add initial poc for RSA Accumulator snapshots: repo side)
       expected_files.append(os.path.abspath(os.path.join(
           'repository_data', 'repository', 'metadata', filepath)))
 

@@ -458,6 +458,40 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                          False, use_existing_fileinfo=True)
 
 
+  def test_build_rsa_acc(self):
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+    storage_backend = securesystemslib.storage.FilesystemBackend()
+    version = 1
+
+    # Test an rsa accumulator with a few nodes to verify the output
+
+    test_nodes = {}
+    test_nodes['file1'] = tuf.formats.make_metadata_fileinfo(5, None, None)
+
+
+    root_1, leaves = repo_lib._build_rsa_acc(test_nodes)
+    repo_lib._write_rsa_leaves(root_1, leaves, storage_backend,
+        temporary_directory, version)
+
+    # Ensure that the paths are written to the directory
+    file_path = os.path.join(temporary_directory, 'file1-snapshot.json')
+    self.assertTrue(os.path.exists(file_path))
+
+    file_path = os.path.join(temporary_directory, '1.file1-snapshot.json')
+    self.assertTrue(os.path.exists(file_path))
+
+    self.assertEqual(root_1, 5)
+
+    test_nodes = {}
+    test_nodes['targets'] = tuf.formats.make_metadata_fileinfo(1, None, None)
+    test_nodes['role1'] = tuf.formats.make_metadata_fileinfo(1, None, None)
+    test_nodes['role2'] = tuf.formats.make_metadata_fileinfo(1, None, None)
+
+    root, leaves = repo_lib._build_rsa_acc(test_nodes)
+
+
+
+
   def _setup_generate_snapshot_metadata_test(self):
     # Test normal case.
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
