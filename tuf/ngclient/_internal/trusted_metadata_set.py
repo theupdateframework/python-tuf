@@ -317,6 +317,8 @@ class TrustedMetadataSet(abc.Mapping):
     def _check_final_snapshot(self) -> None:
         """Check snapshot expiry and version before targets is updated"""
 
+        assert self.snapshot is not None  # nosec
+        assert self.timestamp is not None  # nosec
         if self.snapshot.signed.is_expired(self.reference_time):
             raise exceptions.ExpiredMetadataError("snapshot.json is expired")
 

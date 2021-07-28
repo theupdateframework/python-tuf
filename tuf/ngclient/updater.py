@@ -341,6 +341,7 @@ class Updater:
             # Local snapshot does not exist or is invalid: update from remote
             logger.debug("Failed to load local snapshot %s", e)
 
+            assert self._trusted_set.timestamp is not None  # nosec
             metainfo = self._trusted_set.timestamp.signed.meta["snapshot.json"]
             length = metainfo.length or self.config.snapshot_max_length
             version = None
@@ -361,6 +362,7 @@ class Updater:
             # Local 'role' does not exist or is invalid: update from remote
             logger.debug("Failed to load local %s: %s", role, e)
 
+            assert self._trusted_set.snapshot is not None  # nosec
             metainfo = self._trusted_set.snapshot.signed.meta[f"{role}.json"]
             length = metainfo.length or self.config.targets_max_length
             version = None
