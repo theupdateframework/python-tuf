@@ -98,7 +98,7 @@ class Metadata(Generic[T]):
         self.signatures = signatures
 
     @classmethod
-    def from_dict(cls, metadata: Dict[str, Any]) -> "Metadata":
+    def from_dict(cls, metadata: Dict[str, Any]) -> "Metadata[T]":
         """Creates Metadata object from its dict representation.
 
         Arguments:

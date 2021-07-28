@@ -66,7 +66,7 @@ from datetime import datetime
 from typing import Dict, Iterator, Optional
 
 from tuf import exceptions
-from tuf.api.metadata import Metadata
+from tuf.api.metadata import Metadata, Root, Snapshot, Targets, Timestamp
 from tuf.api.serialization import DeserializationError
 
 logger = logging.getLogger(__name__)
@@ -114,22 +114,22 @@ class TrustedMetadataSet(abc.Mapping):
 
     # Helper properties for top level metadata
     @property
-    def root(self) -> Metadata:
+    def root(self) -> Metadata[Root]:
         """Current root Metadata"""
         return self._trusted_set["root"]
 
     @property
-    def timestamp(self) -> Optional[Metadata]:
+    def timestamp(self) -> Optional[Metadata[Timestamp]]:
         """Current timestamp Metadata or None"""
         return self._trusted_set.get("timestamp")
 
     @property
-    def snapshot(self) -> Optional[Metadata]:
+    def snapshot(self) -> Optional[Metadata[Snapshot]]:
         """Current snapshot Metadata or None"""
         return self._trusted_set.get("snapshot")
 
     @property
-    def targets(self) -> Optional[Metadata]:
+    def targets(self) -> Optional[Metadata[Targets]]:
         """Current targets Metadata or None"""
         return self._trusted_set.get("targets")
 
@@ -152,7 +152,7 @@ class TrustedMetadataSet(abc.Mapping):
         logger.debug("Updating root")
 
         try:
-            new_root = Metadata.from_bytes(data)
+            new_root = Metadata[Root].from_bytes(data)
         except DeserializationError as e:
             raise exceptions.RepositoryError("Failed to load root") from e
 
@@ -199,7 +199,7 @@ class TrustedMetadataSet(abc.Mapping):
         # timestamp/snapshot can not yet be loaded at this point
 
         try:
-            new_timestamp = Metadata.from_bytes(data)
+            new_timestamp = Metadata[Timestamp].from_bytes(data)
         except DeserializationError as e:
             raise exceptions.RepositoryError("Failed to load timestamp") from e
 
@@ -276,7 +276,7 @@ class TrustedMetadataSet(abc.Mapping):
             ) from e
 
         try:
-            new_snapshot = Metadata.from_bytes(data)
+            new_snapshot = Metadata[Snapshot].from_bytes(data)
         except DeserializationError as e:
             raise exceptions.RepositoryError("Failed to load snapshot") from e
 
@@ -387,7 +387,7 @@ class TrustedMetadataSet(abc.Mapping):
             ) from e
 
         try:
-            new_delegate = Metadata.from_bytes(data)
+            new_delegate = Metadata[Targets].from_bytes(data)
         except DeserializationError as e:
             raise exceptions.RepositoryError("Failed to load snapshot") from e
 
