@@ -1057,6 +1057,24 @@ class DelegatedRole(Role):
             res_dict["path_hash_prefixes"] = self.path_hash_prefixes
         return res_dict
 
+    @staticmethod
+    def _is_target_in_pathpattern(targetpath: str, pathpattern: str) -> bool:
+        """Determines whether "targetname" matches the "pathpattern"."""
+        # We need to make sure that targetname and pathpattern are pointing to
+        # the same directory as fnmatch doesn't threat "/" as a special symbol.
+        target_parts = targetpath.split("/")
+        pattern_parts = pathpattern.split("/")
+        if len(target_parts) != len(pattern_parts):
+            return False
+
+        # Every part in the pathpattern could include a glob pattern, that's why
+        # each of the target and pathpattern parts should match.
+        for target_dir, pattern_dir in zip(target_parts, pattern_parts):
+            if not fnmatch.fnmatch(target_dir, pattern_dir):
+                return False
+
+        return True
+
     def is_delegated_path(self, target_filepath: str) -> bool:
         """Determines whether the given 'target_filepath' is in one of
         the paths that DelegatedRole is trusted to provide"""
@@ -1079,7 +1097,7 @@ class DelegatedRole(Role):
                 # are also considered matches. Make sure to strip any leading
                 # path separators so that a match is made.
                 # Example: "foo.tgz" should match with "/*.tgz".
-                if fnmatch.fnmatch(
+                if self._is_target_in_pathpattern(
                     target_filepath.lstrip(os.sep), pathpattern.lstrip(os.sep)
                 ):
                     return True

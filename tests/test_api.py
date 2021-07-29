@@ -13,7 +13,6 @@ import os
 import shutil
 import tempfile
 import unittest
-import copy
 
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -40,7 +39,6 @@ from tuf.api.serialization import (
 
 from tuf.api.serialization.json import (
     JSONSerializer,
-    JSONDeserializer,
     CanonicalJSONSerializer
 )
 
@@ -464,6 +462,37 @@ class TestMetadata(unittest.TestCase):
 
         with self.assertRaises(KeyError):
             root.signed.remove_key('root', 'nosuchkey')
+
+    def test_is_target_in_pathpattern(self):
+        supported_use_cases = [
+            ("foo.tgz", "foo.tgz"),
+            ("foo.tgz", "*"),
+            ("foo.tgz", "*.tgz"),
+            ("foo-version-a.tgz", "foo-version-?.tgz"),
+            ("targets/foo.tgz", "targets/*.tgz"),
+            ("foo/bar/zoo/k.tgz", "foo/bar/zoo/*"),
+            ("foo/bar/zoo/k.tgz", "foo/*/zoo/*"),
+            ("foo/bar/zoo/k.tgz", "*/*/*/*"),
+            ("foo/bar", "f?o/bar"),
+            ("foo/bar", "*o/bar"),
+        ]
+        for targetpath, pathpattern in supported_use_cases:
+            self.assertTrue(
+                DelegatedRole._is_target_in_pathpattern(targetpath, pathpattern)
+            )
+
+        invalid_use_cases = [
+            ("targets/foo.tgz", "*.tgz"),
+            ("/foo.tgz", "*.tgz",),
+            ("targets/foo.tgz", "*"),
+            ("foo-version-alpha.tgz", "foo-version-?.tgz"),
+            ("foo//bar", "*/bar"),
+            ("foo/bar", "f?/bar")
+        ]
+        for targetpath, pathpattern in invalid_use_cases:
+            self.assertFalse(
+                DelegatedRole._is_target_in_pathpattern(targetpath, pathpattern)
+            )
 
 
     def test_delegation_class(self):
