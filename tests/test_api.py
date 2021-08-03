@@ -539,7 +539,7 @@ class TestMetadata(unittest.TestCase):
             "sha512": "ef5beafa16041bcdd2937140afebd485296cd54f7348ecd5a4d035c09759608de467a7ac0eb58753d0242df873c305e8bffad2454aa48f44480f15efae1cacd0"
         }
 
-        fileinfo = TargetFile(length=28, hashes=hashes)
+        fileinfo = TargetFile(length=28, hashes=hashes, path=filename)
 
         # Assert that data is not aleady equal
         self.assertNotEqual(
