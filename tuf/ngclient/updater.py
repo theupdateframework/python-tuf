@@ -69,7 +69,7 @@ from urllib import parse
 from securesystemslib import util as sslib_util
 
 from tuf import exceptions
-from tuf.api.metadata import Targets
+from tuf.api.metadata import TargetFile, Targets
 from tuf.ngclient._internal import requests_fetcher, trusted_metadata_set
 from tuf.ngclient.config import UpdaterConfig
 from tuf.ngclient.fetcher import FetcherInterface
@@ -147,8 +147,8 @@ class Updater:
 
     def get_one_valid_targetinfo(
         self, target_path: str
-    ) -> Optional[Dict[str, Any]]:
-        """Returns target information for 'target_path'.
+    ) -> Optional[TargetFile]:
+        """Returns TargetFile instance with information for 'target_path'.
 
         The return value can be used as an argument to
         :func:`download_target()` and :func:`updated_targets()`.
@@ -175,14 +175,14 @@ class Updater:
             TODO: download-related errors
 
         Returns:
-            A targetinfo dictionary or None
+            A TargetFile instance or None.
         """
         return self._preorder_depth_first_walk(target_path)
 
     @staticmethod
     def updated_targets(
-        targets: List[Dict[str, Any]], destination_directory: str
-    ) -> List[Dict[str, Any]]:
+        targets: List[TargetFile], destination_directory: str
+    ) -> List[TargetFile]:
         """Checks whether local cached target files are up to date
 
         After retrieving the target information for the targets that should be
@@ -205,17 +205,14 @@ class Updater:
             # against each hash listed for its fileinfo.  Note: join() discards
             # 'destination_directory' if 'filepath' contains a leading path
             # separator (i.e., is treated as an absolute path).
-            filepath = target["filepath"]
-            target_fileinfo: "TargetFile" = target["fileinfo"]
-
-            target_filepath = os.path.join(destination_directory, filepath)
+            target_filepath = os.path.join(destination_directory, target.path)
 
             if target_filepath in updated_targetpaths:
                 continue
 
             try:
                 with open(target_filepath, "rb") as target_file:
-                    target_fileinfo.verify_length_and_hashes(target_file)
+                    target.verify_length_and_hashes(target_file)
             # If the file does not exist locally or length and hashes
             # do not match, append to updated targets.
             except (OSError, exceptions.LengthOrHashMismatchError):
@@ -226,15 +223,15 @@ class Updater:
 
     def download_target(
         self,
-        targetinfo: Dict,
+        targetinfo: TargetFile,
         destination_directory: str,
         target_base_url: Optional[str] = None,
     ):
         """Downloads the target file specified by 'targetinfo'.
 
         Args:
-            targetinfo: data received from get_one_valid_targetinfo() or
-                updated_targets().
+            targetinfo: TargetFile instance received from
+                get_one_valid_targetinfo() or updated_targets().
             destination_directory: existing local directory to download into.
                 Note that new directories may be created inside
                 destination_directory as required.
@@ -255,19 +252,18 @@ class Updater:
         else:
             target_base_url = _ensure_trailing_slash(target_base_url)
 
-        target_fileinfo: "TargetFile" = targetinfo["fileinfo"]
-        target_filepath = targetinfo["filepath"]
+        target_filepath = targetinfo.path
         consistent_snapshot = self._trusted_set.root.signed.consistent_snapshot
         if consistent_snapshot and self.config.prefix_targets_with_hash:
-            hashes = list(target_fileinfo.hashes.values())
+            hashes = list(targetinfo.hashes.values())
             target_filepath = f"{hashes[0]}.{target_filepath}"
         full_url = parse.urljoin(target_base_url, target_filepath)
 
         with self._fetcher.download_file(
-            full_url, target_fileinfo.length
+            full_url, targetinfo.length
         ) as target_file:
             try:
-                target_fileinfo.verify_length_and_hashes(target_file)
+                targetinfo.verify_length_and_hashes(target_file)
             except exceptions.LengthOrHashMismatchError as e:
                 raise exceptions.RepositoryError(
                     f"{target_filepath} length or hashes do not match"
@@ -275,7 +271,7 @@ class Updater:
 
             # Store the target file name without the HASH prefix.
             local_filepath = os.path.join(
-                destination_directory, targetinfo["filepath"]
+                destination_directory, targetinfo.path
             )
             sslib_util.persist_temp_file(target_file, local_filepath)
 
@@ -393,7 +389,7 @@ class Updater:
 
     def _preorder_depth_first_walk(
         self, target_filepath: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[TargetFile]:
         """
         Interrogates the tree of target delegations in order of appearance
         (which implicitly order trustworthiness), and returns the matching
@@ -426,7 +422,7 @@ class Updater:
 
             if target is not None:
                 logger.debug("Found target in current role %s", role_name)
-                return {"filepath": target_filepath, "fileinfo": target}
+                return target
 
             # After preorder check, add current role to set of visited roles.
             visited_role_names.add((role_name, parent_role))
