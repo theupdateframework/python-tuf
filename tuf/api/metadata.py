@@ -562,6 +562,24 @@ class Key:
             "keyval": self.keyval,
         }
 
+    @classmethod
+    def from_securesystemslib_key(cls, key_dict: Dict[str, Any]) -> "Key":
+        """
+        Creates a Key object from a securesystemlib key dict representation
+        removing the private key from keyval.
+        """
+        key_meta = sslib_keys.format_keyval_to_metadata(
+            key_dict["keytype"],
+            key_dict["scheme"],
+            key_dict["keyval"],
+        )
+        return cls(
+            key_dict["keyid"],
+            key_meta["keytype"],
+            key_meta["scheme"],
+            key_meta["keyval"],
+        )
+
     def verify_signature(
         self,
         metadata: Metadata,

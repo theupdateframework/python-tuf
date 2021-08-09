@@ -54,6 +54,10 @@ from securesystemslib.signer import (
     Signature
 )
 
+from securesystemslib.keys import (
+    generate_ed25519_key
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -419,6 +423,14 @@ class TestMetadata(unittest.TestCase):
         # threshold of 2 keys
         snapshot.sign(SSlibSigner(self.keystore['timestamp']), append=True)
         root.verify_delegate('snapshot', snapshot)
+
+
+    def test_key_class(self):
+        # Test if from_securesystemslib_key removes the private key from keyval
+        # of a securesystemslib key dictionary.
+        sslib_key = generate_ed25519_key()
+        key = Key.from_securesystemslib_key(sslib_key)
+        self.assertFalse('private' in key.keyval.keys())
 
 
     def test_metadata_root(self):
