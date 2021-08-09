@@ -1,0 +1,14 @@
+# Install requirements needed in for the documentation build
+
+# pinned tuf runtime dependencies (should auto-update and -trigger ci/cd)
+-r requirements-pinned.txt
+
+# install sphinx and its extensions
+sphinx
+sphinx-rtd-theme
+
+# Docutils versions >=0.17.0 have incompatibilites with
+# sphinx-rtd-theme and fail to render some features.
+# Pin the version until readthedocs release their fix
+# (readthedocs/sphinx_rtd_theme#1113).
+docutils<0.17.0
