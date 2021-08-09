@@ -20,6 +20,7 @@ High-level description of Updater functionality:
   * When metadata is up-to-date, targets can be dowloaded. The repository
     snapshot is consistent so multiple targets can be downloaded without
     fear of repository content changing. For each target:
+
       * :func:`~tuf.ngclient.updater.Updater.get_one_valid_targetinfo()` is
         used to find information about a specific target. This will load new
         targets metadata as needed (from local cache or remote repository).
@@ -31,6 +32,7 @@ High-level description of Updater functionality:
 Below is a simple example of using the Updater to download and verify
 "file.txt" from a remote repository. The required environment for this example
 is:
+
     * A webserver running on http://localhost:8000, serving TUF repository
       metadata at "/tuf-repo/" and targets at "/targets/"
     * Local metadata directory "~/tufclient/metadata/" is writable and contains

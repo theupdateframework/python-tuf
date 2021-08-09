@@ -987,6 +987,7 @@ class DelegatedRole(Role):
         - paths is set: delegates targets matching any path pattern in paths
         - path_hash_prefixes is set: delegates targets whose target path hash
             starts with any of the prefixes in path_hash_prefixes
+
     paths and path_hash_prefixes are mutually exclusive: both cannot be set,
         at least one of them must be set.
 
