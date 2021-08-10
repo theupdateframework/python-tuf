@@ -16,8 +16,10 @@ available in the class model.
 
 """
 import abc
+import fnmatch
 import io
 import logging
+import os
 import tempfile
 from collections import OrderedDict
 from datetime import datetime, timedelta
@@ -960,12 +962,12 @@ class Snapshot(Signed):
 class DelegatedRole(Role):
     """A container with information about a delegated role.
 
-    A delegation can happen in three ways:
-        - paths is None and path_hash_prefixes is None: delegates all targets
+    A delegation can happen in two ways:
         - paths is set: delegates targets matching any path pattern in paths
         - path_hash_prefixes is set: delegates targets whose target path hash
             starts with any of the prefixes in path_hash_prefixes
-    paths and path_hash_prefixes are mutually exclusive: both cannot be set.
+    paths and path_hash_prefixes are mutually exclusive: both cannot be set,
+        at least one of them must be set.
 
     Attributes:
         name: A string giving the name of the delegated role.
@@ -990,10 +992,11 @@ class DelegatedRole(Role):
         self.name = name
         self.terminating = terminating
         if paths is not None and path_hash_prefixes is not None:
-            raise ValueError(
-                "Only one of the attributes 'paths' and"
-                "'path_hash_prefixes' can be set!"
-            )
+            raise ValueError("Either paths or path_hash_prefixes can be set")
+
+        if paths is None and path_hash_prefixes is None:
+            raise ValueError("One of paths or path_hash_prefixes must be set")
+
         self.paths = paths
         self.path_hash_prefixes = path_hash_prefixes
 
@@ -1030,6 +1033,35 @@ class DelegatedRole(Role):
         elif self.path_hash_prefixes is not None:
             res_dict["path_hash_prefixes"] = self.path_hash_prefixes
         return res_dict
+
+    def is_delegated_path(self, target_filepath: str) -> bool:
+        """Determines whether the given 'target_filepath' is in one of
+        the paths that DelegatedRole is trusted to provide"""
+
+        if self.path_hash_prefixes is not None:
+            # Calculate the hash of the filepath
+            # to determine in which bin to find the target.
+            digest_object = sslib_hash.digest(algorithm="sha256")
+            digest_object.update(target_filepath.encode("utf-8"))
+            target_filepath_hash = digest_object.hexdigest()
+
+            for path_hash_prefix in self.path_hash_prefixes:
+                if target_filepath_hash.startswith(path_hash_prefix):
+                    return True
+
+        elif self.paths is not None:
+            for pathpattern in self.paths:
+                # A delegated role path may be an explicit path or glob
+                # pattern (Unix shell-style wildcards). Explicit filepaths
+                # are also considered matches. Make sure to strip any leading
+                # path separators so that a match is made.
+                # Example: "foo.tgz" should match with "/*.tgz".
+                if fnmatch.fnmatch(
+                    target_filepath.lstrip(os.sep), pathpattern.lstrip(os.sep)
+                ):
+                    return True
+
+        return False
 
 
 class Delegations:
