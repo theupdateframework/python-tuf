@@ -29,15 +29,11 @@ class FetcherInterface:
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def fetch(self, url: str, max_length: int) -> Iterator[bytes]:
+    def fetch(self, url: str) -> Iterator[bytes]:
         """Fetches the contents of HTTP/HTTPS url from a remote server.
-
-        Ensures the length of the downloaded data is up to 'max_length'.
 
         Arguments:
             url: A URL string that represents a file location.
-            max_length: An integer value representing the maximum
-                number of bytes to be downloaded.
 
         Raises:
             tuf.exceptions.SlowRetrievalError: A timeout occurs while receiving
@@ -77,14 +73,22 @@ class FetcherInterface:
         number_of_bytes_received = 0
 
         with tempfile.TemporaryFile() as temp_file:
-            chunks = self.fetch(url, max_length)
+            chunks = self.fetch(url)
             for chunk in chunks:
-                temp_file.write(chunk)
                 number_of_bytes_received += len(chunk)
-            if number_of_bytes_received > max_length:
-                raise exceptions.DownloadLengthMismatchError(
-                    max_length, number_of_bytes_received
-                )
+                if number_of_bytes_received > max_length:
+                    raise exceptions.DownloadLengthMismatchError(
+                        max_length, number_of_bytes_received
+                    )
+
+                temp_file.write(chunk)
+
+            logger.debug(
+                "Downloaded %d out of %d bytes",
+                number_of_bytes_received,
+                max_length,
+            )
+
             temp_file.seek(0)
             yield temp_file
 

@@ -53,15 +53,11 @@ class RequestsFetcher(FetcherInterface):
         self.chunk_size: int = 400000  # bytes
         self.sleep_before_round: Optional[int] = None
 
-    def fetch(self, url: str, max_length: int) -> Iterator[bytes]:
-        """Fetches the contents of HTTP/HTTPS url from a remote server.
-
-        Ensures the length of the downloaded data is up to 'max_length'.
+    def fetch(self, url: str) -> Iterator[bytes]:
+        """Fetches the contents of HTTP/HTTPS url from a remote server
 
         Arguments:
             url: A URL string that represents a file location.
-            max_length: An integer value representing the maximum
-                number of bytes to be downloaded.
 
         Raises:
             exceptions.SlowRetrievalError: A timeout occurs while receiving
@@ -90,17 +86,14 @@ class RequestsFetcher(FetcherInterface):
             status = e.response.status_code
             raise exceptions.FetcherHTTPError(str(e), status)
 
-        return self._chunks(response, max_length)
+        return self._chunks(response)
 
-    def _chunks(
-        self, response: "requests.Response", max_length: int
-    ) -> Iterator[bytes]:
+    def _chunks(self, response: "requests.Response") -> Iterator[bytes]:
         """A generator function to be returned by fetch. This way the
         caller of fetch can differentiate between connection and actual data
         download."""
 
         try:
-            bytes_received = 0
             while True:
                 # We download a fixed chunk of data in every round. This is
                 # so that we can defend against slow retrieval attacks.
@@ -111,34 +104,18 @@ class RequestsFetcher(FetcherInterface):
                 if self.sleep_before_round:
                     time.sleep(self.sleep_before_round)
 
-                read_amount = min(
-                    self.chunk_size,
-                    max_length - bytes_received,
-                )
-
                 # NOTE: This may not handle some servers adding a
                 # Content-Encoding header, which may cause urllib3 to
                 #  misbehave:
                 # https://github.com/pypa/pip/blob/404838abcca467648180b358598c597b74d568c9/src/pip/_internal/download.py#L547-L582
-                data = response.raw.read(read_amount)
-                bytes_received += len(data)
+                data = response.raw.read(self.chunk_size)
 
-                # We might have no more data to read. Check number of bytes
-                # downloaded.
+                # We might have no more data to read, we signal
+                # that the download is complete.
                 if not data:
-                    # Finally, we signal that the download is complete.
                     break
 
                 yield data
-
-                if bytes_received >= max_length:
-                    break
-
-            logger.debug(
-                "Downloaded %d out of %d bytes",
-                bytes_received,
-                max_length,
-            )
 
         except urllib3.exceptions.ReadTimeoutError as e:
             raise exceptions.SlowRetrievalError(str(e))
