@@ -1256,6 +1256,6 @@ class Targets(Signed):
         return targets_dict
 
     # Modification.
-    def update(self, filename: str, fileinfo: TargetFile) -> None:
+    def update(self, fileinfo: TargetFile) -> None:
         """Assigns passed target file info to meta dict."""
-        self.targets[filename] = fileinfo
+        self.targets[fileinfo.path] = fileinfo
