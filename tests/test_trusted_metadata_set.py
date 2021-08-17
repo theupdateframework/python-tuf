@@ -277,6 +277,16 @@ class TestTrustedMetadataSet(unittest.TestCase):
         with self.assertRaises(exceptions.ExpiredMetadataError):
             self.trusted_set.update_timestamp(timestamp)
 
+    def test_update_snapshot_length_or_hash_mismatch(self):
+        def modify_snapshot_length(timestamp: Timestamp) -> None:
+            timestamp.meta["snapshot.json"].length = 1
+
+        # set known snapshot.json length to 1
+        timestamp = self.modify_metadata("timestamp", modify_snapshot_length)
+        self._root_updated_and_update_timestamp(timestamp)
+
+        with self.assertRaises(exceptions.RepositoryError):
+            self.trusted_set.update_snapshot(self.metadata["snapshot"])
 
     def test_update_snapshot_cannot_verify_snapshot_with_threshold(self):
         self._root_updated_and_update_timestamp(self.metadata["timestamp"])
