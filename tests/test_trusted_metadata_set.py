@@ -214,6 +214,13 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
             update_func(metadata)
 
+    def test_update_root_new_root(self):
+        # test that root can be updated with a new valid version
+        def root_new_version_modifier(root: Root) -> None:
+            root.version += 1
+
+        root = self.modify_metadata("root", root_new_version_modifier)
+        self.trusted_set.update_root(root)
 
     def test_update_root_new_root_cannot_be_verified_with_threshold(self):
         # new_root data with threshold which cannot be verified.
@@ -226,7 +233,6 @@ class TestTrustedMetadataSet(unittest.TestCase):
     def test_update_root_new_root_ver_same_as_trusted_root_ver(self):
         with self.assertRaises(exceptions.ReplayedMetadataError):
             self.trusted_set.update_root(self.metadata["root"])
-
 
     def test_root_update_finished_expired(self):
         def root_expired_modifier(root: Root) -> None:
@@ -249,13 +255,15 @@ class TestTrustedMetadataSet(unittest.TestCase):
         with self.assertRaises(exceptions.ReplayedMetadataError):
             self.trusted_set.update_timestamp(self.metadata["timestamp"])
 
-    def test_update_timestamp_snapshot_ver_below_trusted_snapshot_ver(self):
-        def version_modifier(timestamp: Timestamp) -> None:
-            timestamp.version = 3
+    def test_update_timestamp_snapshot_ver_below_current(self):
+        def bump_snapshot_version(timestamp: Timestamp) -> None:
+            timestamp.meta["snapshot.json"].version = 2
 
-        modified_timestamp = self.modify_metadata("timestamp", version_modifier)
-        self._root_updated_and_update_timestamp(modified_timestamp)
-        # new_timestamp.snapshot.version < trusted_timestamp.snapshot.version
+        # set current known snapshot.json version to 2
+        timestamp = self.modify_metadata("timestamp", bump_snapshot_version)
+        self._root_updated_and_update_timestamp(timestamp)
+
+        # newtimestamp.meta["snapshot.json"].version < trusted_timestamp.meta["snapshot.json"].version
         with self.assertRaises(exceptions.ReplayedMetadataError):
             self.trusted_set.update_timestamp(self.metadata["timestamp"])
 
@@ -322,7 +330,6 @@ class TestTrustedMetadataSet(unittest.TestCase):
         snapshot = self.modify_metadata("snapshot", snapshot_expired_modifier)
         with self.assertRaises(exceptions.ExpiredMetadataError):
             self.trusted_set.update_snapshot(snapshot)
-
 
     def test_update_targets_no_meta_in_snapshot(self):
         def no_meta_modifier(snapshot: Snapshot) -> None:
