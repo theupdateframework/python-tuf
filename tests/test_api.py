@@ -546,7 +546,7 @@ class TestMetadata(unittest.TestCase):
             targets.signed.targets[filename].to_dict(), fileinfo.to_dict()
         )
         # Update an already existing fileinfo
-        targets.signed.update(filename, fileinfo)
+        targets.signed.update(fileinfo)
         # Verify that data is updated
         self.assertEqual(
             targets.signed.targets[filename].to_dict(), fileinfo.to_dict()
