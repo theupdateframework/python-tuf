@@ -131,6 +131,13 @@ class TestTrustedMetadataSet(unittest.TestCase):
         # the 4 top level metadata objects + 2 additional delegated targets
         self.assertTrue(len(self.trusted_set), 6)
 
+        count = 0
+        for md in self.trusted_set:
+            self.assertIsInstance(md, Metadata)
+            count += 1
+
+        self.assertTrue(count, 6)
+
     def test_out_of_order_ops(self):
         # Update timestamp before root is finished
         with self.assertRaises(RuntimeError):
