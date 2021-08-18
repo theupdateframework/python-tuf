@@ -80,6 +80,23 @@ class TestTrustedMetadataSet(unittest.TestCase):
     def setUp(self) -> None:
         self.trusted_set = TrustedMetadataSet(self.metadata["root"])
 
+<<<<<<< HEAD
+=======
+    def _root_updated_and_update_timestamp(
+        self, timestamp_bytes: Optional[bytes] = None
+    ) -> None:
+        """Finsh root update and update timestamp with passed timestamp_bytes.
+
+        Args:
+            timestamp_bytes:
+                Bytes used when calling trusted_set.update_timestamp().
+                Default self.metadata["timestamp"].
+
+        """
+        timestamp_bytes = timestamp_bytes or self.metadata["timestamp"]
+        self.trusted_set.update_timestamp(timestamp_bytes)
+
+>>>>>>> 4dac69c6... ngclient: Remove root_update_finished()
 
     def _update_all_besides_targets(
         self,
