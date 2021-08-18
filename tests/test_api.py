@@ -183,7 +183,7 @@ class TestMetadata(unittest.TestCase):
 
     def test_sign_verify(self):
         root_path = os.path.join(self.repo_dir, 'metadata', 'root.json')
-        root:Root = Metadata.from_file(root_path).signed
+        root = Metadata[Root].from_file(root_path).signed
 
         # Locate the public keys we need from root
         targets_keyid = next(iter(root.roles["targets"].keyids))
@@ -302,7 +302,7 @@ class TestMetadata(unittest.TestCase):
     def test_metadata_snapshot(self):
         snapshot_path = os.path.join(
                 self.repo_dir, 'metadata', 'snapshot.json')
-        snapshot = Metadata.from_file(snapshot_path)
+        snapshot = Metadata[Snapshot].from_file(snapshot_path)
 
         # Create a MetaFile instance representing what we expect
         # the updated data to be.
@@ -321,7 +321,7 @@ class TestMetadata(unittest.TestCase):
     def test_metadata_timestamp(self):
         timestamp_path = os.path.join(
                 self.repo_dir, 'metadata', 'timestamp.json')
-        timestamp = Metadata.from_file(timestamp_path)
+        timestamp = Metadata[Timestamp].from_file(timestamp_path)
 
         self.assertEqual(timestamp.signed.version, 1)
         timestamp.signed.bump_version()
@@ -358,19 +358,19 @@ class TestMetadata(unittest.TestCase):
 
     def test_metadata_verify_delegate(self):
         root_path = os.path.join(self.repo_dir, 'metadata', 'root.json')
-        root = Metadata.from_file(root_path)
+        root = Metadata[Root].from_file(root_path)
         snapshot_path = os.path.join(
                 self.repo_dir, 'metadata', 'snapshot.json')
-        snapshot = Metadata.from_file(snapshot_path)
+        snapshot = Metadata[Snapshot].from_file(snapshot_path)
         targets_path = os.path.join(
                 self.repo_dir, 'metadata', 'targets.json')
-        targets = Metadata.from_file(targets_path)
+        targets = Metadata[Targets].from_file(targets_path)
         role1_path = os.path.join(
                 self.repo_dir, 'metadata', 'role1.json')
-        role1 = Metadata.from_file(role1_path)
+        role1 = Metadata[Targets].from_file(role1_path)
         role2_path = os.path.join(
                 self.repo_dir, 'metadata', 'role2.json')
-        role2 = Metadata.from_file(role2_path)
+        role2 = Metadata[Targets].from_file(role2_path)
 
         # test the expected delegation tree
         root.verify_delegate('root', root)
@@ -468,7 +468,7 @@ class TestMetadata(unittest.TestCase):
     def test_metadata_root(self):
         root_path = os.path.join(
                 self.repo_dir, 'metadata', 'root.json')
-        root = Metadata.from_file(root_path)
+        root = Metadata[Root].from_file(root_path)
 
         # Add a second key to root role
         root_key2 =  import_ed25519_publickey_from_file(
@@ -530,7 +530,7 @@ class TestMetadata(unittest.TestCase):
     def test_metadata_targets(self):
         targets_path = os.path.join(
                 self.repo_dir, 'metadata', 'targets.json')
-        targets = Metadata.from_file(targets_path)
+        targets = Metadata[Targets].from_file(targets_path)
 
         # Create a fileinfo dict representing what we expect the updated data to be
         filename = 'file2.txt'
@@ -560,7 +560,7 @@ class TestMetadata(unittest.TestCase):
         # for untrusted metadata file to verify.
         timestamp_path = os.path.join(
             self.repo_dir, 'metadata', 'timestamp.json')
-        timestamp = Metadata.from_file(timestamp_path)
+        timestamp = Metadata[Timestamp].from_file(timestamp_path)
         snapshot_metafile = timestamp.signed.meta["snapshot.json"]
 
         snapshot_path = os.path.join(
@@ -603,7 +603,7 @@ class TestMetadata(unittest.TestCase):
         # Test target files' hash and length verification
         targets_path = os.path.join(
             self.repo_dir, 'metadata', 'targets.json')
-        targets = Metadata.from_file(targets_path)
+        targets = Metadata[Targets].from_file(targets_path)
         file1_targetfile = targets.signed.targets['file1.txt']
         filepath = os.path.join(
             self.repo_dir, 'targets', 'file1.txt')
