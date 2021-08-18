@@ -300,33 +300,34 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
         timestamp = self.modify_metadata("timestamp", timestamp_version_modifier)
         self._root_updated_and_update_timestamp(timestamp)
-        # new_snapshot.version != trusted timestamp.meta["snapshot"].version
-        def snapshot_version_modifier(snapshot: Snapshot) -> None:
-            snapshot.version = 3
 
-        snapshot = self.modify_metadata("snapshot", snapshot_version_modifier)
+        #intermediate snapshot is allowed to not match meta version
+        self.trusted_set.update_snapshot(self.metadata["snapshot"])
+
+        # final snapshot must match meta version
         with self.assertRaises(exceptions.BadVersionNumberError):
-            self.trusted_set.update_snapshot(snapshot)
+            self.trusted_set.update_targets(self.metadata["targets"])
 
-    def test_update_snapshot_after_successful_update_new_snapshot_no_meta(self):
+
+    def test_update_snapshot_file_removed_from_meta(self):
         self._update_all_besides_targets(self.metadata["timestamp"])
-        # Test removing a meta_file in new_snapshot compared to the old snapshot
-        def no_meta_modifier(snapshot: Snapshot) -> None:
-            snapshot.meta = {}
+        def remove_file_from_meta(snapshot: Snapshot) -> None:
+            del snapshot.meta["targets.json"]
 
-        snapshot = self.modify_metadata("snapshot", no_meta_modifier)
+        # Test removing a meta_file in new_snapshot compared to the old snapshot
+        snapshot = self.modify_metadata("snapshot", remove_file_from_meta)
         with self.assertRaises(exceptions.RepositoryError):
             self.trusted_set.update_snapshot(snapshot)
 
-    def test_update_snapshot_after_succesfull_update_new_snapshot_meta_version_different(self):
+    def test_update_snapshot_meta_version_decreases(self):
         self._root_updated_and_update_timestamp(self.metadata["timestamp"])
-        # snapshot.meta["project1"].version != new_snapshot.meta["project1"].version
+
         def version_meta_modifier(snapshot: Snapshot) -> None:
-            for metafile_path in snapshot.meta.keys():
-                snapshot.meta[metafile_path].version += 1
+            snapshot.meta["targets.json"].version += 1
 
         snapshot = self.modify_metadata("snapshot", version_meta_modifier)
         self.trusted_set.update_snapshot(snapshot)
+
         with self.assertRaises(exceptions.BadVersionNumberError):
             self.trusted_set.update_snapshot(self.metadata["snapshot"])
 
@@ -342,6 +343,26 @@ class TestTrustedMetadataSet(unittest.TestCase):
         # update targets to trigger final snapshot expiry check
         with self.assertRaises(exceptions.ExpiredMetadataError):
             self.trusted_set.update_targets(self.metadata["targets"])
+
+    def test_update_snapshot_successful_rollback_checks(self):
+        def meta_version_bump(timestamp: Timestamp) -> None:
+            timestamp.meta["snapshot.json"].version += 1
+
+        def version_bump(snapshot: Snapshot) -> None:
+            snapshot.version += 1
+
+        # load a "local" timestamp, then update to newer one:
+        self.trusted_set.update_timestamp(self.metadata["timestamp"])
+        new_timestamp = self.modify_metadata("timestamp", meta_version_bump)
+        self.trusted_set.update_timestamp(new_timestamp)
+
+        # load a "local" snapshot, then update to newer one:
+        self.trusted_set.update_snapshot(self.metadata["snapshot"])
+        new_snapshot = self.modify_metadata("snapshot", version_bump)
+        self.trusted_set.update_snapshot(new_snapshot)
+
+        # update targets to trigger final snapshot meta version check
+        self.trusted_set.update_targets(self.metadata["targets"])
 
     def test_update_targets_no_meta_in_snapshot(self):
         def no_meta_modifier(snapshot: Snapshot) -> None:

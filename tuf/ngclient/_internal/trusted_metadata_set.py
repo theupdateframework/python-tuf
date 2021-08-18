@@ -240,9 +240,11 @@ class TrustedMetadataSet(abc.Mapping):
     def update_snapshot(self, data: bytes):
         """Verifies and loads 'data' as new snapshot metadata.
 
-        Note that an expired intermediate snapshot is considered valid so it
-        can be used for rollback checks on newer, final snapshot. Expiry is
-        only checked for the final snapshot in update_delegated_targets().
+        Note that intermediate snapshot is considered valid even if it is
+        expired or the version does not match the timestamp meta version. This
+        means the intermediate snapshot can be used for rollback checks on
+        newer, final snapshot. Expiry and meta version are only checked for
+        the final snapshot in update_delegated_targets().
 
         Args:
             data: unverified new snapshot metadata as bytes
@@ -285,18 +287,10 @@ class TrustedMetadataSet(abc.Mapping):
 
         self.root.verify_delegate("snapshot", new_snapshot)
 
-        if (
-            new_snapshot.signed.version
-            != self.timestamp.signed.meta["snapshot.json"].version
-        ):
-            raise exceptions.BadVersionNumberError(
-                f"Expected snapshot version "
-                f"{self.timestamp.signed.meta['snapshot.json'].version}, "
-                f"got {new_snapshot.signed.version}"
-            )
+        # version not checked against meta version to allow old snapshot to be
+        # used in rollback protection: it is checked when targets is updated
 
-        # If an existing trusted snapshot is updated,
-        # check for a rollback attack
+        # If an existing trusted snapshot is updated, check for rollback attack
         if self.snapshot is not None:
             for filename, fileinfo in self.snapshot.signed.meta.items():
                 new_fileinfo = new_snapshot.signed.meta.get(filename)
@@ -315,10 +309,24 @@ class TrustedMetadataSet(abc.Mapping):
                     )
 
         # expiry not checked to allow old snapshot to be used for rollback
-        # protection of new snapshot: expiry is checked in update_targets()
+        # protection of new snapshot: it is checked when targets is updated
 
         self._trusted_set["snapshot"] = new_snapshot
         logger.debug("Updated snapshot")
+
+    def _check_final_snapshot(self):
+        if self.snapshot.signed.is_expired(self.reference_time):
+            raise exceptions.ExpiredMetadataError("snapshot.json is expired")
+
+        if (
+            self.snapshot.signed.version
+            != self.timestamp.signed.meta["snapshot.json"].version
+        ):
+            raise exceptions.BadVersionNumberError(
+                f"Expected snapshot version "
+                f"{self.timestamp.signed.meta['snapshot.json'].version}, "
+                f"got {self.snapshot.signed.version}"
+            )
 
     def update_targets(self, data: bytes):
         """Verifies and loads 'data' as new top-level targets metadata.
@@ -349,10 +357,10 @@ class TrustedMetadataSet(abc.Mapping):
         if self.snapshot is None:
             raise RuntimeError("Cannot load targets before snapshot")
 
-        # Local snapshot was allowed to be expired to allow for rollback
-        # checks on new snapshot but now snapshot must not be expired
-        if self.snapshot.signed.is_expired(self.reference_time):
-            raise exceptions.ExpiredMetadataError("snapshot.json is expired")
+        # Local snapshot was allowed to be expired and to not match meta
+        # version to allow for rollback checks on new snapshot but now
+        # snapshot must not be expired and must match meta version
+        self._check_final_snapshot()
 
         delegator: Optional[Metadata] = self.get(delegator_name)
         if delegator is None:
