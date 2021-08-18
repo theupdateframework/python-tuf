@@ -252,8 +252,12 @@ class Updater:
         else:
             target_base_url = _ensure_trailing_slash(target_base_url)
 
-        target_filepath = targetinfo["filepath"]
         target_fileinfo: "TargetFile" = targetinfo["fileinfo"]
+        target_filepath = targetinfo["filepath"]
+        consistent_snapshot = self._trusted_set.root.signed.consistent_snapshot
+        if consistent_snapshot and self.config.prefix_targets_with_hash:
+            hashes = list(target_fileinfo.hashes.values())
+            target_filepath = f"{hashes[0]}.{target_filepath}"
         full_url = parse.urljoin(target_base_url, target_filepath)
 
         with self._fetcher.download_file(
@@ -266,8 +270,11 @@ class Updater:
                     f"{target_filepath} length or hashes do not match"
                 ) from e
 
-            filepath = os.path.join(destination_directory, target_filepath)
-            sslib_util.persist_temp_file(target_file, filepath)
+            # Store the target file name without the HASH prefix.
+            local_filepath = os.path.join(
+                destination_directory, targetinfo["filepath"]
+            )
+            sslib_util.persist_temp_file(target_file, local_filepath)
 
     def _download_metadata(
         self, rolename: str, length: int, version: Optional[int] = None
