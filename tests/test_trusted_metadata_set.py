@@ -268,9 +268,13 @@ class TestTrustedMetadataSet(unittest.TestCase):
         def timestamp_expired_modifier(timestamp: Timestamp) -> None:
             timestamp.expires = datetime(1970, 1, 1)
 
+        # intermediate timestamp is allowed to be expired
         timestamp = self.modify_metadata("timestamp", timestamp_expired_modifier)
+        self.trusted_set.update_timestamp(timestamp)
+
+        # update snapshot to trigger final timestamp expiry check
         with self.assertRaises(exceptions.ExpiredMetadataError):
-            self.trusted_set.update_timestamp(timestamp)
+            self.trusted_set.update_snapshot(self.metadata["snapshot"])
 
     def test_update_snapshot_length_or_hash_mismatch(self):
         def modify_snapshot_length(timestamp: Timestamp) -> None:
@@ -328,13 +332,16 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
     def test_update_snapshot_expired_new_snapshot(self):
         self._root_updated_and_update_timestamp(self.metadata["timestamp"])
-        # new_snapshot has expired
         def snapshot_expired_modifier(snapshot: Snapshot) -> None:
             snapshot.expires = datetime(1970, 1, 1)
 
+        # intermediate snapshot is allowed to be expired
         snapshot = self.modify_metadata("snapshot", snapshot_expired_modifier)
+        self.trusted_set.update_snapshot(snapshot)
+
+        # update targets to trigger final snapshot expiry check
         with self.assertRaises(exceptions.ExpiredMetadataError):
-            self.trusted_set.update_snapshot(snapshot)
+            self.trusted_set.update_targets(self.metadata["targets"])
 
     def test_update_targets_no_meta_in_snapshot(self):
         def no_meta_modifier(snapshot: Snapshot) -> None:
