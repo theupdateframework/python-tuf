@@ -92,7 +92,6 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
         """
         timestamp_bytes = timestamp_bytes or self.metadata["timestamp"]
-        self.trusted_set.root_update_finished()
         self.trusted_set.update_timestamp(timestamp_bytes)
 
 
@@ -118,7 +117,6 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
 
     def test_update(self):
-        self.trusted_set.root_update_finished()
         self.trusted_set.update_timestamp(self.metadata["timestamp"])
         self.trusted_set.update_snapshot(self.metadata["snapshot"])
         self.trusted_set.update_targets(self.metadata["targets"])
@@ -139,23 +137,15 @@ class TestTrustedMetadataSet(unittest.TestCase):
         self.assertTrue(count, 6)
 
     def test_out_of_order_ops(self):
-        # Update timestamp before root is finished
-        with self.assertRaises(RuntimeError):
-            self.trusted_set.update_timestamp(self.metadata["timestamp"])
-
-        self.trusted_set.root_update_finished()
-        with self.assertRaises(RuntimeError):
-            self.trusted_set.root_update_finished()
-
-        # Update root after a previous successful root update
-        with self.assertRaises(RuntimeError):
-            self.trusted_set.update_root(self.metadata["root"])
-
         # Update snapshot before timestamp
         with self.assertRaises(RuntimeError):
             self.trusted_set.update_snapshot(self.metadata["snapshot"])
 
         self.trusted_set.update_timestamp(self.metadata["timestamp"])
+
+        # Update root after timestamp
+        with self.assertRaises(RuntimeError):
+            self.trusted_set.update_root(self.metadata["root"])
 
         # Update targets before snapshot
         with self.assertRaises(RuntimeError):
@@ -198,8 +188,6 @@ class TestTrustedMetadataSet(unittest.TestCase):
         with self.assertRaises(exceptions.RepositoryError):
             self.trusted_set.update_root(self.metadata["snapshot"])
 
-        self.trusted_set.root_update_finished()
-
         top_level_md = [
             (self.metadata["timestamp"], self.trusted_set.update_timestamp),
             (self.metadata["snapshot"], self.trusted_set.update_snapshot),
@@ -241,15 +229,16 @@ class TestTrustedMetadataSet(unittest.TestCase):
         with self.assertRaises(exceptions.ReplayedMetadataError):
             self.trusted_set.update_root(self.metadata["root"])
 
-    def test_root_update_finished_expired(self):
+    def test_root_expired_final_root(self):
         def root_expired_modifier(root: Root) -> None:
             root.expires = datetime(1970, 1, 1)
  
+        # intermediate root can be expired
         root = self.modify_metadata("root", root_expired_modifier)
         tmp_trusted_set = TrustedMetadataSet(root)
-        # call root_update_finished when trusted root has expired
+        # update timestamp to trigger final root expiry check
         with self.assertRaises(exceptions.ExpiredMetadataError):
-            tmp_trusted_set.root_update_finished()
+            tmp_trusted_set.update_timestamp(self.metadata["timestamp"])
 
 
     def test_update_timestamp_new_timestamp_ver_below_trusted_ver(self):
@@ -275,7 +264,6 @@ class TestTrustedMetadataSet(unittest.TestCase):
             self.trusted_set.update_timestamp(self.metadata["timestamp"])
 
     def test_update_timestamp_expired(self):
-        self.trusted_set.root_update_finished()
         # new_timestamp has expired
         def timestamp_expired_modifier(timestamp: Timestamp) -> None:
             timestamp.expires = datetime(1970, 1, 1)
