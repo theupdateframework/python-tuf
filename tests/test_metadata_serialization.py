@@ -142,6 +142,7 @@ class TestSerialization(unittest.TestCase):
     valid_roles: DataSet = {
         "all": '{"keyids": ["keyid"], "threshold": 3}',
         "many keyids": '{"keyids": ["a", "b", "c", "d", "e"], "threshold": 1}',
+        "empty keyids": '{"keyids": [], "threshold": 1}',
         "unrecognized field": '{"keyids": ["keyid"], "threshold": 3, "foo": "bar"}',
     }
 
@@ -166,6 +167,11 @@ class TestSerialization(unittest.TestCase):
             "expires": "2030-01-01T00:00:00Z", \
             "keys": {"keyid" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"} }}, \
             "roles": { "targets": {"keyids": ["keyid"], "threshold": 3} } \
+            }',
+        "empty keys and roles": '{"_type": "root", "spec_version": "1.0.0", "version": 1, \
+            "expires": "2030-01-01T00:00:00Z", "consistent_snapshot": false, \
+            "keys": {}, \
+            "roles": {} \
             }',
         "unrecognized field": '{"_type": "root", "spec_version": "1.0.0", "version": 1, \
             "expires": "2030-01-01T00:00:00Z", "consistent_snapshot": false, \
@@ -257,12 +263,17 @@ class TestSerialization(unittest.TestCase):
 
 
     valid_delegated_roles: DataSet = {
+        # DelegatedRole inherits Role and some use cases can be found in the valid_roles.
         "no hash prefix attribute":
             '{"keyids": ["keyid"], "name": "a", "paths": ["fn1", "fn2"], \
             "terminating": false, "threshold": 1}',
         "no path attribute":
             '{"keyids": ["keyid"], "name": "a", "terminating": false, \
             "path_hash_prefixes": ["h1", "h2"], "threshold": 99}',
+        "empty paths": '{"keyids": ["keyid"], "name": "a", "paths": [], \
+            "terminating": false, "threshold": 1}',
+        "empty path_hash_prefixes": '{"keyids": ["keyid"], "name": "a", "terminating": false, \
+            "path_hash_prefixes": [], "threshold": 99}',
         "unrecognized field":
             '{"keyids": ["keyid"], "name": "a", "terminating": true, "paths": ["fn1"], "threshold": 3, "foo": "bar"}',
         "many keyids":
@@ -278,6 +289,7 @@ class TestSerialization(unittest.TestCase):
 
 
     invalid_delegated_roles: DataSet = {
+        # DelegatedRole inherits Role and some use cases can be found in the invalid_roles.
         "missing hash prefixes and paths":
             '{"name": "a", "keyids": ["keyid"], "threshold": 1, "terminating": false}',
         "both hash prefixes and paths":
