@@ -1,5 +1,5 @@
-Client API
-==========
+ngclient
+========
 
 .. toctree::
    :maxdepth: 4
