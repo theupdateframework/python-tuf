@@ -116,7 +116,7 @@ class TrustedMetadataSet(abc.Mapping):
 
     def __iter__(self) -> Iterator[Metadata]:
         """Returns iterator over all Metadata objects in TrustedMetadataSet"""
-        return iter(self._trusted_set)
+        return iter(self._trusted_set.values())
 
     # Helper properties for top level metadata
     @property
