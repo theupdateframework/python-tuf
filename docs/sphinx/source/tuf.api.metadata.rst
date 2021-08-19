@@ -1,4 +1,4 @@
-Metadata API
+Metadata
 ---------------------------------
 
 .. automodule:: tuf.api.metadata
