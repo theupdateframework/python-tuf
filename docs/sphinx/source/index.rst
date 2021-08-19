@@ -1,19 +1,17 @@
-Welcome to TUF's documentation!
-===============================
+TUF Developer Documentation
+===========================
 
-This is the documentation of the **reference implementation** of
-`The Update Framework (TUF) <https://theupdateframework.github.io/>`_.
+This documentation provides essential information for those developing software
+with the `Python reference implementation of The Update Framework (TUF)
+<https://github.com/theupdateframework/tuf>`_.
 
-The reference implementation strives to be a readable guide and demonstration
-for those working on implementing TUF in their own languages, environments, or
-update systems. It is written in Python and intended to conform to version 1.0 of the
-`TUF specification <https://theupdateframework.github.io/specification/latest/>`_.
-
+The reference implementation provides easy-to-use components for Python
+developers but also aims to be a readable guide and demonstration for those
+working on implementing TUF in their own languages, environments, or update
+systems.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
    
-   modern-implementation
-   legacy-implementation
-
+   api-reference
