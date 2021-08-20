@@ -14,4 +14,6 @@ systems.
    :maxdepth: 1
    :caption: Contents:
    
-   api-reference
+   api/api-reference
+   CONTRIBUTORS
+   INSTALLATION
