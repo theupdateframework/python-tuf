@@ -4,7 +4,7 @@ build/*
 env/*
 
 # docs build directory
-docs/sphinx/build/*
+docs/build/*
 
 # global file patterns
 *.log

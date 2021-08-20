@@ -8,7 +8,7 @@ version: 2
 # Build documentation with Sphinx
 sphinx:
    builder: html
-   configuration: docs/sphinx/source/conf.py
+   configuration: docs/conf.py
 
 # Optionally build your docs in additional formats such as PDF
 formats: []

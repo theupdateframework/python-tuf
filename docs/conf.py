@@ -12,7 +12,7 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath(os.path.join('..', '..', '..')))
+sys.path.insert(0, os.path.abspath(os.path.join('..')))
 
 import tuf
 
@@ -38,8 +38,7 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
-
+exclude_patterns = ['GETTING_STARTED.rst', 'OVERVIEW.rst', 'TAP.rst']
 
 # -- Options for HTML output -------------------------------------------------
 
