@@ -293,6 +293,7 @@ class Updater:
 
     def _persist_metadata(self, rolename: str, data: bytes):
         original_filepath = os.path.join(self._dir, f"{rolename}.json")
+
         temp_file = open(f'{rolename}_temp.json', 'wb+')
         temp_file.write(data)
         sslib_util.persist_temp_file(temp_file, original_filepath, should_close=True)
