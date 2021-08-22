@@ -292,8 +292,10 @@ class Updater:
             return f.read()
 
     def _persist_metadata(self, rolename: str, data: bytes):
-        with open(os.path.join(self._dir, f"{rolename}.json"), "wb") as f:
-            f.write(data)
+        original_filepath = os.path.join(self._dir, f"{rolename}.json")
+        temp_file = open(f'{rolename}_temp.json', 'wb+')
+        temp_file.write(data)
+        sslib_util.persist_temp_file(temp_file, original_filepath, should_close=True)
 
     def _load_root(self) -> None:
         """Load remote root metadata.
