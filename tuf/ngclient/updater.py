@@ -297,6 +297,7 @@ class Updater:
         temp_file.write(data)
         sslib_util.persist_temp_file(temp_file, original_filepath, should_close=True)
 
+
     def _load_root(self) -> None:
         """Load remote root metadata.
 
