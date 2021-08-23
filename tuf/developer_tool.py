@@ -749,7 +749,7 @@ def _save_project_configuration(metadata_directory, targets_directory,
     project_config['public_keys'][key] = key_metadata
 
   # Save the actual file.
-  with open(project_filename, 'wt') as fp:
+  with open(project_filename, 'wt', encoding='utf8') as fp:
     json.dump(project_config, fp)
 
 
