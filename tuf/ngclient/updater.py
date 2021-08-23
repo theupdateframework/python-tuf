@@ -1,9 +1,9 @@
 # Copyright 2020, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""TUF module that implements the client update workflow.
+"""Client update workflow implementation
 
-This module contains the Updater class that provides an implementation of the
+The Updater class provides an implementation of the
 `TUF client workflow
 <https://theupdateframework.github.io/specification/latest/#detailed-client-workflow>`_.
 Updater provides an API to query available targets and to download them in a
@@ -37,7 +37,7 @@ is:
       metadata at "/tuf-repo/" and targets at "/targets/"
     * Local metadata directory "~/tufclient/metadata/" is writable and contains
       a root metadata version for the remote repository
-    * Download directory "~/target-downloads/" is writable
+    * Download directory "~/tufclient/downloads/" is writable
 
 Example::
 
