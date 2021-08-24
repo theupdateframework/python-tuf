@@ -51,11 +51,7 @@ import errno
 import sys
 import unittest
 import json
-
-if sys.version_info >= (3, 3):
-  import unittest.mock as mock
-else:
-  import mock
+import unittest.mock as mock
 
 import tuf
 import tuf.exceptions

@@ -12,13 +12,11 @@ import logging
 import unittest
 import copy
 
-from typing import Dict, Callable, Optional, Mapping, Any
-from datetime import datetime
+from typing import Dict, Callable
 
 from tests import utils
 
 from tuf.api.metadata import (
-    Signed,
     Root,
     Snapshot,
     Timestamp,

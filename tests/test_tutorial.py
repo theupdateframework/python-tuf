@@ -28,12 +28,7 @@ import os # part of TUTORIAL.md, but also needed separately
 import shutil
 import tempfile
 import sys
-
-if sys.version_info >= (3, 3):
-  import unittest.mock as mock
-
-else:
-  import mock
+import unittest.mock as mock
 
 from tuf.repository_tool import *   # part of TUTORIAL.md
 
