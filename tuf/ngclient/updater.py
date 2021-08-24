@@ -293,15 +293,20 @@ class Updater:
             return f.read()
 
     def _persist_metadata(self, rolename: str, data: bytes):
-        """To ensure there is no chance for loss of data during writing, the data is first written to a
-        temp file followed by an atomic move operation to the correct file location to make sure that 
-        if data writing process is halted or interrupted, the original data is not lost.
+        """Saving metadata in one move operation. To ensure there is
+        no chance for loss of data during writing,
+        the data is first written to temp file followed by
+        an atomic move operation to the correct file location
+        to make sure that if data writing process is halted
+        or interrupted, the original data is not lost.
         """
-        
-        original_filename = open(f"{rolename}.json", 'a+')
-        file_out = tempfile.NamedTemporaryFile(dir=os.path.dirname(original_filename), delete=False)
-        file_out.write(data)
-        os.replace(file_out.name, original_filename)
+
+        file_name = os.path.join(self._dir, f"{rolename}.json")
+        with tempfile.NamedTemporaryFile(
+            dir=self._dir, delete=False
+        ) as temp_file:
+            temp_file.write(data)
+        os.replace(temp_file.name, file_name)
 
     def _load_root(self) -> None:
         """Load remote root metadata.
