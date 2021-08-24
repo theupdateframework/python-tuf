@@ -60,8 +60,10 @@ Example::
 
 import logging
 import os
+import tempfile
 from typing import Any, Dict, List, Optional, Set, Tuple
 from urllib import parse
+
 
 from securesystemslib import util as sslib_util
 
@@ -71,13 +73,13 @@ from tuf.ngclient._internal import requests_fetcher, trusted_metadata_set
 from tuf.ngclient.config import UpdaterConfig
 from tuf.ngclient.fetcher import FetcherInterface
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(_name_)
 
 
 class Updater:
     """Implementation of the TUF client workflow."""
 
-    def __init__(
+    def _init_(
         self,
         repository_dir: str,
         metadata_base_url: str,
@@ -292,8 +294,17 @@ class Updater:
             return f.read()
 
     def _persist_metadata(self, rolename: str, data: bytes):
-        with open(os.path.join(self._dir, f"{rolename}.json"), "wb") as f:
-            f.write(data)
+        """To ensure there is no chance for loss of data during writing, the data is first written to a
+        temp file followed by an atomic move operation to the correct file location to make sure that 
+        if data writing process is halted or interrupted, the original data is not lost.
+        """
+        
+        original_filename = f"{rolename}.json"
+        file_out = tempfile.NamedTemporaryFile(dir=os.path.dirname(original_filename), delete=False)
+        file_out.write(data)
+        os.replace(file_out.name, original_filename)
+
+
 
     def _load_root(self) -> None:
         """Load remote root metadata.
