@@ -60,8 +60,10 @@ Example::
 
 import logging
 import os
+import tempfile
 from typing import Any, Dict, List, Optional, Set, Tuple
 from urllib import parse
+
 
 from securesystemslib import util as sslib_util
 
@@ -292,11 +294,13 @@ class Updater:
             return f.read()
 
     def _persist_metadata(self, rolename: str, data: bytes):
+        original_filename = f"{rolename}.json"
         original_filepath = os.path.join(self._dir, f"{rolename}.json")
+        with open(original_filepath, 'wb+') as original_file, tempfile.NamedTemporaryFile(
+            dir=os.path.dirname(original_filepath), delete=False) as file_out:
+            file_out.write(data)
+            os.replace(file_out.name, original_filepath)
 
-        temp_file = open(f'{rolename}_temp.json', 'wb+')
-        temp_file.write(data)
-        sslib_util.persist_temp_file(temp_file, original_filepath, should_close=True)
 
 
     def _load_root(self) -> None:
