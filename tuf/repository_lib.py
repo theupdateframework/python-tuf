@@ -119,7 +119,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
 
   elif rolename == 'snapshot':
-    metadata = generate_snapshot_metadata(metadata_directory,
+    metadata, fileinfodict = generate_snapshot_metadata(metadata_directory,
         roleinfo['version'], roleinfo['expires'],
         storage_backend, consistent_snapshot, repository_name,
         use_length=use_snapshot_length, use_hashes=use_snapshot_hashes)
@@ -128,10 +128,10 @@ def _generate_and_write_metadata(rolename, metadata_filename,
       root, leaves = _build_rsa_acc(fileinfodict)
 
       # Add the rsa accumulator to the timestamp roleinfo
-      timestamp_roleinfo = tuf.roledb.get_roleinfo('timestamp', repository_name)
+      timestamp_roleinfo = roledb.get_roleinfo('timestamp', repository_name)
       timestamp_roleinfo['rsa_acc'] = root
 
-      tuf.roledb.update_roleinfo('timestamp', timestamp_roleinfo,
+      roledb.update_roleinfo('timestamp', timestamp_roleinfo,
           repository_name=repository_name)
 
 
@@ -145,7 +145,8 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
     metadata = generate_timestamp_metadata(snapshot_file_path, roleinfo['version'],
         roleinfo['expires'], storage_backend, repository_name,
-        use_length=use_timestamp_length, use_hashes=use_timestamp_hashes)
+        use_length=use_timestamp_length, use_hashes=use_timestamp_hashes,
+        roleinfo=roleinfo)
 
     _log_warning_if_expires_soon(TIMESTAMP_FILENAME, roleinfo['expires'],
         TIMESTAMP_EXPIRES_WARN_SECONDS)
@@ -392,6 +393,8 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
   metadata_files = sorted(storage_backend.list_folder(metadata_directory))
   for metadata_role in metadata_files:
     if metadata_role.endswith('root.json'):
+      continue
+    if metadata_role.endswith('-snapshot.json'):
       continue
 
     metadata_path = os.path.join(metadata_directory, metadata_role)
@@ -1697,9 +1700,8 @@ def _write_rsa_proofs(root, leaves, storage_backend, rsa_acc_directory, version)
 
   for l in leaves:
     # Write the leaf to the rsa_acc_directory
-    print(l)
-    file_contents = tuf.formats.build_dict_conforming_to_schema(
-        tuf.formats.SNAPSHOT_RSA_ACC_SCHEMA,
+    file_contents = formats.build_dict_conforming_to_schema(
+        formats.SNAPSHOT_RSA_ACC_SCHEMA,
         leaf_contents=l.contents,
         rsa_acc_proof=str(l.proof))
     file_content = _get_written_metadata(file_contents)
@@ -1861,11 +1863,13 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   #       generate_root_metadata, etc. with one function that generates
   #       metadata, possibly rolling that upwards into the calling function.
   #       There are very few things that really need to be done differently.
-  return formats.build_dict_conforming_to_schema(
+  metadata = formats.build_dict_conforming_to_schema(
       formats.SNAPSHOT_SCHEMA,
       version=version,
       expires=expiration_date,
       meta=fileinfodict)
+
+  return metadata, fileinfodict
 
 
 
@@ -1873,7 +1877,8 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
 
 
 def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
-    storage_backend, repository_name, use_length=True, use_hashes=True):
+    storage_backend, repository_name, use_length=True, use_hashes=True,
+    roleinfo=None):
   """
   <Purpose>
     Generate the timestamp metadata object.  The 'snapshot.json' file must
@@ -1952,8 +1957,8 @@ def generate_timestamp_metadata(snapshot_file_path, version, expiration_date,
 
   if roleinfo and 'rsa_acc' in roleinfo:
     rsa_acc = roleinfo['rsa_acc']
-    return tuf.formats.build_dict_conforming_to_schema(
-        tuf.formats.TIMESTAMP_SCHEMA,
+    return formats.build_dict_conforming_to_schema(
+        formats.TIMESTAMP_SCHEMA,
         version=version,
         expires=expiration_date,
         meta=snapshot_fileinfo,

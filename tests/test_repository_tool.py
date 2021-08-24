@@ -503,16 +503,13 @@ class TestRepository(unittest.TestCase):
     # Construct list of file paths expected, determining absolute paths.
     expected_files = []
     for filepath in ['1.root.json', 'root.json', 'targets.json',
-<<<<<<< HEAD
-        'snapshot.json', 'timestamp.json', 'role1.json', 'role2.json']:
-=======
         'snapshot.json', 'timestamp.json', 'role1.json', 'role2.json',
         'targets-snapshot.json', 'timestamp-rsa.json',
         'role1-snapshot.json', 'role2-snapshot.json']:
->>>>>>> a71659bb (Add initial poc for RSA Accumulator snapshots: repo side)
       expected_files.append(os.path.abspath(os.path.join(
           'repository_data', 'repository', 'metadata', filepath)))
 
+    print(sorted(metadata_files))
     self.assertEqual(sorted(expected_files), sorted(metadata_files))
 
 

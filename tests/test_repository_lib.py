@@ -470,7 +470,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
     root_1, leaves = repo_lib._build_rsa_acc(test_nodes)
-    repo_lib._write_rsa_leaves(root_1, leaves, storage_backend,
+    repo_lib._write_rsa_proofs(root_1, leaves, storage_backend,
         temporary_directory, version)
 
     # Ensure that the paths are written to the directory
@@ -480,6 +480,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     file_path = os.path.join(temporary_directory, '1.file1-snapshot.json')
     self.assertTrue(os.path.exists(file_path))
 
+    # TODO: check against the correct root value
     self.assertEqual(root_1, 5)
 
     test_nodes = {}
@@ -533,7 +534,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     metadata_directory, version, expiration_date, storage_backend = \
         self._setup_generate_snapshot_metadata_test()
 
-    snapshot_metadata = \
+    snapshot_metadata, _ = \
       repo_lib.generate_snapshot_metadata(metadata_directory, version,
                                           expiration_date,
                                           storage_backend,
@@ -561,7 +562,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     metadata_directory, version, expiration_date, storage_backend = \
         self._setup_generate_snapshot_metadata_test()
 
-    snapshot_metadata = \
+    snapshot_metadata, _ = \
       repo_lib.generate_snapshot_metadata(metadata_directory, version,
                                           expiration_date,
                                           storage_backend,
@@ -592,7 +593,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     metadata_directory, version, expiration_date, storage_backend = \
         self._setup_generate_snapshot_metadata_test()
 
-    snapshot_metadata = \
+    snapshot_metadata, _ = \
       repo_lib.generate_snapshot_metadata(metadata_directory, version,
                                           expiration_date,
                                           storage_backend,
@@ -623,7 +624,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     metadata_directory, version, expiration_date, storage_backend = \
         self._setup_generate_snapshot_metadata_test()
 
-    snapshot_metadata = \
+    snapshot_metadata, _ = \
       repo_lib.generate_snapshot_metadata(metadata_directory, version,
                                           expiration_date,
                                           storage_backend,
