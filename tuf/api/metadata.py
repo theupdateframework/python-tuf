@@ -1385,3 +1385,34 @@ class Targets(Signed):
     def update(self, fileinfo: TargetFile) -> None:
         """Assigns passed target file info to meta dict."""
         self.targets[fileinfo.path] = fileinfo
+
+    def add_key(self, role: str, key: Key) -> None:
+        """Adds new signing key for delegated role 'role'.
+
+        Raises:
+            ValueError: If there are no delegated roles or if 'role' is not
+                delegated by this Target.
+        """
+        if self.delegations is None or role not in self.delegations.roles:
+            raise ValueError(f"Delegated role {role} doesn't exist")
+        self.delegations.roles[role].keyids.add(key.keyid)
+        self.delegations.keys[key.keyid] = key
+
+    def remove_key(self, role: str, keyid: str) -> None:
+        """Removes key from delegated role 'role' and updates the delegations
+        key store.
+
+        Raises:
+            ValueError: If there are no delegated roles or if 'role' is not
+                delegated by this Target or if key is not used by 'role'.
+        """
+        if self.delegations is None or role not in self.delegations.roles:
+            raise ValueError(f"Delegated role {role} doesn't exist")
+        if keyid not in self.delegations.roles[role].keyids:
+            raise ValueError(f"Key with id {keyid} is not used by {role}")
+        self.delegations.roles[role].keyids.remove(keyid)
+        for keyinfo in self.delegations.roles.values():
+            if keyid in keyinfo.keyids:
+                return
+
+        del self.delegations.keys[keyid]
