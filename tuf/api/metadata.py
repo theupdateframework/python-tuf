@@ -358,10 +358,7 @@ class Metadata(Generic[T]):
                 raise ValueError(f"No delegation found for {delegated_role}")
 
             keys = self.signed.delegations.keys
-            roles = self.signed.delegations.roles
-            # Assume role names are unique in delegations.roles: #1426
-            # Find first role in roles with matching name (or None if no match)
-            role = next((r for r in roles if r.name == delegated_role), None)
+            role = self.signed.delegations.roles.get(delegated_role)
         else:
             raise TypeError("Call is valid only on delegator metadata")
 
@@ -1146,16 +1143,17 @@ class Delegations:
 
     Attributes:
         keys: Dictionary of keyids to Keys. Defines the keys used in 'roles'.
-        roles: List of DelegatedRoles that define which keys are required to
-            sign the metadata for a specific role. The roles order also
-            defines the order that role delegations are considered in.
+        roles: Ordered dictionary of role names to DelegatedRoles instances. It
+            defines which keys are required to sign the metadata for a specific
+            role. The roles order also defines the order that role delegations
+            are considered in.
         unrecognized_fields: Dictionary of all unrecognized fields.
     """
 
     def __init__(
         self,
         keys: Dict[str, Key],
-        roles: List[DelegatedRole],
+        roles: "OrderedDict[str, DelegatedRole]",
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
         self.keys = keys
@@ -1170,17 +1168,19 @@ class Delegations:
         for keyid, key_dict in keys.items():
             keys_res[keyid] = Key.from_dict(keyid, key_dict)
         roles = delegations_dict.pop("roles")
-        roles_res = []
+        roles_res: "OrderedDict[str, DelegatedRole]" = OrderedDict()
         for role_dict in roles:
             new_role = DelegatedRole.from_dict(role_dict)
-            roles_res.append(new_role)
+            if new_role.name in roles_res:
+                raise ValueError(f"Duplicate role {new_role.name}")
+            roles_res[new_role.name] = new_role
         # All fields left in the delegations_dict are unrecognized.
         return cls(keys_res, roles_res, delegations_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
         keys = {keyid: key.to_dict() for keyid, key in self.keys.items()}
-        roles = [role_obj.to_dict() for role_obj in self.roles]
+        roles = [role_obj.to_dict() for role_obj in self.roles.values()]
         return {
             "keys": keys,
             "roles": roles,

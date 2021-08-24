@@ -430,7 +430,7 @@ class Updater:
                 child_roles_to_visit = []
                 # NOTE: This may be a slow operation if there are many
                 # delegated roles.
-                for child_role in role_metadata.delegations.roles:
+                for child_role in role_metadata.delegations.roles.values():
                     if child_role.is_delegated_path(target_filepath):
                         logger.debug("Adding child role %s", child_role.name)
 
