@@ -79,7 +79,7 @@ logger = logging.getLogger(__name__)
 class Updater:
     """Implementation of the TUF client workflow."""
 
-    def _init_(
+    def __init__(
         self,
         repository_dir: str,
         metadata_base_url: str,
