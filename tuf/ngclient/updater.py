@@ -320,9 +320,6 @@ class Updater:
                 # 404/403 means current root is newest available
                 break
 
-        # Verify final root
-        self._trusted_set.root_update_finished()
-
     def _load_timestamp(self) -> None:
         """Load local and remote timestamp metadata"""
         try:
