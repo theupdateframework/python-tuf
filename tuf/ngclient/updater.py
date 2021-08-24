@@ -73,7 +73,7 @@ from tuf.ngclient._internal import requests_fetcher, trusted_metadata_set
 from tuf.ngclient.config import UpdaterConfig
 from tuf.ngclient.fetcher import FetcherInterface
 
-logger = logging.getLogger(_name_)
+logger = logging.getLogger(__name__)
 
 
 class Updater:
