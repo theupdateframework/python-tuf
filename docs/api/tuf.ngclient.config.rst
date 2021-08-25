@@ -5,4 +5,3 @@ Configuration
    :members:
    :undoc-members:
    :show-inheritance:
-

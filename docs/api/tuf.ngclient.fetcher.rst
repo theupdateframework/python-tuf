@@ -5,6 +5,3 @@ Fetcher
    :members:
    :undoc-members:
    :show-inheritance:
-
-
-
