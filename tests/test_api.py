@@ -28,7 +28,6 @@ from tuf.api.metadata import (
     Timestamp,
     Targets,
     Key,
-    Role,
     MetaFile,
     TargetFile,
     Delegations,
@@ -420,49 +419,6 @@ class TestMetadata(unittest.TestCase):
         # threshold of 2 keys
         snapshot.sign(SSlibSigner(self.keystore['timestamp']), append=True)
         root.verify_delegate('snapshot', snapshot)
-
-
-    def test_key_class(self):
-        keys = {
-            "59a4df8af818e9ed7abe0764c0b47b4240952aa0d179b5b78346c470ac30278d":{
-                "keytype": "ed25519",
-                "keyval": {
-                    "public": "edcd0a32a07dce33f7c7873aaffbff36d20ea30787574ead335eefd337e4dacd"
-                },
-                "scheme": "ed25519"
-            },
-        }
-        for key_dict in keys.values():
-            # Test creating an instance without a required attribute.
-            for key in key_dict.keys():
-                test_key_dict = key_dict.copy()
-                del test_key_dict[key]
-                with self.assertRaises(KeyError):
-                    Key.from_dict("id", test_key_dict)
-
-
-    def test_role_class(self):
-        roles = {
-            "root": {
-                "keyids": [
-                    "4e777de0d275f9d28588dd9a1606cc748e548f9e22b6795b7cb3f63f98035fcb"
-                ],
-                "threshold": 1
-            },
-            "snapshot": {
-                "keyids": [
-                    "59a4df8af818e9ed7abe0764c0b47b4240952aa0d179b5b78346c470ac30278d"
-                ],
-                "threshold": 1
-            },
-        }
-        for role_dict in roles.values():
-            # Test creating an instance without a required attribute.
-            for role_attr in role_dict.keys():
-                test_role_dict = role_dict.copy()
-                del test_role_dict[role_attr]
-                with self.assertRaises(KeyError):
-                    Role.from_dict(test_role_dict)
 
 
     def test_metadata_root(self):
