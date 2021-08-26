@@ -11,4 +11,4 @@ sphinx-rtd-theme
 # sphinx-rtd-theme and fail to render some features.
 # Pin the version until readthedocs release their fix
 # (readthedocs/sphinx_rtd_theme#1113).
-docutils<0.17.0
+docutils<0.18.0
