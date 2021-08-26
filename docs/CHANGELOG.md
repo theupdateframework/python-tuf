@@ -1,5 +1,67 @@
 # Changelog
 
+## v0.18.0
+
+0.18 is a big release with 3 main themes:
+* Support only Python 3 and modernize the infrastructure accordingly
+* Metadata API (a low-level API for metadata de/serialization and
+  modification) is now feature-complete for the client use cases
+* ngclient (a new high-level client API) was added. ngclient should be
+  considered an unstable API and is not yet recommended for production
+  use.
+
+Additionally the Github project name changed: project is now "python-tuf"
+instead of "tuf". Redirects are in place for the old name but updating links is
+advised.
+
+### Added
+* Add ADR6: Where to implement serialization (#1270)
+* Add ADR8: Unrecognized fields (#1343)
+* Add ADR9: Refine reference implementation purpose (#1554)
+* Add client Network IO abstraction (#1250, #1302)
+* Add many features to Metadata API to support de/serializing
+  specification-compliant metadata, and safer access through API:
+  * Metadata.from_bytes()/to_bytes() (#1354, #1490)
+  * Key, Role (#1360, #1386, #1423, #1480, #1481, #1520)
+  * DelegationRole, Delegations (#1370, #1512)
+  * MetaFile, TargetFile (#1329, #1437, #1454, #1514)
+  * verification of threshold of signatures (#1435, #1436)
+  * expiration check method (#1347)
+  * support unrecognized fields in metadata (#1345)
+  * use Generics to improve static typing (#1457)
+* Extensive Metadata API testing and validation
+  (#1359, #1416, #1416, #1430, #1449, #1450, #1451, #1460, #1466, #1511)
+* Add ngclient: a new client library implementation
+  (#1408, #1448, #1463 #1467, #1470, #1474, #1501, #1509, #1519, #1524)
+* Infrastructure improvements:
+  * mypy, black and isort integration (#1314, #1363, #1395, #1455, #1489)
+  * API reference documentation build (#1517)
+
+### Removed
+* Remove Python 2 support (#1293)
+* Remove direct dependency on six
+* Remove obsolete reference to Thandy in a LICENSE file (#1472)
+
+### Changed
+* Bump dependencies:
+  * Certifi
+  * Cryptography
+  * Idna
+  * Requests
+  * Securesystemslib
+  * Six
+  * Urllib3
+* Replace indirect dependency chardet with charset-normalizer
+* Move Metadata API serialization to sub-package (#1279)
+* Use SecureSystemslib Signer interface in Metadata API (#1272)
+* Make imports compatible with vendoring (#1261)
+
+### Fixed
+* 'ecdsa' is a supported key type (#1453)
+* Fix various build infrastructure issues (#1289, #1295, #1321, #1327, #1364,
+  #1369, #1542)
+* Test fixes (#1337, #1346)
+
 ## v0.17.0
 **NOTE**: this will be the final release of tuf that supports Python 2.7.
 This is because Python 2.7 was marked [end-of-life](
