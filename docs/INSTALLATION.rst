@@ -12,19 +12,13 @@ is available on our `website
 and on the `maintainers page
 <https://github.com/theupdateframework/tuf/blob/develop/docs/MAINTAINERS.txt>`_.
 
-The latest release and its packaging information, such as who signed the
-release and their PGP fingerprint, can also be found on our 1-year `roadmap
-<ROADMAP.md>`_.
-
-
 
 Release Verification
 --------------------
 
-Assuming you trust `the maintainer's PGP key <MAINTAINERS.txt>`_, the detached
-ASC signature can be downloaded and verified.  For example:
-
-::
+Assuming you trust `the maintainer's PGP key
+<https://github.com/theupdateframework/tuf/blob/develop/docs/MAINTAINERS.txt>`_,
+the detached ASC signature can be downloaded and verified.  For example::
 
    $ gpg --verify securesystemslib-0.10.8.tar.gz.asc
    gpg: assuming signed data in 'securesystemslib-0.10.8.tar.gz'
@@ -42,20 +36,20 @@ installation, done simply with one of the following commands:
 
 Installing from Python Package Index (https://pypi.python.org/pypi).
 (Note: Please use "python3 -m pip install --no-use-wheel tuf" if your version
-of pip <= 1.5.6)
-::
+of pip <= 1.5.6)::
+
     $ python3 -m pip install tuf
 
 
 **Alternatively**, if you wish to install from a GitHub release you've already
 downloaded, or a package you obtained in another way, you can instead:
 
-Install from a local source archive:
-::
+Install from a local source archive::
+
     $ python3 -m pip install <path to archive>
 
-Or install from the root directory of the unpacked archive:
-::
+Or install from the root directory of the unpacked archive::
+
     $ python3 -m pip install .
 
 
@@ -68,8 +62,8 @@ be verified, in pure Python.  To fully support RSA, Ed25519, ECDSA, and
 other crypto, you must install the extra dependencies declared by
 securesystemslib.  **Note**: that may require non-Python dependencies, so if
 you encounter an error attempting this pip command, see
-`more instructions below <#non-python-dependencies>`_).
-::
+`more instructions below <#non-python-dependencies>`_). ::
+
     $ python3 -m pip install securesystemslib[crypto,pynacl] tuf
 
 
@@ -84,17 +78,16 @@ For example, PyNaCl and Cryptography -- two libraries used in the full
 installation to support certain cryptographic functions -- may require FFI
 (Foreign Function Interface) development header files.
 
-Debian-based distributions can install the necessary header libraries with apt
-(Advanced Package Tool.)
-::
+Debian-based distributions can install the necessary header libraries with apt::
+
     $ apt-get install build-essential libssl-dev libffi-dev python-dev
 
-Fedora-based distributions can instead install these libraries with dnf.
-::
+Fedora-based distributions can instead install these libraries with dnf::
+
     $ dnf install libffi-devel redhat-rpm-config openssl-devel
 
 OS X users can install these header libraries with the `Homebrew <https://brew.sh/>`_
-package manager, among other options.
-::
+package manager, among other options::
+
     $ brew install python3
     $ brew install libffi
