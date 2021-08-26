@@ -98,7 +98,7 @@ class TrustedMetadataSet(abc.Mapping):
         # Load and validate the local root metadata. Valid initial trusted root
         # metadata is required
         logger.debug("Updating initial trusted root")
-        self.update_root(root_data)
+        self._load_trusted_root(root_data)
 
     def __getitem__(self, role: str) -> Metadata:
         """Returns current Metadata for 'role'"""
@@ -161,15 +161,15 @@ class TrustedMetadataSet(abc.Mapping):
                 f"Expected 'root', got '{new_root.signed.type}'"
             )
 
-        if self._trusted_set.get("root") is not None:
-            # We are not loading initial trusted root: verify the new one
-            self.root.verify_delegate("root", new_root)
+        # Verify that new root is signed by trusted root
+        self.root.verify_delegate("root", new_root)
 
-            if new_root.signed.version != self.root.signed.version + 1:
-                raise exceptions.ReplayedMetadataError(
-                    "root", new_root.signed.version, self.root.signed.version
-                )
+        if new_root.signed.version != self.root.signed.version + 1:
+            raise exceptions.ReplayedMetadataError(
+                "root", new_root.signed.version, self.root.signed.version
+            )
 
+        # Verify that new root is signed by itself
         new_root.verify_delegate("root", new_root)
 
         self._trusted_set["root"] = new_root
@@ -409,3 +409,24 @@ class TrustedMetadataSet(abc.Mapping):
 
         self._trusted_set[role_name] = new_delegate
         logger.debug("Updated %s delegated by %s", role_name, delegator_name)
+
+    def _load_trusted_root(self, data: bytes) -> None:
+        """Verifies and loads 'data' as trusted root metadata.
+
+        Note that an expired initial root is considered valid: expiry is
+        only checked for the final root in update_timestamp().
+        """
+        try:
+            new_root = Metadata[Root].from_bytes(data)
+        except DeserializationError as e:
+            raise exceptions.RepositoryError("Failed to load root") from e
+
+        if new_root.signed.type != "root":
+            raise exceptions.RepositoryError(
+                f"Expected 'root', got '{new_root.signed.type}'"
+            )
+
+        new_root.verify_delegate("root", new_root)
+
+        self._trusted_set["root"] = new_root
+        logger.debug("Loaded trusted root")
