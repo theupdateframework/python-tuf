@@ -340,7 +340,7 @@ class TestSerialization(unittest.TestCase):
     def test_invalid_targetfile_serialization(self, test_case_data: Dict[str, str]):
         case_dict = json.loads(test_case_data)
         with self.assertRaises(KeyError):
-            TargetFile.from_dict(copy.deepcopy(case_dict))
+            TargetFile.from_dict(copy.deepcopy(case_dict), "file1.txt")
 
 
     valid_targetfiles: DataSet = {
@@ -354,7 +354,7 @@ class TestSerialization(unittest.TestCase):
     @run_sub_tests_with_dataset(valid_targetfiles)
     def test_targetfile_serialization(self, test_case_data: str):
         case_dict = json.loads(test_case_data)
-        target_file = TargetFile.from_dict(copy.copy(case_dict))
+        target_file = TargetFile.from_dict(copy.copy(case_dict), "file1.txt")
         self.assertDictEqual(case_dict, target_file.to_dict())
 
 

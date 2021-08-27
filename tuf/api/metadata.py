@@ -1140,6 +1140,8 @@ class TargetFile(BaseFile):
     Attributes:
         length: An integer indicating the length of the target file.
         hashes: A dictionary of hash algorithm names to hash values.
+        path: A string denoting the path to a target file relative to a base
+            URL of targets.
         unrecognized_fields: Dictionary of all unrecognized fields.
     """
 
@@ -1147,6 +1149,7 @@ class TargetFile(BaseFile):
         self,
         length: int,
         hashes: Dict[str, str],
+        path: str,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
 
@@ -1155,6 +1158,7 @@ class TargetFile(BaseFile):
 
         self.length = length
         self.hashes = hashes
+        self.path = path
         self.unrecognized_fields = unrecognized_fields or {}
 
     @property
@@ -1162,13 +1166,13 @@ class TargetFile(BaseFile):
         return self.unrecognized_fields.get("custom", None)
 
     @classmethod
-    def from_dict(cls, target_dict: Dict[str, Any]) -> "TargetFile":
+    def from_dict(cls, target_dict: Dict[str, Any], path: str) -> "TargetFile":
         """Creates TargetFile object from its dict representation."""
         length = target_dict.pop("length")
         hashes = target_dict.pop("hashes")
 
         # All fields left in the target_dict are unrecognized.
-        return cls(length, hashes, target_dict)
+        return cls(length, hashes, path, target_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the JSON-serializable dictionary representation of self."""
@@ -1234,7 +1238,9 @@ class Targets(Signed):
             delegations = Delegations.from_dict(delegations_dict)
         res_targets = {}
         for target_path, target_info in targets.items():
-            res_targets[target_path] = TargetFile.from_dict(target_info)
+            res_targets[target_path] = TargetFile.from_dict(
+                target_info, target_path
+            )
         # All fields left in the targets_dict are unrecognized.
         return cls(*common_args, res_targets, delegations, signed_dict)
 
@@ -1250,6 +1256,6 @@ class Targets(Signed):
         return targets_dict
 
     # Modification.
-    def update(self, filename: str, fileinfo: TargetFile) -> None:
+    def update(self, fileinfo: TargetFile) -> None:
         """Assigns passed target file info to meta dict."""
-        self.targets[filename] = fileinfo
+        self.targets[fileinfo.path] = fileinfo

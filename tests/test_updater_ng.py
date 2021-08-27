@@ -162,8 +162,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     targetinfo3 = self.repository_updater.get_one_valid_targetinfo("file3.txt")
 
     # Create consistent targets with file path HASH.FILENAME.EXT
-    target1_hash = list(targetinfo1["fileinfo"].hashes.values())[0]
-    target3_hash = list(targetinfo3["fileinfo"].hashes.values())[0]
+    target1_hash = list(targetinfo1.hashes.values())[0]
+    target3_hash = list(targetinfo3.hashes.values())[0]
     self._create_consistent_target("file1.txt", target1_hash)
     self._create_consistent_target("file3.txt", target3_hash)
 
