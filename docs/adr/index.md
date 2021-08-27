@@ -12,8 +12,8 @@ This log lists the architectural decisions for tuf.
 - [ADR-0005](0005-use-google-python-style-guide.md) - Use Google Python style guide with minimal refinements
 - [ADR-0006](0006-where-to-implemenent-model-serialization.md) - Separate metadata serialization from metadata class model but keep helpers
 
-
 - [ADR-0008](0008-accept-unrecognised-fields.md) - Accept metadata that includes unrecognized fields
+- [ADR-0009](0009-what-is-a-reference-implementation.md) - Primary purpose of the reference implementation
 
 <!-- adrlogstop -->
 
