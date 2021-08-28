@@ -63,7 +63,14 @@ Example::
 import logging
 import os
 import tempfile
+<<<<<<< HEAD
+=======
+
+>>>>>>> 36b84e071e49c9dd2cd0c1ca371d172e4decd6c2
 from typing import Any, Dict, List, Optional, Set, Tuple
+
+from typing import List, Optional, Set, Tuple
+
 from urllib import parse
 
 from securesystemslib import util as sslib_util
