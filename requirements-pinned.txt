@@ -1,11 +1,11 @@
 certifi==2021.5.30        # via requests
 cffi==1.14.6              # via cryptography, pynacl
 charset-normalizer==2.0.4 # via requests
-cryptography==3.4.7       # via securesystemslib
+cryptography==3.4.8       # via securesystemslib
 idna==3.2                 # via requests
 pycparser==2.20           # via cffi
 pynacl==1.4.0             # via securesystemslib
 requests==2.26.0
-securesystemslib[crypto,pynacl]==0.20.1
+securesystemslib[crypto,pynacl]==0.21.0
 six==1.16.0               # via pynacl, securesystemslib
 urllib3==1.26.6           # via requests

@@ -3,6 +3,9 @@ dist/*
 build/*
 env/*
 
+# docs build directory
+docs/build/*
+
 # global file patterns
 *.log
 *.pyc
