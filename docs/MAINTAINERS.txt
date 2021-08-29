@@ -44,3 +44,4 @@ Maintainers:
   Jussi Kukkonen
     Email: jkukkonen@vmware.com
     Github username: @jku
+    PGP fingerprint: 1343 C98F AB84 859F E5EC  9E37 0527 D8A3 7F52 1A2F
