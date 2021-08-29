@@ -62,6 +62,7 @@ Example::
 
 import logging
 import os
+import tempfile
 from typing import List, Optional, Set, Tuple
 from urllib import parse
 
@@ -290,8 +291,17 @@ class Updater:
             return f.read()
 
     def _persist_metadata(self, rolename: str, data: bytes):
-        with open(os.path.join(self._dir, f"{rolename}.json"), "wb") as f:
-            f.write(data)
+        """Acts as an atomic write operation to make sure
+        that if the process of writing is halted, at least the
+        original data is left intact.
+        """
+
+        original_filename = os.path.join(self._dir, f"{rolename}.json")
+        with tempfile.NamedTemporaryFile(
+            dir=self._dir, delete=False
+        ) as temp_file:
+            temp_file.write(data)
+        os.replace(temp_file.name, original_filename)
 
     def _load_root(self) -> None:
         """Load remote root metadata.
