@@ -7,7 +7,7 @@
 
 import logging
 import time
-from typing import Iterator, Optional
+from typing import Dict, Iterator, Optional
 from urllib import parse
 
 # Imports
@@ -31,7 +31,7 @@ class RequestsFetcher(FetcherInterface):
             session per scheme+hostname combination.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # http://docs.python-requests.org/en/master/user/advanced/#session-objects:
         #
         # "The Session object allows you to persist certain parameters across
@@ -46,7 +46,7 @@ class RequestsFetcher(FetcherInterface):
         # improve efficiency, but avoiding sharing state between different
         # hosts-scheme combinations to minimize subtle security issues.
         # Some cookies may not be HTTP-safe.
-        self._sessions = {}
+        self._sessions: Dict[str, requests.Session] = {}
 
         # Default settings
         self.socket_timeout: int = 4  # seconds
@@ -141,12 +141,12 @@ class RequestsFetcher(FetcherInterface):
             )
 
         except urllib3.exceptions.ReadTimeoutError as e:
-            raise exceptions.SlowRetrievalError(str(e))
+            raise exceptions.SlowRetrievalError from e
 
         finally:
             response.close()
 
-    def _get_session(self, url):
+    def _get_session(self, url: str) -> requests.Session:
         """Returns a different customized requests.Session per schema+hostname
         combination.
         """

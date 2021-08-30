@@ -13,3 +13,4 @@ isort
 pylint
 mypy
 bandit
+types-requests
