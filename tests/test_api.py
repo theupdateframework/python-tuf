@@ -623,6 +623,28 @@ class TestMetadata(unittest.TestCase):
             self.assertRaises(exceptions.LengthOrHashMismatchError,
                 file1_targetfile.verify_length_and_hashes, file1)
 
+    def test_is_delegated_role(self):
+        # test path matches
+        # see more extensive tests in test_is_target_in_pathpattern()
+        for paths in [
+            ["a/path"],
+            ["otherpath", "a/path"],
+            ["*/?ath"],
+        ]:
+            role = DelegatedRole("", [], 1, False, paths, None)
+            self.assertFalse(role.is_delegated_path("a/non-matching path"))
+            self.assertTrue(role.is_delegated_path("a/path"))
+
+        # test path hash prefix matches: sha256 sum of "a/path" is 927b0ecf9...
+        for hash_prefixes in [
+            ["927b0ecf9"],
+            ["other prefix", "927b0ecf9"],
+            ["927b0"],
+            ["92"],
+        ]:
+            role = DelegatedRole("", [], 1, False, None, hash_prefixes)
+            self.assertFalse(role.is_delegated_path("a/non-matching path"))
+            self.assertTrue(role.is_delegated_path("a/path"))
 
 # Run unit test.
 if __name__ == '__main__':
