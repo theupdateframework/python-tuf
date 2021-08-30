@@ -431,16 +431,14 @@ class TestMetadata(unittest.TestCase):
         self.assertFalse('private' in key.keyval.keys())
 
 
-    def test_metadata_root(self):
+    def test_root_add_key_and_remove_key(self):
         root_path = os.path.join(
                 self.repo_dir, 'metadata', 'root.json')
         root = Metadata[Root].from_file(root_path)
 
-        # Add a second key to root role
+        # Create a new key
         root_key2 =  import_ed25519_publickey_from_file(
                     os.path.join(self.keystore_dir, 'root_key2.pub'))
-
-
         keyid = root_key2['keyid']
         key_metadata = Key(keyid, root_key2['keytype'], root_key2['scheme'],
             root_key2['keyval'])
@@ -465,11 +463,17 @@ class TestMetadata(unittest.TestCase):
         root.signed.add_key('root', key_metadata)
         self.assertEqual(pre_add_keyid, root.signed.roles['root'].keyids)
 
-        # Remove the key
-        root.signed.remove_key('root', keyid)
+        # Add the same key to targets role as well
+        root.signed.add_key('targets', key_metadata)
 
-        # Assert that root does not contain the new key anymore
+        # Remove the key from root role (targets role still uses it)
+        root.signed.remove_key('root', keyid)
         self.assertNotIn(keyid, root.signed.roles['root'].keyids)
+        self.assertIn(keyid, root.signed.keys)
+
+        # Remove the key from targets as well
+        root.signed.remove_key('targets', keyid)
+        self.assertNotIn(keyid, root.signed.roles['targets'].keyids)
         self.assertNotIn(keyid, root.signed.keys)
 
         with self.assertRaises(KeyError):
