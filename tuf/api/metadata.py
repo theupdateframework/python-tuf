@@ -19,7 +19,6 @@ import abc
 import fnmatch
 import io
 import logging
-import os
 import tempfile
 from collections import OrderedDict
 from datetime import datetime, timedelta
@@ -1057,9 +1056,34 @@ class DelegatedRole(Role):
             res_dict["path_hash_prefixes"] = self.path_hash_prefixes
         return res_dict
 
+    @staticmethod
+    def _is_target_in_pathpattern(targetpath: str, pathpattern: str) -> bool:
+        """Determines whether "targetname" matches the "pathpattern"."""
+        # We need to make sure that targetname and pathpattern are pointing to
+        # the same directory as fnmatch doesn't threat "/" as a special symbol.
+        target_parts = targetpath.split("/")
+        pattern_parts = pathpattern.split("/")
+        if len(target_parts) != len(pattern_parts):
+            return False
+
+        # Every part in the pathpattern could include a glob pattern, that's why
+        # each of the target and pathpattern parts should match.
+        for target_dir, pattern_dir in zip(target_parts, pattern_parts):
+            if not fnmatch.fnmatch(target_dir, pattern_dir):
+                return False
+
+        return True
+
     def is_delegated_path(self, target_filepath: str) -> bool:
         """Determines whether the given 'target_filepath' is in one of
-        the paths that DelegatedRole is trusted to provide"""
+        the paths that DelegatedRole is trusted to provide.
+
+        The target_filepath and the DelegatedRole paths are expected to be in
+        their canonical forms, so e.g. "a/b" instead of "a//b" . Only "/" is
+        supported as target path separator. Leading separators are not handled
+        as special cases (see `TUF specification on targetpath
+        <https://theupdateframework.github.io/specification/latest/#targetpath>`_).
+        """
 
         if self.path_hash_prefixes is not None:
             # Calculate the hash of the filepath
@@ -1075,13 +1099,8 @@ class DelegatedRole(Role):
         elif self.paths is not None:
             for pathpattern in self.paths:
                 # A delegated role path may be an explicit path or glob
-                # pattern (Unix shell-style wildcards). Explicit filepaths
-                # are also considered matches. Make sure to strip any leading
-                # path separators so that a match is made.
-                # Example: "foo.tgz" should match with "/*.tgz".
-                if fnmatch.fnmatch(
-                    target_filepath.lstrip(os.sep), pathpattern.lstrip(os.sep)
-                ):
+                # pattern (Unix shell-style wildcards).
+                if self._is_target_in_pathpattern(target_filepath, pathpattern):
                     return True
 
         return False
