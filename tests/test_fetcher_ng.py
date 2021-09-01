@@ -107,6 +107,20 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
             self.fetcher.fetch(self.url)
         self.assertEqual(cm.exception.status_code, 404)
 
+    # Read timeout error
+    def test_read_timeout(self):
+        # Reduce the read socket timeout to speed up the test
+        # while keeping the connect timeout
+        default_socket_timeout = self.fetcher.socket_timeout
+        self.fetcher.socket_timeout = (default_socket_timeout, 0.1)
+        # Launch a new "slow retrieval" server sending one byte each 40s
+        slow_server_process_handler = utils.TestServerProcess(log=logger, server='slow_retrieval_server.py')
+        self.url = f"http://{utils.TEST_HOST_ADDRESS}:{str(slow_server_process_handler.port)}/{self.rel_target_filepath}"
+        with self.assertRaises(exceptions.SlowRetrievalError):
+            next(self.fetcher.fetch(self.url))
+
+        slow_server_process_handler.clean()
+
     # Simple bytes download
     def test_download_bytes(self):
         data = self.fetcher.download_bytes(self.url, self.file_length)
