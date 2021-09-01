@@ -36,7 +36,7 @@ class JSONDeserializer(MetadataDeserializer):
             json_dict = json.loads(raw_data.decode("utf-8"))
             metadata_obj = Metadata.from_dict(json_dict)
 
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:
             raise DeserializationError from e
 
         return metadata_obj
@@ -66,7 +66,7 @@ class JSONSerializer(MetadataSerializer):
                 sort_keys=True,
             ).encode("utf-8")
 
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:
             raise SerializationError from e
 
         return json_bytes
@@ -83,7 +83,7 @@ class CanonicalJSONSerializer(SignedSerializer):
             signed_dict = signed_obj.to_dict()
             canonical_bytes = encode_canonical(signed_dict).encode("utf-8")
 
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:
             raise SerializationError from e
 
         return canonical_bytes
