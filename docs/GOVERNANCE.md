@@ -2,13 +2,13 @@
 This document covers the project's governance and committer process.  The
 project consists of the TUF
 [specification](https://github.com/theupdateframework/specification) and
-[reference implementation](https://github.com/theupdateframework/tuf).
+[reference implementation](https://github.com/theupdateframework/python-tuf).
 
 ## Maintainership and Consensus Builder
 The project is maintained by the people indicated in
 [MAINTAINERS](MAINTAINERS.txt).  A maintainer is expected to (1) submit and
 review GitHub pull requests and (2) open issues or [submit vulnerability
-reports](https://github.com/theupdateframework/tuf#security-issues-and-bugs).
+reports](https://github.com/theupdateframework/python-tuf#security-issues-and-bugs).
 A maintainer has the authority to approve or reject pull requests submitted by
 contributors.    
 
@@ -27,7 +27,7 @@ guidelines](https://github.com/secure-systems-lab/code-style-guidelines), and
 must unit test any new software feature or change.  Submitted pull requests
 undergo review and automated testing, including, but not limited to:
 
-* Unit and build testing via [GitHub Actions](https://github.com/theupdateframework/tuf/actions) and
+* Unit and build testing via [GitHub Actions](https://github.com/theupdateframework/python-tuf/actions) and
 [Tox](https://tox.readthedocs.io/en/latest/).
 * Static code analysis via [Pylint](https://www.pylint.org/) and
 [Bandit](https://wiki.openstack.org/wiki/Security/Projects/Bandit).

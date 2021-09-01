@@ -93,7 +93,7 @@ To work on the TUF project, it's best to perform a development install.
 
 ::
 
-    $ git clone https://github.com/theupdateframework/tuf
+    $ git clone https://github.com/theupdateframework/python-tuf
 
 3. Then perform a full, editable/development install.  This will include all
    optional cryptographic support, the testing/linting dependencies, etc.

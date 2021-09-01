@@ -1,6 +1,6 @@
 # Separate metadata serialization from metadata class model but keep helpers
 
-Technical Story: https://github.com/theupdateframework/tuf/pull/1279
+Technical Story: https://github.com/theupdateframework/python-tuf/pull/1279
 
 ## Context and Problem Statement
 In the course of implementing a class-based role metadata model we have also
@@ -107,10 +107,10 @@ as `Metadata.to_dict()`, etc.
 
 ## Links
 * [ADR4: Add classes for complex metadata attributes (decision driver)](/Users/lukp/tuf/tuf/docs/adr/0004-extent-of-OOP-in-metadata-model.md)
-* [PR: Add simple TUF role metadata model (implements option 1)](https://github.com/theupdateframework/tuf/pull/1112)
-  - [details about separation of serialization and instantiation](https://github.com/theupdateframework/tuf/commit/f63dce6dddb9cfbf8986141340c6fac00a36d46e)
-  - [code comment about issues with inheritance](https://github.com/theupdateframework/tuf/blob/9401059101b08a18abc5e3be4d60e18670693f62/tuf/api/metadata.py#L297-L306)
-* [PR: New metadata API: add MetadataInfo and TargetFile classes (recent ADR discussion impetus)](https://github.com/theupdateframework/tuf/pull/1223)
-  - [more discussion about issues with inheritance](https://github.com/theupdateframework/tuf/pull/1223#issuecomment-737188686)
+* [PR: Add simple TUF role metadata model (implements option 1)](https://github.com/theupdateframework/python-tuf/pull/1112)
+  - [details about separation of serialization and instantiation](https://github.com/theupdateframework/python-tuf/commit/f63dce6dddb9cfbf8986141340c6fac00a36d46e)
+  - [code comment about issues with inheritance](https://github.com/theupdateframework/python-tuf/blob/9401059101b08a18abc5e3be4d60e18670693f62/tuf/api/metadata.py#L297-L306)
+* [PR: New metadata API: add MetadataInfo and TargetFile classes (recent ADR discussion impetus)](https://github.com/theupdateframework/python-tuf/pull/1223)
+  - [more discussion about issues with inheritance](https://github.com/theupdateframework/python-tuf/pull/1223#issuecomment-737188686)
 * [SSLIB/Issue: Add metadata container classes (comparison of options 1 and 2)](https://github.com/secure-systems-lab/securesystemslib/issues/272)
 * [tuf-on-a-plane parser (implements option 3)](https://github.com/trishankatdatadog/tuf-on-a-plane/blob/master/src/tuf_on_a_plane/parsers/)

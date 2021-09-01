@@ -2,7 +2,7 @@
 
 * Date: 2020-11-05
 
-Technical Story: https://github.com/theupdateframework/tuf/issues/1127
+Technical Story: https://github.com/theupdateframework/python-tuf/issues/1127
 
 ## Context and Problem Statement
 
