@@ -16,7 +16,7 @@ import tuf.unittest_toolbox as unittest_toolbox
 
 from tests import utils
 from tuf.api.metadata import Metadata
-from tuf import ngclient
+from tuf import exceptions, ngclient
 from securesystemslib.signer import SSlibSigner
 from securesystemslib.interface import import_rsa_privatekey_from_file
 
@@ -40,10 +40,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Launch a SimpleHTTPServer (serves files in the current directory).
     # Test cases will request metadata and target files that have been
     # pre-generated in 'tuf/tests/repository_data', which will be served
-    # by the SimpleHTTPServer launched here.  The test cases of 'test_updater.py'
-    # assume the pre-generated metadata files have a specific structure, such
-    # as a delegated role 'targets/role1', three target files, five key files,
-    # etc.
+    # by the SimpleHTTPServer launched here.
     cls.server_process_handler = utils.TestServerProcess(log=logger,
         server=cls.SIMPLE_SERVER_PATH)
 
@@ -99,6 +96,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     self.metadata_url = f"{url_prefix}/metadata/"
     self.targets_url = f"{url_prefix}/targets/"
+    self.destination_directory = self.make_temp_directory()
     # Creating a repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
     self.repository_updater = ngclient.Updater(self.client_directory,
@@ -128,34 +126,36 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     )
     shutil.copy(source_path, destination_path)
 
-
-  def _make_root_file_with_consistent_snapshot_true(self) -> None:
-    """Swap the existing root file inside the client directory with a new root
-    file where the consistent_snapshot is set to true."""
-    root_path = os.path.join(self.client_directory, "root.json")
-    root = Metadata.from_file(root_path)
-    root.signed.consistent_snapshot = True
+  def _modify_repository_root(self, modification_func, bump_version=False) -> None:
+    """Apply 'modification_func' to root and persist it."""
+    role_path = os.path.join(self.repository_directory, "metadata", "root.json")
+    root = Metadata.from_file(role_path)
+    modification_func(root)
+    if bump_version:
+      root.signed.bump_version()
     root_key_path = os.path.join(self.keystore_directory, "root_key")
     root_key_dict = import_rsa_privatekey_from_file(
             root_key_path, password="password"
     )
-    root_signer = SSlibSigner(root_key_dict)
-    root.sign(root_signer)
-    # Remove the old root file and replace it with the newer root file.
-    os.remove(root_path)
-    root.to_file(root_path)
-
+    signer = SSlibSigner(root_key_dict)
+    root.sign(signer)
+    root.to_file(os.path.join(self.repository_directory, "metadata", "root.json"))
+    root.to_file(os.path.join(self.repository_directory, "metadata", f"{root.signed.version}.root.json"))
 
   def test_refresh_on_consistent_targets(self):
-    # Generate a new root file where consistent_snapshot is set to true and
-    # replace the old root metadata file with it.
-    self._make_root_file_with_consistent_snapshot_true()
+    # Generate a new root version where consistent_snapshot is set to true
+    def consistent_snapshot_modifier(root):
+      root.signed.consistent_snapshot = True
+
+    self._modify_repository_root(consistent_snapshot_modifier, bump_version=True)
     self.repository_updater = ngclient.Updater(self.client_directory,
                                               self.metadata_url,
                                               self.targets_url)
+
     # All metadata is in local directory already
     self.repository_updater.refresh()
-
+    # Make sure that consistent snapshot is enabled
+    self.assertTrue(self.repository_updater._trusted_set.root.signed.consistent_snapshot)
     # Get targetinfo for "file1.txt" listed in targets
     targetinfo1 = self.repository_updater.get_one_valid_targetinfo("file1.txt")
     # Get targetinfo for "file3.txt" listed in the delegated role1
@@ -167,27 +167,26 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self._create_consistent_target("file1.txt", target1_hash)
     self._create_consistent_target("file3.txt", target3_hash)
 
-    destination_directory = self.make_temp_directory()
     updated_targets = self.repository_updater.updated_targets(
-      [targetinfo1, targetinfo3], destination_directory
+      [targetinfo1, targetinfo3], self.destination_directory
     )
 
     self.assertListEqual(updated_targets, [targetinfo1, targetinfo3])
-    self.repository_updater.download_target(targetinfo1, destination_directory)
+    self.repository_updater.download_target(targetinfo1, self.destination_directory)
     updated_targets = self.repository_updater.updated_targets(
-      updated_targets, destination_directory
+      updated_targets, self.destination_directory
     )
 
     self.assertListEqual(updated_targets, [targetinfo3])
 
-    self.repository_updater.download_target(targetinfo3, destination_directory)
+    self.repository_updater.download_target(targetinfo3, self.destination_directory)
     updated_targets = self.repository_updater.updated_targets(
-      updated_targets, destination_directory
+      updated_targets, self.destination_directory
     )
 
     self.assertListEqual(updated_targets, [])
 
-  def test_refresh(self):
+  def test_refresh_and_download(self):
     # Test refresh without consistent targets - targets without hash prefixes.
 
     # All metadata is in local directory already
@@ -198,22 +197,25 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Get targetinfo for 'file3.txt' listed in the delegated role1
     targetinfo3 = self.repository_updater.get_one_valid_targetinfo("file3.txt")
 
-    destination_directory = self.make_temp_directory()
     updated_targets = self.repository_updater.updated_targets([targetinfo1, targetinfo3],
-                                                      destination_directory)
+                                                      self.destination_directory)
 
     self.assertListEqual(updated_targets, [targetinfo1, targetinfo3])
 
-    self.repository_updater.download_target(targetinfo1, destination_directory)
+    self.repository_updater.download_target(targetinfo1, self.destination_directory)
     updated_targets = self.repository_updater.updated_targets(updated_targets,
-                                                      destination_directory)
+                                                      self.destination_directory)
 
     self.assertListEqual(updated_targets, [targetinfo3])
 
+    # Check that duplicates are excluded
+    updated_targets = self.repository_updater.updated_targets([targetinfo3, targetinfo3],
+                                                      self.destination_directory)
+    self.assertListEqual(updated_targets, [targetinfo3])
 
-    self.repository_updater.download_target(targetinfo3, destination_directory)
+    self.repository_updater.download_target(targetinfo3, self.destination_directory)
     updated_targets = self.repository_updater.updated_targets(updated_targets,
-                                                  destination_directory)
+                                                  self.destination_directory)
 
     self.assertListEqual(updated_targets, [])
 
@@ -227,6 +229,47 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Get targetinfo for 'file3.txt' listed in the delegated role1
     targetinfo3 = self.repository_updater.get_one_valid_targetinfo('file3.txt')
+
+
+  def test_both_target_urls_not_set(self):
+      # target_base_url = None and Updater._target_base_url = None
+      self.repository_updater = ngclient.Updater(self.client_directory,
+                                              self.metadata_url)
+      with self.assertRaises(ValueError):
+           self.repository_updater.download_target([], self.destination_directory)
+
+  def test_external_targets_url(self):
+      self.repository_updater.refresh()
+      targetinfo = self.repository_updater.get_one_valid_targetinfo("file1.txt")
+      self.repository_updater.download_target(targetinfo, self.destination_directory, self.targets_url)
+
+  def test_length_hash_mismatch(self):
+      self.repository_updater.refresh()
+      targetinfo = self.repository_updater.get_one_valid_targetinfo("file1.txt")
+      length = targetinfo.length
+      with self.assertRaises(exceptions.RepositoryError):
+        targetinfo.length = 44
+        self.repository_updater.download_target(targetinfo, self.destination_directory)
+
+      with self.assertRaises(exceptions.RepositoryError):
+        targetinfo.length = length
+        targetinfo.hashes = {"sha256": "abcd"}
+        self.repository_updater.download_target(targetinfo, self.destination_directory)
+
+  def test_updating_root(self):
+      # Bump root version, resign and refresh
+      self._modify_repository_root(lambda root: None, bump_version=True)
+      self.repository_updater.refresh()
+      self.assertEqual(self.repository_updater._trusted_set.root.signed.version, 2)
+
+  def test_missing_targetinfo(self):
+      self.repository_updater.refresh()
+
+      # Get targetinfo for non-existing file
+      targetinfo = self.repository_updater.get_one_valid_targetinfo('file33.txt')
+      self.assertIsNone(targetinfo)
+
+
 
 if __name__ == '__main__':
   utils.configure_test_logging(sys.argv)
