@@ -19,7 +19,7 @@ in TUF metadata.
 
 The following demonstration requires and operates on the repository created in
 the [repository management
-tutorial](https://github.com/theupdateframework/tuf/blob/develop/tuf/README.md).
+tutorial](https://github.com/theupdateframework/python-tuf/blob/develop/tuf/README.md).
 
 ### Arbitrary Package Attack ###
 In an arbitrary package attack, an  attacker installs anything they want on the
@@ -319,5 +319,5 @@ SlowRetrievalError exception to the client application.
 ## Conclusion ##
 These are just some of the attacks that TUF provides protection against.  For
 more attacks and updater weaknesses, please see the
-[Security](https://github.com/theupdateframework/tuf/blob/develop/docs/SECURITY.md)
+[Security](https://github.com/theupdateframework/python-tuf/blob/develop/docs/SECURITY.md)
 page.

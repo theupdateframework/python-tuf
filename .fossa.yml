@@ -5,7 +5,7 @@ version: 2
 cli:
   server: https://app.fossa.com
   fetcher: custom
-  project: github.com/theupdateframework/tuf
+  project: github.com/theupdateframework/python-tuf
 analyze:
   modules:
   - name: tuf

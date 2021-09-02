@@ -3,7 +3,7 @@
 * Status: accepted
 * Date: 2020-11-23
 
-Technical Story: https://github.com/theupdateframework/tuf/issues/1126
+Technical Story: https://github.com/theupdateframework/python-tuf/issues/1126
 
 ## Context and Problem Statement
 
@@ -61,5 +61,5 @@ old code unlike option 3.
 
 ## Links
 
-* [Discussion of Python version support in TUF 1.0.0](https://github.com/theupdateframework/tuf/issues/1125)
-* [Discussion of deprecation policy for the pre-1.0, Python 2.7 supporting, code](https://github.com/theupdateframework/tuf/issues/1127)
+* [Discussion of Python version support in TUF 1.0.0](https://github.com/theupdateframework/python-tuf/issues/1125)
+* [Discussion of deprecation policy for the pre-1.0, Python 2.7 supporting, code](https://github.com/theupdateframework/python-tuf/issues/1127)

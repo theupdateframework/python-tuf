@@ -3,7 +3,7 @@
 * Status: accepted
 * Date: 2020-10-20
 
-Technical Story: https://github.com/theupdateframework/tuf/issues/1125
+Technical Story: https://github.com/theupdateframework/python-tuf/issues/1125
 
 ## Context and Problem Statement
 
@@ -44,5 +44,5 @@ untenable as more libraries are dropping support for EOL Python releases.
 
 ## Links
 
-* [Discussion of how/where to develop the refactored codebase](https://github.com/theupdateframework/tuf/issues/1126)
-* [Discussion of deprecation policy for the pre-1.0, Python 2.7 supporting, code](https://github.com/theupdateframework/tuf/issues/1127)
+* [Discussion of how/where to develop the refactored codebase](https://github.com/theupdateframework/python-tuf/issues/1126)
+* [Discussion of deprecation policy for the pre-1.0, Python 2.7 supporting, code](https://github.com/theupdateframework/python-tuf/issues/1127)

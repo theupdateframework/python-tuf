@@ -144,6 +144,6 @@ workflow.
 
 Please provide feedback or questions for this or other tutorials, or
 TUF in general, by checking out
-[our contact info](https://github.com/theupdateframework/tuf#contact), or
-creating [issues](https://github.com/theupdateframework/tuf/issues) in this
+[our contact info](https://github.com/theupdateframework/python-tuf#contact), or
+creating [issues](https://github.com/theupdateframework/python-tuf/issues) in this
 repository!

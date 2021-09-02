@@ -3,7 +3,7 @@
 * Status: accepted
 * Date: 2020-11-30
 
-Technical Story: https://github.com/theupdateframework/tuf/issues/1133
+Technical Story: https://github.com/theupdateframework/python-tuf/issues/1133
 
 ## Context and Problem Statement
 Custom classes for the TUF signed metadata wrapper (Metadata) and metadata
@@ -41,8 +41,8 @@ checks.
 
 ## Links
 
-* [class model](https://github.com/theupdateframework/tuf/pull/1112)
-* [class model (root)](https://github.com/theupdateframework/tuf/pull/1193)
-* [WIP: class model (complex attributes)](https://github.com/theupdateframework/tuf/pull/1223)
-* [new TUF validation guidelines](https://github.com/theupdateframework/tuf/issues/1130)
+* [class model](https://github.com/theupdateframework/python-tuf/pull/1112)
+* [class model (root)](https://github.com/theupdateframework/python-tuf/pull/1193)
+* [WIP: class model (complex attributes)](https://github.com/theupdateframework/python-tuf/pull/1223)
+* [new TUF validation guidelines](https://github.com/theupdateframework/python-tuf/issues/1130)
 * [securesystemslib schema checker issues](https://github.com/secure-systems-lab/securesystemslib/issues/183)

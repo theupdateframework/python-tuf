@@ -3,7 +3,7 @@
 * Status: accepted
 * Date: 2020-10-20
 
-Technical Story: https://github.com/theupdateframework/tuf/issues/1141
+Technical Story: https://github.com/theupdateframework/python-tuf/issues/1141
 
 ## Context and Problem Statement
 
