@@ -256,11 +256,12 @@ class TestTrustedMetadataSet(unittest.TestCase):
         def timestamp_expired_modifier(timestamp: Timestamp) -> None:
             timestamp.expires = datetime(1970, 1, 1)
 
-        # intermediate timestamp is allowed to be expired
+        # expired intermediate timestamp is loaded but raises
         timestamp = self.modify_metadata("timestamp", timestamp_expired_modifier)
-        self.trusted_set.update_timestamp(timestamp)
+        with self.assertRaises(exceptions.ExpiredMetadataError):
+            self.trusted_set.update_timestamp(timestamp)
 
-        # update snapshot to trigger final timestamp expiry check
+        # snapshot update does start but fails because timestamp is expired
         with self.assertRaises(exceptions.ExpiredMetadataError):
             self.trusted_set.update_snapshot(self.metadata["snapshot"])
 
@@ -289,10 +290,11 @@ class TestTrustedMetadataSet(unittest.TestCase):
         timestamp = self.modify_metadata("timestamp", timestamp_version_modifier)
         self.trusted_set.update_timestamp(timestamp)
 
-        #intermediate snapshot is allowed to not match meta version
-        self.trusted_set.update_snapshot(self.metadata["snapshot"])
+        # if intermediate snapshot version is incorrect, load it but also raise
+        with self.assertRaises(exceptions.BadVersionNumberError):
+            self.trusted_set.update_snapshot(self.metadata["snapshot"])
 
-        # final snapshot must match meta version
+        # targets update starts but fails if snapshot version does not match
         with self.assertRaises(exceptions.BadVersionNumberError):
             self.trusted_set.update_targets(self.metadata["targets"])
 
@@ -324,11 +326,12 @@ class TestTrustedMetadataSet(unittest.TestCase):
         def snapshot_expired_modifier(snapshot: Snapshot) -> None:
             snapshot.expires = datetime(1970, 1, 1)
 
-        # intermediate snapshot is allowed to be expired
+        # expired intermediate snapshot is loaded but will raise
         snapshot = self.modify_metadata("snapshot", snapshot_expired_modifier)
-        self.trusted_set.update_snapshot(snapshot)
+        with self.assertRaises(exceptions.ExpiredMetadataError):
+            self.trusted_set.update_snapshot(snapshot)
 
-        # update targets to trigger final snapshot expiry check
+        # targets update does start but fails because snapshot is expired
         with self.assertRaises(exceptions.ExpiredMetadataError):
             self.trusted_set.update_targets(self.metadata["targets"])
 
@@ -344,8 +347,10 @@ class TestTrustedMetadataSet(unittest.TestCase):
         new_timestamp = self.modify_metadata("timestamp", meta_version_bump)
         self.trusted_set.update_timestamp(new_timestamp)
 
-        # load a "local" snapshot, then update to newer one:
-        self.trusted_set.update_snapshot(self.metadata["snapshot"])
+        # load a "local" snapshot with mismatching version (loading happens but
+        # BadVersionNumberError is raised), then update to newer one:
+        with self.assertRaises(exceptions.BadVersionNumberError):
+            self.trusted_set.update_snapshot(self.metadata["snapshot"])
         new_snapshot = self.modify_metadata("snapshot", version_bump)
         self.trusted_set.update_snapshot(new_snapshot)
 

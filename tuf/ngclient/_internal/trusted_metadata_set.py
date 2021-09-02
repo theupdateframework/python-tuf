@@ -178,16 +178,20 @@ class TrustedMetadataSet(abc.Mapping):
     def update_timestamp(self, data: bytes) -> None:
         """Verifies and loads 'data' as new timestamp metadata.
 
-        Note that an expired intermediate timestamp is considered valid so it
-        can be used for rollback checks on newer, final timestamp. Expiry is
-        only checked for the final timestamp in update_snapshot().
+        Note that an intermediate timestamp is allowed to be expired:
+        TrustedMetadataSet will throw an ExpiredMetadataError in this case
+        but the intermediate timestamp will be loaded. This way a newer
+        timestamp can still be loaded (and the intermediate timestamp will
+        be used for rollback protection). Expired timestamp will prevent
+        loading snapshot metadata.
 
         Args:
             data: unverified new timestamp metadata as bytes
 
         Raises:
-            RepositoryError: Metadata failed to load or verify. The actual
-                error type and content will contain more details.
+            RepositoryError: Metadata failed to load or verify as final
+                timestamp. The actual error type and content will contain
+                more details.
         """
         if self.snapshot is not None:
             raise RuntimeError("Cannot update timestamp after snapshot")
@@ -237,21 +241,33 @@ class TrustedMetadataSet(abc.Mapping):
         self._trusted_set["timestamp"] = new_timestamp
         logger.debug("Updated timestamp")
 
+        # timestamp is loaded: raise if it is not valid _final_ timestamp
+        self._check_final_timestamp()
+
+    def _check_final_timestamp(self) -> None:
+        """Raise if timestamp is expired"""
+
+        assert self.timestamp is not None  # nosec
+        if self.timestamp.signed.is_expired(self.reference_time):
+            raise exceptions.ExpiredMetadataError("timestamp.json is expired")
+
     def update_snapshot(self, data: bytes) -> None:
         """Verifies and loads 'data' as new snapshot metadata.
 
-        Note that intermediate snapshot is considered valid even if it is
-        expired or the version does not match the timestamp meta version. This
-        means the intermediate snapshot can be used for rollback checks on
-        newer, final snapshot. Expiry and meta version are only checked for
-        the final snapshot in update_delegated_targets().
+        Note that an intermediate snapshot is allowed to be expired and version
+        is allowed to not match timestamp meta version: TrustedMetadataSet will
+        throw an ExpiredMetadataError/BadVersionNumberError in these cases
+        but the intermediate snapshot will be loaded. This way a newer
+        snapshot can still be loaded (and the intermediate snapshot will
+        be used for rollback protection). Expired snapshot or snapshot that
+        does not match timestamp meta version will prevent loading targets.
 
         Args:
             data: unverified new snapshot metadata as bytes
 
         Raises:
-            RepositoryError: Metadata failed to load or verify. The actual
-                error type and content will contain more details.
+            RepositoryError: data failed to load or verify as final snapshot.
+                The actual error type and content will contain more details.
         """
 
         if self.timestamp is None:
@@ -260,10 +276,8 @@ class TrustedMetadataSet(abc.Mapping):
             raise RuntimeError("Cannot update snapshot after targets")
         logger.debug("Updating snapshot")
 
-        # Local timestamp was allowed to be expired to allow for rollback
-        # checks on new timestamp but now timestamp must not be expired
-        if self.timestamp.signed.is_expired(self.reference_time):
-            raise exceptions.ExpiredMetadataError("timestamp.json is expired")
+        # Snapshot cannot be loaded if final timestamp is expired
+        self._check_final_timestamp()
 
         meta = self.timestamp.signed.meta["snapshot.json"]
 
@@ -314,8 +328,11 @@ class TrustedMetadataSet(abc.Mapping):
         self._trusted_set["snapshot"] = new_snapshot
         logger.debug("Updated snapshot")
 
+        # snapshot is loaded, but we raise if it's not valid _final_ snapshot
+        self._check_final_snapshot()
+
     def _check_final_snapshot(self) -> None:
-        """Check snapshot expiry and version before targets is updated"""
+        """Raise if snapshot is expired or meta version does not match"""
 
         assert self.snapshot is not None  # nosec
         assert self.timestamp is not None  # nosec
@@ -361,9 +378,8 @@ class TrustedMetadataSet(abc.Mapping):
         if self.snapshot is None:
             raise RuntimeError("Cannot load targets before snapshot")
 
-        # Local snapshot was allowed to be expired and to not match meta
-        # version to allow for rollback checks on new snapshot but now
-        # snapshot must not be expired and must match meta version
+        # Targets cannot be loaded if final snapshot is expired or its version
+        # does not match meta version in timestamp
         self._check_final_snapshot()
 
         delegator: Optional[Metadata] = self.get(delegator_name)
