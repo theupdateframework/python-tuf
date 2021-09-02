@@ -322,7 +322,7 @@ class Updater:
             self._trusted_set.update_timestamp(data)
         except (OSError, exceptions.RepositoryError) as e:
             # Local timestamp does not exist or is invalid
-            logger.debug("Failed to load local timestamp %s", e)
+            logger.debug("Local timestamp not valid as final: %s", e)
 
         # Load from remote (whether local load succeeded or not)
         data = self._download_metadata(
@@ -339,7 +339,7 @@ class Updater:
             logger.debug("Local snapshot is valid: not downloading new one")
         except (OSError, exceptions.RepositoryError) as e:
             # Local snapshot does not exist or is invalid: update from remote
-            logger.debug("Failed to load local snapshot %s", e)
+            logger.debug("Local snapshot not valid as final: %s", e)
 
             assert self._trusted_set.timestamp is not None  # nosec
             metainfo = self._trusted_set.timestamp.signed.meta["snapshot.json"]
