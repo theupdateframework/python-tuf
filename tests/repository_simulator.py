@@ -18,6 +18,7 @@ everything from memory.
 import logging
 from collections import OrderedDict
 from datetime import datetime, timedelta
+from tuf.api.serialization.json import JSONSerializer
 from securesystemslib.keys import generate_ed25519_key
 from securesystemslib.signer import SSlibSigner
 from tuf.exceptions import FetcherHTTPError
@@ -43,21 +44,24 @@ SPEC_VER = ".".join(SPECIFICATION_VERSION)
 
 class RepositorySimulator(FetcherInterface):
     def __init__(self):
-        # all root versions are stored
-        self.md_roots: Dict[int, Metadata[Root]] = {}
+        self.md_root: Metadata[Root] = None
         self.md_timestamp: Metadata[Timestamp] = None
         self.md_snapshot: Metadata[Snapshot] = None
         self.md_targets: Metadata[Targets] = None
-        # all targets in one dict
         self.md_delegates: Dict[str, Metadata[Targets]] = {}
 
+        # other metadata is signed on-demand (when fetched) but roots must be
+        # explicitly published with publish_root() which maintains this list
+        self.signed_roots: List[bytes] = []
+
+        # signers are used on-demand at fetch time to sign metadata
         self.signers: Dict[str, List[SSlibSigner]] = {}
 
         self._initialize()
 
     @property
     def root(self) -> Root:
-        raise NotImplementedError
+        return self.md_root.signed
 
     @property
     def timestamp(self) -> Timestamp:
@@ -75,14 +79,9 @@ class RepositorySimulator(FetcherInterface):
         for role, md in self.md_delegates.items():
             yield role, md.signed
 
-    def _create_key(self, role:str) -> Key:
+    def create_key(self) -> Tuple[Key, SSlibSigner]:
         sslib_key = generate_ed25519_key()
-        if role not in self.signers:
-            self.signers[role] = []
-        self.signers[role].append(SSlibSigner(sslib_key))
-
-        key = Key.from_securesystemslib_key(sslib_key)
-        return key
+        return Key.from_securesystemslib_key(sslib_key), SSlibSigner(sslib_key)
 
     def _initialize(self):
         """Setup a minimal valid repository"""
@@ -99,14 +98,26 @@ class RepositorySimulator(FetcherInterface):
         timestamp = Timestamp(1, SPEC_VER, expiry, meta)
         self.md_timestamp = Metadata(timestamp, OrderedDict())
 
-        keys = {}
-        roles = {}
+        root = Root(1, SPEC_VER, expiry, {}, {}, True)
         for role in ["root", "timestamp", "snapshot", "targets"]:
-            key = self._create_key(role)
-            keys[key.keyid] = key
-            roles[role] = Role([key.keyid], 1)
-        root = Root(1, SPEC_VER, expiry, keys, roles, True)
-        self.md_roots[1] = Metadata(root, OrderedDict())
+            key, signer = self.create_key()
+            root.roles[role] = Role([], 1)
+            root.add_key(role, key)
+            # store the private key
+            if role not in self.signers:
+                self.signers[role] = []
+            self.signers[role].append(signer)
+        self.md_root = Metadata(root, OrderedDict())
+        self.publish_root()
+
+    def publish_root(self):
+        """Sign and store a new serialized version of root"""
+        self.md_root.signatures.clear()
+        for signer in self.signers["root"]:
+            self.md_root.sign(signer)
+
+        self.signed_roots.append(self.md_root.to_bytes(JSONSerializer()))
+        logger.debug("Published root v%d", self.root.version)
 
     def fetch(self, url: str) -> Iterator[bytes]:
         spliturl = parse.urlparse(url)
@@ -124,25 +135,37 @@ class RepositorySimulator(FetcherInterface):
 
     def _fetch_metadata(self, role: str, version: Optional[int] = None) -> bytes:
         if role == "root":
-            md = self.md_roots.get(version)
-        elif role == "timestamp":
-            md = self.md_timestamp
-        elif role == "snapshot":
-            md = self.md_snapshot
-        elif role == "targets":
-            md = self.md_targets
+            # return a version previously serialized in publish_root()
+            if version > len(self.signed_roots):
+                raise FetcherHTTPError(f"Unknown root version {version}", 404)
+            logger.debug("fetched root version %d", role, version)
+            return self.signed_roots[version - 1]
         else:
-            md = self.md_delegates.get(role)
+            # sign and serialize the requested metadata
+            if role == "timestamp":
+                md = self.md_timestamp
+            elif role == "snapshot":
+                md = self.md_snapshot
+            elif role == "targets":
+                md = self.md_targets
+            else:
+                md = self.md_delegates.get(role)
 
-        if md is None:
-            raise FetcherHTTPError(f"Unknown role {role}", 404)
+            if md is None:
+                raise FetcherHTTPError(f"Unknown role {role}", 404)
+            if version is not None and version != md.signed.version:
+                raise FetcherHTTPError(f"Unknown {role} version {version}", 404)
 
-        md.signatures.clear()
-        for signer in self.signers[role]:
-            md.sign(signer)
+            md.signatures.clear()
+            for signer in self.signers[role]:
+                md.sign(signer,append=True)
 
-        logger.debug("fetched metadata %s version %d", role, md.signed.version)
-        return md.to_bytes()
+            logger.debug(
+                "fetched %s v%d with %d sigs",
+                role,
+                md.signed.version,
+                len(self.signers[role]))
+            return md.to_bytes(JSONSerializer())
 
     def update_timestamp(self):
         self.timestamp.meta["snapshot.json"].version = self.snapshot.version
@@ -156,8 +179,3 @@ class RepositorySimulator(FetcherInterface):
 
         self.snapshot.version += 1
         self.update_timestamp()
-
-    def write(self, directory:str):
-        """Write current repository metadata to a directory"""
-        raise NotImplementedError
-
