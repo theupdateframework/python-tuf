@@ -180,7 +180,7 @@ class TrustedMetadataSet(abc.Mapping):
         new_root.verify_delegate("root", new_root)
 
         self._trusted_set["root"] = new_root
-        logger.debug("Updated root")
+        logger.info("Updated root v%d", new_root.signed.version)
 
     def update_timestamp(self, data: bytes) -> None:
         """Verifies and loads 'data' as new timestamp metadata.
@@ -246,7 +246,7 @@ class TrustedMetadataSet(abc.Mapping):
         # protection of new timestamp: expiry is checked in update_snapshot()
 
         self._trusted_set["timestamp"] = new_timestamp
-        logger.debug("Updated timestamp")
+        logger.info("Updated timestamp v%d", new_timestamp.signed.version)
 
         # timestamp is loaded: raise if it is not valid _final_ timestamp
         self._check_final_timestamp()
@@ -333,7 +333,7 @@ class TrustedMetadataSet(abc.Mapping):
         # protection of new snapshot: it is checked when targets is updated
 
         self._trusted_set["snapshot"] = new_snapshot
-        logger.debug("Updated snapshot")
+        logger.info("Updated snapshot v%d", new_snapshot.signed.version)
 
         # snapshot is loaded, but we raise if it's not valid _final_ snapshot
         self._check_final_snapshot()
@@ -421,17 +421,17 @@ class TrustedMetadataSet(abc.Mapping):
 
         delegator.verify_delegate(role_name, new_delegate)
 
-        if new_delegate.signed.version != meta.version:
+        version = new_delegate.signed.version
+        if version != meta.version:
             raise exceptions.BadVersionNumberError(
-                f"Expected {role_name} version "
-                f"{meta.version}, got {new_delegate.signed.version}."
+                f"Expected {role_name} v{meta.version}, got v{version}."
             )
 
         if new_delegate.signed.is_expired(self.reference_time):
             raise exceptions.ExpiredMetadataError(f"New {role_name} is expired")
 
         self._trusted_set[role_name] = new_delegate
-        logger.debug("Updated %s delegated by %s", role_name, delegator_name)
+        logger.info("Updated %s v%d", role_name, version)
 
     def _load_trusted_root(self, data: bytes) -> None:
         """Verifies and loads 'data' as trusted root metadata.
@@ -452,4 +452,4 @@ class TrustedMetadataSet(abc.Mapping):
         new_root.verify_delegate("root", new_root)
 
         self._trusted_set["root"] = new_root
-        logger.debug("Loaded trusted root")
+        logger.info("Loaded trusted root v%d", new_root.signed.version)
