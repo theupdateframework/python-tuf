@@ -15,16 +15,18 @@ network connections or even file access happens as RepositorySimulator serves
 everything from memory.
 """
 
-import logging
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from tuf.api.serialization.json import JSONSerializer
+import logging
+import os
+import tempfile
 from securesystemslib.keys import generate_ed25519_key
 from securesystemslib.signer import SSlibSigner
-from tuf.exceptions import FetcherHTTPError
 from typing import Dict, Iterator, List, Optional, Tuple
 from urllib import parse
 
+from tuf.api.serialization.json import JSONSerializer
+from tuf.exceptions import FetcherHTTPError
 from tuf.api.metadata import(
     Key,
     Metadata,
@@ -56,6 +58,9 @@ class RepositorySimulator(FetcherInterface):
 
         # signers are used on-demand at fetch time to sign metadata
         self.signers: Dict[str, List[SSlibSigner]] = {}
+
+        self.dump_dir = None
+        self.dump_version = 0
 
         self._initialize()
 
@@ -179,3 +184,29 @@ class RepositorySimulator(FetcherInterface):
 
         self.snapshot.version += 1
         self.update_timestamp()
+
+    def write(self):
+        """Dump current repository metadata to self.dump_dir
+
+        This is a debugging tool: dumping repository state before running
+        Updater refresh may be useful while debugging a test.
+        """
+        if self.dump_dir is None:
+            self.dump_dir = tempfile.mkdtemp()
+            print(f"Repository Simulator dumps in {self.dump_dir}")
+
+        self.dump_version += 1
+        dir = os.path.join(self.dump_dir, str(self.dump_version))
+        os.makedirs(dir)
+
+        for ver in range(1, len(self.signed_roots) + 1):
+            with open(os.path.join(dir, f"{ver}.root.json"), "wb") as f:
+                f.write(self._fetch_metadata("root", ver))
+
+        for role in ["timestamp", "snapshot", "targets"]:
+            with open(os.path.join(dir, f"{role}.json"), "wb") as f:
+                f.write(self._fetch_metadata(role))
+
+        for role in self.md_delegates.keys():
+            with open(os.path.join(dir, f"{role}.json"), "wb") as f:
+                f.write(self._fetch_metadata(role))

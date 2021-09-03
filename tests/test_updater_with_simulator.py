@@ -10,6 +10,7 @@ import logging
 import os
 import sys
 import tempfile
+from typing import Optional
 from tuf.exceptions import UnsignedMetadataError
 import unittest
 
@@ -19,6 +20,9 @@ from tests import utils
 from tests.repository_simulator import RepositorySimulator
 
 class TestUpdater(unittest.TestCase):
+    # set dump_dir to trigger repository state dumps
+    dump_dir:Optional[str] = None
+
     def setUp(self):
         self.client_dir = tempfile.TemporaryDirectory()
 
@@ -28,45 +32,52 @@ class TestUpdater(unittest.TestCase):
             root = self.sim.download_bytes("https://example.com/metadata/1.root.json", 100000)
             f.write(root)
 
-    def _new_updater(self):
-        return Updater(
+        if self.dump_dir is not None:
+            # create test specific dump directory
+            name = self.id().split('.')[-1]
+            self.sim.dump_dir = os.path.join(self.dump_dir, name)
+            os.mkdir(self.sim.dump_dir)
+
+    def _run_refresh(self):
+        if self.sim.dump_dir is not None:
+            self.sim.write()
+
+        updater = Updater(
             self.client_dir.name,
             "https://example.com/metadata/",
             "https://example.com/targets/",
             self.sim
         )
+        updater.refresh()
 
     def test_refresh(self):
         # Update top level metadata
-        self._new_updater().refresh()
+        self._run_refresh()
 
-        # New root (root needs to be explicitly published)
+        # New root (root needs to be explicitly signed)
         self.sim.root.version += 1
         self.sim.publish_root()
 
-        # TODO compare file contents?
+        self._run_refresh()
 
-        # New timestamp version
+        # New timestamp
         self.sim.update_timestamp()
 
-        self._new_updater().refresh()
+        self._run_refresh()
 
-        # TODO compare file contents?
-
-        # New targets version
+        # New targets, snapshot, timestamp version
         self.sim.targets.version += 1
         self.sim.update_snapshot()
 
-        self._new_updater().refresh()
+        self._run_refresh()
 
-        # TODO compare file contents?
+    def test_keys_and_signatures(self):
+        """Example of the two trickiest test areas: keys and root updates"""
 
-    # this is just an example of testing different key/signature situations
-    def test_targets_signatures(self):
         # Update top level metadata
-        self._new_updater().refresh()
+        self._run_refresh()
 
-        # New targets: signed by a new key that is not in roles keys
+        # New targets: signed with a new key that is not in roles keys
         old_signer = self.sim.signers["targets"].pop()
         key, signer = self.sim.create_key()
         self.sim.signers["targets"] = [signer]
@@ -74,7 +85,7 @@ class TestUpdater(unittest.TestCase):
         self.sim.update_snapshot()
 
         with self.assertRaises(UnsignedMetadataError):
-            self._new_updater().refresh()
+            self._run_refresh()
 
         # New root: Add the new key as targets role key
         # (root changes require explicit publishing)
@@ -82,7 +93,7 @@ class TestUpdater(unittest.TestCase):
         self.sim.root.version += 1
         self.sim.publish_root()
 
-        self._new_updater().refresh()
+        self._run_refresh()
 
         # New root: Raise targets threshold to 2
         self.sim.root.roles["targets"].threshold = 2
@@ -90,19 +101,23 @@ class TestUpdater(unittest.TestCase):
         self.sim.publish_root()
 
         with self.assertRaises(UnsignedMetadataError):
-            self._new_updater().refresh()
+            self._run_refresh()
 
         # New targets: sign with both new and old key
         self.sim.signers["targets"] = [signer, old_signer]
         self.sim.targets.version += 1
         self.sim.update_snapshot()
 
-        self._new_updater().refresh()
-
+        self._run_refresh()
 
     def tearDown(self):
         self.client_dir.cleanup()
 
 if __name__ == "__main__":
-  utils.configure_test_logging(sys.argv)
-  unittest.main()
+    if "--dump" in sys.argv:
+        TestUpdater.dump_dir = tempfile.mkdtemp()
+        print(f"Repository Simulator dumps in {TestUpdater.dump_dir}")
+        sys.argv.remove("--dump")
+
+    utils.configure_test_logging(sys.argv)
+    unittest.main()
