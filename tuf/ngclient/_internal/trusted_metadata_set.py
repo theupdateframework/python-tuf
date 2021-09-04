@@ -66,7 +66,7 @@ from datetime import datetime
 from typing import Dict, Iterator, Optional
 
 from tuf import exceptions
-from tuf.api.metadata import Metadata
+from tuf.api.metadata import Metadata, Root, Snapshot, Targets, Timestamp
 from tuf.api.serialization import DeserializationError
 
 logger = logging.getLogger(__name__)
@@ -92,13 +92,13 @@ class TrustedMetadataSet(abc.Mapping):
             RepositoryError: Metadata failed to load or verify. The actual
                 error type and content will contain more details.
         """
-        self._trusted_set = {}  # type: Dict[str: Metadata]
+        self._trusted_set: Dict[str, Metadata] = {}
         self.reference_time = datetime.utcnow()
 
         # Load and validate the local root metadata. Valid initial trusted root
         # metadata is required
         logger.debug("Updating initial trusted root")
-        self.update_root(root_data)
+        self._load_trusted_root(root_data)
 
     def __getitem__(self, role: str) -> Metadata:
         """Returns current Metadata for 'role'"""
@@ -114,27 +114,27 @@ class TrustedMetadataSet(abc.Mapping):
 
     # Helper properties for top level metadata
     @property
-    def root(self) -> Optional[Metadata]:
-        """Current root Metadata or None"""
-        return self._trusted_set.get("root")
+    def root(self) -> Metadata[Root]:
+        """Current root Metadata"""
+        return self._trusted_set["root"]
 
     @property
-    def timestamp(self) -> Optional[Metadata]:
+    def timestamp(self) -> Optional[Metadata[Timestamp]]:
         """Current timestamp Metadata or None"""
         return self._trusted_set.get("timestamp")
 
     @property
-    def snapshot(self) -> Optional[Metadata]:
+    def snapshot(self) -> Optional[Metadata[Snapshot]]:
         """Current snapshot Metadata or None"""
         return self._trusted_set.get("snapshot")
 
     @property
-    def targets(self) -> Optional[Metadata]:
+    def targets(self) -> Optional[Metadata[Targets]]:
         """Current targets Metadata or None"""
         return self._trusted_set.get("targets")
 
     # Methods for updating metadata
-    def update_root(self, data: bytes):
+    def update_root(self, data: bytes) -> None:
         """Verifies and loads 'data' as new root metadata.
 
         Note that an expired intermediate root is considered valid: expiry is
@@ -152,7 +152,7 @@ class TrustedMetadataSet(abc.Mapping):
         logger.debug("Updating root")
 
         try:
-            new_root = Metadata.from_bytes(data)
+            new_root = Metadata[Root].from_bytes(data)
         except DeserializationError as e:
             raise exceptions.RepositoryError("Failed to load root") from e
 
@@ -161,21 +161,21 @@ class TrustedMetadataSet(abc.Mapping):
                 f"Expected 'root', got '{new_root.signed.type}'"
             )
 
-        if self.root is not None:
-            # We are not loading initial trusted root: verify the new one
-            self.root.verify_delegate("root", new_root)
+        # Verify that new root is signed by trusted root
+        self.root.verify_delegate("root", new_root)
 
-            if new_root.signed.version != self.root.signed.version + 1:
-                raise exceptions.ReplayedMetadataError(
-                    "root", new_root.signed.version, self.root.signed.version
-                )
+        if new_root.signed.version != self.root.signed.version + 1:
+            raise exceptions.ReplayedMetadataError(
+                "root", new_root.signed.version, self.root.signed.version
+            )
 
+        # Verify that new root is signed by itself
         new_root.verify_delegate("root", new_root)
 
         self._trusted_set["root"] = new_root
         logger.debug("Updated root")
 
-    def update_timestamp(self, data: bytes):
+    def update_timestamp(self, data: bytes) -> None:
         """Verifies and loads 'data' as new timestamp metadata.
 
         Note that an expired intermediate timestamp is considered valid so it
@@ -199,7 +199,7 @@ class TrustedMetadataSet(abc.Mapping):
         # timestamp/snapshot can not yet be loaded at this point
 
         try:
-            new_timestamp = Metadata.from_bytes(data)
+            new_timestamp = Metadata[Timestamp].from_bytes(data)
         except DeserializationError as e:
             raise exceptions.RepositoryError("Failed to load timestamp") from e
 
@@ -237,7 +237,7 @@ class TrustedMetadataSet(abc.Mapping):
         self._trusted_set["timestamp"] = new_timestamp
         logger.debug("Updated timestamp")
 
-    def update_snapshot(self, data: bytes):
+    def update_snapshot(self, data: bytes) -> None:
         """Verifies and loads 'data' as new snapshot metadata.
 
         Note that intermediate snapshot is considered valid even if it is
@@ -276,7 +276,7 @@ class TrustedMetadataSet(abc.Mapping):
             ) from e
 
         try:
-            new_snapshot = Metadata.from_bytes(data)
+            new_snapshot = Metadata[Snapshot].from_bytes(data)
         except DeserializationError as e:
             raise exceptions.RepositoryError("Failed to load snapshot") from e
 
@@ -314,7 +314,11 @@ class TrustedMetadataSet(abc.Mapping):
         self._trusted_set["snapshot"] = new_snapshot
         logger.debug("Updated snapshot")
 
-    def _check_final_snapshot(self):
+    def _check_final_snapshot(self) -> None:
+        """Check snapshot expiry and version before targets is updated"""
+
+        assert self.snapshot is not None  # nosec
+        assert self.timestamp is not None  # nosec
         if self.snapshot.signed.is_expired(self.reference_time):
             raise exceptions.ExpiredMetadataError("snapshot.json is expired")
 
@@ -328,7 +332,7 @@ class TrustedMetadataSet(abc.Mapping):
                 f"got {self.snapshot.signed.version}"
             )
 
-    def update_targets(self, data: bytes):
+    def update_targets(self, data: bytes) -> None:
         """Verifies and loads 'data' as new top-level targets metadata.
 
         Args:
@@ -342,7 +346,7 @@ class TrustedMetadataSet(abc.Mapping):
 
     def update_delegated_targets(
         self, data: bytes, role_name: str, delegator_name: str
-    ):
+    ) -> None:
         """Verifies and loads 'data' as new metadata for target 'role_name'.
 
         Args:
@@ -383,7 +387,7 @@ class TrustedMetadataSet(abc.Mapping):
             ) from e
 
         try:
-            new_delegate = Metadata.from_bytes(data)
+            new_delegate = Metadata[Targets].from_bytes(data)
         except DeserializationError as e:
             raise exceptions.RepositoryError("Failed to load snapshot") from e
 
@@ -405,3 +409,24 @@ class TrustedMetadataSet(abc.Mapping):
 
         self._trusted_set[role_name] = new_delegate
         logger.debug("Updated %s delegated by %s", role_name, delegator_name)
+
+    def _load_trusted_root(self, data: bytes) -> None:
+        """Verifies and loads 'data' as trusted root metadata.
+
+        Note that an expired initial root is considered valid: expiry is
+        only checked for the final root in update_timestamp().
+        """
+        try:
+            new_root = Metadata[Root].from_bytes(data)
+        except DeserializationError as e:
+            raise exceptions.RepositoryError("Failed to load root") from e
+
+        if new_root.signed.type != "root":
+            raise exceptions.RepositoryError(
+                f"Expected 'root', got '{new_root.signed.type}'"
+            )
+
+        new_root.verify_delegate("root", new_root)
+
+        self._trusted_set["root"] = new_root
+        logger.debug("Loaded trusted root")

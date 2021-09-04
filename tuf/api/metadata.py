@@ -19,13 +19,12 @@ import abc
 import fnmatch
 import io
 import logging
-import os
 import tempfile
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from typing import (
+    IO,
     Any,
-    BinaryIO,
     ClassVar,
     Dict,
     Generic,
@@ -98,7 +97,7 @@ class Metadata(Generic[T]):
         self.signatures = signatures
 
     @classmethod
-    def from_dict(cls, metadata: Dict[str, Any]) -> "Metadata":
+    def from_dict(cls, metadata: Dict[str, Any]) -> "Metadata[T]":
         """Creates Metadata object from its dict representation.
 
         Arguments:
@@ -562,6 +561,24 @@ class Key:
             "keyval": self.keyval,
         }
 
+    @classmethod
+    def from_securesystemslib_key(cls, key_dict: Dict[str, Any]) -> "Key":
+        """
+        Creates a Key object from a securesystemlib key dict representation
+        removing the private key from keyval.
+        """
+        key_meta = sslib_keys.format_keyval_to_metadata(
+            key_dict["keytype"],
+            key_dict["scheme"],
+            key_dict["keyval"],
+        )
+        return cls(
+            key_dict["keyid"],
+            key_meta["keytype"],
+            key_meta["scheme"],
+            key_meta["keyval"],
+        )
+
     def verify_signature(
         self,
         metadata: Metadata,
@@ -753,7 +770,7 @@ class BaseFile:
 
     @staticmethod
     def _verify_hashes(
-        data: Union[bytes, BinaryIO], expected_hashes: Dict[str, str]
+        data: Union[bytes, IO[bytes]], expected_hashes: Dict[str, str]
     ) -> None:
         """Verifies that the hash of 'data' matches 'expected_hashes'"""
         is_bytes = isinstance(data, bytes)
@@ -782,7 +799,7 @@ class BaseFile:
 
     @staticmethod
     def _verify_length(
-        data: Union[bytes, BinaryIO], expected_length: int
+        data: Union[bytes, IO[bytes]], expected_length: int
     ) -> None:
         """Verifies that the length of 'data' matches 'expected_length'"""
         if isinstance(data, bytes):
@@ -867,7 +884,7 @@ class MetaFile(BaseFile):
 
         return res_dict
 
-    def verify_length_and_hashes(self, data: Union[bytes, BinaryIO]) -> None:
+    def verify_length_and_hashes(self, data: Union[bytes, IO[bytes]]) -> None:
         """Verifies that the length and hashes of "data" match expected values.
 
         Args:
@@ -1057,9 +1074,34 @@ class DelegatedRole(Role):
             res_dict["path_hash_prefixes"] = self.path_hash_prefixes
         return res_dict
 
+    @staticmethod
+    def _is_target_in_pathpattern(targetpath: str, pathpattern: str) -> bool:
+        """Determines whether "targetname" matches the "pathpattern"."""
+        # We need to make sure that targetname and pathpattern are pointing to
+        # the same directory as fnmatch doesn't threat "/" as a special symbol.
+        target_parts = targetpath.split("/")
+        pattern_parts = pathpattern.split("/")
+        if len(target_parts) != len(pattern_parts):
+            return False
+
+        # Every part in the pathpattern could include a glob pattern, that's why
+        # each of the target and pathpattern parts should match.
+        for target_dir, pattern_dir in zip(target_parts, pattern_parts):
+            if not fnmatch.fnmatch(target_dir, pattern_dir):
+                return False
+
+        return True
+
     def is_delegated_path(self, target_filepath: str) -> bool:
         """Determines whether the given 'target_filepath' is in one of
-        the paths that DelegatedRole is trusted to provide"""
+        the paths that DelegatedRole is trusted to provide.
+
+        The target_filepath and the DelegatedRole paths are expected to be in
+        their canonical forms, so e.g. "a/b" instead of "a//b" . Only "/" is
+        supported as target path separator. Leading separators are not handled
+        as special cases (see `TUF specification on targetpath
+        <https://theupdateframework.github.io/specification/latest/#targetpath>`_).
+        """
 
         if self.path_hash_prefixes is not None:
             # Calculate the hash of the filepath
@@ -1075,13 +1117,8 @@ class DelegatedRole(Role):
         elif self.paths is not None:
             for pathpattern in self.paths:
                 # A delegated role path may be an explicit path or glob
-                # pattern (Unix shell-style wildcards). Explicit filepaths
-                # are also considered matches. Make sure to strip any leading
-                # path separators so that a match is made.
-                # Example: "foo.tgz" should match with "/*.tgz".
-                if fnmatch.fnmatch(
-                    target_filepath.lstrip(os.sep), pathpattern.lstrip(os.sep)
-                ):
+                # pattern (Unix shell-style wildcards).
+                if self._is_target_in_pathpattern(target_filepath, pathpattern):
                     return True
 
         return False
@@ -1182,7 +1219,7 @@ class TargetFile(BaseFile):
             **self.unrecognized_fields,
         }
 
-    def verify_length_and_hashes(self, data: Union[bytes, BinaryIO]) -> None:
+    def verify_length_and_hashes(self, data: Union[bytes, IO[bytes]]) -> None:
         """Verifies that length and hashes of "data" match expected values.
 
         Args:

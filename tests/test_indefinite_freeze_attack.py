@@ -20,7 +20,7 @@
 
   March 9, 2016.
     Additional test added relating to issue:
-    https://github.com/theupdateframework/tuf/issues/322
+    https://github.com/theupdateframework/python-tuf/issues/322
     If a metadata file is not updated (no indication of a new version
     available), the expiration of the pre-existing, locally trusted metadata
     must still be detected. This additional test complains if such does not
@@ -238,7 +238,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
 
     # Test 1 Begin:
     #
-    # Addresses this issue: https://github.com/theupdateframework/tuf/issues/322
+    # Addresses this issue: https://github.com/theupdateframework/python-tuf/issues/322
     #
     # If time has passed and our snapshot or targets role is expired, and
     # the mirror whose timestamp we fetched doesn't indicate the existence of a
@@ -377,7 +377,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     # After the attack, attempt to re-issue a valid Snapshot to verify that
     # the client is still able to update. A bug previously caused snapshot
     # expiration or replay to result in an indefinite freeze; see
-    # github.com/theupdateframework/tuf/issues/736
+    # github.com/theupdateframework/python-tuf/issues/736
     repository = repo_tool.load_repository(self.repository_directory)
 
     ts_key_file = os.path.join(self.keystore_directory, 'timestamp_key')

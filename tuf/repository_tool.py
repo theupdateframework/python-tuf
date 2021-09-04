@@ -2613,7 +2613,7 @@ class Targets(Metadata):
       # PEP 458: https://www.python.org/dev/peps/pep-0458/
       # The source of the slowness is the interactions with the roledb, which
       # causes several deep copies of roleinfo dictionaries:
-      # https://github.com/theupdateframework/tuf/issues/1005
+      # https://github.com/theupdateframework/python-tuf/issues/1005
       # Once the underlying issues in #1005 are resolved, i.e. some combination
       # of the intermediate and long-term fixes, we may simplify here by
       # switching back to just calling self.delegate(), but until that time we

@@ -174,7 +174,7 @@ supporting Python 2.7.
 
 ## v0.11.1
 
-* Prevent persistent freeze attack (pr [#737](https://github.com/theupdateframework/tuf/pull/737)).
+* Prevent persistent freeze attack (pr [#737](https://github.com/theupdateframework/python-tuf/pull/737)).
 
 * Add --no-release option to CLI.
 

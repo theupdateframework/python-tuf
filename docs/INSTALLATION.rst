@@ -4,20 +4,20 @@ Installation
 *pip* is the recommended installer for installing and managing Python packages.
 The project can be installed either locally or from the Python Package Index.
 All `TUF releases
-<https://github.com/theupdateframework/tuf/releases>`_ are cryptographically
+<https://github.com/theupdateframework/python-tuf/releases>`_ are cryptographically
 signed, with GPG signatures available on both GitHub and `PyPI
 <https://pypi.python.org/pypi/tuf/>`_.  PGP key information for our maintainers
 is available on our `website
 <https://theupdateframework.github.io/people.html>`_, on major keyservers,
 and on the `maintainers page
-<https://github.com/theupdateframework/tuf/blob/develop/docs/MAINTAINERS.txt>`_.
+<https://github.com/theupdateframework/python-tuf/blob/develop/docs/MAINTAINERS.txt>`_.
 
 
 Release Verification
 --------------------
 
 Assuming you trust `the maintainer's PGP key
-<https://github.com/theupdateframework/tuf/blob/develop/docs/MAINTAINERS.txt>`_,
+<https://github.com/theupdateframework/python-tuf/blob/develop/docs/MAINTAINERS.txt>`_,
 the detached ASC signature can be downloaded and verified.  For example::
 
    $ gpg --verify securesystemslib-0.10.8.tar.gz.asc

@@ -1,6 +1,6 @@
 # Use Google Python style guide with minimal refinements
 
-Technical Story: https://github.com/theupdateframework/tuf/issues/1128
+Technical Story: https://github.com/theupdateframework/python-tuf/issues/1128
 
 ## Context and Problem Statement
 

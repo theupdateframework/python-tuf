@@ -1,7 +1,8 @@
 # <img src="https://cdn.rawgit.com/theupdateframework/artwork/3a649fa6/tuf-logo.svg" height="100" valign="middle" alt="TUF"/> A Framework for Securing Software Update Systems
 
-![Build](https://github.com/theupdateframework/tuf/workflows/Run%20TUF%20tests%20and%20linter/badge.svg)
-[![Coveralls](https://coveralls.io/repos/theupdateframework/tuf/badge.svg?branch=develop)](https://coveralls.io/r/theupdateframework/tuf?branch=develop)
+![Build](https://github.com/theupdateframework/python-tuf/workflows/Run%20TUF%20tests%20and%20linter/badge.svg)
+[![Coveralls](https://coveralls.io/repos/theupdateframework/python-tuf/badge.svg?branch=develop)](https://coveralls.io/r/theupdateframework/python-tuf?branch=develop)
+[![Docs](https://readthedocs.org/projects/theupdateframework/badge/)](https://theupdateframework.readthedocs.io/)
 [![CII](https://bestpractices.coreinfrastructure.org/projects/1351/badge)](https://bestpractices.coreinfrastructure.org/projects/1351)
 [![PyPI](https://img.shields.io/pypi/v/tuf)](https://pypi.org/project/tuf/)
 
@@ -127,9 +128,9 @@ York University](https://engineering.nyu.edu/).  We appreciate the efforts of
 Konstantin Andrianov, Geremy Condra, Vladimir Diaz, Yuyu Zheng, Sebastien Awwad,
 Santiago Torres-Arias, Trishank Kuppusamy, Zane Fisher, Pankhuri Goyal, Tian Tian,
 Konstantin Andrianov, and Justin Samuel who are among those who helped significantly
-with TUF's reference implementation.  [Contributors](https://github.com/theupdateframework/tuf/blob/develop/docs/AUTHORS.txt)
+with TUF's reference implementation.  [Contributors](https://github.com/theupdateframework/python-tuf/blob/develop/docs/AUTHORS.txt)
 and
-[maintainers](https://github.com/theupdateframework/tuf/blob/develop/docs/MAINTAINERS.txt)
+[maintainers](https://github.com/theupdateframework/python-tuf/blob/develop/docs/MAINTAINERS.txt)
 are governed by the [CNCF Community Code of
 Conduct](https://github.com/cncf/foundation/blob/master/code-of-conduct.md).
 

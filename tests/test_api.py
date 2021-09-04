@@ -13,7 +13,6 @@ import os
 import shutil
 import tempfile
 import unittest
-import copy
 
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -40,7 +39,6 @@ from tuf.api.serialization import (
 
 from tuf.api.serialization.json import (
     JSONSerializer,
-    JSONDeserializer,
     CanonicalJSONSerializer
 )
 
@@ -52,6 +50,10 @@ from securesystemslib.interface import (
 from securesystemslib.signer import (
     SSlibSigner,
     Signature
+)
+
+from securesystemslib.keys import (
+    generate_ed25519_key
 )
 
 logger = logging.getLogger(__name__)
@@ -421,16 +423,22 @@ class TestMetadata(unittest.TestCase):
         root.verify_delegate('snapshot', snapshot)
 
 
-    def test_metadata_root(self):
+    def test_key_class(self):
+        # Test if from_securesystemslib_key removes the private key from keyval
+        # of a securesystemslib key dictionary.
+        sslib_key = generate_ed25519_key()
+        key = Key.from_securesystemslib_key(sslib_key)
+        self.assertFalse('private' in key.keyval.keys())
+
+
+    def test_root_add_key_and_remove_key(self):
         root_path = os.path.join(
                 self.repo_dir, 'metadata', 'root.json')
         root = Metadata[Root].from_file(root_path)
 
-        # Add a second key to root role
+        # Create a new key
         root_key2 =  import_ed25519_publickey_from_file(
                     os.path.join(self.keystore_dir, 'root_key2.pub'))
-
-
         keyid = root_key2['keyid']
         key_metadata = Key(keyid, root_key2['keytype'], root_key2['scheme'],
             root_key2['keyval'])
@@ -455,15 +463,52 @@ class TestMetadata(unittest.TestCase):
         root.signed.add_key('root', key_metadata)
         self.assertEqual(pre_add_keyid, root.signed.roles['root'].keyids)
 
-        # Remove the key
-        root.signed.remove_key('root', keyid)
+        # Add the same key to targets role as well
+        root.signed.add_key('targets', key_metadata)
 
-        # Assert that root does not contain the new key anymore
+        # Remove the key from root role (targets role still uses it)
+        root.signed.remove_key('root', keyid)
         self.assertNotIn(keyid, root.signed.roles['root'].keyids)
+        self.assertIn(keyid, root.signed.keys)
+
+        # Remove the key from targets as well
+        root.signed.remove_key('targets', keyid)
+        self.assertNotIn(keyid, root.signed.roles['targets'].keyids)
         self.assertNotIn(keyid, root.signed.keys)
 
         with self.assertRaises(KeyError):
             root.signed.remove_key('root', 'nosuchkey')
+
+    def test_is_target_in_pathpattern(self):
+        supported_use_cases = [
+            ("foo.tgz", "foo.tgz"),
+            ("foo.tgz", "*"),
+            ("foo.tgz", "*.tgz"),
+            ("foo-version-a.tgz", "foo-version-?.tgz"),
+            ("targets/foo.tgz", "targets/*.tgz"),
+            ("foo/bar/zoo/k.tgz", "foo/bar/zoo/*"),
+            ("foo/bar/zoo/k.tgz", "foo/*/zoo/*"),
+            ("foo/bar/zoo/k.tgz", "*/*/*/*"),
+            ("foo/bar", "f?o/bar"),
+            ("foo/bar", "*o/bar"),
+        ]
+        for targetpath, pathpattern in supported_use_cases:
+            self.assertTrue(
+                DelegatedRole._is_target_in_pathpattern(targetpath, pathpattern)
+            )
+
+        invalid_use_cases = [
+            ("targets/foo.tgz", "*.tgz"),
+            ("/foo.tgz", "*.tgz",),
+            ("targets/foo.tgz", "*"),
+            ("foo-version-alpha.tgz", "foo-version-?.tgz"),
+            ("foo//bar", "*/bar"),
+            ("foo/bar", "f?/bar")
+        ]
+        for targetpath, pathpattern in invalid_use_cases:
+            self.assertFalse(
+                DelegatedRole._is_target_in_pathpattern(targetpath, pathpattern)
+            )
 
 
     def test_delegation_class(self):
@@ -578,6 +623,28 @@ class TestMetadata(unittest.TestCase):
             self.assertRaises(exceptions.LengthOrHashMismatchError,
                 file1_targetfile.verify_length_and_hashes, file1)
 
+    def test_is_delegated_role(self):
+        # test path matches
+        # see more extensive tests in test_is_target_in_pathpattern()
+        for paths in [
+            ["a/path"],
+            ["otherpath", "a/path"],
+            ["*/?ath"],
+        ]:
+            role = DelegatedRole("", [], 1, False, paths, None)
+            self.assertFalse(role.is_delegated_path("a/non-matching path"))
+            self.assertTrue(role.is_delegated_path("a/path"))
+
+        # test path hash prefix matches: sha256 sum of "a/path" is 927b0ecf9...
+        for hash_prefixes in [
+            ["927b0ecf9"],
+            ["other prefix", "927b0ecf9"],
+            ["927b0"],
+            ["92"],
+        ]:
+            role = DelegatedRole("", [], 1, False, None, hash_prefixes)
+            self.assertFalse(role.is_delegated_path("a/non-matching path"))
+            self.assertTrue(role.is_delegated_path("a/path"))
 
 # Run unit test.
 if __name__ == '__main__':
