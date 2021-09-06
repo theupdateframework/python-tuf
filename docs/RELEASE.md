@@ -10,7 +10,7 @@
   (ensure commands invoking `python` below are using Python 3)
   * Remove existing dist build dirs
   * Create source dist `python3 setup.py sdist`
-  * Create wheel (with 2 and 3 support) `python3 setup.py bdist_wheel --universal`
+  * Create wheel `python3 setup.py bdist_wheel`
   * Sign the dists `gpg --detach-sign -a dist/tuf-vA.B.C.tar.gz`
   * Upload to test PyPI `twine upload --repository testpypi dist/*`
   * Verify the uploaded package https://testpypi.python.org/pypi/tuf/
@@ -25,9 +25,9 @@
   (ensure commands invoking `python` below are using Python 3)
   * Remove existing dist build dirs
   * Create source dist `python3 setup.py sdist`
-  * Create wheel (with 2 and 3 support) `python3 setup.py bdist_wheel --universal`
+  * Create wheel `python3 setup.py bdist_wheel`
   * Sign source dist `gpg --detach-sign -a dist/tuf-vA.B.C.tar.gz`
-  * Sign wheel `gpg --detach-sign -a dist/tuf-vA.B.C-py2.py3-none-any.whl`
+  * Sign wheel `gpg --detach-sign -a dist/tuf-vA.B.C-py3-none-any.whl`
   * Upload to test PyPI `twine upload --repository testpypi dist/*`
   * Verify the uploaded package https://testpypi.python.org/pypi/tuf/
   * Upload to PyPI `twine upload dist/*`
