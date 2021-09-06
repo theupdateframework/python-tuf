@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.18.1
+
+### Changed
+* Update setup.cfg to not build universal wheels (#1566)
+
 ## v0.18.0
 
 0.18 is a big release with 3 main themes:
