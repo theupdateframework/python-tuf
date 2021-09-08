@@ -161,21 +161,24 @@ class TestTrustedMetadataSet(unittest.TestCase):
             self.metadata["role1"], "role1", "targets"
         )
 
+    def test_root_with_invalid_json(self):
+        # Test loading initial root and root update
+        for test_func in [TrustedMetadataSet, self.trusted_set.update_root]:
+            # root is not json
+            with self.assertRaises(exceptions.RepositoryError):
+                test_func(b"")
 
-    def test_update_with_invalid_json(self):
-        # root.json not a json file at all
-        with self.assertRaises(exceptions.RepositoryError):
-            TrustedMetadataSet(b"")
-        # root.json is invalid
-        root = Metadata.from_bytes(self.metadata["root"])
-        root.signed.version += 1
-        with self.assertRaises(exceptions.RepositoryError):
-            TrustedMetadataSet(root.to_bytes())
+            # root is invalid
+            root = Metadata.from_bytes(self.metadata["root"])
+            root.signed.version += 1
+            with self.assertRaises(exceptions.UnsignedMetadataError):
+                test_func(root.to_bytes())
 
-        # update_root called with the wrong metadata type
-        with self.assertRaises(exceptions.RepositoryError):
-            self.trusted_set.update_root(self.metadata["snapshot"])
+            # metadata is of wrong type
+            with self.assertRaises(exceptions.RepositoryError):
+                test_func(self.metadata["snapshot"])
 
+    def test_top_level_md_with_invalid_json(self):
         top_level_md = [
             (self.metadata["timestamp"], self.trusted_set.update_timestamp),
             (self.metadata["snapshot"], self.trusted_set.update_snapshot),
@@ -186,9 +189,10 @@ class TestTrustedMetadataSet(unittest.TestCase):
             # metadata is not json
             with self.assertRaises(exceptions.RepositoryError):
                 update_func(b"")
+
             # metadata is invalid
             md.signed.version += 1
-            with self.assertRaises(exceptions.RepositoryError):
+            with self.assertRaises(exceptions.UnsignedMetadataError):
                 update_func(md.to_bytes())
 
             # metadata is of wrong type
