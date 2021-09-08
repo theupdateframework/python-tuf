@@ -33,15 +33,18 @@ intermediate operations:
 
 then, the checksum (the content) of the file must not be changed.
 - Flexibility to add new fields in the spec without adding breaking changes.
+- Don't store unrecognized fields when it is not allowed by the specification.
 
 ## Considered Options
 - Ignore and drop unrecognized fields.
 - Ignore, but store unrecognized fields as an additional attribute.
+- Ignore, but store unrecognized fields as an additional attribute
+except for a couple of places where it's not allowed by the specification.
 
 ## Decision Outcome
 
-Chosen option: "Ignore, but store unrecognized fields as an additional
-attribute."
+Chosen option: "Ignore, but store unrecognized fields as an additional attribute
+except for a couple of places where it's not allowed by the specification."
 The motivation for this decision is that the TUF specification already implies
 that we should accept unrecognized fields for backward compatibility and easier
 future extensibility.
@@ -49,3 +52,7 @@ future extensibility.
 Additionally, it seems unacceptable to change a metadata file content just by
 reading and writing it back.
 
+There are exceptions however for places in the metadata format when it is not
+allowed by specification: keys, roles, meta, hashes, and targets are
+actual dictionaries (vs JSON objects that most structures in the format are)
+where `unrecognized field` is not a meaningful concept.
