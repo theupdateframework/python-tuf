@@ -13,11 +13,18 @@ Loaded metadata can be accessed via index access with rolename as key
 (trusted_set["root"]) or, in the case of top-level metadata, using the helper
 properties (trusted_set.root).
 
-The rules for top-level metadata are
- * Metadata is updatable only if metadata it depends on is loaded
- * Metadata is not updatable if any metadata depending on it has been loaded
- * Metadata must be updated in order:
-   root -> timestamp -> snapshot -> targets -> (delegated targets)
+The rules that TrustedMetadataSet follows for top-level metadata are
+ * Metadata must be loaded in order:
+   root -> timestamp -> snapshot -> targets -> (delegated targets).
+ * Metadata can be loaded even if it is expired (or in the snapshot case if the
+   meta info does not match): this is called "intermediate metadata".
+ * Intermediate metadata can _only_ be used to load newer versions of the
+   same metadata: As an example an expired root can be used to load a new root.
+ * Metadata is loadable only if metadata before it in loading order is loaded
+   (and is not intermediate): As an example timestamp can be loaded if a
+   final (non-expired) root has been loaded.
+ * Metadata is not loadable if any metadata after it in loading order has been
+   loaded: As an example new roots cannot be loaded if timestamp is loaded.
 
 Exceptions are raised if metadata fails to load in any way.
 
