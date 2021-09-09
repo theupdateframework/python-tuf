@@ -24,8 +24,8 @@ High-level description of Updater functionality:
       * :func:`~tuf.ngclient.updater.Updater.get_one_valid_targetinfo()` is
         used to find information about a specific target. This will load new
         targets metadata as needed (from local cache or remote repository).
-      * :func:`~tuf.ngclient.updater.Updater.updated_targets()` can be used to
-        check if target files are already locally cached.
+      * :func:`~tuf.ngclient.updater.Updater.find_cached_target()` can be used
+        to check if a target file is already locally cached.
       * :func:`~tuf.ngclient.updater.Updater.download_target()` downloads a
         target file and ensures it is verified correct by the metadata.
 
@@ -43,27 +43,30 @@ Example::
 
     from tuf.ngclient import Updater
 
-    # Load trusted local root metadata from client metadata cache. Define the
-    # remote repository metadata URL prefix and target URL prefix.
+    # Load trusted local root metadata from client metadata cache. Define
+    # where metadata and targets will be downloaded from.
     updater = Updater(
         repository_dir="~/tufclient/metadata/",
         metadata_base_url="http://localhost:8000/tuf-repo/",
+        target_dir="~/tufclient/downloads/",
         target_base_url="http://localhost:8000/targets/",
     )
 
     # Update top-level metadata from remote
     updater.refresh()
 
-    # Securely download a target:
-    # Update target metadata, then download and verify target
-    targetinfo = updater.get_one_valid_targetinfo("file.txt")
-    updater.download_target(targetinfo, "~/tufclient/downloads/")
+    # Update metadata, then download target if needed
+    info = updater.get_one_valid_targetinfo("file.txt")
+    path = updater.find_cached_target(info)
+    if path is None:
+        path = updater.download_target(info)
+    print(f"Local file {path} contains target {info.path}")
 """
 
 import logging
 import os
 import tempfile
-from typing import List, Optional, Set, Tuple
+from typing import Optional, Set, Tuple
 from urllib import parse
 
 from securesystemslib import util as sslib_util
@@ -84,6 +87,9 @@ class Updater:
         repository_dir: Local metadata directory. Directory must be
             writable and it must contain a trusted root.json file.
         metadata_base_url: Base URL for all remote metadata downloads
+        target_dir: Local targets directory. Directory must be writable. It
+            will be used as the default target download directory by
+            ``find_cached_target()`` and ``download_target()``
         target_base_url: Optional; Default base URL for all remote target
             downloads. Can be individually set in download_target()
         fetcher: Optional; FetcherInterface implementation used to download
@@ -98,12 +104,14 @@ class Updater:
         self,
         repository_dir: str,
         metadata_base_url: str,
+        target_dir: Optional[str] = None,
         target_base_url: Optional[str] = None,
         fetcher: Optional[FetcherInterface] = None,
         config: Optional[UpdaterConfig] = None,
     ):
         self._dir = repository_dir
         self._metadata_base_url = _ensure_trailing_slash(metadata_base_url)
+        self.target_dir = target_dir
         if target_base_url is None:
             self._target_base_url = None
         else:
@@ -145,7 +153,7 @@ class Updater:
         """Returns TargetFile instance with information for 'target_path'.
 
         The return value can be used as an argument to
-        :func:`download_target()` and :func:`updated_targets()`.
+        :func:`download_target()` and :func:`find_cached_target()`.
 
         :func:`refresh()` must be called before calling
         `get_one_valid_targetinfo()`. Subsequent calls to
@@ -173,59 +181,64 @@ class Updater:
         """
         return self._preorder_depth_first_walk(target_path)
 
-    @staticmethod
-    def updated_targets(
-        targets: List[TargetFile], destination_directory: str
-    ) -> List[TargetFile]:
-        """Checks whether local cached target files are up to date
+    def find_cached_target(
+        self,
+        targetinfo: TargetFile,
+        filepath: Optional[str] = None,
+    ) -> Optional[str]:
+        """Checks whether a local file is an up to date target
 
-        After retrieving the target information for the targets that should be
-        updated, updated_targets() can be called to determine which targets
-        have changed compared to locally stored versions.
+        If the ``target_dir`` argument was given to constructor, ``filepath``
+        argument is not required here: in this case a filename will be
+        generated based on the target path like in ``download_target()``
 
-        All the targets that are not up-to-date in destination_directory are
-        returned in a list. The list items can be downloaded with
-        'download_target()'.
+        Args:
+            targetinfo: TargetFile from ``get_one_valid_targetinfo()``.
+            filepath: Local path to file. By default a filename is generated
+                and file is looked for in ``target_dir`` (see note above).
+
+        Raises:
+            ValueError: Incorrect arguments
+
+        Returns:
+            Local file path if the file is an up to date target file, or None
+            if file is not found or it is not up to date.
         """
-        # Keep track of TargetFiles and local paths. Return 'updated_targets'
-        # and use 'local_paths' to avoid duplicates.
-        updated_targets: List[TargetFile] = []
-        local_paths: List[str] = []
+        if filepath is not None:
+            pass
+        elif self.target_dir is not None:
+            # Use URL encoded target path as name, like download_target()
+            filename = parse.quote(targetinfo.path, "")
+            filepath = os.path.join(self.target_dir, filename)
+        else:
+            raise ValueError("filepath or target_dir must be set")
 
-        for target in targets:
-            # URL encode to get local filename like download_target() does
-            filename = parse.quote(target.path, "")
-            local_path = os.path.join(destination_directory, filename)
-
-            if local_path in local_paths:
-                continue
-
-            try:
-                with open(local_path, "rb") as target_file:
-                    target.verify_length_and_hashes(target_file)
-            # If the file does not exist locally or length and hashes
-            # do not match, append to updated targets.
-            except (OSError, exceptions.LengthOrHashMismatchError):
-                updated_targets.append(target)
-                local_paths.append(local_path)
-
-        return updated_targets
+        try:
+            with open(filepath, "rb") as target_file:
+                targetinfo.verify_length_and_hashes(target_file)
+            return filepath
+        except (OSError, exceptions.LengthOrHashMismatchError):
+            return None
 
     def download_target(
         self,
         targetinfo: TargetFile,
-        destination_directory: str,
+        filepath: Optional[str] = None,
         target_base_url: Optional[str] = None,
     ) -> str:
-        """Downloads the target file specified by 'targetinfo'.
+        """Downloads the target file specified by ``targetinfo``.
+
+        If the ``target_dir`` argument was given to constructor, ``filepath``
+        argument is not required here: in this case a filename will be
+        generated based on the target path.
 
         Args:
-            targetinfo: TargetFile instance received from
-                get_one_valid_targetinfo() or updated_targets().
-            destination_directory: existing local directory to download into.
-                Note that new directories may be created inside
-                destination_directory as required.
-            target_base_url: Optional; Base URL used to form the final target
+            targetinfo: TargetFile with target information from
+                get_one_valid_targetinfo().
+            filepath: Local path to download into. By default the file is
+                downloaded into ``target_dir`` (see note above) with a
+                generated filename. If file already exists, it is overwritten.
+            target_base_url: Base URL used to form the final target
                 download URL. Default is the value provided in Updater()
 
         Raises:
@@ -236,6 +249,15 @@ class Updater:
         Returns:
             Path to downloaded file
         """
+
+        if filepath is not None:
+            pass
+        elif self.target_dir is not None:
+            # Use URL encoded target path as name
+            filename = parse.quote(targetinfo.path, "")
+            filepath = os.path.join(self.target_dir, filename)
+        else:
+            raise ValueError("Either filepath or target_dir must be set")
 
         if target_base_url is None:
             if self._target_base_url is None:
@@ -266,12 +288,10 @@ class Updater:
                     f"{target_filepath} length or hashes do not match"
                 ) from e
 
-            # Use a URL encoded targetpath as the local filename
-            filename = parse.quote(targetinfo.path, "")
-            local_filepath = os.path.join(destination_directory, filename)
-            sslib_util.persist_temp_file(target_file, local_filepath)
+            sslib_util.persist_temp_file(target_file, filepath)
 
-            return local_filepath
+        logger.info("Downloaded target %s", targetinfo.path)
+        return filepath
 
     def _download_metadata(
         self, rolename: str, length: int, version: Optional[int] = None

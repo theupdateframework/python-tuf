@@ -16,7 +16,7 @@ import unittest
 import tuf.unittest_toolbox as unittest_toolbox
 
 from tests import utils
-from tuf.api.metadata import Metadata
+from tuf.api.metadata import Metadata, TargetFile
 from tuf import exceptions, ngclient
 from securesystemslib.signer import SSlibSigner
 from securesystemslib.interface import import_rsa_privatekey_from_file
@@ -115,7 +115,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         # Creating a repository instance.  The test cases will use this client
         # updater to refresh metadata, fetch target files, etc.
         self.updater = ngclient.Updater(
-            self.client_directory, self.metadata_url, self.targets_url
+            repository_dir=self.client_directory,
+            metadata_base_url=self.metadata_url,
+            target_dir=self.dl_dir,
+            target_base_url=self.targets_url
         )
 
     def tearDown(self):
@@ -187,20 +190,22 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         self._modify_repository_root(
             consistent_snapshot_modifier, bump_version=True
         )
-        self.updater = ngclient.Updater(
-            self.client_directory, self.metadata_url, self.targets_url
+        updater = ngclient.Updater(
+            self.client_directory, self.metadata_url, self.dl_dir, self.targets_url
         )
 
         # All metadata is in local directory already
-        self.updater.refresh()
+        updater.refresh()
         # Make sure that consistent snapshot is enabled
         self.assertTrue(
-            self.updater._trusted_set.root.signed.consistent_snapshot
+            updater._trusted_set.root.signed.consistent_snapshot
         )
-        # Get targetinfo for "file1.txt" listed in targets
-        info1 = self.updater.get_one_valid_targetinfo("file1.txt")
-        # Get targetinfo for "file3.txt" listed in the delegated role1
-        info3 = self.updater.get_one_valid_targetinfo("file3.txt")
+
+        # Get targetinfos, assert cache does not contain the files
+        info1 = updater.get_one_valid_targetinfo("file1.txt")
+        info3 = updater.get_one_valid_targetinfo("file3.txt")
+        self.assertIsNone(updater.find_cached_target(info1))
+        self.assertIsNone(updater.find_cached_target(info3))
 
         # Create consistent targets with file path HASH.FILENAME.EXT
         target1_hash = list(info1.hashes.values())[0]
@@ -208,26 +213,17 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         self._create_consistent_target("file1.txt", target1_hash)
         self._create_consistent_target("file3.txt", target3_hash)
 
-        updated_targets = self.updater.updated_targets(
-            [info1, info3], self.dl_dir
-        )
+        # Download files, assert that cache has correct files
+        updater.download_target(info1)
+        path = updater.find_cached_target(info1)
+        self.assertEqual(path, os.path.join(self.dl_dir, info1.path))
+        self.assertIsNone(updater.find_cached_target(info3))
 
-        self.assertListEqual(updated_targets, [info1, info3])
-        self.updater.download_target(info1, self.dl_dir)
-
-        updated_targets = self.updater.updated_targets(
-            updated_targets, self.dl_dir
-        )
-
-        self.assertListEqual(updated_targets, [info3])
-
-        self.updater.download_target(info3, self.dl_dir)
-
-        updated_targets = self.updater.updated_targets(
-            updated_targets, self.dl_dir
-        )
-
-        self.assertListEqual(updated_targets, [])
+        updater.download_target(info3)
+        path = updater.find_cached_target(info1)
+        self.assertEqual(path, os.path.join(self.dl_dir, info1.path))
+        path = updater.find_cached_target(info3)
+        self.assertEqual(path, os.path.join(self.dl_dir, info3.path))
 
     def test_refresh_and_download(self):
         # Test refresh without consistent targets - targets without hash prefixes.
@@ -241,7 +237,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         self.updater.refresh()
         self._assert_files(["root", "snapshot", "targets", "timestamp"])
 
-        # Get targetinfo for 'file1.txt' listed in targets
+        # Get targetinfos, assert that cache does not contain files
         info1 = self.updater.get_one_valid_targetinfo("file1.txt")
         self._assert_files(["root", "snapshot", "targets", "timestamp"])
 
@@ -249,34 +245,22 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         info3 = self.updater.get_one_valid_targetinfo("file3.txt")
         expected_files = ["role1", "root", "snapshot", "targets", "timestamp"]
         self._assert_files(expected_files)
+        self.assertIsNone(self.updater.find_cached_target(info1))
+        self.assertIsNone(self.updater.find_cached_target(info3))
 
-        updated_targets = self.updater.updated_targets(
-            [info1, info3], self.dl_dir
+        # Download files, assert that cache has correct files
+        self.updater.download_target(info1)
+        path = self.updater.find_cached_target(info1)
+        self.assertEqual(path, os.path.join(self.dl_dir, info1.path))
+        self.assertIsNone(
+            self.updater.find_cached_target(info3)
         )
 
-        self.assertListEqual(updated_targets, [info1, info3])
-
-        self.updater.download_target(info1, self.dl_dir)
-
-        updated_targets = self.updater.updated_targets(
-            updated_targets, self.dl_dir
-        )
-
-        self.assertListEqual(updated_targets, [info3])
-
-        # Check that duplicates are excluded
-        updated_targets = self.updater.updated_targets(
-            [info3, info3], self.dl_dir
-        )
-        self.assertListEqual(updated_targets, [info3])
-
-        self.updater.download_target(info3, self.dl_dir)
-
-        updated_targets = self.updater.updated_targets(
-            updated_targets, self.dl_dir
-        )
-
-        self.assertListEqual(updated_targets, [])
+        self.updater.download_target(info3)
+        path = self.updater.find_cached_target(info1)
+        self.assertEqual(path, os.path.join(self.dl_dir, info1.path))
+        path = self.updater.find_cached_target(info3)
+        self.assertEqual(path, os.path.join(self.dl_dir, info3.path))
 
     def test_refresh_with_only_local_root(self):
         os.remove(os.path.join(self.client_directory, "timestamp.json"))
@@ -297,17 +281,25 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     def test_both_target_urls_not_set(self):
         # target_base_url = None and Updater._target_base_url = None
-        self.updater = ngclient.Updater(
-            self.client_directory, self.metadata_url
-        )
+        updater = ngclient.Updater(self.client_directory, self.metadata_url, self.dl_dir)
+        info = TargetFile(1, {"sha256": ""}, "targetpath")
         with self.assertRaises(ValueError):
-            self.updater.download_target([], self.dl_dir)
+            updater.download_target(info)
+
+    def test_no_target_dir_no_filepath(self):
+        # filepath = None and Updater.target_dir = None
+        updater = ngclient.Updater(self.client_directory, self.metadata_url)
+        info = TargetFile(1, {"sha256": ""}, "targetpath")
+        with self.assertRaises(ValueError):
+            updater.find_cached_target(info)
+        with self.assertRaises(ValueError):
+            updater.download_target(info)
 
     def test_external_targets_url(self):
         self.updater.refresh()
         info = self.updater.get_one_valid_targetinfo("file1.txt")
 
-        self.updater.download_target(info, self.dl_dir, self.targets_url)
+        self.updater.download_target(info, target_base_url=self.targets_url)
 
     def test_length_hash_mismatch(self):
         self.updater.refresh()
@@ -316,12 +308,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         length = targetinfo.length
         with self.assertRaises(exceptions.RepositoryError):
             targetinfo.length = 44
-            self.updater.download_target(targetinfo, self.dl_dir)
+            self.updater.download_target(targetinfo)
 
         with self.assertRaises(exceptions.RepositoryError):
             targetinfo.length = length
             targetinfo.hashes = {"sha256": "abcd"}
-            self.updater.download_target(targetinfo, self.dl_dir)
+            self.updater.download_target(targetinfo)
 
     def test_updating_root(self):
         # Bump root version, resign and refresh
