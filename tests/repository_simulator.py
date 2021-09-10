@@ -27,7 +27,7 @@ from urllib import parse
 
 from tuf.api.serialization.json import JSONSerializer
 from tuf.exceptions import FetcherHTTPError
-from tuf.api.metadata import(
+from tuf.api.metadata import (
     Key,
     Metadata,
     MetaFile,
@@ -36,13 +36,14 @@ from tuf.api.metadata import(
     SPECIFICATION_VERSION,
     Snapshot,
     Targets,
-    Timestamp
+    Timestamp,
 )
 from tuf.ngclient.fetcher import FetcherInterface
 
 logger = logging.getLogger(__name__)
 
 SPEC_VER = ".".join(SPECIFICATION_VERSION)
+
 
 class RepositorySimulator(FetcherInterface):
     def __init__(self):
@@ -127,34 +128,34 @@ class RepositorySimulator(FetcherInterface):
     def fetch(self, url: str) -> Iterator[bytes]:
         spliturl = parse.urlparse(url)
         if spliturl.path.startswith("/metadata/"):
-            parts = spliturl.path[len("/metadata/"):].split(".")
+            parts = spliturl.path[len("/metadata/") :].split(".")
             if len(parts) == 3:
-                version = int(parts[0])
+                version: Optional[int] = int(parts[0])
                 role = parts[1]
             else:
                 version = None
                 role = parts[0]
-            yield self._fetch_metadata (role, version)
+            yield self._fetch_metadata(role, version)
         else:
             raise FetcherHTTPError(f"Unknown path '{spliturl.path}'", 404)
 
     def _fetch_metadata(self, role: str, version: Optional[int] = None) -> bytes:
         if role == "root":
             # return a version previously serialized in publish_root()
-            if version > len(self.signed_roots):
+            if version is None or version > len(self.signed_roots):
                 raise FetcherHTTPError(f"Unknown root version {version}", 404)
             logger.debug("fetched root version %d", role, version)
             return self.signed_roots[version - 1]
         else:
             # sign and serialize the requested metadata
             if role == "timestamp":
-                md = self.md_timestamp
+                md: Metadata = self.md_timestamp
             elif role == "snapshot":
                 md = self.md_snapshot
             elif role == "targets":
                 md = self.md_targets
             else:
-                md = self.md_delegates.get(role)
+                md = self.md_delegates[role]
 
             if md is None:
                 raise FetcherHTTPError(f"Unknown role {role}", 404)
@@ -163,13 +164,14 @@ class RepositorySimulator(FetcherInterface):
 
             md.signatures.clear()
             for signer in self.signers[role]:
-                md.sign(signer,append=True)
+                md.sign(signer, append=True)
 
             logger.debug(
                 "fetched %s v%d with %d sigs",
                 role,
                 md.signed.version,
-                len(self.signers[role]))
+                len(self.signers[role]),
+            )
             return md.to_bytes(JSONSerializer())
 
     def update_timestamp(self):
