@@ -24,11 +24,15 @@ class TestUpdater(unittest.TestCase):
     dump_dir:Optional[str] = None
 
     def setUp(self):
-        self.client_dir = tempfile.TemporaryDirectory()
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.metadata_dir = os.path.join(self.temp_dir.name, "metadata")
+        self.targets_dir = os.path.join(self.temp_dir.name, "targets")
+        os.mkdir(self.metadata_dir)
+        os.mkdir(self.targets_dir)
 
         # Setup the repository, bootstrap client root.json
         self.sim = RepositorySimulator()
-        with open(os.path.join(self.client_dir.name, "root.json"), "bw") as f:
+        with open(os.path.join(self.metadata_dir, "root.json"), "bw") as f:
             root = self.sim.download_bytes("https://example.com/metadata/1.root.json", 100000)
             f.write(root)
 
@@ -38,17 +42,21 @@ class TestUpdater(unittest.TestCase):
             self.sim.dump_dir = os.path.join(self.dump_dir, name)
             os.mkdir(self.sim.dump_dir)
 
-    def _run_refresh(self):
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def _run_refresh(self) -> Updater:
         if self.sim.dump_dir is not None:
             self.sim.write()
 
         updater = Updater(
-            self.client_dir.name,
+            self.metadata_dir,
             "https://example.com/metadata/",
             "https://example.com/targets/",
             self.sim
         )
         updater.refresh()
+        return updater
 
     def test_refresh(self):
         # Update top level metadata
@@ -70,6 +78,35 @@ class TestUpdater(unittest.TestCase):
         self.sim.update_snapshot()
 
         self._run_refresh()
+
+    def test_targets(self):
+        # target does not exist yet
+        updater = self._run_refresh()
+        self.assertIsNone(updater.get_one_valid_targetinfo("file"))
+
+        self.sim.targets.version += 1
+        self.sim.add_target("targets", b"content", "file")
+        self.sim.update_snapshot()
+
+        # target now exists, is not in cache yet
+        updater = self._run_refresh()
+        file_info = updater.get_one_valid_targetinfo("file")
+        self.assertIsNotNone(file_info)
+        self.assertEqual(
+            updater.updated_targets([file_info], self.targets_dir), [file_info]
+        )
+
+        # download target, assert it is in cache and content is correct
+        updater.download_target(file_info, self.targets_dir)
+        self.assertEqual(
+            updater.updated_targets([file_info], self.targets_dir), []
+        )
+        with open(os.path.join(self.targets_dir, "file"), "rb") as f:
+            self.assertEqual(f.read(), b"content")
+
+        # TODO: run the same download tests for
+        #     self.sim.add_target("targets", b"more content", "dir/file2")
+        # This currently fails because issue #1576
 
     def test_keys_and_signatures(self):
         """Example of the two trickiest test areas: keys and root updates"""
@@ -109,9 +146,6 @@ class TestUpdater(unittest.TestCase):
         self.sim.update_snapshot()
 
         self._run_refresh()
-
-    def tearDown(self):
-        self.client_dir.cleanup()
 
 if __name__ == "__main__":
     if "--dump" in sys.argv:
