@@ -11,6 +11,7 @@ import shutil
 import tempfile
 import logging
 import sys
+from typing import List
 import unittest
 import tuf.unittest_toolbox as unittest_toolbox
 
@@ -172,6 +173,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
             )
         )
 
+    def _assert_files(self, roles: List[str]):
+        """Assert that local metadata files exist for 'roles'"""
+        expected_files = [f"{role}.json" for role in roles]
+        client_files = sorted(os.listdir(self.client_directory))
+        self.assertEqual(client_files, expected_files)
+
     def test_refresh_on_consistent_targets(self):
         # Generate a new root version where consistent_snapshot is set to true
         def consistent_snapshot_modifier(root):
@@ -231,17 +238,26 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     def test_refresh_and_download(self):
         # Test refresh without consistent targets - targets without hash prefixes.
 
-        # All metadata is in local directory already
+        # top-level targets are already in local cache (but remove others)
+        os.remove(os.path.join(self.client_directory, "role1.json"))
+        os.remove(os.path.join(self.client_directory, "role2.json"))
+        os.remove(os.path.join(self.client_directory, "1.root.json"))
+
+        # top-level metadata is in local directory already
         self.repository_updater.refresh()
+        self._assert_files(["root", "snapshot", "targets", "timestamp"])
 
         # Get targetinfo for 'file1.txt' listed in targets
         targetinfo1 = self.repository_updater.get_one_valid_targetinfo(
             "file1.txt"
         )
+        self._assert_files(["root", "snapshot", "targets", "timestamp"])
         # Get targetinfo for 'file3.txt' listed in the delegated role1
         targetinfo3 = self.repository_updater.get_one_valid_targetinfo(
             "file3.txt"
         )
+        expected_files = ["role1", "root", "snapshot", "targets", "timestamp"]
+        self._assert_files(expected_files)
 
         updated_targets = self.repository_updater.updated_targets(
             [targetinfo1, targetinfo3], self.destination_directory
@@ -278,13 +294,19 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         os.remove(os.path.join(self.client_directory, "snapshot.json"))
         os.remove(os.path.join(self.client_directory, "targets.json"))
         os.remove(os.path.join(self.client_directory, "role1.json"))
+        os.remove(os.path.join(self.client_directory, "role2.json"))
+        os.remove(os.path.join(self.client_directory, "1.root.json"))
+        self._assert_files(["root"])
 
         self.repository_updater.refresh()
+        self._assert_files(["root", "snapshot", "targets", "timestamp"])
 
         # Get targetinfo for 'file3.txt' listed in the delegated role1
         targetinfo3 = self.repository_updater.get_one_valid_targetinfo(
             "file3.txt"
         )
+        expected_files = ["role1", "root", "snapshot", "targets", "timestamp"]
+        self._assert_files(expected_files)
 
     def test_both_target_urls_not_set(self):
         # target_base_url = None and Updater._target_base_url = None
