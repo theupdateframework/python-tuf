@@ -202,8 +202,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         )
 
         # Get targetinfos, assert cache does not contain the files
-        info1 = updater.get_one_valid_targetinfo("file1.txt")
-        info3 = updater.get_one_valid_targetinfo("file3.txt")
+        info1 = updater.get_targetinfo("file1.txt")
+        info3 = updater.get_targetinfo("file3.txt")
         self.assertIsNone(updater.find_cached_target(info1))
         self.assertIsNone(updater.find_cached_target(info3))
 
@@ -238,11 +238,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         self._assert_files(["root", "snapshot", "targets", "timestamp"])
 
         # Get targetinfos, assert that cache does not contain files
-        info1 = self.updater.get_one_valid_targetinfo("file1.txt")
+        info1 = self.updater.get_targetinfo("file1.txt")
         self._assert_files(["root", "snapshot", "targets", "timestamp"])
 
         # Get targetinfo for 'file3.txt' listed in the delegated role1
-        info3 = self.updater.get_one_valid_targetinfo("file3.txt")
+        info3 = self.updater.get_targetinfo("file3.txt")
         expected_files = ["role1", "root", "snapshot", "targets", "timestamp"]
         self._assert_files(expected_files)
         self.assertIsNone(self.updater.find_cached_target(info1))
@@ -275,7 +275,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         self._assert_files(["root", "snapshot", "targets", "timestamp"])
 
         # Get targetinfo for 'file3.txt' listed in the delegated role1
-        targetinfo3 = self.updater.get_one_valid_targetinfo("file3.txt")
+        targetinfo3 = self.updater.get_targetinfo("file3.txt")
         expected_files = ["role1", "root", "snapshot", "targets", "timestamp"]
         self._assert_files(expected_files)
 
@@ -297,13 +297,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     def test_external_targets_url(self):
         self.updater.refresh()
-        info = self.updater.get_one_valid_targetinfo("file1.txt")
+        info = self.updater.get_targetinfo("file1.txt")
 
         self.updater.download_target(info, target_base_url=self.targets_url)
 
     def test_length_hash_mismatch(self):
         self.updater.refresh()
-        targetinfo = self.updater.get_one_valid_targetinfo("file1.txt")
+        targetinfo = self.updater.get_targetinfo("file1.txt")
 
         length = targetinfo.length
         with self.assertRaises(exceptions.RepositoryError):
@@ -325,7 +325,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         self.updater.refresh()
 
         # Get targetinfo for non-existing file
-        self.assertIsNone(self.updater.get_one_valid_targetinfo("file33.txt"))
+        self.assertIsNone(self.updater.get_targetinfo("file33.txt"))
 
 
 if __name__ == "__main__":

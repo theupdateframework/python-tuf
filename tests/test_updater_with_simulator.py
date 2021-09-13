@@ -95,7 +95,7 @@ class TestUpdater(unittest.TestCase):
 
         updater = self._run_refresh()
         # target does not exist yet, configuration is what we expect
-        self.assertIsNone(updater.get_one_valid_targetinfo(targetpath))
+        self.assertIsNone(updater.get_targetinfo(targetpath))
         self.assertTrue(self.sim.root.consistent_snapshot)
         self.assertTrue(updater.config.prefix_targets_with_hash)
 
@@ -106,7 +106,7 @@ class TestUpdater(unittest.TestCase):
 
         updater = self._run_refresh()
         # target now exists, is not in cache yet
-        info = updater.get_one_valid_targetinfo(targetpath)
+        info = updater.get_targetinfo(targetpath)
         self.assertIsNotNone(info)
         # Test without and with explicit local filepath
         self.assertIsNone(updater.find_cached_target(info))
@@ -145,7 +145,7 @@ class TestUpdater(unittest.TestCase):
         updater = self._run_refresh()
 
         # trigger updater to fetch the delegated metadata, check filenames
-        updater.get_one_valid_targetinfo("anything")
+        updater.get_targetinfo("anything")
         local_metadata = os.listdir(self.metadata_dir)
         for fname in roles_to_filenames.values():
             self.assertTrue(fname in local_metadata)

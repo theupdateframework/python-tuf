@@ -21,7 +21,7 @@ High-level description of Updater functionality:
     snapshot is consistent so multiple targets can be downloaded without
     fear of repository content changing. For each target:
 
-      * :func:`~tuf.ngclient.updater.Updater.get_one_valid_targetinfo()` is
+      * :func:`~tuf.ngclient.updater.Updater.get_targetinfo()` is
         used to find information about a specific target. This will load new
         targets metadata as needed (from local cache or remote repository).
       * :func:`~tuf.ngclient.updater.Updater.find_cached_target()` can be used
@@ -56,7 +56,7 @@ Example::
     updater.refresh()
 
     # Update metadata, then download target if needed
-    info = updater.get_one_valid_targetinfo("file.txt")
+    info = updater.get_targetinfo("file.txt")
     path = updater.find_cached_target(info)
     if path is None:
         path = updater.download_target(info)
@@ -131,7 +131,7 @@ class Updater:
         all the checks required in the TUF client workflow.
 
         The metadata for delegated roles are not refreshed by this method as
-        that happens on demand during get_one_valid_targetinfo().
+        that happens on demand during get_targetinfo().
 
         The refresh() method should be called by the client before any other
         method calls.
@@ -147,19 +147,16 @@ class Updater:
         self._load_snapshot()
         self._load_targets("targets", "root")
 
-    def get_one_valid_targetinfo(
-        self, target_path: str
-    ) -> Optional[TargetFile]:
+    def get_targetinfo(self, target_path: str) -> Optional[TargetFile]:
         """Returns TargetFile instance with information for 'target_path'.
 
         The return value can be used as an argument to
         :func:`download_target()` and :func:`find_cached_target()`.
-
         :func:`refresh()` must be called before calling
-        `get_one_valid_targetinfo()`. Subsequent calls to
-        `get_one_valid_targetinfo()` will use the same consistent repository
+        `get_targetinfo()`. Subsequent calls to
+        `get_targetinfo()` will use the same consistent repository
         state: Changes that happen in the repository between calling
-        :func:`refresh()` and `get_one_valid_targetinfo()` will not be
+        :func:`refresh()` and `get_targetinfo()` will not be
         seen by the updater.
 
         As a side-effect this method downloads all the additional (delegated
@@ -193,7 +190,7 @@ class Updater:
         generated based on the target path like in ``download_target()``
 
         Args:
-            targetinfo: TargetFile from ``get_one_valid_targetinfo()``.
+            targetinfo: TargetFile from ``get_targetinfo()``.
             filepath: Local path to file. By default a filename is generated
                 and file is looked for in ``target_dir`` (see note above).
 
@@ -201,8 +198,8 @@ class Updater:
             ValueError: Incorrect arguments
 
         Returns:
-            Local file path if the file is an up to date target file, or None
-            if file is not found or it is not up to date.
+            Local file path if the file is an up to date target file.
+            None if file is not found or it is not up to date.
         """
         if filepath is not None:
             pass
@@ -233,8 +230,7 @@ class Updater:
         generated based on the target path.
 
         Args:
-            targetinfo: TargetFile with target information from
-                get_one_valid_targetinfo().
+            targetinfo: TargetFile from ``get_targetinfo()``.
             filepath: Local path to download into. By default the file is
                 downloaded into ``target_dir`` (see note above) with a
                 generated filename. If file already exists, it is overwritten.
@@ -247,7 +243,7 @@ class Updater:
             TODO: file write errors
 
         Returns:
-            Path to downloaded file
+            Local path to downloaded file
         """
 
         if filepath is not None:
