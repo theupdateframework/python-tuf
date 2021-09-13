@@ -47,6 +47,7 @@ from securesystemslib.interface import (
     import_ed25519_privatekey_from_file
 )
 
+from securesystemslib import hash as sslib_hash
 from securesystemslib.signer import (
     SSlibSigner,
     Signature
@@ -621,7 +622,49 @@ class TestMetadata(unittest.TestCase):
             file1_targetfile.length = expected_length
             file1_targetfile.hashes = {'sha256': 'incorrecthash'}
             self.assertRaises(exceptions.LengthOrHashMismatchError,
-                file1_targetfile.verify_length_and_hashes, file1)
+                file1_targetfile.verify_length_and_hashes, file1)     
+
+    def test_targetfile_from_file(self):
+        # Test with an existing file and valid hash algorithm
+        file_path = os.path.join(self.repo_dir, 'targets', 'file1.txt')
+        targetfile_from_file = TargetFile.from_file(
+            file_path, file_path, ['sha256']
+        )
+
+        with open(file_path, "rb") as file:
+            targetfile_from_file.verify_length_and_hashes(file)
+
+        # Test with a non-existing file
+        file_path = os.path.join(self.repo_dir, 'targets', 'file123.txt')
+        self.assertRaises(
+            FileNotFoundError, 
+            TargetFile.from_file, 
+            file_path, 
+            file_path,
+            [sslib_hash.DEFAULT_HASH_ALGORITHM]
+        )
+
+        # Test with an unsupported algorithm
+        file_path = os.path.join(self.repo_dir, 'targets', 'file1.txt')
+        self.assertRaises(
+            exceptions.UnsupportedAlgorithmError,
+            TargetFile.from_file, 
+            file_path, 
+            file_path,
+            ['123']
+        )
+
+    def test_targetfile_from_data(self):
+        data = b"Inline test content"
+        target_file_path = os.path.join(self.repo_dir, 'targets', 'file1.txt')
+        
+        # Test with a valid hash algorithm
+        targetfile_from_data = TargetFile.from_data(target_file_path, data, ['sha256'])
+        targetfile_from_data.verify_length_and_hashes(data)
+
+        # Test with no algorithms specified
+        targetfile_from_data = TargetFile.from_data(target_file_path, data)
+        targetfile_from_data.verify_length_and_hashes(data)
 
     def test_is_delegated_role(self):
         # test path matches

@@ -1219,6 +1219,78 @@ class TargetFile(BaseFile):
             **self.unrecognized_fields,
         }
 
+    @classmethod
+    def from_file(
+        cls,
+        target_file_path: str,
+        local_path: str,
+        hash_algorithms: Optional[List[str]] = None,
+    ) -> "TargetFile":
+        """Creates TargetFile object from a file.
+        Arguments:
+            target_file_path: The TargetFile path.
+            local_path: The local path to the file to create TargetFile from.
+            hash_algorithms: An optional list of hash algorithms to create
+                the hashes with. If not specified the securesystemslib default
+                hash algorithm is used.
+        Raises:
+            FileNotFoundError: The file doesn't exist.
+            UnsupportedAlgorithmError: The hash algorithms list
+                contains an unsupported algorithm.
+        """
+        with open(local_path, "rb") as file:
+            return cls.from_data(target_file_path, file, hash_algorithms)
+
+    @classmethod
+    def from_data(
+        cls,
+        target_file_path: str,
+        data: Union[bytes, IO[bytes]],
+        hash_algorithms: Optional[List[str]] = None,
+    ) -> "TargetFile":
+        """Creates TargetFile object from bytes.
+        Arguments:
+            target_file_path: The TargetFile path.
+            data: The data to create TargetFile from.
+            hash_algorithms: An optional list of hash algorithms to create
+                the hashes with. If not specified the securesystemslib default
+                hash algorithm is used.
+        Raises:
+            UnsupportedAlgorithmError: The hash algorithms list
+                contains an unsupported algorithm.
+        """
+        if isinstance(data, bytes):
+            length = len(data)
+        else:
+            data.seek(0, io.SEEK_END)
+            length = data.tell()
+
+        hashes = {}
+
+        if hash_algorithms is None:
+            hash_algorithms = [sslib_hash.DEFAULT_HASH_ALGORITHM]
+
+        for algorithm in hash_algorithms:
+            try:
+                if isinstance(data, bytes):
+                    digest_object = sslib_hash.digest(algorithm)
+                    digest_object.update(data)
+                else:
+                    digest_object = sslib_hash.digest_fileobject(
+                        data, algorithm
+                    )
+            except (
+                sslib_exceptions.UnsupportedAlgorithmError,
+                sslib_exceptions.FormatError,
+            ) as e:
+                raise exceptions.UnsupportedAlgorithmError(
+                    f"Unsupported algorithm '{algorithm}'"
+                ) from e
+
+            hashes[algorithm] = digest_object.hexdigest()
+
+        return cls(length, hashes, target_file_path)
+
     def verify_length_and_hashes(self, data: Union[bytes, IO[bytes]]) -> None:
         """Verifies that length and hashes of "data" match expected values.
 
