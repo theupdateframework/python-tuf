@@ -10,24 +10,23 @@ Updater provides an API to query available targets and to download them in a
 secure manner: All downloaded files are verified by signed metadata.
 
 High-level description of Updater functionality:
-  * Initializing an :class:`~tuf.ngclient.updater.Updater` loads and validates
-    the trusted local root metadata: This root metadata is used as the source
-    of trust for all other metadata.
-  * Calling :func:`~tuf.ngclient.updater.Updater.refresh()` will update root
-    metadata and load all other top-level metadata as described in the
-    specification, using both locally cached metadata and metadata downloaded
-    from the remote repository.
-  * When metadata is up-to-date, targets can be dowloaded. The repository
-    snapshot is consistent so multiple targets can be downloaded without
-    fear of repository content changing. For each target:
+  * Initializing an ``Updater`` loads and validates the trusted local root
+    metadata: This root metadata is used as the source of trust for all other
+    metadata.
+  * ``refresh()`` can optionally be called to update and load all top-level
+    metadata as described in the specification, using both locally cached
+    metadata and metadata downloaded from the remote repository. If refresh is
+    not done explicitly, it will happen automatically during the first target
+    info lookup.
+  * Updater can be used to download targets. For each target:
 
-      * :func:`~tuf.ngclient.updater.Updater.get_targetinfo()` is
-        used to find information about a specific target. This will load new
-        targets metadata as needed (from local cache or remote repository).
-      * :func:`~tuf.ngclient.updater.Updater.find_cached_target()` can be used
-        to check if a target file is already locally cached.
-      * :func:`~tuf.ngclient.updater.Updater.download_target()` downloads a
-        target file and ensures it is verified correct by the metadata.
+      * ``Updater.get_targetinfo()`` is first used to find information about a
+        specific target. This will load new targets metadata as needed (from
+        local cache or remote repository).
+      * ``Updater.find_cached_target()`` can optionally be used to check if a
+        target file is already locally cached.
+      * ``Updater.download_target()`` downloads a target file and ensures it is
+        verified correct by the metadata.
 
 Below is a simple example of using the Updater to download and verify
 "file.txt" from a remote repository. The required environment for this example
@@ -51,9 +50,6 @@ Example::
         target_dir="~/tufclient/downloads/",
         target_base_url="http://localhost:8000/targets/",
     )
-
-    # Update top-level metadata from remote
-    updater.refresh()
 
     # Update metadata, then download target if needed
     info = updater.get_targetinfo("file.txt")
@@ -130,11 +126,16 @@ class Updater:
         specified order (root -> timestamp -> snapshot -> targets) implementing
         all the checks required in the TUF client workflow.
 
-        The metadata for delegated roles are not refreshed by this method as
-        that happens on demand during get_targetinfo().
+        A ``refresh()`` can be done only once during the lifetime of an Updater.
+        If ``refresh()`` has not been explicitly called before the first
+        ``get_targetinfo()`` call, it will be done implicitly at that time.
 
-        The refresh() method should be called by the client before any other
-        method calls.
+        The metadata for delegated roles is not updated by ``refresh()``:
+        that happens on demand during ``get_targetinfo()``. However, if the
+        repository uses `consistent_snapshot
+        <https://theupdateframework.github.io/specification/latest/#consistent-snapshots>`_,
+        then all metadata downloaded downloaded by the Updater will use the same
+        consistent repository state.
 
         Raises:
             OSError: New metadata could not be written to disk
@@ -159,22 +160,18 @@ class Updater:
         """Returns TargetFile instance with information for 'target_path'.
 
         The return value can be used as an argument to
-        :func:`download_target()` and :func:`find_cached_target()`.
-        :func:`refresh()` must be called before calling
-        `get_targetinfo()`. Subsequent calls to
-        `get_targetinfo()` will use the same consistent repository
-        state: Changes that happen in the repository between calling
-        :func:`refresh()` and `get_targetinfo()` will not be
-        seen by the updater.
+        ``download_target()`` and ``find_cached_target()``.
+
+        If ``refresh()`` has not been called before calling
+        ``get_targetinfo()``, the refresh will be done implicitly.
 
         As a side-effect this method downloads all the additional (delegated
         targets) metadata it needs to return the target information.
 
         Args:
-            target_path: A target identifier that is a path-relative-URL string
-                (https://url.spec.whatwg.org/#path-relative-url-string).
-                Typically this is also the unix file path of the eventually
-                downloaded file.
+            target_path: A `path-relative-URL string
+                <https://url.spec.whatwg.org/#path-relative-url-string>`_
+                that uniquely identifies the target within the repository.
 
         Raises:
             OSError: New metadata could not be written to disk
@@ -184,6 +181,9 @@ class Updater:
         Returns:
             A TargetFile instance or None.
         """
+
+        if self._trusted_set.targets is None:
+            self.refresh()
         return self._preorder_depth_first_walk(target_path)
 
     def find_cached_target(
