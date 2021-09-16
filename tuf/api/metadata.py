@@ -760,7 +760,13 @@ class Root(Signed):
 
     # Update key for a role.
     def add_key(self, role: str, key: Key) -> None:
-        """Adds new signing key for delegated role 'role'."""
+        """Adds new signing key for delegated role 'role'.
+
+        Raises:
+            ValueError: If 'role' doesn't exist.
+        """
+        if role not in self.roles:
+            raise ValueError(f"Role {role} doesn't exist")
         self.roles[role].keyids.add(key.keyid)
         self.keys[key.keyid] = key
 
@@ -768,8 +774,13 @@ class Root(Signed):
         """Removes key from 'role' and updates the key store.
 
         Raises:
-            KeyError: If 'role' does not include the key
+            ValueError: If 'role' doesn't exist or if 'role' doesn't include
+                the key.
         """
+        if role not in self.roles:
+            raise ValueError(f"Role {role} doesn't exist")
+        if keyid not in self.roles[role].keyids:
+            raise ValueError(f"Key with id {keyid} is not used by {role}")
         self.roles[role].keyids.remove(keyid)
         for keyinfo in self.roles.values():
             if keyid in keyinfo.keyids:

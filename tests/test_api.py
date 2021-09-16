@@ -466,6 +466,10 @@ class TestMetadata(unittest.TestCase):
         # Add the same key to targets role as well
         root.signed.add_key('targets', key_metadata)
 
+        # Add the same key to a nonexistent role.
+        with self.assertRaises(ValueError):
+            root.signed.add_key("nosuchrole", key_metadata)
+
         # Remove the key from root role (targets role still uses it)
         root.signed.remove_key('root', keyid)
         self.assertNotIn(keyid, root.signed.roles['root'].keyids)
@@ -476,8 +480,10 @@ class TestMetadata(unittest.TestCase):
         self.assertNotIn(keyid, root.signed.roles['targets'].keyids)
         self.assertNotIn(keyid, root.signed.keys)
 
-        with self.assertRaises(KeyError):
+        with self.assertRaises(ValueError):
             root.signed.remove_key('root', 'nosuchkey')
+        with self.assertRaises(ValueError):
+            root.signed.remove_key('nosuchrole', keyid)
 
     def test_is_target_in_pathpattern(self):
         supported_use_cases = [
