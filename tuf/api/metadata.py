@@ -3,9 +3,28 @@
 
 """TUF role metadata model.
 
-This module provides container classes for TUF role metadata, including methods
-to read and write from and to file, perform TUF-compliant metadata updates, and
-create and verify signatures.
+This module contains low-level API through container classes for TUF role
+metadata. The API aims to provide:
+
+* Safe de/serialization of metadata to and from files.
+* Access to and modification of signed metadata content.
+* Signing metadata and verifying signatures.
+
+Each of the top level metadata roles is an instance of the Metadata[T] class
+where the "signed" portion of each of the roles (or the "T") is an instance
+of one of the classes Root, Timestamp, Snapshot or Targets.
+For example, Metadata[Root] represents the TUF root role and that in practice
+means that this is a Metadata object with a signed attribute of type Root.
+
+Additionally, there are helper classes providing abstractions over the complex
+metadata fields inside the four top level classes - Root, Timestamp, Snapshot
+and Targets.
+
+Note: the metadata module provides a low-level API and as such it doesn't use
+concepts like "repository" or "trusted collection of metadata".
+In this file there is no implementation of the repository-side logic or client
+update workflows, but instead it provides solid base for other components to do
+so.
 
 The metadata model supports any custom serialization format, defaulting to JSON
 as wireline format and Canonical JSON for reproducible signature creation and
