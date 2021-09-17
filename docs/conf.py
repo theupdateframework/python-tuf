@@ -52,5 +52,14 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 #html_static_path = ['_static']
 
+# -- Autodoc configuration ---------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html
+
 autodoc_mock_imports = ['securesystemslib']
 
+# Tone down the "tuf.api.metadata." repetition
+add_module_names = False
+python_use_unqualified_type_names = True
+
+# Show typehints in argument doc lines, but not in signatures
+autodoc_typehints = "description"

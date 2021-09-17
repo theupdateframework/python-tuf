@@ -78,7 +78,21 @@ logger = logging.getLogger(__name__)
 
 
 class Updater:
-    """Implementation of the TUF client workflow."""
+    """Creates a new Updater instance and loads trusted root metadata.
+
+    Args:
+        repository_dir: Local metadata directory. Directory must be
+            writable and it must contain a trusted root.json file.
+        metadata_base_url: Base URL for all remote metadata downloads
+        target_base_url: Optional; Default base URL for all remote target
+            downloads. Can be individually set in download_target()
+        fetcher: Optional; FetcherInterface implementation used to download
+            both metadata and targets. Default is RequestsFetcher
+
+    Raises:
+        OSError: Local root.json cannot be read
+        RepositoryError: Local root.json is invalid
+    """
 
     def __init__(
         self,
@@ -88,21 +102,6 @@ class Updater:
         fetcher: Optional[FetcherInterface] = None,
         config: Optional[UpdaterConfig] = None,
     ):
-        """Creates a new Updater instance and loads trusted root metadata.
-
-        Args:
-            repository_dir: Local metadata directory. Directory must be
-                writable and it must contain a trusted root.json file.
-            metadata_base_url: Base URL for all remote metadata downloads
-            target_base_url: Optional; Default base URL for all remote target
-                downloads. Can be individually set in download_target()
-            fetcher: Optional; FetcherInterface implementation used to download
-                both metadata and targets. Default is RequestsFetcher
-
-        Raises:
-            OSError: Local root.json cannot be read
-            RepositoryError: Local root.json is invalid
-        """
         self._dir = repository_dir
         self._metadata_base_url = _ensure_trailing_slash(metadata_base_url)
         if target_base_url is None:

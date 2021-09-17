@@ -104,7 +104,10 @@ class Metadata(Generic[T]):
     "[Root]" is not validated at runtime (as pure annotations are not available
     then).
 
-    Attributes:
+    *All parameters named below are not just constructor arguments but also
+    instance attributes.*
+
+    Args:
         signed: A subclass of Signed, which has the actual metadata payload,
             i.e. one of Targets, Snapshot, Timestamp or Root.
         signatures: An ordered dictionary of keyids to Signature objects, each
@@ -390,11 +393,12 @@ class Signed(metaclass=abc.ABCMeta):
     on the signed attribute. This class provides attributes and methods that
     are common for all TUF metadata types (roles).
 
-    Attributes:
-        _type: The metadata type string. Also available without underscore.
+    *All parameters named below are not just constructor arguments but also
+    instance attributes.*
+
+    Args:
         version: The metadata version number.
-        spec_version: The TUF specification version number (semver) the
-            metadata format adheres to.
+        spec_version: The supported TUF specification version number.
         expires: The metadata expiration datetime object.
         unrecognized_fields: Dictionary of all unrecognized fields.
     """
@@ -409,6 +413,7 @@ class Signed(metaclass=abc.ABCMeta):
 
     @property
     def type(self) -> str:
+        """Metadata type as string."""
         return self._signed_type
 
     # NOTE: Signed is a stupid name, because this might not be signed yet, but
@@ -520,7 +525,10 @@ class Key:
     Please note that "Key" instances are not semanticly validated during
     initialization: this only happens at signature verification time.
 
-    Attributes:
+    *All parameters named below are not just constructor arguments but also
+    instance attributes.*
+
+    Args:
         keyid: An identifier string that must uniquely identify a key within
             the metadata it is used in. This implementation does not verify
             that keyid is the hash of a specific representation of the key.
@@ -653,7 +661,10 @@ class Role:
     Role defines how many keys are required to successfully sign the roles
     metadata, and which keys are accepted.
 
-    Attributes:
+    *All parameters named below are not just constructor arguments but also
+    instance attributes.*
+
+    Args:
         keyids: A set of strings representing signing keys for this role.
         threshold: Number of keys required to sign this role's metadata.
         unrecognized_fields: Dictionary of all unrecognized fields.
@@ -697,12 +708,18 @@ class Role:
 class Root(Signed):
     """A container for the signed part of root metadata.
 
-    Attributes:
-        consistent_snapshot: An optional boolean indicating whether the
-            repository supports consistent snapshots.
+    Parameters listed below are also instance attributes.
+
+    Args:
+        version: The metadata version number.
+        spec_version: The supported TUF specification version number.
+        expires: The metadata expiration datetime object.
         keys: Dictionary of keyids to Keys. Defines the keys used in 'roles'.
         roles: Dictionary of role names to Roles. Defines which keys are
             required to sign the metadata for a specific role.
+        consistent_snapshot: An optional boolean indicating whether the
+            repository supports consistent snapshots.
+        unrecognized_fields: Dictionary of all unrecognized fields.
     """
 
     _signed_type = "root"
@@ -859,7 +876,10 @@ class BaseFile:
 class MetaFile(BaseFile):
     """A container with information about a particular metadata file.
 
-    Attributes:
+    *All parameters named below are not just constructor arguments but also
+    instance attributes.*
+
+    Args:
         version: An integer indicating the version of the metadata file.
         length: An optional integer indicating the length of the metadata file.
         hashes: An optional dictionary of hash algorithm names to hash values.
@@ -934,8 +954,15 @@ class Timestamp(Signed):
     TUF file format uses a dictionary to contain the snapshot information:
     this is not the case with Timestamp.snapshot_meta which is a MetaFile.
 
-    Attributes:
-        snapshot_meta: MetaFile instance with the snapshot meta information.
+    *All parameters named below are not just constructor arguments but also
+    instance attributes.*
+
+    Args:
+        version: The metadata version number.
+        spec_version: The supported TUF specification version number.
+        expires: The metadata expiration datetime object.
+        unrecognized_fields: Dictionary of all unrecognized fields.
+        snapshot_meta: MetaFile with the snapshot meta information.
     """
 
     _signed_type = "timestamp"
@@ -977,7 +1004,14 @@ class Snapshot(Signed):
 
     Snapshot contains information about all target Metadata files.
 
-    Attributes:
+    *All parameters named below are not just constructor arguments but also
+    instance attributes.*
+
+    Args:
+        version: The metadata version number.
+        spec_version: The supported TUF specification version number.
+        expires: The metadata expiration datetime object.
+        unrecognized_fields: Dictionary of all unrecognized fields.
         meta: A dictionary of target metadata filenames to MetaFile objects.
     """
 
@@ -1034,13 +1068,17 @@ class DelegatedRole(Role):
         paths and path_hash_prefixes are mutually exclusive: both cannot be set,
         at least one of them must be set.
 
-    Attributes:
-        name: A string giving the name of the delegated role.
-        terminating: A boolean indicating whether subsequent delegations
-            should be considered during a target lookup.
-        paths: An optional list of path pattern strings. See note above.
-        path_hash_prefixes: An optional list of hash prefixes. See note above.
-        unrecognized_fields: Dictionary of all unrecognized fields.
+    *All parameters named below are not just constructor arguments but also
+    instance attributes.*
+
+    Args:
+        name: Name of the delegated role.
+        keyids: Signing key keyids for this delegated role.
+        threshold: Number of keys required to sign this role's metadata.
+        terminating: Does this delegation terminate a target lookup.
+        paths: Path patterns. See note above.
+        path_hash_prefixes: Hash prefixes. See note above.
+        unrecognized_fields: Attributes not managed by TUF Metadata API.
     """
 
     def __init__(
@@ -1152,7 +1190,10 @@ class DelegatedRole(Role):
 class Delegations:
     """A container object storing information about all delegations.
 
-    Attributes:
+    *All parameters named below are not just constructor arguments but also
+    instance attributes.*
+
+    Args:
         keys: Dictionary of keyids to Keys. Defines the keys used in 'roles'.
         roles: Ordered dictionary of role names to DelegatedRoles instances. It
             defines which keys are required to sign the metadata for a specific
@@ -1202,7 +1243,10 @@ class Delegations:
 class TargetFile(BaseFile):
     """A container with information about a particular target file.
 
-    Attributes:
+    *All parameters named below are not just constructor arguments but also
+    instance attributes.*
+
+    Args:
         length: An integer indicating the length of the target file.
         hashes: A dictionary of hash algorithm names to hash values.
         path: A string denoting the path to a target file relative to a base
@@ -1255,6 +1299,7 @@ class TargetFile(BaseFile):
         hash_algorithms: Optional[List[str]] = None,
     ) -> "TargetFile":
         """Creates TargetFile object from a file.
+
         Arguments:
             target_file_path: The TargetFile path.
             local_path: The local path to the file to create TargetFile from.
@@ -1277,12 +1322,14 @@ class TargetFile(BaseFile):
         hash_algorithms: Optional[List[str]] = None,
     ) -> "TargetFile":
         """Creates TargetFile object from bytes.
+
         Arguments:
             target_file_path: The TargetFile path.
             data: The data to create TargetFile from.
             hash_algorithms: An optional list of hash algorithms to create
                 the hashes with. If not specified the securesystemslib default
                 hash algorithm is used.
+
         Raises:
             UnsupportedAlgorithmError: The hash algorithms list
                 contains an unsupported algorithm.
@@ -1339,10 +1386,17 @@ class Targets(Signed):
     Targets contains verifying information about target files and also
     delegates responsibility to other Targets roles.
 
-    Attributes:
+    *All parameters named below are not just constructor arguments but also
+    instance attributes.*
+
+    Args:
+        version: The metadata version number.
+        spec_version: The supported TUF specification version number.
+        expires: The metadata expiration datetime object.
         targets: A dictionary of target filenames to TargetFiles
         delegations: An optional Delegations that defines how this Targets
             further delegates responsibility to other Targets Metadata files.
+        unrecognized_fields: Dictionary of all unrecognized fields.
     """
 
     _signed_type = "targets"
