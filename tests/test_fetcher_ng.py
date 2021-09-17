@@ -13,10 +13,13 @@ import sys
 import unittest
 import tempfile
 import math
+import urllib3.exceptions
+import requests
 
 from tests import utils
 from tuf import exceptions, unittest_toolbox
 from tuf.ngclient._internal.requests_fetcher import RequestsFetcher
+from unittest.mock import patch
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +123,13 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
             next(self.fetcher.fetch(self.url))
 
         slow_server_process_handler.clean()
+
+    # Read/connect session timeout error
+    @patch.object(requests.Session, 'get', side_effect=urllib3.exceptions.TimeoutError)
+    def test_session_get_timeout(self, mock_session_get):
+        with self.assertRaises(exceptions.SlowRetrievalError):
+            self.fetcher.fetch(self.url)
+        mock_session_get.assert_called_once()
 
     # Simple bytes download
     def test_download_bytes(self):

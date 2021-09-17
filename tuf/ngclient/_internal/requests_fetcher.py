@@ -77,7 +77,13 @@ class RequestsFetcher(FetcherInterface):
         # requests as:
         #  - connect timeout (max delay before first byte is received)
         #  - read (gap) timeout (max delay between bytes received)
-        response = session.get(url, stream=True, timeout=self.socket_timeout)
+        try:
+            response = session.get(
+                url, stream=True, timeout=self.socket_timeout
+            )
+        except urllib3.exceptions.TimeoutError as e:
+            raise exceptions.SlowRetrievalError from e
+
         # Check response status.
         try:
             response.raise_for_status()
