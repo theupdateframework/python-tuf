@@ -276,9 +276,6 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
   # Raise 'securesystems.exceptions.FormatError' if there is a mismatch.
   sslib_formats.LOGLEVEL_SCHEMA.check_match(log_level)
 
-  # Assign to the global console_handler object.
-  global console_handler
-
   if console_handler is not None:
     console_handler.setLevel(log_level)
 
