@@ -1,4 +1,4 @@
-name: Run TUF tests and linter
+name: CI
 
 on:
   push:
@@ -8,7 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  tests:
+    name: Tests
     strategy:
       fail-fast: false
       # Run regular TUF tests on each OS/Python combination, plus special tests
@@ -88,10 +89,10 @@ jobs:
           coveralls --service=github --rcfile=tests/.coveragerc
 
   coveralls-fin:
-    # Always run when all 'build' jobs have finished even if they failed
+    # Always run when all 'tests' jobs have finished even if they failed
     # TODO: Replace always() with a 'at least one job succeeded' expression
     if: always()
-    needs: build
+    needs: tests
     runs-on: ubuntu-latest
     container: python:3-slim
     steps:
