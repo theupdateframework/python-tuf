@@ -429,10 +429,8 @@ def clear_keydb(repository_name='default', clear_all=False):
   sslib_formats.NAME_SCHEMA.check_match(repository_name)
   sslib_formats.BOOLEAN_SCHEMA.check_match(clear_all)
 
-  global _keydb_dict
-
   if clear_all:
-    _keydb_dict = {}
+    _keydb_dict.clear()
     _keydb_dict['default'] = {}
 
   if repository_name not in _keydb_dict:

@@ -946,17 +946,14 @@ def clear_roledb(repository_name='default', clear_all=False):
   sslib_formats.NAME_SCHEMA.check_match(repository_name)
   sslib_formats.BOOLEAN_SCHEMA.check_match(clear_all)
 
-  global _roledb_dict # pylint: disable=global-variable-not-assigned
-  global _dirty_roles # pylint: disable=global-variable-not-assigned
-
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     raise sslib_exceptions.InvalidNameError('Repository name does not'
       ' exist: ' + repository_name)
 
   if clear_all:
-    _roledb_dict = {}
+    _roledb_dict.clear()
     _roledb_dict['default'] = {}
-    _dirty_roles = {}
+    _dirty_roles.clear()
     _dirty_roles['default'] = set()
     return
 
