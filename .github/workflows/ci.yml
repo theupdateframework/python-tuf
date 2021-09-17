@@ -23,8 +23,7 @@ jobs:
             os: ubuntu-latest
             toxenv: with-sslib-master
             experimental: true
-          # TODO: Change to 3.x once pylint fully supports Python 3.9
-          - python-version: 3.8
+          - python-version: 3.x
             os: ubuntu-latest
             toxenv: lint
 
