@@ -352,11 +352,11 @@ class Updater:
             logger.debug("Local snapshot not valid as final: %s", e)
 
             assert self._trusted_set.timestamp is not None  # nosec
-            metainfo = self._trusted_set.timestamp.signed.meta["snapshot.json"]
-            length = metainfo.length or self.config.snapshot_max_length
+            snapshot_meta = self._trusted_set.timestamp.signed.snapshot_meta
+            length = snapshot_meta.length or self.config.snapshot_max_length
             version = None
             if self._trusted_set.root.signed.consistent_snapshot:
-                version = metainfo.version
+                version = snapshot_meta.version
 
             data = self._download_metadata("snapshot", length, version)
             self._trusted_set.update_snapshot(data)

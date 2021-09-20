@@ -233,13 +233,13 @@ class TrustedMetadataSet(abc.Mapping):
                 )
             # Prevent rolling back snapshot version
             if (
-                new_timestamp.signed.meta["snapshot.json"].version
-                < self.timestamp.signed.meta["snapshot.json"].version
+                new_timestamp.signed.snapshot_meta.version
+                < self.timestamp.signed.snapshot_meta.version
             ):
                 raise exceptions.ReplayedMetadataError(
                     "snapshot",
-                    new_timestamp.signed.meta["snapshot.json"].version,
-                    self.timestamp.signed.meta["snapshot.json"].version,
+                    new_timestamp.signed.snapshot_meta.version,
+                    self.timestamp.signed.snapshot_meta.version,
                 )
 
         # expiry not checked to allow old timestamp to be used for rollback
@@ -286,11 +286,11 @@ class TrustedMetadataSet(abc.Mapping):
         # Snapshot cannot be loaded if final timestamp is expired
         self._check_final_timestamp()
 
-        meta = self.timestamp.signed.meta["snapshot.json"]
+        snapshot_meta = self.timestamp.signed.snapshot_meta
 
         # Verify against the hashes in timestamp, if any
         try:
-            meta.verify_length_and_hashes(data)
+            snapshot_meta.verify_length_and_hashes(data)
         except exceptions.LengthOrHashMismatchError as e:
             raise exceptions.RepositoryError(
                 "Snapshot length or hashes do not match"
@@ -345,14 +345,10 @@ class TrustedMetadataSet(abc.Mapping):
         assert self.timestamp is not None  # nosec
         if self.snapshot.signed.is_expired(self.reference_time):
             raise exceptions.ExpiredMetadataError("snapshot.json is expired")
-
-        if (
-            self.snapshot.signed.version
-            != self.timestamp.signed.meta["snapshot.json"].version
-        ):
+        snapshot_meta = self.timestamp.signed.snapshot_meta
+        if self.snapshot.signed.version != snapshot_meta.version:
             raise exceptions.BadVersionNumberError(
-                f"Expected snapshot version "
-                f"{self.timestamp.signed.meta['snapshot.json'].version}, "
+                f"Expected snapshot version {snapshot_meta.version}, "
                 f"got {self.snapshot.signed.version}"
             )
 

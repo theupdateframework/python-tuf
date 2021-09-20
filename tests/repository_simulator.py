@@ -100,8 +100,8 @@ class RepositorySimulator(FetcherInterface):
         snapshot = Snapshot(1, SPEC_VER, expiry, meta)
         self.md_snapshot = Metadata(snapshot, OrderedDict())
 
-        meta = {"snapshot.json": MetaFile(snapshot.version)}
-        timestamp = Timestamp(1, SPEC_VER, expiry, meta)
+        snapshot_meta = MetaFile(snapshot.version)
+        timestamp = Timestamp(1, SPEC_VER, expiry, snapshot_meta)
         self.md_timestamp = Metadata(timestamp, OrderedDict())
 
         root = Root(1, SPEC_VER, expiry, {}, {}, True)
@@ -175,7 +175,7 @@ class RepositorySimulator(FetcherInterface):
             return md.to_bytes(JSONSerializer())
 
     def update_timestamp(self):
-        self.timestamp.meta["snapshot.json"].version = self.snapshot.version
+        self.timestamp.snapshot_meta.version = self.snapshot.version
 
         self.timestamp.version += 1
 

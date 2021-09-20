@@ -350,11 +350,11 @@ class TestMetadata(unittest.TestCase):
         fileinfo = MetaFile(2, 520, hashes)
 
         self.assertNotEqual(
-            timestamp.signed.meta['snapshot.json'].to_dict(), fileinfo.to_dict()
+            timestamp.signed.snapshot_meta.to_dict(), fileinfo.to_dict()
         )
         timestamp.signed.update(fileinfo)
         self.assertEqual(
-            timestamp.signed.meta['snapshot.json'].to_dict(), fileinfo.to_dict()
+            timestamp.signed.snapshot_meta.to_dict(), fileinfo.to_dict()
         )
 
 
@@ -563,7 +563,7 @@ class TestMetadata(unittest.TestCase):
         timestamp_path = os.path.join(
             self.repo_dir, 'metadata', 'timestamp.json')
         timestamp = Metadata[Timestamp].from_file(timestamp_path)
-        snapshot_metafile = timestamp.signed.meta["snapshot.json"]
+        snapshot_metafile = timestamp.signed.snapshot_meta
 
         snapshot_path = os.path.join(
             self.repo_dir, 'metadata', 'snapshot.json')
