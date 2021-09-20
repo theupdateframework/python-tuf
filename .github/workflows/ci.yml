@@ -96,6 +96,7 @@ jobs:
     container: python:3-slim
     steps:
       - name: Finalize publishing on coveralls.io
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
