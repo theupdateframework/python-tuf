@@ -29,7 +29,6 @@ from tuf.api.metadata import (
     Key,
     MetaFile,
     TargetFile,
-    Delegations,
     DelegatedRole,
 )
 
@@ -467,6 +466,10 @@ class TestMetadata(unittest.TestCase):
         # Add the same key to targets role as well
         root.signed.add_key('targets', key_metadata)
 
+        # Add the same key to a nonexistent role.
+        with self.assertRaises(ValueError):
+            root.signed.add_key("nosuchrole", key_metadata)
+
         # Remove the key from root role (targets role still uses it)
         root.signed.remove_key('root', keyid)
         self.assertNotIn(keyid, root.signed.roles['root'].keyids)
@@ -477,8 +480,10 @@ class TestMetadata(unittest.TestCase):
         self.assertNotIn(keyid, root.signed.roles['targets'].keyids)
         self.assertNotIn(keyid, root.signed.keys)
 
-        with self.assertRaises(KeyError):
+        with self.assertRaises(ValueError):
             root.signed.remove_key('root', 'nosuchkey')
+        with self.assertRaises(ValueError):
+            root.signed.remove_key('nosuchrole', keyid)
 
     def test_is_target_in_pathpattern(self):
         supported_use_cases = [
@@ -512,23 +517,6 @@ class TestMetadata(unittest.TestCase):
             )
 
 
-    def test_delegation_class(self):
-        # empty keys and roles
-        delegations_dict = {"keys":{}, "roles":[]}
-        delegations = Delegations.from_dict(delegations_dict.copy())
-        self.assertEqual(delegations_dict, delegations.to_dict())
-
-        # Test some basic missing or broken input
-        invalid_delegations_dicts = [
-            {},
-            {"keys":None, "roles":None},
-            {"keys":{"foo":0}, "roles":[]},
-            {"keys":{}, "roles":["foo"]},
-        ]
-        for d in invalid_delegations_dicts:
-            with self.assertRaises((KeyError, AttributeError)):
-                Delegations.from_dict(d)
-
     def test_metadata_targets(self):
         targets_path = os.path.join(
                 self.repo_dir, 'metadata', 'targets.json')
@@ -553,6 +541,82 @@ class TestMetadata(unittest.TestCase):
         self.assertEqual(
             targets.signed.targets[filename].to_dict(), fileinfo.to_dict()
         )
+
+    def test_targets_key_api(self):
+        targets_path = os.path.join(
+                self.repo_dir, 'metadata', 'targets.json')
+        targets: Targets = Metadata[Targets].from_file(targets_path).signed
+
+        # Add a new delegated role "role2" in targets
+        delegated_role = DelegatedRole.from_dict({
+                "keyids": [],
+                "name": "role2",
+                "paths": ["fn3", "fn4"],
+                "terminating": False,
+                "threshold": 1
+        })
+        targets.delegations.roles["role2"] = delegated_role
+
+        key_dict = {
+            "keytype": "ed25519",
+            "keyval": {
+                "public": "edcd0a32a07dce33f7c7873aaffbff36d20ea30787574ead335eefd337e4dacd"
+            },
+            "scheme": "ed25519"
+        }
+        key = Key.from_dict("id2", key_dict)
+
+        # Assert that delegated role "role1" does not contain the new key
+        self.assertNotIn(key.keyid, targets.delegations.roles["role1"].keyids)
+        targets.add_key("role1", key)
+
+        # Assert that the new key is added to the delegated role "role1"
+        self.assertIn(key.keyid, targets.delegations.roles["role1"].keyids)
+
+        # Confirm that the newly added key does not break the obj serialization
+        targets.to_dict()
+
+        # Try adding the same key again and assert its ignored.
+        past_keyid = targets.delegations.roles["role1"].keyids.copy()
+        targets.add_key("role1", key)
+        self.assertEqual(past_keyid, targets.delegations.roles["role1"].keyids)
+
+        # Try adding a key to a delegated role that doesn't exists
+        with self.assertRaises(ValueError):
+            targets.add_key("nosuchrole", key)
+
+        # Add the same key to "role2" as well
+        targets.add_key("role2", key)
+
+        # Remove the key from "role1" role ("role2" still uses it)
+        targets.remove_key("role1", key.keyid)
+
+        # Assert that delegated role "role1" doesn't contain the key.
+        self.assertNotIn(key.keyid, targets.delegations.roles["role1"].keyids)
+        self.assertIn(key.keyid, targets.delegations.roles["role2"].keyids)
+
+        # Remove the key from "role2" as well
+        targets.remove_key("role2", key.keyid)
+        self.assertNotIn(key.keyid, targets.delegations.roles["role2"].keyids)
+
+        # Try remove key not used by "role1"
+        with self.assertRaises(ValueError):
+            targets.remove_key("role1", key.keyid)
+
+        # Try removing a key from delegated role that doesn't exists
+        with self.assertRaises(ValueError):
+            targets.remove_key("nosuchrole", key.keyid)
+
+        # Remove delegations as a whole
+        targets.delegations = None
+        # Test that calling add_key and remove_key throws an error
+        # and that delegations is still None after each of the api calls
+        with self.assertRaises(ValueError):
+            targets.add_key("role1", key)
+        self.assertTrue(targets.delegations is None)
+        with self.assertRaises(ValueError):
+            targets.remove_key("role1", key.keyid)
+        self.assertTrue(targets.delegations is None)
 
 
     def  test_length_and_hash_validation(self):

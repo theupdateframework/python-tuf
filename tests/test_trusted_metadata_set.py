@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, Union, Callable
+from typing import Optional, Callable
 import os
 import sys
 import unittest

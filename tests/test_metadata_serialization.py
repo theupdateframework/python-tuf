@@ -12,13 +12,11 @@ import logging
 import unittest
 import copy
 
-from typing import Dict, Callable, Optional, Mapping, Any
-from datetime import datetime
+from typing import Dict, Callable
 
 from tests import utils
 
 from tuf.api.metadata import (
-    Signed,
     Root,
     Snapshot,
     Timestamp,
@@ -302,6 +300,27 @@ class TestSerialization(unittest.TestCase):
         case_dict = json.loads(test_case_data)
         with self.assertRaises(ValueError):
             DelegatedRole.from_dict(copy.copy(case_dict))
+
+
+    invalid_delegations: DataSet = {
+        "empty delegations": '{}',
+        "bad keys": '{"keys": "foo", \
+            "roles": [{"keyids": ["keyid"], "name": "a", "paths": ["fn1", "fn2"], "terminating": false, "threshold": 3}]}',
+        "bad roles": '{"keys": {"keyid" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
+            "roles": ["foo"]}',
+        "duplicate role names": '{"keys": {"keyid" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
+            "roles": [ \
+                {"keyids": ["keyid"], "name": "a", "paths": ["fn1", "fn2"], "terminating": false, "threshold": 3}, \
+                {"keyids": ["keyid2"], "name": "a", "paths": ["fn3"], "terminating": false, "threshold": 2}    \
+                ] \
+            }',
+    }
+
+    @run_sub_tests_with_dataset(invalid_delegations)
+    def test_invalid_delegation_serialization(self, test_case_data: str):
+        case_dict = json.loads(test_case_data)
+        with self.assertRaises((ValueError, KeyError, AttributeError)):
+            Delegations.from_dict(copy.deepcopy(case_dict))
 
 
     valid_delegations: DataSet = {

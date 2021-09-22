@@ -46,11 +46,7 @@ import logging
 import unittest
 import sys
 from urllib import request
-
-if sys.version_info >= (3, 3):
-  import unittest.mock as mock
-else:
-  import mock
+import unittest.mock as mock
 
 import tuf.formats
 import tuf.log
