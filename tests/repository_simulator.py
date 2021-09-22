@@ -59,6 +59,8 @@ from urllib import parse
 from tuf.api.serialization.json import JSONSerializer
 from tuf.exceptions import FetcherHTTPError
 from tuf.api.metadata import (
+    DelegatedRole,
+    Delegations,
     Key,
     Metadata,
     MetaFile,
@@ -106,6 +108,9 @@ class RepositorySimulator(FetcherInterface):
         self.dump_dir = None
         self.dump_version = 0
 
+        now = datetime.utcnow()
+        self.safe_expiry = now.replace(microsecond=0) + timedelta(days=30)
+
         self._initialize()
 
     @property
@@ -135,20 +140,19 @@ class RepositorySimulator(FetcherInterface):
 
     def _initialize(self):
         """Setup a minimal valid repository"""
-        expiry = datetime.utcnow().replace(microsecond=0) + timedelta(days=30)
 
-        targets = Targets(1, SPEC_VER, expiry, {}, None)
+        targets = Targets(1, SPEC_VER, self.safe_expiry, {}, None)
         self.md_targets = Metadata(targets, OrderedDict())
 
         meta = {"targets.json": MetaFile(targets.version)}
-        snapshot = Snapshot(1, SPEC_VER, expiry, meta)
+        snapshot = Snapshot(1, SPEC_VER, self.safe_expiry, meta)
         self.md_snapshot = Metadata(snapshot, OrderedDict())
 
         snapshot_meta = MetaFile(snapshot.version)
-        timestamp = Timestamp(1, SPEC_VER, expiry, snapshot_meta)
+        timestamp = Timestamp(1, SPEC_VER, self.safe_expiry, snapshot_meta)
         self.md_timestamp = Metadata(timestamp, OrderedDict())
 
-        root = Root(1, SPEC_VER, expiry, {}, {}, True)
+        root = Root(1, SPEC_VER, self.safe_expiry, {}, {}, True)
         for role in ["root", "timestamp", "snapshot", "targets"]:
             key, signer = self.create_key()
             root.roles[role] = Role([], 1)
@@ -172,27 +176,27 @@ class RepositorySimulator(FetcherInterface):
     def fetch(self, url: str) -> Iterator[bytes]:
         if not self.root.consistent_snapshot:
             raise NotImplementedError("non-consistent snapshot not supported")
-
-        spliturl = parse.urlparse(url)
-        if spliturl.path.startswith("/metadata/"):
-            parts = spliturl.path[len("/metadata/") :].split(".")
-            if len(parts) == 3:
-                version: Optional[int] = int(parts[0])
-                role = parts[1]
-            else:
+        path = parse.urlparse(url).path
+        if path.startswith("/metadata/") and path.endswith(".json"):
+            ver_and_name = path[len("/metadata/") :][: -len(".json")]
+            # only consistent_snapshot supported ATM: timestamp is special case
+            if ver_and_name == "timestamp":
                 version = None
-                role = parts[0]
+                role = "timestamp"
+            else:
+                version, _, role = ver_and_name.partition(".")
+                version = int(version)
             yield self._fetch_metadata(role, version)
-        elif spliturl.path.startswith("/targets/"):
+        elif path.startswith("/targets/"):
             # figure out target path and hash prefix
-            path = spliturl.path[len("/targets/") :]
-            dir_parts, sep , prefixed_filename = path.rpartition("/")
+            target_path = path[len("/targets/") :]
+            dir_parts, sep , prefixed_filename = target_path.rpartition("/")
             prefix, _, filename = prefixed_filename.partition(".")
             target_path = f"{dir_parts}{sep}{filename}"
 
             yield self._fetch_target(target_path, prefix)
         else:
-            raise FetcherHTTPError(f"Unknown path '{spliturl.path}'", 404)
+            raise FetcherHTTPError(f"Unknown path '{path}'", 404)
 
     def _fetch_target(self, target_path: str, hash: Optional[str]) -> bytes:
         """Return data for 'target_path', checking 'hash' if it is given.
@@ -268,12 +272,14 @@ class RepositorySimulator(FetcherInterface):
 
     def update_snapshot(self):
         for role, delegate in self.all_targets():
-            self.snapshot.meta[f"{role}.json"].version = delegate.version
-
+            hashes = None
+            length = None
             if self.compute_metafile_hashes_length:
                 hashes, length = self._compute_hashes_and_length(role)
-                self.snapshot.meta[f"{role}.json"].hashes = hashes
-                self.snapshot.meta[f"{role}.json"].length = length
+
+            self.snapshot.meta[f"{role}.json"] = MetaFile(
+                delegate.version, length, hashes
+            )
 
         self.snapshot.version += 1
         self.update_timestamp()
@@ -287,6 +293,37 @@ class RepositorySimulator(FetcherInterface):
         target = TargetFile.from_data(path, data, ["sha256"])
         targets.targets[path] = target
         self.target_files[path] = RepositoryTarget(data, target)
+
+    def add_delegation(
+        self,
+        delegator_name: str,
+        name: str,
+        targets: Targets,
+        terminating: bool,
+        paths: Optional[List[str]],
+        hash_prefixes: Optional[List[str]],
+    ):
+        if delegator_name == "targets":
+            delegator = self.targets
+        else:
+            delegator = self.md_delegates[delegator_name].signed
+
+        # Create delegation
+        role = DelegatedRole(name, [], 1, terminating, paths, hash_prefixes)
+        if delegator.delegations is None:
+            delegator.delegations = Delegations({}, {})
+        # put delegation last by default
+        delegator.delegations.roles[role.name] = role
+
+        # By default add one new key for the role
+        key, signer = self.create_key()
+        delegator.add_key(role.name, key)
+        if role not in self.signers:
+            self.signers[role.name] = []
+        self.signers[role.name].append(signer)
+
+        # Add metadata for the role
+        self.md_delegates[role.name] = Metadata(targets, OrderedDict())
 
     def write(self):
         """Dump current repository metadata to self.dump_dir

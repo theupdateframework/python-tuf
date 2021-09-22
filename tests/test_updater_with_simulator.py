@@ -9,6 +9,7 @@
 import os
 import sys
 import tempfile
+from tuf.api.metadata import Targets
 from typing import Optional, Tuple
 from tuf.exceptions import UnsignedMetadataError, BadVersionNumberError
 import unittest
@@ -124,6 +125,29 @@ class TestUpdater(unittest.TestCase):
         self.assertEqual(local_path, encoded_absolute_path)
 
 
+
+    def test_fishy_rolenames(self):
+        roles_to_filenames = {
+            "../a": "..%2Fa.json",
+            "": ".json",
+            ".": "..json",
+            "/": "%2F.json",
+            "ö": "%C3%B6.json"
+        }
+
+        # Add new delegated targets, update the snapshot
+        targets = Targets(1, "1.0.19", self.sim.safe_expiry, {}, None)
+        for role in roles_to_filenames.keys():
+            self.sim.add_delegation("targets", role, targets, False, ["*"], None)
+        self.sim.update_snapshot()
+
+        updater = self._run_refresh()
+
+        # trigger updater to fetch the delegated metadata, check filenames
+        updater.get_one_valid_targetinfo("anything")
+        local_metadata = os.listdir(self.metadata_dir)
+        for fname in roles_to_filenames.values():
+            self.assertTrue(fname in local_metadata)
 
     def test_keys_and_signatures(self):
         """Example of the two trickiest test areas: keys and root updates"""
