@@ -66,4 +66,5 @@ autodoc_typehints = "description"
 
 autodoc_default_options = {
     'members': True,
+    'exclude-members': 'to_dict, from_dict'
 }
