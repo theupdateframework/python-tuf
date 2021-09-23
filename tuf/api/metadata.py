@@ -108,8 +108,8 @@ class Metadata(Generic[T]):
     instance attributes.*
 
     Args:
-        signed: A subclass of Signed, which has the actual metadata payload,
-            i.e. one of Targets, Snapshot, Timestamp or Root.
+        signed: The actual metadata payload, i.e. one of Targets, Snapshot,
+            Timestamp or Root.
         signatures: An ordered dictionary of keyids to Signature objects, each
             signing the canonical serialized representation of 'signed'.
     """
@@ -208,9 +208,9 @@ class Metadata(Generic[T]):
         """Loads TUF metadata from raw data.
 
         Arguments:
-            data: metadata content as bytes.
-            deserializer: Optional; A MetadataDeserializer instance that
-                implements deserialization. Default is JSONDeserializer.
+            data: metadata content.
+            deserializer: MetadataDeserializer implementation to use. Default
+                is JSONDeserializer.
 
         Raises:
             tuf.api.serialization.DeserializationError:
@@ -343,7 +343,7 @@ class Metadata(Generic[T]):
         Args:
             delegated_role: Name of the delegated role to verify
             delegated_metadata: The Metadata object for the delegated role
-            signed_serializer: Optional; serializer used for delegate
+            signed_serializer: serializer used for delegate
                 serialization. Default is CanonicalJSONSerializer.
 
         Raises:
@@ -399,7 +399,7 @@ class Signed(metaclass=abc.ABCMeta):
     Args:
         version: The metadata version number.
         spec_version: The supported TUF specification version number.
-        expires: The metadata expiration datetime object.
+        expires: The metadata expiry date.
         unrecognized_fields: Dictionary of all unrecognized fields.
     """
 
@@ -497,9 +497,8 @@ class Signed(metaclass=abc.ABCMeta):
         """Checks metadata expiration against a reference time.
 
         Args:
-            reference_time: Optional; The time to check expiration date against.
-                A naive datetime in UTC expected.
-                If not provided, checks against the current UTC date and time.
+            reference_time: The time to check expiration date against. A naive
+                datetime in UTC expected. Default is current UTC date and time.
 
         Returns:
             True if expiration time is less than the reference time.
@@ -522,21 +521,20 @@ class Signed(metaclass=abc.ABCMeta):
 class Key:
     """A container class representing the public portion of a Key.
 
-    Please note that "Key" instances are not semanticly validated during
-    initialization: this only happens at signature verification time.
+    Supported key content (type, scheme and keyval) is defined in
+    Securesystemslib.
 
     *All parameters named below are not just constructor arguments but also
     instance attributes.*
 
     Args:
-        keyid: An identifier string that must uniquely identify a key within
-            the metadata it is used in. This implementation does not verify
-            that keyid is the hash of a specific representation of the key.
-        keytype: A string denoting a public key signature system,
-            such as "rsa", "ed25519", "ecdsa" and "ecdsa-sha2-nistp256".
-        scheme: A string denoting a corresponding signature scheme. For example:
+        keyid: Key identifier that is unique within the metadata it is used in.
+            Keyid is not verified to be the hash of a specific representation
+            of the key.
+        keytype: key type, e.g. "rsa", "ed25519" or "ecdsa-sha2-nistp256".
+        scheme: signature scheme. For example:
             "rsassa-pss-sha256", "ed25519", and "ecdsa-sha2-nistp256".
-        keyval: A dictionary containing the public portion of the key.
+        keyval: Opaque key content
         unrecognized_fields: Dictionary of all unrecognized fields.
     """
 
@@ -613,7 +611,7 @@ class Key:
 
         Arguments:
             metadata: Metadata to verify
-            signed_serializer: Optional; SignedSerializer to serialize
+            signed_serializer: SignedSerializer to serialize
                 'metadata.signed' with. Default is CanonicalJSONSerializer.
 
         Raises:
@@ -665,7 +663,7 @@ class Role:
     instance attributes.*
 
     Args:
-        keyids: A set of strings representing signing keys for this role.
+        keyids: The roles signing key identifiers.
         threshold: Number of keys required to sign this role's metadata.
         unrecognized_fields: Dictionary of all unrecognized fields.
     """
@@ -713,12 +711,11 @@ class Root(Signed):
     Args:
         version: The metadata version number.
         spec_version: The supported TUF specification version number.
-        expires: The metadata expiration datetime object.
+        expires: The metadata expiry date.
         keys: Dictionary of keyids to Keys. Defines the keys used in 'roles'.
         roles: Dictionary of role names to Roles. Defines which keys are
             required to sign the metadata for a specific role.
-        consistent_snapshot: An optional boolean indicating whether the
-            repository supports consistent snapshots.
+        consistent_snapshot: Does repository support consistent snapshots.
         unrecognized_fields: Dictionary of all unrecognized fields.
     """
 
@@ -880,9 +877,9 @@ class MetaFile(BaseFile):
     instance attributes.*
 
     Args:
-        version: An integer indicating the version of the metadata file.
-        length: An optional integer indicating the length of the metadata file.
-        hashes: An optional dictionary of hash algorithm names to hash values.
+        version: Version of the metadata file.
+        length: Length of the metadata file.
+        hashes: Dictionary of hash algorithm names to hash values.
         unrecognized_fields: Dictionary of all unrecognized fields.
     """
 
@@ -960,9 +957,9 @@ class Timestamp(Signed):
     Args:
         version: The metadata version number.
         spec_version: The supported TUF specification version number.
-        expires: The metadata expiration datetime object.
+        expires: The metadata expiry date.
         unrecognized_fields: Dictionary of all unrecognized fields.
-        snapshot_meta: MetaFile with the snapshot meta information.
+        snapshot_meta: Meta information for snapshot metadata.
     """
 
     _signed_type = "timestamp"
@@ -1010,7 +1007,7 @@ class Snapshot(Signed):
     Args:
         version: The metadata version number.
         spec_version: The supported TUF specification version number.
-        expires: The metadata expiration datetime object.
+        expires: The metadata expiry date.
         unrecognized_fields: Dictionary of all unrecognized fields.
         meta: A dictionary of target metadata filenames to MetaFile objects.
     """
@@ -1072,8 +1069,8 @@ class DelegatedRole(Role):
     instance attributes.*
 
     Args:
-        name: Name of the delegated role.
-        keyids: Signing key keyids for this delegated role.
+        name: Delegated role name.
+        keyids: Delegated role signing key identifiers.
         threshold: Number of keys required to sign this role's metadata.
         terminating: Does this delegation terminate a target lookup.
         paths: Path patterns. See note above.
@@ -1198,7 +1195,7 @@ class Delegations:
         roles: Ordered dictionary of role names to DelegatedRoles instances. It
             defines which keys are required to sign the metadata for a specific
             role. The roles order also defines the order that role delegations
-            are considered in.
+            are considered during target searches.
         unrecognized_fields: Dictionary of all unrecognized fields.
     """
 
@@ -1247,10 +1244,9 @@ class TargetFile(BaseFile):
     instance attributes.*
 
     Args:
-        length: An integer indicating the length of the target file.
+        length: Length in bytes.
         hashes: A dictionary of hash algorithm names to hash values.
-        path: A string denoting the path to a target file relative to a base
-            URL of targets.
+        path: URL path to a target file, relative to a base targets URL.
         unrecognized_fields: Dictionary of all unrecognized fields.
     """
 
@@ -1301,11 +1297,11 @@ class TargetFile(BaseFile):
         """Creates TargetFile object from a file.
 
         Arguments:
-            target_file_path: The TargetFile path.
-            local_path: The local path to the file to create TargetFile from.
-            hash_algorithms: An optional list of hash algorithms to create
-                the hashes with. If not specified the securesystemslib default
-                hash algorithm is used.
+            target_file_path: URL path to a target file, relative to a base
+                targets URL.
+            local_path: The local path to target file content.
+            hash_algorithms: hash algorithms to calculate hashes with. If not
+                specified the securesystemslib default hash algorithm is used.
         Raises:
             FileNotFoundError: The file doesn't exist.
             UnsupportedAlgorithmError: The hash algorithms list
@@ -1324,11 +1320,11 @@ class TargetFile(BaseFile):
         """Creates TargetFile object from bytes.
 
         Arguments:
-            target_file_path: The TargetFile path.
-            data: The data to create TargetFile from.
-            hash_algorithms: An optional list of hash algorithms to create
-                the hashes with. If not specified the securesystemslib default
-                hash algorithm is used.
+            target_file_path: URL path to a target file, relative to a base
+                targets URL.
+            data: The target file content.
+            hash_algorithms: Hash algorithms to create the hashes with. If not
+                specified the securesystemslib default hash algorithm is used.
 
         Raises:
             UnsupportedAlgorithmError: The hash algorithms list
@@ -1392,10 +1388,10 @@ class Targets(Signed):
     Args:
         version: The metadata version number.
         spec_version: The supported TUF specification version number.
-        expires: The metadata expiration datetime object.
+        expires: The metadata expiry date.
         targets: A dictionary of target filenames to TargetFiles
-        delegations: An optional Delegations that defines how this Targets
-            further delegates responsibility to other Targets Metadata files.
+        delegations: Defines how this Targets delegates responsibility to other
+            Targets Metadata files.
         unrecognized_fields: Dictionary of all unrecognized fields.
     """
 
