@@ -8,4 +8,4 @@ pynacl==1.4.0             # via securesystemslib
 requests==2.26.0
 securesystemslib[crypto,pynacl]==0.21.0
 six==1.16.0               # via pynacl, securesystemslib
-urllib3==1.26.6           # via requests
+urllib3==1.26.7           # via requests
