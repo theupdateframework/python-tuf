@@ -12,7 +12,7 @@ Metadata API
 .. toctree::
    :hidden:
 
-   tuf.api.metadata.helpers
+   tuf.api.metadata.supporting
    tuf.api.serialization
 
 .. automodule:: tuf.api.metadata
