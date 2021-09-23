@@ -1,9 +1,10 @@
 Serialization
 =============================
 
+.. automodule:: tuf.api.serialization
+
 JSON serialization
 -----------------------------
 
 .. automodule:: tuf.api.serialization.json
-   :undoc-members:
    :show-inheritance:
