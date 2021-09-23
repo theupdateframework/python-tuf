@@ -1,38 +1,28 @@
 # Copyright New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""TUF role metadata model.
-
-This module contains low-level API through container classes for TUF role
-metadata. The API aims to provide:
+"""
+The low-level Metadata API in ``tuf.api.metadata`` module contains:
 
 * Safe de/serialization of metadata to and from files.
 * Access to and modification of signed metadata content.
 * Signing metadata and verifying signatures.
 
-Each of the top level metadata roles is an instance of the Metadata[T] class
-where the "signed" portion of each of the roles (or the "T") is an instance
-of one of the classes Root, Timestamp, Snapshot or Targets.
-For example, Metadata[Root] represents the TUF root role and that in practice
-means that this is a Metadata object with a signed attribute of type Root.
+Metadata API implements functionality at the metadata file level, it does
+not provide TUF repository or client functionality on its own (but can be used
+to implement them).
 
-Additionally, there are helper classes providing abstractions over the complex
-metadata fields inside the four top level classes - Root, Timestamp, Snapshot
-and Targets.
+The API design is based on the file format defined in the `TUF specification
+<https://theupdateframework.github.io/specification/latest/>`_ and the object
+attributes generally follow the JSON format used in the specification.
 
-Note: the metadata module provides a low-level API and as such it doesn't use
-concepts like "repository" or "trusted collection of metadata".
-In this file there is no implementation of the repository-side logic or client
-update workflows, but instead it provides solid base for other components to do
-so.
+The above principle means that a ``Metadata`` object represents a single
+metadata file, and has a ``signed`` attribute that is an instance of one of the
+four top level signed classes (Root, Timestamp, Snapshot and Targets). To make
+Python type annotations useful Metadata can be type constrained: e.g. the
+signed attribute of ``Metadata[Root]`` is known to be ``Root``.
 
-The metadata model supports any custom serialization format, defaulting to JSON
-as wireline format and Canonical JSON for reproducible signature creation and
-verification.
-Custom serializers must implement the abstract serialization interface defined
-in 'tuf.api.serialization', and may use the [to|from]_dict convenience methods
-available in the class model.
-
+Currently Metadata API supports JSON as the file format.
 """
 import abc
 import fnmatch
