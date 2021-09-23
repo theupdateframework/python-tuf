@@ -2073,6 +2073,64 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(None, multi_repo_updater.get_updater('bad_repo_name'))
 
 
+class TestUpdaterRolenames(unittest_toolbox.Modified_TestCase):
+  def setUp(self):
+    unittest_toolbox.Modified_TestCase.setUp(self)
+
+    repo_dir = os.path.join(os.getcwd(), 'repository_data', 'fishy_rolenames')
+
+    self.client_dir = self.make_temp_directory()
+    os.makedirs(os.path.join(self.client_dir, "fishy_rolenames", "metadata", "current"))
+    os.makedirs(os.path.join(self.client_dir, "fishy_rolenames", "metadata", "previous"))
+    shutil.copy(
+      os.path.join(repo_dir, 'metadata', '1.root.json'),
+      os.path.join(self.client_dir, "fishy_rolenames", "metadata", "current", "root.json")
+    )
+
+    simple_server_path = os.path.join(os.getcwd(), 'simple_server.py')
+    self.server_process_handler = utils.TestServerProcess(log=logger,
+        server=simple_server_path)
+
+    url_prefix = 'http://' + utils.TEST_HOST_ADDRESS + ':' \
+        + str(self.server_process_handler.port) + "/repository_data/fishy_rolenames"
+
+    tuf.settings.repositories_directory = self.client_dir
+    mirrors = {'mirror1': {
+      'url_prefix': url_prefix,
+      'metadata_path': 'metadata/',
+      'targets_path': ''
+    }}
+    self.updater = updater.Updater("fishy_rolenames", mirrors)
+
+  def tearDown(self):
+    tuf.roledb.clear_roledb(clear_all=True)
+    tuf.keydb.clear_keydb(clear_all=True)
+    self.server_process_handler.flush_log()
+    self.server_process_handler.clean()
+    unittest_toolbox.Modified_TestCase.tearDown(self)
+
+  def test_unusual_rolenames(self):
+    """Test rolenames that may be tricky to handle as filenames
+
+    The test data in repository_data/fishy_rolenames has been produced
+    semi-manually using RepositorySimulator: using the RepositorySimulator
+    in these tests directly (like test_updater_with_simulator.py does for
+    ngclient) might make more sense... but would require some integration work
+    """
+
+    # Make a target search that fetches the delegated targets
+    self.updater.refresh()
+    with self.assertRaises(tuf.exceptions.UnknownTargetError):
+      self.updater.get_one_valid_targetinfo("anything")
+
+    # Assert that the metadata files are in the client metadata directory
+    metadata_dir = os.path.join(
+      self.client_dir, "fishy_rolenames", "metadata", "current"
+    )
+    local_metadata = os.listdir(metadata_dir)
+    for fname in ['%C3%B6.json', '..%2Fa.json', '..json']:
+      self.assertTrue(fname in local_metadata)
+
 
 def _load_role_keys(keystore_directory):
 
