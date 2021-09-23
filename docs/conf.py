@@ -63,3 +63,7 @@ python_use_unqualified_type_names = True
 
 # Show typehints in argument doc lines, but not in signatures
 autodoc_typehints = "description"
+
+autodoc_default_options = {
+    'members': True,
+}
