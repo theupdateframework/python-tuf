@@ -50,7 +50,7 @@ class JSONSerializer(MetadataSerializer):
 
     """
 
-    def __init__(self, compact: bool = False) -> None:
+    def __init__(self, compact: bool = False):
         self.compact = compact
 
     def serialize(self, metadata_obj: Metadata) -> bytes:

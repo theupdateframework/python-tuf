@@ -415,7 +415,7 @@ class Signed(metaclass=abc.ABCMeta):
         spec_version: str,
         expires: datetime,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
-    ) -> None:
+    ):
         spec_list = spec_version.split(".")
         if (
             len(spec_list) != 3
@@ -535,7 +535,7 @@ class Key:
         scheme: str,
         keyval: Dict[str, str],
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
-    ) -> None:
+    ):
         if not all(
             isinstance(at, str) for at in [keyid, keytype, scheme]
         ) or not isinstance(keyval, Dict):
@@ -663,7 +663,7 @@ class Role:
         keyids: List[str],
         threshold: int,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
-    ) -> None:
+    ):
         keyids_set = set(keyids)
         if len(keyids_set) != len(keyids):
             raise ValueError(
@@ -722,7 +722,7 @@ class Root(Signed):
         roles: Dict[str, Role],
         consistent_snapshot: Optional[bool] = None,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
-    ) -> None:
+    ):
         super().__init__(version, spec_version, expires, unrecognized_fields)
         self.consistent_snapshot = consistent_snapshot
         self.keys = keys
@@ -879,7 +879,7 @@ class MetaFile(BaseFile):
         length: Optional[int] = None,
         hashes: Optional[Dict[str, str]] = None,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
-    ) -> None:
+    ):
 
         if version <= 0:
             raise ValueError(f"Metafile version must be > 0, got {version}")
@@ -961,7 +961,7 @@ class Timestamp(Signed):
         expires: datetime,
         snapshot_meta: MetaFile,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
-    ) -> None:
+    ):
         super().__init__(version, spec_version, expires, unrecognized_fields)
         self.snapshot_meta = snapshot_meta
 
@@ -1011,7 +1011,7 @@ class Snapshot(Signed):
         expires: datetime,
         meta: Dict[str, MetaFile],
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
-    ) -> None:
+    ):
         super().__init__(version, spec_version, expires, unrecognized_fields)
         self.meta = meta
 
@@ -1077,7 +1077,7 @@ class DelegatedRole(Role):
         paths: Optional[List[str]] = None,
         path_hash_prefixes: Optional[List[str]] = None,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
-    ) -> None:
+    ):
         super().__init__(keyids, threshold, unrecognized_fields)
         self.name = name
         self.terminating = terminating
@@ -1194,7 +1194,7 @@ class Delegations:
         keys: Dict[str, Key],
         roles: "OrderedDict[str, DelegatedRole]",
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
-    ) -> None:
+    ):
         self.keys = keys
         self.roles = roles
         self.unrecognized_fields = unrecognized_fields or {}
@@ -1246,7 +1246,7 @@ class TargetFile(BaseFile):
         hashes: Dict[str, str],
         path: str,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
-    ) -> None:
+    ):
 
         self._validate_length(length)
         self._validate_hashes(hashes)
