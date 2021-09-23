@@ -122,6 +122,7 @@ import fnmatch
 import copy
 import warnings
 import io
+from urllib import parse
 
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
@@ -827,7 +828,7 @@ class Updater(object):
 
     # Save and construct the full metadata path.
     metadata_directory = self.metadata_directory[metadata_set]
-    metadata_filename = metadata_role + '.json'
+    metadata_filename = parse.quote(metadata_role, "") + '.json'
     metadata_filepath = os.path.join(metadata_directory, metadata_filename)
 
     # Ensure the metadata path is valid/exists, else ignore the call.
@@ -1656,10 +1657,6 @@ class Updater(object):
       None.
     """
 
-    # Construct the metadata filename as expected by the download/mirror
-    # modules.
-    metadata_filename = metadata_role + '.json'
-
     # Attempt a file download from each mirror until the file is downloaded and
     # verified.  If the signature of the downloaded file is valid, proceed,
     # otherwise log a warning and try the next mirror.  'metadata_file_object'
@@ -1676,7 +1673,11 @@ class Updater(object):
     # best length we can get for it, not request a specific version, but
     # perform the rest of the checks (e.g., signature verification).
 
-    remote_filename = metadata_filename
+    # Construct the metadata filename as expected by the download/mirror
+    # modules. Local filename is quoted to protect against names like"../file".
+
+    remote_filename = metadata_role + '.json'
+    local_filename = parse.quote(metadata_role, "") + '.json'
     filename_version = ''
 
     if self.consistent_snapshot and version:
@@ -1693,12 +1694,12 @@ class Updater(object):
     # First, move the 'current' metadata file to the 'previous' directory
     # if it exists.
     current_filepath = os.path.join(self.metadata_directory['current'],
-                metadata_filename)
+                local_filename)
     current_filepath = os.path.abspath(current_filepath)
     sslib_util.ensure_parent_dir(current_filepath)
 
     previous_filepath = os.path.join(self.metadata_directory['previous'],
-        metadata_filename)
+        local_filename)
     previous_filepath = os.path.abspath(previous_filepath)
 
     if os.path.exists(current_filepath):
@@ -1726,7 +1727,7 @@ class Updater(object):
     logger.debug('Updated ' + repr(current_filepath) + '.')
     self.metadata['previous'][metadata_role] = current_metadata_object
     self.metadata['current'][metadata_role] = updated_metadata_object
-    self._update_versioninfo(metadata_filename)
+    self._update_versioninfo(remote_filename)
 
 
 
