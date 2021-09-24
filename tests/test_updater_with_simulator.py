@@ -82,7 +82,8 @@ class TestUpdater(unittest.TestCase):
     def test_targets(self):
         targets = {
             "targetpath": b"content",
-            "åäö": b"more content"
+            "åäö": b"more content",
+            "dir/targetpath": b"dir target content"
         }
 
         # Add targets to repository
@@ -110,8 +111,13 @@ class TestUpdater(unittest.TestCase):
             with open(local_path, "rb") as f:
                 self.assertEqual(f.read(), content)
 
-        # TODO: run the same download tests for target paths like "dir/file2")
-        # This currently fails because issue #1576
+            if "/" in targetpath:
+                # assert local_path != targetpath because of the URL encoding
+                # make target_path absolute as local_path
+                target_path = os.path.join(self.targets_dir, targetpath)
+                self.assertNotEqual(target_path, local_path)
+
+
 
     def test_keys_and_signatures(self):
         """Example of the two trickiest test areas: keys and root updates"""

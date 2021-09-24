@@ -229,6 +229,7 @@ class Updater:
                 download URL. Default is the value provided in Updater()
 
         Raises:
+            ValueError: Invalid arguments
             TODO: download-related errors
             TODO: file write errors
 
@@ -251,8 +252,9 @@ class Updater:
         consistent_snapshot = self._trusted_set.root.signed.consistent_snapshot
         if consistent_snapshot and self.config.prefix_targets_with_hash:
             hashes = list(targetinfo.hashes.values())
-            target_filepath = f"{hashes[0]}.{target_filepath}"
-        full_url = parse.urljoin(target_base_url, target_filepath)
+            dirname, sep, basename = target_filepath.rpartition("/")
+            target_filepath = f"{dirname}{sep}{hashes[0]}.{basename}"
+        full_url = f"{target_base_url}{target_filepath}"
 
         with self._fetcher.download_file(
             full_url, targetinfo.length
