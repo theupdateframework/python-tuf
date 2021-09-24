@@ -370,6 +370,11 @@ class Updater:
 
     def _load_targets(self, role: str, parent_role: str) -> Metadata[Targets]:
         """Load local (and if needed remote) metadata for 'role'."""
+
+        # Avoid loading 'role' more than once during "get_targetinfo"
+        if role in self._trusted_set:
+            return self._trusted_set[role]
+
         try:
             data = self._load_local_metadata(role)
             delegated_targets = self._trusted_set.update_delegated_targets(
