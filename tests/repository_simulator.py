@@ -166,6 +166,9 @@ class RepositorySimulator(FetcherInterface):
         logger.debug("Published root v%d", self.root.version)
 
     def fetch(self, url: str) -> Iterator[bytes]:
+        if not self.root.consistent_snapshot:
+            raise NotImplementedError("non-consistent snapshot not supported")
+
         spliturl = parse.urlparse(url)
         if spliturl.path.startswith("/metadata/"):
             parts = spliturl.path[len("/metadata/") :].split(".")
@@ -177,7 +180,7 @@ class RepositorySimulator(FetcherInterface):
                 role = parts[0]
             yield self._fetch_metadata(role, version)
         elif spliturl.path.startswith("/targets/"):
-            # figure out the actual target path and the hash prefix
+            # figure out target path and hash prefix
             path = spliturl.path[len("/targets/") :]
             dir_parts, sep , prefixed_filename = path.rpartition("/")
             prefix, _, filename = prefixed_filename.partition(".")
@@ -188,7 +191,10 @@ class RepositorySimulator(FetcherInterface):
             raise FetcherHTTPError(f"Unknown path '{spliturl.path}'", 404)
 
     def _fetch_target(self, target_path: str, hash: Optional[str]) -> bytes:
-        """Return data for 'target_path', checking 'hash' if it is given"""
+        """Return data for 'target_path', checking 'hash' if it is given.
+
+        If hash is None, then consistent_snapshot is not used
+        """
         repo_target = self.target_files.get(target_path)
         if repo_target is None:
             raise FetcherHTTPError(f"No target {target_path}", 404)
@@ -199,7 +205,10 @@ class RepositorySimulator(FetcherInterface):
         return repo_target.data
 
     def _fetch_metadata(self, role: str, version: Optional[int] = None) -> bytes:
-        """Return metadata for 'role', using 'version' if it is given"""
+        """Return signed metadata for 'role', using 'version' if it is given.
+
+        If version is None, non-versioned metadata is being requested
+        """
         if role == "root":
             # return a version previously serialized in publish_root()
             if version is None or version > len(self.signed_roots):
