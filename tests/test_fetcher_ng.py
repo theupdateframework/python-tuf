@@ -13,10 +13,13 @@ import sys
 import unittest
 import tempfile
 import math
+import urllib3.exceptions
+import requests
 
 from tests import utils
 from tuf import exceptions, unittest_toolbox
 from tuf.ngclient._internal.requests_fetcher import RequestsFetcher
+from unittest.mock import Mock, patch
 
 logger = logging.getLogger(__name__)
 
@@ -107,19 +110,24 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
             self.fetcher.fetch(self.url)
         self.assertEqual(cm.exception.status_code, 404)
 
-    # Read timeout error
-    def test_read_timeout(self):
-        # Reduce the read socket timeout to speed up the test
-        # while keeping the connect timeout
-        default_socket_timeout = self.fetcher.socket_timeout
-        self.fetcher.socket_timeout = (default_socket_timeout, 0.1)
-        # Launch a new "slow retrieval" server sending one byte each 40s
-        slow_server_process_handler = utils.TestServerProcess(log=logger, server='slow_retrieval_server.py')
-        self.url = f"http://{utils.TEST_HOST_ADDRESS}:{str(slow_server_process_handler.port)}/{self.rel_target_filepath}"
+    # Response read timeout error
+    @patch.object(requests.Session, 'get')
+    def test_response_read_timeout(self, mock_session_get):
+        mock_response = Mock()
+        attr = {'raw.read.side_effect': urllib3.exceptions.ReadTimeoutError(None, None, "Read timed out.")}
+        mock_response.configure_mock(**attr)
+        mock_session_get.return_value = mock_response
+
         with self.assertRaises(exceptions.SlowRetrievalError):
             next(self.fetcher.fetch(self.url))
+        mock_response.raw.read.assert_called_once()
 
-        slow_server_process_handler.clean()
+    # Read/connect session timeout error
+    @patch.object(requests.Session, 'get', side_effect=urllib3.exceptions.TimeoutError)
+    def test_session_get_timeout(self, mock_session_get):
+        with self.assertRaises(exceptions.SlowRetrievalError):
+            self.fetcher.fetch(self.url)
+        mock_session_get.assert_called_once()
 
     # Simple bytes download
     def test_download_bytes(self):
