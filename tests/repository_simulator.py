@@ -13,20 +13,51 @@ RepositorySimulator implements FetcherInterface so Updaters in tests can use it
 as a way to "download" new metadata from remote: in practice no downloading,
 network connections or even file access happens as RepositorySimulator serves
 everything from memory.
+
+Metadata and targets "hosted" by the simulator are made available in URL paths
+"/metadata/..." and "/targets/..." respectively.
+
+Example::
+
+    # constructor creates repository with top-level metadata
+    sim = RepositorySimulator()
+
+    # metadata can be modified directly: it is immediately available to clients
+    sim.snapshot.version += 1
+
+    # As an exception, new root versions require explicit publishing
+    sim.root.version += 1
+    sim.publish_root()
+
+    # there are helper functions
+    sim.add_target("targets", b"content", "targetpath")
+    sim.targets.version += 1
+    sim.update_snapshot()
+
+    # Use the simulated repository from an Updater:
+    updater = Updater(
+        dir,
+        "https://example.com/metadata/",
+        "https://example.com/targets/",
+        sim
+    )
+    updater.refresh()
 """
 
 from collections import OrderedDict
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 import logging
 import os
 import tempfile
+from securesystemslib.hash import digest
 from securesystemslib.keys import generate_ed25519_key
 from securesystemslib.signer import SSlibSigner
 from typing import Dict, Iterator, List, Optional, Tuple
 from urllib import parse
 
 from tuf.api.serialization.json import JSONSerializer
-from tuf.exceptions import FetcherHTTPError
+from tuf.exceptions import FetcherHTTPError, RepositoryError
 from tuf.api.metadata import (
     Key,
     Metadata,
@@ -35,6 +66,7 @@ from tuf.api.metadata import (
     Root,
     SPECIFICATION_VERSION,
     Snapshot,
+    TargetFile,
     Targets,
     Timestamp,
 )
@@ -44,6 +76,11 @@ logger = logging.getLogger(__name__)
 
 SPEC_VER = ".".join(SPECIFICATION_VERSION)
 
+@dataclass
+class RepositoryTarget:
+    """Contains actual target data and the related target metadata"""
+    data: bytes
+    target_file: TargetFile
 
 class RepositorySimulator(FetcherInterface):
     def __init__(self):
@@ -59,6 +96,9 @@ class RepositorySimulator(FetcherInterface):
 
         # signers are used on-demand at fetch time to sign metadata
         self.signers: Dict[str, List[SSlibSigner]] = {}
+
+        # target downloads are served from this dict
+        self.target_files: Dict[str, RepositoryTarget] = {}
 
         self.dump_dir = None
         self.dump_version = 0
@@ -126,6 +166,9 @@ class RepositorySimulator(FetcherInterface):
         logger.debug("Published root v%d", self.root.version)
 
     def fetch(self, url: str) -> Iterator[bytes]:
+        if not self.root.consistent_snapshot:
+            raise NotImplementedError("non-consistent snapshot not supported")
+
         spliturl = parse.urlparse(url)
         if spliturl.path.startswith("/metadata/"):
             parts = spliturl.path[len("/metadata/") :].split(".")
@@ -136,10 +179,36 @@ class RepositorySimulator(FetcherInterface):
                 version = None
                 role = parts[0]
             yield self._fetch_metadata(role, version)
+        elif spliturl.path.startswith("/targets/"):
+            # figure out target path and hash prefix
+            path = spliturl.path[len("/targets/") :]
+            dir_parts, sep , prefixed_filename = path.rpartition("/")
+            prefix, _, filename = prefixed_filename.partition(".")
+            target_path = f"{dir_parts}{sep}{filename}"
+
+            yield self._fetch_target(target_path, prefix)
         else:
             raise FetcherHTTPError(f"Unknown path '{spliturl.path}'", 404)
 
+    def _fetch_target(self, target_path: str, hash: Optional[str]) -> bytes:
+        """Return data for 'target_path', checking 'hash' if it is given.
+
+        If hash is None, then consistent_snapshot is not used
+        """
+        repo_target = self.target_files.get(target_path)
+        if repo_target is None:
+            raise FetcherHTTPError(f"No target {target_path}", 404)
+        if hash and hash not in repo_target.target_file.hashes.values():
+            raise FetcherHTTPError(f"hash mismatch for {target_path}", 404)
+
+        logger.debug("fetched target %s", target_path)
+        return repo_target.data
+
     def _fetch_metadata(self, role: str, version: Optional[int] = None) -> bytes:
+        """Return signed metadata for 'role', using 'version' if it is given.
+
+        If version is None, non-versioned metadata is being requested
+        """
         if role == "root":
             # return a version previously serialized in publish_root()
             if version is None or version > len(self.signed_roots):
@@ -186,6 +255,16 @@ class RepositorySimulator(FetcherInterface):
 
         self.snapshot.version += 1
         self.update_timestamp()
+
+    def add_target(self, role: str, data: bytes, path: str):
+        if role == "targets":
+            targets = self.targets
+        else:
+            targets = self.md_delegates[role].signed
+
+        target = TargetFile.from_data(path, data, ["sha256"])
+        targets.targets[path] = target
+        self.target_files[path] = RepositoryTarget(data, target)
 
     def write(self):
         """Dump current repository metadata to self.dump_dir
