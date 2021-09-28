@@ -1660,7 +1660,7 @@ class Updater(object):
             ". The update will continue as the major versions match.")
 
     except (ValueError, TypeError) as error:
-      six.raise_from(securesystemslib.exceptions.FormatError('Improperly'
+      raise exceptions.FormatError('Improperly'
           ' formatted spec_version, which must be in major.minor.fix format'),
           error)
 

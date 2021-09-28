@@ -480,15 +480,38 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     file_path = os.path.join(temporary_directory, '1.file1-snapshot.json')
     self.assertTrue(os.path.exists(file_path))
 
-    # TODO: check against the correct root value
-    self.assertEqual(root_1, 5)
-
     test_nodes = {}
     test_nodes['targets'] = tuf.formats.make_metadata_fileinfo(1, None, None)
     test_nodes['role1'] = tuf.formats.make_metadata_fileinfo(1, None, None)
     test_nodes['role2'] = tuf.formats.make_metadata_fileinfo(1, None, None)
 
     root, leaves = repo_lib._build_rsa_acc(test_nodes)
+    repo_lib._write_rsa_proofs(root, leaves, storage_backend,
+        temporary_directory, version)
+
+    # Ensure that the paths are written to the directory
+    file_path = os.path.join(temporary_directory, 'targets-snapshot.json')
+    self.assertTrue(os.path.exists(file_path))
+
+    file_path = os.path.join(temporary_directory, '2.targets-snapshot.json')
+    self.assertTrue(os.path.exists(file_path))
+
+    file_path = os.path.join(temporary_directory, 'role1-snapshot.json')
+    self.assertTrue(os.path.exists(file_path))
+
+    file_path = os.path.join(temporary_directory, '1.role1-snapshot.json')
+    self.assertTrue(os.path.exists(file_path))
+
+    file_path = os.path.join(temporary_directory, 'role2-snapshot.json')
+    self.assertTrue(os.path.exists(file_path))
+
+    file_path = os.path.join(temporary_directory, '1.role2-snapshot.json')
+    self.assertTrue(os.path.exists(file_path))
+
+    # TODO: check against the correct root value
+    self.assertEqual(root_1, 5)
+    self.assertEqual(root, 5)
+
 
 
 
