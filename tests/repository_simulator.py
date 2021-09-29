@@ -318,7 +318,7 @@ class RepositorySimulator(FetcherInterface):
         # By default add one new key for the role
         key, signer = self.create_key()
         delegator.add_key(role.name, key)
-        if role not in self.signers:
+        if role.name not in self.signers:
             self.signers[role.name] = []
         self.signers[role.name].append(signer)
 
