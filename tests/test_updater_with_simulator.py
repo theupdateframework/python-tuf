@@ -80,32 +80,37 @@ class TestUpdater(unittest.TestCase):
         self._run_refresh()
 
     def test_targets(self):
-        # target does not exist yet
-        updater = self._run_refresh()
-        self.assertIsNone(updater.get_one_valid_targetinfo("file"))
+        targets = {
+            "targetpath": b"content",
+            "åäö": b"more content"
+        }
 
+        # Add targets to repository
         self.sim.targets.version += 1
-        self.sim.add_target("targets", b"content", "file")
+        for targetpath, content in targets.items():
+            self.sim.add_target("targets", content, targetpath)
         self.sim.update_snapshot()
 
-        # target now exists, is not in cache yet
         updater = self._run_refresh()
-        file_info = updater.get_one_valid_targetinfo("file")
-        self.assertIsNotNone(file_info)
-        self.assertEqual(
-            updater.updated_targets([file_info], self.targets_dir), [file_info]
-        )
+        for targetpath, content in targets.items():
+            # target now exists, is not in cache yet
+            file_info = updater.get_one_valid_targetinfo(targetpath)
+            self.assertIsNotNone(file_info)
+            self.assertEqual(
+                updater.updated_targets([file_info], self.targets_dir),
+                [file_info]
+            )
 
-        # download target, assert it is in cache and content is correct
-        updater.download_target(file_info, self.targets_dir)
-        self.assertEqual(
-            updater.updated_targets([file_info], self.targets_dir), []
-        )
-        with open(os.path.join(self.targets_dir, "file"), "rb") as f:
-            self.assertEqual(f.read(), b"content")
+            # download target, assert it is in cache and content is correct
+            local_path = updater.download_target(file_info, self.targets_dir)
+            self.assertEqual(
+                updater.updated_targets([file_info], self.targets_dir), []
+            )
+            self.assertTrue(local_path.startswith(self.targets_dir))
+            with open(local_path, "rb") as f:
+                self.assertEqual(f.read(), content)
 
-        # TODO: run the same download tests for
-        #     self.sim.add_target("targets", b"more content", "dir/file2")
+        # TODO: run the same download tests for target paths like "dir/file2")
         # This currently fails because issue #1576
 
     def test_keys_and_signatures(self):

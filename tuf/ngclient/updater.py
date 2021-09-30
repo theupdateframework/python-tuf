@@ -188,31 +188,27 @@ class Updater:
         returned in a list. The list items can be downloaded with
         'download_target()'.
         """
-        # Keep track of the target objects and filepaths of updated targets.
-        # Return 'updated_targets' and use 'updated_targetpaths' to avoid
-        # duplicates.
-        updated_targets = []
-        updated_targetpaths = []
+        # Keep track of TargetFiles and local paths. Return 'updated_targets'
+        # and use 'local_paths' to avoid duplicates.
+        updated_targets: List[TargetFile] = []
+        local_paths: List[str] = []
 
         for target in targets:
-            # Prepend 'destination_directory' to the target's relative filepath
-            # (as stored in metadata.)  Verify the hash of 'target_filepath'
-            # against each hash listed for its fileinfo.  Note: join() discards
-            # 'destination_directory' if 'filepath' contains a leading path
-            # separator (i.e., is treated as an absolute path).
-            target_filepath = os.path.join(destination_directory, target.path)
+            # URL encode to get local filename like download_target() does
+            filename = parse.quote(target.path, "")
+            local_path = os.path.join(destination_directory, filename)
 
-            if target_filepath in updated_targetpaths:
+            if local_path in local_paths:
                 continue
 
             try:
-                with open(target_filepath, "rb") as target_file:
+                with open(local_path, "rb") as target_file:
                     target.verify_length_and_hashes(target_file)
             # If the file does not exist locally or length and hashes
             # do not match, append to updated targets.
             except (OSError, exceptions.LengthOrHashMismatchError):
                 updated_targets.append(target)
-                updated_targetpaths.append(target_filepath)
+                local_paths.append(local_path)
 
         return updated_targets
 
@@ -221,7 +217,7 @@ class Updater:
         targetinfo: TargetFile,
         destination_directory: str,
         target_base_url: Optional[str] = None,
-    ) -> None:
+    ) -> str:
         """Downloads the target file specified by 'targetinfo'.
 
         Args:
@@ -236,6 +232,9 @@ class Updater:
         Raises:
             TODO: download-related errors
             TODO: file write errors
+
+        Returns:
+            Path to downloaded file
         """
 
         if target_base_url is None:
@@ -266,11 +265,12 @@ class Updater:
                     f"{target_filepath} length or hashes do not match"
                 ) from e
 
-            # Store the target file name without the HASH prefix.
-            local_filepath = os.path.join(
-                destination_directory, targetinfo.path
-            )
+            # Use a URL encoded targetpath as the local filename
+            filename = parse.quote(targetinfo.path, "")
+            local_filepath = os.path.join(destination_directory, filename)
             sslib_util.persist_temp_file(target_file, local_filepath)
+
+            return local_filepath
 
     def _download_metadata(
         self, rolename: str, length: int, version: Optional[int] = None
