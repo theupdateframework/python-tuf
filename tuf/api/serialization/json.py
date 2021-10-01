@@ -1,14 +1,13 @@
 # Copyright New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""TUF role metadata JSON serialization and deserialization.
-
-This module provides concrete implementations to serialize and deserialize TUF
-role metadata to and from the JSON wireline format for transportation, and
-to serialize the 'signed' part of TUF role metadata to the OLPC Canonical JSON
-format for signature generation and verification.
-
+"""``tuf.api.serialization.json`` module provides concrete implementations to
+serialize and deserialize TUF role metadata to and from the JSON wireline
+format for transportation, and to serialize the 'signed' part of TUF role
+metadata to the OLPC Canonical JSON format for signature generation and
+verification.
 """
+
 import json
 
 from securesystemslib.formats import encode_canonical
@@ -51,7 +50,7 @@ class JSONSerializer(MetadataSerializer):
 
     """
 
-    def __init__(self, compact: bool = False) -> None:
+    def __init__(self, compact: bool = False):
         self.compact = compact
 
     def serialize(self, metadata_obj: Metadata) -> bytes:

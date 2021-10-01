@@ -30,7 +30,7 @@ master_doc = 'index'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.napoleon']
+extensions = ['sphinx.ext.napoleon', 'sphinx.ext.autosummary']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -52,5 +52,19 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 #html_static_path = ['_static']
 
+# -- Autodoc configuration ---------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html
+
 autodoc_mock_imports = ['securesystemslib']
 
+# Tone down the "tuf.api.metadata." repetition
+add_module_names = False
+python_use_unqualified_type_names = True
+
+# Show typehints in argument doc lines, but not in signatures
+autodoc_typehints = "description"
+
+autodoc_default_options = {
+    'members': True,
+    'exclude-members': 'to_dict, from_dict'
+}

@@ -1,19 +1,19 @@
 # Copyright New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""TUF role metadata de/serialization.
-
-This sub-package provides abstract base classes and concrete implementations to
-serialize and deserialize TUF role metadata and metadata parts.
+"""``tuf.api.serialization`` module provides abstract base classes and concrete
+implementations to serialize and deserialize TUF metadata.
 
 Any custom de/serialization implementations should inherit from the abstract
-base classes defined in this __init__.py module.
+base classes defined in this module. The implementations can use the
+``to_dict()``/``from_dict()`` implementations available in the Metadata
+API objects.
 
 - Metadata de/serializers are used to convert to and from wireline formats.
 - Signed serializers are used to canonicalize data for cryptographic signatures
   generation and verification.
-
 """
+
 import abc
 from typing import TYPE_CHECKING
 
@@ -36,7 +36,7 @@ class MetadataDeserializer(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def deserialize(self, raw_data: bytes) -> "Metadata":
-        """Deserialize passed bytes to Metadata object."""
+        """Deserialize bytes to Metadata object."""
         raise NotImplementedError
 
 
@@ -45,7 +45,7 @@ class MetadataSerializer(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def serialize(self, metadata_obj: "Metadata") -> bytes:
-        """Serialize passed Metadata object to bytes."""
+        """Serialize Metadata object to bytes."""
         raise NotImplementedError
 
 
@@ -54,5 +54,5 @@ class SignedSerializer(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def serialize(self, signed_obj: "Signed") -> bytes:
-        """Serialize passed Signed object to bytes."""
+        """Serialize Signed object to bytes."""
         raise NotImplementedError
