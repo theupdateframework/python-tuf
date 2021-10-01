@@ -639,6 +639,20 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater._move_current_to_previous('snapshot')
     self.assertTrue(os.path.exists(previous_snapshot_filepath))
 
+    # assert that non-ascii alphanumeric role name "../ä" (that is url encoded
+    # in local filename) works
+    encoded_current = os.path.join(
+      self.client_metadata_current, '..%2F%C3%A4.json'
+    )
+    encoded_previous = os.path.join(
+      self.client_metadata_previous, '..%2F%C3%A4.json'
+    )
+
+    with open(encoded_current, "w"):
+      pass
+    self.repository_updater._move_current_to_previous('../ä')
+    self.assertTrue(os.path.exists(encoded_previous))
+
 
 
 

@@ -782,7 +782,13 @@ class Updater(object):
     return self.repository_name
 
 
+  @staticmethod
+  def _get_local_filename(rolename: str) -> str:
+    """Return safe local filename for roles metadata
 
+    Use URL encoding to prevent issues with path separators and
+    with forbidden characters in Windows filesystems"""
+    return parse.quote(rolename, '') + '.json'
 
 
   def _load_metadata_from_file(self, metadata_set, metadata_role):
@@ -828,7 +834,7 @@ class Updater(object):
 
     # Save and construct the full metadata path.
     metadata_directory = self.metadata_directory[metadata_set]
-    metadata_filename = parse.quote(metadata_role, "") + '.json'
+    metadata_filename = self._get_local_filename(metadata_role)
     metadata_filepath = os.path.join(metadata_directory, metadata_filename)
 
     # Ensure the metadata path is valid/exists, else ignore the call.
@@ -1677,7 +1683,7 @@ class Updater(object):
     # modules. Local filename is quoted to protect against names like"../file".
 
     remote_filename = metadata_role + '.json'
-    local_filename = parse.quote(metadata_role, "") + '.json'
+    local_filename = self._get_local_filename(metadata_role)
     filename_version = ''
 
     if self.consistent_snapshot and version:
@@ -1974,9 +1980,11 @@ class Updater(object):
     # __init__ (such as with delegated metadata), then get the version
     # info now.
 
-    # Save the path to the current metadata file for 'metadata_filename'.
+    # 'metadata_filename' is the key from meta dictionary: build the
+    # corresponding local filepath like _get_local_filename()
+    local_filename = parse.quote(metadata_filename, "")
     current_filepath = os.path.join(self.metadata_directory['current'],
-        metadata_filename)
+        local_filename)
 
     # If the path is invalid, simply return and leave versioninfo unset.
     if not os.path.exists(current_filepath):
@@ -2176,7 +2184,7 @@ class Updater(object):
     """
 
     # Get the 'current' and 'previous' full file paths for 'metadata_role'
-    metadata_filepath = metadata_role + '.json'
+    metadata_filepath = self._get_local_filename(metadata_role)
     previous_filepath = os.path.join(self.metadata_directory['previous'],
                                      metadata_filepath)
     current_filepath = os.path.join(self.metadata_directory['current'],
