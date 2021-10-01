@@ -18,11 +18,11 @@ class UpdaterConfig:
         timestamp_max_length: The maximum length of a timestamp metadata file.
         snapshot_max_length: The maximum length of a snapshot metadata file.
         targets_max_length: The maximum length of a targets metadata file.
-        prefix_targets_with_hash: When consistent snapshots are used
-            (see https://theupdateframework.github.io/specification/latest/#consistent-snapshots), #pylint: disable=line-too-long
-            target download URLs are formed by prefixing the filename with a
-            hash digest of file content by default. This can be overridden by
-            setting prefix_targets_with_hash to False.
+        prefix_targets_with_hash: When `consistent snapshots
+            <https://theupdateframework.github.io/specification/latest/#consistent-snapshots>`_
+            are used, target download URLs are formed by prefixing the filename
+            with a hash digest of file content by default. This can be
+            overridden by setting prefix_targets_with_hash to False.
 
     """
 
