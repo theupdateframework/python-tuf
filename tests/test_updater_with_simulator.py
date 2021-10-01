@@ -9,7 +9,7 @@
 import os
 import sys
 import tempfile
-from tuf.api.metadata import Targets
+from tuf.api.metadata import SPECIFICATION_VERSION, Targets
 from typing import Optional, Tuple
 from tuf.exceptions import UnsignedMetadataError, BadVersionNumberError
 import unittest
@@ -136,7 +136,8 @@ class TestUpdater(unittest.TestCase):
         }
 
         # Add new delegated targets, update the snapshot
-        targets = Targets(1, "1.0.19", self.sim.safe_expiry, {}, None)
+        spec_version = ".".join(SPECIFICATION_VERSION)
+        targets = Targets(1, spec_version, self.sim.safe_expiry, {}, None)
         for role in roles_to_filenames.keys():
             self.sim.add_delegation("targets", role, targets, False, ["*"], None)
         self.sim.update_snapshot()
