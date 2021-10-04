@@ -45,6 +45,7 @@ from tuf import keydb
 from tuf import log
 from tuf import repository_lib as repo_lib
 from tuf import roledb
+from tuf import snapshot
 
 
 # Copy API
@@ -214,7 +215,8 @@ class Repository(object):
   def __init__(self, repository_directory, metadata_directory,
       targets_directory, storage_backend, repository_name='default',
       use_timestamp_length=True, use_timestamp_hashes=True,
-      use_snapshot_length=False, use_snapshot_hashes=False):
+      use_snapshot_length=False, use_snapshot_hashes=False,
+      snapshot_backend=None):
 
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
@@ -239,6 +241,11 @@ class Repository(object):
     self._use_snapshot_length = use_snapshot_length
     self._use_snapshot_hashes = use_snapshot_hashes
 
+    if snapshot_backend == None:
+      self._snapshot_backend = snapshot.ManifestSnapshot()
+    else:
+      self.snapshot_backend = snapshot_backend
+
     try:
       roledb.create_roledb(repository_name)
       keydb.create_keydb(repository_name)
@@ -253,6 +260,10 @@ class Repository(object):
     self.timestamp = Timestamp(self._repository_name)
     self.targets = Targets(self._targets_directory, 'targets',
         repository_name=self._repository_name)
+
+    self._snapshot_backend.add_to_snapshot("root")
+    self._snapshot_backend.add_to_snapshot("timestamp")
+    self._snapshot_backend.add_to_snapshot("targets")
 
 
 
@@ -321,6 +332,8 @@ class Repository(object):
     dirty_rolenames = roledb.get_dirty_roles(self._repository_name)
 
     for dirty_rolename in dirty_rolenames:
+      self._snapshot_backend.add_to_snapshot(dirty_rolename)
+
 
       # Ignore top-level roles, they will be generated later in this method.
       if dirty_rolename in roledb.TOP_LEVEL_ROLES:
@@ -435,6 +448,8 @@ class Repository(object):
 
     rolename_filename = os.path.join(self._metadata_directory,
                                      rolename + METADATA_EXTENSION)
+
+    self._snapshot_backend.add_to_snapshot(rolename)
 
     filenames = {'root': os.path.join(self._metadata_directory, repo_lib.ROOT_FILENAME),
         'targets': os.path.join(self._metadata_directory, repo_lib.TARGETS_FILENAME),
@@ -676,6 +691,7 @@ class Metadata(object):
   def __init__(self):
     self._rolename = None
     self._repository_name = None
+    self._snapshot_backend = None
 
 
   def add_verification_key(self, key, expires=None):
@@ -1675,7 +1691,8 @@ class Targets(Metadata):
   """
 
   def __init__(self, targets_directory, rolename='targets', roleinfo=None,
-               parent_targets_object=None, repository_name='default'):
+               parent_targets_object=None, repository_name='default',
+               snapshot_backend=None):
 
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
@@ -1695,6 +1712,11 @@ class Targets(Metadata):
     self._delegated_roles = {}
     self._parent_targets_object = self
     self._repository_name = repository_name
+
+    if snapshot_backend == None:
+      self._snapshot_backend = snapshot.ManifestSnapshot()
+    else:
+      self._snapshot_backend = snapshot_backend
 
     # Keep a reference to the top-level 'targets' object.  Any delegated roles
     # that may be created, can be added to and accessed via the top-level
@@ -1844,6 +1866,7 @@ class Targets(Metadata):
       return
 
     else:
+      self._snapshot_backend.remove_from_snapshot(rolename)
       del self._delegated_roles[rolename]
 
 
