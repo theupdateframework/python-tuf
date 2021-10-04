@@ -38,6 +38,7 @@ import tuf.formats
 import tuf.roledb
 import tuf.keydb
 import tuf.settings
+import tuf.snapshot
 
 import tuf.repository_lib as repo_lib
 import tuf.repository_tool as repo_tool
@@ -499,8 +500,10 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     metadata_directory, version, expiration_date, storage_backend = \
         self._setup_generate_snapshot_metadata_test()
 
+    snapshot_backend = tuf.snapshot.ManifestSnapshot()
+
     snapshot_metadata = \
-      repo_lib.generate_snapshot_metadata(metadata_directory, version,
+      snapshot_backend.generate_snapshot_metadata(metadata_directory, version,
                                           expiration_date,
                                           storage_backend,
                                           consistent_snapshot=False)
@@ -508,16 +511,16 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
     # Test improperly formatted arguments.
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_snapshot_metadata,
+    self.assertRaises(securesystemslib.exceptions.FormatError, snapshot_backend.generate_snapshot_metadata,
                       3, version, expiration_date, consistent_snapshot=False,
                       storage_backend=storage_backend)
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_snapshot_metadata,
+    self.assertRaises(securesystemslib.exceptions.FormatError, snapshot_backend.generate_snapshot_metadata,
                       metadata_directory, '3', expiration_date, storage_backend,
                       consistent_snapshot=False)
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_snapshot_metadata,
+    self.assertRaises(securesystemslib.exceptions.FormatError, snapshot_backend.generate_snapshot_metadata,
                       metadata_directory, version, '3', storage_backend,
                       consistent_snapshot=False)
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_snapshot_metadata,
+    self.assertRaises(securesystemslib.exceptions.FormatError, snapshot_backend.generate_snapshot_metadata,
                       metadata_directory, version, expiration_date, 3,
                       storage_backend)
 
@@ -527,8 +530,10 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     metadata_directory, version, expiration_date, storage_backend = \
         self._setup_generate_snapshot_metadata_test()
 
+    snapshot_backend = tuf.snapshot.ManifestSnapshot()
+
     snapshot_metadata = \
-      repo_lib.generate_snapshot_metadata(metadata_directory, version,
+      snapshot_backend.generate_snapshot_metadata(metadata_directory, version,
                                           expiration_date,
                                           storage_backend,
                                           consistent_snapshot=False,
@@ -541,7 +546,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       # In the metadata_directory, there are files with format:
       # 1.root.json. The prefix number should be removed.
       stripped_filename, version = \
-        repo_lib._strip_version_number(metadata_filename,
+        repo_lib.strip_version_number(metadata_filename,
                                        consistent_snapshot=True)
 
       # In the repository, the file "role_file.xml" have been added to make
@@ -558,8 +563,10 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     metadata_directory, version, expiration_date, storage_backend = \
         self._setup_generate_snapshot_metadata_test()
 
+    snapshot_backend = tuf.snapshot.ManifestSnapshot()
+
     snapshot_metadata = \
-      repo_lib.generate_snapshot_metadata(metadata_directory, version,
+      snapshot_backend.generate_snapshot_metadata(metadata_directory, version,
                                           expiration_date,
                                           storage_backend,
                                           consistent_snapshot=False,
@@ -572,7 +579,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       # In the metadata_directory, there are files with format:
       # 1.root.json. The prefix number should be removed.
       stripped_filename, version = \
-        repo_lib._strip_version_number(metadata_filename,
+        repo_lib.strip_version_number(metadata_filename,
                                        consistent_snapshot=True)
 
       # In the repository, the file "role_file.xml" have been added to make
@@ -589,8 +596,10 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     metadata_directory, version, expiration_date, storage_backend = \
         self._setup_generate_snapshot_metadata_test()
 
+    snapshot_backend = tuf.snapshot.ManifestSnapshot()
+
     snapshot_metadata = \
-      repo_lib.generate_snapshot_metadata(metadata_directory, version,
+      snapshot_backend.generate_snapshot_metadata(metadata_directory, version,
                                           expiration_date,
                                           storage_backend,
                                           consistent_snapshot=False,
@@ -604,7 +613,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       # In the metadata_directory, there are files with format:
       # 1.root.json. The prefix number should be removed.
       stripped_filename, version = \
-        repo_lib._strip_version_number(metadata_filename,
+        repo_lib.strip_version_number(metadata_filename,
                                        consistent_snapshot=True)
 
       # In the repository, the file "role_file.xml" have been added to make
