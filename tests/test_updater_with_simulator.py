@@ -107,6 +107,9 @@ class TestUpdater(unittest.TestCase):
             [file_info]
         )
 
+        # Assert consistent_snapshot is True and downloaded targets have prefix.
+        self.assertTrue(self.sim.root.consistent_snapshot)
+        self.assertTrue(updater.config.prefix_targets_with_hash)
         # download target, assert it is in cache and content is correct
         local_path = updater.download_target(file_info, self.targets_dir)
         self.assertEqual(
