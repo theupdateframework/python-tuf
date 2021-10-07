@@ -6,8 +6,7 @@
 """
 
 import logging
-import time
-from typing import Dict, Iterator, Optional
+from typing import Dict, Iterator
 from urllib import parse
 
 # Imports
@@ -51,7 +50,6 @@ class RequestsFetcher(FetcherInterface):
         # Default settings
         self.socket_timeout: int = 4  # seconds
         self.chunk_size: int = 400000  # bytes
-        self.sleep_before_round: Optional[int] = None
 
     def fetch(self, url: str) -> Iterator[bytes]:
         """Fetches the contents of HTTP/HTTPS url from a remote server
@@ -104,11 +102,7 @@ class RequestsFetcher(FetcherInterface):
                 # We download a fixed chunk of data in every round. This is
                 # so that we can defend against slow retrieval attacks.
                 # Furthermore, we do not wish to download an extremely
-                # large file in one shot. Before beginning the round, sleep
-                # (if set) for a short amount of time so that the CPU is not
-                # hogged in the while loop.
-                if self.sleep_before_round:
-                    time.sleep(self.sleep_before_round)
+                # large file in one shot.
 
                 # NOTE: This may not handle some servers adding a
                 # Content-Encoding header, which may cause urllib3 to
