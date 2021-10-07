@@ -169,6 +169,14 @@ class TestUpdater(unittest.TestCase):
         # when the local snapshot is loaded even when there is a hash mismatch
         # with timestamp.snapshot_meta.
 
+        # By raising this flag on timestamp update the simulator would:
+        # 1) compute the hash of the new modified version of snapshot
+        # 2) assign the hash to timestamp.snapshot_meta
+        # The purpose is to create a hash mismatch between timestamp.meta and
+        # the local snapshot, but to have hash match between timestamp.meta and
+        # the next snapshot version.
+        self.sim.compute_metafile_hashes_length = True
+
         # Initialize all metadata and assign targets version higher than 1.
         self.sim.targets.version = 2
         self.sim.update_snapshot()
@@ -177,16 +185,6 @@ class TestUpdater(unittest.TestCase):
         # The new targets should have a lower version than the local trusted one.
         self.sim.targets.version = 1
         self.sim.update_snapshot()
-
-        # Calculate the hash of the new modified version of snapshot.
-        # The purpose is to create a hash mismatch between timestamp.meta and
-        # the local snapshot, but to have hash match between timestamp.meta and
-        # the next snapshot version.
-        digest_object = sslib_hash.digest("sha256")
-        digest_object.update(self.sim._fetch_metadata("snapshot"))
-        new_snapshot_hash = digest_object.hexdigest()
-        self.sim.timestamp.snapshot_meta.hashes = {"sha256": new_snapshot_hash}
-        self.sim.update_timestamp()
 
         # During the snapshot update, the local snapshot will be loaded even if
         # there is a hash mismatch with timestamp.snapshot_meta, because it will
