@@ -124,7 +124,8 @@ class RepositorySimulator(FetcherInterface):
     def targets(self) -> Targets:
         return self.md_targets.signed
 
-    def delegates(self) -> Iterator[Tuple[str, Targets]]:
+    def all_targets(self) -> Iterator[Tuple[str, Targets]]:
+        yield "targets", self.md_targets.signed
         for role, md in self.md_delegates.items():
             yield role, md.signed
 
@@ -266,8 +267,7 @@ class RepositorySimulator(FetcherInterface):
         self.timestamp.version += 1
 
     def update_snapshot(self):
-        self.snapshot.meta["targets.json"].version = self.targets.version
-        for role, delegate in self.delegates():
+        for role, delegate in self.all_targets():
             self.snapshot.meta[f"{role}.json"].version = delegate.version
 
             if self.compute_metafile_hashes_length:
