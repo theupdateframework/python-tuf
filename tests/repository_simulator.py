@@ -136,7 +136,8 @@ class RepositorySimulator(FetcherInterface):
         for role, md in self.md_delegates.items():
             yield role, md.signed
 
-    def create_key(self) -> Tuple[Key, SSlibSigner]:
+    @staticmethod
+    def create_key() -> Tuple[Key, SSlibSigner]:
         sslib_key = generate_ed25519_key()
         return Key.from_securesystemslib_key(sslib_key), SSlibSigner(sslib_key)
 
