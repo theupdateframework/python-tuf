@@ -97,21 +97,17 @@ class TestMetadata(unittest.TestCase):
             # Load JSON-formatted metdata of each supported type from file
             # and from out-of-band read JSON string
             path = os.path.join(self.repo_dir, "metadata", metadata + ".json")
-            metadata_obj = Metadata.from_file(path)
+            md_obj = Metadata.from_file(path)
             with open(path, "rb") as f:
-                metadata_obj2 = Metadata.from_bytes(f.read())
+                md_obj2 = Metadata.from_bytes(f.read())
 
             # Assert that both methods instantiate the right inner class for
             # each metadata type and ...
-            self.assertTrue(isinstance(metadata_obj.signed, inner_metadata_cls))
-            self.assertTrue(
-                isinstance(metadata_obj2.signed, inner_metadata_cls)
-            )
+            self.assertTrue(isinstance(md_obj.signed, inner_metadata_cls))
+            self.assertTrue(isinstance(md_obj2.signed, inner_metadata_cls))
 
             # ... and return the same object (compared by dict representation)
-            self.assertDictEqual(
-                metadata_obj.to_dict(), metadata_obj2.to_dict()
-            )
+            self.assertDictEqual(md_obj.to_dict(), md_obj2.to_dict())
 
         # Assert that it chokes correctly on an unknown metadata type
         bad_metadata_path = "bad-metadata.json"
@@ -129,24 +125,21 @@ class TestMetadata(unittest.TestCase):
 
     def test_compact_json(self):
         path = os.path.join(self.repo_dir, "metadata", "targets.json")
-        metadata_obj = Metadata.from_file(path)
+        md_obj = Metadata.from_file(path)
         self.assertTrue(
-            len(JSONSerializer(compact=True).serialize(metadata_obj))
-            < len(JSONSerializer().serialize(metadata_obj))
+            len(JSONSerializer(compact=True).serialize(md_obj))
+            < len(JSONSerializer().serialize(md_obj))
         )
 
     def test_read_write_read_compare(self):
         for metadata in ["root", "snapshot", "timestamp", "targets"]:
             path = os.path.join(self.repo_dir, "metadata", metadata + ".json")
-            metadata_obj = Metadata.from_file(path)
+            md_obj = Metadata.from_file(path)
 
             path_2 = path + ".tmp"
-            metadata_obj.to_file(path_2)
-            metadata_obj_2 = Metadata.from_file(path_2)
-
-            self.assertDictEqual(
-                metadata_obj.to_dict(), metadata_obj_2.to_dict()
-            )
+            md_obj.to_file(path_2)
+            md_obj_2 = Metadata.from_file(path_2)
+            self.assertDictEqual(md_obj.to_dict(), md_obj_2.to_dict())
 
             os.remove(path_2)
 
@@ -155,17 +148,15 @@ class TestMetadata(unittest.TestCase):
             path = os.path.join(self.repo_dir, "metadata", metadata + ".json")
             with open(path, "rb") as f:
                 metadata_bytes = f.read()
-            metadata_obj = Metadata.from_bytes(metadata_bytes)
+            md_obj = Metadata.from_bytes(metadata_bytes)
             # Comparate that from_bytes/to_bytes doesn't change the content
             # for two cases for the serializer: noncompact and compact.
 
             # Case 1: test noncompact by overriding the default serializer.
-            self.assertEqual(
-                metadata_obj.to_bytes(JSONSerializer()), metadata_bytes
-            )
+            self.assertEqual(md_obj.to_bytes(JSONSerializer()), metadata_bytes)
 
             # Case 2: test compact by using the default serializer.
-            obj_bytes = metadata_obj.to_bytes()
+            obj_bytes = md_obj.to_bytes()
             metadata_obj_2 = Metadata.from_bytes(obj_bytes)
             self.assertEqual(metadata_obj_2.to_bytes(), obj_bytes)
 
@@ -183,66 +174,66 @@ class TestMetadata(unittest.TestCase):
 
         # Load sample metadata (targets) and assert ...
         path = os.path.join(self.repo_dir, "metadata", "targets.json")
-        metadata_obj = Metadata.from_file(path)
+        md_obj = Metadata.from_file(path)
 
         # ... it has a single existing signature,
-        self.assertEqual(len(metadata_obj.signatures), 1)
+        self.assertEqual(len(md_obj.signatures), 1)
         # ... which is valid for the correct key.
-        targets_key.verify_signature(metadata_obj)
+        targets_key.verify_signature(md_obj)
         with self.assertRaises(exceptions.UnsignedMetadataError):
-            snapshot_key.verify_signature(metadata_obj)
+            snapshot_key.verify_signature(md_obj)
 
         # Test verifying with explicitly set serializer
-        targets_key.verify_signature(metadata_obj, CanonicalJSONSerializer())
+        targets_key.verify_signature(md_obj, CanonicalJSONSerializer())
         with self.assertRaises(exceptions.UnsignedMetadataError):
-            targets_key.verify_signature(metadata_obj, JSONSerializer())
+            targets_key.verify_signature(md_obj, JSONSerializer())
 
         sslib_signer = SSlibSigner(self.keystore["snapshot"])
         # Append a new signature with the unrelated key and assert that ...
-        sig = metadata_obj.sign(sslib_signer, append=True)
+        sig = md_obj.sign(sslib_signer, append=True)
         # ... there are now two signatures, and
-        self.assertEqual(len(metadata_obj.signatures), 2)
+        self.assertEqual(len(md_obj.signatures), 2)
         # ... both are valid for the corresponding keys.
-        targets_key.verify_signature(metadata_obj)
-        snapshot_key.verify_signature(metadata_obj)
+        targets_key.verify_signature(md_obj)
+        snapshot_key.verify_signature(md_obj)
         # ... the returned (appended) signature is for snapshot key
         self.assertEqual(sig.keyid, snapshot_keyid)
 
         sslib_signer = SSlibSigner(self.keystore["timestamp"])
         # Create and assign (don't append) a new signature and assert that ...
-        metadata_obj.sign(sslib_signer, append=False)
+        md_obj.sign(sslib_signer, append=False)
         # ... there now is only one signature,
-        self.assertEqual(len(metadata_obj.signatures), 1)
+        self.assertEqual(len(md_obj.signatures), 1)
         # ... valid for that key.
-        timestamp_key.verify_signature(metadata_obj)
+        timestamp_key.verify_signature(md_obj)
         with self.assertRaises(exceptions.UnsignedMetadataError):
-            targets_key.verify_signature(metadata_obj)
+            targets_key.verify_signature(md_obj)
 
         # Test failure on unknown scheme (securesystemslib UnsupportedAlgorithmError)
         scheme = timestamp_key.scheme
         timestamp_key.scheme = "foo"
         with self.assertRaises(exceptions.UnsignedMetadataError):
-            timestamp_key.verify_signature(metadata_obj)
+            timestamp_key.verify_signature(md_obj)
         timestamp_key.scheme = scheme
 
         # Test failure on broken public key data (securesystemslib CryptoError)
         public = timestamp_key.keyval["public"]
         timestamp_key.keyval["public"] = "ffff"
         with self.assertRaises(exceptions.UnsignedMetadataError):
-            timestamp_key.verify_signature(metadata_obj)
+            timestamp_key.verify_signature(md_obj)
         timestamp_key.keyval["public"] = public
 
         # Test failure with invalid signature (securesystemslib FormatError)
-        sig = metadata_obj.signatures[timestamp_keyid]
+        sig = md_obj.signatures[timestamp_keyid]
         correct_sig = sig.signature
         sig.signature = "foo"
         with self.assertRaises(exceptions.UnsignedMetadataError):
-            timestamp_key.verify_signature(metadata_obj)
+            timestamp_key.verify_signature(md_obj)
 
         # Test failure with valid but incorrect signature
         sig.signature = "ff" * 64
         with self.assertRaises(exceptions.UnsignedMetadataError):
-            timestamp_key.verify_signature(metadata_obj)
+            timestamp_key.verify_signature(md_obj)
         sig.signature = correct_sig
 
     def test_metadata_base(self):
