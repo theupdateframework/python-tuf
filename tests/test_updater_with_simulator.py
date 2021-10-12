@@ -22,7 +22,7 @@ from securesystemslib import hash as sslib_hash
 
 class TestUpdater(unittest.TestCase):
     # set dump_dir to trigger repository state dumps
-    dump_dir:Optional[str] = None
+    dump_dir: Optional[str] = None
 
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -34,12 +34,14 @@ class TestUpdater(unittest.TestCase):
         # Setup the repository, bootstrap client root.json
         self.sim = RepositorySimulator()
         with open(os.path.join(self.metadata_dir, "root.json"), "bw") as f:
-            root = self.sim.download_bytes("https://example.com/metadata/1.root.json", 100000)
+            root = self.sim.download_bytes(
+                "https://example.com/metadata/1.root.json", 100000
+            )
             f.write(root)
 
         if self.dump_dir is not None:
             # create test specific dump directory
-            name = self.id().split('.')[-1]
+            name = self.id().split(".")[-1]
             self.sim.dump_dir = os.path.join(self.dump_dir, name)
             os.mkdir(self.sim.dump_dir)
 
@@ -54,7 +56,7 @@ class TestUpdater(unittest.TestCase):
             self.metadata_dir,
             "https://example.com/metadata/",
             "https://example.com/targets/",
-            self.sim
+            self.sim,
         )
         updater.refresh()
         return updater
@@ -83,7 +85,11 @@ class TestUpdater(unittest.TestCase):
     targets: utils.DataSet = {
         "standard case": ("targetpath", b"content", "targetpath"),
         "non-asci case": ("åäö", b"more content", "%C3%A5%C3%A4%C3%B6"),
-        "subdirectory case": ("a/b/c/targetpath", b"dir target content", "a%2Fb%2Fc%2Ftargetpath"),
+        "subdirectory case": (
+            "a/b/c/targetpath",
+            b"dir target content",
+            "a%2Fb%2Fc%2Ftargetpath",
+        ),
     }
 
     @utils.run_sub_tests_with_dataset(targets)
@@ -103,8 +109,7 @@ class TestUpdater(unittest.TestCase):
         file_info = updater.get_one_valid_targetinfo(targetpath)
         self.assertIsNotNone(file_info)
         self.assertEqual(
-            updater.updated_targets([file_info], self.targets_dir),
-            [file_info]
+            updater.updated_targets([file_info], self.targets_dir), [file_info]
         )
 
         # Assert consistent_snapshot is True and downloaded targets have prefix.
@@ -122,8 +127,6 @@ class TestUpdater(unittest.TestCase):
         # Assert that the targetpath was URL encoded as expected.
         encoded_absolute_path = os.path.join(self.targets_dir, encoded_path)
         self.assertEqual(local_path, encoded_absolute_path)
-
-
 
     def test_keys_and_signatures(self):
         """Example of the two trickiest test areas: keys and root updates"""
