@@ -23,7 +23,7 @@ from securesystemslib import hash as sslib_hash
 
 class TestUpdater(unittest.TestCase):
     # set dump_dir to trigger repository state dumps
-    dump_dir:Optional[str] = None
+    dump_dir: Optional[str] = None
 
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -35,12 +35,14 @@ class TestUpdater(unittest.TestCase):
         # Setup the repository, bootstrap client root.json
         self.sim = RepositorySimulator()
         with open(os.path.join(self.metadata_dir, "root.json"), "bw") as f:
-            root = self.sim.download_bytes("https://example.com/metadata/1.root.json", 100000)
+            root = self.sim.download_bytes(
+                "https://example.com/metadata/1.root.json", 100000
+            )
             f.write(root)
 
         if self.dump_dir is not None:
             # create test specific dump directory
-            name = self.id().split('.')[-1]
+            name = self.id().split(".")[-1]
             self.sim.dump_dir = os.path.join(self.dump_dir, name)
             os.mkdir(self.sim.dump_dir)
 
@@ -56,7 +58,7 @@ class TestUpdater(unittest.TestCase):
             "https://example.com/metadata/",
             self.targets_dir,
             "https://example.com/targets/",
-            self.sim
+            self.sim,
         )
         updater.refresh()
         return updater
@@ -85,7 +87,11 @@ class TestUpdater(unittest.TestCase):
     targets: utils.DataSet = {
         "standard case": ("targetpath", b"content", "targetpath"),
         "non-asci case": ("åäö", b"more content", "%C3%A5%C3%A4%C3%B6"),
-        "subdirectory case": ("a/b/c/targetpath", b"dir target content", "a%2Fb%2Fc%2Ftargetpath"),
+        "subdirectory case": (
+            "a/b/c/targetpath",
+            b"dir target content",
+            "a%2Fb%2Fc%2Ftargetpath",
+        ),
     }
 
     @utils.run_sub_tests_with_dataset(targets)
@@ -132,14 +138,16 @@ class TestUpdater(unittest.TestCase):
             "": ".json",
             ".": "..json",
             "/": "%2F.json",
-            "ö": "%C3%B6.json"
+            "ö": "%C3%B6.json",
         }
 
         # Add new delegated targets, update the snapshot
         spec_version = ".".join(SPECIFICATION_VERSION)
         targets = Targets(1, spec_version, self.sim.safe_expiry, {}, None)
         for role in roles_to_filenames.keys():
-            self.sim.add_delegation("targets", role, targets, False, ["*"], None)
+            self.sim.add_delegation(
+                "targets", role, targets, False, ["*"], None
+            )
         self.sim.update_snapshot()
 
         updater = self._run_refresh()

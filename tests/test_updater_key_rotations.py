@@ -33,6 +33,7 @@ class RootVersion:
 
 class TestUpdaterKeyRotations(unittest.TestCase):
     """Test ngclient root rotation handling"""
+
     # set dump_dir to trigger repository state dumps
     dump_dir: Optional[str] = None
 

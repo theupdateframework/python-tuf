@@ -13,22 +13,22 @@ from tuf.api.metadata import (
     Timestamp,
     Snapshot,
     MetaFile,
-    Targets
+    Targets,
 )
 from tuf.ngclient._internal.trusted_metadata_set import TrustedMetadataSet
 
 from securesystemslib.signer import SSlibSigner
-from securesystemslib.interface import(
+from securesystemslib.interface import (
     import_ed25519_privatekey_from_file,
-    import_rsa_privatekey_from_file
+    import_rsa_privatekey_from_file,
 )
 
 from tests import utils
 
 logger = logging.getLogger(__name__)
 
-class TestTrustedMetadataSet(unittest.TestCase):
 
+class TestTrustedMetadataSet(unittest.TestCase):
     def modify_metadata(
         self, rolename: str, modification_func: Callable[["Signed"], None]
     ) -> bytes:
@@ -48,24 +48,29 @@ class TestTrustedMetadataSet(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.repo_dir = os.path.join(
-            os.getcwd(), 'repository_data', 'repository', 'metadata'
+            os.getcwd(), "repository_data", "repository", "metadata"
         )
         cls.metadata = {}
-        for md in ["root", "timestamp", "snapshot", "targets", "role1", "role2"]:
+        for md in [
+            "root",
+            "timestamp",
+            "snapshot",
+            "targets",
+            "role1",
+            "role2",
+        ]:
             with open(os.path.join(cls.repo_dir, f"{md}.json"), "rb") as f:
                 cls.metadata[md] = f.read()
 
-        keystore_dir = os.path.join(os.getcwd(), 'repository_data', 'keystore')
+        keystore_dir = os.path.join(os.getcwd(), "repository_data", "keystore")
         cls.keystore = {}
         root_key_dict = import_rsa_privatekey_from_file(
-            os.path.join(keystore_dir, "root" + '_key'),
-            password="password"
+            os.path.join(keystore_dir, "root" + "_key"), password="password"
         )
         cls.keystore["root"] = SSlibSigner(root_key_dict)
         for role in ["delegation", "snapshot", "targets", "timestamp"]:
             key_dict = import_ed25519_privatekey_from_file(
-                os.path.join(keystore_dir, role + '_key'),
-                password="password"
+                os.path.join(keystore_dir, role + "_key"), password="password"
             )
             cls.keystore[role] = SSlibSigner(key_dict)
 
@@ -79,7 +84,6 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
     def setUp(self) -> None:
         self.trusted_set = TrustedMetadataSet(self.metadata["root"])
-
 
     def _update_all_besides_targets(
         self,
@@ -102,7 +106,6 @@ class TestTrustedMetadataSet(unittest.TestCase):
         self.trusted_set.update_timestamp(timestamp_bytes)
         snapshot_bytes = snapshot_bytes or self.metadata["snapshot"]
         self.trusted_set.update_snapshot(snapshot_bytes)
-
 
     def test_update(self):
         self.trusted_set.update_timestamp(self.metadata["timestamp"])
@@ -224,7 +227,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
     def test_root_expired_final_root(self):
         def root_expired_modifier(root: Root) -> None:
             root.expires = datetime(1970, 1, 1)
- 
+
         # intermediate root can be expired
         root = self.modify_metadata("root", root_expired_modifier)
         tmp_trusted_set = TrustedMetadataSet(root)
@@ -232,12 +235,11 @@ class TestTrustedMetadataSet(unittest.TestCase):
         with self.assertRaises(exceptions.ExpiredMetadataError):
             tmp_trusted_set.update_timestamp(self.metadata["timestamp"])
 
-
     def test_update_timestamp_new_timestamp_ver_below_trusted_ver(self):
         # new_timestamp.version < trusted_timestamp.version
         def version_modifier(timestamp: Timestamp) -> None:
             timestamp.version = 3
-    
+
         timestamp = self.modify_metadata("timestamp", version_modifier)
         self.trusted_set.update_timestamp(timestamp)
         with self.assertRaises(exceptions.ReplayedMetadataError):
@@ -261,7 +263,9 @@ class TestTrustedMetadataSet(unittest.TestCase):
             timestamp.expires = datetime(1970, 1, 1)
 
         # expired intermediate timestamp is loaded but raises
-        timestamp = self.modify_metadata("timestamp", timestamp_expired_modifier)
+        timestamp = self.modify_metadata(
+            "timestamp", timestamp_expired_modifier
+        )
         with self.assertRaises(exceptions.ExpiredMetadataError):
             self.trusted_set.update_timestamp(timestamp)
 
@@ -291,7 +295,9 @@ class TestTrustedMetadataSet(unittest.TestCase):
         def timestamp_version_modifier(timestamp: Timestamp) -> None:
             timestamp.snapshot_meta.version = 2
 
-        timestamp = self.modify_metadata("timestamp", timestamp_version_modifier)
+        timestamp = self.modify_metadata(
+            "timestamp", timestamp_version_modifier
+        )
         self.trusted_set.update_timestamp(timestamp)
 
         # if intermediate snapshot version is incorrect, load it but also raise
@@ -302,9 +308,9 @@ class TestTrustedMetadataSet(unittest.TestCase):
         with self.assertRaises(exceptions.BadVersionNumberError):
             self.trusted_set.update_targets(self.metadata["targets"])
 
-
     def test_update_snapshot_file_removed_from_meta(self):
         self._update_all_besides_targets(self.metadata["timestamp"])
+
         def remove_file_from_meta(snapshot: Snapshot) -> None:
             del snapshot.meta["targets.json"]
 
@@ -327,6 +333,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
     def test_update_snapshot_expired_new_snapshot(self):
         self.trusted_set.update_timestamp(self.metadata["timestamp"])
+
         def snapshot_expired_modifier(snapshot: Snapshot) -> None:
             snapshot.expires = datetime(1970, 1, 1)
 
@@ -406,6 +413,6 @@ class TestTrustedMetadataSet(unittest.TestCase):
     # TODO test updating over initial metadata (new keys, newer timestamp, etc)
 
 
-if __name__ == '__main__':
-  utils.configure_test_logging(sys.argv)
-  unittest.main()
+if __name__ == "__main__":
+    utils.configure_test_logging(sys.argv)
+    unittest.main()

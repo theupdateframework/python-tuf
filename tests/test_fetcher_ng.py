@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 
 
 class TestFetcher(unittest_toolbox.Modified_TestCase):
-
     @classmethod
     def setUpClass(cls):
         # Launch a SimpleHTTPServer (serves files in the current dir).
@@ -111,10 +110,14 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
         self.assertEqual(cm.exception.status_code, 404)
 
     # Response read timeout error
-    @patch.object(requests.Session, 'get')
+    @patch.object(requests.Session, "get")
     def test_response_read_timeout(self, mock_session_get):
         mock_response = Mock()
-        attr = {'raw.read.side_effect': urllib3.exceptions.ReadTimeoutError(None, None, "Read timed out.")}
+        attr = {
+            "raw.read.side_effect": urllib3.exceptions.ReadTimeoutError(
+                None, None, "Read timed out."
+            )
+        }
         mock_response.configure_mock(**attr)
         mock_session_get.return_value = mock_response
 
@@ -123,7 +126,9 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
         mock_response.raw.read.assert_called_once()
 
     # Read/connect session timeout error
-    @patch.object(requests.Session, 'get', side_effect=urllib3.exceptions.TimeoutError)
+    @patch.object(
+        requests.Session, "get", side_effect=urllib3.exceptions.TimeoutError
+    )
     def test_session_get_timeout(self, mock_session_get):
         with self.assertRaises(exceptions.SlowRetrievalError):
             self.fetcher.fetch(self.url)
