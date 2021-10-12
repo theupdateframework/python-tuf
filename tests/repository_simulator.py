@@ -44,22 +44,22 @@ Example::
     updater.refresh()
 """
 
-from collections import OrderedDict
-from dataclasses import dataclass
-from datetime import datetime, timedelta
 import logging
 import os
 import tempfile
-import securesystemslib.hash as sslib_hash
-from securesystemslib.keys import generate_ed25519_key
-from securesystemslib.signer import SSlibSigner
+from collections import OrderedDict
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import Dict, Iterator, List, Optional, Tuple
 from urllib import parse
 
-from tuf.api.metadata import TOP_LEVEL_ROLE_NAMES
-from tuf.api.serialization.json import JSONSerializer
-from tuf.exceptions import FetcherHTTPError
+import securesystemslib.hash as sslib_hash
+from securesystemslib.keys import generate_ed25519_key
+from securesystemslib.signer import SSlibSigner
+
 from tuf.api.metadata import (
+    SPECIFICATION_VERSION,
+    TOP_LEVEL_ROLE_NAMES,
     DelegatedRole,
     Delegations,
     Key,
@@ -67,12 +67,13 @@ from tuf.api.metadata import (
     MetaFile,
     Role,
     Root,
-    SPECIFICATION_VERSION,
     Snapshot,
     TargetFile,
     Targets,
     Timestamp,
 )
+from tuf.api.serialization.json import JSONSerializer
+from tuf.exceptions import FetcherHTTPError, RepositoryError
 from tuf.ngclient.fetcher import FetcherInterface
 
 logger = logging.getLogger(__name__)

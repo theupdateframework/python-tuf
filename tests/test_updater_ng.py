@@ -6,20 +6,21 @@
 """Test Updater class
 """
 
+import logging
 import os
 import shutil
-import tempfile
-import logging
 import sys
-from typing import List
+import tempfile
 import unittest
-import tuf.unittest_toolbox as unittest_toolbox
+from typing import List
 
-from tests import utils
-from tuf.api.metadata import Metadata, TargetFile
-from tuf import exceptions, ngclient
-from securesystemslib.signer import SSlibSigner
 from securesystemslib.interface import import_rsa_privatekey_from_file
+from securesystemslib.signer import SSlibSigner
+
+import tuf.unittest_toolbox as unittest_toolbox
+from tests import utils
+from tuf import exceptions, ngclient
+from tuf.api.metadata import Metadata, TargetFile
 
 logger = logging.getLogger(__name__)
 

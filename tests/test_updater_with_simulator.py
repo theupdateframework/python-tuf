@@ -9,16 +9,14 @@
 import os
 import sys
 import tempfile
-from tuf.api.metadata import SPECIFICATION_VERSION, Targets
-from typing import Optional, Tuple
-from tuf.exceptions import UnsignedMetadataError, BadVersionNumberError
 import unittest
-
-from tuf.ngclient import Updater
+from typing import Optional, Tuple
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
-from securesystemslib import hash as sslib_hash
+from tuf.api.metadata import SPECIFICATION_VERSION, Targets
+from tuf.exceptions import BadVersionNumberError, UnsignedMetadataError
+from tuf.ngclient import Updater
 
 
 class TestUpdater(unittest.TestCase):
