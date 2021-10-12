@@ -7,44 +7,38 @@
 """
 
 import json
-import sys
 import logging
 import os
 import shutil
+import sys
 import tempfile
 import unittest
-
 from datetime import datetime, timedelta
+
 from dateutil.relativedelta import relativedelta
+from securesystemslib import hash as sslib_hash
+from securesystemslib.interface import (
+    import_ed25519_privatekey_from_file,
+    import_ed25519_publickey_from_file,
+)
+from securesystemslib.keys import generate_ed25519_key
+from securesystemslib.signer import Signature, SSlibSigner
 
 from tests import utils
-
 from tuf import exceptions
 from tuf.api.metadata import (
+    DelegatedRole,
+    Key,
     Metadata,
+    MetaFile,
     Root,
     Snapshot,
-    Timestamp,
-    Targets,
-    Key,
-    MetaFile,
     TargetFile,
-    DelegatedRole,
+    Targets,
+    Timestamp,
 )
-
 from tuf.api.serialization import DeserializationError
-
-from tuf.api.serialization.json import JSONSerializer, CanonicalJSONSerializer
-
-from securesystemslib.interface import (
-    import_ed25519_publickey_from_file,
-    import_ed25519_privatekey_from_file,
-)
-
-from securesystemslib import hash as sslib_hash
-from securesystemslib.signer import SSlibSigner, Signature
-
-from securesystemslib.keys import generate_ed25519_key
+from tuf.api.serialization.json import CanonicalJSONSerializer, JSONSerializer
 
 logger = logging.getLogger(__name__)
 

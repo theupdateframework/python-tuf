@@ -6,19 +6,18 @@
 """Unit test for RequestsFetcher.
 """
 
-import logging
-import os
 import io
-import sys
-import unittest
-import tempfile
+import logging
 import math
+import os
+import sys
+import tempfile
+import unittest
 
 import tuf
 import tuf.exceptions
 import tuf.requests_fetcher
 import tuf.unittest_toolbox as unittest_toolbox
-
 from tests import utils
 
 logger = logging.getLogger(__name__)

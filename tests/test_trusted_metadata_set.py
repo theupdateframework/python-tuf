@@ -1,29 +1,28 @@
 import logging
-from typing import Optional, Callable
 import os
 import sys
 import unittest
 from datetime import datetime
+from typing import Callable, Optional
 
-from tuf import exceptions
-from tuf.api.metadata import (
-    Metadata,
-    Signed,
-    Root,
-    Timestamp,
-    Snapshot,
-    MetaFile,
-    Targets,
-)
-from tuf.ngclient._internal.trusted_metadata_set import TrustedMetadataSet
-
-from securesystemslib.signer import SSlibSigner
 from securesystemslib.interface import (
     import_ed25519_privatekey_from_file,
     import_rsa_privatekey_from_file,
 )
+from securesystemslib.signer import SSlibSigner
 
 from tests import utils
+from tuf import exceptions
+from tuf.api.metadata import (
+    Metadata,
+    MetaFile,
+    Root,
+    Signed,
+    Snapshot,
+    Targets,
+    Timestamp,
+)
+from tuf.ngclient._internal.trusted_metadata_set import TrustedMetadataSet
 
 logger = logging.getLogger(__name__)
 

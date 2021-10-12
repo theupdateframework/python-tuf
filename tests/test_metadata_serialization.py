@@ -6,27 +6,25 @@ serialization and deserialization.
 
 """
 
-import json
-import sys
-import logging
-import unittest
 import copy
-
+import json
+import logging
+import sys
+import unittest
 from typing import Dict
 
 from tests import utils
-
 from tuf.api.metadata import (
+    DelegatedRole,
+    Delegations,
+    Key,
+    MetaFile,
+    Role,
     Root,
     Snapshot,
-    Timestamp,
-    Targets,
-    Key,
-    Role,
-    MetaFile,
     TargetFile,
-    Delegations,
-    DelegatedRole,
+    Targets,
+    Timestamp,
 )
 
 logger = logging.getLogger(__name__)

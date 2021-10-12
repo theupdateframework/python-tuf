@@ -8,18 +8,19 @@
 
 import io
 import logging
+import math
 import os
 import sys
-import unittest
 import tempfile
-import math
-import urllib3.exceptions
+import unittest
+from unittest.mock import Mock, patch
+
 import requests
+import urllib3.exceptions
 
 from tests import utils
 from tuf import exceptions, unittest_toolbox
 from tuf.ngclient._internal.requests_fetcher import RequestsFetcher
-from unittest.mock import Mock, patch
 
 logger = logging.getLogger(__name__)
 
