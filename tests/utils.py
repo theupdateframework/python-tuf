@@ -20,8 +20,10 @@
   Provide common utilities for TUF tests
 """
 
-import argparse
 from contextlib import contextmanager
+from typing import Dict, Any, Callable
+import unittest
+import argparse
 import errno
 import logging
 import socket
@@ -38,6 +40,22 @@ logger = logging.getLogger(__name__)
 
 # Used when forming URLs on the client side
 TEST_HOST_ADDRESS = '127.0.0.1'
+
+
+# DataSet is only here so type hints can be used.
+DataSet = Dict[str, Any]
+
+# Test runner decorator: Runs the test as a set of N SubTests,
+# (where N is number of items in dataset), feeding the actual test
+# function one test case at a time
+def run_sub_tests_with_dataset(dataset: DataSet):
+    def real_decorator(function: Callable[[unittest.TestCase, Any], None]):
+        def wrapper(test_cls: unittest.TestCase):
+            for case, data in dataset.items():
+                with test_cls.subTest(case=case):
+                    function(test_cls, data)
+        return wrapper
+    return real_decorator
 
 
 class TestServerProcessError(Exception):

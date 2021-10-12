@@ -10,7 +10,7 @@ import logging
 import os
 import sys
 import tempfile
-from typing import Optional
+from typing import Optional, Tuple
 from tuf.exceptions import UnsignedMetadataError
 import unittest
 
@@ -18,6 +18,7 @@ from tuf.ngclient import Updater
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
+
 
 class TestUpdater(unittest.TestCase):
     # set dump_dir to trigger repository state dumps
@@ -79,39 +80,50 @@ class TestUpdater(unittest.TestCase):
 
         self._run_refresh()
 
-    def test_targets(self):
-        targets = {
-            "targetpath": b"content",
-            "åäö": b"more content"
-        }
+    targets: utils.DataSet = {
+        "standard case": ("targetpath", b"content", "targetpath"),
+        "non-asci case": ("åäö", b"more content", "%C3%A5%C3%A4%C3%B6"),
+        "subdirectory case": ("a/b/c/targetpath", b"dir target content", "a%2Fb%2Fc%2Ftargetpath"),
+    }
+
+    @utils.run_sub_tests_with_dataset(targets)
+    def test_targets(self, test_case_data: Tuple[str, bytes, str]):
+        targetpath, content, encoded_path = test_case_data
+        # target does not exist yet
+        updater = self._run_refresh()
+        self.assertIsNone(updater.get_one_valid_targetinfo(targetpath))
 
         # Add targets to repository
         self.sim.targets.version += 1
-        for targetpath, content in targets.items():
-            self.sim.add_target("targets", content, targetpath)
+        self.sim.add_target("targets", content, targetpath)
         self.sim.update_snapshot()
 
         updater = self._run_refresh()
-        for targetpath, content in targets.items():
-            # target now exists, is not in cache yet
-            file_info = updater.get_one_valid_targetinfo(targetpath)
-            self.assertIsNotNone(file_info)
-            self.assertEqual(
-                updater.updated_targets([file_info], self.targets_dir),
-                [file_info]
-            )
+        # target now exists, is not in cache yet
+        file_info = updater.get_one_valid_targetinfo(targetpath)
+        self.assertIsNotNone(file_info)
+        self.assertEqual(
+            updater.updated_targets([file_info], self.targets_dir),
+            [file_info]
+        )
 
-            # download target, assert it is in cache and content is correct
-            local_path = updater.download_target(file_info, self.targets_dir)
-            self.assertEqual(
-                updater.updated_targets([file_info], self.targets_dir), []
-            )
-            self.assertTrue(local_path.startswith(self.targets_dir))
-            with open(local_path, "rb") as f:
-                self.assertEqual(f.read(), content)
+        # Assert consistent_snapshot is True and downloaded targets have prefix.
+        self.assertTrue(self.sim.root.consistent_snapshot)
+        self.assertTrue(updater.config.prefix_targets_with_hash)
+        # download target, assert it is in cache and content is correct
+        local_path = updater.download_target(file_info, self.targets_dir)
+        self.assertEqual(
+            updater.updated_targets([file_info], self.targets_dir), []
+        )
+        self.assertTrue(local_path.startswith(self.targets_dir))
+        with open(local_path, "rb") as f:
+            self.assertEqual(f.read(), content)
 
-        # TODO: run the same download tests for target paths like "dir/file2")
-        # This currently fails because issue #1576
+        # Assert that the targetpath was URL encoded as expected.
+        encoded_absolute_path = os.path.join(self.targets_dir, encoded_path)
+        self.assertEqual(local_path, encoded_absolute_path)
+
+
 
     def test_keys_and_signatures(self):
         """Example of the two trickiest test areas: keys and root updates"""
