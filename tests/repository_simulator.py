@@ -79,11 +79,14 @@ logger = logging.getLogger(__name__)
 
 SPEC_VER = ".".join(SPECIFICATION_VERSION)
 
+
 @dataclass
 class RepositoryTarget:
     """Contains actual target data and the related target metadata"""
+
     data: bytes
     target_file: TargetFile
+
 
 class RepositorySimulator(FetcherInterface):
     def __init__(self):
@@ -141,7 +144,7 @@ class RepositorySimulator(FetcherInterface):
         sslib_key = generate_ed25519_key()
         return Key.from_securesystemslib_key(sslib_key), SSlibSigner(sslib_key)
 
-    def add_signer(self, role:str, signer: SSlibSigner):
+    def add_signer(self, role: str, signer: SSlibSigner):
         if role not in self.signers:
             self.signers[role] = {}
         self.signers[role][signer.key_dict["keyid"]] = signer
@@ -197,7 +200,7 @@ class RepositorySimulator(FetcherInterface):
         elif path.startswith("/targets/"):
             # figure out target path and hash prefix
             target_path = path[len("/targets/") :]
-            dir_parts, sep , prefixed_filename = target_path.rpartition("/")
+            dir_parts, sep, prefixed_filename = target_path.rpartition("/")
             prefix, _, filename = prefixed_filename.partition(".")
             target_path = f"{dir_parts}{sep}{filename}"
 
@@ -219,7 +222,9 @@ class RepositorySimulator(FetcherInterface):
         logger.debug("fetched target %s", target_path)
         return repo_target.data
 
-    def _fetch_metadata(self, role: str, version: Optional[int] = None) -> bytes:
+    def _fetch_metadata(
+        self, role: str, version: Optional[int] = None
+    ) -> bytes:
         """Return signed metadata for 'role', using 'version' if it is given.
 
         If version is None, non-versioned metadata is being requested
@@ -264,7 +269,7 @@ class RepositorySimulator(FetcherInterface):
         data = self._fetch_metadata(role)
         digest_object = sslib_hash.digest(sslib_hash.DEFAULT_HASH_ALGORITHM)
         digest_object.update(data)
-        hashes = {sslib_hash.DEFAULT_HASH_ALGORITHM:  digest_object.hexdigest()}
+        hashes = {sslib_hash.DEFAULT_HASH_ALGORITHM: digest_object.hexdigest()}
         return hashes, len(data)
 
     def update_timestamp(self):
