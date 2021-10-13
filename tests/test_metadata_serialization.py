@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 class TestSerialization(unittest.TestCase):
+    """Test serialization for all classes in 'tuf/api/metadata.py'."""
 
     # Snapshot instances with meta = {} are valid, but for a full valid
     # repository it's required that meta has at least one element inside it.

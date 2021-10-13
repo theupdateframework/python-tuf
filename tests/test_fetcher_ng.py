@@ -26,6 +26,8 @@ logger = logging.getLogger(__name__)
 
 
 class TestFetcher(unittest_toolbox.Modified_TestCase):
+    """Test RequestsFetcher class."""
+
     @classmethod
     def setUpClass(cls):
         # Launch a SimpleHTTPServer (serves files in the current dir).
@@ -48,17 +50,21 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
         current_dir = os.getcwd()
         target_filepath = self.make_temp_data_file(directory=current_dir)
 
-        self.target_fileobj = open(target_filepath, "r")
-        self.file_contents = self.target_fileobj.read()
-        self.file_length = len(self.file_contents)
+        with open(target_filepath, "r", encoding="utf8") as target_fileobj:
+            self.file_contents = target_fileobj.read()
+            self.file_length = len(self.file_contents)
+
         self.rel_target_filepath = os.path.basename(target_filepath)
-        self.url = f"http://{utils.TEST_HOST_ADDRESS}:{str(self.server_process_handler.port)}/{self.rel_target_filepath}"
+        self.url_prefix = (
+            f"http://{utils.TEST_HOST_ADDRESS}:"
+            f"{str(self.server_process_handler.port)}"
+        )
+        self.url = f"{self.url_prefix}/{self.rel_target_filepath}"
 
         # Instantiate a concrete instance of FetcherInterface
         self.fetcher = RequestsFetcher()
 
     def tearDown(self):
-        self.target_fileobj.close()
         # Remove temporary directory
         unittest_toolbox.Modified_TestCase.tearDown(self)
 
@@ -106,7 +112,7 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
     # File not found error
     def test_http_error(self):
         with self.assertRaises(exceptions.FetcherHTTPError) as cm:
-            self.url = f"http://{utils.TEST_HOST_ADDRESS}:{str(self.server_process_handler.port)}/non-existing-path"
+            self.url = f"{self.url_prefix}/non-existing-path"
             self.fetcher.fetch(self.url)
         self.assertEqual(cm.exception.status_code, 404)
 

@@ -44,6 +44,8 @@ logger = logging.getLogger(__name__)
 
 
 class TestMetadata(unittest.TestCase):
+    """Tests for public API of all classes in 'tuf/api/metadata.py'."""
+
     @classmethod
     def setUpClass(cls):
         # Create a temporary directory to store the repository, metadata, and
@@ -246,8 +248,8 @@ class TestMetadata(unittest.TestCase):
         sig.signature = correct_sig
 
     def test_metadata_base(self):
-        # Use of Snapshot is arbitrary, we're just testing the base class features
-        # with real data
+        # Use of Snapshot is arbitrary, we're just testing the base class
+        # features with real data
         snapshot_path = os.path.join(self.repo_dir, "metadata", "snapshot.json")
         md = Metadata.from_file(snapshot_path)
 
@@ -473,6 +475,7 @@ class TestMetadata(unittest.TestCase):
             root.signed.remove_key("nosuchrole", keyid)
 
     def test_is_target_in_pathpattern(self):
+        # pylint: disable=protected-access
         supported_use_cases = [
             ("foo.tgz", "foo.tgz"),
             ("foo.tgz", "*"),
@@ -507,7 +510,7 @@ class TestMetadata(unittest.TestCase):
         targets_path = os.path.join(self.repo_dir, "metadata", "targets.json")
         targets = Metadata[Targets].from_file(targets_path)
 
-        # Create a fileinfo dict representing what we expect the updated data to be
+        # Create a fileinfo dict representing the expected updated data.
         filename = "file2.txt"
         hashes = {
             "sha256": "141f740f53781d1ca54b8a50af22cbf74e44c21a998fa2a8a05aaac2c002886b",
