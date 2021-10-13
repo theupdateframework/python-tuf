@@ -20,10 +20,13 @@ from tuf.ngclient import Updater
 
 
 class TestUpdater(unittest.TestCase):
+    """Test ngclient Updater using the repository simulator"""
+
     # set dump_dir to trigger repository state dumps
     dump_dir: Optional[str] = None
 
     def setUp(self):
+        # pylint: disable-next=consider-using-with
         self.temp_dir = tempfile.TemporaryDirectory()
         self.metadata_dir = os.path.join(self.temp_dir.name, "metadata")
         self.targets_dir = os.path.join(self.temp_dir.name, "targets")
@@ -48,6 +51,7 @@ class TestUpdater(unittest.TestCase):
         self.temp_dir.cleanup()
 
     def _run_refresh(self) -> Updater:
+        """Creates a new updater and runs refresh."""
         if self.sim.dump_dir is not None:
             self.sim.write()
 
@@ -142,6 +146,7 @@ class TestUpdater(unittest.TestCase):
         # Add new delegated targets, update the snapshot
         spec_version = ".".join(SPECIFICATION_VERSION)
         targets = Targets(1, spec_version, self.sim.safe_expiry, {}, None)
+        # pylint: disable-next=consider-iterating-dictionary
         for role in roles_to_filenames.keys():
             self.sim.add_delegation(
                 "targets", role, targets, False, ["*"], None
@@ -214,7 +219,7 @@ class TestUpdater(unittest.TestCase):
         self.sim.update_snapshot()
         self._run_refresh()
 
-        # The new targets should have a lower version than the local trusted one.
+        # The new targets must have a lower version than the local trusted one.
         self.sim.targets.version = 1
         self.sim.update_snapshot()
 

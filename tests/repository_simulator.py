@@ -73,7 +73,7 @@ from tuf.api.metadata import (
     Timestamp,
 )
 from tuf.api.serialization.json import JSONSerializer
-from tuf.exceptions import FetcherHTTPError, RepositoryError
+from tuf.exceptions import FetcherHTTPError
 from tuf.ngclient.fetcher import FetcherInterface
 
 logger = logging.getLogger(__name__)
@@ -90,6 +90,9 @@ class RepositoryTarget:
 
 
 class RepositorySimulator(FetcherInterface):
+    """Simulates a repository that can be used for testing"""
+
+    # pylint: disable=too-many-instance-attributes
     def __init__(self):
         self.md_root: Metadata[Root] = None
         self.md_timestamp: Metadata[Timestamp] = None
@@ -136,6 +139,7 @@ class RepositorySimulator(FetcherInterface):
         return self.md_targets.signed
 
     def all_targets(self) -> Iterator[Tuple[str, Targets]]:
+        """Yield role name and signed portion of targets one by one"""
         yield "targets", self.md_targets.signed
         for role, md in self.md_delegates.items():
             yield role, md.signed
@@ -185,6 +189,7 @@ class RepositorySimulator(FetcherInterface):
         logger.debug("Published root v%d", self.root.version)
 
     def fetch(self, url: str) -> Iterator[bytes]:
+        """Fetches data from the given url and yeilds an Iterator"""
         if not self.root.consistent_snapshot:
             raise NotImplementedError("non-consistent snapshot not supported")
         path = parse.urlparse(url).path
@@ -209,6 +214,8 @@ class RepositorySimulator(FetcherInterface):
         else:
             raise FetcherHTTPError(f"Unknown path '{path}'", 404)
 
+    # Disable the redefined-builtin warning raised because of the hash func.
+    # pylint: disable-next=redefined-builtin
     def _fetch_target(self, target_path: str, hash: Optional[str]) -> bytes:
         """Return data for 'target_path', checking 'hash' if it is given.
 
@@ -234,35 +241,35 @@ class RepositorySimulator(FetcherInterface):
             # return a version previously serialized in publish_root()
             if version is None or version > len(self.signed_roots):
                 raise FetcherHTTPError(f"Unknown root version {version}", 404)
-            logger.debug("fetched root version %d", role, version)
+            logger.debug("fetched root version %d", version)
             return self.signed_roots[version - 1]
+
+        # sign and serialize the requested metadata
+        if role == "timestamp":
+            md: Metadata = self.md_timestamp
+        elif role == "snapshot":
+            md = self.md_snapshot
+        elif role == "targets":
+            md = self.md_targets
         else:
-            # sign and serialize the requested metadata
-            if role == "timestamp":
-                md: Metadata = self.md_timestamp
-            elif role == "snapshot":
-                md = self.md_snapshot
-            elif role == "targets":
-                md = self.md_targets
-            else:
-                md = self.md_delegates[role]
+            md = self.md_delegates[role]
 
-            if md is None:
-                raise FetcherHTTPError(f"Unknown role {role}", 404)
-            if version is not None and version != md.signed.version:
-                raise FetcherHTTPError(f"Unknown {role} version {version}", 404)
+        if md is None:
+            raise FetcherHTTPError(f"Unknown role {role}", 404)
+        if version is not None and version != md.signed.version:
+            raise FetcherHTTPError(f"Unknown {role} version {version}", 404)
 
-            md.signatures.clear()
-            for signer in self.signers[role].values():
-                md.sign(signer, append=True)
+        md.signatures.clear()
+        for signer in self.signers[role].values():
+            md.sign(signer, append=True)
 
-            logger.debug(
-                "fetched %s v%d with %d sigs",
-                role,
-                md.signed.version,
-                len(self.signers[role]),
-            )
-            return md.to_bytes(JSONSerializer())
+        logger.debug(
+            "fetched %s v%d with %d sigs",
+            role,
+            md.signed.version,
+            len(self.signers[role]),
+        )
+        return md.to_bytes(JSONSerializer())
 
     def _compute_hashes_and_length(
         self, role: str
@@ -274,6 +281,7 @@ class RepositorySimulator(FetcherInterface):
         return hashes, len(data)
 
     def update_timestamp(self):
+        """Update timestamp and assign snapshot ver to snapshot_meta ver"""
         self.timestamp.snapshot_meta.version = self.snapshot.version
 
         if self.compute_metafile_hashes_length:
@@ -284,6 +292,7 @@ class RepositorySimulator(FetcherInterface):
         self.timestamp.version += 1
 
     def update_snapshot(self):
+        """Update snapshot, assign targets versions and update timestamp"""
         for role, delegate in self.all_targets():
             hashes = None
             length = None
@@ -298,6 +307,7 @@ class RepositorySimulator(FetcherInterface):
         self.update_timestamp()
 
     def add_target(self, role: str, data: bytes, path: str):
+        """Create a target from data and add it to the target_files"""
         if role == "targets":
             targets = self.targets
         else:
@@ -316,6 +326,7 @@ class RepositorySimulator(FetcherInterface):
         paths: Optional[List[str]],
         hash_prefixes: Optional[List[str]],
     ):
+        """Add delegated target role to the repository"""
         if delegator_name == "targets":
             delegator = self.targets
         else:
@@ -347,17 +358,18 @@ class RepositorySimulator(FetcherInterface):
             print(f"Repository Simulator dumps in {self.dump_dir}")
 
         self.dump_version += 1
-        dir = os.path.join(self.dump_dir, str(self.dump_version))
-        os.makedirs(dir)
+        dest_dir = os.path.join(self.dump_dir, str(self.dump_version))
+        os.makedirs(dest_dir)
 
         for ver in range(1, len(self.signed_roots) + 1):
-            with open(os.path.join(dir, f"{ver}.root.json"), "wb") as f:
+            with open(os.path.join(dest_dir, f"{ver}.root.json"), "wb") as f:
                 f.write(self._fetch_metadata("root", ver))
 
         for role in ["timestamp", "snapshot", "targets"]:
-            with open(os.path.join(dir, f"{role}.json"), "wb") as f:
+            with open(os.path.join(dest_dir, f"{role}.json"), "wb") as f:
                 f.write(self._fetch_metadata(role))
 
+        # pylint: disable-next=consider-iterating-dictionary
         for role in self.md_delegates.keys():
-            with open(os.path.join(dir, f"{role}.json"), "wb") as f:
+            with open(os.path.join(dest_dir, f"{role}.json"), "wb") as f:
                 f.write(self._fetch_metadata(role))

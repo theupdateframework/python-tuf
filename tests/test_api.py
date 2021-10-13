@@ -44,6 +44,8 @@ logger = logging.getLogger(__name__)
 
 
 class TestMetadata(unittest.TestCase):
+    """Tests for public API of all classes in tuf/api/metadata.py"""
+
     @classmethod
     def setUpClass(cls):
         # Create a temporary directory to store the repository, metadata, and
@@ -155,8 +157,8 @@ class TestMetadata(unittest.TestCase):
             self.assertEqual(metadata_obj_2.to_bytes(), obj_bytes)
 
     def test_sign_verify(self):
-        root_path = os.path.join(self.repo_dir, "metadata", "root.json")
-        root = Metadata[Root].from_file(root_path).signed
+        path = os.path.join(self.repo_dir, "metadata", "root.json")
+        root = Metadata[Root].from_file(path).signed
 
         # Locate the public keys we need from root
         targets_keyid = next(iter(root.roles["targets"].keyids))
@@ -203,7 +205,8 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(exceptions.UnsignedMetadataError):
             targets_key.verify_signature(md_obj)
 
-        # Test failure on unknown scheme (securesystemslib UnsupportedAlgorithmError)
+        # Test failure on unknown scheme (securesystemslib
+        # UnsupportedAlgorithmError)
         scheme = timestamp_key.scheme
         timestamp_key.scheme = "foo"
         with self.assertRaises(exceptions.UnsignedMetadataError):
@@ -231,8 +234,8 @@ class TestMetadata(unittest.TestCase):
         sig.signature = correct_sig
 
     def test_metadata_base(self):
-        # Use of Snapshot is arbitrary, we're just testing the base class features
-        # with real data
+        # Use of Snapshot is arbitrary, we're just testing the base class
+        # features with real data
         snapshot_path = os.path.join(self.repo_dir, "metadata", "snapshot.json")
         md = Metadata.from_file(snapshot_path)
 
@@ -279,7 +282,7 @@ class TestMetadata(unittest.TestCase):
         # Create a MetaFile instance representing what we expect
         # the updated data to be.
         hashes = {
-            "sha256": "c2986576f5fdfd43944e2b19e775453b96748ec4fe2638a6d2f32f1310967095"
+            "sha256": "c2986576f5fdfd43944e2b19e775453b96748ec4fe2638a6d2f32f1310967095"  # pylint: disable=line-too-long
         }
         fileinfo = MetaFile(2, 123, hashes)
 
@@ -319,7 +322,7 @@ class TestMetadata(unittest.TestCase):
         # Create a MetaFile instance representing what we expect
         # the updated data to be.
         hashes = {
-            "sha256": "0ae9664468150a9aa1e7f11feecb32341658eb84292851367fea2da88e8a58dc"
+            "sha256": "0ae9664468150a9aa1e7f11feecb32341658eb84292851367fea2da88e8a58dc"  # pylint: disable=line-too-long
         }
         fileinfo = MetaFile(2, 520, hashes)
 
@@ -472,6 +475,7 @@ class TestMetadata(unittest.TestCase):
         ]
         for targetpath, pathpattern in supported_use_cases:
             self.assertTrue(
+                # pylint: disable-next=protected-access
                 DelegatedRole._is_target_in_pathpattern(targetpath, pathpattern)
             )
 
@@ -485,6 +489,7 @@ class TestMetadata(unittest.TestCase):
         ]
         for targetpath, pathpattern in invalid_use_cases:
             self.assertFalse(
+                # pylint: disable-next=protected-access
                 DelegatedRole._is_target_in_pathpattern(targetpath, pathpattern)
             )
 
@@ -492,11 +497,11 @@ class TestMetadata(unittest.TestCase):
         targets_path = os.path.join(self.repo_dir, "metadata", "targets.json")
         targets = Metadata[Targets].from_file(targets_path)
 
-        # Create a fileinfo dict representing what we expect the updated data to be
+        # Create a fileinfo dict representing the expected updated data.
         filename = "file2.txt"
         hashes = {
-            "sha256": "141f740f53781d1ca54b8a50af22cbf74e44c21a998fa2a8a05aaac2c002886b",
-            "sha512": "ef5beafa16041bcdd2937140afebd485296cd54f7348ecd5a4d035c09759608de467a7ac0eb58753d0242df873c305e8bffad2454aa48f44480f15efae1cacd0",
+            "sha256": "141f740f53781d1ca54b8a50af22cbf74e44c21a998fa2a8a05aaac2c002886b",  # pylint: disable=line-too-long
+            "sha512": "ef5beafa16041bcdd2937140afebd485296cd54f7348ecd5a4d035c09759608de467a7ac0eb58753d0242df873c305e8bffad2454aa48f44480f15efae1cacd0",  # pylint: disable=line-too-long
         }
 
         fileinfo = TargetFile(length=28, hashes=hashes, path=filename)
@@ -531,7 +536,7 @@ class TestMetadata(unittest.TestCase):
         key_dict = {
             "keytype": "ed25519",
             "keyval": {
-                "public": "edcd0a32a07dce33f7c7873aaffbff36d20ea30787574ead335eefd337e4dacd"
+                "public": "edcd0a32a07dce33f7c7873aaffbff36d20ea30787574ead335eefd337e4dacd"  # pylint: disable=line-too-long
             },
             "scheme": "ed25519",
         }
@@ -628,7 +633,7 @@ class TestMetadata(unittest.TestCase):
             )
 
             snapshot_metafile.hashes = {
-                "unsupported-alg": "8f88e2ba48b412c3843e9bb26e1b6f8fc9e98aceb0fbaa97ba37b4c98717d7ab"
+                "unsupported-alg": "8f88e2ba48b412c3843e9bb26e1b6f8fc9e98aceb0fbaa97ba37b4c98717d7ab"  # pylint: disable=line-too-long
             }
             self.assertRaises(
                 exceptions.LengthOrHashMismatchError,
@@ -638,7 +643,7 @@ class TestMetadata(unittest.TestCase):
 
             # Test wrong algorithm format (sslib.FormatError)
             snapshot_metafile.hashes = {
-                256: "8f88e2ba48b412c3843e9bb26e1b6f8fc9e98aceb0fbaa97ba37b4c98717d7ab"
+                256: "8f88e2ba48b412c3843e9bb26e1b6f8fc9e98aceb0fbaa97ba37b4c98717d7ab"  # pylint: disable=line-too-long
             }
             self.assertRaises(
                 exceptions.LengthOrHashMismatchError,

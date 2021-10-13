@@ -1,3 +1,4 @@
+"""Unit tests for tuf/ngclient/_internal/trusted_metadata_set.py"""
 import logging
 import os
 import sys
@@ -26,16 +27,18 @@ from tuf.ngclient._internal.trusted_metadata_set import TrustedMetadataSet
 
 logger = logging.getLogger(__name__)
 
-
+# pylint: disable-next=too-many-public-methods
 class TestTrustedMetadataSet(unittest.TestCase):
+    """Tests for all public API of the TrustedMetadataSet class"""
+
     def modify_metadata(
-        self, rolename: str, modification_func: Callable[["Signed"], None]
+        self, rolename: str, modification_func: Callable[[Signed], None]
     ) -> bytes:
         """Instantiate metadata from rolename type, call modification_func and
         sign it again with self.keystore[rolename] signer.
 
         Attributes:
-            rolename: A denoting the name of the metadata which will be modified.
+            rolename: Ddenoting the name of the metadata which will be modified.
             modification_func: Function that will be called to modify the signed
                 portion of metadata bytes.
         """
