@@ -50,13 +50,13 @@ from datetime import datetime, timedelta
 import logging
 import os
 import tempfile
-import securesystemslib.hash as sslib_hash
 from securesystemslib.keys import generate_ed25519_key
 from securesystemslib.signer import SSlibSigner
 from typing import Dict, Iterator, List, Optional, Tuple
 from urllib import parse
 
 from tuf.api.serialization.json import JSONSerializer
+from tuf.api.metadata import _compute_hashes
 from tuf.exceptions import FetcherHTTPError
 from tuf.api.metadata import (
     Key,
@@ -251,10 +251,7 @@ class RepositorySimulator(FetcherInterface):
         self, role: str
     ) -> Tuple[Dict[str, str], int]:
         data = self._fetch_metadata(role)
-        digest_object = sslib_hash.digest(sslib_hash.DEFAULT_HASH_ALGORITHM)
-        digest_object.update(data)
-        hashes = {sslib_hash.DEFAULT_HASH_ALGORITHM:  digest_object.hexdigest()}
-        return hashes, len(data)
+        return _compute_hashes(data), len(data)
 
     def update_timestamp(self):
         self.timestamp.snapshot_meta.version = self.snapshot.version

@@ -73,6 +73,52 @@ SPECIFICATION_VERSION = ["1", "0", "19"]
 T = TypeVar("T", "Root", "Timestamp", "Snapshot", "Targets")
 
 
+def _compute_hashes(
+    data: Union[bytes, IO[bytes]], hash_algorithms: Optional[List[str]] = None
+) -> Dict[str, str]:
+    """Compute the hashes for hash_algorithms on given data. If hash_algorithms
+    is not provided, then the securesystemslib default hash algorithm is used.
+
+    Raises:
+        UnsupportedAlgorithmError: The hash algorithms list
+            contains an unsupported algorithm.
+    """
+    hashes = {}
+    if hash_algorithms is None:
+        hash_algorithms = [sslib_hash.DEFAULT_HASH_ALGORITHM]
+
+    for algorithm in hash_algorithms:
+        try:
+            if isinstance(data, bytes):
+                digest_object = sslib_hash.digest(algorithm)
+                digest_object.update(data)
+            else:
+                digest_object = sslib_hash.digest_fileobject(data, algorithm)
+        except (
+            sslib_exceptions.UnsupportedAlgorithmError,
+            sslib_exceptions.FormatError,
+        ) as e:
+            raise exceptions.UnsupportedAlgorithmError(
+                f"Unsupported algorithm '{algorithm}'"
+            ) from e
+
+        hashes[algorithm] = digest_object.hexdigest()
+
+    return hashes
+
+
+def _compute_length(data: Union[bytes, IO[bytes]]) -> int:
+    """Compute the length of the given data."""
+    if isinstance(data, bytes):
+        length = len(data)
+    else:
+        # if data is not bytes, assume it is a file object
+        data.seek(0, io.SEEK_END)
+        length = data.tell()
+
+    return length
+
+
 class Metadata(Generic[T]):
     """A container for signed TUF metadata.
 
@@ -804,24 +850,15 @@ class BaseFile:
         data: Union[bytes, IO[bytes]], expected_hashes: Dict[str, str]
     ) -> None:
         """Verifies that the hash of 'data' matches 'expected_hashes'"""
-        is_bytes = isinstance(data, bytes)
-        for algo, exp_hash in expected_hashes.items():
-            try:
-                if is_bytes:
-                    digest_object = sslib_hash.digest(algo)
-                    digest_object.update(data)
-                else:
-                    # if data is not bytes, assume it is a file object
-                    digest_object = sslib_hash.digest_fileobject(data, algo)
-            except (
-                sslib_exceptions.UnsupportedAlgorithmError,
-                sslib_exceptions.FormatError,
-            ) as e:
-                raise exceptions.LengthOrHashMismatchError(
-                    f"Unsupported algorithm '{algo}'"
-                ) from e
+        hashes_algorithms = list(expected_hashes.keys())
 
-            observed_hash = digest_object.hexdigest()
+        try:
+            observed_hashes = _compute_hashes(data, hashes_algorithms)
+        except exceptions.UnsupportedAlgorithmError as e:
+            raise exceptions.LengthOrHashMismatchError(str(e))
+
+        for algo, exp_hash in expected_hashes.items():
+            observed_hash = observed_hashes[algo]
             if observed_hash != exp_hash:
                 raise exceptions.LengthOrHashMismatchError(
                     f"Observed hash {observed_hash} does not match"
@@ -833,12 +870,7 @@ class BaseFile:
         data: Union[bytes, IO[bytes]], expected_length: int
     ) -> None:
         """Verifies that the length of 'data' matches 'expected_length'"""
-        if isinstance(data, bytes):
-            observed_length = len(data)
-        else:
-            # if data is not bytes, assume it is a file object
-            data.seek(0, io.SEEK_END)
-            observed_length = data.tell()
+        observed_length = _compute_length(data)
 
         if observed_length != expected_length:
             raise exceptions.LengthOrHashMismatchError(
@@ -1156,9 +1188,8 @@ class DelegatedRole(Role):
         if self.path_hash_prefixes is not None:
             # Calculate the hash of the filepath
             # to determine in which bin to find the target.
-            digest_object = sslib_hash.digest(algorithm="sha256")
-            digest_object.update(target_filepath.encode("utf-8"))
-            target_filepath_hash = digest_object.hexdigest()
+            hashes = _compute_hashes(target_filepath.encode("utf-8"))
+            target_filepath_hash = hashes["sha256"]
 
             for path_hash_prefix in self.path_hash_prefixes:
                 if target_filepath_hash.startswith(path_hash_prefix):
@@ -1320,36 +1351,8 @@ class TargetFile(BaseFile):
             UnsupportedAlgorithmError: The hash algorithms list
                 contains an unsupported algorithm.
         """
-        if isinstance(data, bytes):
-            length = len(data)
-        else:
-            data.seek(0, io.SEEK_END)
-            length = data.tell()
-
-        hashes = {}
-
-        if hash_algorithms is None:
-            hash_algorithms = [sslib_hash.DEFAULT_HASH_ALGORITHM]
-
-        for algorithm in hash_algorithms:
-            try:
-                if isinstance(data, bytes):
-                    digest_object = sslib_hash.digest(algorithm)
-                    digest_object.update(data)
-                else:
-                    digest_object = sslib_hash.digest_fileobject(
-                        data, algorithm
-                    )
-            except (
-                sslib_exceptions.UnsupportedAlgorithmError,
-                sslib_exceptions.FormatError,
-            ) as e:
-                raise exceptions.UnsupportedAlgorithmError(
-                    f"Unsupported algorithm '{algorithm}'"
-                ) from e
-
-            hashes[algorithm] = digest_object.hexdigest()
-
+        length = _compute_length(data)
+        hashes = _compute_hashes(data, hash_algorithms)
         return cls(length, hashes, target_file_path)
 
     def verify_length_and_hashes(self, data: Union[bytes, IO[bytes]]) -> None:

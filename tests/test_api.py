@@ -705,7 +705,6 @@ class TestMetadata(unittest.TestCase):
             TargetFile.from_file, 
             file_path, 
             file_path,
-            [sslib_hash.DEFAULT_HASH_ALGORITHM]
         )
 
         # Test with an unsupported algorithm
