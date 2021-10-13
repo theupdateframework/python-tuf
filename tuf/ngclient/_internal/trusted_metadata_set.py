@@ -258,7 +258,9 @@ class TrustedMetadataSet(abc.Mapping):
         if self.timestamp.signed.is_expired(self.reference_time):
             raise exceptions.ExpiredMetadataError("timestamp.json is expired")
 
-    def update_snapshot(self, data: bytes) -> None:
+    def update_snapshot(
+        self, data: bytes, trusted: Optional[bool] = False
+    ) -> None:
         """Verifies and loads 'data' as new snapshot metadata.
 
         Note that an intermediate snapshot is allowed to be expired and version
@@ -271,6 +273,11 @@ class TrustedMetadataSet(abc.Mapping):
 
         Args:
             data: unverified new snapshot metadata as bytes
+            trusted: whether data has at some point been verified by
+                TrustedMetadataSet as a valid snapshot. Purpose of trusted is
+                to allow loading of locally stored snapshot as intermediate
+                snapshot even if hashes in current timestamp meta no longer
+                match data. Default is False.
 
         Raises:
             RepositoryError: data failed to load or verify as final snapshot.
@@ -288,13 +295,15 @@ class TrustedMetadataSet(abc.Mapping):
 
         snapshot_meta = self.timestamp.signed.snapshot_meta
 
-        # Verify against the hashes in timestamp, if any
-        try:
-            snapshot_meta.verify_length_and_hashes(data)
-        except exceptions.LengthOrHashMismatchError as e:
-            raise exceptions.RepositoryError(
-                "Snapshot length or hashes do not match"
-            ) from e
+        # Verify non-trusted data against the hashes in timestamp, if any.
+        # Trusted snapshot data has already been verified once.
+        if not trusted:
+            try:
+                snapshot_meta.verify_length_and_hashes(data)
+            except exceptions.LengthOrHashMismatchError as e:
+                raise exceptions.RepositoryError(
+                    "Snapshot length or hashes do not match"
+                ) from e
 
         try:
             new_snapshot = Metadata[Snapshot].from_bytes(data)

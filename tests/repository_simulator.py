@@ -50,14 +50,14 @@ from datetime import datetime, timedelta
 import logging
 import os
 import tempfile
-from securesystemslib.hash import digest
+import securesystemslib.hash as sslib_hash
 from securesystemslib.keys import generate_ed25519_key
 from securesystemslib.signer import SSlibSigner
 from typing import Dict, Iterator, List, Optional, Tuple
 from urllib import parse
 
 from tuf.api.serialization.json import JSONSerializer
-from tuf.exceptions import FetcherHTTPError, RepositoryError
+from tuf.exceptions import FetcherHTTPError
 from tuf.api.metadata import (
     Key,
     Metadata,
@@ -100,6 +100,9 @@ class RepositorySimulator(FetcherInterface):
         # target downloads are served from this dict
         self.target_files: Dict[str, RepositoryTarget] = {}
 
+        # Whether to compute hashes and legth for meta in snapshot/timestamp
+        self.compute_metafile_hashes_length = False
+
         self.dump_dir = None
         self.dump_version = 0
 
@@ -121,7 +124,8 @@ class RepositorySimulator(FetcherInterface):
     def targets(self) -> Targets:
         return self.md_targets.signed
 
-    def delegates(self) -> Iterator[Tuple[str, Targets]]:
+    def all_targets(self) -> Iterator[Tuple[str, Targets]]:
+        yield "targets", self.md_targets.signed
         for role, md in self.md_delegates.items():
             yield role, md.signed
 
@@ -243,15 +247,33 @@ class RepositorySimulator(FetcherInterface):
             )
             return md.to_bytes(JSONSerializer())
 
+    def _compute_hashes_and_length(
+        self, role: str
+    ) -> Tuple[Dict[str, str], int]:
+        data = self._fetch_metadata(role)
+        digest_object = sslib_hash.digest(sslib_hash.DEFAULT_HASH_ALGORITHM)
+        digest_object.update(data)
+        hashes = {sslib_hash.DEFAULT_HASH_ALGORITHM:  digest_object.hexdigest()}
+        return hashes, len(data)
+
     def update_timestamp(self):
         self.timestamp.snapshot_meta.version = self.snapshot.version
+
+        if self.compute_metafile_hashes_length:
+            hashes, length = self._compute_hashes_and_length("snapshot")
+            self.timestamp.snapshot_meta.hashes = hashes
+            self.timestamp.snapshot_meta.length = length
 
         self.timestamp.version += 1
 
     def update_snapshot(self):
-        self.snapshot.meta["targets.json"].version = self.targets.version
-        for role, delegate in self.delegates():
+        for role, delegate in self.all_targets():
             self.snapshot.meta[f"{role}.json"].version = delegate.version
+
+            if self.compute_metafile_hashes_length:
+                hashes, length = self._compute_hashes_and_length(role)
+                self.snapshot.meta[f"{role}.json"].hashes = hashes
+                self.snapshot.meta[f"{role}.json"].length = length
 
         self.snapshot.version += 1
         self.update_timestamp()

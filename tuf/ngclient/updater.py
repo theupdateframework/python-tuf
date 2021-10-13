@@ -346,7 +346,7 @@ class Updater:
         """Load local (and if needed remote) snapshot metadata"""
         try:
             data = self._load_local_metadata("snapshot")
-            self._trusted_set.update_snapshot(data)
+            self._trusted_set.update_snapshot(data, trusted=True)
             logger.debug("Local snapshot is valid: not downloading new one")
         except (OSError, exceptions.RepositoryError) as e:
             # Local snapshot does not exist or is invalid: update from remote
