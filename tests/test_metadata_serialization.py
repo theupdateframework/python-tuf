@@ -27,6 +27,10 @@ from tuf.api.metadata import (
     Timestamp,
 )
 
+# This file is a special case where having longer lines helps the
+# readability of the test cases data.
+# pylint: disable=line-too-long
+
 logger = logging.getLogger(__name__)
 
 
