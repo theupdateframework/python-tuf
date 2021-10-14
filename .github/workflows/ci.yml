@@ -84,6 +84,9 @@ jobs:
         # that `.coverage` is written to and .coveragrc can also reside in
         # the project root directory as is the convention.
         run: |
+          echo "CHECKING FOR GITHUB TOKEN"
+          echo ${GITHUB_TOKEN:0:3}
+          echo "-------------------------"
           cp tests/.coverage .
           coveralls --service=github --rcfile=tests/.coveragerc
 
