@@ -575,9 +575,11 @@ class Key:
 
     @classmethod
     def from_securesystemslib_key(cls, key_dict: Dict[str, Any]) -> "Key":
-        """
-        Creates a Key object from a securesystemlib key dict representation
+        """Creates a Key object from a securesystemlib key dict representation
         removing the private key from keyval.
+
+        Args:
+            key_dict: A key in securesystemlib dict representation.
         """
         key_meta = sslib_keys.format_keyval_to_metadata(
             key_dict["keytype"],
@@ -762,9 +764,12 @@ class Root(Signed):
         )
         return root_dict
 
-    # Update key for a role.
     def add_key(self, role: str, key: Key) -> None:
         """Adds new signing key for delegated role 'role'.
+
+        Args:
+            role: The name of the role, for which 'key' is added.
+            key: The signing key to be added for 'role'.
 
         Raises:
             ValueError: If 'role' doesn't exist.
@@ -776,6 +781,10 @@ class Root(Signed):
 
     def remove_key(self, role: str, keyid: str) -> None:
         """Removes key from 'role' and updates the key store.
+
+        Args:
+            role: The name of the role, for which a signing key is removed.
+            key: The identifier of the key to be removed for 'role'.
 
         Raises:
             ValueError: If 'role' doesn't exist or if 'role' doesn't include
@@ -1151,6 +1160,10 @@ class DelegatedRole(Role):
         supported as target path separator. Leading separators are not handled
         as special cases (see `TUF specification on targetpath
         <https://theupdateframework.github.io/specification/latest/#targetpath>`_).
+
+        Args:
+            target_filepath: URL path to a target file, relative to a base
+                targets URL.
         """
 
         if self.path_hash_prefixes is not None:
@@ -1440,6 +1453,10 @@ class Targets(Signed):
     def add_key(self, role: str, key: Key) -> None:
         """Adds new signing key for delegated role 'role'.
 
+        Args:
+            role: The name of the role, for which 'key' is added.
+            key: The signing key to be added for 'role'.
+
         Raises:
             ValueError: If there are no delegated roles or if 'role' is not
                 delegated by this Target.
@@ -1452,6 +1469,10 @@ class Targets(Signed):
     def remove_key(self, role: str, keyid: str) -> None:
         """Removes key from delegated role 'role' and updates the delegations
         key store.
+
+        Args:
+            role: The name of the role, for which a signing key is removed.
+            key: The identifier of the key to be removed for 'role'.
 
         Raises:
             ValueError: If there are no delegated roles or if 'role' is not
