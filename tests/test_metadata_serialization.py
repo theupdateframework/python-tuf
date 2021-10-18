@@ -11,7 +11,6 @@ import json
 import logging
 import sys
 import unittest
-from typing import Dict
 
 from tests import utils
 from tuf.api.metadata import (
@@ -54,7 +53,7 @@ class TestSerialization(unittest.TestCase):
     }
 
     @utils.run_sub_tests_with_dataset(invalid_signed)
-    def test_invalid_signed_serialization(self, test_case_data: Dict[str, str]):
+    def test_invalid_signed_serialization(self, test_case_data: str):
         case_dict = json.loads(test_case_data)
         with self.assertRaises((KeyError, ValueError, TypeError)):
             Snapshot.from_dict(copy.deepcopy(case_dict))
@@ -86,7 +85,7 @@ class TestSerialization(unittest.TestCase):
     }
 
     @utils.run_sub_tests_with_dataset(invalid_keys)
-    def test_invalid_key_serialization(self, test_case_data: Dict[str, str]):
+    def test_invalid_key_serialization(self, test_case_data: str):
         case_dict = json.loads(test_case_data)
         with self.assertRaises((TypeError, KeyError)):
             keyid = case_dict.pop("keyid")
@@ -101,7 +100,7 @@ class TestSerialization(unittest.TestCase):
     }
 
     @utils.run_sub_tests_with_dataset(invalid_roles)
-    def test_invalid_role_serialization(self, test_case_data: Dict[str, str]):
+    def test_invalid_role_serialization(self, test_case_data: str):
         case_dict = json.loads(test_case_data)
         with self.assertRaises((KeyError, TypeError, ValueError)):
             Role.from_dict(copy.deepcopy(case_dict))
@@ -204,7 +203,7 @@ class TestSerialization(unittest.TestCase):
     }
 
     @utils.run_sub_tests_with_dataset(invalid_roots)
-    def test_invalid_root_serialization(self, test_case_data: Dict[str, str]):
+    def test_invalid_root_serialization(self, test_case_data: str):
         case_dict = json.loads(test_case_data)
         with self.assertRaises(ValueError):
             Root.from_dict(copy.deepcopy(case_dict))
@@ -219,9 +218,7 @@ class TestSerialization(unittest.TestCase):
     }
 
     @utils.run_sub_tests_with_dataset(invalid_metafiles)
-    def test_invalid_metafile_serialization(
-        self, test_case_data: Dict[str, str]
-    ):
+    def test_invalid_metafile_serialization(self, test_case_data: str):
         case_dict = json.loads(test_case_data)
         with self.assertRaises((TypeError, ValueError, AttributeError)):
             MetaFile.from_dict(copy.deepcopy(case_dict))
@@ -245,9 +242,7 @@ class TestSerialization(unittest.TestCase):
     }
 
     @utils.run_sub_tests_with_dataset(invalid_timestamps)
-    def test_invalid_timestamp_serialization(
-        self, test_case_data: Dict[str, str]
-    ):
+    def test_invalid_timestamp_serialization(self, test_case_data: str):
         case_dict = json.loads(test_case_data)
         with self.assertRaises((ValueError, KeyError)):
             Timestamp.from_dict(copy.deepcopy(case_dict))
@@ -372,9 +367,7 @@ class TestSerialization(unittest.TestCase):
     }
 
     @utils.run_sub_tests_with_dataset(invalid_targetfiles)
-    def test_invalid_targetfile_serialization(
-        self, test_case_data: Dict[str, str]
-    ):
+    def test_invalid_targetfile_serialization(self, test_case_data: str):
         case_dict = json.loads(test_case_data)
         with self.assertRaises(KeyError):
             TargetFile.from_dict(copy.deepcopy(case_dict), "file1.txt")
@@ -420,7 +413,7 @@ class TestSerialization(unittest.TestCase):
     }
 
     @utils.run_sub_tests_with_dataset(valid_targets)
-    def test_targets_serialization(self, test_case_data):
+    def test_targets_serialization(self, test_case_data: str):
         case_dict = json.loads(test_case_data)
         targets = Targets.from_dict(copy.deepcopy(case_dict))
         self.assertDictEqual(case_dict, targets.to_dict())
