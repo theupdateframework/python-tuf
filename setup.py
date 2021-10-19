@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright 2013 - 2018, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
@@ -23,7 +21,7 @@
   distributed to other users.  The packaged source is saved to the 'dist'
   folder in the current directory.
 
-  $ python3 setup.py sdist
+  $ python3 -m build --sdist
 
 
   INSTALLATION OPTIONS
@@ -51,16 +49,12 @@
   run one of the following shell commands:
 
   Install to the global site-packages directory.
-  $ python3 setup.py install
+  $ python3 -m pip install <path>
 
   Install to the user site-packages directory.
-  $ python3 setup.py install --user
+  $ python3 -m pip install --user <path>
 
-  Install to a chosen directory.
-  $ python3 setup.py install --home=<directory>
-
-
-  Note: The last two installation options may require modification of
+  Note: The last installation option may require modification of
   Python's search path (i.e., 'sys.path') or updating an OS environment
   variable.  For example, installing to the user site-packages directory might
   result in the installation of TUF scripts to '~/.local/bin'.  The user may
