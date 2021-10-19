@@ -101,8 +101,9 @@ setup(
     'Topic :: Software Development'
   ],
   project_urls={
-    'Source': 'https://github.com/theupdateframework/python-tuf',
-    'Issues': 'https://github.com/theupdateframework/python-tuf/issues'
+    'Documentation': 'https://theupdateframework.readthedocs.io/en/stable/',
+    'Issues': 'https://github.com/theupdateframework/python-tuf/issues',
+    'Source': 'https://github.com/theupdateframework/python-tuf'
   },
   python_requires="~=3.6",
   install_requires = [
