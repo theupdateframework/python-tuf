@@ -1,5 +1,8 @@
 # Install tuf in editable mode and requirements for local testing with tox,
 # and also for running test suite or individual tests manually
+build
 tox
+twine
+wheel
 -r requirements-test.txt
 -e .
