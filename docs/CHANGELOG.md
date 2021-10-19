@@ -1,5 +1,43 @@
 # Changelog
 
+## v0.19.0
+
+For users of legacy client (tuf.client module) this is purely a security fix
+release with no API or functionality changes. For ngclient (tuf.ngclient) and
+Metadata API (tuf.api.metadata), some API changes are included.
+
+**All users are advised to upgrade**.
+
+Note that python-tuf has required python>=3.5 since release 0.18.0.
+
+### Fixed
+* GHSA-wjw6-2cqr-j4qr: Fix client side issue in both legacy client (tuf.client)
+  and ngclient (tuf.ngclient) where a malicious repository could trick client
+  to overwrite files outside the client metadata store during a metadata
+  update. The fix includes percent-encoding the metadata rolename before using
+  it as part of a filename
+  https://github.com/theupdateframework/python-tuf/security/advisories/GHSA-wjw6-2cqr-j4qr
+* ngclient: Do not use urljoin to form metadata URL (included in
+  GHSA-wjw6-2cqr-j4qr)
+* ngclient: Persist metadata safely (#1574)
+* ngclient: Handle timeout on session.get() (#1588)
+
+### Added
+* build: Dependabot now monitors GitHub Actions (#1572)
+* tests: ngclient test improvements (#1564, #1569, #1587)
+* Metadata API: Add TargetFile.from_file() (#1521)
+
+### Changed
+* build: Bump dependency charset-normalizer (#1581, #1586)
+* build: Bump dependency urllib3 (#1589)
+* build: Bump dependency cryptography (#1596)
+* Metadata API: Documentation improvements (#1533, #1590)
+* Metadata API: change Timestamp meta API  (#1446)
+* Metadata API: change Delegations roles API (#1537)
+* ngclient: Remove unnecessary sleep() (#1608)
+* ngclient: Fix consistent targets URL resolution (#1591)
+* ngclient: Don't use target path as local path (#1592)
+
 ## v0.18.1
 
 ### Changed
