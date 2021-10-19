@@ -122,6 +122,7 @@ import fnmatch
 import copy
 import warnings
 import io
+from urllib import parse
 
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
@@ -781,7 +782,13 @@ class Updater(object):
     return self.repository_name
 
 
+  @staticmethod
+  def _get_local_filename(rolename: str) -> str:
+    """Return safe local filename for roles metadata
 
+    Use URL encoding to prevent issues with path separators and
+    with forbidden characters in Windows filesystems"""
+    return parse.quote(rolename, '') + '.json'
 
 
   def _load_metadata_from_file(self, metadata_set, metadata_role):
@@ -827,7 +834,7 @@ class Updater(object):
 
     # Save and construct the full metadata path.
     metadata_directory = self.metadata_directory[metadata_set]
-    metadata_filename = metadata_role + '.json'
+    metadata_filename = self._get_local_filename(metadata_role)
     metadata_filepath = os.path.join(metadata_directory, metadata_filename)
 
     # Ensure the metadata path is valid/exists, else ignore the call.
@@ -1656,10 +1663,6 @@ class Updater(object):
       None.
     """
 
-    # Construct the metadata filename as expected by the download/mirror
-    # modules.
-    metadata_filename = metadata_role + '.json'
-
     # Attempt a file download from each mirror until the file is downloaded and
     # verified.  If the signature of the downloaded file is valid, proceed,
     # otherwise log a warning and try the next mirror.  'metadata_file_object'
@@ -1676,7 +1679,11 @@ class Updater(object):
     # best length we can get for it, not request a specific version, but
     # perform the rest of the checks (e.g., signature verification).
 
-    remote_filename = metadata_filename
+    # Construct the metadata filename as expected by the download/mirror
+    # modules. Local filename is quoted to protect against names like"../file".
+
+    remote_filename = metadata_role + '.json'
+    local_filename = self._get_local_filename(metadata_role)
     filename_version = ''
 
     if self.consistent_snapshot and version:
@@ -1693,12 +1700,12 @@ class Updater(object):
     # First, move the 'current' metadata file to the 'previous' directory
     # if it exists.
     current_filepath = os.path.join(self.metadata_directory['current'],
-                metadata_filename)
+                local_filename)
     current_filepath = os.path.abspath(current_filepath)
     sslib_util.ensure_parent_dir(current_filepath)
 
     previous_filepath = os.path.join(self.metadata_directory['previous'],
-        metadata_filename)
+        local_filename)
     previous_filepath = os.path.abspath(previous_filepath)
 
     if os.path.exists(current_filepath):
@@ -1726,7 +1733,7 @@ class Updater(object):
     logger.debug('Updated ' + repr(current_filepath) + '.')
     self.metadata['previous'][metadata_role] = current_metadata_object
     self.metadata['current'][metadata_role] = updated_metadata_object
-    self._update_versioninfo(metadata_filename)
+    self._update_versioninfo(remote_filename)
 
 
 
@@ -1973,9 +1980,11 @@ class Updater(object):
     # __init__ (such as with delegated metadata), then get the version
     # info now.
 
-    # Save the path to the current metadata file for 'metadata_filename'.
+    # 'metadata_filename' is the key from meta dictionary: build the
+    # corresponding local filepath like _get_local_filename()
+    local_filename = parse.quote(metadata_filename, "")
     current_filepath = os.path.join(self.metadata_directory['current'],
-        metadata_filename)
+        local_filename)
 
     # If the path is invalid, simply return and leave versioninfo unset.
     if not os.path.exists(current_filepath):
@@ -2028,130 +2037,6 @@ class Updater(object):
 
 
 
-
-  def _fileinfo_has_changed(self, metadata_filename, new_fileinfo):
-    """
-    <Purpose>
-      Non-public method that determines whether the current fileinfo of
-      'metadata_filename' differs from 'new_fileinfo'.  The 'new_fileinfo'
-      argument should be extracted from the latest copy of the metadata that
-      references 'metadata_filename'.  Example: 'root.json' would be referenced
-      by 'snapshot.json'.
-
-      'new_fileinfo' should only be 'None' if this is for updating 'root.json'
-      without having 'snapshot.json' available.
-
-    <Arguments>
-      metadadata_filename:
-        The metadata filename for the role.  For the 'root' role,
-        'metadata_filename' would be 'root.json'.
-
-      new_fileinfo:
-        A dict object representing the new file information for
-        'metadata_filename'.  'new_fileinfo' may be 'None' when
-        updating 'root' without having 'snapshot' available.  This
-        dict conforms to 'tuf.formats.TARGETS_FILEINFO_SCHEMA' and has
-        the form:
-
-        {'length': 23423
-         'hashes': {'sha256': adfbc32343..}}
-
-    <Exceptions>
-      None.
-
-    <Side Effects>
-      If there is no fileinfo currently loaded for 'metada_filename',
-      try to load it.
-
-    <Returns>
-      Boolean.  True if the fileinfo has changed, false otherwise.
-    """
-
-    # If there is no fileinfo currently stored for 'metadata_filename',
-    # try to load the file, calculate the fileinfo, and store it.
-    if metadata_filename not in self.fileinfo:
-      self._update_fileinfo(metadata_filename)
-
-    # Return true if there is no fileinfo for 'metadata_filename'.
-    # 'metadata_filename' is not in the 'self.fileinfo' store
-    # and it doesn't exist in the 'current' metadata location.
-    if self.fileinfo[metadata_filename] is None:
-      return True
-
-    current_fileinfo = self.fileinfo[metadata_filename]
-
-    if current_fileinfo['length'] != new_fileinfo['length']:
-      return True
-
-    # Now compare hashes. Note that the reason we can't just do a simple
-    # equality check on the fileinfo dicts is that we want to support the
-    # case where the hash algorithms listed in the metadata have changed
-    # without having that result in considering all files as needing to be
-    # updated, or not all hash algorithms listed can be calculated on the
-    # specific client.
-    for algorithm, hash_value in new_fileinfo['hashes'].items():
-      # We're only looking for a single match. This isn't a security
-      # check, we just want to prevent unnecessary downloads.
-      if algorithm in current_fileinfo['hashes']:
-        if hash_value == current_fileinfo['hashes'][algorithm]:
-          return False
-
-    return True
-
-
-
-
-
-  def _update_fileinfo(self, metadata_filename):
-    """
-    <Purpose>
-      Non-public method that updates the 'self.fileinfo' entry for the metadata
-      belonging to 'metadata_filename'.  If the 'current' metadata for
-      'metadata_filename' cannot be loaded, set its fileinfo' to 'None' to
-      signal that it is not in the 'self.fileinfo' AND it also doesn't exist
-      locally.
-
-    <Arguments>
-      metadata_filename:
-        The metadata filename for the role.  For the 'root' role,
-        'metadata_filename' would be 'root.json'.
-
-    <Exceptions>
-      None.
-
-    <Side Effects>
-      The file details of 'metadata_filename' is calculated and
-      stored in 'self.fileinfo'.
-
-    <Returns>
-      None.
-    """
-
-    # In case we delayed loading the metadata and didn't do it in
-    # __init__ (such as with delegated metadata), then get the file
-    # info now.
-
-    # Save the path to the current metadata file for 'metadata_filename'.
-    current_filepath = os.path.join(self.metadata_directory['current'],
-        metadata_filename)
-
-    # If the path is invalid, simply return and leave fileinfo unset.
-    if not os.path.exists(current_filepath):
-      self.fileinfo[metadata_filename] = None
-      return
-
-    # Extract the file information from the actual file and save it
-    # to the fileinfo store.
-    file_length, hashes = sslib_util.get_file_details(current_filepath)
-    metadata_fileinfo = formats.make_targets_fileinfo(file_length, hashes)
-    self.fileinfo[metadata_filename] = metadata_fileinfo
-
-
-
-
-
-
-
   def _move_current_to_previous(self, metadata_role):
     """
     <Purpose>
@@ -2175,7 +2060,7 @@ class Updater(object):
     """
 
     # Get the 'current' and 'previous' full file paths for 'metadata_role'
-    metadata_filepath = metadata_role + '.json'
+    metadata_filepath = self._get_local_filename(metadata_role)
     previous_filepath = os.path.join(self.metadata_directory['previous'],
                                      metadata_filepath)
     current_filepath = os.path.join(self.metadata_directory['current'],

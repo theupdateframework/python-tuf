@@ -454,74 +454,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
           "Expected a NoWorkingMirrorError composed of one BadSignatureError")
 
 
-  def test_1__update_fileinfo(self):
-      # Tests
-      # Verify that the 'self.fileinfo' dictionary is empty (its starts off empty
-      # and is only populated if _update_fileinfo() is called.
-      fileinfo_dict = self.repository_updater.fileinfo
-      self.assertEqual(len(fileinfo_dict), 0)
-
-      # Load the fileinfo of the top-level root role.  This populates the
-      # 'self.fileinfo' dictionary.
-      self.repository_updater._update_fileinfo('root.json')
-      self.assertEqual(len(fileinfo_dict), 1)
-      self.assertTrue(tuf.formats.FILEDICT_SCHEMA.matches(fileinfo_dict))
-      root_filepath = os.path.join(self.client_metadata_current, 'root.json')
-      length, hashes = securesystemslib.util.get_file_details(root_filepath)
-      root_fileinfo = tuf.formats.make_targets_fileinfo(length, hashes)
-      self.assertTrue('root.json' in fileinfo_dict)
-      self.assertEqual(fileinfo_dict['root.json'], root_fileinfo)
-
-      # Verify that 'self.fileinfo' is incremented if another role is updated.
-      self.repository_updater._update_fileinfo('targets.json')
-      self.assertEqual(len(fileinfo_dict), 2)
-
-      # Verify that 'self.fileinfo' is inremented if a non-existent role is
-      # requested, and has its fileinfo entry set to 'None'.
-      self.repository_updater._update_fileinfo('bad_role.json')
-      self.assertEqual(len(fileinfo_dict), 3)
-      self.assertEqual(fileinfo_dict['bad_role.json'], None)
-
-
-
-
-  def test_2__fileinfo_has_changed(self):
-      #  Verify that the method returns 'False' if file info was not changed.
-      root_filepath = os.path.join(self.client_metadata_current, 'root.json')
-      length, hashes = securesystemslib.util.get_file_details(root_filepath)
-      root_fileinfo = tuf.formats.make_targets_fileinfo(length, hashes)
-      self.assertFalse(self.repository_updater._fileinfo_has_changed('root.json',
-                                                             root_fileinfo))
-
-      # Verify that the method returns 'True' if length or hashes were changed.
-      new_length = 8
-      new_root_fileinfo = tuf.formats.make_targets_fileinfo(new_length, hashes)
-      self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
-                                                             new_root_fileinfo))
-      # Hashes were changed.
-      new_hashes = {'sha256': self.random_string()}
-      new_root_fileinfo = tuf.formats.make_targets_fileinfo(length, new_hashes)
-      self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
-                                                             new_root_fileinfo))
-
-      # Verify that _fileinfo_has_changed() returns True if no fileinfo (or set
-      # to None) exists for some role.
-      self.assertTrue(self.repository_updater._fileinfo_has_changed('bad.json',
-          new_root_fileinfo))
-
-      saved_fileinfo = self.repository_updater.fileinfo['root.json']
-      self.repository_updater.fileinfo['root.json'] = None
-      self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
-          new_root_fileinfo))
-
-
-      self.repository_updater.fileinfo['root.json'] = saved_fileinfo
-      new_root_fileinfo['hashes']['sha666'] = '666'
-      self.repository_updater._fileinfo_has_changed('root.json',
-          new_root_fileinfo)
-
-
-
   def test_2__import_delegations(self):
     # Setup.
     # In order to test '_import_delegations' the parent of the delegation
@@ -638,6 +570,20 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Verify that the current 'snapshot.json' is moved to the previous directory.
     self.repository_updater._move_current_to_previous('snapshot')
     self.assertTrue(os.path.exists(previous_snapshot_filepath))
+
+    # assert that non-ascii alphanumeric role name "../ä" (that is url encoded
+    # in local filename) works
+    encoded_current = os.path.join(
+      self.client_metadata_current, '..%2F%C3%A4.json'
+    )
+    encoded_previous = os.path.join(
+      self.client_metadata_previous, '..%2F%C3%A4.json'
+    )
+
+    with open(encoded_current, "w"):
+      pass
+    self.repository_updater._move_current_to_previous('../ä')
+    self.assertTrue(os.path.exists(encoded_previous))
 
 
 
@@ -2072,6 +2018,64 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     multi_repo_updater.map_file['repositories']['bad_repo_name'] = ['https://bogus:30002']
     self.assertEqual(None, multi_repo_updater.get_updater('bad_repo_name'))
 
+
+class TestUpdaterRolenames(unittest_toolbox.Modified_TestCase):
+  def setUp(self):
+    unittest_toolbox.Modified_TestCase.setUp(self)
+
+    repo_dir = os.path.join(os.getcwd(), 'repository_data', 'fishy_rolenames')
+
+    self.client_dir = self.make_temp_directory()
+    os.makedirs(os.path.join(self.client_dir, "fishy_rolenames", "metadata", "current"))
+    os.makedirs(os.path.join(self.client_dir, "fishy_rolenames", "metadata", "previous"))
+    shutil.copy(
+      os.path.join(repo_dir, 'metadata', '1.root.json'),
+      os.path.join(self.client_dir, "fishy_rolenames", "metadata", "current", "root.json")
+    )
+
+    simple_server_path = os.path.join(os.getcwd(), 'simple_server.py')
+    self.server_process_handler = utils.TestServerProcess(log=logger,
+        server=simple_server_path)
+
+    url_prefix = 'http://' + utils.TEST_HOST_ADDRESS + ':' \
+        + str(self.server_process_handler.port) + "/repository_data/fishy_rolenames"
+
+    tuf.settings.repositories_directory = self.client_dir
+    mirrors = {'mirror1': {
+      'url_prefix': url_prefix,
+      'metadata_path': 'metadata/',
+      'targets_path': ''
+    }}
+    self.updater = updater.Updater("fishy_rolenames", mirrors)
+
+  def tearDown(self):
+    tuf.roledb.clear_roledb(clear_all=True)
+    tuf.keydb.clear_keydb(clear_all=True)
+    self.server_process_handler.flush_log()
+    self.server_process_handler.clean()
+    unittest_toolbox.Modified_TestCase.tearDown(self)
+
+  def test_unusual_rolenames(self):
+    """Test rolenames that may be tricky to handle as filenames
+
+    The test data in repository_data/fishy_rolenames has been produced
+    semi-manually using RepositorySimulator: using the RepositorySimulator
+    in these tests directly (like test_updater_with_simulator.py does for
+    ngclient) might make more sense... but would require some integration work
+    """
+
+    # Make a target search that fetches the delegated targets
+    self.updater.refresh()
+    with self.assertRaises(tuf.exceptions.UnknownTargetError):
+      self.updater.get_one_valid_targetinfo("anything")
+
+    # Assert that the metadata files are in the client metadata directory
+    metadata_dir = os.path.join(
+      self.client_dir, "fishy_rolenames", "metadata", "current"
+    )
+    local_metadata = os.listdir(metadata_dir)
+    for fname in ['%C3%B6.json', '..%2Fa.json', '..json']:
+      self.assertTrue(fname in local_metadata)
 
 
 def _load_role_keys(keystore_directory):
