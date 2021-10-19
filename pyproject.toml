@@ -37,3 +37,39 @@ tests/test_updater.py|
 tests/test_updater_root_rotation_integration.py|
 tests/repository_data/generate_project_data.py|
 tests/repository_data/generate.py)"""
+
+[tool.isort]
+skip = [
+  "tests/fast_server_exit.py",
+  "tests/simple_https_server.py",
+  "tests/simple_server.py",
+  "tests/slow_retrieval_server.py",
+  "tests/utils.py",
+  "tests/test_utils.py",
+  "tests/test_repository_lib.py",
+  "tests/test_arbitrary_package_attack.py",
+  "tests/test_developer_tool.py",
+  "tests/test_download.py",
+  "tests/test_endless_data_attack.py",
+  "tests/test_extraneous_dependencies_attack.py",
+  "tests/test_formats.py",
+  "tests/test_indefinite_freeze_attack.py",
+  "tests/test_key_revocation_integration.py",
+  "tests/test_keydb.py",
+  "tests/test_log.py",
+  "tests/test_mirrors.py",
+  "tests/test_mix_and_match_attack.py",
+  "tests/test_multiple_repositories_integration.py",
+  "tests/test_repository_tool.py",
+  "tests/test_replay_attack.py",
+  "tests/test_roledb.py",
+  "tests/test_root_versioning_integration.py",
+  "tests/test_sig.py",
+  "tests/test_slow_retrieval_attack.py",
+  "tests/test_tutorial.py",
+  "tests/test_unittest_toolbox.py",
+  "tests/test_updater.py",
+  "tests/test_updater_root_rotation_integration.py",
+  "tests/repository_data/generate_project_data.py",
+  "tests/repository_data/generate.py",
+]
