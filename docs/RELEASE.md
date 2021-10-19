@@ -9,8 +9,7 @@
 * Test packaging, uploading to Test PyPI and installing from a virtual environment
   (ensure commands invoking `python` below are using Python 3)
   * Remove existing dist build dirs
-  * Create source dist `python3 setup.py sdist`
-  * Create wheel `python3 setup.py bdist_wheel`
+  * Create source dist and wheel `python3 -m build`
   * Sign the dists `gpg --detach-sign -a dist/tuf-vA.B.C.tar.gz`
   * Upload to test PyPI `twine upload --repository testpypi dist/*`
   * Verify the uploaded package https://testpypi.python.org/pypi/tuf/
@@ -24,13 +23,12 @@
 * Create a package for the formal release
   (ensure commands invoking `python` below are using Python 3)
   * Remove existing dist build dirs
-  * Create source dist `python3 setup.py sdist`
-  * Create wheel `python3 setup.py bdist_wheel`
+  * Create source dist and wheel `python3 -m build`
   * Sign source dist `gpg --detach-sign -a dist/tuf-vA.B.C.tar.gz`
   * Sign wheel `gpg --detach-sign -a dist/tuf-vA.B.C-py3-none-any.whl`
   * Upload to test PyPI `twine upload --repository testpypi dist/*`
   * Verify the uploaded package https://testpypi.python.org/pypi/tuf/
   * Upload to PyPI `twine upload dist/*`
-* Attach the signed dists to the release on GitHub
+* Attach both signed dists and their detached signatures to the release on GitHub
 * Announce the release on [#tuf on CNCF Slack](https://cloud-native.slack.com/archives/C8NMD3QJ3)
 * Ensure [POUF 1](https://github.com/theupdateframework/taps/blob/master/POUFs/reference-POUF/pouf1.md), for the reference implementation, is up-to-date
