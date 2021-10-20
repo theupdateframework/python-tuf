@@ -1,35 +1,15 @@
 # License files
 include LICENSE*
 
-# Test related files
+# Development and testing
+include *.txt
+global-include pylintrc
 include tox.ini
-recursive-include tests *.py
-recursive-include tests *.md
-include tests/repository_data/keystore/delegation_key
-include tests/repository_data/keystore/root_key*
-include tests/repository_data/keystore/snapshot_key
-include tests/repository_data/keystore/targets_key
-include tests/repository_data/keystore/timestamp_key
-include tests/ssl_certs/*.crt
-include tests/ssl_certs/*.key
-recursive-include tests *.json
-recursive-include tests *.txt
-recursive-include tests *.cfg
-recursive-include tests *.coveragerc
-recursive-include tests *.pub
+graft tests
 
-# Development related files
-include requirements*.txt
-include pylintrc
-include tuf/api/pylintrc
-
-# Docs
-include docs/conf.py
+# Documentation
+graft docs
 recursive-include tuf *.md
-recursive-include docs *.txt
-recursive-include docs *.md
-recursive-include docs *.rst
 
 # To remove
 recursive-include tuf/scripts *.py
-
