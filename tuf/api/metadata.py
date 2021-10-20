@@ -729,6 +729,10 @@ class Root(Signed):
         super().__init__(version, spec_version, expires, unrecognized_fields)
         self.consistent_snapshot = consistent_snapshot
         self.keys = keys
+        mandatory_roles = ["root", "timestamp", "snapshot", "targets"]
+        if not (len(roles) == 4 and all(r in roles for r in mandatory_roles)):
+            raise ValueError("Role names must be the top-level metadata roles")
+
         self.roles = roles
 
     @classmethod

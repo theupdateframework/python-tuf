@@ -152,10 +152,12 @@ class RepositorySimulator(FetcherInterface):
         timestamp = Timestamp(1, SPEC_VER, self.safe_expiry, snapshot_meta)
         self.md_timestamp = Metadata(timestamp, OrderedDict())
 
-        root = Root(1, SPEC_VER, self.safe_expiry, {}, {}, True)
-        for role in ["root", "timestamp", "snapshot", "targets"]:
+        top_level_md = ["root", "timestamp", "snapshot", "targets"]
+        roles = {role_name: Role([], 1) for role_name in top_level_md}
+        root = Root(1, SPEC_VER, self.safe_expiry, {}, roles, True)
+
+        for role in top_level_md:
             key, signer = self.create_key()
-            root.roles[role] = Role([], 1)
             root.add_key(role, key)
             # store the private key
             if role not in self.signers:
