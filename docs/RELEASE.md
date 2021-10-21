@@ -5,7 +5,7 @@
   tracked by git
 * Ensure `docs/CHANGELOG.md` contains a one-line summary of each [notable
   change](https://keepachangelog.com/) since the prior release
-* Update `setup.py` and `tuf/__init__.py` to the new version number vA.B.C
+* Update `setup.cfg` and `tuf/__init__.py` to the new version number vA.B.C
 * Test packaging, uploading to Test PyPI and installing from a virtual environment
   (ensure commands invoking `python` below are using Python 3)
   * Remove existing dist build dirs
