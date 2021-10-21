@@ -18,7 +18,7 @@ disable=fixme,
         duplicate-code,
 
 [BASIC]
-good-names=i,j,k,v,e,f,fn,fp,_type
+good-names=i,j,k,v,e,f,fn,fp,_type,_
 # Regexes for allowed names are copied from the Google pylintrc
 # NOTE: Pylint captures regex name groups such as 'snake_case' or 'camel_case'.
 # If there are multiple groups it enfoces the prevalent naming style inside
