@@ -22,6 +22,7 @@ tests/htmlcov/*
 *~
 *.tmp
 .pre-commit-config.yaml
+.vscode
 
 # Debian generated files
 debian/.debhelper/*

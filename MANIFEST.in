@@ -1,29 +1,15 @@
+# License files
 include LICENSE*
-include README.md
-include tox.ini
-include tests/repository_data/keystore/delegation_key
-include tests/repository_data/keystore/root_key*
-include tests/repository_data/keystore/snapshot_key
-include tests/repository_data/keystore/targets_key
-include tests/repository_data/keystore/timestamp_key
-include tests/ssl_certs/*.crt
-include tests/ssl_certs/*.key
 
-recursive-include docs *.txt
-recursive-include docs *.md
-recursive-include docs *.rst
-recursive-include docs/images *.png
-recursive-include tuf/scripts *.py
-recursive-include examples *
-recursive-include tests *.py
-recursive-include tests *.pem
-recursive-include tests *.json
-recursive-include tests *.txt
-recursive-include tests *.cfg
-recursive-include tests *.coveragerc
-recursive-include tests *.gz
-recursive-include tests *.pub
-recursive-include tuf *.gitignore
+# Development and testing
+include *.txt
+global-include pylintrc
+include tox.ini
+graft tests
+
+# Documentation
+graft docs
 recursive-include tuf *.md
-recursive-include tuf *.rst
-recursive-include tuf *.yml
+
+# To remove
+recursive-include tuf/scripts *.py
