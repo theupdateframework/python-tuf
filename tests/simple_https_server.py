@@ -22,8 +22,8 @@
   to verify that https downloads are permitted.
 
 <Reference>
-  ssl.wrap_socket:
-    https://docs.python.org/2/library/ssl.html#functions-constants-and-exceptions
+  ssl.SSLContext.wrap_socket:
+    https://docs.python.org/3/library/ssl.html#ssl.SSLContext.wrap_socket
 
   SimpleHTTPServer:
     http://docs.python.org/library/simplehttpserver.html#module-SimpleHTTPServer
@@ -44,8 +44,9 @@ if len(sys.argv) > 1 and os.path.exists(sys.argv[1]):
 httpd = http.server.HTTPServer(('localhost', 0),
    http.server.SimpleHTTPRequestHandler)
 
-httpd.socket = ssl.wrap_socket(
-    httpd.socket, keyfile=keyfile, certfile=certfile, server_side=True)
+context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+context.load_cert_chain(certfile, keyfile)
+httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
 
 port_message = 'bind succeeded, server port is: ' \
     + str(httpd.server_address[1])
