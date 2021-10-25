@@ -1,32 +1,32 @@
 {
  "signatures": [
   {
-   "keyid": "c808865e701882b89c075941ca158034d8c47bde97f1dcdb2afd854334a3ffef",
-   "sig": "ffa055ab5108f9d22f309fecd0160b02971d7a454c8d48db4f99cdaf114b329a401b756a11e42630bff6667ad897fb05f501e3299d25fe786d12651cb0db6c06"
+   "keyid": "65171251a9aff5a8b3143a813481cb07f6e0de4eb197c767837fe4491b739093",
+   "sig": "b390c5d9d5355b963e94dfa30ce04520c462fd869fad968d01f0a3b185db5895807b14435e725ff376adc793fd21ef8f01890ac722c94e9c05ab3797c4887101"
   }
  ],
  "signed": {
   "_type": "targets",
   "delegations": {
    "keys": {
-    "056a036ef6f15c1dbff1f3d61dfadfc9e92699f6b66a2e21513698b576cc498d": {
+    "426edf0d9fa383688c5b40b7b7d15a7cd11a991f12cc20da87f1b48dd6c036a1": {
      "keytype": "ed25519",
      "keyval": {
-      "public": "45d4d9ee28ef61506695130fe600d637e5f2de0de72473c280b02b89467d7aab"
+      "public": "d38eef769f6dee77b6d898dce548c0ea0f90add0072dc28a20769b6421552ec3"
      },
      "scheme": "ed25519"
     },
-    "c4f5b1013293e01cedb1680fc3aa670278fd46277c62d0bfa24ffff5f0ad0602": {
+    "80a5bda93ec130c2fda8ce0c619d7b122b24cc2e0743afedf98a8e368d32019c": {
      "keytype": "ed25519",
      "keyval": {
-      "public": "abe021d7594f04467627c2be390c665b311dceb83cceb685edc9b90a6e229d08"
+      "public": "bb256c0b6d5226a5a9ae8377c0bf68e958fb668d063971f48638b9bae5251f3b"
      },
      "scheme": "ed25519"
     },
-    "e38fb1b3a2dea12551541bbb205f09609d9386e147207182c8b900bc0a25e2b8": {
+    "f9b50dd62b5540788b5c5cde0842124b64fa467261bc349dd77de49568eed0ef": {
      "keytype": "ed25519",
      "keyval": {
-      "public": "52b790190bccf730fad4b769e7073c1551938101483ff8612534eb9105426dce"
+      "public": "da1b8586dc0cdd5fe0d8d428bde62dc63e06138f58cfc39770c424a4636f59f4"
      },
      "scheme": "ed25519"
     }
@@ -34,7 +34,7 @@
    "roles": [
     {
      "keyids": [
-      "056a036ef6f15c1dbff1f3d61dfadfc9e92699f6b66a2e21513698b576cc498d"
+      "f9b50dd62b5540788b5c5cde0842124b64fa467261bc349dd77de49568eed0ef"
      ],
      "name": "../a",
      "paths": [
@@ -45,7 +45,7 @@
     },
     {
      "keyids": [
-      "c4f5b1013293e01cedb1680fc3aa670278fd46277c62d0bfa24ffff5f0ad0602"
+      "80a5bda93ec130c2fda8ce0c619d7b122b24cc2e0743afedf98a8e368d32019c"
      ],
      "name": ".",
      "paths": [
@@ -56,7 +56,7 @@
     },
     {
      "keyids": [
-      "e38fb1b3a2dea12551541bbb205f09609d9386e147207182c8b900bc0a25e2b8"
+      "426edf0d9fa383688c5b40b7b7d15a7cd11a991f12cc20da87f1b48dd6c036a1"
      ],
      "name": "\u00f6",
      "paths": [
@@ -67,7 +67,7 @@
     }
    ]
   },
-  "expires": "2021-10-22T11:21:56Z",
+  "expires": "2050-10-22T11:21:56Z",
   "spec_version": "1.0.19",
   "targets": {},
   "version": 1
