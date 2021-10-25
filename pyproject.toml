@@ -169,3 +169,26 @@ notes="TODO"
 
 [tool.pylint.STRING]
 check-quote-consistency="yes"
+
+# mypy section
+# Read more here: https://mypy.readthedocs.io/en/stable/config_file.html#using-a-pyproject-toml-file
+[tool.mypy]
+warn_unused_configs = "True"
+warn_redundant_casts = "True"
+warn_unused_ignores = "True"
+warn_unreachable = "True"
+strict_equality = "True"
+disallow_untyped_defs = "True"
+disallow_untyped_calls = "True"
+files = [
+  "tuf/api/",
+  "tuf/ngclient",
+  "tuf/exceptions.py"
+]
+
+[[tool.mypy.overrides]]
+module = [
+  "securesystemslib.*",
+  "urllib3.*"
+]
+ignore_missing_imports = "True"
