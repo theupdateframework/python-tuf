@@ -54,6 +54,7 @@ class TestUpdater(unittest.TestCase):
         updater = Updater(
             self.metadata_dir,
             "https://example.com/metadata/",
+            self.targets_dir,
             "https://example.com/targets/",
             self.sim
         )
@@ -90,9 +91,13 @@ class TestUpdater(unittest.TestCase):
     @utils.run_sub_tests_with_dataset(targets)
     def test_targets(self, test_case_data: Tuple[str, bytes, str]):
         targetpath, content, encoded_path = test_case_data
-        # target does not exist yet
+        path = os.path.join(self.targets_dir, encoded_path)
+
         updater = self._run_refresh()
-        self.assertIsNone(updater.get_one_valid_targetinfo(targetpath))
+        # target does not exist yet, configuration is what we expect
+        self.assertIsNone(updater.get_targetinfo(targetpath))
+        self.assertTrue(self.sim.root.consistent_snapshot)
+        self.assertTrue(updater.config.prefix_targets_with_hash)
 
         # Add targets to repository
         self.sim.targets.version += 1
@@ -101,30 +106,25 @@ class TestUpdater(unittest.TestCase):
 
         updater = self._run_refresh()
         # target now exists, is not in cache yet
-        file_info = updater.get_one_valid_targetinfo(targetpath)
-        self.assertIsNotNone(file_info)
-        self.assertEqual(
-            updater.updated_targets([file_info], self.targets_dir),
-            [file_info]
-        )
+        info = updater.get_targetinfo(targetpath)
+        self.assertIsNotNone(info)
+        # Test without and with explicit local filepath
+        self.assertIsNone(updater.find_cached_target(info))
+        self.assertIsNone(updater.find_cached_target(info, path))
 
-        # Assert consistent_snapshot is True and downloaded targets have prefix.
-        self.assertTrue(self.sim.root.consistent_snapshot)
-        self.assertTrue(updater.config.prefix_targets_with_hash)
         # download target, assert it is in cache and content is correct
-        local_path = updater.download_target(file_info, self.targets_dir)
-        self.assertEqual(
-            updater.updated_targets([file_info], self.targets_dir), []
-        )
-        self.assertTrue(local_path.startswith(self.targets_dir))
-        with open(local_path, "rb") as f:
+        self.assertEqual(path, updater.download_target(info))
+        self.assertEqual(path, updater.find_cached_target(info))
+        self.assertEqual(path, updater.find_cached_target(info, path))
+
+        with open(path, "rb") as f:
             self.assertEqual(f.read(), content)
 
-        # Assert that the targetpath was URL encoded as expected.
-        encoded_absolute_path = os.path.join(self.targets_dir, encoded_path)
-        self.assertEqual(local_path, encoded_absolute_path)
-
-
+        # download using explicit filepath as well
+        os.remove(path)
+        self.assertEqual(path, updater.download_target(info, path))
+        self.assertEqual(path, updater.find_cached_target(info))
+        self.assertEqual(path, updater.find_cached_target(info, path))
 
     def test_fishy_rolenames(self):
         roles_to_filenames = {
@@ -145,7 +145,7 @@ class TestUpdater(unittest.TestCase):
         updater = self._run_refresh()
 
         # trigger updater to fetch the delegated metadata, check filenames
-        updater.get_one_valid_targetinfo("anything")
+        updater.get_targetinfo("anything")
         local_metadata = os.listdir(self.metadata_dir)
         for fname in roles_to_filenames.values():
             self.assertTrue(fname in local_metadata)
