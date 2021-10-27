@@ -147,6 +147,14 @@ class Updater:
         self._load_snapshot()
         self._load_targets("targets", "root")
 
+    def _generate_target_file_path(self, targetinfo: TargetFile) -> str:
+        if self.target_dir is None:
+            raise ValueError("target_dir must be set if filepath is not given")
+
+        # Use URL encoded target path as filename
+        filename = parse.quote(targetinfo.path, "")
+        return os.path.join(self.target_dir, filename)
+
     def get_targetinfo(self, target_path: str) -> Optional[TargetFile]:
         """Returns TargetFile instance with information for 'target_path'.
 
@@ -185,14 +193,10 @@ class Updater:
     ) -> Optional[str]:
         """Checks whether a local file is an up to date target
 
-        If the ``target_dir`` argument was given to constructor, ``filepath``
-        argument is not required here: in this case a filename will be
-        generated based on the target path like in ``download_target()``
-
         Args:
             targetinfo: TargetFile from ``get_targetinfo()``.
-            filepath: Local path to file. By default a filename is generated
-                and file is looked for in ``target_dir`` (see note above).
+            filepath: Local path to file. If None, a file path is generated
+            based on ``target_dir`` constructor argument.
 
         Raises:
             ValueError: Incorrect arguments
@@ -201,14 +205,9 @@ class Updater:
             Local file path if the file is an up to date target file.
             None if file is not found or it is not up to date.
         """
-        if filepath is not None:
-            pass
-        elif self.target_dir is not None:
-            # Use URL encoded target path as name, like download_target()
-            filename = parse.quote(targetinfo.path, "")
-            filepath = os.path.join(self.target_dir, filename)
-        else:
-            raise ValueError("filepath or target_dir must be set")
+
+        if filepath is None:
+            filepath = self._generate_target_file_path(targetinfo)
 
         try:
             with open(filepath, "rb") as target_file:
@@ -225,15 +224,12 @@ class Updater:
     ) -> str:
         """Downloads the target file specified by ``targetinfo``.
 
-        If the ``target_dir`` argument was given to constructor, ``filepath``
-        argument is not required here: in this case a filename will be
-        generated based on the target path.
-
         Args:
             targetinfo: TargetFile from ``get_targetinfo()``.
-            filepath: Local path to download into. By default the file is
-                downloaded into ``target_dir`` (see note above) with a
-                generated filename. If file already exists, it is overwritten.
+            filepath: Local path to download into. If None, the file is
+                downloaded into directory defined by ``target_dir`` constructor
+                argument using a generated filename. If file already exists,
+                it is overwritten.
             target_base_url: Base URL used to form the final target
                 download URL. Default is the value provided in Updater()
 
@@ -246,14 +242,8 @@ class Updater:
             Local path to downloaded file
         """
 
-        if filepath is not None:
-            pass
-        elif self.target_dir is not None:
-            # Use URL encoded target path as name
-            filename = parse.quote(targetinfo.path, "")
-            filepath = os.path.join(self.target_dir, filename)
-        else:
-            raise ValueError("Either filepath or target_dir must be set")
+        if filepath is None:
+            filepath = self._generate_target_file_path(targetinfo)
 
         if target_base_url is None:
             if self._target_base_url is None:
