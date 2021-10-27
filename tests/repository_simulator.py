@@ -98,7 +98,8 @@ class RepositorySimulator(FetcherInterface):
         self.signed_roots: List[bytes] = []
 
         # signers are used on-demand at fetch time to sign metadata
-        self.signers: Dict[str, List[SSlibSigner]] = {}
+        # keys are roles, values are dicts of {keyid: signer}
+        self.signers: Dict[str, Dict[str, SSlibSigner]] = {}
 
         # target downloads are served from this dict
         self.target_files: Dict[str, RepositoryTarget] = {}
@@ -135,9 +136,15 @@ class RepositorySimulator(FetcherInterface):
         for role, md in self.md_delegates.items():
             yield role, md.signed
 
-    def create_key(self) -> Tuple[Key, SSlibSigner]:
+    @staticmethod
+    def create_key() -> Tuple[Key, SSlibSigner]:
         sslib_key = generate_ed25519_key()
         return Key.from_securesystemslib_key(sslib_key), SSlibSigner(sslib_key)
+
+    def add_signer(self, role:str, signer: SSlibSigner):
+        if role not in self.signers:
+            self.signers[role] = {}
+        self.signers[role][signer.key_dict["keyid"]] = signer
 
     def _initialize(self):
         """Setup a minimal valid repository"""
@@ -159,18 +166,16 @@ class RepositorySimulator(FetcherInterface):
         for role in TOP_LEVEL_ROLE_NAMES:
             key, signer = self.create_key()
             root.add_key(role, key)
-            # store the private key
-            if role not in self.signers:
-                self.signers[role] = []
-            self.signers[role].append(signer)
+            self.add_signer(role, signer)
+
         self.md_root = Metadata(root, OrderedDict())
         self.publish_root()
 
     def publish_root(self):
         """Sign and store a new serialized version of root"""
         self.md_root.signatures.clear()
-        for signer in self.signers["root"]:
-            self.md_root.sign(signer)
+        for signer in self.signers["root"].values():
+            self.md_root.sign(signer, append=True)
 
         self.signed_roots.append(self.md_root.to_bytes(JSONSerializer()))
         logger.debug("Published root v%d", self.root.version)
@@ -242,7 +247,7 @@ class RepositorySimulator(FetcherInterface):
                 raise FetcherHTTPError(f"Unknown {role} version {version}", 404)
 
             md.signatures.clear()
-            for signer in self.signers[role]:
+            for signer in self.signers[role].values():
                 md.sign(signer, append=True)
 
             logger.debug(
@@ -320,9 +325,7 @@ class RepositorySimulator(FetcherInterface):
         # By default add one new key for the role
         key, signer = self.create_key()
         delegator.add_key(role.name, key)
-        if role.name not in self.signers:
-            self.signers[role.name] = []
-        self.signers[role.name].append(signer)
+        self.add_signer(role.name, signer)
 
         # Add metadata for the role
         self.md_delegates[role.name] = Metadata(targets, OrderedDict())

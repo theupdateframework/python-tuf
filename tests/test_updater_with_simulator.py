@@ -156,10 +156,10 @@ class TestUpdater(unittest.TestCase):
         # Update top level metadata
         self._run_refresh()
 
-        # New targets: signed with a new key that is not in roles keys
-        old_signer = self.sim.signers["targets"].pop()
+        # New targets: signed with only a new key that is not in roles keys
+        old_signers = self.sim.signers.pop("targets")
         key, signer = self.sim.create_key()
-        self.sim.signers["targets"] = [signer]
+        self.sim.add_signer("targets", signer)
         self.sim.targets.version += 1
         self.sim.update_snapshot()
 
@@ -182,8 +182,9 @@ class TestUpdater(unittest.TestCase):
         with self.assertRaises(UnsignedMetadataError):
             self._run_refresh()
 
-        # New targets: sign with both new and old key
-        self.sim.signers["targets"] = [signer, old_signer]
+        # New targets: sign with both new and any original keys
+        for signer in old_signers.values():
+            self.sim.add_signer("targets", signer)
         self.sim.targets.version += 1
         self.sim.update_snapshot()
 
