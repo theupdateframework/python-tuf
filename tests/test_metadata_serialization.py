@@ -142,23 +142,38 @@ class TestSerialization(unittest.TestCase):
                 "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}, \
                 "keyid2" : {"keytype": "ed25519", "scheme": "ed25519", "keyval": {"public": "bar"}}}, \
             "roles": { \
+                "root": {"keyids": ["keyid1"], "threshold": 1}, \
+                "timestamp": {"keyids": ["keyid2"], "threshold": 1}, \
                 "targets": {"keyids": ["keyid1"], "threshold": 1}, \
                 "snapshot": {"keyids": ["keyid2"], "threshold": 1}} \
             }',
         "no consistent_snapshot": '{ "_type": "root", "spec_version": "1.0.0", "version": 1, \
             "expires": "2030-01-01T00:00:00Z", \
             "keys": {"keyid" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"} }}, \
-            "roles": { "targets": {"keyids": ["keyid"], "threshold": 3} } \
+            "roles": { \
+                "root": {"keyids": ["keyid"], "threshold": 1}, \
+                "timestamp": {"keyids": ["keyid"], "threshold": 1}, \
+                "targets": {"keyids": ["keyid"], "threshold": 1}, \
+                "snapshot": {"keyids": ["keyid"], "threshold": 1}} \
             }',
-        "empty keys and roles": '{"_type": "root", "spec_version": "1.0.0", "version": 1, \
+        "empty keys": '{"_type": "root", "spec_version": "1.0.0", "version": 1, \
             "expires": "2030-01-01T00:00:00Z", "consistent_snapshot": false, \
             "keys": {}, \
-            "roles": {} \
+            "roles": { \
+                "root": {"keyids": [], "threshold": 1}, \
+                "timestamp": {"keyids": [], "threshold": 1}, \
+                "targets": {"keyids": [], "threshold": 1}, \
+                "snapshot": {"keyids": [], "threshold": 1}} \
             }',
         "unrecognized field": '{"_type": "root", "spec_version": "1.0.0", "version": 1, \
             "expires": "2030-01-01T00:00:00Z", "consistent_snapshot": false, \
             "keys": {"keyid" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
-            "roles": { "targets": {"keyids": ["keyid"], "threshold": 3}}, \
+            "roles": { \
+                "root": {"keyids": ["keyid"], "threshold": 1}, \
+                "timestamp": {"keyids": ["keyid"], "threshold": 1}, \
+                "targets": {"keyids": ["keyid"], "threshold": 1}, \
+                "snapshot": {"keyids": ["keyid"], "threshold": 1} \
+            }, \
             "foo": "bar"}',
     }
 
@@ -168,6 +183,48 @@ class TestSerialization(unittest.TestCase):
         root = Root.from_dict(copy.deepcopy(case_dict))
         self.assertDictEqual(case_dict, root.to_dict())
 
+
+    invalid_roots: utils.DataSet = {
+        "invalid role name": '{"_type": "root", "spec_version": "1.0.0", "version": 1, \
+            "expires": "2030-01-01T00:00:00Z", "consistent_snapshot": false, \
+            "keys": { \
+                "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}, \
+                "keyid2" : {"keytype": "ed25519", "scheme": "ed25519", "keyval": {"public": "bar"}}}, \
+            "roles": { \
+                "bar": {"keyids": ["keyid1"], "threshold": 1}, \
+                "timestamp": {"keyids": ["keyid2"], "threshold": 1}, \
+                "targets": {"keyids": ["keyid1"], "threshold": 1}, \
+                "snapshot": {"keyids": ["keyid2"], "threshold": 1}} \
+            }',
+        "missing root role": '{"_type": "root", "spec_version": "1.0.0", "version": 1, \
+            "expires": "2030-01-01T00:00:00Z", "consistent_snapshot": false, \
+            "keys": { \
+                "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}, \
+                "keyid2" : {"keytype": "ed25519", "scheme": "ed25519", "keyval": {"public": "bar"}}}, \
+            "roles": { \
+                "timestamp": {"keyids": ["keyid2"], "threshold": 1}, \
+                "targets": {"keyids": ["keyid1"], "threshold": 1}, \
+                "snapshot": {"keyids": ["keyid2"], "threshold": 1}} \
+            }',
+        "one additional role": '{"_type": "root", "spec_version": "1.0.0", "version": 1, \
+            "expires": "2030-01-01T00:00:00Z", "consistent_snapshot": false, \
+            "keys": { \
+                "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}, \
+                "keyid2" : {"keytype": "ed25519", "scheme": "ed25519", "keyval": {"public": "bar"}}}, \
+            "roles": { \
+                "root": {"keyids": ["keyid1"], "threshold": 1}, \
+                "timestamp": {"keyids": ["keyid2"], "threshold": 1}, \
+                "targets": {"keyids": ["keyid1"], "threshold": 1}, \
+                "snapshot": {"keyids": ["keyid2"], "threshold": 1}, \
+                "foo": {"keyids": ["keyid2"], "threshold": 1}} \
+            }',
+    }
+
+    @utils.run_sub_tests_with_dataset(invalid_roots)
+    def test_invalid_root_serialization(self, test_case_data: Dict[str, str]):
+        case_dict = json.loads(test_case_data)
+        with self.assertRaises(ValueError):
+            Root.from_dict(copy.deepcopy(case_dict))
 
     invalid_metafiles: utils.DataSet = {
         "wrong length type": '{"version": 1, "length": "a", "hashes": {"sha256" : "abc"}}',

@@ -56,6 +56,7 @@ from securesystemslib.signer import SSlibSigner
 from typing import Dict, Iterator, List, Optional, Tuple
 from urllib import parse
 
+from tuf.api.metadata import TOP_LEVEL_ROLE_NAMES
 from tuf.api.serialization.json import JSONSerializer
 from tuf.exceptions import FetcherHTTPError
 from tuf.api.metadata import (
@@ -152,10 +153,11 @@ class RepositorySimulator(FetcherInterface):
         timestamp = Timestamp(1, SPEC_VER, self.safe_expiry, snapshot_meta)
         self.md_timestamp = Metadata(timestamp, OrderedDict())
 
-        root = Root(1, SPEC_VER, self.safe_expiry, {}, {}, True)
-        for role in ["root", "timestamp", "snapshot", "targets"]:
+        roles = {role_name: Role([], 1) for role_name in TOP_LEVEL_ROLE_NAMES}
+        root = Root(1, SPEC_VER, self.safe_expiry, {}, roles, True)
+
+        for role in TOP_LEVEL_ROLE_NAMES:
             key, signer = self.create_key()
-            root.roles[role] = Role([], 1)
             root.add_key(role, key)
             # store the private key
             if role not in self.signers:
