@@ -8,13 +8,13 @@
 import os
 import sys
 import tempfile
-from typing import List, Optional
 import unittest
 from datetime import datetime, timedelta
+from typing import Iterable, Optional
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
-from tuf.api.metadata import Metadata, TOP_LEVEL_ROLE_NAMES
+from tuf.api.metadata import TOP_LEVEL_ROLE_NAMES, Metadata
 from tuf.exceptions import (
     BadVersionNumberError,
     ExpiredMetadataError,
@@ -24,13 +24,14 @@ from tuf.exceptions import (
 )
 from tuf.ngclient import Updater
 
+
 class TestRefresh(unittest.TestCase):
     """Test update of top-level metadata following
     'Detailed client workflow' in the specification."""
 
     past_datetime = datetime.utcnow().replace(microsecond=0) - timedelta(days=5)
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
         self.metadata_dir = os.path.join(self.temp_dir.name, "metadata")
         self.targets_dir = os.path.join(self.temp_dir.name, "targets")
@@ -45,7 +46,7 @@ class TestRefresh(unittest.TestCase):
             )
             f.write(root)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.temp_dir.cleanup()
 
     def _run_refresh(self) -> Updater:
@@ -70,13 +71,15 @@ class TestRefresh(unittest.TestCase):
             self.sim,
         )
 
-    def _assert_files_exist(self, roles: List[str]) -> None:
+    def _assert_files_exist(self, roles: Iterable[str]) -> None:
         """Assert that local metadata files exist for 'roles'"""
         expected_files = sorted([f"{role}.json" for role in roles])
         local_metadata_files = sorted(os.listdir(self.metadata_dir))
         self.assertListEqual(local_metadata_files, expected_files)
 
-    def _assert_content_equals(self, role: str, version: Optional[int]=None) -> None:
+    def _assert_content_equals(
+        self, role: str, version: Optional[int] = None
+    ) -> None:
         """Assert that local file content is the expected"""
         expected_content = self.sim._fetch_metadata(role, version)
         with open(os.path.join(self.metadata_dir, f"{role}.json"), "rb") as f:
@@ -167,7 +170,8 @@ class TestRefresh(unittest.TestCase):
 
         updater.refresh()
 
-        # Assert that root version was increased with no more than 'max_root_rotations'
+        # Assert that root version was increased with no more
+        # than 'max_root_rotations'
         md_root = Metadata.from_file(root_path)
         self.assertEqual(
             md_root.signed.version,
@@ -196,7 +200,6 @@ class TestRefresh(unittest.TestCase):
         self._assert_files_exist(["root"])
         self._assert_content_equals("root", 1)
 
-
     def test_intermediate_root_expired(self) -> None:
         # The expiration of the new (intermediate) root metadata file
         # does not matter yet
@@ -219,7 +222,7 @@ class TestRefresh(unittest.TestCase):
 
     def test_final_root_incorrectly_signed(self) -> None:
         # Check for an arbitrary software attack
-        self.sim.root.version += 1 # root v2
+        self.sim.root.version += 1  # root v2
         self.sim.signers["root"].clear()
         self.sim.publish_root()
 
@@ -283,23 +286,27 @@ class TestRefresh(unittest.TestCase):
         with self.assertRaises(ReplayedMetadataError):
             self._run_refresh()
 
-        md_timestamp = Metadata.from_file(os.path.join(self.metadata_dir, "timestamp.json"))
+        md_timestamp = Metadata.from_file(
+            os.path.join(self.metadata_dir, "timestamp.json")
+        )
         self.assertEqual(md_timestamp.signed.version, 2)
 
     def test_new_timestamp_snapshot_rollback(self) -> None:
         # Check for a rollback attack.
         self.sim.snapshot.version = 2
-        self.sim.update_timestamp() # timestamp v2
+        self.sim.update_timestamp()  # timestamp v2
         self._run_refresh()
 
         # Snapshot meta version is smaller than previous
         self.sim.timestamp.snapshot_meta.version = 1
-        self.sim.timestamp.version += 1 # timestamp v3
+        self.sim.timestamp.version += 1  # timestamp v3
 
         with self.assertRaises(ReplayedMetadataError):
             self._run_refresh()
 
-        md_timestamp = Metadata.from_file(os.path.join(self.metadata_dir, "timestamp.json"))
+        md_timestamp = Metadata.from_file(
+            os.path.join(self.metadata_dir, "timestamp.json")
+        )
         self.assertEqual(md_timestamp.signed.version, 2)
 
     def test_new_timestamp_expired(self) -> None:
@@ -317,7 +324,7 @@ class TestRefresh(unittest.TestCase):
 
         # Update timestamp with snapshot's hashes
         self.sim.compute_metafile_hashes_length = True
-        self.sim.update_timestamp() # timestamp v2
+        self.sim.update_timestamp()  # timestamp v2
         self._run_refresh()
 
         # Modify snapshot contents without updating
@@ -325,16 +332,20 @@ class TestRefresh(unittest.TestCase):
         self.sim.snapshot.expires += timedelta(days=1)
         self.sim.snapshot.version += 1  # snapshot v2
         self.sim.timestamp.snapshot_meta.version = self.sim.snapshot.version
-        self.sim.timestamp.version += 1 # timestamp v3
+        self.sim.timestamp.version += 1  # timestamp v3
 
         # Hash mismatch error
         with self.assertRaises(RepositoryError):
             self._run_refresh()
 
-        md_timestamp = Metadata.from_file(os.path.join(self.metadata_dir, "timestamp.json"))
+        md_timestamp = Metadata.from_file(
+            os.path.join(self.metadata_dir, "timestamp.json")
+        )
         self.assertEqual(md_timestamp.signed.version, 3)
 
-        md_snapshot = Metadata.from_file(os.path.join(self.metadata_dir, "snapshot.json"))
+        md_snapshot = Metadata.from_file(
+            os.path.join(self.metadata_dir, "snapshot.json")
+        )
         self.assertEqual(md_snapshot.signed.version, 1)
 
     def test_new_snapshot_unsigned(self) -> None:
@@ -371,7 +382,9 @@ class TestRefresh(unittest.TestCase):
         with self.assertRaises(ReplayedMetadataError):
             self._run_refresh()
 
-        md_snapshot = Metadata.from_file(os.path.join(self.metadata_dir, "snapshot.json"))
+        md_snapshot = Metadata.from_file(
+            os.path.join(self.metadata_dir, "snapshot.json")
+        )
         self.assertEqual(md_snapshot.signed.version, 2)
 
     def test_new_snapshot_expired(self) -> None:
@@ -384,7 +397,6 @@ class TestRefresh(unittest.TestCase):
 
         self._assert_files_exist(["root", "timestamp"])
 
-
     def test_new_targets_hash_mismatch(self) -> None:
         # Check against snapshot role’s targets hashes
 
@@ -396,17 +408,23 @@ class TestRefresh(unittest.TestCase):
         # Modify targets contents without updating
         # snapshot's targets hashes
         self.sim.targets.version += 1
-        self.sim.snapshot.meta["targets.json"].version = self.sim.targets.version
+        self.sim.snapshot.meta[
+            "targets.json"
+        ].version = self.sim.targets.version
         self.sim.snapshot.version += 1
         self.sim.update_timestamp()
 
         with self.assertRaises(RepositoryError):
             self._run_refresh()
 
-        md_snapshot = Metadata.from_file(os.path.join(self.metadata_dir, "snapshot.json"))
+        md_snapshot = Metadata.from_file(
+            os.path.join(self.metadata_dir, "snapshot.json")
+        )
         self.assertEqual(md_snapshot.signed.version, 3)
 
-        md_targets = Metadata.from_file(os.path.join(self.metadata_dir, "targets.json"))
+        md_targets = Metadata.from_file(
+            os.path.join(self.metadata_dir, "targets.json")
+        )
         self.assertEqual(md_targets.signed.version, 1)
 
     def test_new_targets_unsigned(self) -> None:
