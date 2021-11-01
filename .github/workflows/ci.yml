@@ -95,11 +95,12 @@ jobs:
     runs-on: ubuntu-latest
     container: python:3-slim
     steps:
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install --upgrade coveralls
       - name: Finalize publishing on coveralls.io
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install --upgrade coveralls
-          coveralls --finish
+        run: coveralls --finish
