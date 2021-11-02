@@ -486,14 +486,14 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
     status = sig.get_signature_status(temp_signable, rolename,
         repository_name)
     if len(status['good_sigs']) == 0:
-      metadata['version'] = metadata['version'] + 1
+      metadata['version'] += 1
       signable = repo_lib.sign_metadata(metadata, roleinfo['signing_keyids'],
           metadata_filename, repository_name)
 
   # non-partial write()
   else:
     if sig.verify(signable, rolename, repository_name):
-      metadata['version'] = metadata['version'] + 1
+      metadata['version'] += 1
       signable = repo_lib.sign_metadata(metadata, roleinfo['signing_keyids'],
           metadata_filename, repository_name)
 

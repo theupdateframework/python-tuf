@@ -172,8 +172,8 @@ def _generate_and_write_metadata(rolename, metadata_filename,
   current_version = metadata['version']
   if increment_version_number:
     roleinfo = roledb.get_roleinfo(rolename, repository_name)
-    metadata['version'] = metadata['version'] + 1
-    roleinfo['version'] = roleinfo['version'] + 1
+    metadata['version'] += 1
+    roleinfo['version'] += 1
     roledb.update_roleinfo(rolename, roleinfo,
         repository_name=repository_name)
 

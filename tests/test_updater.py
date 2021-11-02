@@ -810,7 +810,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     target3 = 'file3.txt'
 
     repository.targets.add_target(target3)
-    repository.root.version = repository.root.version + 1
+    repository.root.version += 1
     repository.root.load_signing_key(self.role_keys['root']['private'])
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])

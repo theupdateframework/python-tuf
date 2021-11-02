@@ -1019,10 +1019,10 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Partially write all top-level roles (we increase the threshold of each
     # top-level role so that they are flagged as partially written.
-    repository.root.threshold = repository.root.threshold + 1
-    repository.snapshot.threshold = repository.snapshot.threshold + 1
-    repository.targets.threshold = repository.targets.threshold + 1
-    repository.timestamp.threshold = repository.timestamp.threshold + 1
+    repository.root.threshold += 1
+    repository.snapshot.threshold += 1
+    repository.targets.threshold += 1
+    repository.timestamp.threshold += 1
     repository.write('root')
     repository.write('snapshot')
     repository.write('targets')

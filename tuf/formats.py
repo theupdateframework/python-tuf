@@ -777,7 +777,7 @@ def parse_base64(base64_string):
   extra = len(base64_string) % 4
   if extra:
     padding = '=' * (4 - extra)
-    base64_string = base64_string + padding
+    base64_string += padding
 
   try:
     return binascii.a2b_base64(base64_string.encode('utf-8'))
