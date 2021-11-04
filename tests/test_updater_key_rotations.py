@@ -5,22 +5,21 @@
 
 """Test ngclient Updater key rotation handling"""
 
-from dataclasses import dataclass
-from typing import List, Optional, Type
 import os
 import sys
 import tempfile
 import unittest
+from dataclasses import dataclass
+from typing import List, Optional, Type
 
 from securesystemslib.signer import SSlibSigner
-
-from tuf.api.metadata import Key
-from tuf.exceptions import UnsignedMetadataError
-from tuf.ngclient import Updater
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
 from tests.utils import run_sub_tests_with_dataset
+from tuf.api.metadata import Key
+from tuf.exceptions import UnsignedMetadataError
+from tuf.ngclient import Updater
 
 
 @dataclass
@@ -33,6 +32,7 @@ class RootVersion:
 
 class TestUpdaterKeyRotations(unittest.TestCase):
     """Test ngclient root rotation handling"""
+
     # set dump_dir to trigger repository state dumps
     dump_dir: Optional[str] = None
 

@@ -6,20 +6,21 @@
 """Test Updater class
 """
 
+import logging
 import os
 import shutil
-import tempfile
-import logging
 import sys
-from typing import List
+import tempfile
 import unittest
-import tuf.unittest_toolbox as unittest_toolbox
+from typing import List
 
-from tests import utils
-from tuf.api.metadata import Metadata, TargetFile
-from tuf import exceptions, ngclient
-from securesystemslib.signer import SSlibSigner
 from securesystemslib.interface import import_rsa_privatekey_from_file
+from securesystemslib.signer import SSlibSigner
+
+import tuf.unittest_toolbox as unittest_toolbox
+from tests import utils
+from tuf import exceptions, ngclient
+from tuf.api.metadata import Metadata, TargetFile
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +119,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
             repository_dir=self.client_directory,
             metadata_base_url=self.metadata_url,
             target_dir=self.dl_dir,
-            target_base_url=self.targets_url
+            target_base_url=self.targets_url,
         )
 
     def tearDown(self):
@@ -191,15 +192,16 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
             consistent_snapshot_modifier, bump_version=True
         )
         updater = ngclient.Updater(
-            self.client_directory, self.metadata_url, self.dl_dir, self.targets_url
+            self.client_directory,
+            self.metadata_url,
+            self.dl_dir,
+            self.targets_url,
         )
 
         # All metadata is in local directory already
         updater.refresh()
         # Make sure that consistent snapshot is enabled
-        self.assertTrue(
-            updater._trusted_set.root.signed.consistent_snapshot
-        )
+        self.assertTrue(updater._trusted_set.root.signed.consistent_snapshot)
 
         # Get targetinfos, assert cache does not contain the files
         info1 = updater.get_targetinfo("file1.txt")
@@ -252,9 +254,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         self.updater.download_target(info1)
         path = self.updater.find_cached_target(info1)
         self.assertEqual(path, os.path.join(self.dl_dir, info1.path))
-        self.assertIsNone(
-            self.updater.find_cached_target(info3)
-        )
+        self.assertIsNone(self.updater.find_cached_target(info3))
 
         self.updater.download_target(info3)
         path = self.updater.find_cached_target(info1)
@@ -281,7 +281,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     def test_both_target_urls_not_set(self):
         # target_base_url = None and Updater._target_base_url = None
-        updater = ngclient.Updater(self.client_directory, self.metadata_url, self.dl_dir)
+        updater = ngclient.Updater(
+            self.client_directory, self.metadata_url, self.dl_dir
+        )
         info = TargetFile(1, {"sha256": ""}, "targetpath")
         with self.assertRaises(ValueError):
             updater.download_target(info)

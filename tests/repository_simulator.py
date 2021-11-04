@@ -44,22 +44,22 @@ Example::
     updater.refresh()
 """
 
-from collections import OrderedDict
-from dataclasses import dataclass
-from datetime import datetime, timedelta
 import logging
 import os
 import tempfile
-import securesystemslib.hash as sslib_hash
-from securesystemslib.keys import generate_ed25519_key
-from securesystemslib.signer import SSlibSigner
+from collections import OrderedDict
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import Dict, Iterator, List, Optional, Tuple
 from urllib import parse
 
-from tuf.api.metadata import TOP_LEVEL_ROLE_NAMES
-from tuf.api.serialization.json import JSONSerializer
-from tuf.exceptions import FetcherHTTPError
+import securesystemslib.hash as sslib_hash
+from securesystemslib.keys import generate_ed25519_key
+from securesystemslib.signer import SSlibSigner
+
 from tuf.api.metadata import (
+    SPECIFICATION_VERSION,
+    TOP_LEVEL_ROLE_NAMES,
     DelegatedRole,
     Delegations,
     Key,
@@ -67,23 +67,27 @@ from tuf.api.metadata import (
     MetaFile,
     Role,
     Root,
-    SPECIFICATION_VERSION,
     Snapshot,
     TargetFile,
     Targets,
     Timestamp,
 )
+from tuf.api.serialization.json import JSONSerializer
+from tuf.exceptions import FetcherHTTPError, RepositoryError
 from tuf.ngclient.fetcher import FetcherInterface
 
 logger = logging.getLogger(__name__)
 
 SPEC_VER = ".".join(SPECIFICATION_VERSION)
 
+
 @dataclass
 class RepositoryTarget:
     """Contains actual target data and the related target metadata"""
+
     data: bytes
     target_file: TargetFile
+
 
 class RepositorySimulator(FetcherInterface):
     def __init__(self):
@@ -141,7 +145,7 @@ class RepositorySimulator(FetcherInterface):
         sslib_key = generate_ed25519_key()
         return Key.from_securesystemslib_key(sslib_key), SSlibSigner(sslib_key)
 
-    def add_signer(self, role:str, signer: SSlibSigner):
+    def add_signer(self, role: str, signer: SSlibSigner):
         if role not in self.signers:
             self.signers[role] = {}
         self.signers[role][signer.key_dict["keyid"]] = signer
@@ -197,7 +201,7 @@ class RepositorySimulator(FetcherInterface):
         elif path.startswith("/targets/"):
             # figure out target path and hash prefix
             target_path = path[len("/targets/") :]
-            dir_parts, sep , prefixed_filename = target_path.rpartition("/")
+            dir_parts, sep, prefixed_filename = target_path.rpartition("/")
             prefix, _, filename = prefixed_filename.partition(".")
             target_path = f"{dir_parts}{sep}{filename}"
 
@@ -219,7 +223,9 @@ class RepositorySimulator(FetcherInterface):
         logger.debug("fetched target %s", target_path)
         return repo_target.data
 
-    def _fetch_metadata(self, role: str, version: Optional[int] = None) -> bytes:
+    def _fetch_metadata(
+        self, role: str, version: Optional[int] = None
+    ) -> bytes:
         """Return signed metadata for 'role', using 'version' if it is given.
 
         If version is None, non-versioned metadata is being requested
@@ -264,7 +270,7 @@ class RepositorySimulator(FetcherInterface):
         data = self._fetch_metadata(role)
         digest_object = sslib_hash.digest(sslib_hash.DEFAULT_HASH_ALGORITHM)
         digest_object.update(data)
-        hashes = {sslib_hash.DEFAULT_HASH_ALGORITHM:  digest_object.hexdigest()}
+        hashes = {sslib_hash.DEFAULT_HASH_ALGORITHM: digest_object.hexdigest()}
         return hashes, len(data)
 
     def update_timestamp(self):
