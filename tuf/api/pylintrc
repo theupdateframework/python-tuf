@@ -35,15 +35,6 @@ no-docstring-rgx=(__.*__|main|test.*|.*test|.*Test)$
 variable-rgx=^[a-z][a-z0-9_]*$
 docstring-min-length=10
 
-[FORMAT]
-ignore-long-lines=(?x)(
-  ^\s*(\#\ )?<?https?://\S+>?$|
-  ^\s*(from\s+\S+\s+)?import\s+.+$)
-indent-string="    "
-indent-after-paren=4
-max-line-length=80
-single-line-if-stmt=yes
-
 [LOGGING]
 logging-format-style=old
 
