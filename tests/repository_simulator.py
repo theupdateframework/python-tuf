@@ -111,8 +111,11 @@ class RepositorySimulator(FetcherInterface):
         # target downloads are served from this dict
         self.target_files: Dict[str, RepositoryTarget] = {}
 
-        # Whether to compute hashes and legth for meta in snapshot/timestamp
+        # Whether to compute hashes and length for meta in snapshot/timestamp
         self.compute_metafile_hashes_length = False
+
+        # Enable hash-prefixed target file names
+        self.prefix_targets_with_hash = True
 
         self.dump_dir = None
         self.dump_version = 0
@@ -192,24 +195,32 @@ class RepositorySimulator(FetcherInterface):
         """Fetches data from the given url and returns an Iterator (or yields
         bytes).
         """
-        if not self.root.consistent_snapshot:
-            raise NotImplementedError("non-consistent snapshot not supported")
         path = parse.urlparse(url).path
         if path.startswith("/metadata/") and path.endswith(".json"):
+            # figure out rolename and version
             ver_and_name = path[len("/metadata/") :][: -len(".json")]
-            # only consistent_snapshot supported ATM: timestamp is special case
-            if ver_and_name == "timestamp":
-                version = None
-                role = "timestamp"
-            else:
-                version, _, role = ver_and_name.partition(".")
+            version, _, role = ver_and_name.partition(".")
+            # root is always version-prefixed while timestamp is always NOT
+            if role == "root" or (
+                self.root.consistent_snapshot and ver_and_name != "timestamp"
+            ):
                 version = int(version)
+            else:
+                # the file is not version-prefixed
+                role = ver_and_name
+                version = None
+
             yield self._fetch_metadata(role, version)
         elif path.startswith("/targets/"):
             # figure out target path and hash prefix
             target_path = path[len("/targets/") :]
             dir_parts, sep, prefixed_filename = target_path.rpartition("/")
-            prefix, _, filename = prefixed_filename.partition(".")
+            # extract the hash prefix, if any
+            if self.root.consistent_snapshot and self.prefix_targets_with_hash:
+                prefix, _, filename = prefixed_filename.partition(".")
+            else:
+                filename = prefixed_filename
+                prefix = None
             target_path = f"{dir_parts}{sep}{filename}"
 
             yield self._fetch_target(target_path, prefix)
@@ -257,7 +268,7 @@ class RepositorySimulator(FetcherInterface):
         elif role == "targets":
             md = self.md_targets
         else:
-            md = self.md_delegates[role]
+            md = self.md_delegates.get(role)
 
         if md is None:
             raise FetcherHTTPError(f"Unknown role {role}", 404)
