@@ -249,8 +249,6 @@ class RepositorySimulator(FetcherInterface):
 
             if md is None:
                 raise FetcherHTTPError(f"Unknown role {role}", 404)
-            if version is not None and version != md.signed.version:
-                raise FetcherHTTPError(f"Unknown {role} version {version}", 404)
 
             md.signatures.clear()
             for signer in self.signers[role].values():

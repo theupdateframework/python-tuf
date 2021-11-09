@@ -347,19 +347,15 @@ class TestRefresh(unittest.TestCase):
 
         self._assert_files_exist(["root", "timestamp"])
 
-    # TODO: RepositorySimulator works always with consistent snapshot
-    # enabled which forces the client to look for the snapshot version
-    # written in timestamp (which leads to "Unknown snapshot version").
-    # This fails the test for a snapshot version mismatch.
+    def test_new_snapshot_version_mismatch(self):
+        # Check against timestamp role’s snapshot version
 
-    # def test_new_snapshot_version_mismatch(self):
-    #     # Check against timestamp role’s snapshot version
+        # Increase snapshot version without updating timestamp
+        self.sim.snapshot.version += 1
+        with self.assertRaises(BadVersionNumberError):
+            self._run_refresh()
 
-    #     # Increase snapshot version without updating
-    #     # timestamp's snapshot version
-    #     self.sim.snapshot.version += 1
-    #     with self.assertRaises(BadVersionNumberError):
-    #         self._run_refresh()
+        self._assert_files_exist(["root", "timestamp"])
 
     def test_new_snapshot_version_rollback(self) -> None:
         # Check for a rollback attack
@@ -416,16 +412,15 @@ class TestRefresh(unittest.TestCase):
 
         self._assert_files_exist(["root", "timestamp", "snapshot"])
 
-    # TODO: RepositorySimulator works always with consistent snapshot
-    # enabled which forces the client to look for the targets version
-    # written in snapshot (which leads to "Unknown targets version").
-    # This fails the test for a targets version mismatch.
+    def test_new_targets_version_mismatch(self):
+        # Check against snapshot role’s targets version
 
-    # def test_new_targets_version_mismatch(self):
-    #     # Check against snapshot role’s targets version
-    #     self.sim.targets.version += 1
-    #     with self.assertRaises(BadVersionNumberError):
-    #         self._run_refresh()
+        # Increase targets version without updating snapshot
+        self.sim.targets.version += 1
+        with self.assertRaises(BadVersionNumberError):
+            self._run_refresh()
+
+        self._assert_files_exist(["root", "timestamp", "snapshot"])
 
     def test_new_targets_expired(self) -> None:
         # Check for a freeze attack.
