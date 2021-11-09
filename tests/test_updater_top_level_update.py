@@ -85,6 +85,11 @@ class TestRefresh(unittest.TestCase):
         with open(os.path.join(self.metadata_dir, f"{role}.json"), "rb") as f:
             self.assertEqual(f.read(), expected_content)
 
+    def _assert_version_equals(self, role: str, expected_version: int) -> None:
+        """Assert that local metadata version is the expected"""
+        md = Metadata.from_file(os.path.join(self.metadata_dir, f"{role}.json"))
+        self.assertEqual(md.signed.version, expected_version)
+
     def test_first_time_refresh(self) -> None:
         # Metadata dir contains only the mandatory initial root.json
         self._assert_files_exist(["root"])
@@ -164,18 +169,17 @@ class TestRefresh(unittest.TestCase):
             self.sim.root.version += 1
             self.sim.publish_root()
 
-        root_path = os.path.join(self.metadata_dir, "root.json")
-        md_root = Metadata.from_file(root_path)
+        md_root = Metadata.from_file(
+            os.path.join(self.metadata_dir, "root.json")
+        )
         initial_root_version = md_root.signed.version
 
         updater.refresh()
 
         # Assert that root version was increased with no more
         # than 'max_root_rotations'
-        md_root = Metadata.from_file(root_path)
-        self.assertEqual(
-            md_root.signed.version,
-            initial_root_version + updater.config.max_root_rotations,
+        self._assert_version_equals(
+            "root", initial_root_version + updater.config.max_root_rotations
         )
 
     def test_intermediate_root_incorrectly_signed(self) -> None:
@@ -286,10 +290,7 @@ class TestRefresh(unittest.TestCase):
         with self.assertRaises(ReplayedMetadataError):
             self._run_refresh()
 
-        md_timestamp = Metadata.from_file(
-            os.path.join(self.metadata_dir, "timestamp.json")
-        )
-        self.assertEqual(md_timestamp.signed.version, 2)
+        self._assert_version_equals("timestamp", 2)
 
     def test_new_timestamp_snapshot_rollback(self) -> None:
         # Check for a rollback attack.
@@ -304,10 +305,7 @@ class TestRefresh(unittest.TestCase):
         with self.assertRaises(ReplayedMetadataError):
             self._run_refresh()
 
-        md_timestamp = Metadata.from_file(
-            os.path.join(self.metadata_dir, "timestamp.json")
-        )
-        self.assertEqual(md_timestamp.signed.version, 2)
+        self._assert_version_equals("timestamp", 2)
 
     def test_new_timestamp_expired(self) -> None:
         # Check for a freeze attack
@@ -338,15 +336,8 @@ class TestRefresh(unittest.TestCase):
         with self.assertRaises(RepositoryError):
             self._run_refresh()
 
-        md_timestamp = Metadata.from_file(
-            os.path.join(self.metadata_dir, "timestamp.json")
-        )
-        self.assertEqual(md_timestamp.signed.version, 3)
-
-        md_snapshot = Metadata.from_file(
-            os.path.join(self.metadata_dir, "snapshot.json")
-        )
-        self.assertEqual(md_snapshot.signed.version, 1)
+        self._assert_version_equals("timestamp", 3)
+        self._assert_version_equals("snapshot", 1)
 
     def test_new_snapshot_unsigned(self) -> None:
         # Check for an arbitrary software attack
@@ -382,10 +373,7 @@ class TestRefresh(unittest.TestCase):
         with self.assertRaises(ReplayedMetadataError):
             self._run_refresh()
 
-        md_snapshot = Metadata.from_file(
-            os.path.join(self.metadata_dir, "snapshot.json")
-        )
-        self.assertEqual(md_snapshot.signed.version, 2)
+        self._assert_version_equals("snapshot", 2)
 
     def test_new_snapshot_expired(self) -> None:
         # Check for a freeze attack
@@ -417,15 +405,8 @@ class TestRefresh(unittest.TestCase):
         with self.assertRaises(RepositoryError):
             self._run_refresh()
 
-        md_snapshot = Metadata.from_file(
-            os.path.join(self.metadata_dir, "snapshot.json")
-        )
-        self.assertEqual(md_snapshot.signed.version, 3)
-
-        md_targets = Metadata.from_file(
-            os.path.join(self.metadata_dir, "targets.json")
-        )
-        self.assertEqual(md_targets.signed.version, 1)
+        self._assert_version_equals("snapshot", 3)
+        self._assert_version_equals("targets", 1)
 
     def test_new_targets_unsigned(self) -> None:
         # Check for an arbitrary software attack
