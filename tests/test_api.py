@@ -613,38 +613,26 @@ class TestMetadata(unittest.TestCase):
             # test exceptions
             expected_length = snapshot_metafile.length
             snapshot_metafile.length = 2345
-            self.assertRaises(
-                exceptions.LengthOrHashMismatchError,
-                snapshot_metafile.verify_length_and_hashes,
-                data,
-            )
+            with self.assertRaises(exceptions.LengthOrHashMismatchError):
+                snapshot_metafile.verify_length_and_hashes(data)
 
             snapshot_metafile.length = expected_length
             snapshot_metafile.hashes = {"sha256": "incorrecthash"}
-            self.assertRaises(
-                exceptions.LengthOrHashMismatchError,
-                snapshot_metafile.verify_length_and_hashes,
-                data,
-            )
+            with self.assertRaises(exceptions.LengthOrHashMismatchError):
+                snapshot_metafile.verify_length_and_hashes(data)
 
             snapshot_metafile.hashes = {
                 "unsupported-alg": "8f88e2ba48b412c3843e9bb26e1b6f8fc9e98aceb0fbaa97ba37b4c98717d7ab"
             }
-            self.assertRaises(
-                exceptions.LengthOrHashMismatchError,
-                snapshot_metafile.verify_length_and_hashes,
-                data,
-            )
+            with self.assertRaises(exceptions.LengthOrHashMismatchError):
+                snapshot_metafile.verify_length_and_hashes(data)
 
             # Test wrong algorithm format (sslib.FormatError)
             snapshot_metafile.hashes = {
                 256: "8f88e2ba48b412c3843e9bb26e1b6f8fc9e98aceb0fbaa97ba37b4c98717d7ab"
             }
-            self.assertRaises(
-                exceptions.LengthOrHashMismatchError,
-                snapshot_metafile.verify_length_and_hashes,
-                data,
-            )
+            with self.assertRaises(exceptions.LengthOrHashMismatchError):
+                snapshot_metafile.verify_length_and_hashes(data)
 
             # test optional length and hashes
             snapshot_metafile.length = None
@@ -663,19 +651,13 @@ class TestMetadata(unittest.TestCase):
             # test exceptions
             expected_length = file1_targetfile.length
             file1_targetfile.length = 2345
-            self.assertRaises(
-                exceptions.LengthOrHashMismatchError,
-                file1_targetfile.verify_length_and_hashes,
-                file1,
-            )
+            with self.assertRaises(exceptions.LengthOrHashMismatchError):
+                file1_targetfile.verify_length_and_hashes(file1)
 
             file1_targetfile.length = expected_length
             file1_targetfile.hashes = {"sha256": "incorrecthash"}
-            self.assertRaises(
-                exceptions.LengthOrHashMismatchError,
-                file1_targetfile.verify_length_and_hashes,
-                file1,
-            )
+            with self.assertRaises(exceptions.LengthOrHashMismatchError):
+                file1_targetfile.verify_length_and_hashes(file1)
 
     def test_targetfile_from_file(self):
         # Test with an existing file and valid hash algorithm
@@ -689,23 +671,15 @@ class TestMetadata(unittest.TestCase):
 
         # Test with a non-existing file
         file_path = os.path.join(self.repo_dir, "targets", "file123.txt")
-        self.assertRaises(
-            FileNotFoundError,
-            TargetFile.from_file,
-            file_path,
-            file_path,
-            [sslib_hash.DEFAULT_HASH_ALGORITHM],
-        )
+        with self.assertRaises(FileNotFoundError):
+            TargetFile.from_file(
+                file_path, file_path, [sslib_hash.DEFAULT_HASH_ALGORITHM]
+            )
 
         # Test with an unsupported algorithm
         file_path = os.path.join(self.repo_dir, "targets", "file1.txt")
-        self.assertRaises(
-            exceptions.UnsupportedAlgorithmError,
-            TargetFile.from_file,
-            file_path,
-            file_path,
-            ["123"],
-        )
+        with self.assertRaises(exceptions.UnsupportedAlgorithmError):
+            TargetFile.from_file(file_path, file_path, ["123"])
 
     def test_targetfile_from_data(self):
         data = b"Inline test content"
