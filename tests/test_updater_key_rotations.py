@@ -85,6 +85,7 @@ class TestUpdaterKeyRotations(unittest.TestCase):
         )
         updater.refresh()
 
+    # fmt: off
     root_rotation_cases = {
         "1-of-1 key rotation": [
             RootVersion(keys=[1], threshold=1, sigs=[1]),
@@ -154,6 +155,7 @@ class TestUpdaterKeyRotations(unittest.TestCase):
             RootVersion(keys=[1, 2], threshold=2, sigs=[1, 2]),
         ],
     }
+    # fmt: on
 
     @run_sub_tests_with_dataset(root_rotation_cases)
     def test_root_rotation(self, root_versions: List[RootVersion]) -> None:
