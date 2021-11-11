@@ -188,13 +188,13 @@ class TestUpdaterKeyRotations(unittest.TestCase):
             self.sim.publish_root()
 
         # run client workflow, assert success/failure
-        expected_result = root_versions[-1].res
-        if expected_result is None:
+        expected_error = root_versions[-1].res
+        if expected_error is None:
             self._run_refresh()
             expected_local_root = self.sim.signed_roots[-1]
         else:
             # failure expected: local root should be the root before last
-            with self.assertRaises(expected_result):
+            with self.assertRaises(expected_error):
                 self._run_refresh()
             expected_local_root = self.sim.signed_roots[-2]
 
