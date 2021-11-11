@@ -36,23 +36,25 @@ class TestUpdaterKeyRotations(unittest.TestCase):
     # set dump_dir to trigger repository state dumps
     dump_dir: Optional[str] = None
 
-    def setUp(self) -> None:
-        self.sim: RepositorySimulator
-        self.metadata_dir: str
-        self.subtest_count = 0
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.sim: RepositorySimulator
+        cls.metadata_dir: str
+        cls.subtest_count = 0
         # pylint: disable-next=consider-using-with
-        self.temp_dir = tempfile.TemporaryDirectory()
+        cls.temp_dir = tempfile.TemporaryDirectory()
 
         # Pre-create a bunch of keys and signers
-        self.keys: List[Key] = []
-        self.signers: List[SSlibSigner] = []
+        cls.keys: List[Key] = []
+        cls.signers: List[SSlibSigner] = []
         for _ in range(10):
             key, signer = RepositorySimulator.create_key()
-            self.keys.append(key)
-            self.signers.append(signer)
+            cls.keys.append(key)
+            cls.signers.append(signer)
 
-    def tearDown(self) -> None:
-        self.temp_dir.cleanup()
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.temp_dir.cleanup()
 
     def setup_subtest(self) -> None:
         self.subtest_count += 1
