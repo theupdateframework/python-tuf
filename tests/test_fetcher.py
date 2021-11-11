@@ -17,13 +17,15 @@ import unittest
 import tuf
 import tuf.exceptions
 import tuf.requests_fetcher
-import tuf.unittest_toolbox as unittest_toolbox
 from tests import utils
+from tuf import unittest_toolbox
 
 logger = logging.getLogger(__name__)
 
 
 class TestFetcher(unittest_toolbox.Modified_TestCase):
+    """Unit tests for RequestFetcher."""
+
     def setUp(self):
         """
         Create a temporary file and launch a simple server in the
@@ -35,9 +37,9 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
         # Making a temporary file.
         current_dir = os.getcwd()
         target_filepath = self.make_temp_data_file(directory=current_dir)
-        self.target_fileobj = open(target_filepath, "r")
-        self.file_contents = self.target_fileobj.read()
-        self.file_length = len(self.file_contents)
+        with open(target_filepath, "r", encoding="utf8") as target_fileobj:
+            self.file_contents = target_fileobj.read()
+            self.file_length = len(self.file_contents)
 
         # Launch a SimpleHTTPServer (serves files in the current dir).
         self.server_process_handler = utils.TestServerProcess(log=logger)
@@ -54,6 +56,7 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
 
         # Create a temporary file where the target file chunks are written
         # during fetching
+        # pylint: disable-next=consider-using-with
         self.temp_file = tempfile.TemporaryFile()
         self.fetcher = tuf.requests_fetcher.RequestsFetcher()
 
@@ -62,7 +65,6 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
         # Cleans the resources and flush the logged lines (if any).
         self.server_process_handler.clean()
 
-        self.target_fileobj.close()
         self.temp_file.close()
 
         # Remove temporary directory

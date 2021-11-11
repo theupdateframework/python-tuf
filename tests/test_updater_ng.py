@@ -17,20 +17,22 @@ from typing import List
 from securesystemslib.interface import import_rsa_privatekey_from_file
 from securesystemslib.signer import SSlibSigner
 
-import tuf.unittest_toolbox as unittest_toolbox
 from tests import utils
-from tuf import exceptions, ngclient
+from tuf import exceptions, ngclient, unittest_toolbox
 from tuf.api.metadata import Metadata, TargetFile
 
 logger = logging.getLogger(__name__)
 
 
 class TestUpdater(unittest_toolbox.Modified_TestCase):
+    """Test the Updater class from 'tuf/ngclient/updater.py'."""
+
     @classmethod
     def setUpClass(cls):
-        # Create a temporary directory to store the repository, metadata, and target
-        # files.  'temporary_directory' must be deleted in TearDownModule() so that
-        # temporary files are always removed, even when exceptions occur.
+        # Create a temporary directory to store the repository, metadata, and
+        # target files. 'temporary_directory' must be deleted in
+        # TearDownModule() so that temporary files are always removed, even when
+        # exceptions occur.
         cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
 
         # Needed because in some tests simple_server.py cannot be found.
@@ -51,8 +53,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         # Cleans the resources and flush the logged lines (if any).
         cls.server_process_handler.clean()
 
-        # Remove the temporary repository directory, which should contain all the
-        # metadata, targets, and key files generated for the test cases
+        # Remove the temporary repository directory, which should contain all
+        # the metadata, targets, and key files generated for the test cases
         shutil.rmtree(cls.temporary_directory)
 
     def setUp(self):
@@ -60,15 +62,15 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         unittest_toolbox.Modified_TestCase.setUp(self)
 
         # Copy the original repository files provided in the test folder so that
-        # any modifications made to repository files are restricted to the copies.
+        # any modifications are restricted to the copies.
         # The 'repository_data' directory is expected to exist in 'tuf.tests/'.
         original_repository_files = os.path.join(os.getcwd(), "repository_data")
         temporary_repository_root = self.make_temp_directory(
             directory=self.temporary_directory
         )
 
-        # The original repository, keystore, and client directories will be copied
-        # for each test case.
+        # The original repository, keystore, and client directories will be
+        # copied for each test case.
         original_repository = os.path.join(
             original_repository_files, "repository"
         )
@@ -183,6 +185,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         client_files = sorted(os.listdir(self.client_directory))
         self.assertEqual(client_files, expected_files)
 
+    # pylint: disable=protected-access
     def test_refresh_on_consistent_targets(self):
         # Generate a new root version where consistent_snapshot is set to true
         def consistent_snapshot_modifier(root):
@@ -228,7 +231,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         self.assertEqual(path, os.path.join(self.dl_dir, info3.path))
 
     def test_refresh_and_download(self):
-        # Test refresh without consistent targets - targets without hash prefixes.
+        # Test refresh without consistent targets - targets without hash prefix.
 
         # top-level targets are already in local cache (but remove others)
         os.remove(os.path.join(self.client_directory, "role1.json"))
@@ -275,7 +278,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         self._assert_files(["root", "snapshot", "targets", "timestamp"])
 
         # Get targetinfo for 'file3.txt' listed in the delegated role1
-        targetinfo3 = self.updater.get_targetinfo("file3.txt")
+        self.updater.get_targetinfo("file3.txt")
         expected_files = ["role1", "root", "snapshot", "targets", "timestamp"]
         self._assert_files(expected_files)
 
@@ -317,6 +320,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
             targetinfo.hashes = {"sha256": "abcd"}
             self.updater.download_target(targetinfo)
 
+    # pylint: disable=protected-access
     def test_updating_root(self):
         # Bump root version, resign and refresh
         self._modify_repository_root(lambda root: None, bump_version=True)
