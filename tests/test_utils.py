@@ -110,12 +110,12 @@ class TestServerProcess(unittest_toolbox.Modified_TestCase):
 
 
   def test_server_exit_before_timeout(self):
-    self.assertRaises(utils.TestServerProcessError, utils.TestServerProcess,
-        logger, server='non_existing_server.py')
+    with self.assertRaises(utils.TestServerProcessError):
+      utils.TestServerProcess(logger, server='non_existing_server.py')
 
     # Test starting a server which immediately exits."
-    self.assertRaises(utils.TestServerProcessError, utils.TestServerProcess,
-        logger, server='fast_server_exit.py')
+    with self.assertRaises(utils.TestServerProcessError):
+      utils.TestServerProcess(logger, server='fast_server_exit.py')
 
 
 if __name__ == '__main__':
