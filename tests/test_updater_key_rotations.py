@@ -26,8 +26,8 @@ from tuf.ngclient import Updater
 class RootVersion:
     keys: List[int]
     threshold: int
-    signatures: List[int]
-    result: Optional[Type[Exception]] = None
+    sigs: List[int]
+    res: Optional[Type[Exception]] = None
 
 
 class TestUpdaterKeyRotations(unittest.TestCase):
@@ -85,75 +85,77 @@ class TestUpdaterKeyRotations(unittest.TestCase):
         )
         updater.refresh()
 
+    # fmt: off
     root_rotation_cases = {
         "1-of-1 key rotation": [
-            RootVersion([1], 1, [1]),
-            RootVersion([2], 1, [2, 1]),
-            RootVersion([2], 1, [2]),
+            RootVersion(keys=[1], threshold=1, sigs=[1]),
+            RootVersion(keys=[2], threshold=1, sigs=[2, 1]),
+            RootVersion(keys=[2], threshold=1, sigs=[2]),
         ],
         "1-of-1 key rotation, unused signatures": [
-            RootVersion([1], 1, [3, 1, 4]),
-            RootVersion([2], 1, [3, 2, 1, 4]),
-            RootVersion([2], 1, [3, 2, 4]),
+            RootVersion(keys=[1], threshold=1, sigs=[3, 1, 4]),
+            RootVersion(keys=[2], threshold=1, sigs=[3, 2, 1, 4]),
+            RootVersion(keys=[2], threshold=1, sigs=[3, 2, 4]),
         ],
         "1-of-1 key rotation fail: not signed with old key": [
-            RootVersion([1], 1, [1]),
-            RootVersion([2], 1, [2, 3, 4], UnsignedMetadataError),
+            RootVersion(keys=[1], threshold=1, sigs=[1]),
+            RootVersion(keys=[2], threshold=1, sigs=[2, 3, 4], res=UnsignedMetadataError),
         ],
         "1-of-1 key rotation fail: not signed with new key": [
-            RootVersion([1], 1, [1]),
-            RootVersion([2], 1, [1, 3, 4], UnsignedMetadataError),
+            RootVersion(keys=[1], threshold=1, sigs=[1]),
+            RootVersion(keys=[2], threshold=1, sigs=[1, 3, 4], res=UnsignedMetadataError),
         ],
         "3-of-5, sign with different keycombos": [
-            RootVersion([0, 1, 2, 3, 4], 3, [0, 2, 4]),
-            RootVersion([0, 1, 2, 3, 4], 3, [0, 4, 1]),
-            RootVersion([0, 1, 2, 3, 4], 3, [0, 1, 3]),
-            RootVersion([0, 1, 2, 3, 4], 3, [0, 1, 3]),
+            RootVersion(keys=[0, 1, 2, 3, 4], threshold=3, sigs=[0, 2, 4]),
+            RootVersion(keys=[0, 1, 2, 3, 4], threshold=3, sigs=[0, 4, 1]),
+            RootVersion(keys=[0, 1, 2, 3, 4], threshold=3, sigs=[0, 1, 3]),
+            RootVersion(keys=[0, 1, 2, 3, 4], threshold=3, sigs=[0, 1, 3]),
         ],
         "3-of-5, one key rotated": [
-            RootVersion([0, 1, 2, 3, 4], 3, [0, 2, 4]),
-            RootVersion([0, 1, 3, 4, 5], 3, [0, 4, 1]),
+            RootVersion(keys=[0, 1, 2, 3, 4], threshold=3, sigs=[0, 2, 4]),
+            RootVersion(keys=[0, 1, 3, 4, 5], threshold=3, sigs=[0, 4, 1]),
         ],
         "3-of-5, one key rotate fails: not signed with 3 new keys": [
-            RootVersion([0, 1, 2, 3, 4], 3, [0, 2, 4]),
-            RootVersion([0, 1, 3, 4, 5], 3, [0, 2, 4], UnsignedMetadataError),
+            RootVersion(keys=[0, 1, 2, 3, 4], threshold=3, sigs=[0, 2, 4]),
+            RootVersion(keys=[0, 1, 3, 4, 5], threshold=3, sigs=[0, 2, 4], res=UnsignedMetadataError),
         ],
         "3-of-5, one key rotate fails: not signed with 3 old keys": [
-            RootVersion([0, 1, 2, 3, 4], 3, [0, 2, 4]),
-            RootVersion([0, 1, 3, 4, 5], 3, [0, 4, 5], UnsignedMetadataError),
+            RootVersion(keys=[0, 1, 2, 3, 4], threshold=3, sigs=[0, 2, 4]),
+            RootVersion(keys=[0, 1, 3, 4, 5], threshold=3, sigs=[0, 4, 5], res=UnsignedMetadataError),
         ],
         "3-of-5, one key rotated, with intermediate step": [
-            RootVersion([0, 1, 2, 3, 4], 3, [0, 2, 4]),
-            RootVersion([0, 1, 3, 4, 5], 3, [0, 2, 4, 5]),
-            RootVersion([0, 1, 3, 4, 5], 3, [0, 4, 5]),
+            RootVersion(keys=[0, 1, 2, 3, 4], threshold=3, sigs=[0, 2, 4]),
+            RootVersion(keys=[0, 1, 3, 4, 5], threshold=3, sigs=[0, 2, 4, 5]),
+            RootVersion(keys=[0, 1, 3, 4, 5], threshold=3, sigs=[0, 4, 5]),
         ],
         "3-of-5, all keys rotated, with intermediate step": [
-            RootVersion([0, 1, 2, 3, 4], 3, [0, 2, 4]),
-            RootVersion([5, 6, 7, 8, 9], 3, [0, 2, 4, 5, 6, 7]),
-            RootVersion([5, 6, 7, 8, 9], 3, [5, 6, 7]),
+            RootVersion(keys=[0, 1, 2, 3, 4], threshold=3, sigs=[0, 2, 4]),
+            RootVersion(keys=[5, 6, 7, 8, 9], threshold=3, sigs=[0, 2, 4, 5, 6, 7]),
+            RootVersion(keys=[5, 6, 7, 8, 9], threshold=3, sigs=[5, 6, 7]),
         ],
         "1-of-3 threshold increase to 2-of-3": [
-            RootVersion([1, 2, 3], 1, [1]),
-            RootVersion([1, 2, 3], 2, [1, 2]),
+            RootVersion(keys=[1, 2, 3], threshold=1, sigs=[1]),
+            RootVersion(keys=[1, 2, 3], threshold=2, sigs=[1, 2]),
         ],
         "1-of-3 threshold bump to 2-of-3 fails: new threshold not reached": [
-            RootVersion([1, 2, 3], 1, [1]),
-            RootVersion([1, 2, 3], 2, [2], UnsignedMetadataError),
+            RootVersion(keys=[1, 2, 3], threshold=1, sigs=[1]),
+            RootVersion(keys=[1, 2, 3], threshold=2, sigs=[2], res=UnsignedMetadataError),
         ],
         "2-of-3 threshold decrease to 1-of-3": [
-            RootVersion([1, 2, 3], 2, [1, 2]),
-            RootVersion([1, 2, 3], 1, [1, 2]),
-            RootVersion([1, 2, 3], 1, [1]),
+            RootVersion(keys=[1, 2, 3], threshold=2, sigs=[1, 2]),
+            RootVersion(keys=[1, 2, 3], threshold=1, sigs=[1, 2]),
+            RootVersion(keys=[1, 2, 3], threshold=1, sigs=[1]),
         ],
         "2-of-3 threshold decr. to 1-of-3 fails: old threshold not reached": [
-            RootVersion([1, 2, 3], 2, [1, 2]),
-            RootVersion([1, 2, 3], 1, [1], UnsignedMetadataError),
+            RootVersion(keys=[1, 2, 3], threshold=2, sigs=[1, 2]),
+            RootVersion(keys=[1, 2, 3], threshold=1, sigs=[1], res=UnsignedMetadataError),
         ],
         "1-of-2 threshold increase to 2-of-2": [
-            RootVersion([1], 1, [1]),
-            RootVersion([1, 2], 2, [1, 2]),
+            RootVersion(keys=[1], threshold=1, sigs=[1]),
+            RootVersion(keys=[1, 2], threshold=2, sigs=[1, 2]),
         ],
     }
+    # fmt: on
 
     @run_sub_tests_with_dataset(root_rotation_cases)
     def test_root_rotation(self, root_versions: List[RootVersion]) -> None:
@@ -180,13 +182,13 @@ class TestUpdaterKeyRotations(unittest.TestCase):
             self.sim.root.roles["root"].threshold = rootver.threshold
             for i in rootver.keys:
                 self.sim.root.add_key("root", self.keys[i])
-            for i in rootver.signatures:
+            for i in rootver.sigs:
                 self.sim.add_signer("root", self.signers[i])
             self.sim.root.version += 1
             self.sim.publish_root()
 
         # run client workflow, assert success/failure
-        expected_result = root_versions[-1].result
+        expected_result = root_versions[-1].res
         if expected_result is None:
             self._run_refresh()
             expected_local_root = self.sim.signed_roots[-1]
