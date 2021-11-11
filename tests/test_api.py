@@ -203,21 +203,36 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(exceptions.UnsignedMetadataError):
             targets_key.verify_signature(md_obj)
 
-        # Test failure on unknown scheme (securesystemslib UnsupportedAlgorithmError)
+    def test_verify_failures(self):
+        root_path = os.path.join(self.repo_dir, "metadata", "root.json")
+        root = Metadata[Root].from_file(root_path).signed
+
+        # Locate the timestamp public key we need from root
+        timestamp_keyid = next(iter(root.roles["timestamp"].keyids))
+        timestamp_key = root.keys[timestamp_keyid]
+
+        # Load sample metadata (timestamp)
+        path = os.path.join(self.repo_dir, "metadata", "timestamp.json")
+        md_obj = Metadata.from_file(path)
+
+        # Test failure on unknown scheme (securesystemslib
+        # UnsupportedAlgorithmError)
         scheme = timestamp_key.scheme
         timestamp_key.scheme = "foo"
         with self.assertRaises(exceptions.UnsignedMetadataError):
             timestamp_key.verify_signature(md_obj)
         timestamp_key.scheme = scheme
 
-        # Test failure on broken public key data (securesystemslib CryptoError)
+        # Test failure on broken public key data (securesystemslib
+        # CryptoError)
         public = timestamp_key.keyval["public"]
         timestamp_key.keyval["public"] = "ffff"
         with self.assertRaises(exceptions.UnsignedMetadataError):
             timestamp_key.verify_signature(md_obj)
         timestamp_key.keyval["public"] = public
 
-        # Test failure with invalid signature (securesystemslib FormatError)
+        # Test failure with invalid signature (securesystemslib
+        # FormatError)
         sig = md_obj.signatures[timestamp_keyid]
         correct_sig = sig.signature
         sig.signature = "foo"
