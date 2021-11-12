@@ -25,6 +25,7 @@ from tuf.exceptions import (
 from tuf.ngclient import Updater
 
 
+# pylint: disable=too-many-public-methods
 class TestRefresh(unittest.TestCase):
     """Test update of top-level metadata following
     'Detailed client workflow' in the specification."""
@@ -81,6 +82,7 @@ class TestRefresh(unittest.TestCase):
         self, role: str, version: Optional[int] = None
     ) -> None:
         """Assert that local file content is the expected"""
+        # pylint: disable=protected-access
         expected_content = self.sim._fetch_metadata(role, version)
         with open(os.path.join(self.metadata_dir, f"{role}.json"), "rb") as f:
             self.assertEqual(f.read(), expected_content)
