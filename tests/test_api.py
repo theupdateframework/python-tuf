@@ -43,6 +43,7 @@ from tuf.api.serialization.json import CanonicalJSONSerializer, JSONSerializer
 logger = logging.getLogger(__name__)
 
 
+# pylint: disable=too-many-public-methods
 class TestMetadata(unittest.TestCase):
     """Tests for public API of all classes in 'tuf/api/metadata.py'."""
 
