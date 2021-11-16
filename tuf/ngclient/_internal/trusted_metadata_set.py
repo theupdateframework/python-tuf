@@ -141,7 +141,7 @@ class TrustedMetadataSet(abc.Mapping):
         return self._trusted_set.get("targets")
 
     # Methods for updating metadata
-    def update_root(self, data: bytes) -> None:
+    def update_root(self, data: bytes) -> Metadata[Root]:
         """Verifies and loads 'data' as new root metadata.
 
         Note that an expired intermediate root is considered valid: expiry is
@@ -153,6 +153,9 @@ class TrustedMetadataSet(abc.Mapping):
         Raises:
             RepositoryError: Metadata failed to load or verify. The actual
                 error type and content will contain more details.
+
+        Returns:
+            Deserialized and verified root Metadata object
         """
         if self.timestamp is not None:
             raise RuntimeError("Cannot update root after timestamp")
@@ -182,7 +185,9 @@ class TrustedMetadataSet(abc.Mapping):
         self._trusted_set["root"] = new_root
         logger.info("Updated root v%d", new_root.signed.version)
 
-    def update_timestamp(self, data: bytes) -> None:
+        return new_root
+
+    def update_timestamp(self, data: bytes) -> Metadata[Timestamp]:
         """Verifies and loads 'data' as new timestamp metadata.
 
         Note that an intermediate timestamp is allowed to be expired:
@@ -199,6 +204,9 @@ class TrustedMetadataSet(abc.Mapping):
             RepositoryError: Metadata failed to load or verify as final
                 timestamp. The actual error type and content will contain
                 more details.
+
+        Returns:
+            Deserialized and verified timestamp Metadata object
         """
         if self.snapshot is not None:
             raise RuntimeError("Cannot update timestamp after snapshot")
@@ -251,6 +259,8 @@ class TrustedMetadataSet(abc.Mapping):
         # timestamp is loaded: raise if it is not valid _final_ timestamp
         self._check_final_timestamp()
 
+        return new_timestamp
+
     def _check_final_timestamp(self) -> None:
         """Raise if timestamp is expired"""
 
@@ -260,7 +270,7 @@ class TrustedMetadataSet(abc.Mapping):
 
     def update_snapshot(
         self, data: bytes, trusted: Optional[bool] = False
-    ) -> None:
+    ) -> Metadata[Snapshot]:
         """Verifies and loads 'data' as new snapshot metadata.
 
         Note that an intermediate snapshot is allowed to be expired and version
@@ -282,6 +292,9 @@ class TrustedMetadataSet(abc.Mapping):
         Raises:
             RepositoryError: data failed to load or verify as final snapshot.
                 The actual error type and content will contain more details.
+
+        Returns:
+            Deserialized and verified snapshot Metadata object
         """
 
         if self.timestamp is None:
@@ -347,6 +360,8 @@ class TrustedMetadataSet(abc.Mapping):
         # snapshot is loaded, but we raise if it's not valid _final_ snapshot
         self._check_final_snapshot()
 
+        return new_snapshot
+
     def _check_final_snapshot(self) -> None:
         """Raise if snapshot is expired or meta version does not match"""
 
@@ -361,7 +376,7 @@ class TrustedMetadataSet(abc.Mapping):
                 f"got {self.snapshot.signed.version}"
             )
 
-    def update_targets(self, data: bytes) -> None:
+    def update_targets(self, data: bytes) -> Metadata[Targets]:
         """Verifies and loads 'data' as new top-level targets metadata.
 
         Args:
@@ -370,12 +385,15 @@ class TrustedMetadataSet(abc.Mapping):
         Raises:
             RepositoryError: Metadata failed to load or verify. The actual
                 error type and content will contain more details.
+
+        Returns:
+            Deserialized and verified targets Metadata object
         """
-        self.update_delegated_targets(data, "targets", "root")
+        return self.update_delegated_targets(data, "targets", "root")
 
     def update_delegated_targets(
         self, data: bytes, role_name: str, delegator_name: str
-    ) -> None:
+    ) -> Metadata[Targets]:
         """Verifies and loads 'data' as new metadata for target 'role_name'.
 
         Args:
@@ -386,6 +404,9 @@ class TrustedMetadataSet(abc.Mapping):
         Raises:
             RepositoryError: Metadata failed to load or verify. The actual
                 error type and content will contain more details.
+
+        Returns:
+            Deserialized and verified targets Metadata object
         """
         if self.snapshot is None:
             raise RuntimeError("Cannot load targets before snapshot")
@@ -437,6 +458,8 @@ class TrustedMetadataSet(abc.Mapping):
 
         self._trusted_set[role_name] = new_delegate
         logger.info("Updated %s v%d", role_name, version)
+
+        return new_delegate
 
     def _load_trusted_root(self, data: bytes) -> None:
         """Verifies and loads 'data' as trusted root metadata.

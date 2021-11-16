@@ -68,7 +68,7 @@ from urllib import parse
 from securesystemslib import util as sslib_util
 
 from tuf import exceptions
-from tuf.api.metadata import TargetFile, Targets
+from tuf.api.metadata import Metadata, TargetFile, Targets
 from tuf.ngclient._internal import requests_fetcher, trusted_metadata_set
 from tuf.ngclient.config import UpdaterConfig
 from tuf.ngclient.fetcher import FetcherInterface
@@ -368,12 +368,15 @@ class Updater:
             self._trusted_set.update_snapshot(data)
             self._persist_metadata("snapshot", data)
 
-    def _load_targets(self, role: str, parent_role: str) -> None:
+    def _load_targets(self, role: str, parent_role: str) -> Metadata[Targets]:
         """Load local (and if needed remote) metadata for 'role'."""
         try:
             data = self._load_local_metadata(role)
-            self._trusted_set.update_delegated_targets(data, role, parent_role)
+            delegated_targets = self._trusted_set.update_delegated_targets(
+                data, role, parent_role
+            )
             logger.debug("Local %s is valid: not downloading new one", role)
+            return delegated_targets
         except (OSError, exceptions.RepositoryError) as e:
             # Local 'role' does not exist or is invalid: update from remote
             logger.debug("Failed to load local %s: %s", role, e)
@@ -386,8 +389,12 @@ class Updater:
                 version = metainfo.version
 
             data = self._download_metadata(role, length, version)
-            self._trusted_set.update_delegated_targets(data, role, parent_role)
+            delegated_targets = self._trusted_set.update_delegated_targets(
+                data, role, parent_role
+            )
             self._persist_metadata(role, data)
+
+            return delegated_targets
 
     def _preorder_depth_first_walk(
         self, target_filepath: str
@@ -417,10 +424,9 @@ class Updater:
 
             # The metadata for 'role_name' must be downloaded/updated before
             # its targets, delegations, and child roles can be inspected.
-            self._load_targets(role_name, parent_role)
+            targets = self._load_targets(role_name, parent_role).signed
 
-            role_metadata: Targets = self._trusted_set[role_name].signed
-            target = role_metadata.targets.get(target_filepath)
+            target = targets.targets.get(target_filepath)
 
             if target is not None:
                 logger.debug("Found target in current role %s", role_name)
@@ -432,11 +438,11 @@ class Updater:
             # And also decrement number of visited roles.
             number_of_delegations -= 1
 
-            if role_metadata.delegations is not None:
+            if targets.delegations is not None:
                 child_roles_to_visit = []
                 # NOTE: This may be a slow operation if there are many
                 # delegated roles.
-                for child_role in role_metadata.delegations.roles.values():
+                for child_role in targets.delegations.roles.values():
                     if child_role.is_delegated_path(target_filepath):
                         logger.debug("Adding child role %s", child_role.name)
 
