@@ -1,12 +1,14 @@
 #!/usr/bin/env python
+"""Python Client Example."""
+
+# Copyright 2012 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 import argparse
 import os
 import shutil
 import sys
-from logging import exception
 from pathlib import Path
-
-from requests.exceptions import ConnectionError
 
 from tuf.ngclient import Updater
 
@@ -28,18 +30,18 @@ def init():
     if not os.path.isdir(DOWNLOAD_DIR):
         os.mkdir(DOWNLOAD_DIR)
 
-    print(f"[INFO] Download directory [{DOWNLOAD_DIR}] is created.")
+    print(f"Download directory [{DOWNLOAD_DIR}] is created.")
 
     if not os.path.isdir(METADATA_DIR):
         os.makedirs(METADATA_DIR)
 
-    print(f"[INFO] Metadata folder [{METADATA_DIR}] is created.")
+    print(f"Metadata folder [{METADATA_DIR}] is created.")
 
     if not os.path.isfile(f"{METADATA_DIR}/root.json"):
         shutil.copy(
             f"{CLIENT_EXAMPLE_DIR}/1.root.json", f"{METADATA_DIR}/root.json"
         )
-        print(f"[INFO] Bootstrap initial root metadata.")
+        print("Bootstrap initial root metadata.")
 
 
 def tuf_updater():
@@ -49,17 +51,12 @@ def tuf_updater():
     """
     url = "http://127.0.0.1:8000"
 
-    try:
-        updater = Updater(
-            repository_dir=METADATA_DIR,
-            metadata_base_url=f"{url}/metadata/",
-            target_base_url=f"{url}/targets/",
-            target_dir=DOWNLOAD_DIR,
-        )
-
-    except FileNotFoundError:
-        print("[ERROR] The Example Client not initiated. Try using '--init'.")
-        sys.exit(1)
+    updater = Updater(
+        repository_dir=METADATA_DIR,
+        metadata_base_url=f"{url}/metadata/",
+        target_base_url=f"{url}/targets/",
+        target_dir=DOWNLOAD_DIR,
+    )
 
     return updater
 
@@ -77,29 +74,27 @@ def download(target):
         updater = tuf_updater()
 
     except ConnectionError:
-        print("[ERROR] Failed to connect http://127.0.0.1:8000")
+        print("Failed to connect http://127.0.0.1:8000")
         sys.exit(1)
 
     updater.refresh()
-    print("[INFO] Top-level metadata is refreshed.")
+    print("Top-level metadata is refreshed.")
 
     info = updater.get_targetinfo(target)
-    print("[INFO] Target info gotten.")
+    print("Target info gotten.")
 
     if info is None:
-        print("[ERROR] Target file not found.")
+        print("Target file not found.")
         sys.exit(1)
 
     path = updater.find_cached_target(info)
     if path:
-        print(
-            f"[INFO] File is already available in {DOWNLOAD_DIR}/{info.path}."
-        )
+        print(f"File is already available in {DOWNLOAD_DIR}/{info.path}.")
         sys.exit(0)
 
     path = updater.download_target(info)
 
-    print(f"[INFO] File downloaded available in {DOWNLOAD_DIR}/{info.path}.")
+    print(f"File downloaded available in {DOWNLOAD_DIR}/{info.path}.")
 
 
 if __name__ == "__main__":
@@ -112,7 +107,7 @@ if __name__ == "__main__":
     client_args.add_argument(
         "--init",
         default=False,
-        help="Force register a new Engine.",
+        help="Initializes the Client structure.",
         action="store_true",
     )
 
@@ -141,5 +136,5 @@ if __name__ == "__main__":
         client_args.print_help()
 
     if sub_commands_args == "download":
-        target = command_args.get("target")
-        download(target)
+        target_download = command_args.get("target")
+        download(target_download)
