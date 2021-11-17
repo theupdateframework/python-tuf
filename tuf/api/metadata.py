@@ -61,10 +61,10 @@ from tuf.api.serialization import (
     SignedSerializer,
 )
 
-_ROOT: str = "root"
-_SNAPSHOT: str = "snapshot"
-_TARGETS: str = "targets"
-_TIMESTAMP: str = "timestamp"
+_ROOT = "root"
+_SNAPSHOT = "snapshot"
+_TARGETS = "targets"
+_TIMESTAMP = "timestamp"
 
 # pylint: disable=too-many-lines
 

@@ -68,7 +68,14 @@ from urllib import parse
 from securesystemslib import util as sslib_util
 
 from tuf import exceptions
-from tuf.api.metadata import Metadata, Root, Snapshot, TargetFile, Targets, Timestamp
+from tuf.api.metadata import (
+    Metadata,
+    Root,
+    Snapshot,
+    TargetFile,
+    Targets,
+    Timestamp,
+)
 from tuf.ngclient._internal import requests_fetcher, trusted_metadata_set
 from tuf.ngclient.config import UpdaterConfig
 from tuf.ngclient.fetcher import FetcherInterface

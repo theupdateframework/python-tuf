@@ -139,7 +139,7 @@ class RepositorySimulator(FetcherInterface):
 
     def all_targets(self) -> Iterator[Tuple[str, Targets]]:
         """Yield role name and signed portion of targets one by one."""
-        yield "targets", self.md_targets.signed
+        yield Targets.type, self.md_targets.signed
         for role, md in self.md_delegates.items():
             yield role, md.signed
 
@@ -181,7 +181,7 @@ class RepositorySimulator(FetcherInterface):
     def publish_root(self) -> None:
         """Sign and store a new serialized version of root."""
         self.md_root.signatures.clear()
-        for signer in self.signers["root"].values():
+        for signer in self.signers[Root.type].values():
             self.md_root.sign(signer, append=True)
 
         self.signed_roots.append(self.md_root.to_bytes(JSONSerializer()))
@@ -197,8 +197,8 @@ class RepositorySimulator(FetcherInterface):
             ver_and_name = path[len("/metadata/") :][: -len(".json")]
             version_str, _, role = ver_and_name.partition(".")
             # root is always version-prefixed while timestamp is always NOT
-            if role == "root" or (
-                self.root.consistent_snapshot and ver_and_name != "timestamp"
+            if role == Root.type or (
+                self.root.consistent_snapshot and ver_and_name != Timestamp.type
             ):
                 version: Optional[int] = int(version_str)
             else:
@@ -248,7 +248,7 @@ class RepositorySimulator(FetcherInterface):
 
         If version is None, non-versioned metadata is being requested.
         """
-        if role == "root":
+        if role == Root.type:
             # return a version previously serialized in publish_root()
             if version is None or version > len(self.signed_roots):
                 raise FetcherHTTPError(f"Unknown root version {version}", 404)
@@ -257,11 +257,11 @@ class RepositorySimulator(FetcherInterface):
 
         # sign and serialize the requested metadata
         md: Optional[Metadata]
-        if role == "timestamp":
+        if role == Timestamp.type:
             md = self.md_timestamp
-        elif role == "snapshot":
+        elif role == Snapshot.type:
             md = self.md_snapshot
-        elif role == "targets":
+        elif role == Targets.type:
             md = self.md_targets
         else:
             md = self.md_delegates.get(role)
@@ -297,7 +297,7 @@ class RepositorySimulator(FetcherInterface):
         self.timestamp.snapshot_meta.version = self.snapshot.version
 
         if self.compute_metafile_hashes_length:
-            hashes, length = self._compute_hashes_and_length("snapshot")
+            hashes, length = self._compute_hashes_and_length(Snapshot.type)
             self.timestamp.snapshot_meta.hashes = hashes
             self.timestamp.snapshot_meta.length = length
 
@@ -320,7 +320,7 @@ class RepositorySimulator(FetcherInterface):
 
     def add_target(self, role: str, data: bytes, path: str) -> None:
         """Create a target from data and add it to the target_files."""
-        if role == "targets":
+        if role == Targets.type:
             targets = self.targets
         else:
             targets = self.md_delegates[role].signed
@@ -339,7 +339,7 @@ class RepositorySimulator(FetcherInterface):
         hash_prefixes: Optional[List[str]],
     ) -> None:
         """Add delegated target role to the repository."""
-        if delegator_name == "targets":
+        if delegator_name == Targets.type:
             delegator = self.targets
         else:
             delegator = self.md_delegates[delegator_name].signed
@@ -375,9 +375,9 @@ class RepositorySimulator(FetcherInterface):
 
         for ver in range(1, len(self.signed_roots) + 1):
             with open(os.path.join(dest_dir, f"{ver}.root.json"), "wb") as f:
-                f.write(self._fetch_metadata("root", ver))
+                f.write(self._fetch_metadata(Root.type, ver))
 
-        for role in ["timestamp", "snapshot", "targets"]:
+        for role in [Timestamp.type, Snapshot.type, Targets.type]:
             with open(os.path.join(dest_dir, f"{role}.json"), "wb") as f:
                 f.write(self._fetch_metadata(role))
 
