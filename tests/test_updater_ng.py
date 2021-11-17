@@ -282,6 +282,20 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         expected_files = ["role1", "root", "snapshot", "targets", "timestamp"]
         self._assert_files(expected_files)
 
+    def test_implicit_refresh_with_only_local_root(self):
+        os.remove(os.path.join(self.client_directory, "timestamp.json"))
+        os.remove(os.path.join(self.client_directory, "snapshot.json"))
+        os.remove(os.path.join(self.client_directory, "targets.json"))
+        os.remove(os.path.join(self.client_directory, "role1.json"))
+        os.remove(os.path.join(self.client_directory, "role2.json"))
+        os.remove(os.path.join(self.client_directory, "1.root.json"))
+        self._assert_files(["root"])
+
+        # Get targetinfo for 'file3.txt' listed in the delegated role1
+        targetinfo3 = self.updater.get_targetinfo("file3.txt")
+        expected_files = ["role1", "root", "snapshot", "targets", "timestamp"]
+        self._assert_files(expected_files)
+
     def test_both_target_urls_not_set(self):
         # target_base_url = None and Updater._target_base_url = None
         updater = ngclient.Updater(
