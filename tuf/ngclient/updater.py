@@ -62,7 +62,7 @@ Example::
 import logging
 import os
 import tempfile
-from typing import Optional, Set, Tuple
+from typing import Optional, Set
 from urllib import parse
 
 from securesystemslib import util as sslib_util
@@ -401,7 +401,7 @@ class Updater:
         # List of delegations to be interrogated. A (role, parent role) pair
         # is needed to load and verify the delegated targets metadata.
         delegations_to_visit = [("targets", "root")]
-        visited_role_names: Set[Tuple[str, str]] = set()
+        visited_role_names: Set[str] = set()
         number_of_delegations = self.config.max_delegations
 
         # Preorder depth-first traversal of the graph of target delegations.
@@ -411,7 +411,7 @@ class Updater:
             role_name, parent_role = delegations_to_visit.pop(-1)
 
             # Skip any visited current role to prevent cycles.
-            if (role_name, parent_role) in visited_role_names:
+            if role_name in visited_role_names:
                 logger.debug("Skipping visited current role %s", role_name)
                 continue
 
@@ -427,7 +427,7 @@ class Updater:
                 return target
 
             # After preorder check, add current role to set of visited roles.
-            visited_role_names.add((role_name, parent_role))
+            visited_role_names.add(role_name)
 
             # And also decrement number of visited roles.
             number_of_delegations -= 1
