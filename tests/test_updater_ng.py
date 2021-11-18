@@ -131,26 +131,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         # Logs stdout and stderr from the sever subprocess.
         self.server_process_handler.flush_log()
 
-    def _create_consistent_target(
-        self, targetname: str, target_hash: str
-    ) -> None:
-        """Create consistent targets copies of their non-consistent counterparts
-        inside the repository directory.
-
-        Args:
-          targetname: A string denoting the name of the target file.
-          target_hash: A string denoting the hash of the target.
-
-        """
-        consistent_target_name = f"{target_hash}.{targetname}"
-        source_path = os.path.join(
-            self.repository_directory, "targets", targetname
-        )
-        destination_path = os.path.join(
-            self.repository_directory, "targets", consistent_target_name
-        )
-        shutil.copy(source_path, destination_path)
-
     def _modify_repository_root(
         self, modification_func, bump_version=False
     ) -> None:
@@ -184,51 +164,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         expected_files = [f"{role}.json" for role in roles]
         client_files = sorted(os.listdir(self.client_directory))
         self.assertEqual(client_files, expected_files)
-
-    # pylint: disable=protected-access
-    def test_refresh_on_consistent_targets(self):
-        # Generate a new root version where consistent_snapshot is set to true
-        def consistent_snapshot_modifier(root):
-            root.signed.consistent_snapshot = True
-
-        self._modify_repository_root(
-            consistent_snapshot_modifier, bump_version=True
-        )
-        updater = ngclient.Updater(
-            self.client_directory,
-            self.metadata_url,
-            self.dl_dir,
-            self.targets_url,
-        )
-
-        # All metadata is in local directory already
-        updater.refresh()
-        # Make sure that consistent snapshot is enabled
-        self.assertTrue(updater._trusted_set.root.signed.consistent_snapshot)
-
-        # Get targetinfos, assert cache does not contain the files
-        info1 = updater.get_targetinfo("file1.txt")
-        info3 = updater.get_targetinfo("file3.txt")
-        self.assertIsNone(updater.find_cached_target(info1))
-        self.assertIsNone(updater.find_cached_target(info3))
-
-        # Create consistent targets with file path HASH.FILENAME.EXT
-        target1_hash = list(info1.hashes.values())[0]
-        target3_hash = list(info3.hashes.values())[0]
-        self._create_consistent_target("file1.txt", target1_hash)
-        self._create_consistent_target("file3.txt", target3_hash)
-
-        # Download files, assert that cache has correct files
-        updater.download_target(info1)
-        path = updater.find_cached_target(info1)
-        self.assertEqual(path, os.path.join(self.dl_dir, info1.path))
-        self.assertIsNone(updater.find_cached_target(info3))
-
-        updater.download_target(info3)
-        path = updater.find_cached_target(info1)
-        self.assertEqual(path, os.path.join(self.dl_dir, info1.path))
-        path = updater.find_cached_target(info3)
-        self.assertEqual(path, os.path.join(self.dl_dir, info3.path))
 
     def test_refresh_and_download(self):
         # Test refresh without consistent targets - targets without hash prefix.
