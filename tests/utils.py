@@ -21,7 +21,7 @@
 """
 
 from contextlib import contextmanager
-from typing import Dict, Any, Callable
+from typing import Any, Callable, Dict, IO, Optional, Callable, List, Iterator
 import unittest
 import argparse
 import errno
@@ -48,9 +48,13 @@ DataSet = Dict[str, Any]
 # Test runner decorator: Runs the test as a set of N SubTests,
 # (where N is number of items in dataset), feeding the actual test
 # function one test case at a time
-def run_sub_tests_with_dataset(dataset: DataSet):
-    def real_decorator(function: Callable[[unittest.TestCase, Any], None]):
-        def wrapper(test_cls: unittest.TestCase):
+def run_sub_tests_with_dataset(
+  dataset: DataSet
+) -> Callable[[Callable], Callable]:
+    def real_decorator(
+      function: Callable[[unittest.TestCase, Any], None]
+    ) -> Callable[[unittest.TestCase], None]:
+        def wrapper(test_cls: unittest.TestCase) -> None:
             for case, data in dataset.items():
                 with test_cls.subTest(case=case):
                     function(test_cls, data)
@@ -60,15 +64,15 @@ def run_sub_tests_with_dataset(dataset: DataSet):
 
 class TestServerProcessError(Exception):
 
-  def __init__(self, value="TestServerProcess"):
+  def __init__(self, value: str="TestServerProcess") -> None:
     self.value = value
 
-  def __str__(self):
+  def __str__(self) -> str:
     return repr(self.value)
 
 
 @contextmanager
-def ignore_deprecation_warnings(module):
+def ignore_deprecation_warnings(module: str) -> Iterator[None]:
   with warnings.catch_warnings():
     warnings.filterwarnings('ignore',
         category=DeprecationWarning,
@@ -82,13 +86,16 @@ def ignore_deprecation_warnings(module):
 # but the current blocking connect() seems to work fast on Linux and seems
 # to at least work on Windows (ECONNREFUSED unfortunately has a 2 second
 # timeout on Windows)
-def wait_for_server(host, server, port, timeout=10):
+def wait_for_server(host: str, server: str, port: int, timeout: int=10) -> None:
   start = time.time()
   remaining_timeout = timeout
   succeeded = False
   while not succeeded and remaining_timeout > 0:
     try:
-      sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      sock: Optional[socket.socket] = socket.socket(
+        socket.AF_INET, socket.SOCK_STREAM
+      )
+      assert sock is not None
       sock.settimeout(remaining_timeout)
       sock.connect((host, port))
       succeeded = True
@@ -104,14 +111,14 @@ def wait_for_server(host, server, port, timeout=10):
       if sock:
         sock.close()
         sock = None
-      remaining_timeout = timeout - (time.time() - start)
+      remaining_timeout = int(timeout - (time.time() - start))
 
   if not succeeded:
     raise TimeoutError("Could not connect to the " + server \
         + " on port " + str(port) + "!")
 
 
-def configure_test_logging(argv):
+def configure_test_logging(argv: List[str]) -> None:
   # parse arguments but only handle '-v': argv may contain 
   # other things meant for unittest argument parser
   parser = argparse.ArgumentParser(add_help=False)
@@ -165,13 +172,14 @@ class TestServerProcess():
   """
 
 
-  def __init__(self, log, server='simple_server.py',
-      timeout=10, popen_cwd=".", extra_cmd_args=None):
+  def __init__(self, log: logging.Logger, server: str='simple_server.py',
+      timeout: int=10, popen_cwd: str=".", extra_cmd_args: Optional[List[str]]=None
+  ):
 
     self.server = server
     self.__logger = log
     # Stores popped messages from the queue.
-    self.__logged_messages = []
+    self.__logged_messages: List[str] = []
     if extra_cmd_args is None:
       extra_cmd_args = []
 
@@ -185,7 +193,9 @@ class TestServerProcess():
 
 
 
-  def _start_server(self, timeout, extra_cmd_args, popen_cwd):
+  def _start_server(
+    self, timeout: int, extra_cmd_args: List[str], popen_cwd: str
+  ) -> None:
     """
     Start the server subprocess and a thread
     responsible to redirect stdout/stderr to the Queue.
@@ -201,7 +211,7 @@ class TestServerProcess():
 
 
 
-  def _start_process(self, extra_cmd_args, popen_cwd):
+  def _start_process(self, extra_cmd_args: List[str], popen_cwd: str) -> None:
     """Starts the process running the server."""
 
     # The "-u" option forces stdin, stdout and stderr to be unbuffered.
@@ -213,7 +223,7 @@ class TestServerProcess():
 
 
 
-  def _start_redirect_thread(self):
+  def _start_redirect_thread(self) -> None:
     """Starts a thread responsible to redirect stdout/stderr to the Queue."""
 
     # Run log_queue_worker() in a thread.
@@ -228,7 +238,7 @@ class TestServerProcess():
 
 
   @staticmethod
-  def _log_queue_worker(stream, line_queue):
+  def _log_queue_worker(stream: IO, line_queue: queue.Queue) -> None:
     """
     Worker function to run in a seprate thread.
     Reads from 'stream', puts lines in a Queue (Queue is thread-safe).
@@ -247,7 +257,7 @@ class TestServerProcess():
 
 
 
-  def _wait_for_port(self, timeout):
+  def _wait_for_port(self, timeout: int) -> None:
     """
     Validates the first item from the Queue against the port message.
     If validation is successful, self.port is set.
@@ -279,7 +289,7 @@ class TestServerProcess():
 
 
 
-  def _kill_server_process(self):
+  def _kill_server_process(self) -> None:
     """Kills the server subprocess if it's running."""
 
     if self.is_process_running():
@@ -290,7 +300,7 @@ class TestServerProcess():
 
 
 
-  def flush_log(self):
+  def flush_log(self) -> None:
     """Flushes the log lines from the logging queue."""
 
     while True:
@@ -311,7 +321,7 @@ class TestServerProcess():
 
 
 
-  def clean(self):
+  def clean(self) -> None:
     """
     Kills the subprocess and closes the TempFile.
     Calls flush_log to check for logged information, but not yet flushed.
@@ -324,5 +334,5 @@ class TestServerProcess():
 
 
 
-  def is_process_running(self):
+  def is_process_running(self) -> bool:
     return True if self.__server_process.poll() is None else False

@@ -349,7 +349,7 @@ class TestRefresh(unittest.TestCase):
 
         self._assert_files_exist(["root", "timestamp"])
 
-    def test_new_snapshot_version_mismatch(self):
+    def test_new_snapshot_version_mismatch(self) -> None:
         # Check against timestamp role’s snapshot version
 
         # Increase snapshot version without updating timestamp
@@ -414,7 +414,7 @@ class TestRefresh(unittest.TestCase):
 
         self._assert_files_exist(["root", "timestamp", "snapshot"])
 
-    def test_new_targets_version_mismatch(self):
+    def test_new_targets_version_mismatch(self) -> None:
         # Check against snapshot role’s targets version
 
         # Increase targets version without updating snapshot

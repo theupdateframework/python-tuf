@@ -13,6 +13,7 @@ import os
 import sys
 import tempfile
 import unittest
+from typing import Any, ClassVar, Iterator
 from unittest.mock import Mock, patch
 
 import requests
@@ -28,17 +29,19 @@ logger = logging.getLogger(__name__)
 class TestFetcher(unittest_toolbox.Modified_TestCase):
     """Test RequestsFetcher class."""
 
+    server_process_handler: ClassVar[utils.TestServerProcess]
+
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         # Launch a SimpleHTTPServer (serves files in the current dir).
         cls.server_process_handler = utils.TestServerProcess(log=logger)
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         # Stop server process and perform clean up.
         cls.server_process_handler.clean()
 
-    def setUp(self):
+    def setUp(self) -> None:
         """
         Create a temporary file and launch a simple server in the
         current working directory.
@@ -64,12 +67,12 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
         # Instantiate a concrete instance of FetcherInterface
         self.fetcher = RequestsFetcher()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         # Remove temporary directory
         unittest_toolbox.Modified_TestCase.tearDown(self)
 
     # Simple fetch.
-    def test_fetch(self):
+    def test_fetch(self) -> None:
         with tempfile.TemporaryFile() as temp_file:
             for chunk in self.fetcher.fetch(self.url):
                 temp_file.write(chunk)
@@ -80,7 +83,7 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
             )
 
     # URL data downloaded in more than one chunk
-    def test_fetch_in_chunks(self):
+    def test_fetch_in_chunks(self) -> None:
         # Set a smaller chunk size to ensure that the file will be downloaded
         # in more than one chunk
         self.fetcher.chunk_size = 4
@@ -105,12 +108,12 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
             self.assertEqual(chunks_count, expected_chunks_count)
 
     # Incorrect URL parsing
-    def test_url_parsing(self):
+    def test_url_parsing(self) -> None:
         with self.assertRaises(exceptions.URLParsingError):
             self.fetcher.fetch(self.random_string())
 
     # File not found error
-    def test_http_error(self):
+    def test_http_error(self) -> None:
         with self.assertRaises(exceptions.FetcherHTTPError) as cm:
             self.url = f"{self.url_prefix}/non-existing-path"
             self.fetcher.fetch(self.url)
@@ -118,7 +121,7 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
 
     # Response read timeout error
     @patch.object(requests.Session, "get")
-    def test_response_read_timeout(self, mock_session_get):
+    def test_response_read_timeout(self, mock_session_get: Any) -> None:
         mock_response = Mock()
         attr = {
             "raw.read.side_effect": urllib3.exceptions.ReadTimeoutError(
@@ -136,28 +139,28 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
     @patch.object(
         requests.Session, "get", side_effect=urllib3.exceptions.TimeoutError
     )
-    def test_session_get_timeout(self, mock_session_get):
+    def test_session_get_timeout(self, mock_session_get: Any) -> None:
         with self.assertRaises(exceptions.SlowRetrievalError):
             self.fetcher.fetch(self.url)
         mock_session_get.assert_called_once()
 
     # Simple bytes download
-    def test_download_bytes(self):
+    def test_download_bytes(self) -> None:
         data = self.fetcher.download_bytes(self.url, self.file_length)
         self.assertEqual(self.file_contents, data.decode("utf-8"))
 
     # Download file smaller than required max_length
-    def test_download_bytes_upper_length(self):
+    def test_download_bytes_upper_length(self) -> None:
         data = self.fetcher.download_bytes(self.url, self.file_length + 4)
         self.assertEqual(self.file_contents, data.decode("utf-8"))
 
     # Download a file bigger than expected
-    def test_download_bytes_length_mismatch(self):
+    def test_download_bytes_length_mismatch(self) -> None:
         with self.assertRaises(exceptions.DownloadLengthMismatchError):
             self.fetcher.download_bytes(self.url, self.file_length - 4)
 
     # Simple file download
-    def test_download_file(self):
+    def test_download_file(self) -> None:
         with self.fetcher.download_file(
             self.url, self.file_length
         ) as temp_file:
@@ -165,7 +168,7 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
             self.assertEqual(self.file_length, temp_file.tell())
 
     # Download file smaller than required max_length
-    def test_download_file_upper_length(self):
+    def test_download_file_upper_length(self) -> None:
         with self.fetcher.download_file(
             self.url, self.file_length + 4
         ) as temp_file:
@@ -173,8 +176,10 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
             self.assertEqual(self.file_length, temp_file.tell())
 
     # Download a file bigger than expected
-    def test_download_file_length_mismatch(self):
+    def test_download_file_length_mismatch(self) -> Iterator[Any]:
         with self.assertRaises(exceptions.DownloadLengthMismatchError):
+            # Force download_file to execute and raise the error since it is a
+            # context manager and returns Iterator[IO]
             yield self.fetcher.download_file(self.url, self.file_length - 4)
 
 
