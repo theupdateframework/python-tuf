@@ -1100,6 +1100,13 @@ class DelegatedRole(Role):
         if paths is None and path_hash_prefixes is None:
             raise ValueError("One of paths or path_hash_prefixes must be set")
 
+        if paths is not None and any(not isinstance(p, str) for p in paths):
+            raise ValueError("Paths must be strings")
+        if path_hash_prefixes is not None and any(
+            not isinstance(p, str) for p in path_hash_prefixes
+        ):
+            raise ValueError("Path_hash_prefixes must be strings")
+
         self.paths = paths
         self.path_hash_prefixes = path_hash_prefixes
 
