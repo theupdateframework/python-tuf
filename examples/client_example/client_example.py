@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 import argparse
+import logging
 import os
 import shutil
 import sys
@@ -21,33 +22,31 @@ CLIENT_EXAMPLE_DIR = os.path.dirname(os.path.abspath(__file__))  # example dir
 
 def init():
     """
-    Initialize the TUF Client infrastructure
+    The function that initializes the TUF client infrastructure.
 
-    This function initializes the creation of the download and TUF metadata
-    directory.
+    It creates the metadata directory and downloads the ``root.json``.
     """
 
     if not os.path.isdir(DOWNLOAD_DIR):
         os.mkdir(DOWNLOAD_DIR)
 
-    print(f"Download directory [{DOWNLOAD_DIR}] is created.")
+    print(f"Download directory [{DOWNLOAD_DIR}] is created")
 
     if not os.path.isdir(METADATA_DIR):
         os.makedirs(METADATA_DIR)
 
-    print(f"Metadata folder [{METADATA_DIR}] is created.")
+    print(f"Metadata folder [{METADATA_DIR}] is created")
 
     if not os.path.isfile(f"{METADATA_DIR}/root.json"):
         shutil.copy(
             f"{CLIENT_EXAMPLE_DIR}/1.root.json", f"{METADATA_DIR}/root.json"
         )
-        print("Bootstrap initial root metadata.")
+        print("Bootstrap initial root metadata")
 
 
 def tuf_updater():
     """
-    This function implement the ``tuf.ngclient.Updater`` and returns
-    the updater.
+    The function that creates the TUF updater using ``tuf.ngclient``.
     """
     url = "http://127.0.0.1:8000"
 
@@ -63,7 +62,8 @@ def tuf_updater():
 
 def download(target):
     """
-    Download the target file using the TUF ``nglcient`` Updater process.
+    The function that downloads the target file using the TUF ``nglcient``
+    Updater.
 
     The Updater refreshes the top-level metadata, get the target information,
     verifies if the target is already cached, and in case it is not cached,
@@ -73,28 +73,31 @@ def download(target):
     try:
         updater = tuf_updater()
 
-    except ConnectionError:
-        print("Failed to connect http://127.0.0.1:8000")
-        sys.exit(1)
+    # if the metadata is not available, it will initialize the TUF client
+    except FileNotFoundError:
+        print("Client infrastructure not found")
+        print("Initializing the Client Infrastructure")
+        init()
+        updater = tuf_updater()
 
     updater.refresh()
-    print("Top-level metadata is refreshed.")
 
     info = updater.get_targetinfo(target)
-    print("Target info gotten.")
+    print(f"Target {target} information fetched")
 
     if info is None:
-        print("Target file not found.")
+        print(f"Target {target} not found")
         sys.exit(1)
 
     path = updater.find_cached_target(info)
+    print(f"Cached target {target} verified")
     if path:
-        print(f"File is already available in {DOWNLOAD_DIR}/{info.path}.")
+        print(f"Target is already available in {DOWNLOAD_DIR}/{info.path}")
         sys.exit(0)
 
     path = updater.download_target(info)
 
-    print(f"File downloaded available in {DOWNLOAD_DIR}/{info.path}.")
+    print(f"Target is available in {DOWNLOAD_DIR}/{info.path}")
 
 
 if __name__ == "__main__":
@@ -107,8 +110,16 @@ if __name__ == "__main__":
     client_args.add_argument(
         "--init",
         default=False,
-        help="Initializes the Client structure.",
+        help="Initializes the Client structure",
         action="store_true",
+    )
+
+    client_args.add_argument(
+        "-v",
+        "--verbose",
+        help="Output verbosity level (-v, -vv, ...)",
+        action="count",
+        default=0,
     )
 
     # Sub commands
@@ -128,6 +139,19 @@ if __name__ == "__main__":
 
     command_args = vars(client_args.parse_args())
     sub_commands_args = command_args.get("sub_commands")
+
+    verbose = command_args.get("verbose")
+
+    if verbose <= 1:
+        loglevel = logging.ERROR
+    elif verbose == 2:
+        loglevel = logging.WARNING
+    elif verbose == 3:
+        loglevel = logging.INFO
+    else:
+        loglevel = logging.DEBUG
+
+    logging.basicConfig(level=loglevel)
 
     if command_args.get("init") is True:
         init()

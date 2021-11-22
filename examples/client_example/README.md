@@ -5,19 +5,9 @@ Introduction
 
 Python Client Example, using ``python-tuf``.
 
-For information about installing ``python-tuf``, please refer to the
-[Installation documentation](https://theupdateframework.readthedocs.io/en/latest/INSTALLATION.html).
-
-
-Preparing
-=========
-
-To have the example working in your machine, clone the ``python-tuf`` in your
-system.
-
-```console
-$ git clone git@github.com:theupdateframework/python-tuf.git
-```
+This Python Client Example implements the following actions:
+   - Client Infrastructure Initialization
+   - Download target files from TUF Repository
 
 
 Repository
@@ -46,7 +36,7 @@ in this source code repository.
 
 How to use the Client Example:
 
-1. Initialize the Client
+1. Initialize the Client (optional)
 
    ```console
    $ ./client_example.py --init
@@ -63,26 +53,24 @@ How to use the Client Example:
 2. Download the ``file1.txt``
 
    ```console
-   $ ./client_example.py download file1.txt
-   Top-level metadata is refreshed.
-   Target info gotten.
-   File downloaded available in ./downloads/file2.txt.
+   Target file1.txt information fetched
+   Cached target file1.txt verified
+   Target is available in ./downloads/file1.txt
    ```
 
 3. Download a not available ``file_na.txt``
 
    ```console
    $ ./client_example.py download file_na.txt
-   Top-level metadata is refreshed.
-   Target info gotten.
-   Target file not found.
+   Target file_na.txt information fetched
+   Target file_na.txt not found
    ```
 
 4. Download again ``file1.txt``
 
    ```console
    $ ./client_example.py download file1.txt
-   Top-level metadata is refreshed.
-   Target info gotten.
-   File is already available in ./downloads/file1.txt.
+   Target file1.txt information fetched
+   Cached target file1.txt verified
+   Target is already available in ./downloads/file1.txt
    ```
