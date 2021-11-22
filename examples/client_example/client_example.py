@@ -11,6 +11,7 @@ import shutil
 import sys
 from pathlib import Path
 
+from tuf.exceptions import RepositoryError
 from tuf.ngclient import Updater
 
 # define directory constants
@@ -79,6 +80,12 @@ def download(target):
         print("Initializing the Client Infrastructure")
         init()
         updater = tuf_updater()
+
+    # handle specific TUF error (root.json corrupted in the client metadata)
+    # check out ``tuf.exceptions`` for more information
+    except RepositoryError as e:
+        print(e)
+        sys.exit(1)
 
     updater.refresh()
 
