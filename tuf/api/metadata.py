@@ -1213,6 +1213,12 @@ class Delegations:
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ):
         self.keys = keys
+        if [role for role in set(roles) if role in TOP_LEVEL_ROLE_NAMES]:
+            raise ValueError(
+                "A delegated role can not use top-level role names ("
+                f"{', '.join(TOP_LEVEL_ROLE_NAMES)})"
+            )
+
         self.roles = roles
         self.unrecognized_fields = unrecognized_fields or {}
 

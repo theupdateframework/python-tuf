@@ -360,6 +360,43 @@ class TestSerialization(unittest.TestCase):
         delegation = Delegations.from_dict(copy.deepcopy(case_dict))
         self.assertDictEqual(case_dict, delegation.to_dict())
 
+    valid_delegations: utils.DataSet = {
+        "using root as delegate role name": '{"keys": { \
+                "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
+            "roles": [ \
+                {"keyids": ["keyid"], "name": "root", "terminating": true, "paths": ["fn1"], "threshold": 3}] \
+            }',
+        "using snapshot as delegate role name": '{"keys": { \
+                "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
+            "roles": [ \
+                {"keyids": ["keyid"], "name": "snapshot", "terminating": true, "paths": ["fn1"], "threshold": 3}] \
+            }',
+        "using targets as delegate role name": '{"keys": { \
+                "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
+            "roles": [ \
+                {"keyids": ["keyid"], "name": "targets", "terminating": true, "paths": ["fn1"], "threshold": 3}] \
+            }',
+        "using timestamp as delegate role name": '{"keys": { \
+                "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
+            "roles": [ \
+                {"keyids": ["keyid"], "name": "root", "terminating": true, "paths": ["fn1"], "threshold": 3}] \
+            }',
+        "using valid and top-level role name": '{"keys": { \
+                "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}, \
+                "keyid2" : {"keytype": "ed25519", "scheme": "ed25519", "keyval": {"public": "bar"}}}, \
+            "roles": [ \
+                {"keyids": ["keyid"], "name": "b", "terminating": true, "paths": ["fn1"], "threshold": 3}, \
+                {"keyids": ["keyid2"], "name": "root", "terminating": true, "paths": ["fn2"], "threshold": 4} ] \
+            }',
+    }
+
+    @utils.run_sub_tests_with_dataset(valid_delegations)
+    def test_delegation_top_role_names(self, test_case_data: str):
+        case_dict = json.loads(test_case_data)
+        with self.assertRaises(ValueError):
+            Delegations.from_dict(copy.deepcopy(case_dict))
+
+
     invalid_targetfiles: utils.DataSet = {
         "no hashes": '{"length": 1}',
         "no length": '{"hashes": {"sha256": "abc"}}'
