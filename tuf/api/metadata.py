@@ -722,7 +722,7 @@ class Root(Signed):
         spec_version: str,
         expires: datetime,
         keys: Dict[str, Key],
-        roles: Dict[str, Role],
+        roles: Mapping[str, Role],
         consistent_snapshot: Optional[bool] = None,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ):
