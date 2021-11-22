@@ -64,14 +64,6 @@ class TestConsistentSnapshot(unittest.TestCase):
             sim,
         )
 
-    @staticmethod
-    def _cleanup_dir(path: str) -> None:
-        """Delete all files inside a directory"""
-        for filepath in [
-            os.path.join(path, filename) for filename in os.listdir(path)
-        ]:
-            os.remove(filepath)
-
     def _assert_metadata_files_exist(self, roles: Iterable[str]) -> None:
         """Assert that local metadata files exist for 'roles'"""
         local_metadata_files = os.listdir(self.metadata_dir)
@@ -126,7 +118,7 @@ class TestConsistentSnapshot(unittest.TestCase):
         # metadata files are always persisted without a version prefix
         self._assert_metadata_files_exist(TOP_LEVEL_ROLE_NAMES)
 
-        self._cleanup_dir(self.metadata_dir)
+        utils.cleanup_dir(self.metadata_dir)
 
     delegated_roles_data: utils.DataSet = {
         "consistent_snaphot disabled": {
@@ -169,7 +161,7 @@ class TestConsistentSnapshot(unittest.TestCase):
         # metadata files are always persisted without a version prefix
         self._assert_metadata_files_exist(rolenames)
 
-        self._cleanup_dir(self.metadata_dir)
+        utils.cleanup_dir(self.metadata_dir)
 
     targets_download_data: utils.DataSet = {
         "consistent_snaphot disabled": {
@@ -229,7 +221,7 @@ class TestConsistentSnapshot(unittest.TestCase):
             self.assertListEqual(sim.fetch_tracker.targets, expected_fetches)
             sim.fetch_tracker.targets.clear()
 
-        self._cleanup_dir(self.targets_dir)
+        utils.cleanup_dir(self.targets_dir)
 
 
 if __name__ == "__main__":
