@@ -10,14 +10,14 @@ import sys
 import tempfile
 import unittest
 from dataclasses import dataclass
-from typing import List, Optional, Type
+from typing import Dict, List, Optional, Type
 
 from securesystemslib.signer import SSlibSigner
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
 from tests.utils import run_sub_tests_with_dataset
-from tuf.api.metadata import Key, Root
+from tuf.api.metadata import Key, Metadata, Root
 from tuf.exceptions import UnsignedMetadataError
 from tuf.ngclient import Updater
 
@@ -204,6 +204,79 @@ class TestUpdaterKeyRotations(unittest.TestCase):
         with open(os.path.join(self.metadata_dir, "root.json"), "rb") as f:
             self.assertEqual(f.read(), expected_local_root)
 
+    # fmt: off
+    non_root_rotation_cases: Dict[str, MdVersion] = {
+        "1-of-1 key rotation":
+            MdVersion(keys=[2], threshold=1, sigs=[2]),
+        "1-of-1 key rotation, unused signatures":
+            MdVersion(keys=[1], threshold=1, sigs=[3, 1, 4]),
+        "1-of-1 key rotation fail: not signed with new key":
+            MdVersion(keys=[2], threshold=1, sigs=[1, 3, 4], res=UnsignedMetadataError),
+        "3-of-5, one key signature wrong: not signed with 3 expected keys":
+            MdVersion(keys=[0, 1, 3, 4, 5], threshold=3, sigs=[0, 2, 4], res=UnsignedMetadataError),
+        "2-of-5, one key signature mising: threshold not reached":
+            MdVersion(keys=[0, 1, 3, 4, 5], threshold=3, sigs=[0, 4], res=UnsignedMetadataError),
+        "3-of-5, sign first combo":
+            MdVersion(keys=[0, 1, 2, 3, 4], threshold=3, sigs=[0, 2, 4]),
+        "3-of-5, sign second combo":
+            MdVersion(keys=[0, 1, 2, 3, 4], threshold=3, sigs=[0, 4, 1]),
+        "3-of-5, sign third combo":
+            MdVersion(keys=[0, 1, 2, 3, 4], threshold=3, sigs=[0, 1, 3]),
+        "3-of-5, sign fourth combo":
+            MdVersion(keys=[0, 1, 2, 3, 4], threshold=3, sigs=[1, 2, 3]),
+        "3-of-5, sign fifth combo":
+            MdVersion(keys=[0, 1, 2, 3, 4], threshold=3, sigs=[2, 3, 4]),
+    }
+    # fmt: on
+
+    @run_sub_tests_with_dataset(non_root_rotation_cases)
+    def test_non_root_rotations(self, md_version: MdVersion) -> None:
+        """Test Updater.refresh() with various sequences of metadata updates
+
+        Each MdVersion in the list describes metadata keys and signatures
+        of a remote metadata version. As an example:
+            MdVersion([1,2,3], 2, [1,2])
+        defines a metadata that contains keys 1, 2 and 3 with threshold 2. The
+        metadata is signed with keys 1 and 2.
+
+        Assert that refresh() result is expected and that local metadata on disk
+        is the expected one after all roots have been loaded from remote using
+        the standard client update workflow.
+        """
+        self.setup_subtest()
+        roles = ["timestamp", "snapshot", "targets"]
+        for role in roles:
+
+            # clear role keys, signers
+            self.sim.root.roles[role].keyids.clear()
+            self.sim.signers[role].clear()
+
+            self.sim.root.roles[role].threshold = md_version.threshold
+            for i in md_version.keys:
+                self.sim.root.add_key(role, self.keys[i])
+
+            for i in md_version.sigs:
+                self.sim.add_signer(role, self.signers[i])
+
+            self.sim.root.version += 1
+            self.sim.publish_root()
+
+            # run client workflow, assert success/failure
+            expected_error = md_version.res
+            if expected_error is None:
+                self._run_refresh()
+
+                # Call fetch_metadata to sign metadata with new keys
+                expected_local_md: Metadata = self.sim._fetch_metadata(role)
+                # assert local metadata role is on disk as expected
+                md_path = os.path.join(self.metadata_dir, f"{role}.json")
+                with open(md_path, "rb") as f:
+                    data = f.read()
+                    self.assertEqual(data, expected_local_md)
+            else:
+                # failure expected
+                with self.assertRaises(expected_error):
+                    self._run_refresh()
 
 if __name__ == "__main__":
     if "--dump" in sys.argv:
