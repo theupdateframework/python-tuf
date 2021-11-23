@@ -1214,10 +1214,7 @@ class Delegations:
     ):
         self.keys = keys
         if [role for role in set(roles) if role in TOP_LEVEL_ROLE_NAMES]:
-            raise ValueError(
-                "A delegated role can not use top-level role names ("
-                f"{', '.join(TOP_LEVEL_ROLE_NAMES)})"
-            )
+            raise ValueError("Delegated roles cannot use top-level role names")
 
         self.roles = roles
         self.unrecognized_fields = unrecognized_fields or {}
