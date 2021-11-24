@@ -294,12 +294,15 @@ class RepositorySimulator(FetcherInterface):
         """Update timestamp and assign snapshot version to snapshot_meta
         version.
         """
-        self.timestamp.snapshot_meta.version = self.snapshot.version
 
+        hashes = None
+        length = None
         if self.compute_metafile_hashes_length:
             hashes, length = self._compute_hashes_and_length(Snapshot.type)
-            self.timestamp.snapshot_meta.hashes = hashes
-            self.timestamp.snapshot_meta.length = length
+
+        self.timestamp.snapshot_meta = MetaFile(
+            self.snapshot.version, length, hashes
+        )
 
         self.timestamp.version += 1
 
