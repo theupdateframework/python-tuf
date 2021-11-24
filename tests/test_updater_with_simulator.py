@@ -137,7 +137,6 @@ class TestUpdater(unittest.TestCase):
     def test_fishy_rolenames(self):
         roles_to_filenames = {
             "../a": "..%2Fa.json",
-            "": ".json",
             ".": "..json",
             "/": "%2F.json",
             "ö": "%C3%B6.json",
