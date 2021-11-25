@@ -14,6 +14,7 @@ import sys
 import tempfile
 import unittest
 from datetime import datetime, timedelta
+from typing import ClassVar, Dict
 
 from dateutil.relativedelta import relativedelta
 from securesystemslib import hash as sslib_hash
@@ -28,6 +29,7 @@ from tests import utils
 from tuf import exceptions
 from tuf.api.metadata import (
     DelegatedRole,
+    Delegations,
     Key,
     Metadata,
     MetaFile,
@@ -47,8 +49,13 @@ logger = logging.getLogger(__name__)
 class TestMetadata(unittest.TestCase):
     """Tests for public API of all classes in 'tuf/api/metadata.py'."""
 
+    temporary_directory: ClassVar[str]
+    repo_dir: ClassVar[str]
+    keystore_dir: ClassVar[str]
+    keystore: ClassVar[Dict[str, str]]
+
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         # Create a temporary directory to store the repository, metadata, and
         # target files.  'temporary_directory' must be deleted in
         # TearDownClass() so that temporary files are always removed, even when
@@ -78,12 +85,12 @@ class TestMetadata(unittest.TestCase):
             )
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         # Remove the temporary repository directory, which should contain all
         # the metadata, targets, and key files generated for the test cases.
         shutil.rmtree(cls.temporary_directory)
 
-    def test_generic_read(self):
+    def test_generic_read(self) -> None:
         for metadata, inner_metadata_cls in [
             ("root", Root),
             ("snapshot", Snapshot),
@@ -120,7 +127,7 @@ class TestMetadata(unittest.TestCase):
 
         os.remove(bad_metadata_path)
 
-    def test_compact_json(self):
+    def test_compact_json(self) -> None:
         path = os.path.join(self.repo_dir, "metadata", "targets.json")
         md_obj = Metadata.from_file(path)
         self.assertTrue(
@@ -128,7 +135,7 @@ class TestMetadata(unittest.TestCase):
             < len(JSONSerializer().serialize(md_obj))
         )
 
-    def test_read_write_read_compare(self):
+    def test_read_write_read_compare(self) -> None:
         for metadata in ["root", "snapshot", "timestamp", "targets"]:
             path = os.path.join(self.repo_dir, "metadata", metadata + ".json")
             md_obj = Metadata.from_file(path)
@@ -140,7 +147,7 @@ class TestMetadata(unittest.TestCase):
 
             os.remove(path_2)
 
-    def test_to_from_bytes(self):
+    def test_to_from_bytes(self) -> None:
         for metadata in ["root", "snapshot", "timestamp", "targets"]:
             path = os.path.join(self.repo_dir, "metadata", metadata + ".json")
             with open(path, "rb") as f:
@@ -157,7 +164,7 @@ class TestMetadata(unittest.TestCase):
             metadata_obj_2 = Metadata.from_bytes(obj_bytes)
             self.assertEqual(metadata_obj_2.to_bytes(), obj_bytes)
 
-    def test_sign_verify(self):
+    def test_sign_verify(self) -> None:
         root_path = os.path.join(self.repo_dir, "metadata", "root.json")
         root = Metadata[Root].from_file(root_path).signed
 
@@ -183,7 +190,7 @@ class TestMetadata(unittest.TestCase):
         # Test verifying with explicitly set serializer
         targets_key.verify_signature(md_obj, CanonicalJSONSerializer())
         with self.assertRaises(exceptions.UnsignedMetadataError):
-            targets_key.verify_signature(md_obj, JSONSerializer())
+            targets_key.verify_signature(md_obj, JSONSerializer())  # type: ignore[arg-type]
 
         sslib_signer = SSlibSigner(self.keystore["snapshot"])
         # Append a new signature with the unrelated key and assert that ...
@@ -206,7 +213,7 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(exceptions.UnsignedMetadataError):
             targets_key.verify_signature(md_obj)
 
-    def test_verify_failures(self):
+    def test_verify_failures(self) -> None:
         root_path = os.path.join(self.repo_dir, "metadata", "root.json")
         root = Metadata[Root].from_file(root_path).signed
 
@@ -248,7 +255,7 @@ class TestMetadata(unittest.TestCase):
             timestamp_key.verify_signature(md_obj)
         sig.signature = correct_sig
 
-    def test_metadata_base(self):
+    def test_metadata_base(self) -> None:
         # Use of Snapshot is arbitrary, we're just testing the base class
         # features with real data
         snapshot_path = os.path.join(self.repo_dir, "metadata", "snapshot.json")
@@ -290,7 +297,7 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(ValueError):
             Metadata.from_dict(data)
 
-    def test_metadata_snapshot(self):
+    def test_metadata_snapshot(self) -> None:
         snapshot_path = os.path.join(self.repo_dir, "metadata", "snapshot.json")
         snapshot = Metadata[Snapshot].from_file(snapshot_path)
 
@@ -309,7 +316,7 @@ class TestMetadata(unittest.TestCase):
             snapshot.signed.meta["role1.json"].to_dict(), fileinfo.to_dict()
         )
 
-    def test_metadata_timestamp(self):
+    def test_metadata_timestamp(self) -> None:
         timestamp_path = os.path.join(
             self.repo_dir, "metadata", "timestamp.json"
         )
@@ -349,7 +356,7 @@ class TestMetadata(unittest.TestCase):
             timestamp.signed.snapshot_meta.to_dict(), fileinfo.to_dict()
         )
 
-    def test_metadata_verify_delegate(self):
+    def test_metadata_verify_delegate(self) -> None:
         root_path = os.path.join(self.repo_dir, "metadata", "root.json")
         root = Metadata[Root].from_file(root_path)
         snapshot_path = os.path.join(self.repo_dir, "metadata", "snapshot.json")
@@ -410,14 +417,14 @@ class TestMetadata(unittest.TestCase):
         snapshot.sign(SSlibSigner(self.keystore["timestamp"]), append=True)
         root.verify_delegate("snapshot", snapshot)
 
-    def test_key_class(self):
+    def test_key_class(self) -> None:
         # Test if from_securesystemslib_key removes the private key from keyval
         # of a securesystemslib key dictionary.
         sslib_key = generate_ed25519_key()
         key = Key.from_securesystemslib_key(sslib_key)
         self.assertFalse("private" in key.keyval.keys())
 
-    def test_root_add_key_and_remove_key(self):
+    def test_root_add_key_and_remove_key(self) -> None:
         root_path = os.path.join(self.repo_dir, "metadata", "root.json")
         root = Metadata[Root].from_file(root_path)
 
@@ -475,7 +482,7 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(ValueError):
             root.signed.remove_key("nosuchrole", keyid)
 
-    def test_is_target_in_pathpattern(self):
+    def test_is_target_in_pathpattern(self) -> None:
         # pylint: disable=protected-access
         supported_use_cases = [
             ("foo.tgz", "foo.tgz"),
@@ -507,7 +514,7 @@ class TestMetadata(unittest.TestCase):
                 DelegatedRole._is_target_in_pathpattern(targetpath, pathpattern)
             )
 
-    def test_metadata_targets(self):
+    def test_metadata_targets(self) -> None:
         targets_path = os.path.join(self.repo_dir, "metadata", "targets.json")
         targets = Metadata[Targets].from_file(targets_path)
 
@@ -531,7 +538,7 @@ class TestMetadata(unittest.TestCase):
             targets.signed.targets[filename].to_dict(), fileinfo.to_dict()
         )
 
-    def test_targets_key_api(self):
+    def test_targets_key_api(self) -> None:
         targets_path = os.path.join(self.repo_dir, "metadata", "targets.json")
         targets: Targets = Metadata[Targets].from_file(targets_path).signed
 
@@ -545,6 +552,7 @@ class TestMetadata(unittest.TestCase):
                 "threshold": 1,
             }
         )
+        assert isinstance(targets.delegations, Delegations)
         targets.delegations.roles["role2"] = delegated_role
 
         key_dict = {
@@ -608,7 +616,7 @@ class TestMetadata(unittest.TestCase):
             targets.remove_key("role1", key.keyid)
         self.assertTrue(targets.delegations is None)
 
-    def test_length_and_hash_validation(self):
+    def test_length_and_hash_validation(self) -> None:
 
         # Test metadata files' hash and length verification.
         # Use timestamp to get a MetaFile object and snapshot
@@ -648,7 +656,7 @@ class TestMetadata(unittest.TestCase):
 
             # Test wrong algorithm format (sslib.FormatError)
             snapshot_metafile.hashes = {
-                256: "8f88e2ba48b412c3843e9bb26e1b6f8fc9e98aceb0fbaa97ba37b4c98717d7ab"
+                256: "8f88e2ba48b412c3843e9bb26e1b6f8fc9e98aceb0fbaa97ba37b4c98717d7ab"  # type: ignore[dict-item]
             }
             with self.assertRaises(exceptions.LengthOrHashMismatchError):
                 snapshot_metafile.verify_length_and_hashes(data)
@@ -678,7 +686,7 @@ class TestMetadata(unittest.TestCase):
             with self.assertRaises(exceptions.LengthOrHashMismatchError):
                 file1_targetfile.verify_length_and_hashes(file1)
 
-    def test_targetfile_from_file(self):
+    def test_targetfile_from_file(self) -> None:
         # Test with an existing file and valid hash algorithm
         file_path = os.path.join(self.repo_dir, "targets", "file1.txt")
         targetfile_from_file = TargetFile.from_file(
@@ -700,7 +708,7 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(exceptions.UnsupportedAlgorithmError):
             TargetFile.from_file(file_path, file_path, ["123"])
 
-    def test_targetfile_from_data(self):
+    def test_targetfile_from_data(self) -> None:
         data = b"Inline test content"
         target_file_path = os.path.join(self.repo_dir, "targets", "file1.txt")
 
@@ -714,7 +722,7 @@ class TestMetadata(unittest.TestCase):
         targetfile_from_data = TargetFile.from_data(target_file_path, data)
         targetfile_from_data.verify_length_and_hashes(data)
 
-    def test_is_delegated_role(self):
+    def test_is_delegated_role(self) -> None:
         # test path matches
         # see more extensive tests in test_is_target_in_pathpattern()
         for paths in [

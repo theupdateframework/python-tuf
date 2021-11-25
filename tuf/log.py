@@ -182,7 +182,7 @@ class ConsoleFilter(logging.Filter):
 
 
 
-def set_log_level(log_level=_DEFAULT_LOG_LEVEL):
+def set_log_level(log_level: int=_DEFAULT_LOG_LEVEL):
   """
   <Purpose>
     Allow the default log level to be overridden.  If 'log_level' is not

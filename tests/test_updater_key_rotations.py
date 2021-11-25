@@ -37,8 +37,8 @@ class TestUpdaterKeyRotations(unittest.TestCase):
     dump_dir: Optional[str] = None
 
     def setUp(self) -> None:
-        self.sim = None
-        self.metadata_dir = None
+        self.sim: RepositorySimulator
+        self.metadata_dir: str
         self.subtest_count = 0
         # pylint: disable-next=consider-using-with
         self.temp_dir = tempfile.TemporaryDirectory()

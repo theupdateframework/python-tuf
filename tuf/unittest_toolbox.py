@@ -29,6 +29,7 @@ import tempfile
 import random
 import string
 
+from typing import Optional
 
 class Modified_TestCase(unittest.TestCase):
   """
@@ -70,12 +71,12 @@ class Modified_TestCase(unittest.TestCase):
   """
 
 
-  def setUp(self):
+  def setUp(self) -> None:
     self._cleanup = []
 
 
 
-  def tearDown(self):
+  def tearDown(self) -> None:
     for cleanup_function in self._cleanup:
       # Perform clean up by executing clean-up functions.
       try:
@@ -87,7 +88,7 @@ class Modified_TestCase(unittest.TestCase):
 
 
 
-  def make_temp_directory(self, directory=None):
+  def make_temp_directory(self, directory: Optional[str]=None) -> str:
     """Creates and returns an absolute path of a directory."""
 
     prefix = self.__class__.__name__+'_'
@@ -102,7 +103,9 @@ class Modified_TestCase(unittest.TestCase):
 
 
 
-  def make_temp_file(self, suffix='.txt', directory=None):
+  def make_temp_file(
+    self,suffix: str='.txt', directory: Optional[str]=None
+  ) -> str:
     """Creates and returns an absolute path of an empty file."""
     prefix='tmp_file_'+self.__class__.__name__+'_'
     temp_file = tempfile.mkstemp(suffix=suffix, prefix=prefix, dir=directory)
@@ -113,7 +116,9 @@ class Modified_TestCase(unittest.TestCase):
 
 
 
-  def make_temp_data_file(self, suffix='', directory=None, data = 'junk data'):
+  def make_temp_data_file(
+    self, suffix: str='', directory: Optional[str]=None, data: str = 'junk data'
+  ) -> str:
     """Returns an absolute path of a temp file containing data."""
     temp_file_path = self.make_temp_file(suffix=suffix, directory=directory)
     temp_file = open(temp_file_path, 'wt', encoding='utf8')
@@ -123,7 +128,7 @@ class Modified_TestCase(unittest.TestCase):
 
 
 
-  def random_path(self, length = 7):
+  def random_path(self, length: int = 7) -> str:
     """Generate a 'random' path consisting of random n-length strings."""
 
     rand_path = '/' + self.random_string(length)
@@ -136,7 +141,7 @@ class Modified_TestCase(unittest.TestCase):
 
 
   @staticmethod
-  def random_string(length=15):
+  def random_string(length: int=15) -> str:
     """Generate a random string of specified length."""
 
     rand_str = ''

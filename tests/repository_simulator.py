@@ -93,11 +93,7 @@ class RepositorySimulator(FetcherInterface):
     """Simulates a repository that can be used for testing."""
 
     # pylint: disable=too-many-instance-attributes
-    def __init__(self):
-        self.md_root: Metadata[Root] = None
-        self.md_timestamp: Metadata[Timestamp] = None
-        self.md_snapshot: Metadata[Snapshot] = None
-        self.md_targets: Metadata[Targets] = None
+    def __init__(self) -> None:
         self.md_delegates: Dict[str, Metadata[Targets]] = {}
 
         # other metadata is signed on-demand (when fetched) but roots must be
@@ -117,7 +113,7 @@ class RepositorySimulator(FetcherInterface):
         # Enable hash-prefixed target file names
         self.prefix_targets_with_hash = True
 
-        self.dump_dir = None
+        self.dump_dir: Optional[str] = None
         self.dump_version = 0
 
         now = datetime.utcnow()
@@ -152,12 +148,12 @@ class RepositorySimulator(FetcherInterface):
         sslib_key = generate_ed25519_key()
         return Key.from_securesystemslib_key(sslib_key), SSlibSigner(sslib_key)
 
-    def add_signer(self, role: str, signer: SSlibSigner):
+    def add_signer(self, role: str, signer: SSlibSigner) -> None:
         if role not in self.signers:
             self.signers[role] = {}
         self.signers[role][signer.key_dict["keyid"]] = signer
 
-    def _initialize(self):
+    def _initialize(self) -> None:
         """Setup a minimal valid repository."""
 
         targets = Targets(1, SPEC_VER, self.safe_expiry, {}, None)
@@ -182,7 +178,7 @@ class RepositorySimulator(FetcherInterface):
         self.md_root = Metadata(root, OrderedDict())
         self.publish_root()
 
-    def publish_root(self):
+    def publish_root(self) -> None:
         """Sign and store a new serialized version of root."""
         self.md_root.signatures.clear()
         for signer in self.signers["root"].values():
@@ -199,12 +195,12 @@ class RepositorySimulator(FetcherInterface):
         if path.startswith("/metadata/") and path.endswith(".json"):
             # figure out rolename and version
             ver_and_name = path[len("/metadata/") :][: -len(".json")]
-            version, _, role = ver_and_name.partition(".")
+            version_str, _, role = ver_and_name.partition(".")
             # root is always version-prefixed while timestamp is always NOT
             if role == "root" or (
                 self.root.consistent_snapshot and ver_and_name != "timestamp"
             ):
-                version = int(version)
+                version: Optional[int] = int(version_str)
             else:
                 # the file is not version-prefixed
                 role = ver_and_name
@@ -216,11 +212,10 @@ class RepositorySimulator(FetcherInterface):
             target_path = path[len("/targets/") :]
             dir_parts, sep, prefixed_filename = target_path.rpartition("/")
             # extract the hash prefix, if any
+            prefix: Optional[str] = None
+            filename = prefixed_filename
             if self.root.consistent_snapshot and self.prefix_targets_with_hash:
                 prefix, _, filename = prefixed_filename.partition(".")
-            else:
-                filename = prefixed_filename
-                prefix = None
             target_path = f"{dir_parts}{sep}{filename}"
 
             yield self._fetch_target(target_path, prefix)
@@ -261,8 +256,9 @@ class RepositorySimulator(FetcherInterface):
             return self.signed_roots[version - 1]
 
         # sign and serialize the requested metadata
+        md: Optional[Metadata]
         if role == "timestamp":
-            md: Metadata = self.md_timestamp
+            md = self.md_timestamp
         elif role == "snapshot":
             md = self.md_snapshot
         elif role == "targets":
@@ -294,7 +290,7 @@ class RepositorySimulator(FetcherInterface):
         hashes = {sslib_hash.DEFAULT_HASH_ALGORITHM: digest_object.hexdigest()}
         return hashes, len(data)
 
-    def update_timestamp(self):
+    def update_timestamp(self) -> None:
         """Update timestamp and assign snapshot version to snapshot_meta
         version.
         """
@@ -307,7 +303,7 @@ class RepositorySimulator(FetcherInterface):
 
         self.timestamp.version += 1
 
-    def update_snapshot(self):
+    def update_snapshot(self) -> None:
         """Update snapshot, assign targets versions and update timestamp."""
         for role, delegate in self.all_targets():
             hashes = None
@@ -322,7 +318,7 @@ class RepositorySimulator(FetcherInterface):
         self.snapshot.version += 1
         self.update_timestamp()
 
-    def add_target(self, role: str, data: bytes, path: str):
+    def add_target(self, role: str, data: bytes, path: str) -> None:
         """Create a target from data and add it to the target_files."""
         if role == "targets":
             targets = self.targets
@@ -341,7 +337,7 @@ class RepositorySimulator(FetcherInterface):
         terminating: bool,
         paths: Optional[List[str]],
         hash_prefixes: Optional[List[str]],
-    ):
+    ) -> None:
         """Add delegated target role to the repository."""
         if delegator_name == "targets":
             delegator = self.targets
@@ -351,7 +347,7 @@ class RepositorySimulator(FetcherInterface):
         # Create delegation
         role = DelegatedRole(name, [], 1, terminating, paths, hash_prefixes)
         if delegator.delegations is None:
-            delegator.delegations = Delegations({}, {})
+            delegator.delegations = Delegations({}, OrderedDict())
         # put delegation last by default
         delegator.delegations.roles[role.name] = role
 
@@ -363,7 +359,7 @@ class RepositorySimulator(FetcherInterface):
         # Add metadata for the role
         self.md_delegates[role.name] = Metadata(targets, OrderedDict())
 
-    def write(self):
+    def write(self) -> None:
         """Dump current repository metadata to self.dump_dir
 
         This is a debugging tool: dumping repository state before running

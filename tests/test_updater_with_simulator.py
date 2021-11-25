@@ -16,7 +16,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
-from tuf.api.metadata import SPECIFICATION_VERSION, Targets
+from tuf.api.metadata import SPECIFICATION_VERSION, TargetFile, Targets
 from tuf.exceptions import BadVersionNumberError, UnsignedMetadataError
 from tuf.ngclient import Updater
 
@@ -27,7 +27,7 @@ class TestUpdater(unittest.TestCase):
     # set dump_dir to trigger repository state dumps
     dump_dir: Optional[str] = None
 
-    def setUp(self):
+    def setUp(self) -> None:
         # pylint: disable-next=consider-using-with
         self.temp_dir = tempfile.TemporaryDirectory()
         self.metadata_dir = os.path.join(self.temp_dir.name, "metadata")
@@ -49,7 +49,7 @@ class TestUpdater(unittest.TestCase):
             self.sim.dump_dir = os.path.join(self.dump_dir, name)
             os.mkdir(self.sim.dump_dir)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.temp_dir.cleanup()
 
     def _run_refresh(self) -> Updater:
@@ -67,7 +67,7 @@ class TestUpdater(unittest.TestCase):
         updater.refresh()
         return updater
 
-    def test_refresh(self):
+    def test_refresh(self) -> None:
         # Update top level metadata
         self._run_refresh()
 
@@ -99,7 +99,7 @@ class TestUpdater(unittest.TestCase):
     }
 
     @utils.run_sub_tests_with_dataset(targets)
-    def test_targets(self, test_case_data: Tuple[str, bytes, str]):
+    def test_targets(self, test_case_data: Tuple[str, bytes, str]) -> None:
         targetpath, content, encoded_path = test_case_data
         path = os.path.join(self.targets_dir, encoded_path)
 
@@ -117,7 +117,7 @@ class TestUpdater(unittest.TestCase):
         updater = self._run_refresh()
         # target now exists, is not in cache yet
         info = updater.get_targetinfo(targetpath)
-        self.assertIsNotNone(info)
+        assert info is not None
         # Test without and with explicit local filepath
         self.assertIsNone(updater.find_cached_target(info))
         self.assertIsNone(updater.find_cached_target(info, path))
@@ -136,7 +136,7 @@ class TestUpdater(unittest.TestCase):
         self.assertEqual(path, updater.find_cached_target(info))
         self.assertEqual(path, updater.find_cached_target(info, path))
 
-    def test_fishy_rolenames(self):
+    def test_fishy_rolenames(self) -> None:
         roles_to_filenames = {
             "../a": "..%2Fa.json",
             "": ".json",
@@ -162,7 +162,7 @@ class TestUpdater(unittest.TestCase):
         for fname in roles_to_filenames.values():
             self.assertTrue(fname in local_metadata)
 
-    def test_keys_and_signatures(self):
+    def test_keys_and_signatures(self) -> None:
         """Example of the two trickiest test areas: keys and root updates"""
 
         # Update top level metadata
@@ -202,7 +202,7 @@ class TestUpdater(unittest.TestCase):
 
         self._run_refresh()
 
-    def test_snapshot_rollback_with_local_snapshot_hash_mismatch(self):
+    def test_snapshot_rollback_with_local_snapshot_hash_mismatch(self) -> None:
         # Test triggering snapshot rollback check on a newly downloaded snapshot
         # when the local snapshot is loaded even when there is a hash mismatch
         # with timestamp.snapshot_meta.
@@ -233,7 +233,7 @@ class TestUpdater(unittest.TestCase):
             self._run_refresh()
 
     @patch.object(builtins, "open", wraps=builtins.open)
-    def test_not_loading_targets_twice(self, wrapped_open: MagicMock):
+    def test_not_loading_targets_twice(self, wrapped_open: MagicMock) -> None:
         # Do not load targets roles more than once when traversing
         # the delegations tree
 
