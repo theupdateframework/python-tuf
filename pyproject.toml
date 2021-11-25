@@ -1,3 +1,77 @@
 [build-system]
 requires = ["setuptools>=40.8.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+# Pylint section
+
+# Minimal pylint configuration file for Secure Systems Lab Python Style Guide:
+#     https://github.com/secure-systems-lab/code-style-guidelines
+#
+# Based on Google Python Style Guide pylintrc and pylint defaults:
+#     https://google.github.io/styleguide/pylintrc
+#     http://pylint.pycqa.org/en/latest/technical_reference/features.html
+
+[tool.pylint.message_control]
+# Disable the message, report, category or checker with the given id(s).
+# NOTE: To keep this config as short as possible we only disable checks that
+# are currently in conflict with our code. If new code displeases the linter
+# (for good reasons) consider updating this config file, or disable checks with.
+disable=[
+  "fixme",
+  "too-few-public-methods",
+  "too-many-arguments",
+  "format",
+  "duplicate-code"
+]
+
+[tool.pylint.basic]
+good-names = ["i","j","k","v","e","f","fn","fp","_type","_"]
+# Regexes for allowed names are copied from the Google pylintrc
+# NOTE: Pylint captures regex name groups such as 'snake_case' or 'camel_case'.
+# If there are multiple groups it enfoces the prevalent naming style inside
+# each modules. Names in the exempt capturing group are ignored.
+function-rgx="^(?:(?P<exempt>setUp|tearDown|setUpModule|tearDownModule)|(?P<camel_case>_?[A-Z][a-zA-Z0-9]*)|(?P<snake_case>_?[a-z][a-z0-9_]*))$"
+method-rgx="(?x)^(?:(?P<exempt>_[a-z0-9_]+__|runTest|setUp|tearDown|setUpTestCase|tearDownTestCase|setupSelf|tearDownClass|setUpClass|(test|assert)_*[A-Z0-9][a-zA-Z0-9_]*|next)|(?P<camel_case>_{0,2}[A-Z][a-zA-Z0-9_]*)|(?P<snake_case>_{0,2}[a-z][a-z0-9_]*))$"
+argument-rgx="^[a-z][a-z0-9_]*$"
+attr-rgx="^_{0,2}[a-z][a-z0-9_]*$"
+class-attribute-rgx="^(_?[A-Z][A-Z0-9_]*|__[a-z0-9_]+__|_?[a-z][a-z0-9_]*)$"
+class-rgx="^_?[A-Z][a-zA-Z0-9]*$"
+const-rgx="^(_?[A-Z][A-Z0-9_]*|__[a-z0-9_]+__|_?[a-z][a-z0-9_]*)$"
+inlinevar-rgx="^[a-z][a-z0-9_]*$"
+module-rgx="^(_?[a-z][a-z0-9_]*|__init__)$"
+no-docstring-rgx="(__.*__|main|test.*|.*test|.*Test)$"
+variable-rgx="^[a-z][a-z0-9_]*$"
+docstring-min-length=10
+
+[tool.pylint.logging]
+logging-format-style="old"
+
+[tool.pylint.miscellaneous]
+notes="TODO"
+
+[tool.pylint.STRING]
+check-quote-consistency="yes"
+
+# mypy section
+# Read more here: https://mypy.readthedocs.io/en/stable/config_file.html#using-a-pyproject-toml-file
+[tool.mypy]
+warn_unused_configs = "True"
+warn_redundant_casts = "True"
+warn_unused_ignores = "True"
+warn_unreachable = "True"
+strict_equality = "True"
+disallow_untyped_defs = "True"
+disallow_untyped_calls = "True"
+show_error_codes = "True"
+files = [
+  "tuf/api/",
+  "tuf/ngclient",
+  "tuf/exceptions.py"
+]
+
+[[tool.mypy.overrides]]
+module = [
+  "securesystemslib.*",
+  "urllib3.*"
+]
+ignore_missing_imports = "True"
