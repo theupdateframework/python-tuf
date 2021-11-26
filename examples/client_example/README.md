@@ -36,41 +36,22 @@ in this source code repository.
 
 How to use the Client Example:
 
-1. Initialize the Client (optional)
 
-   ```console
-   $ ./client_example.py --init
-   ```
-
-   This action is to create the client infrastructure properly.
-
-   This infrastructure consists in:
-    - Metadata repository
-    - Download folder for targets
-    - Bootstrap 1.root.json
-
-
-2. Download the ``file1.txt``
-
-   ```console
-   Target file1.txt information fetched
-   Cached target file1.txt verified
-   Target is available in ./downloads/file1.txt
-   ```
-
-3. Download a not available ``file_na.txt``
-
-   ```console
-   $ ./client_example.py download file_na.txt
-   Target file_na.txt information fetched
-   Target file_na.txt not found
-   ```
-
-4. Download again ``file1.txt``
+1. Download the ``file1.txt``
 
    ```console
    $ ./client_example.py download file1.txt
-   Target file1.txt information fetched
-   Cached target file1.txt verified
-   Target is already available in ./downloads/file1.txt
+   Download directory [./downloads] was created
+   Metadata folder [<metadata dir>] was created
+   Added trusted root in /Users/kdearaujo/.local/share/python-tuf-client-example
+   Found trusted root in <metadata dir>
+   Target downloaded and available in ./downloads/file1.txt
+   ```
+
+2. Download again ``file1.txt``
+
+   ```console
+   $ ./client_example.py download file1.txt
+   Found trusted root in <metadata dir>
+   Target is available in ./downloads/file1.txt
    ```
