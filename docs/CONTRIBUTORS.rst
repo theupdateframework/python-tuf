@@ -114,7 +114,7 @@ Auto-formatting can be done on the command line:
 ::
 
     $ # TODO: configure black and isort args in pyproject.toml (see #1161)
-    $ black --line-length 80 tuf/api
+    $ black <filename>
     $ isort --line-length 80 --profile black -p tuf tuf/api
 
 or via source code editor plugin
