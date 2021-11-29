@@ -1220,6 +1220,13 @@ class Delegations:
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ):
         self.keys = keys
+
+        for role in roles:
+            if not role or role in TOP_LEVEL_ROLE_NAMES:
+                raise ValueError(
+                    "Delegated roles cannot be empty or use top-level role names"
+                )
+
         self.roles = roles
         self.unrecognized_fields = unrecognized_fields or {}
 

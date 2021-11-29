@@ -338,6 +338,38 @@ class TestSerialization(unittest.TestCase):
                 {"keyids": ["keyid2"], "name": "a", "paths": ["fn3"], "terminating": false, "threshold": 2}    \
                 ] \
             }',
+        "using empty string role name": '{"keys": { \
+                "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
+            "roles": [ \
+                {"keyids": ["keyid1"], "name": "", "terminating": true, "paths": ["fn1"], "threshold": 3}] \
+            }',
+        "using root as delegate role name": '{"keys": { \
+                "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
+            "roles": [ \
+                {"keyids": ["keyid1"], "name": "root", "terminating": true, "paths": ["fn1"], "threshold": 3}] \
+            }',
+        "using snapshot as delegate role name": '{"keys": { \
+                "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
+            "roles": [ \
+                {"keyids": ["keyid1"], "name": "snapshot", "terminating": true, "paths": ["fn1"], "threshold": 3}] \
+            }',
+        "using targets as delegate role name": '{"keys": { \
+                "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
+            "roles": [ \
+                {"keyids": ["keyid1"], "name": "targets", "terminating": true, "paths": ["fn1"], "threshold": 3}] \
+            }',
+        "using timestamp as delegate role name": '{"keys": { \
+                "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
+            "roles": [ \
+                {"keyids": ["keyid1"], "name": "timestamp", "terminating": true, "paths": ["fn1"], "threshold": 3}] \
+            }',
+        "using valid and top-level role name": '{"keys": { \
+                "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}, \
+                "keyid2" : {"keytype": "ed25519", "scheme": "ed25519", "keyval": {"public": "bar"}}}, \
+            "roles": [ \
+                {"keyids": ["keyid1"], "name": "b", "terminating": true, "paths": ["fn1"], "threshold": 3}, \
+                {"keyids": ["keyid2"], "name": "root", "terminating": true, "paths": ["fn2"], "threshold": 4} ] \
+            }',
     }
 
     @utils.run_sub_tests_with_dataset(invalid_delegations)
