@@ -64,36 +64,28 @@ def download(target):
             target_base_url=f"{BASE_URL}/targets/",
             target_dir=DOWNLOAD_DIR,
         )
+        updater.refresh()
 
-    # if the metadata is not available
-    except FileNotFoundError as e:
+        info = updater.get_targetinfo(target)
+
+        if info is None:
+            print(f"Target {target} not found")
+            return True
+
+        path = updater.find_cached_target(info)
+        if path:
+            print(f"Target is available in {DOWNLOAD_DIR}/{info.path}")
+            return True
+
+        path = updater.download_target(info)
+        print(f"Target downloaded and available in {DOWNLOAD_DIR}/{info.path}")
+
+    except (FileNotFoundError, RepositoryError) as e:
         print(str(e))
         return False
-
-    # handle specific TUF error (root.json corrupted in the client metadata)
-    # check out ``tuf.exceptions`` for more information
-    except RepositoryError as e:
-        print(str(e))
-        return False
-
-    updater.refresh()
-
-    info = updater.get_targetinfo(target)
-
-    if info is None:
-        print(f"Target {target} not found")
-        return True
-
-    path = updater.find_cached_target(info)
-    if path:
-        print(f"Target is available in {DOWNLOAD_DIR}/{info.path}")
-        return True
-
-    path = updater.download_target(info)
-
-    print(f"Target downloaded and available in {DOWNLOAD_DIR}/{info.path}")
 
     return True
+
 
 if __name__ == "__main__":
 
