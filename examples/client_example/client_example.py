@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Python Client Example."""
+"""TUF Client Example"""
 
 # Copyright 2012 - 2017, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
@@ -20,20 +20,14 @@ METADATA_DIR = f"{Path.home()}/.local/share/python-tuf-client-example"
 CLIENT_EXAMPLE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-def init():
-    """
-    The function that initializes the TUF client infrastructure.
-
-    It creates the metadata directory and adds a trusted ``root.json``.
-    """
+def init() -> None:
+    """Initialize local trusted metadata and create a directory for downloads"""
 
     if not os.path.isdir(DOWNLOAD_DIR):
         os.mkdir(DOWNLOAD_DIR)
-        print(f"Download directory [{DOWNLOAD_DIR}] was created")
 
     if not os.path.isdir(METADATA_DIR):
         os.makedirs(METADATA_DIR)
-        print(f"Metadata folder [{METADATA_DIR}] was created")
 
     if not os.path.isfile(f"{METADATA_DIR}/root.json"):
         shutil.copy(
@@ -45,10 +39,9 @@ def init():
         print(f"Found trusted root in {METADATA_DIR}")
 
 
-def download(target):
+def download(target: str) -> bool:
     """
-    The function that downloads the target file using the TUF ``nglcient``
-    Updater.
+    Download the target file using ``ngclient`` Updater.
 
     The Updater refreshes the top-level metadata, get the target information,
     verifies if the target is already cached, and in case it is not cached,
@@ -74,27 +67,23 @@ def download(target):
 
         path = updater.find_cached_target(info)
         if path:
-            print(f"Target is available in {DOWNLOAD_DIR}/{info.path}")
+            print(f"Target is available in {path}")
             return True
 
         path = updater.download_target(info)
-        print(f"Target downloaded and available in {DOWNLOAD_DIR}/{info.path}")
+        print(f"Target downloaded and available in {path}")
 
-    except (FileNotFoundError, RepositoryError) as e:
+    except (OSError, RepositoryError) as e:
         print(str(e))
         return False
 
     return True
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Main TUF Client Example function"""
 
-    # initialize the Python Client Example infrastructure
-    init()
-
-    client_args = argparse.ArgumentParser(
-        description="TUF Python Client Example"
-    )
+    client_args = argparse.ArgumentParser(description="TUF Client Example")
 
     # Global arguments
     client_args.add_argument(
@@ -122,7 +111,7 @@ if __name__ == "__main__":
 
     command_args = client_args.parse_args()
 
-    if command_args.verbose <= 1:
+    if command_args.verbose == 1:
         loglevel = logging.ERROR
     elif command_args.verbose == 2:
         loglevel = logging.WARNING
@@ -133,8 +122,15 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=loglevel)
 
+    # initialize the TUF Client Example infrastructure
+    init()
+
     if command_args.sub_command == "download":
         download(command_args.target)
 
     else:
         client_args.print_help()
+
+
+if __name__ == "__main__":
+    main()
