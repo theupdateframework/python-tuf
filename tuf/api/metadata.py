@@ -1214,7 +1214,7 @@ class Delegations:
     ):
         self.keys = keys
 
-        for role in set(roles):
+        for role in roles:
             if not role or role in TOP_LEVEL_ROLE_NAMES:
                 raise ValueError(
                     "Delegated roles cannot be empty or use top-level role names"
