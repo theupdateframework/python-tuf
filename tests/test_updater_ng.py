@@ -112,7 +112,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
             + utils.TEST_HOST_ADDRESS
             + ":"
             + str(self.server_process_handler.port)
-            + repository_basepath
+            + repository_basepath.replace("\\","/")
         )
 
         self.metadata_url = f"{url_prefix}/metadata/"

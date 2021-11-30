@@ -10,7 +10,6 @@ import logging
 import tempfile
 from contextlib import contextmanager
 from typing import IO, Iterator
-from urllib import parse
 
 from tuf import exceptions
 
@@ -61,13 +60,6 @@ class FetcherInterface:
         Yields:
           A TemporaryFile object that points to the contents of 'url'.
         """
-        # 'url.replace('\\', '/')' is needed for compatibility with
-        # Windows-based systems, because they might use back-slashes in place
-        # of forward-slashes. This converts it to the common format.
-        # unquote() replaces %xx escapes in a url with their single-character
-        # equivalent. A back-slash may beencoded as %5c in the url, which
-        # should also be replaced with a forward slash.
-        url = parse.unquote(url).replace("\\", "/")
         logger.debug("Downloading: %s", url)
 
         number_of_bytes_received = 0
