@@ -8,6 +8,13 @@ build-backend = "setuptools.build_meta"
 [tool.black]
 line-length=80
 
+# Isort section
+# Read more here: https://pycqa.github.io/isort/docs/configuration/config_files.html
+[tool.isort]
+profile="black"
+line_length=80
+known_first_party = ["tuf"]
+
 # Pylint section
 
 # Minimal pylint configuration file for Secure Systems Lab Python Style Guide:
