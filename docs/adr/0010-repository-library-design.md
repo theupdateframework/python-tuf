@@ -18,7 +18,7 @@ some issues (as do many other implementations):
 * The "library like" parts of the implementation make decisions that look like
   application decisions. As an example, repository_tool loads _every_ metadata
   file in the repository: this is fine for CLI that operates on a small
-  repository but is unlikely to be a good choice for PyPI.
+  repository but is unlikely to be a good choice for a large scale server.
 
 
 ## Decision Drivers
@@ -28,12 +28,12 @@ some issues (as do many other implementations):
 * Metadata API makes modifying metadata far easier than legacy code base: this
   makes significantly different designs possible
 * Not providing a "repository library" (and leaving implementers on their own)
-  may be a short term solution because of the previous point, but it does seem
-  like the project would benefit from some shared repository code and shared
-  repository design
+  may be a short term solution because of the previous point, but to make
+  adoption easier and to help adopters create safe implementations the project
+  would benefit from some shared repository code and a shared repository design 
 * Maintainability of new library code must be a top concern
 * Allowing a wide range of repository implementations (from CLI tools to
-  minimal in-memory implementations to large scale applications like Warehouse)
+  minimal in-memory implementations to large scale application servers)
   would be good: unfortunately these can have wildly differing requirements
 
 
@@ -64,9 +64,7 @@ forward: decision could be re-evaluated in a few months if not in weeks.
 ### No repository packages
 
 Metadata API makes editing the repository content vastly simpler. There are
-already repository implementations built with it (RepositorySimulator in
-python-tuf tests is an in-memory implementation, while
-repository-editor-for-tuf is an external CLI tool) so clearly a repository
+already repository implementations built with it[^1] so clearly a repository
 library is not an absolute requirement.
 
 Not providing repository packages in python-tuf does mean that external
@@ -76,9 +74,10 @@ different designs and hopefully find good ones in the end.
 
 That said, there are some tricky parts of repository maintenance (e.g.
 initialization, snapshot update, hashed bin management) that would benefit from
-having a canonical implementation. Likewise, a well designed library could make
-some repeated actions (e.g. version bumps, expiry updates, signing) much easier
-to manage.
+having a canonical implementation, both for easier adoption of python-tuf and
+as a reference for other implementations. Likewise, a well designed library
+could make some repeated actions (e.g. version bumps, expiry updates, signing)
+much easier to manage.
 
 ### repository_tool -like API
 
@@ -97,8 +96,7 @@ being a substantial amount of code that is only a good fit for one application.
 
 python-tuf could define a tiny repository API that
 * provides carefully selected core functionality (like core snapshot update)
-  but...
-* does not implement all repository actions itself, instead i makes it easy
+* does not implement all repository actions itself, instead it makes it easy
   for the application code to do them
 * leaves application details to specific implementations (examples of decisions
   a library should not always decide: "are targets stored with the repo?",
@@ -107,7 +105,7 @@ python-tuf could define a tiny repository API that
   date?", "which targets versions should be part of new snapshot?")
 
 python-tuf could also provide one or more implementations of this abstraction
-as examples -- this could include a repo.py- or repository_tool-like
+as examples -- this could include a _repo.py_- or _repository_tool_-like
 implementation.
 
 This could be a compromise that allows:
@@ -123,6 +121,16 @@ The approach does have some downsides:
 * A prototype has been implemented (see Links below) but the concept is still
   unproven
 
+More details in [Design document](../repository-library-design.md).
+
 ## Links
-[Design document for minimal repository abstraction](https://docs.google.com/document/d/1YY83J4ihztsi1Qv0dJ22EcqND8dT80AGTduwgh0trpY)
-[Prototype implementation of minimal repository abstraction](https://github.com/vmware-labs/repository-editor-for-tuf/)
+* [Design document for minimal repository abstraction](../repository-library-design.md)
+* [Prototype implementation of minimal repository abstraction](https://github.com/vmware-labs/repository-editor-for-tuf/)
+
+
+[^1]:
+    [RepositorySimulator](https://github.com/theupdateframework/python-tuf/blob/develop/tests/repository_simulator.py)
+    in python-tuf tests is an in-memory implementation, while
+    [repository-editor-for-tuf](https://github.com/vmware-labs/repository-editor-for-tuf)
+    is an external Command line repository maintenance tool.
+
