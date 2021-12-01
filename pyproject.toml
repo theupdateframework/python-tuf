@@ -79,7 +79,8 @@ show_error_codes = "True"
 files = [
   "tuf/api/",
   "tuf/ngclient",
-  "tuf/exceptions.py"
+  "tuf/exceptions.py",
+  "examples/",
 ]
 
 [[tool.mypy.overrides]]
