@@ -7,6 +7,13 @@
 [![PyPI](https://img.shields.io/pypi/v/tuf)](https://pypi.org/project/tuf/)
 
 ----------------------------
+*__IMPORTANT NOTICE:__ A stable 1.0.0 release of the modern implementation only
+is scheduled for January 2022. Please see the [*1.0.0
+announcement*](1.0.0-ANNOUNCEMENT.md) page for more details about the release
+and the deprecation of the legacy implementation, including migration
+instructions.*
+
+----------------------------
 This repository is the **reference implementation** of
 [The Update Framework (TUF)](https://theupdateframework.github.io/).
 It is written in Python and intended to conform to version 1.0 of the
