@@ -111,11 +111,11 @@ def main() -> None:
 
     command_args = client_args.parse_args()
 
-    if command_args.verbose == 1:
+    if command_args.verbose == 0:
         loglevel = logging.ERROR
-    elif command_args.verbose == 2:
+    elif command_args.verbose == 1:
         loglevel = logging.WARNING
-    elif command_args.verbose == 3:
+    elif command_args.verbose == 2:
         loglevel = logging.INFO
     else:
         loglevel = logging.DEBUG
