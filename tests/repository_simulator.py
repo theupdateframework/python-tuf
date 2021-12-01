@@ -397,5 +397,6 @@ class RepositorySimulator(FetcherInterface):
                 f.write(self.fetch_metadata(role))
 
         for role in self.md_delegates:
-            with open(os.path.join(dest_dir, f"{role}.json"), "wb") as f:
+            quoted_role = parse.quote(role, "")
+            with open(os.path.join(dest_dir, f"{quoted_role}.json"), "wb") as f:
                 f.write(self.fetch_metadata(role))
