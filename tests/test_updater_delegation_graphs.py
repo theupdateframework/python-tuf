@@ -49,7 +49,11 @@ class TestDelegationsGraphs(unittest.TestCase):
     """Test creating delegations graphs with different complexity
     and successfully updating the delegated roles metadata"""
 
+    # set dump_dir to trigger repository state dumps
+    dump_dir: Optional[str] = None
+
     def setUp(self) -> None:
+        self.subtest_count = 0
         self.temp_dir = tempfile.TemporaryDirectory()
         self.metadata_dir = os.path.join(self.temp_dir.name, "metadata")
         self.targets_dir = os.path.join(self.temp_dir.name, "targets")
@@ -58,6 +62,26 @@ class TestDelegationsGraphs(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.temp_dir.cleanup()
+
+    def setup_subtest(
+        self, delegations: List[TestDelegation]
+    ) -> RepositorySimulator:
+        sim = self._init_repo(delegations)
+
+        self.subtest_count += 1
+        if self.dump_dir is not None:
+            # create subtest dumpdir
+            name = f"{self.id().split('.')[-1]}-{self.subtest_count}"
+            sim.dump_dir = os.path.join(self.dump_dir, name)
+            os.mkdir(sim.dump_dir)
+            # dump the repo simulator metadata
+            sim.write()
+
+        return sim
+
+    def teardown_subtest(self) -> None:
+        # clean up after each subtest
+        utils.cleanup_dir(self.metadata_dir)
 
     def _init_updater(self, sim: RepositorySimulator) -> Updater:
         """Create a new Updater instance"""
@@ -213,7 +237,7 @@ class TestDelegationsGraphs(unittest.TestCase):
             exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order]
             exp_calls = [call(role, 1) for role in test_data.visited_order]
 
-            sim = self._init_repo(test_data.delegations)
+            sim = self.setup_subtest(test_data.delegations)
             updater = self._init_updater(sim)
             # Call explicitly refresh to simplify the expected_calls list
             updater.refresh()
@@ -233,11 +257,14 @@ class TestDelegationsGraphs(unittest.TestCase):
                 self.assertListEqual(wrapped_fetch.call_args_list, exp_calls)
                 self._assert_files_exist(exp_files)
         finally:
-            # clean up after each subtest
-            utils.cleanup_dir(self.metadata_dir)
+            self.teardown_subtest()
 
 
 if __name__ == "__main__":
+    if "--dump" in sys.argv:
+        TestDelegationsGraphs.dump_dir = tempfile.mkdtemp()
+        print(f"Repository Simulator dumps in {TestDelegationsGraphs.dump_dir}")
+        sys.argv.remove("--dump")
 
     utils.configure_test_logging(sys.argv)
     unittest.main()

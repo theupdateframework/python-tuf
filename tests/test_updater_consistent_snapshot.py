@@ -28,8 +28,12 @@ class TestConsistentSnapshot(unittest.TestCase):
     'prefix_targets_with_hash' and verify that the correct URLs
     are formed for each combination"""
 
+    # set dump_dir to trigger repository state dumps
+    dump_dir: Optional[str] = None
+
     def setUp(self) -> None:
         # pylint: disable=consider-using-with
+        self.subtest_count = 0
         self.temp_dir = tempfile.TemporaryDirectory()
         self.metadata_dir = os.path.join(self.temp_dir.name, "metadata")
         self.targets_dir = os.path.join(self.temp_dir.name, "targets")
@@ -38,6 +42,24 @@ class TestConsistentSnapshot(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.temp_dir.cleanup()
+
+    def setup_subtest(
+        self, consistent_snapshot: bool, prefix_targets: bool = True
+    ) -> None:
+        self.sim = self._init_repo(consistent_snapshot, prefix_targets)
+
+        self.subtest_count += 1
+        if self.dump_dir is not None:
+            # create subtest dumpdir
+            name = f"{self.id().split('.')[-1]}-{self.subtest_count}"
+            self.sim.dump_dir = os.path.join(self.dump_dir, name)
+            os.mkdir(self.sim.dump_dir)
+
+    def teardown_subtest(self):
+        if self.dump_dir is not None:
+            self.sim.write()
+
+        utils.cleanup_dir(self.metadata_dir)
 
     def _init_repo(
         self, consistent_snapshot: bool, prefix_targets: bool = True
@@ -55,14 +77,14 @@ class TestConsistentSnapshot(unittest.TestCase):
 
         return sim
 
-    def _init_updater(self, sim: RepositorySimulator) -> Updater:
+    def _init_updater(self) -> Updater:
         """Create a new Updater instance"""
         return Updater(
             self.metadata_dir,
             "https://example.com/metadata/",
             self.targets_dir,
             "https://example.com/targets/",
-            sim,
+            self.sim,
         )
 
     def _assert_metadata_files_exist(self, roles: Iterable[str]) -> None:
@@ -106,21 +128,21 @@ class TestConsistentSnapshot(unittest.TestCase):
         # correct version prefix, depending on 'consistent_snapshot' config
         try:
             consistent_snapshot: bool = test_case_data["consistent_snapshot"]
-            expected_calls: List[Any] = test_case_data["calls"]
+            exp_calls: List[Any] = test_case_data["calls"]
 
-            sim = self._init_repo(consistent_snapshot)
-            updater = self._init_updater(sim)
+            self.setup_subtest(consistent_snapshot)
+            updater = self._init_updater()
 
             # cleanup fetch tracker metadata
-            sim.fetch_tracker.metadata.clear()
+            self.sim.fetch_tracker.metadata.clear()
             updater.refresh()
 
             # metadata files are fetched with the expected version (or None)
-            self.assertListEqual(sim.fetch_tracker.metadata, expected_calls)
+            self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
             # metadata files are always persisted without a version prefix
             self._assert_metadata_files_exist(TOP_LEVEL_ROLE_NAMES)
         finally:
-            utils.cleanup_dir(self.metadata_dir)
+            self.teardown_subtest()
 
     delegated_roles_data: utils.DataSet = {
         "consistent_snaphot disabled": {
@@ -145,27 +167,29 @@ class TestConsistentSnapshot(unittest.TestCase):
             rolenames = ["role1", "..", "."]
             exp_calls = [(role, exp_version) for role in rolenames]
 
-            sim = self._init_repo(consistent_snapshot)
+            self.setup_subtest(consistent_snapshot)
             # Add new delegated targets
             spec_version = ".".join(SPECIFICATION_VERSION)
             for role in rolenames:
                 delegated_role = DelegatedRole(role, [], 1, False, ["*"], None)
-                targets = Targets(1, spec_version, sim.safe_expiry, {}, None)
-                sim.add_delegation("targets", delegated_role, targets)
-            sim.update_snapshot()
-            updater = self._init_updater(sim)
+                targets = Targets(
+                    1, spec_version, self.sim.safe_expiry, {}, None
+                )
+                self.sim.add_delegation("targets", delegated_role, targets)
+            self.sim.update_snapshot()
+            updater = self._init_updater()
             updater.refresh()
 
             # cleanup fetch tracker metadata
-            sim.fetch_tracker.metadata.clear()
+            self.sim.fetch_tracker.metadata.clear()
             # trigger updater to fetch the delegated metadata
             updater.get_targetinfo("anything")
             # metadata files are fetched with the expected version (or None)
-            self.assertListEqual(sim.fetch_tracker.metadata, exp_calls)
+            self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
             # metadata files are always persisted without a version prefix
             self._assert_metadata_files_exist(rolenames)
         finally:
-            utils.cleanup_dir(self.metadata_dir)
+            self.teardown_subtest()
 
     targets_download_data: utils.DataSet = {
         "consistent_snaphot disabled": {
@@ -199,14 +223,14 @@ class TestConsistentSnapshot(unittest.TestCase):
             hash_algo: Optional[str] = test_case_data["hash_algo"]
             targetpaths: List[str] = test_case_data["targetpaths"]
 
-            sim = self._init_repo(consistent_snapshot, prefix_targets_with_hash)
+            self.setup_subtest(consistent_snapshot, prefix_targets_with_hash)
             # Add targets to repository
             for targetpath in targetpaths:
-                sim.targets.version += 1
-                sim.add_target("targets", b"content", targetpath)
-            sim.update_snapshot()
+                self.sim.targets.version += 1
+                self.sim.add_target("targets", b"content", targetpath)
+            self.sim.update_snapshot()
 
-            updater = self._init_updater(sim)
+            updater = self._init_updater()
             updater.config.prefix_targets_with_hash = prefix_targets_with_hash
             updater.refresh()
 
@@ -219,17 +243,23 @@ class TestConsistentSnapshot(unittest.TestCase):
                 self._assert_targets_files_exist([info.path])
 
                 # files are fetched with the expected hash prefix (or None)
-                exp_fetches = [
+                exp_calls = [
                     (path, None if not hash_algo else info.hashes[hash_algo])
                 ]
 
-                self.assertListEqual(sim.fetch_tracker.targets, exp_fetches)
-                sim.fetch_tracker.targets.clear()
+                self.assertListEqual(self.sim.fetch_tracker.targets, exp_calls)
+                self.sim.fetch_tracker.targets.clear()
         finally:
-            utils.cleanup_dir(self.targets_dir)
+            self.teardown_subtest()
 
 
 if __name__ == "__main__":
+    if "--dump" in sys.argv:
+        TestConsistentSnapshot.dump_dir = tempfile.mkdtemp()
+        print(
+            f"Repository Simulator dumps in {TestConsistentSnapshot.dump_dir}"
+        )
+        sys.argv.remove("--dump")
 
     utils.configure_test_logging(sys.argv)
     unittest.main()
