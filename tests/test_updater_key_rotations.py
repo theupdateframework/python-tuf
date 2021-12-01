@@ -40,7 +40,6 @@ class TestUpdaterKeyRotations(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.sim: RepositorySimulator
         cls.metadata_dir: str
-        cls.subtest_count = 0
         # pylint: disable-next=consider-using-with
         cls.temp_dir = tempfile.TemporaryDirectory()
 
@@ -57,8 +56,6 @@ class TestUpdaterKeyRotations(unittest.TestCase):
         cls.temp_dir.cleanup()
 
     def setup_subtest(self) -> None:
-        self.subtest_count += 1
-
         # Setup repository for subtest: make sure no roots have been published
         self.sim = RepositorySimulator()
         self.sim.signed_roots.clear()
@@ -66,7 +63,7 @@ class TestUpdaterKeyRotations(unittest.TestCase):
 
         if self.dump_dir is not None:
             # create subtest dumpdir
-            name = f"{self.id().split('.')[-1]}-{self.subtest_count}"
+            name = f"{self.id().split('.')[-1]}-{self.case_name}"
             self.sim.dump_dir = os.path.join(self.dump_dir, name)
             os.mkdir(self.sim.dump_dir)
 

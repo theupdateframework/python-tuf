@@ -57,6 +57,8 @@ def run_sub_tests_with_dataset(
         def wrapper(test_cls: unittest.TestCase) -> None:
             for case, data in dataset.items():
                 with test_cls.subTest(case=case):
+                    # Save case name for future reference
+                    test_cls.case_name = case.replace(" ", "_")
                     function(test_cls, data)
         return wrapper
     return real_decorator
