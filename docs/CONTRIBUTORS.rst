@@ -113,9 +113,8 @@ CI/CD will check that new TUF code is formatted with `black
 Auto-formatting can be done on the command line:
 ::
 
-    $ # TODO: configure black and isort args in pyproject.toml (see #1161)
-    $ black --line-length 80 tuf/api
-    $ isort --line-length 80 --profile black -p tuf tuf/api
+    $ black <filename>
+    $ isort <filename>
 
 or via source code editor plugin
 [`black <https://black.readthedocs.io/en/stable/editor_integration.html>`__,
