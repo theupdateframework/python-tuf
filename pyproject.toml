@@ -76,12 +76,6 @@ strict_equality = "True"
 disallow_untyped_defs = "True"
 disallow_untyped_calls = "True"
 show_error_codes = "True"
-files = [
-  "tuf/api/",
-  "tuf/ngclient",
-  "tuf/exceptions.py",
-  "examples/",
-]
 
 [[tool.mypy.overrides]]
 module = [
