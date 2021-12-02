@@ -12,7 +12,7 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta
 from typing import Iterable, Optional
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
@@ -635,6 +635,50 @@ class TestRefresh(unittest.TestCase):
         # the snapshot.meta["targets.json"] version by 1 and throws an error.
         with self.assertRaises(BadVersionNumberError):
             self._run_refresh()
+
+    @patch.object(builtins, "open", wraps=builtins.open)
+    def test_load_metadata_from_cache(self, wrapped_open: MagicMock) -> None:
+
+        # Add new delegated targets
+        spec_version = ".".join(SPECIFICATION_VERSION)
+        targets = Targets(1, spec_version, self.sim.safe_expiry, {}, None)
+        role = DelegatedRole("role1", [], 1, False, ["*"], None)
+        self.sim.add_delegation("targets", role, targets)
+        self.sim.update_snapshot()
+
+        # Make a successful update of valid metadata which stores it in cache
+        updater = self._run_refresh()
+        updater.get_targetinfo("non_existent_target")
+
+        # Clean up calls to open during refresh()
+        wrapped_open.reset_mock()
+        # Clean up fetch tracker metadata
+        self.sim.fetch_tracker.metadata.clear()
+
+        # Create a new updater and perform a second update while
+        # the metadata is already stored in cache (metadata dir)
+        updater = Updater(
+            self.metadata_dir,
+            "https://example.com/metadata/",
+            self.targets_dir,
+            "https://example.com/targets/",
+            self.sim,
+        )
+        updater.get_targetinfo("non_existent_target")
+
+        # Test that metadata is loaded from cache and not downloaded
+        wrapped_open.assert_has_calls(
+            [
+                call(os.path.join(self.metadata_dir, "root.json"), "rb"),
+                call(os.path.join(self.metadata_dir, "timestamp.json"), "rb"),
+                call(os.path.join(self.metadata_dir, "snapshot.json"), "rb"),
+                call(os.path.join(self.metadata_dir, "targets.json"), "rb"),
+                call(os.path.join(self.metadata_dir, "role1.json"), "rb"),
+            ]
+        )
+
+        expected_calls = [("root", 2), ("timestamp", None)]
+        self.assertListEqual(self.sim.fetch_tracker.metadata, expected_calls)
 
 
 if __name__ == "__main__":
