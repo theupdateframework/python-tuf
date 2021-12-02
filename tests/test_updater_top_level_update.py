@@ -14,7 +14,7 @@ from typing import Iterable, Optional
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
-from tuf.api.metadata import TOP_LEVEL_ROLE_NAMES, Metadata
+from tuf.api.metadata import TOP_LEVEL_ROLE_NAMES, Metadata, Root, Snapshot, Targets, Timestamp
 from tuf.exceptions import (
     BadVersionNumberError,
     ExpiredMetadataError,
@@ -94,7 +94,7 @@ class TestRefresh(unittest.TestCase):
 
     def test_first_time_refresh(self) -> None:
         # Metadata dir contains only the mandatory initial root.json
-        self._assert_files_exist(["root"])
+        self._assert_files_exist([Root.type])
 
         # Add one more root version to repository so that
         # refresh() updates from local trusted root (v1) to
@@ -106,7 +106,7 @@ class TestRefresh(unittest.TestCase):
 
         self._assert_files_exist(TOP_LEVEL_ROLE_NAMES)
         for role in TOP_LEVEL_ROLE_NAMES:
-            version = 2 if role == "root" else None
+            version = 2 if role == Root.type else None
             self._assert_content_equals(role, version)
 
     def test_trusted_root_missing(self) -> None:
@@ -129,8 +129,8 @@ class TestRefresh(unittest.TestCase):
         with self.assertRaises(ExpiredMetadataError):
             updater.refresh()
 
-        self._assert_files_exist(["root"])
-        self._assert_content_equals("root", 2)
+        self._assert_files_exist([Root.type])
+        self._assert_content_equals(Root.type, 2)
 
         # Local root metadata can be loaded even if expired
         updater = self._init_updater()
@@ -143,7 +143,7 @@ class TestRefresh(unittest.TestCase):
 
         # Root is successfully updated to latest version
         self._assert_files_exist(TOP_LEVEL_ROLE_NAMES)
-        self._assert_content_equals("root", 3)
+        self._assert_content_equals(Root.type, 3)
 
     def test_trusted_root_unsigned(self) -> None:
         # Local trusted root is not signed
@@ -156,7 +156,7 @@ class TestRefresh(unittest.TestCase):
             self._run_refresh()
 
         # The update failed, no changes in metadata
-        self._assert_files_exist(["root"])
+        self._assert_files_exist([Root.type])
         md_root_after = Metadata.from_file(root_path)
         self.assertEqual(md_root.to_bytes(), md_root_after.to_bytes())
 
@@ -181,7 +181,7 @@ class TestRefresh(unittest.TestCase):
         # Assert that root version was increased with no more
         # than 'max_root_rotations'
         self._assert_version_equals(
-            "root", initial_root_version + updater.config.max_root_rotations
+            Root.type, initial_root_version + updater.config.max_root_rotations
         )
 
     def test_intermediate_root_incorrectly_signed(self) -> None:
@@ -189,13 +189,13 @@ class TestRefresh(unittest.TestCase):
 
         # Intermediate root v2 is unsigned
         self.sim.root.version += 1
-        root_signers = self.sim.signers["root"].copy()
-        self.sim.signers["root"].clear()
+        root_signers = self.sim.signers[Root.type].copy()
+        self.sim.signers[Root.type].clear()
         self.sim.publish_root()
 
         # Final root v3 is correctly signed
         self.sim.root.version += 1
-        self.sim.signers["root"] = root_signers
+        self.sim.signers[Root.type] = root_signers
         self.sim.publish_root()
 
         # Incorrectly signed intermediate root is detected
@@ -203,8 +203,8 @@ class TestRefresh(unittest.TestCase):
             self._run_refresh()
 
         # The update failed, latest root version is v1
-        self._assert_files_exist(["root"])
-        self._assert_content_equals("root", 1)
+        self._assert_files_exist([Root.type])
+        self._assert_content_equals(Root.type, 1)
 
     def test_intermediate_root_expired(self) -> None:
         # The expiration of the new (intermediate) root metadata file
@@ -224,20 +224,20 @@ class TestRefresh(unittest.TestCase):
 
         # Successfully updated to root v3
         self._assert_files_exist(TOP_LEVEL_ROLE_NAMES)
-        self._assert_content_equals("root", 3)
+        self._assert_content_equals(Root.type, 3)
 
     def test_final_root_incorrectly_signed(self) -> None:
         # Check for an arbitrary software attack
         self.sim.root.version += 1  # root v2
-        self.sim.signers["root"].clear()
+        self.sim.signers[Root.type].clear()
         self.sim.publish_root()
 
         with self.assertRaises(UnsignedMetadataError):
             self._run_refresh()
 
         # The update failed, latest root version is v1
-        self._assert_files_exist(["root"])
-        self._assert_content_equals("root", 1)
+        self._assert_files_exist([Root.type])
+        self._assert_content_equals(Root.type, 1)
 
     def test_new_root_same_version(self) -> None:
         # Check for a rollback_attack
@@ -247,8 +247,8 @@ class TestRefresh(unittest.TestCase):
             self._run_refresh()
 
         # The update failed, latest root version is v1
-        self._assert_files_exist(["root"])
-        self._assert_content_equals("root", 1)
+        self._assert_files_exist([Root.type])
+        self._assert_content_equals(Root.type, 1)
 
     def test_new_root_nonconsecutive_version(self) -> None:
         # Repository serves non-consecutive root version
@@ -258,8 +258,8 @@ class TestRefresh(unittest.TestCase):
             self._run_refresh()
 
         # The update failed, latest root version is v1
-        self._assert_files_exist(["root"])
-        self._assert_content_equals("root", 1)
+        self._assert_files_exist([Root.type])
+        self._assert_content_equals(Root.type, 1)
 
     def test_final_root_expired(self) -> None:
         # Check for a freeze attack
@@ -272,16 +272,16 @@ class TestRefresh(unittest.TestCase):
             self._run_refresh()
 
         # The update failed but final root is persisted on the file system
-        self._assert_files_exist(["root"])
-        self._assert_content_equals("root", 2)
+        self._assert_files_exist([Root.type])
+        self._assert_content_equals(Root.type, 2)
 
     def test_new_timestamp_unsigned(self) -> None:
         # Check for an arbitrary software attack
-        self.sim.signers["timestamp"].clear()
+        self.sim.signers[Timestamp.type].clear()
         with self.assertRaises(UnsignedMetadataError):
             self._run_refresh()
 
-        self._assert_files_exist(["root"])
+        self._assert_files_exist([Root.type])
 
     def test_new_timestamp_version_rollback(self) -> None:
         # Check for a rollback attack
@@ -292,7 +292,7 @@ class TestRefresh(unittest.TestCase):
         with self.assertRaises(ReplayedMetadataError):
             self._run_refresh()
 
-        self._assert_version_equals("timestamp", 2)
+        self._assert_version_equals(Timestamp.type, 2)
 
     def test_new_timestamp_snapshot_rollback(self) -> None:
         # Check for a rollback attack.
@@ -307,7 +307,7 @@ class TestRefresh(unittest.TestCase):
         with self.assertRaises(ReplayedMetadataError):
             self._run_refresh()
 
-        self._assert_version_equals("timestamp", 2)
+        self._assert_version_equals(Timestamp.type, 2)
 
     def test_new_timestamp_expired(self) -> None:
         # Check for a freeze attack
@@ -317,7 +317,7 @@ class TestRefresh(unittest.TestCase):
         with self.assertRaises(ExpiredMetadataError):
             self._run_refresh()
 
-        self._assert_files_exist(["root"])
+        self._assert_files_exist([Root.type])
 
     def test_new_snapshot_hash_mismatch(self) -> None:
         # Check against timestamp role’s snapshot hash
@@ -338,16 +338,16 @@ class TestRefresh(unittest.TestCase):
         with self.assertRaises(RepositoryError):
             self._run_refresh()
 
-        self._assert_version_equals("timestamp", 3)
-        self._assert_version_equals("snapshot", 1)
+        self._assert_version_equals(Timestamp.type, 3)
+        self._assert_version_equals(Snapshot.type, 1)
 
     def test_new_snapshot_unsigned(self) -> None:
         # Check for an arbitrary software attack
-        self.sim.signers["snapshot"].clear()
+        self.sim.signers[Snapshot.type].clear()
         with self.assertRaises(UnsignedMetadataError):
             self._run_refresh()
 
-        self._assert_files_exist(["root", "timestamp"])
+        self._assert_files_exist([Root.type, Timestamp.type])
 
     def test_new_snapshot_version_mismatch(self) -> None:
         # Check against timestamp role’s snapshot version
@@ -357,7 +357,7 @@ class TestRefresh(unittest.TestCase):
         with self.assertRaises(BadVersionNumberError):
             self._run_refresh()
 
-        self._assert_files_exist(["root", "timestamp"])
+        self._assert_files_exist([Root.type, Timestamp.type])
 
     def test_new_snapshot_version_rollback(self) -> None:
         # Check for a rollback attack
@@ -371,7 +371,7 @@ class TestRefresh(unittest.TestCase):
         with self.assertRaises(ReplayedMetadataError):
             self._run_refresh()
 
-        self._assert_version_equals("snapshot", 2)
+        self._assert_version_equals(Snapshot.type, 2)
 
     def test_new_snapshot_expired(self) -> None:
         # Check for a freeze attack
@@ -381,7 +381,7 @@ class TestRefresh(unittest.TestCase):
         with self.assertRaises(ExpiredMetadataError):
             self._run_refresh()
 
-        self._assert_files_exist(["root", "timestamp"])
+        self._assert_files_exist([Root.type, Timestamp.type])
 
     def test_new_targets_hash_mismatch(self) -> None:
         # Check against snapshot role’s targets hashes
@@ -403,16 +403,16 @@ class TestRefresh(unittest.TestCase):
         with self.assertRaises(RepositoryError):
             self._run_refresh()
 
-        self._assert_version_equals("snapshot", 3)
-        self._assert_version_equals("targets", 1)
+        self._assert_version_equals(Snapshot.type, 3)
+        self._assert_version_equals(Targets.type, 1)
 
     def test_new_targets_unsigned(self) -> None:
         # Check for an arbitrary software attack
-        self.sim.signers["targets"].clear()
+        self.sim.signers[Targets.type].clear()
         with self.assertRaises(UnsignedMetadataError):
             self._run_refresh()
 
-        self._assert_files_exist(["root", "timestamp", "snapshot"])
+        self._assert_files_exist([Root.type, Timestamp.type, Snapshot.type])
 
     def test_new_targets_version_mismatch(self) -> None:
         # Check against snapshot role’s targets version
@@ -422,7 +422,7 @@ class TestRefresh(unittest.TestCase):
         with self.assertRaises(BadVersionNumberError):
             self._run_refresh()
 
-        self._assert_files_exist(["root", "timestamp", "snapshot"])
+        self._assert_files_exist([Root.type, Timestamp.type, Snapshot.type])
 
     def test_new_targets_expired(self) -> None:
         # Check for a freeze attack.
@@ -432,7 +432,7 @@ class TestRefresh(unittest.TestCase):
         with self.assertRaises(ExpiredMetadataError):
             self._run_refresh()
 
-        self._assert_files_exist(["root", "timestamp", "snapshot"])
+        self._assert_files_exist([Root.type, Timestamp.type, Snapshot.type])
 
 
 if __name__ == "__main__":

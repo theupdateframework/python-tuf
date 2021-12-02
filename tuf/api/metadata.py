@@ -61,6 +61,11 @@ from tuf.api.serialization import (
     SignedSerializer,
 )
 
+_ROOT = "root"
+_SNAPSHOT = "snapshot"
+_TARGETS = "targets"
+_TIMESTAMP = "timestamp"
+
 # pylint: disable=too-many-lines
 
 logger = logging.getLogger(__name__)
@@ -68,7 +73,7 @@ logger = logging.getLogger(__name__)
 # We aim to support SPECIFICATION_VERSION and require the input metadata
 # files to have the same major version (the first number) as ours.
 SPECIFICATION_VERSION = ["1", "0", "19"]
-TOP_LEVEL_ROLE_NAMES = {"root", "timestamp", "snapshot", "targets"}
+TOP_LEVEL_ROLE_NAMES = {_ROOT, _TIMESTAMP, _SNAPSHOT, _TARGETS}
 
 # T is a Generic type constraint for Metadata.signed
 T = TypeVar("T", "Root", "Timestamp", "Snapshot", "Targets")
@@ -130,13 +135,13 @@ class Metadata(Generic[T]):
         # Dispatch to contained metadata class on metadata _type field.
         _type = metadata["signed"]["_type"]
 
-        if _type == "targets":
+        if _type == _TARGETS:
             inner_cls: Type[Signed] = Targets
-        elif _type == "snapshot":
+        elif _type == _SNAPSHOT:
             inner_cls = Snapshot
-        elif _type == "timestamp":
+        elif _type == _TIMESTAMP:
             inner_cls = Timestamp
-        elif _type == "root":
+        elif _type == _ROOT:
             inner_cls = Root
         else:
             raise ValueError(f'unrecognized metadata type "{_type}"')
@@ -394,18 +399,13 @@ class Signed(metaclass=abc.ABCMeta):
         unrecognized_fields: Dictionary of all unrecognized fields.
     """
 
-    # Signed implementations are expected to override this
-    _signed_type: ClassVar[str] = "signed"
+    # type is required for static reference without changing the API
+    type: ClassVar[str] = "signed"
 
     # _type and type are identical: 1st replicates file format, 2nd passes lint
     @property
     def _type(self) -> str:
-        return self._signed_type
-
-    @property
-    def type(self) -> str:
-        """Metadata type as string."""
-        return self._signed_type
+        return self.type
 
     # NOTE: Signed is a stupid name, because this might not be signed yet, but
     # we keep it to match spec terminology (I often refer to this as "payload",
@@ -458,8 +458,8 @@ class Signed(metaclass=abc.ABCMeta):
 
         """
         _type = signed_dict.pop("_type")
-        if _type != cls._signed_type:
-            raise ValueError(f"Expected type {cls._signed_type}, got {_type}")
+        if _type != cls.type:
+            raise ValueError(f"Expected type {cls.type}, got {_type}")
 
         version = signed_dict.pop("version")
         spec_version = signed_dict.pop("spec_version")
@@ -712,7 +712,7 @@ class Root(Signed):
         unrecognized_fields: Dictionary of all unrecognized fields.
     """
 
-    _signed_type = "root"
+    type = _ROOT
 
     # TODO: determine an appropriate value for max-args
     # pylint: disable=too-many-arguments
@@ -965,7 +965,7 @@ class Timestamp(Signed):
         snapshot_meta: Meta information for snapshot metadata.
     """
 
-    _signed_type = "timestamp"
+    type = _TIMESTAMP
 
     def __init__(
         self,
@@ -1015,7 +1015,7 @@ class Snapshot(Signed):
         meta: A dictionary of target metadata filenames to MetaFile objects.
     """
 
-    _signed_type = "snapshot"
+    type = _SNAPSHOT
 
     def __init__(
         self,
@@ -1416,7 +1416,7 @@ class Targets(Signed):
         unrecognized_fields: Dictionary of all unrecognized fields.
     """
 
-    _signed_type = "targets"
+    type = _TARGETS
 
     # TODO: determine an appropriate value for max-args
     # pylint: disable=too-many-arguments
@@ -1437,7 +1437,7 @@ class Targets(Signed):
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Targets":
         """Creates Targets object from its dict representation."""
         common_args = cls._common_fields_from_dict(signed_dict)
-        targets = signed_dict.pop("targets")
+        targets = signed_dict.pop(_TARGETS)
         try:
             delegations_dict = signed_dict.pop("delegations")
         except KeyError:
@@ -1458,7 +1458,7 @@ class Targets(Signed):
         targets = {}
         for target_path, target_file_obj in self.targets.items():
             targets[target_path] = target_file_obj.to_dict()
-        targets_dict["targets"] = targets
+        targets_dict[_TARGETS] = targets
         if self.delegations is not None:
             targets_dict["delegations"] = self.delegations.to_dict()
         return targets_dict
