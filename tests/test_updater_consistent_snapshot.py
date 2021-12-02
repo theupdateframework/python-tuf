@@ -199,7 +199,7 @@ class TestConsistentSnapshot(unittest.TestCase):
         consistent_snapshot: bool = test_case_data["consistent_snapshot"]
         prefix_targets_with_hash: bool = test_case_data["prefix_targets"]
         hash_algo: Optional[str] = test_case_data["hash_algo"]
-        targetpaths: str = test_case_data["targetpaths"]
+        targetpaths: list = test_case_data["targetpaths"]
 
         sim = self._init_repo(consistent_snapshot, prefix_targets_with_hash)
         # Add targets to repository
