@@ -48,7 +48,7 @@ import logging
 import os
 import tempfile
 from collections import OrderedDict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Dict, Iterator, List, Optional, Tuple
 from urllib import parse
@@ -79,6 +79,14 @@ from tuf.ngclient.fetcher import FetcherInterface
 logger = logging.getLogger(__name__)
 
 SPEC_VER = ".".join(SPECIFICATION_VERSION)
+
+
+@dataclass
+class FetchCounter:
+    """Fetcher counter for metadata and targets."""
+
+    metadata: list = field(default_factory=list)
+    targets: list = field(default_factory=list)
 
 
 @dataclass
@@ -115,6 +123,8 @@ class RepositorySimulator(FetcherInterface):
 
         self.dump_dir: Optional[str] = None
         self.dump_version = 0
+
+        self.fetch_tracker: FetchCounter = FetchCounter()
 
         now = datetime.utcnow()
         self.safe_expiry = now.replace(microsecond=0) + timedelta(days=30)
@@ -229,6 +239,8 @@ class RepositorySimulator(FetcherInterface):
 
         If hash is None, then consistent_snapshot is not used.
         """
+        self.fetch_tracker.targets.append((target_path, target_hash))
+
         repo_target = self.target_files.get(target_path)
         if repo_target is None:
             raise FetcherHTTPError(f"No target {target_path}", 404)
@@ -248,6 +260,8 @@ class RepositorySimulator(FetcherInterface):
 
         If version is None, non-versioned metadata is being requested.
         """
+        self.fetch_tracker.metadata.append((role, version))
+
         if role == "root":
             # return a version previously serialized in publish_root()
             if version is None or version > len(self.signed_roots):

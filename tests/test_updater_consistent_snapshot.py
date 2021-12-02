@@ -90,19 +90,19 @@ class TestConsistentSnapshot(unittest.TestCase):
         "consistent_snaphot disabled": {
             "consistent_snapshot": False,
             "calls": [
-                call("root", 3),
-                call("timestamp", None),
-                call("snapshot", None),
-                call("targets", None),
+                ("root", 3),
+                ("timestamp", None),
+                ("snapshot", None),
+                ("targets", None),
             ],
         },
         "consistent_snaphot enabled": {
             "consistent_snapshot": True,
             "calls": [
-                call("root", 3),
-                call("timestamp", None),
-                call("snapshot", 1),
-                call("targets", 1),
+                ("root", 3),
+                ("timestamp", None),
+                ("snapshot", 1),
+                ("targets", 1),
             ],
         },
     }
@@ -117,15 +117,14 @@ class TestConsistentSnapshot(unittest.TestCase):
         sim = self._init_repo(consistent_snapshot)
         updater = self._init_updater(sim)
 
-        with patch.object(
-            sim, "_fetch_metadata", wraps=sim._fetch_metadata
-        ) as wrapped_fetch:
-            updater.refresh()
+        # cleanup fetch tracker metadata
+        sim.fetch_tracker.metadata.clear()
+        updater.refresh()
 
-            # metadata files are fetched with the expected version (or None)
-            self.assertListEqual(wrapped_fetch.call_args_list, expected_calls)
-            # metadata files are always persisted without a version prefix
-            self._assert_metadata_files_exist(TOP_LEVEL_ROLE_NAMES)
+        # metadata files are fetched with the expected version (or None)
+        self.assertListEqual(sim.fetch_tracker.metadata, expected_calls)
+        # metadata files are always persisted without a version prefix
+        self._assert_metadata_files_exist(TOP_LEVEL_ROLE_NAMES)
 
         self._cleanup_dir(self.metadata_dir)
 
@@ -147,7 +146,7 @@ class TestConsistentSnapshot(unittest.TestCase):
         consistent_snapshot: bool = test_case_data["consistent_snapshot"]
         expected_version: Optional[int] = test_case_data["expected_version"]
         rolenames = ["role1", "..", "."]
-        expected_calls = [call(role, expected_version) for role in rolenames]
+        expected_calls = [(role, expected_version) for role in rolenames]
 
         sim = self._init_repo(consistent_snapshot)
         # Add new delegated targets
@@ -157,17 +156,17 @@ class TestConsistentSnapshot(unittest.TestCase):
             sim.add_delegation("targets", role, targets, False, ["*"], None)
         sim.update_snapshot()
         updater = self._init_updater(sim)
+
         updater.refresh()
 
-        with patch.object(
-            sim, "_fetch_metadata", wraps=sim._fetch_metadata
-        ) as wrapped_fetch:
-            # trigger updater to fetch the delegated metadata
-            updater.get_targetinfo("anything")
-            # metadata files are fetched with the expected version (or None)
-            self.assertListEqual(wrapped_fetch.call_args_list, expected_calls)
-            # metadata files are always persisted without a version prefix
-            self._assert_metadata_files_exist(rolenames)
+        # cleanup fetch tracker metadata
+        sim.fetch_tracker.metadata.clear()
+        # trigger updater to fetch the delegated metadata
+        updater.get_targetinfo("anything")
+        # metadata files are fetched with the expected version (or None)
+        self.assertListEqual(sim.fetch_tracker.metadata, expected_calls)
+        # metadata files are always persisted without a version prefix
+        self._assert_metadata_files_exist(rolenames)
 
         self._cleanup_dir(self.metadata_dir)
 
@@ -176,16 +175,19 @@ class TestConsistentSnapshot(unittest.TestCase):
             "consistent_snapshot": False,
             "prefix_targets": True,
             "hash_algo": None,
+            "targetpaths": ["file", "file.txt", "..file.ext", "f.le"],
         },
         "consistent_snaphot enabled without prefixed targets": {
             "consistent_snapshot": True,
             "prefix_targets": False,
             "hash_algo": None,
+            "targetpaths": ["file", "file.txt", "..file.ext", "f.le"],
         },
         "consistent_snaphot enabled with prefixed targets": {
             "consistent_snapshot": True,
             "prefix_targets": True,
             "hash_algo": "sha256",
+            "targetpaths": ["file", "file.txt", "..file.ext", "f.le"],
         },
     }
 
@@ -197,36 +199,29 @@ class TestConsistentSnapshot(unittest.TestCase):
         consistent_snapshot: bool = test_case_data["consistent_snapshot"]
         prefix_targets_with_hash: bool = test_case_data["prefix_targets"]
         hash_algo: Optional[str] = test_case_data["hash_algo"]
-        targetpaths = ["file", "file.txt", "..file.ext", "f.le"]
+        targetpaths: str = test_case_data["targetpaths"]
 
         sim = self._init_repo(consistent_snapshot, prefix_targets_with_hash)
         # Add targets to repository
         for targetpath in targetpaths:
             sim.targets.version += 1
             sim.add_target("targets", b"content", targetpath)
+
         sim.update_snapshot()
 
         updater = self._init_updater(sim)
         updater.config.prefix_targets_with_hash = prefix_targets_with_hash
         updater.refresh()
 
-        with patch.object(
-            sim, "_fetch_target", wraps=sim._fetch_target
-            ) as wrapped_fetch_target:
+        expected_result = []
+        for targetpath in targetpaths:
+            info = updater.get_targetinfo(targetpath)
+            updater.download_target(info)
+            expected_prefix = None if not hash_algo else info.hashes[hash_algo]
+            expected_result.append((targetpath, expected_prefix))
 
-            for targetpath in targetpaths:
-                info = updater.get_targetinfo(targetpath)
-                updater.download_target(info)
-                expected_prefix = (
-                    None if not hash_algo else info.hashes[hash_algo]
-                )
-                # files are fetched with the expected hash prefix (or None)
-                wrapped_fetch_target.assert_called_once_with(
-                    info.path, expected_prefix
-                )
-                # target files are always persisted without hash prefix
-                self._assert_targets_files_exist([info.path])
-                wrapped_fetch_target.reset_mock()
+        # files are fetched with the expected hash prefix (or None)
+        self.assertListEqual(sim.fetch_tracker.targets, expected_result)
 
         self._cleanup_dir(self.targets_dir)
 
