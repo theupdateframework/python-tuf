@@ -68,14 +68,7 @@ from urllib import parse
 from securesystemslib import util as sslib_util
 
 from tuf import exceptions
-from tuf.api.metadata import (
-    Metadata,
-    Root,
-    Snapshot,
-    TargetFile,
-    Targets,
-    Timestamp,
-)
+from tuf.api.metadata import Metadata, TargetFile, Targets
 from tuf.ngclient._internal import requests_fetcher, trusted_metadata_set
 from tuf.ngclient.config import UpdaterConfig
 from tuf.ngclient.fetcher import FetcherInterface
@@ -121,7 +114,7 @@ class Updater:
             self._target_base_url = _ensure_trailing_slash(target_base_url)
 
         # Read trusted local root metadata
-        data = self._load_local_metadata(Root.type)
+        data = self._load_local_metadata("root")
         self._trusted_set = trusted_metadata_set.TrustedMetadataSet(data)
         self._fetcher = fetcher or requests_fetcher.RequestsFetcher()
         self.config = config or UpdaterConfig()
@@ -153,7 +146,7 @@ class Updater:
         self._load_root()
         self._load_timestamp()
         self._load_snapshot()
-        self._load_targets(Targets.type, Root.type)
+        self._load_targets("targets", "root")
 
     def _generate_target_file_path(self, targetinfo: TargetFile) -> str:
         if self.target_dir is None:
@@ -327,12 +320,10 @@ class Updater:
         for next_version in range(lower_bound, upper_bound):
             try:
                 data = self._download_metadata(
-                    Root.type,
-                    self.config.root_max_length,
-                    next_version,
+                    "root", self.config.root_max_length, next_version
                 )
                 self._trusted_set.update_root(data)
-                self._persist_metadata(Root.type, data)
+                self._persist_metadata("root", data)
 
             except exceptions.FetcherHTTPError as exception:
                 if exception.status_code not in {403, 404}:
@@ -343,7 +334,7 @@ class Updater:
     def _load_timestamp(self) -> None:
         """Load local and remote timestamp metadata"""
         try:
-            data = self._load_local_metadata(Timestamp.type)
+            data = self._load_local_metadata("timestamp")
             self._trusted_set.update_timestamp(data)
         except (OSError, exceptions.RepositoryError) as e:
             # Local timestamp does not exist or is invalid
@@ -351,15 +342,15 @@ class Updater:
 
         # Load from remote (whether local load succeeded or not)
         data = self._download_metadata(
-            Timestamp.type, self.config.timestamp_max_length
+            "timestamp", self.config.timestamp_max_length
         )
         self._trusted_set.update_timestamp(data)
-        self._persist_metadata(Timestamp.type, data)
+        self._persist_metadata("timestamp", data)
 
     def _load_snapshot(self) -> None:
         """Load local (and if needed remote) snapshot metadata"""
         try:
-            data = self._load_local_metadata(Snapshot.type)
+            data = self._load_local_metadata("snapshot")
             self._trusted_set.update_snapshot(data, trusted=True)
             logger.debug("Local snapshot is valid: not downloading new one")
         except (OSError, exceptions.RepositoryError) as e:
@@ -373,9 +364,9 @@ class Updater:
             if self._trusted_set.root.signed.consistent_snapshot:
                 version = snapshot_meta.version
 
-            data = self._download_metadata(Snapshot.type, length, version)
+            data = self._download_metadata("snapshot", length, version)
             self._trusted_set.update_snapshot(data)
-            self._persist_metadata(Snapshot.type, data)
+            self._persist_metadata("snapshot", data)
 
     def _load_targets(self, role: str, parent_role: str) -> Metadata[Targets]:
         """Load local (and if needed remote) metadata for 'role'."""
@@ -421,7 +412,7 @@ class Updater:
 
         # List of delegations to be interrogated. A (role, parent role) pair
         # is needed to load and verify the delegated targets metadata.
-        delegations_to_visit = [(Targets.type, Root.type)]
+        delegations_to_visit = [("targets", "root")]
         visited_role_names: Set[str] = set()
         number_of_delegations = self.config.max_delegations
 

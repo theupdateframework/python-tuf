@@ -10,7 +10,7 @@ in the TUF specification: the remaining steps are related to filesystem and
 network IO, which are not handled here.
 
 Loaded metadata can be accessed via index access with rolename as key
-(trusted_set[Root.type]) or, in the case of top-level metadata, using the helper
+(trusted_set["root"]) or, in the case of top-level metadata, using the helper
 properties (trusted_set.root).
 
 The rules that TrustedMetadataSet follows for top-level metadata are
@@ -35,7 +35,7 @@ Example of loading root, timestamp and snapshot:
 >>>     trusted_set = TrustedMetadataSet(f.read())
 >>>
 >>> # update root from remote until no more are available
->>> with download(Root.type, trusted_set.root.signed.version + 1) as f:
+>>> with download("root", trusted_set.root.signed.version + 1) as f:
 >>>     trusted_set.update_root(f.read())
 >>>
 >>> # load local timestamp, then update from remote
@@ -45,7 +45,7 @@ Example of loading root, timestamp and snapshot:
 >>> except (RepositoryError, OSError):
 >>>     pass # failure to load a local file is ok
 >>>
->>> with download(Timestamp.type) as f:
+>>> with download("timestamp") as f:
 >>>     trusted_set.update_timestamp(f.read())
 >>>
 >>> # load local snapshot, then update from remote if needed
@@ -55,7 +55,7 @@ Example of loading root, timestamp and snapshot:
 >>> except (RepositoryError, OSError):
 >>>     # local snapshot is not valid, load from remote
 >>>     # (RepositoryErrors here stop the update)
->>>     with download(Snapshot.type, version) as f:
+>>>     with download("snapshot", version) as f:
 >>>         trusted_set.update_snapshot(f.read())
 
 TODO:
@@ -123,22 +123,22 @@ class TrustedMetadataSet(abc.Mapping):
     @property
     def root(self) -> Metadata[Root]:
         """Current root Metadata"""
-        return self._trusted_set[Root.type]
+        return self._trusted_set["root"]
 
     @property
     def timestamp(self) -> Optional[Metadata[Timestamp]]:
         """Current timestamp Metadata or None"""
-        return self._trusted_set.get(Timestamp.type)
+        return self._trusted_set.get("timestamp")
 
     @property
     def snapshot(self) -> Optional[Metadata[Snapshot]]:
         """Current snapshot Metadata or None"""
-        return self._trusted_set.get(Snapshot.type)
+        return self._trusted_set.get("snapshot")
 
     @property
     def targets(self) -> Optional[Metadata[Targets]]:
         """Current targets Metadata or None"""
-        return self._trusted_set.get(Targets.type)
+        return self._trusted_set.get("targets")
 
     # Methods for updating metadata
     def update_root(self, data: bytes) -> Metadata[Root]:
@@ -166,25 +166,23 @@ class TrustedMetadataSet(abc.Mapping):
         except DeserializationError as e:
             raise exceptions.RepositoryError("Failed to load root") from e
 
-        if new_root.signed.type != Root.type:
+        if new_root.signed.type != "root":
             raise exceptions.RepositoryError(
                 f"Expected 'root', got '{new_root.signed.type}'"
             )
 
         # Verify that new root is signed by trusted root
-        self.root.verify_delegate(Root.type, new_root)
+        self.root.verify_delegate("root", new_root)
 
         if new_root.signed.version != self.root.signed.version + 1:
             raise exceptions.ReplayedMetadataError(
-                Root.type,
-                new_root.signed.version,
-                self.root.signed.version,
+                "root", new_root.signed.version, self.root.signed.version
             )
 
         # Verify that new root is signed by itself
-        new_root.verify_delegate(Root.type, new_root)
+        new_root.verify_delegate("root", new_root)
 
-        self._trusted_set[Root.type] = new_root
+        self._trusted_set["root"] = new_root
         logger.info("Updated root v%d", new_root.signed.version)
 
         return new_root
@@ -224,12 +222,12 @@ class TrustedMetadataSet(abc.Mapping):
         except DeserializationError as e:
             raise exceptions.RepositoryError("Failed to load timestamp") from e
 
-        if new_timestamp.signed.type != Timestamp.type:
+        if new_timestamp.signed.type != "timestamp":
             raise exceptions.RepositoryError(
                 f"Expected 'timestamp', got '{new_timestamp.signed.type}'"
             )
 
-        self.root.verify_delegate(Timestamp.type, new_timestamp)
+        self.root.verify_delegate("timestamp", new_timestamp)
 
         # If an existing trusted timestamp is updated,
         # check for a rollback attack
@@ -237,7 +235,7 @@ class TrustedMetadataSet(abc.Mapping):
             # Prevent rolling back timestamp version
             if new_timestamp.signed.version < self.timestamp.signed.version:
                 raise exceptions.ReplayedMetadataError(
-                    Timestamp.type,
+                    "timestamp",
                     new_timestamp.signed.version,
                     self.timestamp.signed.version,
                 )
@@ -247,7 +245,7 @@ class TrustedMetadataSet(abc.Mapping):
                 < self.timestamp.signed.snapshot_meta.version
             ):
                 raise exceptions.ReplayedMetadataError(
-                    Snapshot.type,
+                    "snapshot",
                     new_timestamp.signed.snapshot_meta.version,
                     self.timestamp.signed.snapshot_meta.version,
                 )
@@ -255,7 +253,7 @@ class TrustedMetadataSet(abc.Mapping):
         # expiry not checked to allow old timestamp to be used for rollback
         # protection of new timestamp: expiry is checked in update_snapshot()
 
-        self._trusted_set[Timestamp.type] = new_timestamp
+        self._trusted_set["timestamp"] = new_timestamp
         logger.info("Updated timestamp v%d", new_timestamp.signed.version)
 
         # timestamp is loaded: raise if it is not valid _final_ timestamp
@@ -325,12 +323,12 @@ class TrustedMetadataSet(abc.Mapping):
         except DeserializationError as e:
             raise exceptions.RepositoryError("Failed to load snapshot") from e
 
-        if new_snapshot.signed.type != Snapshot.type:
+        if new_snapshot.signed.type != "snapshot":
             raise exceptions.RepositoryError(
                 f"Expected 'snapshot', got '{new_snapshot.signed.type}'"
             )
 
-        self.root.verify_delegate(Snapshot.type, new_snapshot)
+        self.root.verify_delegate("snapshot", new_snapshot)
 
         # version not checked against meta version to allow old snapshot to be
         # used in rollback protection: it is checked when targets is updated
@@ -356,7 +354,7 @@ class TrustedMetadataSet(abc.Mapping):
         # expiry not checked to allow old snapshot to be used for rollback
         # protection of new snapshot: it is checked when targets is updated
 
-        self._trusted_set[Snapshot.type] = new_snapshot
+        self._trusted_set["snapshot"] = new_snapshot
         logger.info("Updated snapshot v%d", new_snapshot.signed.version)
 
         # snapshot is loaded, but we raise if it's not valid _final_ snapshot
@@ -391,7 +389,7 @@ class TrustedMetadataSet(abc.Mapping):
         Returns:
             Deserialized and verified targets Metadata object
         """
-        return self.update_delegated_targets(data, Targets.type, Root.type)
+        return self.update_delegated_targets(data, "targets", "root")
 
     def update_delegated_targets(
         self, data: bytes, role_name: str, delegator_name: str
@@ -442,7 +440,7 @@ class TrustedMetadataSet(abc.Mapping):
         except DeserializationError as e:
             raise exceptions.RepositoryError("Failed to load snapshot") from e
 
-        if new_delegate.signed.type != Targets.type:
+        if new_delegate.signed.type != "targets":
             raise exceptions.RepositoryError(
                 f"Expected 'targets', got '{new_delegate.signed.type}'"
             )
@@ -474,12 +472,12 @@ class TrustedMetadataSet(abc.Mapping):
         except DeserializationError as e:
             raise exceptions.RepositoryError("Failed to load root") from e
 
-        if new_root.signed.type != Root.type:
+        if new_root.signed.type != "root":
             raise exceptions.RepositoryError(
                 f"Expected 'root', got '{new_root.signed.type}'"
             )
 
-        new_root.verify_delegate(Root.type, new_root)
+        new_root.verify_delegate("root", new_root)
 
-        self._trusted_set[Root.type] = new_root
+        self._trusted_set["root"] = new_root
         logger.info("Loaded trusted root v%d", new_root.signed.version)

@@ -17,7 +17,7 @@ from securesystemslib.signer import SSlibSigner
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
 from tests.utils import run_sub_tests_with_dataset
-from tuf.api.metadata import Key, Root
+from tuf.api.metadata import Key
 from tuf.exceptions import UnsignedMetadataError
 from tuf.ngclient import Updater
 
@@ -176,14 +176,14 @@ class TestUpdaterKeyRotations(unittest.TestCase):
         # Publish all remote root versions defined in root_versions
         for rootver in root_versions:
             # clear root keys, signers
-            self.sim.root.roles[Root.type].keyids.clear()
-            self.sim.signers[Root.type].clear()
+            self.sim.root.roles["root"].keyids.clear()
+            self.sim.signers["root"].clear()
 
-            self.sim.root.roles[Root.type].threshold = rootver.threshold
+            self.sim.root.roles["root"].threshold = rootver.threshold
             for i in rootver.keys:
-                self.sim.root.add_key(Root.type, self.keys[i])
+                self.sim.root.add_key("root", self.keys[i])
             for i in rootver.sigs:
-                self.sim.add_signer(Root.type, self.signers[i])
+                self.sim.add_signer("root", self.signers[i])
             self.sim.root.version += 1
             self.sim.publish_root()
 
