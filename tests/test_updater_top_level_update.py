@@ -12,7 +12,7 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta
 from typing import Iterable, Optional
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, Mock, call, patch
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
@@ -661,6 +661,32 @@ class TestRefresh(unittest.TestCase):
 
         expected_calls = [("root", 2), ("timestamp", None)]
         self.assertListEqual(self.sim.fetch_tracker.metadata, expected_calls)
+
+    def test_expired_metadata(self) -> None:
+        # Test that expired local timestamp/snapshot can be used for updating
+        # from remote
+
+        # Make a successful update of valid metadata which stores it in cache
+        self._run_refresh()
+
+        # Simulate expired local metadata by mocking system time one second ahead
+        mock_time = Mock()
+        mock_time.return_value = (
+            int(self.sim.timestamp.expires.strftime("%Y%m%d%H%M%S")) + 1
+        )
+        with patch("time.time", mock_time):
+            self.sim.targets.version += 1
+            self.sim.update_snapshot()
+            # Create a new updater and perform a second update while
+            # the metadata is already stored in cache (metadata dir)
+            self._run_refresh()
+
+        # Assert that the final version of timestamp/snapshot is version 2
+        # which means a successful refresh is performed
+        # with expired local metadata
+        for role in ["timestamp", "snapshot", "targets"]:
+            md = Metadata.from_file(f"{self.metadata_dir}/{role}.json")
+            self.assertEqual(md.signed.version, 2)
 
 
 if __name__ == "__main__":
