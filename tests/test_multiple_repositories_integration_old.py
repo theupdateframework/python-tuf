@@ -5,7 +5,7 @@
 
 """
 <Program Name>
-  test_multiple_repositories_integration.py
+  test_multiple_repositories_integration_old.py
 
 <Author>
   Vladimir Diaz <vladimir.v.diaz@gmail.com>

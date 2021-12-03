@@ -5,7 +5,7 @@
 
 """
 <Program Name>
-  test_repository_tool.py
+  test_repository_tool_old.py
 
 <Author>
   Vladimir Diaz <vladimir.v.diaz@gmail.com>

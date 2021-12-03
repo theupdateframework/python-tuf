@@ -5,7 +5,7 @@
 
 """
 <Program Name>
-  test_keydb.py
+  test_keydb_old.py
 
 <Author>
   Vladimir Diaz <vladimir.v.diaz@gmail.com>

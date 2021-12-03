@@ -17,8 +17,8 @@
   See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
-  Generate a pre-fabricated set of metadata files for 'test_developer_tool.py'
-  test cases.
+  Generate a pre-fabricated set of metadata files for
+  'test_developer_tool_old.py' test cases.
 """
 
 import shutil

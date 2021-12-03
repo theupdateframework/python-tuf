@@ -289,14 +289,14 @@ exception or error when it detects that a malicious server is serving it data
 at a slow enough rate.
 
 We first spawn the server that slowly streams data to the client.  The
-'slow_retrieval_server.py' module (can be found in the tests/ directory of the
+'slow_retrieval_server_old.py' module (can be found in the tests/ directory of the
 source code) should be copied over to the server's 'repository/' directory from
 which to launch it.
 
 ```Bash
-# Before launching the slow retrieval server, copy 'slow_retrieval_server.py'
+# Before launching the slow retrieval server, copy 'slow_retrieval_server_old.py'
 # to the 'repository/' directory and run it from that directory as follows:
-$ python3 slow_retrieval_server.py 8002 mode_2
+$ python3 slow_retrieval_server_old.py 8002 mode_2
 ```
 
 The client may now make a request to the slow retrieval server on port 8002.

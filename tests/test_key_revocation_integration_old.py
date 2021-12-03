@@ -5,7 +5,7 @@
 
 """
 <Program Name>
-  test_key_revocation_integration.py
+  test_key_revocation_integration_old.py
 
 <Author>
   Vladimir Diaz.
@@ -18,7 +18,7 @@
 
 <Purpose>
   Integration test that verifies top-level roles are updated after all of their
-  keys have been revoked. There are unit tests in 'test_repository_tool.py'
+  keys have been revoked. There are unit tests in 'test_repository_tool_old.py'
   that verify key and role revocation of specific roles, but these should be
   expanded to verify key revocations over the span of multiple snapshots of the
   repository.

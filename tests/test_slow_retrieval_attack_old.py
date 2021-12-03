@@ -5,7 +5,7 @@
 
 """
 <Program Name>
-  test_slow_retrieval_attack.py
+  test_slow_retrieval_attack_old.py
 
 <Author>
   Konstantin Andrianov.
@@ -152,7 +152,7 @@ class TestSlowRetrieval(unittest_toolbox.Modified_TestCase):
     repository_basepath = self.repository_directory[len(os.getcwd()):]
 
     self.server_process_handler = utils.TestServerProcess(log=logger,
-        server='slow_retrieval_server.py')
+        server='slow_retrieval_server_old.py')
 
     logger.info('Slow Retrieval Server process started.')
 

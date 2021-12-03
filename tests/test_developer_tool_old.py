@@ -5,7 +5,7 @@
 
 """
 <Program Name>
-  test_developer_tool.py.
+  test_developer_tool_old.py.
 
 <Authors>
   Santiago Torres Arias <torresariass@gmail.com>

@@ -5,7 +5,7 @@
 
 """
 <Program>
-  test_mirrors.py
+  test_mirrors_old.py
 
 <Author>
   Konstantin Andrianov.

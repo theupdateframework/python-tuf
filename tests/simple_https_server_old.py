@@ -5,7 +5,7 @@
 
 """
 <Program>
-  simple_https_server.py
+  simple_https_server_old.py
 
 <Author>
   Vladimir Diaz.
@@ -53,7 +53,7 @@ port_message = 'bind succeeded, server port is: ' \
 print(port_message)
 
 if len(sys.argv) > 1 and certfile != sys.argv[1]:
-  print('simple_https_server: cert file was not found: ' + sys.argv[1] +
+  print('simple_https_server_old: cert file was not found: ' + sys.argv[1] +
       '; using default: ' + certfile + " certfile")
 
 httpd.serve_forever()

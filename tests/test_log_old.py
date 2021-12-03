@@ -5,7 +5,7 @@
 
 """
 <Program Name>
-  test_log.py
+  test_log_old.py
 
 <Authors>
   Vladimir Diaz <vladimir.v.diaz@gmail.com>
