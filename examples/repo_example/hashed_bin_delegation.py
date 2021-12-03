@@ -22,6 +22,7 @@ import tempfile
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any, Dict, Iterator, List, Tuple
 
 from securesystemslib.keys import generate_ed25519_key
 from securesystemslib.signer import SSlibSigner
@@ -37,14 +38,14 @@ from tuf.api.metadata import (
 from tuf.api.serialization.json import JSONSerializer
 
 
-def _in(days):
+def _in(days: float) -> datetime:
     """Adds 'days' to now and returns datetime object w/o microseconds."""
     return datetime.utcnow().replace(microsecond=0) + timedelta(days=days)
 
 
 SPEC_VERSION = "1.0.19"
-roles = {}
-keys = {}
+roles: Dict[str, Metadata] = {}
+keys: Dict[str, Dict[str, Any]] = {}
 
 # Hash bin delegation
 # ===================
@@ -83,7 +84,7 @@ BIN_SIZE = NUMBER_OF_PREFIXES // NUMBER_OF_BINS  # 8
 
 # Helpers
 # -------
-def _bin_name(low, high):
+def _bin_name(low: int, high: int) -> str:
     """Generates a bin name according to the hash prefixes the bin serves.
 
     The name is either a single hash prefix for bin size 1, or a range of hash
@@ -96,7 +97,7 @@ def _bin_name(low, high):
     return f"{low:0{PREFIX_LEN}x}-{high:0{PREFIX_LEN}x}"
 
 
-def generate_hash_bins():
+def generate_hash_bins() -> Iterator[Tuple[str, List[str]]]:
     """Returns generator for bin names and hash prefixes per bin."""
     # Iterate over the total number of hash prefixes in 'bin size'-steps to
     # generate bin names and a list of hash prefixes served by each bin.
@@ -110,7 +111,7 @@ def generate_hash_bins():
         yield bin_name, hash_prefixes
 
 
-def find_hash_bin(path):
+def find_hash_bin(path: str) -> str:
     """Returns name of bin for target file based on the target path hash."""
     # Generate hash digest of passed target path and take its prefix, given the
     # global prefix length for the given number of bins.
@@ -201,7 +202,7 @@ for bin_n_name, bin_n_hash_prefixes in generate_hash_bins():
 # about adding target file infos to targets metadata.
 local_path = Path(__file__).resolve()
 target_path = f"{local_path.parts[-2]}/{local_path.parts[-1]}"
-target_file_info = TargetFile.from_file(target_path, local_path)
+target_file_info = TargetFile.from_file(target_path, str(local_path))
 
 # The right bin for a target file is determined by the 'target_path' hash, e.g.:
 #
