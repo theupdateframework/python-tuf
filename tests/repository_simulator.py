@@ -82,11 +82,11 @@ SPEC_VER = ".".join(SPECIFICATION_VERSION)
 
 
 @dataclass
-class FetchCounter:
+class FetchTracker:
     """Fetcher counter for metadata and targets."""
 
-    metadata: list = field(default_factory=list)
-    targets: list = field(default_factory=list)
+    metadata: List[Tuple[str, Optional[int]]] = field(default_factory=list)
+    targets: List[Tuple[str, Optional[str]]] = field(default_factory=list)
 
 
 @dataclass
@@ -124,7 +124,7 @@ class RepositorySimulator(FetcherInterface):
         self.dump_dir: Optional[str] = None
         self.dump_version = 0
 
-        self.fetch_tracker: FetchCounter = FetchCounter()
+        self.fetch_tracker = FetchTracker()
 
         now = datetime.utcnow()
         self.safe_expiry = now.replace(microsecond=0) + timedelta(days=30)

@@ -199,7 +199,7 @@ class TestConsistentSnapshot(unittest.TestCase):
         consistent_snapshot: bool = test_case_data["consistent_snapshot"]
         prefix_targets_with_hash: bool = test_case_data["prefix_targets"]
         hash_algo: Optional[str] = test_case_data["hash_algo"]
-        targetpaths: list = test_case_data["targetpaths"]
+        targetpaths: List[str] = test_case_data["targetpaths"]
 
         sim = self._init_repo(consistent_snapshot, prefix_targets_with_hash)
         # Add targets to repository
@@ -219,6 +219,9 @@ class TestConsistentSnapshot(unittest.TestCase):
             updater.download_target(info)
             expected_prefix = None if not hash_algo else info.hashes[hash_algo]
             expected_result.append((targetpath, expected_prefix))
+            # target files are always persisted without hash prefix
+            self._assert_targets_files_exist([info.path])
+
 
         # files are fetched with the expected hash prefix (or None)
         self.assertListEqual(sim.fetch_tracker.targets, expected_result)
