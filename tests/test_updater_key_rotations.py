@@ -275,6 +275,7 @@ class TestUpdaterKeyRotations(unittest.TestCase):
                 with self.assertRaises(expected_error):
                     self._run_refresh()
 
+
 if __name__ == "__main__":
     if "--dump" in sys.argv:
         TestUpdaterKeyRotations.dump_dir = tempfile.mkdtemp()

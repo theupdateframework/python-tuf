@@ -14,7 +14,14 @@ from typing import Iterable, Optional
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
-from tuf.api.metadata import TOP_LEVEL_ROLE_NAMES, Metadata, Root, Snapshot, Targets, Timestamp
+from tuf.api.metadata import (
+    TOP_LEVEL_ROLE_NAMES,
+    Metadata,
+    Root,
+    Snapshot,
+    Targets,
+    Timestamp,
+)
 from tuf.exceptions import (
     BadVersionNumberError,
     ExpiredMetadataError,
