@@ -28,6 +28,7 @@ import tempfile
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any, Dict
 
 from securesystemslib.keys import generate_ed25519_key
 from securesystemslib.signer import SSlibSigner
@@ -48,7 +49,7 @@ from tuf.api.metadata import (
 from tuf.api.serialization.json import JSONSerializer
 
 
-def _in(days):
+def _in(days: float) -> datetime:
     """Adds 'days' to now and returns datetime object w/o microseconds."""
     return datetime.utcnow().replace(microsecond=0) + timedelta(days=days)
 
@@ -89,8 +90,8 @@ SPEC_VERSION = "1.0.19"
 
 # Define containers for role objects and cryptographic keys created below. This
 # allows us to sign and write metadata in a batch more easily.
-roles = {}
-keys = {}
+roles: Dict[str, Metadata] = {}
+keys: Dict[str, Dict[str, Any]] = {}
 
 
 # Targets (integrity)
@@ -117,7 +118,7 @@ roles["targets"] = Metadata[Targets](
 local_path = Path(__file__).resolve()
 target_path = f"{local_path.parts[-2]}/{local_path.parts[-1]}"
 
-target_file_info = TargetFile.from_file(target_path, local_path)
+target_file_info = TargetFile.from_file(target_path, str(local_path))
 roles["targets"].signed.targets[target_path] = target_file_info
 
 # Snapshot (consistency)
@@ -332,7 +333,7 @@ roles["targets"].signed.delegations = Delegations(
 del roles["targets"].signed.targets[target_path]
 
 # Increase expiry (delegators should be less volatile)
-roles["targets"].expires = _in(365)
+roles["targets"].signed.expires = _in(365)
 
 
 # Snapshot + Timestamp + Sign + Persist
