@@ -40,6 +40,7 @@ class TestRefresh(unittest.TestCase):
     past_datetime = datetime.utcnow().replace(microsecond=0) - timedelta(days=5)
 
     def setUp(self) -> None:
+        # pylint: disable=consider-using-with
         self.temp_dir = tempfile.TemporaryDirectory()
         self.metadata_dir = os.path.join(self.temp_dir.name, "metadata")
         self.targets_dir = os.path.join(self.temp_dir.name, "targets")

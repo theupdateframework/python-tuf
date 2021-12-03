@@ -27,6 +27,7 @@ class TestConsistentSnapshot(unittest.TestCase):
     are formed for each combination"""
 
     def setUp(self) -> None:
+        # pylint: disable=consider-using-with
         self.temp_dir = tempfile.TemporaryDirectory()
         self.metadata_dir = os.path.join(self.temp_dir.name, "metadata")
         self.targets_dir = os.path.join(self.temp_dir.name, "targets")

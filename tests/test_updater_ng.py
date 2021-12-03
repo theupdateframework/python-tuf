@@ -48,14 +48,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         # Needed because in some tests simple_server.py cannot be found.
         # The reason is that the current working directory
         # has been changed when executing a subprocess.
-        SIMPLE_SERVER_PATH = os.path.join(os.getcwd(), "simple_server.py")
+        simple_server_path = os.path.join(os.getcwd(), "simple_server.py")
 
         # Launch a SimpleHTTPServer (serves files in the current directory).
         # Test cases will request metadata and target files that have been
         # pre-generated in 'tuf/tests/repository_data', which will be served
         # by the SimpleHTTPServer launched here.
         cls.server_process_handler = utils.TestServerProcess(
-            log=logger, server=SIMPLE_SERVER_PATH
+            log=logger, server=simple_server_path
         )
 
     @classmethod
@@ -259,7 +259,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         self._assert_files(["root"])
 
         # Get targetinfo for 'file3.txt' listed in the delegated role1
-        targetinfo3 = self.updater.get_targetinfo("file3.txt")
+        self.updater.get_targetinfo("file3.txt")
         expected_files = ["role1", "root", "snapshot", "targets", "timestamp"]
         self._assert_files(expected_files)
 
