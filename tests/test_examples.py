@@ -10,6 +10,7 @@ import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from typing import ClassVar, List
 
 
 class TestRepoExamples(unittest.TestCase):
@@ -20,26 +21,30 @@ class TestRepoExamples(unittest.TestCase):
 
     """
 
+    repo_examples_dir: ClassVar[Path]
+
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         """Locate and cache 'repo_example' dir."""
         base = Path(__file__).resolve().parents[1]
         cls.repo_examples_dir = base / "examples" / "repo_example"
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Create and change into test dir.
         NOTE: Test scripts are expected to create dirs/files in new CWD."""
         self.original_cwd = os.getcwd()
         self.base_test_dir = os.path.realpath(tempfile.mkdtemp())
         os.chdir(self.base_test_dir)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Change back to original dir and remove test dir, which may contain
         dirs/files the test created at test-time CWD."""
         os.chdir(self.original_cwd)
         shutil.rmtree(self.base_test_dir)
 
-    def _run_script_and_assert_files(self, script_name, filenames_created):
+    def _run_script_and_assert_files(
+        self, script_name: str, filenames_created: List[str]
+    ) -> None:
         """Run script in 'repo_example' dir and assert that it created the
         files corresponding to the passed filenames inside a 'tmp*' test dir at
         CWD."""
@@ -63,7 +68,7 @@ class TestRepoExamples(unittest.TestCase):
                 metadata_path.exists(), f"missing '{metadata_path}' file"
             )
 
-    def test_basic_repo(self):
+    def test_basic_repo(self) -> None:
         """Run 'basic_repo.py' and assert creation of metadata files."""
         self._run_script_and_assert_files(
             "basic_repo.py",
