@@ -226,6 +226,17 @@ class TestDelegationsGraphs(unittest.TestCase):
             # 'C' is reached through 'B' since 'A' does not delegate a matching pattern"
             visited_order=["A", "B", "C"],
         ),
+        "max number of delegations": DelegationsTestCase(
+            delegations=[
+                TestDelegation("targets", "A"),
+                TestDelegation("targets", "B"),
+                TestDelegation("targets", "C"),
+                TestDelegation("C", "D"),
+                TestDelegation("C", "E"),
+            ],
+            # "E" is skipped, max_delegations is 4
+            visited_order=["A", "B", "C", "D"],
+        ),
     }
 
     @utils.run_sub_tests_with_dataset(graphs)
@@ -239,6 +250,8 @@ class TestDelegationsGraphs(unittest.TestCase):
 
             sim = self.setup_subtest(test_data.delegations)
             updater = self._init_updater(sim)
+            # restrict the max number of delegations to simplify the test
+            updater.config.max_delegations = 4
             # Call explicitly refresh to simplify the expected_calls list
             updater.refresh()
             sim.fetch_tracker.metadata.clear()
