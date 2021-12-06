@@ -29,13 +29,16 @@
 import sys
 import unittest
 
-if __name__ == '__main__':
-  suite = unittest.TestLoader().discover(".")
-  all_tests_passed = unittest.TextTestRunner(
-      verbosity=1, buffer=True).run(suite).wasSuccessful()
+if __name__ == "__main__":
+    suite = unittest.TestLoader().discover(".")
+    all_tests_passed = (
+        unittest.TextTestRunner(verbosity=1, buffer=True)
+        .run(suite)
+        .wasSuccessful()
+    )
 
-  if not all_tests_passed:
-    sys.exit(1)
+    if not all_tests_passed:
+        sys.exit(1)
 
-  else:
-    sys.exit(0)
+    else:
+        sys.exit(0)
