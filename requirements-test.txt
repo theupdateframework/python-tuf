@@ -14,3 +14,4 @@ pylint
 mypy
 bandit
 types-requests
+types-python-dateutil
