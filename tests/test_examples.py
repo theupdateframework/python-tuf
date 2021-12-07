@@ -7,10 +7,13 @@
 import glob
 import os
 import shutil
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 from typing import ClassVar, List
+
+from tests import utils
 
 
 class TestRepoExamples(unittest.TestCase):
@@ -86,4 +89,5 @@ class TestRepoExamples(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    utils.configure_test_logging(sys.argv)
     unittest.main()
