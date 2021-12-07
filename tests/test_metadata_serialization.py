@@ -200,6 +200,9 @@ class TestSerialization(unittest.TestCase):
                 "snapshot": {"keyids": ["keyid2"], "threshold": 1}, \
                 "foo": {"keyids": ["keyid2"], "threshold": 1}} \
             }',
+        "invalid expiry with microsecond    s": '{"_type": "root", "spec_version": "1.0.0", "version": 1, \
+            "expires": "2030-01-01T12:00:00.123456Z", "consistent_snapshot": false, \
+            "keys": {}, "roles": {"root": {}, "timestamp": {}, "targets": {}, "snapshot": {}}}',
     }
 
     @utils.run_sub_tests_with_dataset(invalid_roots)

@@ -408,6 +408,14 @@ class Signed(metaclass=abc.ABCMeta):
     def _type(self) -> str:
         return self.type
 
+    @property
+    def expires(self) -> datetime:
+        return self._expires
+
+    @expires.setter
+    def expires(self, value: datetime) -> None:
+        self._expires = value.replace(microsecond=0)
+
     # NOTE: Signed is a stupid name, because this might not be signed yet, but
     # we keep it to match spec terminology (I often refer to this as "payload",
     # or "inner metadata")
@@ -469,6 +477,7 @@ class Signed(metaclass=abc.ABCMeta):
         # what the constructor expects and what we store. The inverse operation
         # is implemented in '_common_fields_to_dict'.
         expires = datetime.strptime(expires_str, "%Y-%m-%dT%H:%M:%SZ")
+
         return version, spec_version, expires
 
     def _common_fields_to_dict(self) -> Dict[str, Any]:
