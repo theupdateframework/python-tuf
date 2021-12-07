@@ -434,6 +434,20 @@ class TestRefresh(unittest.TestCase):
 
         self._assert_files_exist([Root.type, Timestamp.type, Snapshot.type])
 
+    def test_compute_metafile_hashes_length(self) -> None:
+        self.sim.compute_metafile_hashes_length = True
+        self.sim.update_snapshot()
+        self._run_refresh()
+        self._assert_version_equals("timestamp", 2)
+        self._assert_version_equals("snapshot", 2)
+
+        self.sim.compute_metafile_hashes_length = False
+        self.sim.update_snapshot()
+        self._run_refresh()
+
+        self._assert_version_equals("timestamp", 3)
+        self._assert_version_equals("snapshot", 3)
+
 
 if __name__ == "__main__":
 
