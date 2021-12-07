@@ -1,7 +1,7 @@
 # Python-tuf repository API proposal: _minimal repository abstraction_
 
 This is an attachment to ADR 10: _Repository library design built on top of
-Metadata API_, and documents the design proposal in Dec 2020.
+Metadata API_, and documents the design proposal in Dec 2021.
 
 ## Design principles
 
@@ -31,22 +31,24 @@ other implementations?
 
 ## Design
 
+### Application and library components
+
 ![Design: Application and library components](repository-library-design-ownership.jpg)
 
 The design expects a fully functional repository application to contain code at
 three levels:
 * Repository library (abstract classes that are part of python-tuf)
-  * The Repository abstract class provides an ergonomic metadata editing API
-    for all code levels to use. It also implements some core edit actions like
-    snapshot update
+  * The Repository abstract class provides an ergonomic abstract metadata
+    editing API for all code levels to use. It also provides implementations
+    for some core edit actions like _snapshot update_.
   * A small amount of related functionality is also provided (private key
-    management API, maybe repository validation)
-  * is a very small library: possibly a few hundred lines of code
+    management API, maybe repository validation).
+  * is a very small library: possibly a few hundred lines of code.
 * Concrete Repository implementation (typically part of application code,
   implements interfaces provided by the repository API in python-tuf)
   * Contains the “application level” decisions that the Repository abstraction
     requires to operate: examples of application decisions include
-    * _when should “targets” metadata next expire when it is edited?_
+    * _When should “targets” metadata next expire when it is edited?_
     * _What is the current “targets” metadata version? Where do we load it 
       from?_
     * _Where to store current “targets” after editing? Should the previous
@@ -55,7 +57,8 @@ three levels:
   * Uses the Repository API to do the repository actions it needs to do
 
 For context here’s a trivial example showing what “ergonomic editing” means --
-this key-adding code could be in the application or in the python-tuf library:
+this key-adding code could be in the application (or later, if common patterns
+are found, in the python-tuf library):
 
 ```python
 with repository.edit(“targets”) as targets:
@@ -69,13 +72,16 @@ The reason for the context manager style is that it manages two things
 simultaneously:
 * Hides the complexity of loading and persisting metadata, and updating expiry
   and versions from the editing code (by putting it in the repository
-  implementation – which may still be provided by the application)
+  implementation that is defined in python-tuf but implemented by the
+  application)
 * Still allows completely arbitrary edits on the metadata in question: now the
   library does not need to anticipate what application wants to do and on the
   other hand library can still provide e.g. snapshot functionality without
   knowing about the application decisions mentioned in previous point.
 
 Other designs do not seem to manage both of these.
+
+### How the components are used
 
 ![Design: How components are used](repository-library-design-usage.jpg)
 
@@ -85,6 +91,12 @@ at any level_: the application might add a `handle_new_target_files()` method
 that adds a bunch of targets into the metadata, but one of the previous layers
 could offer that as a helper function as well: code in both cases would look
 similar as it would use the common editing interface.
+
+The proposed design is purposefully spartan in that the library provides
+very few high-level actions (the prototype only provided _sign_ and
+_snapshot_): everything else is left to implementer at this point. As we gain
+experience of common usage patterns we can start providing other features as
+well.
 
 There are a few additional items worth mentioning:
 * Private key management: the Repository API should come with a “keyring
@@ -132,8 +144,28 @@ proposal includes concrete implementations only for the following:
   Note that a concrete Repository implementation could provide an easier to use
   snapshot that does not require input (see example in git_repo.py)
 
-More concrete implementations (see cli.py for examples) could be added to
-Repository itself but none seem essential at this point.
+More concrete method implementations (see cli.py for examples) could be added
+to Repository itself but none seem essential at this point.
+
+The current prototype API defines five abstract methods that take care of
+access to metadata storage, expiry updates, version updates and signing. These
+must be implemented in the concrete implementation:
+
+* **keyring()**: A property that returns the private key mapping that should be
+  used for signing.
+
+* **_load()**: Loads metadata from storage or cache. Is used by edit() and
+  sign().
+
+* **_save()**: Signs and persists metadata in cache/storage. Is used by edit()
+  and sign().
+
+* **edit()**: The ContextManager that enables ergonomic metadata
+  editing by handling expiry and version number management.
+
+* **init_role()**: initializes new metadata handling expiry and version number.
+  (_init_role is in a way a special case of edit and should potentially be
+  integrated there_).
 
 The API requires a “Keyring” abstraction that the repository code can use to
 lookup a set of signers for a specific role. Specific implementations of
@@ -144,7 +176,7 @@ and more could be implemented in applications.
 _Prototype status: Prototype Repository and Keyring abstractions exist in
 librepo/repo.py._
 
-### Example of Repository implementation
+### Example concrete Repository implementation
 
 The design decisions that the included example `GitRepository` makes are not
 important but provide an example of what is possible:
