@@ -21,6 +21,7 @@ from tuf.api.metadata import (
     DelegatedRole,
     Targets,
 )
+from tuf.exceptions import UnsignedMetadataError
 from tuf.ngclient import Updater
 
 
@@ -276,6 +277,45 @@ class TestDelegationsGraphs(TestDelegations):
             self.assertIsNone(targetfile)
             # Check that the delegated roles were visited in the expected
             # order and the corresponding metadata files were persisted
+            self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
+            self._assert_files_exist(exp_files)
+        finally:
+            self.teardown_subtest()
+
+    invalid_metadata: utils.DataSet = {
+        "unsigned delegated role": DelegationsTestCase(
+            delegations=[
+                TestDelegation("targets", "invalid"),
+                TestDelegation("targets", "B"),
+                TestDelegation("invalid", "C"),
+            ],
+            # The traversal stops after visiting an invalid role
+            visited_order=["invalid"],
+        )
+    }
+
+    @utils.run_sub_tests_with_dataset(invalid_metadata)
+    def test_invalid_metadata(self, test_data: DelegationsTestCase) -> None:
+        try:
+            self._init_repo(test_data)
+            # The invalid role is the last visited
+            invalid_role = test_data.visited_order[-1]
+            self.sim.signers[invalid_role].clear()
+
+            self.setup_subtest()
+            # The invalid role metadata must not be persisted
+            exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order[:-1]]
+            exp_calls = [(role, 1) for role in test_data.visited_order]
+
+            updater = self._init_updater()
+            # Call explicitly refresh to simplify the expected_calls list
+            updater.refresh()
+            self.sim.fetch_tracker.metadata.clear()
+
+            with self.assertRaises(UnsignedMetadataError):
+                updater.get_targetinfo("missingpath")
+            # Check that there were no visited roles after the invalid one
+            # and only the valid metadata files were persisted
             self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
             self._assert_files_exist(exp_files)
         finally:
