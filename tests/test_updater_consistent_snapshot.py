@@ -48,10 +48,7 @@ class TestConsistentSnapshot(unittest.TestCase):
 
         # Init trusted root with the latest consistent_snapshot
         with open(os.path.join(self.metadata_dir, "root.json"), "bw") as f:
-            root = sim.download_bytes(
-                "https://example.com/metadata/2.root.json", 100000
-            )
-            f.write(root)
+            f.write(sim.signed_roots[-1])
 
         return sim
 
