@@ -49,38 +49,38 @@ keys: Dict[str, Dict[str, Any]] = {}
 
 # Hash bin delegation
 # ===================
-# Hash bin delegation allows to automatically distribute a large number of
-# target files over a fixed number of targets metadata, in order to reduce the
-# size of the specific targets metadata a client needs to download for a given
-# target file, and thus reduce the metadata network overhead caused by TUF.
+# Hash bin delegation allows to distribute a large number of target files over
+# multiple delegated targets metadata. The consequence is smaller metadata
+# files and thus a lower network overhead for repository-client communication.
 #
-# It is achieved by uniformly delegating the responsibility for target files
-# based on the leading digits of the hash of their file path, where each
-# delegated targets role is responsible for an incremental range of target path
-# hash prefixes.
+# The assignment of target files to targets metadata is done automatically,
+# based on the hash of the target file name. More precisely, only a prefix of
+# the target file name hash is needed to assign it to the correct hash bin.
 #
-# The only number that needs to be configured is the number of bins, everything
-# else is derived using the mathematical operations outlined below. An
-# appropriate number of bins depends on the expected number of target files in
-# a repository. For the purpose of this example we choose...
-
-# The fixed number of bins determines the length of any considered hash prefix,
-# how many prefixes exist in total, and how many prefixes fall into each bin.
-NUMBER_OF_BINS = 32  # power of 2 for even distribution of hash prefixes
-
-# The available digits in the hexadecimal representation of the number of bins
-# (minus one, counting starts at zero) determines the length of any hash prefix,
-# i.e. how many left digits need to be considered to assign the hash to a bin.
-PREFIX_LEN = len(f"{NUMBER_OF_BINS - 1:x}")  # 2
-
-# The total number of distinct hash prefixes is determined by the highest
-# hexadecimal number that can be represented with the given number of digits.
-NUMBER_OF_PREFIXES = 16 ** PREFIX_LEN  # 256
-
-# If the number of bins is a power of two, all hash prefixes can be evenly
-# distributed over all bins and thus allow us to compute the size of any bin.
-BIN_SIZE = NUMBER_OF_PREFIXES // NUMBER_OF_BINS  # 8
-
+# The number of bins is the only number that needs to be configured. Everything
+# else is derived using the mathematical operations shown below.
+#
+# The right number of bins depends on the expected number of target files in a
+# repository. For the purpose of this example we choose ...
+NUMBER_OF_BINS = 32  # ..., which determines the length of any hash prefix
+# considered for bin assignment (PREFIX_LEN), how many hash prefixes are
+# covered by all bins (NUMBER_OF_PREFIXES), and how many prefixes are covered
+# by each individual bin (BIN_SIZE):
+#
+# The prefix length is the number of digits in the hexadecimal representation
+# (see 'x' in Python Format Specification) of the number of bins minus one
+# (counting starts at zero), i.e. ...
+PREFIX_LEN = len(f"{(NUMBER_OF_BINS - 1):x}")  # ... 2.
+#
+# Compared to decimal, hexadecimal numbers can express higher numbers with
+# fewer digits and thus further decrease metadata sizes. With the above prefix
+# length of 2 we can represent at most ...
+NUMBER_OF_PREFIXES = 16 ** PREFIX_LEN  # ... 256 prefixes, i.e. 00, 01, ..., ff.
+#
+# If the number of bins is a power of two, hash prefixes are evenly distributed
+# over all bins, which allows to calculate the uniform size of ...
+BIN_SIZE = NUMBER_OF_PREFIXES // NUMBER_OF_BINS  # ... 8, where each bin is
+# responsible for a range of 8 prefixes, i.e. 00-07, 08-0f, ..., f8-ff.
 
 # Helpers
 # -------
