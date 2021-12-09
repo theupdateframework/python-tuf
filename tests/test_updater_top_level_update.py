@@ -90,8 +90,7 @@ class TestRefresh(unittest.TestCase):
         self, role: str, version: Optional[int] = None
     ) -> None:
         """Assert that local file content is the expected"""
-        # pylint: disable=protected-access
-        expected_content = self.sim._fetch_metadata(role, version)
+        expected_content = self.sim.fetch_metadata(role, version)
         with open(os.path.join(self.metadata_dir, f"{role}.json"), "rb") as f:
             self.assertEqual(f.read(), expected_content)
 

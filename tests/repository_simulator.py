@@ -216,7 +216,7 @@ class RepositorySimulator(FetcherInterface):
                 role = ver_and_name
                 version = None
 
-            yield self._fetch_metadata(role, version)
+            yield self.fetch_metadata(role, version)
         elif path.startswith("/targets/"):
             # figure out target path and hash prefix
             target_path = path[len("/targets/") :]
@@ -228,11 +228,11 @@ class RepositorySimulator(FetcherInterface):
                 prefix, _, filename = prefixed_filename.partition(".")
             target_path = f"{dir_parts}{sep}{filename}"
 
-            yield self._fetch_target(target_path, prefix)
+            yield self.fetch_target(target_path, prefix)
         else:
             raise FetcherHTTPError(f"Unknown path '{path}'", 404)
 
-    def _fetch_target(
+    def fetch_target(
         self, target_path: str, target_hash: Optional[str]
     ) -> bytes:
         """Return data for 'target_path', checking 'target_hash' if it is given.
@@ -253,9 +253,7 @@ class RepositorySimulator(FetcherInterface):
         logger.debug("fetched target %s", target_path)
         return repo_target.data
 
-    def _fetch_metadata(
-        self, role: str, version: Optional[int] = None
-    ) -> bytes:
+    def fetch_metadata(self, role: str, version: Optional[int] = None) -> bytes:
         """Return signed metadata for 'role', using 'version' if it is given.
 
         If version is None, non-versioned metadata is being requested.
@@ -298,7 +296,7 @@ class RepositorySimulator(FetcherInterface):
     def _compute_hashes_and_length(
         self, role: str
     ) -> Tuple[Dict[str, str], int]:
-        data = self._fetch_metadata(role)
+        data = self.fetch_metadata(role)
         digest_object = sslib_hash.digest(sslib_hash.DEFAULT_HASH_ALGORITHM)
         digest_object.update(data)
         hashes = {sslib_hash.DEFAULT_HASH_ALGORITHM: digest_object.hexdigest()}
@@ -392,12 +390,12 @@ class RepositorySimulator(FetcherInterface):
 
         for ver in range(1, len(self.signed_roots) + 1):
             with open(os.path.join(dest_dir, f"{ver}.root.json"), "wb") as f:
-                f.write(self._fetch_metadata(Root.type, ver))
+                f.write(self.fetch_metadata(Root.type, ver))
 
         for role in [Timestamp.type, Snapshot.type, Targets.type]:
             with open(os.path.join(dest_dir, f"{role}.json"), "wb") as f:
-                f.write(self._fetch_metadata(role))
+                f.write(self.fetch_metadata(role))
 
         for role in self.md_delegates:
             with open(os.path.join(dest_dir, f"{role}.json"), "wb") as f:
-                f.write(self._fetch_metadata(role))
+                f.write(self.fetch_metadata(role))

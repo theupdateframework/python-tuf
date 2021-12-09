@@ -268,7 +268,7 @@ class TestUpdaterKeyRotations(unittest.TestCase):
                 self._run_refresh()
 
                 # Call fetch_metadata to sign metadata with new keys
-                expected_local_md: bytes = self.sim._fetch_metadata(role)
+                expected_local_md: bytes = self.sim.fetch_metadata(role)
                 # assert local metadata role is on disk as expected
                 md_path = os.path.join(self.metadata_dir, f"{role}.json")
                 with open(md_path, "rb") as f:
