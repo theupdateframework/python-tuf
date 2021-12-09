@@ -82,6 +82,7 @@ strict_equality = "True"
 disallow_untyped_defs = "True"
 disallow_untyped_calls = "True"
 show_error_codes = "True"
+disable_error_code = ["attr-defined"]
 # TODO: remove "exclude" after deleting old test files
 exclude=".*_old.py"
 
