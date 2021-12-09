@@ -12,7 +12,6 @@ import tempfile
 import unittest
 from dataclasses import astuple, dataclass, field
 from typing import Iterable, List, Optional
-from unittest.mock import call, patch
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
@@ -235,27 +234,24 @@ class TestDelegationsGraphs(unittest.TestCase):
 
         try:
             exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order]
-            exp_calls = [call(role, 1) for role in test_data.visited_order]
+            exp_calls = [(role, 1) for role in test_data.visited_order]
 
             sim = self.setup_subtest(test_data.delegations)
             updater = self._init_updater(sim)
             # Call explicitly refresh to simplify the expected_calls list
             updater.refresh()
+            sim.fetch_tracker.metadata.clear()
             # Check that metadata dir contains only top-level roles
             self._assert_files_exist(TOP_LEVEL_ROLE_NAMES)
 
-            with patch.object(
-                sim, "fetch_metadata", wraps=sim.fetch_metadata
-            ) as wrapped_fetch:
-                # Looking for a non-existing targetpath forces updater
-                # to visit all possible delegated roles
-                targetfile = updater.get_targetinfo("missingpath")
-
-                self.assertIsNone(targetfile)
-                # Check that the delegated roles were visited in the expected
-                # order and the corresponding metadata files were persisted
-                self.assertListEqual(wrapped_fetch.call_args_list, exp_calls)
-                self._assert_files_exist(exp_files)
+            # Looking for a non-existing targetpath forces updater
+            # to visit all possible delegated roles
+            targetfile = updater.get_targetinfo("missingpath")
+            self.assertIsNone(targetfile)
+            # Check that the delegated roles were visited in the expected
+            # order and the corresponding metadata files were persisted
+            self.assertListEqual(sim.fetch_tracker.metadata, exp_calls)
+            self._assert_files_exist(exp_files)
         finally:
             self.teardown_subtest()
 
