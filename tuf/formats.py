@@ -279,7 +279,7 @@ REPO_NAMES_TO_MIRRORS_SCHEMA = SCHEMA.DictOf(
 # An object containing the targets map file. The format of the targets
 # map file is covered in TAP 13
 TARGETS_MAPFILE_SCHEMA = SCHEMA.Object(
-  targets_filename = NAME_SCHEMA,
+  targets_rolename = NAME_SCHEMA,
   keys = KEYDICT_SCHEMA)
 
 # An object containing the map file's "mapping" attribute.

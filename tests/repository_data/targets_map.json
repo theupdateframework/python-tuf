@@ -1,5 +1,5 @@
 {
- "targets_filename": "role1",
+ "targets_rolename": "role1",
  "keys":{
   "c8022fa1e9b9cb239a6b362bbdffa9649e61ad2cb699d2e4bc4fdf7930a0e64a": {
    "keyid_hash_algorithms": [

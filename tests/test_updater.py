@@ -1818,7 +1818,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         self.repository_mirrors, targets_map_file)
 
     #ensure the map file was set
-    self.assertEqual('role1', self.repository_updater.targets_map_file['targets_filename'])
+    self.assertEqual('role1', self.repository_updater.targets_map_file['targets_rolename'])
 
     # ensure that only targets in the targets map file are loaded
     all_targets = self.repository_updater.all_targets()
@@ -2164,7 +2164,7 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     # Does the repository use the targets map file?
     repository_updater = multi_repo_updater.get_updater('test_repository2')
 
-    self.assertEqual(repository_updater.targets_map_file['targets_filename'], 'role1')
+    self.assertEqual(repository_updater.targets_map_file['targets_rolename'], 'role1')
 
 
 

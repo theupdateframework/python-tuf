@@ -867,7 +867,7 @@ class Updater(object):
     # the 'targets.json' file on the repository and instead load
     # the targets metadata indicated by the targets map file.
     if metadata_role == 'targets' and self.targets_map_file is not None:
-      metadata_filename = self.targets_map_file['targets_filename'] + '.json'
+      metadata_filename = self.targets_map_file['targets_rolename'] + '.json'
     else:
       metadata_filename = metadata_role + '.json'
     metadata_filepath = os.path.join(metadata_directory, metadata_filename)
@@ -1835,7 +1835,7 @@ class Updater(object):
     # Construct the metadata filename as expected by the download/mirror
     # modules.
     if self.targets_map_file is not None and metadata_role == 'targets':
-      metadata_filename = self.targets_map_file['targets_filename'] + '.json'
+      metadata_filename = self.targets_map_file['targets_rolename'] + '.json'
     else:
       metadata_filename = metadata_role + '.json'
 
@@ -1973,7 +1973,7 @@ class Updater(object):
     """
 
     if self.targets_map_file is not None and metadata_role == 'targets':
-      metadata_filename = self.targets_map_file['targets_filename'] + '.json'
+      metadata_filename = self.targets_map_file['targets_rolename'] + '.json'
     else:
       metadata_filename = metadata_role + '.json'
     expected_versioninfo = None
