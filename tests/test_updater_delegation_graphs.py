@@ -323,7 +323,7 @@ class TestDelegationsGraphs(TestDelegations):
 
 
 class TestTargetFileSearch(TestDelegations):
-    """
+    r"""
     Create a single repository with the following delegations:
 
               targets
