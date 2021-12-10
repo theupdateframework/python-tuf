@@ -139,9 +139,9 @@ Individual tests can also be executed. Optional '-v' flags can be added to
 increase log level up to DEBUG ('-vvvv').
 ::
 
-    $ python3 test_updater.py # run a specific test file
-    $ python3 test_updater.py TestUpdater.test_4_refresh # run a specific test
-    $ python3 test_updater.py -vvvv TestUpdater.test_4_refresh # run test with DEBUG log level
+    $ python3 test_updater_ng.py # run a specific test file
+    $ python3 test_updater_ng.py TestUpdater.test_refresh_and_download # run a specific test
+    $ python3 test_updater_ng.py -vvvv TestUpdater.test_refresh_and_download # run test with DEBUG log level
 
 
 All of the log levels and the corresponding options that could be used for testing are:

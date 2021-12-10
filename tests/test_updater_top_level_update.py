@@ -14,7 +14,14 @@ from typing import Iterable, Optional
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
-from tuf.api.metadata import TOP_LEVEL_ROLE_NAMES, Metadata, Root, Snapshot, Targets, Timestamp
+from tuf.api.metadata import (
+    TOP_LEVEL_ROLE_NAMES,
+    Metadata,
+    Root,
+    Snapshot,
+    Targets,
+    Timestamp,
+)
 from tuf.exceptions import (
     BadVersionNumberError,
     ExpiredMetadataError,
@@ -33,6 +40,7 @@ class TestRefresh(unittest.TestCase):
     past_datetime = datetime.utcnow().replace(microsecond=0) - timedelta(days=5)
 
     def setUp(self) -> None:
+        # pylint: disable=consider-using-with
         self.temp_dir = tempfile.TemporaryDirectory()
         self.metadata_dir = os.path.join(self.temp_dir.name, "metadata")
         self.targets_dir = os.path.join(self.temp_dir.name, "targets")
@@ -82,8 +90,7 @@ class TestRefresh(unittest.TestCase):
         self, role: str, version: Optional[int] = None
     ) -> None:
         """Assert that local file content is the expected"""
-        # pylint: disable=protected-access
-        expected_content = self.sim._fetch_metadata(role, version)
+        expected_content = self.sim.fetch_metadata(role, version)
         with open(os.path.join(self.metadata_dir, f"{role}.json"), "rb") as f:
             self.assertEqual(f.read(), expected_content)
 

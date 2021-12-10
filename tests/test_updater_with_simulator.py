@@ -12,11 +12,11 @@ import sys
 import tempfile
 import unittest
 from typing import Optional, Tuple
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
-from tuf.api.metadata import SPECIFICATION_VERSION, TargetFile, Targets
+from tuf.api.metadata import SPECIFICATION_VERSION, Targets
 from tuf.exceptions import BadVersionNumberError, UnsignedMetadataError
 from tuf.ngclient import Updater
 

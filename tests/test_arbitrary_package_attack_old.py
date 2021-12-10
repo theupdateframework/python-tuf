@@ -5,7 +5,7 @@
 
 """
 <Program Name>
-  test_arbitrary_package_attack.py
+  test_arbitrary_package_attack_old.py
 
 <Author>
   Konstantin Andrianov.

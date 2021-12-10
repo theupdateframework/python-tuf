@@ -364,7 +364,9 @@ class TestTrustedMetadataSet(unittest.TestCase):
             snapshot.expires = datetime(1970, 1, 1)
 
         # expired intermediate snapshot is loaded but will raise
-        snapshot = self.modify_metadata(Snapshot.type, snapshot_expired_modifier)
+        snapshot = self.modify_metadata(
+            Snapshot.type, snapshot_expired_modifier
+        )
         with self.assertRaises(exceptions.ExpiredMetadataError):
             self.trusted_set.update_snapshot(snapshot)
 
@@ -399,7 +401,9 @@ class TestTrustedMetadataSet(unittest.TestCase):
             snapshot.meta = {}
 
         snapshot = self.modify_metadata(Snapshot.type, no_meta_modifier)
-        self._update_all_besides_targets(self.metadata[Timestamp.type], snapshot)
+        self._update_all_besides_targets(
+            self.metadata[Timestamp.type], snapshot
+        )
         # remove meta information with information about targets from snapshot
         with self.assertRaises(exceptions.RepositoryError):
             self.trusted_set.update_targets(self.metadata[Targets.type])
@@ -410,7 +414,9 @@ class TestTrustedMetadataSet(unittest.TestCase):
                 snapshot.meta[metafile_path] = MetaFile(version=1, length=1)
 
         snapshot = self.modify_metadata(Snapshot.type, meta_length_modifier)
-        self._update_all_besides_targets(self.metadata[Timestamp.type], snapshot)
+        self._update_all_besides_targets(
+            self.metadata[Timestamp.type], snapshot
+        )
         # observed_hash != stored hash in snapshot meta for targets
         with self.assertRaises(exceptions.RepositoryError):
             self.trusted_set.update_targets(self.metadata[Targets.type])
@@ -421,7 +427,9 @@ class TestTrustedMetadataSet(unittest.TestCase):
                 snapshot.meta[metafile_path] = MetaFile(version=2)
 
         snapshot = self.modify_metadata(Snapshot.type, meta_modifier)
-        self._update_all_besides_targets(self.metadata[Timestamp.type], snapshot)
+        self._update_all_besides_targets(
+            self.metadata[Timestamp.type], snapshot
+        )
         # new_delegate.signed.version != meta.version stored in snapshot
         with self.assertRaises(exceptions.BadVersionNumberError):
             self.trusted_set.update_targets(self.metadata[Targets.type])

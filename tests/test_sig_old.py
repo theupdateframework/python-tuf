@@ -5,7 +5,7 @@
 
 """
 <Program Name>
-  test_sig.py
+  test_sig_old.py
 
 <Author>
   Geremy Condra

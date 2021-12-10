@@ -5,7 +5,7 @@
 
 """
 <Program Name>
-  test_indefinite_freeze_attack.py
+  test_indefinite_freeze_attack_old.py
 
 <Author>
   Konstantin Andrianov.
@@ -36,7 +36,6 @@
   metadata without the client being aware.
 """
 
-import datetime
 import os
 import time
 import tempfile

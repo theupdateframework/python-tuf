@@ -19,7 +19,14 @@ from securesystemslib.signer import SSlibSigner
 
 from tests import utils
 from tuf import exceptions, ngclient, unittest_toolbox
-from tuf.api.metadata import Metadata, Root, Snapshot, TargetFile, Targets, Timestamp
+from tuf.api.metadata import (
+    Metadata,
+    Root,
+    Snapshot,
+    TargetFile,
+    Targets,
+    Timestamp,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -41,14 +48,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         # Needed because in some tests simple_server.py cannot be found.
         # The reason is that the current working directory
         # has been changed when executing a subprocess.
-        SIMPLE_SERVER_PATH = os.path.join(os.getcwd(), "simple_server.py")
+        simple_server_path = os.path.join(os.getcwd(), "simple_server.py")
 
         # Launch a SimpleHTTPServer (serves files in the current directory).
         # Test cases will request metadata and target files that have been
         # pre-generated in 'tuf/tests/repository_data', which will be served
         # by the SimpleHTTPServer launched here.
         cls.server_process_handler = utils.TestServerProcess(
-            log=logger, server=SIMPLE_SERVER_PATH
+            log=logger, server=simple_server_path
         )
 
     @classmethod
@@ -112,7 +119,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
             + utils.TEST_HOST_ADDRESS
             + ":"
             + str(self.server_process_handler.port)
-            + repository_basepath.replace("\\","/")
+            + repository_basepath.replace("\\", "/")
         )
 
         self.metadata_url = f"{url_prefix}/metadata/"
@@ -180,17 +187,27 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
         # top-level metadata is in local directory already
         self.updater.refresh()
-        self._assert_files([Root.type, Snapshot.type, Targets.type, Timestamp.type])
+        self._assert_files(
+            [Root.type, Snapshot.type, Targets.type, Timestamp.type]
+        )
 
         # Get targetinfos, assert that cache does not contain files
         info1 = self.updater.get_targetinfo("file1.txt")
         assert isinstance(info1, TargetFile)
-        self._assert_files([Root.type, Snapshot.type, Targets.type, Timestamp.type])
+        self._assert_files(
+            [Root.type, Snapshot.type, Targets.type, Timestamp.type]
+        )
 
         # Get targetinfo for 'file3.txt' listed in the delegated role1
         info3 = self.updater.get_targetinfo("file3.txt")
         assert isinstance(info3, TargetFile)
-        expected_files = ["role1", Root.type, Snapshot.type, Targets.type, Timestamp.type]
+        expected_files = [
+            "role1",
+            Root.type,
+            Snapshot.type,
+            Targets.type,
+            Timestamp.type,
+        ]
         self._assert_files(expected_files)
         self.assertIsNone(self.updater.find_cached_target(info1))
         self.assertIsNone(self.updater.find_cached_target(info3))
@@ -217,11 +234,19 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         self._assert_files([Root.type])
 
         self.updater.refresh()
-        self._assert_files([Root.type, Snapshot.type, Targets.type, Timestamp.type])
+        self._assert_files(
+            [Root.type, Snapshot.type, Targets.type, Timestamp.type]
+        )
 
         # Get targetinfo for 'file3.txt' listed in the delegated role1
         self.updater.get_targetinfo("file3.txt")
-        expected_files = ["role1", Root.type, Snapshot.type, Targets.type, Timestamp.type]
+        expected_files = [
+            "role1",
+            Root.type,
+            Snapshot.type,
+            Targets.type,
+            Timestamp.type,
+        ]
         self._assert_files(expected_files)
 
     def test_implicit_refresh_with_only_local_root(self) -> None:
@@ -234,7 +259,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         self._assert_files(["root"])
 
         # Get targetinfo for 'file3.txt' listed in the delegated role1
-        targetinfo3 = self.updater.get_targetinfo("file3.txt")
+        self.updater.get_targetinfo("file3.txt")
         expected_files = ["role1", "root", "snapshot", "targets", "timestamp"]
         self._assert_files(expected_files)
 

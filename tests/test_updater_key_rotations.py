@@ -10,14 +10,14 @@ import sys
 import tempfile
 import unittest
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Type
+from typing import ClassVar, Dict, List, Optional, Type
 
 from securesystemslib.signer import SSlibSigner
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
 from tests.utils import run_sub_tests_with_dataset
-from tuf.api.metadata import Key, Metadata, Root
+from tuf.api.metadata import Key, Root
 from tuf.exceptions import UnsignedMetadataError
 from tuf.ngclient import Updater
 
@@ -35,17 +35,18 @@ class TestUpdaterKeyRotations(unittest.TestCase):
 
     # set dump_dir to trigger repository state dumps
     dump_dir: Optional[str] = None
+    temp_dir: ClassVar[tempfile.TemporaryDirectory]
+    keys: ClassVar[List[Key]]
+    signers: ClassVar[List[SSlibSigner]]
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.sim: RepositorySimulator
-        cls.metadata_dir: str
         # pylint: disable-next=consider-using-with
         cls.temp_dir = tempfile.TemporaryDirectory()
 
         # Pre-create a bunch of keys and signers
-        cls.keys: List[Key] = []
-        cls.signers: List[SSlibSigner] = []
+        cls.keys = []
+        cls.signers = []
         for _ in range(10):
             key, signer = RepositorySimulator.create_key()
             cls.keys.append(key)
@@ -57,12 +58,14 @@ class TestUpdaterKeyRotations(unittest.TestCase):
 
     def setup_subtest(self) -> None:
         # Setup repository for subtest: make sure no roots have been published
+        # pylint: disable=attribute-defined-outside-init
         self.sim = RepositorySimulator()
         self.sim.signed_roots.clear()
         self.sim.root.version = 0
 
         if self.dump_dir is not None:
             # create subtest dumpdir
+            # pylint: disable=no-member
             name = f"{self.id().split('.')[-1]}-{self.case_name}"
             self.sim.dump_dir = os.path.join(self.dump_dir, name)
             os.mkdir(self.sim.dump_dir)
@@ -73,6 +76,7 @@ class TestUpdaterKeyRotations(unittest.TestCase):
             self.sim.write()
 
         # bootstrap with initial root
+        # pylint: disable=attribute-defined-outside-init
         self.metadata_dir = tempfile.mkdtemp(dir=self.temp_dir.name)
         with open(os.path.join(self.metadata_dir, "root.json"), "bw") as f:
             f.write(self.sim.signed_roots[0])
@@ -264,7 +268,7 @@ class TestUpdaterKeyRotations(unittest.TestCase):
                 self._run_refresh()
 
                 # Call fetch_metadata to sign metadata with new keys
-                expected_local_md: Metadata = self.sim._fetch_metadata(role)
+                expected_local_md: bytes = self.sim.fetch_metadata(role)
                 # assert local metadata role is on disk as expected
                 md_path = os.path.join(self.metadata_dir, f"{role}.json")
                 with open(md_path, "rb") as f:
@@ -274,6 +278,7 @@ class TestUpdaterKeyRotations(unittest.TestCase):
                 # failure expected
                 with self.assertRaises(expected_error):
                     self._run_refresh()
+
 
 if __name__ == "__main__":
     if "--dump" in sys.argv:

@@ -5,7 +5,7 @@
 
 """
 <Program Name>
-  test_roledb.py
+  test_roledb_old.py
 
 <Author>
   Vladimir Diaz <vladimir.v.diaz@gmail.com>
@@ -776,7 +776,7 @@ def setUpModule():
 def tearDownModule():
   # tearDownModule() is called after all the tests have run.
   # Ensure we clean up roledb.  Courtesy is contagious, and it begins with
-  # test_roledb.py.
+  # test_roledb_old.py.
   tuf.roledb.clear_roledb()
 
 

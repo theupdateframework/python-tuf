@@ -5,7 +5,7 @@
 
 """
 <Program Name>
-  test_updater.py
+  test_updater_old.py
 
 <Author>
   Konstantin Andrianov.
@@ -21,7 +21,7 @@
   See LICENSE-MIT OR LICENSE for licensing information.
 
 <Purpose>
-  'test_updater.py' provides a collection of methods that test the public /
+  'test_updater.py_old' provides a collection of methods that test the public /
   non-public methods and functions of 'tuf.client.updater.py'.
 
   The 'unittest_toolbox.py' module was created to provide additional testing
@@ -89,7 +89,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Launch a SimpleHTTPServer (serves files in the current directory).
     # Test cases will request metadata and target files that have been
     # pre-generated in 'tuf/tests/repository_data', which will be served
-    # by the SimpleHTTPServer launched here.  The test cases of 'test_updater.py'
+    # by the SimpleHTTPServer launched here.  The test cases of 'test_updater_old.py'
     # assume the pre-generated metadata files have a specific structure, such
     # as a delegated role 'targets/role1', three target files, five key files,
     # etc.

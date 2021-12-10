@@ -7,6 +7,8 @@ build-backend = "setuptools.build_meta"
 # Read more here: https://black.readthedocs.io/en/stable/usage_and_configuration/the_basics.html#configuration-via-a-file
 [tool.black]
 line-length=80
+# TODO: remove "excludes" after deleting old test files
+exclude="tests/.*old.py"
 
 # Isort section
 # Read more here: https://pycqa.github.io/isort/docs/configuration/config_files.html
@@ -14,6 +16,8 @@ line-length=80
 profile="black"
 line_length=80
 known_first_party = ["tuf"]
+# TODO: remove "skip_glob" after deleting old test files
+skip_glob="*old.py"
 
 # Pylint section
 
@@ -55,6 +59,8 @@ module-rgx="^(_?[a-z][a-z0-9_]*|__init__)$"
 no-docstring-rgx="(__.*__|main|test.*|.*test|.*Test)$"
 variable-rgx="^[a-z][a-z0-9_]*$"
 docstring-min-length=10
+# TODO: remove "ignore-patterns" after deleting old test files
+ignore-patterns=".*_old.py"
 
 [tool.pylint.logging]
 logging-format-style="old"
@@ -76,6 +82,9 @@ strict_equality = "True"
 disallow_untyped_defs = "True"
 disallow_untyped_calls = "True"
 show_error_codes = "True"
+disable_error_code = ["attr-defined"]
+# TODO: remove "exclude" after deleting old test files
+exclude=".*_old.py"
 
 [[tool.mypy.overrides]]
 module = [

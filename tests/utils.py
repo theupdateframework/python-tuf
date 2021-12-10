@@ -222,6 +222,7 @@ class TestServerProcess:
 
         # Reusing one subprocess in multiple tests, but split up the logs
         # for each.
+        # pylint: disable=consider-using-with
         self.__server_process = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,

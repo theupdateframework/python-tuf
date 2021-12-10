@@ -47,6 +47,7 @@ from typing import (
     cast,
 )
 
+from dateutil.relativedelta import relativedelta
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import hash as sslib_hash
 from securesystemslib import keys as sslib_keys
@@ -500,7 +501,9 @@ class Signed(metaclass=abc.ABCMeta):
         return reference_time >= self.expires
 
     # Modification.
-    def bump_expiration(self, delta: timedelta = timedelta(days=1)) -> None:
+    def bump_expiration(
+        self, delta: Union[timedelta, relativedelta] = timedelta(days=1)
+    ) -> None:
         """Increments the expires attribute by the passed timedelta."""
         self.expires += delta
 

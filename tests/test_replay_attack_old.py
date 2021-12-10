@@ -5,7 +5,7 @@
 
 """
 <Program Name>
-  test_replay_attack.py
+  test_replay_attack_old.py
 
 <Author>
   Konstantin Andrianov.

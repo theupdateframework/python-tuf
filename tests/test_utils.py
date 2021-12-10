@@ -63,7 +63,7 @@ class TestServerProcess(unittest_toolbox.Modified_TestCase):
         good_cert_path = os.path.join("ssl_certs", "ssl_cert.crt")
         server_process_handler = utils.TestServerProcess(
             log=logger,
-            server="simple_https_server.py",
+            server="simple_https_server_old.py",
             extra_cmd_args=[good_cert_path],
         )
 
@@ -73,7 +73,7 @@ class TestServerProcess(unittest_toolbox.Modified_TestCase):
 
         # Test when no cert file is provided
         server_process_handler = utils.TestServerProcess(
-            log=logger, server="simple_https_server.py"
+            log=logger, server="simple_https_server_old.py"
         )
 
         # Make sure we can connect to the server
@@ -84,7 +84,7 @@ class TestServerProcess(unittest_toolbox.Modified_TestCase):
         non_existing_cert_path = os.path.join("ssl_certs", "non_existing.crt")
         server_process_handler = utils.TestServerProcess(
             log=logger,
-            server="simple_https_server.py",
+            server="simple_https_server_old.py",
             extra_cmd_args=[non_existing_cert_path],
         )
 
@@ -95,7 +95,7 @@ class TestServerProcess(unittest_toolbox.Modified_TestCase):
     def test_slow_retrieval_server_startup(self) -> None:
         # Test normal case
         server_process_handler = utils.TestServerProcess(
-            log=logger, server="slow_retrieval_server.py"
+            log=logger, server="slow_retrieval_server_old.py"
         )
 
         # Make sure we can connect to the server

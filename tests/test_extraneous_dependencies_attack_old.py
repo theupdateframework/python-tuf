@@ -5,7 +5,7 @@
 
 """
 <Program Name>
-  test_extraneous_dependencies_attack.py
+  test_extraneous_dependencies_attack_old.py
 
 <Author>
   Zane Fisher.

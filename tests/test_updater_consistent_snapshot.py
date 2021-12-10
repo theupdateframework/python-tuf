@@ -16,6 +16,7 @@ from tests.repository_simulator import RepositorySimulator
 from tuf.api.metadata import (
     SPECIFICATION_VERSION,
     TOP_LEVEL_ROLE_NAMES,
+    TargetFile,
     Targets,
 )
 from tuf.ngclient import Updater
@@ -27,6 +28,7 @@ class TestConsistentSnapshot(unittest.TestCase):
     are formed for each combination"""
 
     def setUp(self) -> None:
+        # pylint: disable=consider-using-with
         self.temp_dir = tempfile.TemporaryDirectory()
         self.metadata_dir = os.path.join(self.temp_dir.name, "metadata")
         self.targets_dir = os.path.join(self.temp_dir.name, "targets")
@@ -107,7 +109,9 @@ class TestConsistentSnapshot(unittest.TestCase):
     }
 
     @utils.run_sub_tests_with_dataset(top_level_roles_data)
-    def test_top_level_roles_update(self, test_case_data: Dict[str, Any]):
+    def test_top_level_roles_update(
+        self, test_case_data: Dict[str, Any]
+    ) -> None:
         # Test if the client fetches and stores metadata files with the
         # correct version prefix, depending on 'consistent_snapshot' config
         consistent_snapshot: bool = test_case_data["consistent_snapshot"]
@@ -139,7 +143,9 @@ class TestConsistentSnapshot(unittest.TestCase):
     }
 
     @utils.run_sub_tests_with_dataset(delegated_roles_data)
-    def test_delegated_roles_update(self, test_case_data: Dict[str, Any]):
+    def test_delegated_roles_update(
+        self, test_case_data: Dict[str, Any]
+    ) -> None:
         # Test if the client fetches and stores delegated metadata files with
         # the correct version prefix, depending on 'consistent_snapshot' config
         consistent_snapshot: bool = test_case_data["consistent_snapshot"]
@@ -190,7 +196,7 @@ class TestConsistentSnapshot(unittest.TestCase):
     }
 
     @utils.run_sub_tests_with_dataset(targets_download_data)
-    def test_download_targets(self, test_case_data: Dict[str, Any]):
+    def test_download_targets(self, test_case_data: Dict[str, Any]) -> None:
         # Test if the client fetches and stores target files with
         # the correct hash prefix, depending on 'consistent_snapshot'
         # and 'prefix_targets_with_hash' config
@@ -212,6 +218,7 @@ class TestConsistentSnapshot(unittest.TestCase):
 
         for targetpath in targetpaths:
             info = updater.get_targetinfo(targetpath)
+            assert isinstance(info, TargetFile)
             updater.download_target(info)
 
             # target files are always persisted without hash prefix

@@ -28,6 +28,7 @@ from securesystemslib.signer import Signature, SSlibSigner
 from tests import utils
 from tuf import exceptions
 from tuf.api.metadata import (
+    TOP_LEVEL_ROLE_NAMES,
     DelegatedRole,
     Delegations,
     Key,
@@ -136,7 +137,7 @@ class TestMetadata(unittest.TestCase):
         )
 
     def test_read_write_read_compare(self) -> None:
-        for metadata in [Root.type, Snapshot.type, Timestamp.type, Targets.type]:
+        for metadata in TOP_LEVEL_ROLE_NAMES:
             path = os.path.join(self.repo_dir, "metadata", metadata + ".json")
             md_obj = Metadata.from_file(path)
 
@@ -148,7 +149,7 @@ class TestMetadata(unittest.TestCase):
             os.remove(path_2)
 
     def test_to_from_bytes(self) -> None:
-        for metadata in [Root.type, Snapshot.type, Timestamp.type, Targets.type]:
+        for metadata in TOP_LEVEL_ROLE_NAMES:
             path = os.path.join(self.repo_dir, "metadata", metadata + ".json")
             with open(path, "rb") as f:
                 metadata_bytes = f.read()
@@ -710,7 +711,9 @@ class TestMetadata(unittest.TestCase):
 
     def test_targetfile_from_data(self) -> None:
         data = b"Inline test content"
-        target_file_path = os.path.join(self.repo_dir, Targets.type, "file1.txt")
+        target_file_path = os.path.join(
+            self.repo_dir, Targets.type, "file1.txt"
+        )
 
         # Test with a valid hash algorithm
         targetfile_from_data = TargetFile.from_data(

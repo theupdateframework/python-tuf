@@ -5,7 +5,7 @@
 
 """
 <Program Name>
-  test_mix_and_match_attack.py
+  test_mix_and_match_attack_old.py
 
 <Author>
   Konstantin Andrianov.

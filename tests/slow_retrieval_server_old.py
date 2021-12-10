@@ -5,7 +5,7 @@
 
 """
 <Program Name>
-  slow_retrieval_server.py
+  slow_retrieval_server_old.py
 
 <Author>
   Konstantin Andrianov.
@@ -18,7 +18,7 @@
 
 <Purpose>
   Server that throttles data by sending one byte at a time (specified time
-  interval 'DELAY').  The server is used in 'test_slow_retrieval_attack.py'.
+  interval 'DELAY').  The server is used in 'test_slow_retrieval_attack_old.py'.
 """
 
 import os

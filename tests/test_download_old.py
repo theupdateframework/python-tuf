@@ -5,7 +5,7 @@
 
 """
 <Program>
-  test_download.py
+  test_download_old.py
 
 <Author>
   Konstantin Andrianov.
@@ -19,7 +19,7 @@
 <Purpose>
   Unit test for 'download.py'.
 
-  NOTE: Make sure test_download.py is ran in 'tuf/tests/' directory.
+  NOTE: Make sure test_download_old.py is ran in 'tuf/tests/' directory.
   Otherwise, module that launches simple server would not be found.
 
   TODO: Adopt the environment variable management from test_proxy_use.py here.
@@ -274,16 +274,16 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
 
     good_https_server_handler = utils.TestServerProcess(log=logger,
-        server='simple_https_server.py',
+        server='simple_https_server_old.py',
         extra_cmd_args=[good_cert_fname])
     good2_https_server_handler = utils.TestServerProcess(log=logger,
-        server='simple_https_server.py',
+        server='simple_https_server_old.py',
         extra_cmd_args=[good2_cert_fname])
     bad_https_server_handler = utils.TestServerProcess(log=logger,
-        server='simple_https_server.py',
+        server='simple_https_server_old.py',
         extra_cmd_args=[bad_cert_fname])
     expd_https_server_handler = utils.TestServerProcess(log=logger,
-        server='simple_https_server.py',
+        server='simple_https_server_old.py',
         extra_cmd_args=[expired_cert_fname])
 
     suffix = '/' +  os.path.basename(target_filepath)

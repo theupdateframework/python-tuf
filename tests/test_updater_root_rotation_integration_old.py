@@ -5,7 +5,7 @@
 
 """
 <Program Name>
-  test_updater_root_rotation_integration.py
+  test_updater_root_rotation_integration_old.py
 
 <Author>
   Evan Cordell.
@@ -71,8 +71,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Launch a SimpleHTTPServer (serves files in the current directory).  Test
     # cases will request metadata and target files that have been pre-generated
     # in 'tuf/tests/repository_data', which will be served by the
-    # SimpleHTTPServer launched here.  The test cases of 'test_updater.py'
-    # assume the pre-generated metadata files have a specific structure, such
+    # SimpleHTTPServer launched here.  The test cases of
+    # 'test_updater_root_rotation_integration_old.py' assume the
+    #  pre-generated metadata files have a specific structure, such
     # as a delegated role 'targets/role1', three target files, five key files,
     # etc.
     cls.server_process_handler = utils.TestServerProcess(log=logger)
