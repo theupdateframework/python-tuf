@@ -46,7 +46,7 @@ class InvalidMetadataJSONError(FormatError):
     """Indicate that a metadata file is not valid JSON."""
 
     def __init__(self, exception: BaseException):
-        super(InvalidMetadataJSONError, self).__init__()
+        super().__init__()
 
         # Store the original exception.
         self.exception = exception
@@ -81,7 +81,7 @@ class BadHashError(RepositoryError):
     """Indicate an error while checking the value of a hash object."""
 
     def __init__(self, expected_hash: str, observed_hash: str):
-        super(BadHashError, self).__init__()
+        super().__init__()
 
         self.expected_hash = expected_hash
         self.observed_hash = observed_hash
@@ -140,7 +140,7 @@ class ReplayedMetadataError(RepositoryError):
     def __init__(
         self, metadata_role: str, downloaded_version: int, current_version: int
     ):
-        super(ReplayedMetadataError, self).__init__()
+        super().__init__()
 
         self.metadata_role = metadata_role
         self.downloaded_version = downloaded_version
@@ -168,7 +168,7 @@ class BadSignatureError(CryptoError):
     """Indicate that some metadata file has a bad signature."""
 
     def __init__(self, metadata_role_name: str):
-        super(BadSignatureError, self).__init__()
+        super().__init__()
 
         self.metadata_role_name = metadata_role_name
 
@@ -199,7 +199,7 @@ class DownloadLengthMismatchError(DownloadError):
     """Indicate that a mismatch of lengths was seen while downloading a file."""
 
     def __init__(self, expected_length: int, observed_length: int):
-        super(DownloadLengthMismatchError, self).__init__()
+        super().__init__()
 
         self.expected_length = expected_length  # bytes
         self.observed_length = observed_length  # bytes
@@ -226,7 +226,7 @@ class SlowRetrievalError(DownloadError):
     """ "Indicate that downloading a file took an unreasonably long time."""
 
     def __init__(self, average_download_speed: Optional[int] = None):
-        super(SlowRetrievalError, self).__init__()
+        super().__init__()
 
         self.__average_download_speed = average_download_speed  # bytes/second
 
@@ -274,7 +274,7 @@ class UnsignedMetadataError(RepositoryError):
 
     # signable is not used but kept in method signature for backwards compat
     def __init__(self, message: str, signable: Any = None):
-        super(UnsignedMetadataError, self).__init__()
+        super().__init__()
 
         self.exception_message = message
         self.signable = signable
@@ -300,7 +300,7 @@ class NoWorkingMirrorError(Error):
     """
 
     def __init__(self, mirror_errors: Dict[str, BaseException]):
-        super(NoWorkingMirrorError, self).__init__()
+        super().__init__()
 
         # Dictionary of URL strings to Exception instances
         self.mirror_errors = mirror_errors
@@ -310,12 +310,12 @@ class NoWorkingMirrorError(Error):
 
         for mirror_url, mirror_error in self.mirror_errors.items():
             try:
-                # http://docs.python.org/2/library/urlparse.html#urlparse.urlparse
+                # https://docs.python.org/3/library/urllib.parse.html#urllib.parse.urlparse
                 mirror_url_tokens = parse.urlparse(mirror_url)
 
-            except Exception:
+            except ValueError:
                 logger.exception(
-                    "Failed to parse mirror URL: " + repr(mirror_url)
+                    "Failed to parse mirror URL: %s", repr(mirror_url)
                 )
                 mirror_netloc = mirror_url
 
@@ -363,5 +363,5 @@ class FetcherHTTPError(Exception):
     """
 
     def __init__(self, message: str, status_code: int):
-        super(FetcherHTTPError, self).__init__(message)
+        super().__init__(message)
         self.status_code = status_code
