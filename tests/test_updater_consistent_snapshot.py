@@ -39,6 +39,7 @@ class TestConsistentSnapshot(unittest.TestCase):
         self.targets_dir = os.path.join(self.temp_dir.name, "targets")
         os.mkdir(self.metadata_dir)
         os.mkdir(self.targets_dir)
+        self.sim: RepositorySimulator
 
     def tearDown(self) -> None:
         self.temp_dir.cleanup()
@@ -55,7 +56,7 @@ class TestConsistentSnapshot(unittest.TestCase):
             self.sim.dump_dir = os.path.join(self.dump_dir, name)
             os.mkdir(self.sim.dump_dir)
 
-    def teardown_subtest(self):
+    def teardown_subtest(self) -> None:
         if self.dump_dir is not None:
             self.sim.write()
 
