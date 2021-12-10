@@ -45,8 +45,8 @@ class TestFetchTarget(unittest.TestCase):
     def tearDown(self) -> None:
         self.temp_dir.cleanup()
 
-    def _run_refresh(self) -> Updater:
-        """Creates a new updater and runs refresh."""
+    def _init_updater(self) -> Updater:
+        """Creates a new updater instance."""
         if self.sim.dump_dir is not None:
             self.sim.write()
 
@@ -57,7 +57,6 @@ class TestFetchTarget(unittest.TestCase):
             "https://example.com/targets/",
             self.sim,
         )
-        updater.refresh()
         return updater
 
     targets: utils.DataSet = {
@@ -71,22 +70,20 @@ class TestFetchTarget(unittest.TestCase):
     }
 
     @utils.run_sub_tests_with_dataset(targets)
-    def test_targets(self, test_case_data: Tuple[str, bytes, str]) -> None:
+    def test_fetch_target(self, test_case_data: Tuple[str, bytes, str]) -> None:
         targetpath, content, encoded_path = test_case_data
         path = os.path.join(self.targets_dir, encoded_path)
 
-        updater = self._run_refresh()
-        # target does not exist yet, configuration is what we expect
+        updater = self._init_updater()
+        # target does not exist yet
         self.assertIsNone(updater.get_targetinfo(targetpath))
-        self.assertTrue(self.sim.root.consistent_snapshot)
-        self.assertTrue(updater.config.prefix_targets_with_hash)
 
         # Add targets to repository
         self.sim.targets.version += 1
         self.sim.add_target("targets", content, targetpath)
         self.sim.update_snapshot()
 
-        updater = self._run_refresh()
+        updater = self._init_updater()
         # target now exists, is not in cache yet
         info = updater.get_targetinfo(targetpath)
         assert info is not None
