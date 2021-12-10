@@ -38,10 +38,7 @@ class TestUpdater(unittest.TestCase):
         # Setup the repository, bootstrap client root.json
         self.sim = RepositorySimulator()
         with open(os.path.join(self.metadata_dir, "root.json"), "bw") as f:
-            root = self.sim.download_bytes(
-                "https://example.com/metadata/1.root.json", 100000
-            )
-            f.write(root)
+            f.write(self.sim.signed_roots[0])
 
         if self.dump_dir is not None:
             # create test specific dump directory

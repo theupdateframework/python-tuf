@@ -49,11 +49,9 @@ class TestRefresh(unittest.TestCase):
 
         self.sim = RepositorySimulator()
 
+        # boostrap client with initial root metadata
         with open(os.path.join(self.metadata_dir, "root.json"), "bw") as f:
-            root = self.sim.download_bytes(
-                "https://example.com/metadata/1.root.json", 100000
-            )
-            f.write(root)
+            f.write(self.sim.signed_roots[0])
 
     def tearDown(self) -> None:
         self.temp_dir.cleanup()
