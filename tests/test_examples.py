@@ -87,7 +87,7 @@ class TestRepoExamples(unittest.TestCase):
             ],
         )
 
-    def test_hashed_bin_delegation(self):
+    def test_hashed_bin_delegation(self) -> None:
         """Run 'hashed_bin_delegation.py' and assert creation of metadata files."""
         self._run_script_and_assert_files(
             "hashed_bin_delegation.py",
