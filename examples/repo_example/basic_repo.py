@@ -268,7 +268,7 @@ roles["root"].sign(SSlibSigner(another_root_key), append=True)
 roles["root"].to_file(root_path, serializer=PRETTY)
 
 
-# Targets Delegation
+# Targets delegation
 # ==================
 # Similar to how the root role delegates responsibilities about integrity,
 # consistency and freshness to the corresponding top-level roles, a targets

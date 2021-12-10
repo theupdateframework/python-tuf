@@ -87,6 +87,47 @@ class TestRepoExamples(unittest.TestCase):
             ],
         )
 
+    def test_hashed_bin_delegation(self):
+        """Run 'hashed_bin_delegation.py' and assert creation of metadata files."""
+        self._run_script_and_assert_files(
+            "hashed_bin_delegation.py",
+            [
+                "bins.json",
+                "00-07.json",
+                "08-0f.json",
+                "10-17.json",
+                "18-1f.json",
+                "20-27.json",
+                "28-2f.json",
+                "30-37.json",
+                "38-3f.json",
+                "40-47.json",
+                "48-4f.json",
+                "50-57.json",
+                "58-5f.json",
+                "60-67.json",
+                "68-6f.json",
+                "70-77.json",
+                "78-7f.json",
+                "80-87.json",
+                "88-8f.json",
+                "90-97.json",
+                "98-9f.json",
+                "a0-a7.json",
+                "a8-af.json",
+                "b0-b7.json",
+                "b8-bf.json",
+                "c0-c7.json",
+                "c8-cf.json",
+                "d0-d7.json",
+                "d8-df.json",
+                "e0-e7.json",
+                "e8-ef.json",
+                "f0-f7.json",
+                "f8-ff.json",
+            ],
+        )
+
 
 if __name__ == "__main__":
     utils.configure_test_logging(sys.argv)
