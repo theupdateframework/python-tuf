@@ -14,6 +14,7 @@ from typing import Optional, Tuple
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
+from tuf.exceptions import RepositoryError
 from tuf.ngclient import Updater
 
 
@@ -104,6 +105,63 @@ class TestFetchTarget(unittest.TestCase):
         self.assertEqual(path, updater.download_target(info, path))
         self.assertEqual(path, updater.find_cached_target(info))
         self.assertEqual(path, updater.find_cached_target(info, path))
+
+    def test_invalid_target_download(self) -> None:
+        targetpath = "targetpath"
+        # Add target to repository
+        self.sim.targets.version += 1
+        self.sim.add_target("targets", b"content", targetpath)
+        self.sim.update_snapshot()
+
+        updater = self._init_updater()
+        info = updater.get_targetinfo(targetpath)
+        assert info is not None
+
+        # Corrupt the file content to not match the hash
+        self.sim.target_files[targetpath].data = b"conten@"
+        with self.assertRaises(RepositoryError):
+            updater.download_target(info)
+
+        # Corrupt the file content to not match the length
+        self.sim.target_files[targetpath].data = b"cont"
+        with self.assertRaises(RepositoryError):
+            updater.download_target(info)
+
+        # Verify the file is not persisted in cache
+        self.assertIsNone(updater.find_cached_target(info))
+
+    def test_invalid_target_cache(self) -> None:
+        targetpath = "targetpath"
+        content = b"content"
+        # Add target to repository
+        self.sim.targets.version += 1
+        self.sim.add_target("targets", content, targetpath)
+        self.sim.update_snapshot()
+
+        # Download the target
+        updater = self._init_updater()
+        info = updater.get_targetinfo(targetpath)
+        assert info is not None
+        path = updater.download_target(info)
+        self.assertEqual(path, updater.find_cached_target(info))
+
+        # Add newer content to the same targetpath
+        content = b"contentv2"
+        self.sim.targets.version += 1
+        self.sim.add_target("targets", content, targetpath)
+        self.sim.update_snapshot()
+
+        # Newer content is detected, old cached version is not used
+        updater = self._init_updater()
+        info = updater.get_targetinfo(targetpath)
+        assert info is not None
+        self.assertIsNone(updater.find_cached_target(info))
+
+        # Download target, assert it is in cache and content is the newer
+        path = updater.download_target(info)
+        self.assertEqual(path, updater.find_cached_target(info))
+        with open(path, "rb") as f:
+            self.assertEqual(f.read(), content)
 
 
 if __name__ == "__main__":
