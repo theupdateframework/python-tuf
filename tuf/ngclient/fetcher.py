@@ -71,7 +71,8 @@ class FetcherInterface:
                 number_of_bytes_received += len(chunk)
                 if number_of_bytes_received > max_length:
                     raise exceptions.DownloadLengthMismatchError(
-                        max_length, number_of_bytes_received
+                        f"Downloaded {number_of_bytes_received} bytes exceeding"
+                        f" the maximum allowed length of {max_length}"
                     )
 
                 temp_file.write(chunk)

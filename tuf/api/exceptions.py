@@ -7,7 +7,6 @@ The names chosen for TUF Exception classes should end in 'Error' except where
 there is a good reason not to, and provide that reason in those cases.
 """
 
-from typing import Optional
 
 #### General errors ####
 
@@ -39,29 +38,16 @@ class URLParsingError(Exception):
     cannot be isoalted."""
 
 
+#### Repository errors ####
+
+
 class RepositoryError(Exception):
     """An error with a repository's state, such as a missing file."""
 
 
-#### Repository errors ####
-
-
 class UnsignedMetadataError(RepositoryError):
-    """An error about metadata object with insufficient threshold of signatures.
-
-    Args:
-        message: The error message
-    """
-
-    def __init__(self, message: str) -> None:
-        super().__init__()
-        self.exception_message = message
-
-    def __str__(self) -> str:
-        return self.exception_message
-
-    def __repr__(self) -> str:
-        return self.__class__.__name__ + " : " + str(self)
+    """An error about metadata object with insufficient threshold of
+    signatures."""
 
 
 class BadVersionNumberError(RepositoryError):
@@ -92,16 +78,10 @@ class ReplayedMetadataError(RepositoryError):
 
     def __str__(self) -> str:
         return (
-            "Downloaded "
-            + repr(self.metadata_role)
-            + " is older ("
-            + repr(self.downloaded_version)
-            + ") than the version currently "
-            "installed (" + repr(self.current_version) + ")."
+            f"Downloaded {self.metadata_role} is older ("
+            f"{self.downloaded_version}) than the version currently installed"
+            f"({self.current_version})"
         )
-
-    def __repr__(self) -> str:
-        return self.__class__.__name__ + " : " + str(self)
 
 
 #### Download Errors ####
@@ -114,42 +94,6 @@ class DownloadError(Exception):
 class DownloadLengthMismatchError(DownloadError):
     """Indicate that a mismatch of lengths was seen while downloading a file."""
 
-    def __init__(self, expected_length: int, observed_length: int) -> None:
-        super().__init__()
-
-        self.expected_length = expected_length  # bytes
-        self.observed_length = observed_length  # bytes
-
-    def __str__(self) -> str:
-        return (
-            "Observed length ("
-            + repr(self.observed_length)
-            + ") < expected length ("
-            + repr(self.expected_length)
-            + ")."
-        )
-
-    def __repr__(self) -> str:
-        return self.__class__.__name__ + " : " + str(self)
-
 
 class SlowRetrievalError(DownloadError):
-    """ "Indicate that downloading a file took an unreasonably long time."""
-
-    def __init__(self, average_download_speed: Optional[int] = None) -> None:
-        super().__init__()
-        self.__average_download_speed = average_download_speed  # bytes/second
-
-    def __str__(self) -> str:
-        msg = "Download was too slow."
-        if self.__average_download_speed is not None:
-            msg = (
-                "Download was too slow. Average speed: "
-                + repr(self.__average_download_speed)
-                + " bytes per second."
-            )
-
-        return msg
-
-    def __repr__(self) -> str:
-        return self.__class__.__name__ + " : " + str(self)
+    """Indicate that downloading a file took an unreasonably long time."""
