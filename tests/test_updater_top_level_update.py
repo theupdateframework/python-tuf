@@ -306,6 +306,46 @@ class TestRefresh(unittest.TestCase):
 
         self._assert_files_exist([Root.type])
 
+    def test_expired_timestamp_version_rollback(self) -> None:
+        self._run_refresh()
+
+        mock_time = Mock()
+        mock_time.return_value = (
+            int(self.sim.timestamp.expires.strftime("%Y%m%d%H%M%S")) + 1
+        )
+        with patch("time.time", mock_time):
+            # Check for a rollback attack
+            self.sim.timestamp.version = 2
+            self._run_refresh()
+
+            self.sim.timestamp.version = 1
+            with self.assertRaises(ReplayedMetadataError):
+                self._run_refresh()
+
+            self._assert_version_equals(Timestamp.type, 2)
+
+    def test_expired_timestamp_snapshot_rollback(self) -> None:
+        self._run_refresh()
+
+        mock_time = Mock()
+        mock_time.return_value = (
+            int(self.sim.timestamp.expires.strftime("%Y%m%d%H%M%S")) + 1
+        )
+        with patch("time.time", mock_time):
+            # Check for a rollback attack.
+            self.sim.snapshot.version = 2
+            self.sim.update_timestamp()  # timestamp v2
+            self._run_refresh()
+
+            # Snapshot meta version is smaller than previous
+            self.sim.timestamp.snapshot_meta.version = 1
+            self.sim.timestamp.version += 1  # timestamp v3
+
+            with self.assertRaises(ReplayedMetadataError):
+                self._run_refresh()
+
+            self._assert_version_equals(Timestamp.type, 2)
+
     def test_new_timestamp_version_rollback(self) -> None:
         # Check for a rollback attack
         self.sim.timestamp.version = 2
