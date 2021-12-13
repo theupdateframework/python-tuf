@@ -1,5 +1,42 @@
 # Changelog
 
+
+## v0.20.0
+
+*__NOTE:__ This will be the final release of python-tuf that includes the
+legacy implementation code. Please see the [*1.0.0
+announcement*](1.0.0-ANNOUNCEMENT.md) page for more details about the next
+release and the deprecation of the legacy implementation, including migration
+instructions.*
+
+### Added
+* metadata API: misc input validation (#1630, #1688, #1668, #1672, #1690)
+* doc: repository library design document and ADR (#1693)
+* doc: 1.0.0 announcement (#1706)
+* doc: misc docstrings in metadata API (#1620)
+* doc: repository and client examples (#1675, #1685, #1700)
+* test: ngclient key rotation (#1635, #1649, #1691)
+* test: ngclient top-level role update (#1636)
+* test: ngclient non-consistent snapshot (#1666, #1705)
+* test: more lint/type checks and auto-formatting (#1658, #1664, #1659, #1674,
+        #1677, #1687, #1699, #1701, #1708, #1710, #1720)
+* build: Python 3.10 support (#1628)
+
+### Changed
+* ngclient: misc API changes (#1604)
+* ngclient: avoid re-loading verified targets metadata (#1593)
+* ngclient: implicitly call refresh() (#1654)
+* ngclient: return loaded metadata (#1680)
+* ngclient: skip visited nodes on delegation tree traversal (#1683)
+* ngclient: remove URL normalisation (#1686)
+* build: modernise packaging configuration (#1626)
+* build: bump dependencies (#1609, #1611, #1616, #1621)
+* build: limit GitHub Action token visibility and permissions (#1652, #1663)
+* test: misc test changes (#1715, #1670, #1671, #1631, #1695)
+
+### Removed
+* doc: obsolete roadmap (#1698)
+
 ## v0.19.0
 
 For users of legacy client (tuf.client module) this is purely a security fix
