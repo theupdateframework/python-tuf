@@ -10,7 +10,7 @@ import os
 import shutil
 from pathlib import Path
 
-from tuf.exceptions import RepositoryError
+from tuf.api.exceptions import RepositoryError
 from tuf.ngclient import Updater
 
 # constants

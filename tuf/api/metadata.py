@@ -57,7 +57,7 @@ from securesystemslib.signer import Signature, Signer
 from securesystemslib.storage import FilesystemBackend, StorageBackendInterface
 from securesystemslib.util import persist_temp_file
 
-from tuf import exceptions
+from tuf.api import exceptions
 from tuf.api.serialization import (
     MetadataDeserializer,
     MetadataSerializer,
@@ -381,7 +381,6 @@ class Metadata(Generic[T]):
             raise exceptions.UnsignedMetadataError(
                 f"{delegated_role} was signed by {len(signing_keys)}/"
                 f"{role.threshold} keys",
-                delegated_metadata.signed,
             )
 
 
@@ -623,8 +622,7 @@ class Key:
             signature = metadata.signatures[self.keyid]
         except KeyError:
             raise exceptions.UnsignedMetadataError(
-                f"no signature for key {self.keyid} found in metadata",
-                metadata.signed,
+                f"no signature for key {self.keyid} found in metadata"
             ) from None
 
         if signed_serializer is None:
@@ -640,8 +638,7 @@ class Key:
                 signed_serializer.serialize(metadata.signed),
             ):
                 raise exceptions.UnsignedMetadataError(
-                    f"Failed to verify {self.keyid} signature",
-                    metadata.signed,
+                    f"Failed to verify {self.keyid} signature"
                 )
         except (
             sslib_exceptions.CryptoError,
@@ -649,8 +646,7 @@ class Key:
             sslib_exceptions.UnsupportedAlgorithmError,
         ) as e:
             raise exceptions.UnsignedMetadataError(
-                f"Failed to verify {self.keyid} signature",
-                metadata.signed,
+                f"Failed to verify {self.keyid} signature"
             ) from e
 
 

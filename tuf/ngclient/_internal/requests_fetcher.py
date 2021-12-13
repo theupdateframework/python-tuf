@@ -14,7 +14,7 @@ import requests
 import urllib3.exceptions
 
 import tuf
-from tuf import exceptions
+from tuf.api import exceptions
 from tuf.ngclient.fetcher import FetcherInterface
 
 # Globals

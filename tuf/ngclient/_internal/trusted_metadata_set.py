@@ -72,7 +72,7 @@ from collections import abc
 from datetime import datetime
 from typing import Dict, Iterator, Optional
 
-from tuf import exceptions
+from tuf.api import exceptions
 from tuf.api.metadata import Metadata, Root, Snapshot, Targets, Timestamp
 from tuf.api.serialization import DeserializationError
 

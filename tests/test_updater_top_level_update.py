@@ -16,6 +16,13 @@ from unittest.mock import MagicMock, call, patch
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
+from tuf.api.exceptions import (
+    BadVersionNumberError,
+    ExpiredMetadataError,
+    ReplayedMetadataError,
+    RepositoryError,
+    UnsignedMetadataError,
+)
 from tuf.api.metadata import (
     SPECIFICATION_VERSION,
     TOP_LEVEL_ROLE_NAMES,
@@ -25,13 +32,6 @@ from tuf.api.metadata import (
     Snapshot,
     Targets,
     Timestamp,
-)
-from tuf.exceptions import (
-    BadVersionNumberError,
-    ExpiredMetadataError,
-    ReplayedMetadataError,
-    RepositoryError,
-    UnsignedMetadataError,
 )
 from tuf.ngclient import Updater
 

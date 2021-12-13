@@ -13,7 +13,7 @@ from securesystemslib.interface import (
 from securesystemslib.signer import SSlibSigner
 
 from tests import utils
-from tuf import exceptions
+from tuf.api import exceptions
 from tuf.api.metadata import (
     Metadata,
     MetaFile,

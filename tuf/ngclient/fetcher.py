@@ -11,7 +11,7 @@ import tempfile
 from contextlib import contextmanager
 from typing import IO, Iterator
 
-from tuf import exceptions
+from tuf.api import exceptions
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +35,9 @@ class FetcherInterface:
             url: A URL string that represents a file location.
 
         Raises:
-            tuf.exceptions.SlowRetrievalError: A timeout occurs while receiving
+            exceptions.SlowRetrievalError: A timeout occurs while receiving
                 data.
-            tuf.exceptions.FetcherHTTPError: An HTTP error code is received.
+            exceptions.FetcherHTTPError: An HTTP error code is received.
 
         Returns:
             A bytes iterator
@@ -55,7 +55,8 @@ class FetcherInterface:
               the file or an upper bound.
 
         Raises:
-          DownloadLengthMismatchError: downloaded bytes exceed 'max_length'.
+          exceptions.DownloadLengthMismatchError: downloaded bytes exceed
+            'max_length'.
 
         Yields:
           A TemporaryFile object that points to the contents of 'url'.

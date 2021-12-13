@@ -17,8 +17,8 @@ from securesystemslib.signer import SSlibSigner
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
 from tests.utils import run_sub_tests_with_dataset
+from tuf.api.exceptions import UnsignedMetadataError
 from tuf.api.metadata import Key, Root
-from tuf.exceptions import UnsignedMetadataError
 from tuf.ngclient import Updater
 
 

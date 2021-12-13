@@ -15,13 +15,13 @@ from typing import Iterable, List, Optional
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
+from tuf.api.exceptions import UnsignedMetadataError
 from tuf.api.metadata import (
     SPECIFICATION_VERSION,
     TOP_LEVEL_ROLE_NAMES,
     DelegatedRole,
     Targets,
 )
-from tuf.exceptions import UnsignedMetadataError
 from tuf.ngclient import Updater
 
 

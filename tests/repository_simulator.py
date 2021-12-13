@@ -57,6 +57,7 @@ import securesystemslib.hash as sslib_hash
 from securesystemslib.keys import generate_ed25519_key
 from securesystemslib.signer import SSlibSigner
 
+from tuf.api.exceptions import FetcherHTTPError
 from tuf.api.metadata import (
     SPECIFICATION_VERSION,
     TOP_LEVEL_ROLE_NAMES,
@@ -73,7 +74,6 @@ from tuf.api.metadata import (
     Timestamp,
 )
 from tuf.api.serialization.json import JSONSerializer
-from tuf.exceptions import FetcherHTTPError
 from tuf.ngclient.fetcher import FetcherInterface
 
 logger = logging.getLogger(__name__)

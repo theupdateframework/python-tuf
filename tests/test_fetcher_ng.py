@@ -20,7 +20,8 @@ import requests
 import urllib3.exceptions
 
 from tests import utils
-from tuf import exceptions, unittest_toolbox
+from tuf import unittest_toolbox
+from tuf.api import exceptions
 from tuf.ngclient._internal.requests_fetcher import RequestsFetcher
 
 logger = logging.getLogger(__name__)
