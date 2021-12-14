@@ -3,9 +3,6 @@
 # pinned tuf runtime dependencies (should auto-update and -trigger ci/cd)
 -r requirements-pinned.txt
 
-# tuf.api tests use python-dateutil
-python-dateutil
-
 # additional test tools for linting and coverage measurement
 coverage
 black
@@ -14,4 +11,3 @@ pylint
 mypy
 bandit
 types-requests
-types-python-dateutil

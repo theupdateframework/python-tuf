@@ -16,7 +16,6 @@ import unittest
 from datetime import datetime, timedelta
 from typing import ClassVar, Dict
 
-from dateutil.relativedelta import relativedelta
 from securesystemslib import hash as sslib_hash
 from securesystemslib.interface import (
     import_ed25519_privatekey_from_file,
@@ -332,15 +331,6 @@ class TestMetadata(unittest.TestCase):
         self.assertEqual(timestamp.signed.expires, datetime(2030, 1, 2, 0, 0))
         timestamp.signed.bump_expiration(timedelta(days=365))
         self.assertEqual(timestamp.signed.expires, datetime(2031, 1, 2, 0, 0))
-
-        # Test whether dateutil.relativedelta works, this provides a much
-        # easier to use interface for callers
-        delta = relativedelta(days=1)
-        timestamp.signed.bump_expiration(delta)
-        self.assertEqual(timestamp.signed.expires, datetime(2031, 1, 3, 0, 0))
-        delta = relativedelta(years=5)
-        timestamp.signed.bump_expiration(delta)
-        self.assertEqual(timestamp.signed.expires, datetime(2036, 1, 3, 0, 0))
 
         # Create a MetaFile instance representing what we expect
         # the updated data to be.
