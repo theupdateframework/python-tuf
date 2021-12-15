@@ -14,7 +14,7 @@ import sys
 import tempfile
 import unittest
 from datetime import datetime, timedelta
-from typing import ClassVar, Dict
+from typing import Any, ClassVar, Dict
 
 from securesystemslib import hash as sslib_hash
 from securesystemslib.interface import (
@@ -51,7 +51,7 @@ class TestMetadata(unittest.TestCase):
     temporary_directory: ClassVar[str]
     repo_dir: ClassVar[str]
     keystore_dir: ClassVar[str]
-    keystore: ClassVar[Dict[str, str]]
+    keystore: ClassVar[Dict[str, Dict[str, Any]]]
 
     @classmethod
     def setUpClass(cls) -> None:
