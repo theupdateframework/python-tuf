@@ -13,6 +13,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from copy import copy
 from datetime import datetime, timedelta
 from typing import Any, ClassVar, Dict
 
@@ -126,6 +127,16 @@ class TestMetadata(unittest.TestCase):
 
         os.remove(bad_metadata_path)
 
+    def test_md_read_write_file_exceptions(self) -> None:
+        # Test writing to a file with bad filename
+        with self.assertRaises(exceptions.StorageError):
+            Metadata.from_file("bad-metadata.json")
+
+        # Test serializing to a file with bad filename
+        with self.assertRaises(exceptions.StorageError):
+            md = Metadata.from_file(f"{self.repo_dir}/metadata/root.json")
+            md.to_file("")
+
     def test_compact_json(self) -> None:
         path = os.path.join(self.repo_dir, "metadata", "targets.json")
         md_obj = Metadata.from_file(path)
@@ -211,6 +222,17 @@ class TestMetadata(unittest.TestCase):
         timestamp_key.verify_signature(md_obj)
         with self.assertRaises(exceptions.UnsignedMetadataError):
             targets_key.verify_signature(md_obj)
+
+    def test_sign_failures(self) -> None:
+        # Test throwing UnsignedMetadataError because of signing problems
+        # related to bad information in the signer.
+        md = Metadata.from_file(f"{self.repo_dir}/metadata/snapshot.json")
+        key_dict = copy(self.keystore[Snapshot.type])
+        key_dict["keytype"] = "rsa"
+        key_dict["scheme"] = "bad_scheme"
+        sslib_signer = SSlibSigner(key_dict)
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            md.sign(sslib_signer)
 
     def test_verify_failures(self) -> None:
         root_path = os.path.join(self.repo_dir, "metadata", "root.json")
