@@ -128,7 +128,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         # Creating a repository instance.  The test cases will use this client
         # updater to refresh metadata, fetch target files, etc.
         self.updater = ngclient.Updater(
-            repository_dir=self.client_directory,
+            metadata_dir=self.client_directory,
             metadata_base_url=self.metadata_url,
             target_dir=self.dl_dir,
             target_base_url=self.targets_url,
