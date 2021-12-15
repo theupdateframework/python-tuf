@@ -45,7 +45,7 @@ Example::
     # Load trusted local root metadata from client metadata cache. Define
     # where metadata and targets will be downloaded from.
     updater = Updater(
-        repository_dir="~/tufclient/metadata/",
+        metadata_dir="~/tufclient/metadata/",
         metadata_base_url="http://localhost:8000/tuf-repo/",
         target_dir="~/tufclient/downloads/",
         target_base_url="http://localhost:8000/targets/",
@@ -87,7 +87,7 @@ class Updater:
     """Creates a new Updater instance and loads trusted root metadata.
 
     Args:
-        repository_dir: Local metadata directory. Directory must be
+        metadata_dir: Local metadata directory. Directory must be
             writable and it must contain a trusted root.json file.
         metadata_base_url: Base URL for all remote metadata downloads
         target_dir: Local targets directory. Directory must be writable. It
@@ -105,14 +105,14 @@ class Updater:
 
     def __init__(
         self,
-        repository_dir: str,
+        metadata_dir: str,
         metadata_base_url: str,
         target_dir: Optional[str] = None,
         target_base_url: Optional[str] = None,
         fetcher: Optional[FetcherInterface] = None,
         config: Optional[UpdaterConfig] = None,
     ):
-        self._dir = repository_dir
+        self._dir = metadata_dir
         self._metadata_base_url = _ensure_trailing_slash(metadata_base_url)
         self.target_dir = target_dir
         if target_base_url is None:

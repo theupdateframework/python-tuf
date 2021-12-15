@@ -52,7 +52,7 @@ def download(target: str) -> bool:
     """
     try:
         updater = Updater(
-            repository_dir=METADATA_DIR,
+            metadata_dir=METADATA_DIR,
             metadata_base_url=f"{BASE_URL}/metadata/",
             target_base_url=f"{BASE_URL}/targets/",
             target_dir=DOWNLOAD_DIR,
