@@ -9,7 +9,7 @@
 ----------------------------
 *__IMPORTANT NOTICE:__ A stable 1.0.0 release of the modern implementation only
 is scheduled for January 2022. Please see the [*1.0.0
-announcement*](1.0.0-ANNOUNCEMENT.md) page for more details about the release
+announcement*](docs/1.0.0-ANNOUNCEMENT.md) page for more details about the release
 and the deprecation of the legacy implementation, including migration
 instructions.*
 
@@ -19,31 +19,22 @@ This repository is the **reference implementation** of
 It is written in Python and intended to conform to version 1.0 of the
 [TUF specification](https://theupdateframework.github.io/specification/latest/).
 
-The repository currently includes two implementations:
-1) A *legacy implementation*, with
-   [`tuf/client/updater.py`](tuf/client/updater.py) implementing the detailed
-   client workflow and [`tuf/repository_tool.py`](tuf/repository_tool.py)
-   providing a high-level interface for repository operations.
-   The legacy implementation is in use in production systems, but is [no longer
-   being actively worked on](docs/adr/0002-pre-1-0-deprecation-strategy.md).
-2) A *modern implementation*. We are in the process of rewriting the reference
-   implementation in [modern Python](docs/adr/0001-python-version-3-6-plus.md)
-   to both: a) address scalability and integration issues identified in
-   supporting integration into the Python Package Index (PyPI), and other
-   large-scale repositories, and b) to ensure maintainability of the project.
-   This implementation consists of:
-   * a "low-level" metadata API, designed to provide easy and safe access to
-     TUF metadata and handle (de)serialization from/to files, provided in the
-     [`tuf/api/metadata.py`](tuf/api/metadata.py) module.
-   * an implementation of the detailed client workflow built on top of the
-     metadata API, provided in the
-     [`tuf/ngclient/updater.py`](tuf/ngclient/updater.py) module.
-   The modern implementation is not considered production ready and does not yet
-   provide any high-level support for implementing
-   [repository operations](https://theupdateframework.github.io/specification/latest/#repository-operations),
-   though the addition of API to support them is planned.
+Python-TUF provides two APIs:
+  * [`tuf.api.metadata`](https://theupdateframework.readthedocs.io/en/latest/api/tuf.api.html),
+    a "low-level" API, designed to provide easy and safe access to TUF
+    metadata and to handle (de)serialization from/to files.
+  * [`tuf.ngclient`](https://theupdateframework.readthedocs.io/en/latest/api/tuf.ngclient.html),
+    a client implementation built on top of the metadata API.
 
+High-level support for implementing
+[repository operations](https://theupdateframework.github.io/specification/latest/#repository-operations)
+is planned but not yet provided: see [1.0.0 plans](docs/1.0.0-ANNOUNCEMENT.md).
 
+In addition to these APIs the project also provides a *legacy
+implementation* with `tuf.client` implementing the client workflow and
+`tuf.repository_tool` providing a high-level interface for repository
+operations. The legacy implementation is going to be
+[deprecated](docs/1.0.0-ANNOUNCEMENT.md) in the near future.
 
 The reference implementation strives to be a readable guide and demonstration
 for those working on implementing TUF in their own languages, environments, or
@@ -75,7 +66,8 @@ Documentation
 -------------
 * [Introduction to TUF's Design](docs/OVERVIEW.rst)
 * [The TUF Specification](https://theupdateframework.github.io/specification/latest/)
-* [Getting Started with the TUF Reference Implementation](docs/GETTING_STARTED.rst)
+* Examples: [client](examples/client_example) and [repository](examples/repo_example)
+* [API Reference](https://theupdateframework.readthedocs.io/)
 * [Governance](docs/GOVERNANCE.md) and [Maintainers](docs/MAINTAINERS.txt)
 for the reference implementation
 * [Miscellaneous Docs](docs/)
