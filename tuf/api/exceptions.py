@@ -19,11 +19,6 @@ class LengthOrHashMismatchError(Exception):
     """An error while checking the length and hash values of an object."""
 
 
-class URLParsingError(Exception):
-    """If we are unable to parse a URL -- for example, if a hostname element
-    cannot be isoalted."""
-
-
 #### Repository errors ####
 
 

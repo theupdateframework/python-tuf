@@ -110,7 +110,7 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
 
     # Incorrect URL parsing
     def test_url_parsing(self) -> None:
-        with self.assertRaises(exceptions.URLParsingError):
+        with self.assertRaises(exceptions.DownloadError):
             self.fetcher.fetch(self.random_string())
 
     # File not found error
