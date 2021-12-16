@@ -19,20 +19,6 @@ class LengthOrHashMismatchError(Exception):
     """An error while checking the length and hash values of an object."""
 
 
-class FetcherHTTPError(Exception):
-    """
-    Returned by FetcherInterface implementations for HTTP errors.
-
-    Args:
-        message: The HTTP error messsage
-        status_code: The HTTP status code
-    """
-
-    def __init__(self, message: str, status_code: int):
-        super().__init__(message)
-        self.status_code = status_code
-
-
 class URLParsingError(Exception):
     """If we are unable to parse a URL -- for example, if a hostname element
     cannot be isoalted."""
@@ -97,3 +83,17 @@ class DownloadLengthMismatchError(DownloadError):
 
 class SlowRetrievalError(DownloadError):
     """Indicate that downloading a file took an unreasonably long time."""
+
+
+class FetcherHTTPError(DownloadError):
+    """
+    Returned by FetcherInterface implementations for HTTP errors.
+
+    Args:
+        message: The HTTP error messsage
+        status_code: The HTTP status code
+    """
+
+    def __init__(self, message: str, status_code: int):
+        super().__init__(message)
+        self.status_code = status_code
