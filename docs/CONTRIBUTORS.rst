@@ -184,10 +184,9 @@ a *venv*), and then install ``securesystemslib`` in editable mode too (in the sa
     $ python3 -m pip install -r requirements-dev.txt
 
 
-With `tox <https://testrun.org/tox/>`_ the test suite can be executed in a
-separate *venv* for each supported Python version. While the supported
-Python versions must already be available, ``tox`` will install ``tuf`` and its
-dependencies anew in each environment.
+With `tox <https://testrun.org/tox/>`_, the test suite can be executed in a
+separate *venv*. While a supported Python version must already be available,
+``tox`` will install ``tuf`` and dependencies.
 ::
 
     $ tox
