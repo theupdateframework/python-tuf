@@ -23,6 +23,7 @@
 import argparse
 import errno
 import logging
+import os
 import queue
 import socket
 import subprocess
@@ -152,6 +153,14 @@ def configure_test_logging(argv: List[str]) -> None:
 
     logging.basicConfig(level=loglevel)
     tuf.log.set_log_level(loglevel)
+
+
+def cleanup_dir(path: str) -> None:
+    """Delete all files inside a directory"""
+    for filepath in [
+        os.path.join(path, filename) for filename in os.listdir(path)
+    ]:
+        os.remove(filepath)
 
 
 class TestServerProcess:

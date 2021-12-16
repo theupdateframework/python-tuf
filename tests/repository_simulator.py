@@ -345,13 +345,7 @@ class RepositorySimulator(FetcherInterface):
         self.target_files[path] = RepositoryTarget(data, target)
 
     def add_delegation(
-        self,
-        delegator_name: str,
-        name: str,
-        targets: Targets,
-        terminating: bool,
-        paths: Optional[List[str]],
-        hash_prefixes: Optional[List[str]],
+        self, delegator_name: str, role: DelegatedRole, targets: Targets
     ) -> None:
         """Add delegated target role to the repository."""
         if delegator_name == Targets.type:
@@ -360,7 +354,6 @@ class RepositorySimulator(FetcherInterface):
             delegator = self.md_delegates[delegator_name].signed
 
         # Create delegation
-        role = DelegatedRole(name, [], 1, terminating, paths, hash_prefixes)
         if delegator.delegations is None:
             delegator.delegations = Delegations({}, OrderedDict())
         # put delegation last by default
@@ -372,7 +365,8 @@ class RepositorySimulator(FetcherInterface):
         self.add_signer(role.name, signer)
 
         # Add metadata for the role
-        self.md_delegates[role.name] = Metadata(targets, OrderedDict())
+        if role.name not in self.md_delegates:
+            self.md_delegates[role.name] = Metadata(targets, OrderedDict())
 
     def write(self) -> None:
         """Dump current repository metadata to self.dump_dir

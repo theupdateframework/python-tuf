@@ -37,6 +37,9 @@ class TestRefresh(unittest.TestCase):
     """Test update of top-level metadata following
     'Detailed client workflow' in the specification."""
 
+    # set dump_dir to trigger repository state dumps
+    dump_dir: Optional[str] = None
+
     past_datetime = datetime.utcnow().replace(microsecond=0) - timedelta(days=5)
 
     def setUp(self) -> None:
@@ -53,11 +56,20 @@ class TestRefresh(unittest.TestCase):
         with open(os.path.join(self.metadata_dir, "root.json"), "bw") as f:
             f.write(self.sim.signed_roots[0])
 
+        if self.dump_dir is not None:
+            # create test specific dump directory
+            name = self.id().split(".")[-1]
+            self.sim.dump_dir = os.path.join(self.dump_dir, name)
+            os.mkdir(self.sim.dump_dir)
+
     def tearDown(self) -> None:
         self.temp_dir.cleanup()
 
     def _run_refresh(self) -> Updater:
         """Create a new Updater instance and refresh"""
+        if self.dump_dir is not None:
+            self.sim.write()
+
         updater = Updater(
             self.metadata_dir,
             "https://example.com/metadata/",
@@ -70,6 +82,9 @@ class TestRefresh(unittest.TestCase):
 
     def _init_updater(self) -> Updater:
         """Create a new Updater instance"""
+        if self.dump_dir is not None:
+            self.sim.write()
+
         return Updater(
             self.metadata_dir,
             "https://example.com/metadata/",
@@ -455,6 +470,10 @@ class TestRefresh(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    if "--dump" in sys.argv:
+        TestRefresh.dump_dir = tempfile.mkdtemp()
+        print(f"Repository Simulator dumps in {TestRefresh.dump_dir}")
+        sys.argv.remove("--dump")
 
     utils.configure_test_logging(sys.argv)
     unittest.main()

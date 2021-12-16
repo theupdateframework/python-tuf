@@ -16,7 +16,7 @@ from unittest.mock import MagicMock, patch
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
-from tuf.api.metadata import SPECIFICATION_VERSION, Targets
+from tuf.api.metadata import SPECIFICATION_VERSION, DelegatedRole, Targets
 from tuf.exceptions import BadVersionNumberError, UnsignedMetadataError
 from tuf.ngclient import Updater
 
@@ -143,11 +143,10 @@ class TestUpdater(unittest.TestCase):
 
         # Add new delegated targets, update the snapshot
         spec_version = ".".join(SPECIFICATION_VERSION)
-        targets = Targets(1, spec_version, self.sim.safe_expiry, {}, None)
-        for role in roles_to_filenames:
-            self.sim.add_delegation(
-                "targets", role, targets, False, ["*"], None
-            )
+        for rolename in roles_to_filenames:
+            role = DelegatedRole(rolename, [], 1, False, ["*"], None)
+            targets = Targets(1, spec_version, self.sim.safe_expiry, {}, None)
+            self.sim.add_delegation("targets", role, targets)
         self.sim.update_snapshot()
 
         updater = self._run_refresh()
@@ -236,7 +235,8 @@ class TestUpdater(unittest.TestCase):
         # Add new delegated targets, update the snapshot
         spec_version = ".".join(SPECIFICATION_VERSION)
         targets = Targets(1, spec_version, self.sim.safe_expiry, {}, None)
-        self.sim.add_delegation("targets", "role1", targets, False, ["*"], None)
+        role = DelegatedRole("role1", [], 1, False, ["*"], None)
+        self.sim.add_delegation("targets", role, targets)
         self.sim.update_snapshot()
 
         # Run refresh, top-level roles are loaded
