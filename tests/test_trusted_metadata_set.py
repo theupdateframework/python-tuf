@@ -245,7 +245,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
             self.trusted_set.update_root(root.to_bytes())
 
     def test_update_root_new_root_ver_same_as_trusted_root_ver(self) -> None:
-        with self.assertRaises(exceptions.ReplayedMetadataError):
+        with self.assertRaises(exceptions.BadVersionNumberError):
             self.trusted_set.update_root(self.metadata[Root.type])
 
     def test_root_expired_final_root(self) -> None:
@@ -266,7 +266,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
         timestamp = self.modify_metadata(Timestamp.type, version_modifier)
         self.trusted_set.update_timestamp(timestamp)
-        with self.assertRaises(exceptions.ReplayedMetadataError):
+        with self.assertRaises(exceptions.BadVersionNumberError):
             self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
 
     def test_update_timestamp_snapshot_ver_below_current(self) -> None:
@@ -278,7 +278,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
         self.trusted_set.update_timestamp(timestamp)
 
         # newtimestamp.meta.version < trusted_timestamp.meta.version
-        with self.assertRaises(exceptions.ReplayedMetadataError):
+        with self.assertRaises(exceptions.BadVersionNumberError):
             self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
 
     def test_update_timestamp_expired(self) -> None:

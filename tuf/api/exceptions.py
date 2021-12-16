@@ -39,32 +39,6 @@ class ExpiredMetadataError(RepositoryError):
     """Indicate that a TUF Metadata file has expired."""
 
 
-class ReplayedMetadataError(RepositoryError):
-    """Indicate that some metadata has been replayed to the client.
-
-    Args:
-        metadata_role: Name of the role that has been replayed
-        downloaded_version: The replayed downloaded version of the metadata
-        current_version: The current locally available version.
-    """
-
-    def __init__(
-        self, metadata_role: str, downloaded_version: int, current_version: int
-    ) -> None:
-        super().__init__()
-
-        self.metadata_role = metadata_role
-        self.downloaded_version = downloaded_version
-        self.current_version = current_version
-
-    def __str__(self) -> str:
-        return (
-            f"Downloaded {self.metadata_role} is older ("
-            f"{self.downloaded_version}) than the version currently installed"
-            f"({self.current_version})"
-        )
-
-
 #### Download Errors ####
 
 

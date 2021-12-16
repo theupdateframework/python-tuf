@@ -19,7 +19,6 @@ from tests.repository_simulator import RepositorySimulator
 from tuf.api.exceptions import (
     BadVersionNumberError,
     ExpiredMetadataError,
-    ReplayedMetadataError,
     RepositoryError,
     UnsignedMetadataError,
 )
@@ -267,7 +266,7 @@ class TestRefresh(unittest.TestCase):
         # Check for a rollback_attack
         # Repository serves a root file with the same version as previous
         self.sim.publish_root()
-        with self.assertRaises(ReplayedMetadataError):
+        with self.assertRaises(BadVersionNumberError):
             self._run_refresh()
 
         # The update failed, latest root version is v1
@@ -278,7 +277,7 @@ class TestRefresh(unittest.TestCase):
         # Repository serves non-consecutive root version
         self.sim.root.version += 2
         self.sim.publish_root()
-        with self.assertRaises(ReplayedMetadataError):
+        with self.assertRaises(BadVersionNumberError):
             self._run_refresh()
 
         # The update failed, latest root version is v1
@@ -313,7 +312,7 @@ class TestRefresh(unittest.TestCase):
         self._run_refresh()
 
         self.sim.timestamp.version = 1
-        with self.assertRaises(ReplayedMetadataError):
+        with self.assertRaises(BadVersionNumberError):
             self._run_refresh()
 
         self._assert_version_equals(Timestamp.type, 2)
@@ -328,7 +327,7 @@ class TestRefresh(unittest.TestCase):
         self.sim.timestamp.snapshot_meta.version = 1
         self.sim.timestamp.version += 1  # timestamp v3
 
-        with self.assertRaises(ReplayedMetadataError):
+        with self.assertRaises(BadVersionNumberError):
             self._run_refresh()
 
         self._assert_version_equals(Timestamp.type, 2)
@@ -423,7 +422,7 @@ class TestRefresh(unittest.TestCase):
         self.sim.snapshot.version = 1
         self.sim.update_timestamp()
 
-        with self.assertRaises(ReplayedMetadataError):
+        with self.assertRaises(BadVersionNumberError):
             self._run_refresh()
 
         self._assert_version_equals(Snapshot.type, 2)

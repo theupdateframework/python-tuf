@@ -175,10 +175,9 @@ class TrustedMetadataSet(abc.Mapping):
         self.root.verify_delegate(Root.type, new_root)
 
         if new_root.signed.version != self.root.signed.version + 1:
-            raise exceptions.ReplayedMetadataError(
-                Root.type,
-                new_root.signed.version,
-                self.root.signed.version,
+            raise exceptions.BadVersionNumberError(
+                f"Expected root version {self.root.signed.version + 1}"
+                f" instead got version {new_root.signed.version}"
             )
 
         # Verify that new root is signed by itself
@@ -236,20 +235,17 @@ class TrustedMetadataSet(abc.Mapping):
         if self.timestamp is not None:
             # Prevent rolling back timestamp version
             if new_timestamp.signed.version < self.timestamp.signed.version:
-                raise exceptions.ReplayedMetadataError(
-                    Timestamp.type,
-                    new_timestamp.signed.version,
-                    self.timestamp.signed.version,
+                raise exceptions.BadVersionNumberError(
+                    f"New timestamp version {new_timestamp.signed.version} must"
+                    f" be >= {self.timestamp.signed.version}"
                 )
             # Prevent rolling back snapshot version
-            if (
-                new_timestamp.signed.snapshot_meta.version
-                < self.timestamp.signed.snapshot_meta.version
-            ):
-                raise exceptions.ReplayedMetadataError(
-                    Snapshot.type,
-                    new_timestamp.signed.snapshot_meta.version,
-                    self.timestamp.signed.snapshot_meta.version,
+            snapshot_meta = self.timestamp.signed.snapshot_meta
+            new_snapshot_meta = new_timestamp.signed.snapshot_meta
+            if new_snapshot_meta.version < snapshot_meta.version:
+                raise exceptions.BadVersionNumberError(
+                    f"New snapshot version must be >= {snapshot_meta.version}"
+                    f", got version {new_snapshot_meta.version}"
                 )
 
         # expiry not checked to allow old timestamp to be used for rollback
