@@ -614,7 +614,7 @@ class TestMetadata(unittest.TestCase):
 
         # Test with an unsupported algorithm
         file_path = os.path.join(self.repo_dir, Targets.type, "file1.txt")
-        with self.assertRaises(exceptions.UnsupportedAlgorithmError):
+        with self.assertRaises(ValueError):
             TargetFile.from_file(file_path, file_path, ["123"])
 
     def test_targetfile_from_data(self) -> None:

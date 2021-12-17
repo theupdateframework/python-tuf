@@ -8,13 +8,6 @@ there is a good reason not to, and provide that reason in those cases.
 """
 
 
-#### General errors ####
-
-
-class UnsupportedAlgorithmError(Exception):
-    """An error while trying to identify a user-specified algorithm."""
-
-
 class LengthOrHashMismatchError(Exception):
     """An error while checking the length and hash values of an object."""
 

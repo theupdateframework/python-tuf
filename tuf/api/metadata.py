@@ -1319,8 +1319,8 @@ class TargetFile(BaseFile):
                 specified the securesystemslib default hash algorithm is used.
         Raises:
             FileNotFoundError: The file doesn't exist.
-            UnsupportedAlgorithmError: The hash algorithms list
-                contains an unsupported algorithm.
+            ValueError: The hash algorithms list contains an unsupported
+                algorithm.
         """
         with open(local_path, "rb") as file:
             return cls.from_data(target_file_path, file, hash_algorithms)
@@ -1342,8 +1342,8 @@ class TargetFile(BaseFile):
                 specified the securesystemslib default hash algorithm is used.
 
         Raises:
-            UnsupportedAlgorithmError: The hash algorithms list
-                contains an unsupported algorithm.
+            ValueError: The hash algorithms list contains an unsupported
+                algorithm.
         """
         if isinstance(data, bytes):
             length = len(data)
@@ -1369,9 +1369,7 @@ class TargetFile(BaseFile):
                 sslib_exceptions.UnsupportedAlgorithmError,
                 sslib_exceptions.FormatError,
             ) as e:
-                raise exceptions.UnsupportedAlgorithmError(
-                    f"Unsupported algorithm '{algorithm}'"
-                ) from e
+                raise ValueError(f"Unsupported algorithm '{algorithm}'") from e
 
             hashes[algorithm] = digest_object.hexdigest()
 
