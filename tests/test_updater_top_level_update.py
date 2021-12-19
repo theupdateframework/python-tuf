@@ -339,6 +339,37 @@ class TestRefresh(unittest.TestCase):
 
         self._assert_files_exist([Root.type])
 
+    def test_new_timestamp_fast_foward_recovery(self) -> None:
+        """Test timestamp fast-forward recovery using key rotation.
+
+        The timestamp recovery is made by the following steps
+         - Remove the timestamp key
+         - Create and add a new key for timestamp
+         - Bump and publish root
+         - Rollback the timestamp version
+        """
+
+        # attacker updates to a higher version
+        self.sim.timestamp.version = 99999
+
+        # client refreshes the metadata and see the new timestamp version
+        self._run_refresh()
+        self._assert_version_equals(Timestamp.type, 99999)
+
+        # repo add new timestamp keys and recovers the timestamp version
+        self.sim.root.roles["timestamp"].keyids.clear()
+        self.sim.signers["timestamp"].clear()
+        key, signer = self.sim.create_key()
+        self.sim.root.add_key("timestamp", key)
+        self.sim.add_signer("timestamp", signer)
+        self.sim.root.version += 1
+        self.sim.publish_root()
+        self.sim.timestamp.version = 1
+
+        # client refresh the metadata and see the initial timestamp version
+        self._run_refresh()
+        self._assert_version_equals(Timestamp.type, 1)
+
     def test_new_snapshot_hash_mismatch(self) -> None:
         # Check against timestamp role’s snapshot hash
 
