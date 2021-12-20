@@ -47,20 +47,8 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-
-      - name: Find pip cache dir
-        id: pip-cache
-        run: echo "::set-output name=dir::$(pip cache dir)"
-
-      - name: pip cache
-        uses: actions/cache@v2
-        with:
-          # Use the os dependent pip cache directory found above
-          path: ${{ steps.pip-cache.outputs.dir }}
-          # A match with 'key' counts as cache hit
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
-          # A match with 'restore-keys' is used as fallback
-          restore-keys: ${{ runner.os }}-pip-
+          cache: 'pip'
+          cache-dependency-path: 'requirements*.txt'
 
       - name: Install dependencies
         run: |
