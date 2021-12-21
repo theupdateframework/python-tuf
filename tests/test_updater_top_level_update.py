@@ -530,6 +530,36 @@ class TestRefresh(unittest.TestCase):
         updater.get_targetinfo("somepath")
         wrapped_open.assert_not_called()
 
+    def test_snapshot_rollback_with_local_snapshot_hash_mismatch(self) -> None:
+        # Test triggering snapshot rollback check on a newly downloaded snapshot
+        # when the local snapshot is loaded even when there is a hash mismatch
+        # with timestamp.snapshot_meta.
+
+        # By raising this flag on timestamp update the simulator would:
+        # 1) compute the hash of the new modified version of snapshot
+        # 2) assign the hash to timestamp.snapshot_meta
+        # The purpose is to create a hash mismatch between timestamp.meta and
+        # the local snapshot, but to have hash match between timestamp.meta and
+        # the next snapshot version.
+        self.sim.compute_metafile_hashes_length = True
+
+        # Initialize all metadata and assign targets version higher than 1.
+        self.sim.targets.version = 2
+        self.sim.update_snapshot()
+        self._run_refresh()
+
+        # The new targets must have a lower version than the local trusted one.
+        self.sim.targets.version = 1
+        self.sim.update_snapshot()
+
+        # During the snapshot update, the local snapshot will be loaded even if
+        # there is a hash mismatch with timestamp.snapshot_meta, because it will
+        # be considered as trusted.
+        # Should fail as a new version of snapshot will be fetched which lowers
+        # the snapshot.meta["targets.json"] version by 1 and throws an error.
+        with self.assertRaises(BadVersionNumberError):
+            self._run_refresh()
+
 
 if __name__ == "__main__":
     if "--dump" in sys.argv:
