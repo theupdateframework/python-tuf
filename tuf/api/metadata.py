@@ -513,10 +513,6 @@ class Signed(metaclass=abc.ABCMeta):
 
         return reference_time >= self.expires
 
-    def bump_version(self) -> None:
-        """Increments the metadata version number by 1."""
-        self.version += 1
-
 
 class Key:
     """A container class representing the public portion of a Key.

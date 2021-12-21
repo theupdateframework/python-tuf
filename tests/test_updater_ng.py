@@ -153,7 +153,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         root = Metadata.from_file(role_path)
         modification_func(root)
         if bump_version:
-            root.signed.bump_version()
+            root.signed.version += 1
         root_key_path = os.path.join(self.keystore_directory, "root_key")
         root_key_dict = import_rsa_privatekey_from_file(
             root_key_path, password="password"

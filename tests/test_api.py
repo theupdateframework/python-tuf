@@ -260,9 +260,6 @@ class TestMetadata(unittest.TestCase):
         snapshot_path = os.path.join(self.repo_dir, "metadata", "snapshot.json")
         md = Metadata.from_file(snapshot_path)
 
-        self.assertEqual(md.signed.version, 1)
-        md.signed.bump_version()
-        self.assertEqual(md.signed.version, 2)
         self.assertEqual(md.signed.expires, datetime(2030, 1, 1, 0, 0))
 
         # Test is_expired with reference_time provided
