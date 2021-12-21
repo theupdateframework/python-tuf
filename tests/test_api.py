@@ -264,10 +264,6 @@ class TestMetadata(unittest.TestCase):
         md.signed.bump_version()
         self.assertEqual(md.signed.version, 2)
         self.assertEqual(md.signed.expires, datetime(2030, 1, 1, 0, 0))
-        md.signed.bump_expiration()
-        self.assertEqual(md.signed.expires, datetime(2030, 1, 2, 0, 0))
-        md.signed.bump_expiration(timedelta(days=365))
-        self.assertEqual(md.signed.expires, datetime(2031, 1, 2, 0, 0))
 
         # Test is_expired with reference_time provided
         is_expired = md.signed.is_expired(md.signed.expires)
@@ -329,7 +325,7 @@ class TestMetadata(unittest.TestCase):
 
         # verify fails when delegate content is modified
         expires = snapshot.signed.expires
-        snapshot.signed.bump_expiration()
+        snapshot.signed.expires = expires + timedelta(days=1)
         with self.assertRaises(exceptions.UnsignedMetadataError):
             root.verify_delegate(Snapshot.type, snapshot)
         snapshot.signed.expires = expires
