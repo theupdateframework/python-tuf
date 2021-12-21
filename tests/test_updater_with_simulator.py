@@ -64,30 +64,6 @@ class TestUpdater(unittest.TestCase):
         updater.refresh()
         return updater
 
-    def test_fishy_rolenames(self) -> None:
-        roles_to_filenames = {
-            "../a": "..%2Fa.json",
-            ".": "..json",
-            "/": "%2F.json",
-            "ö": "%C3%B6.json",
-        }
-
-        # Add new delegated targets, update the snapshot
-        spec_version = ".".join(SPECIFICATION_VERSION)
-        for rolename in roles_to_filenames:
-            role = DelegatedRole(rolename, [], 1, False, ["*"], None)
-            targets = Targets(1, spec_version, self.sim.safe_expiry, {}, None)
-            self.sim.add_delegation("targets", role, targets)
-        self.sim.update_snapshot()
-
-        updater = self._run_refresh()
-
-        # trigger updater to fetch the delegated metadata, check filenames
-        updater.get_targetinfo("anything")
-        local_metadata = os.listdir(self.metadata_dir)
-        for fname in roles_to_filenames.values():
-            self.assertTrue(fname in local_metadata)
-
     def test_keys_and_signatures(self) -> None:
         """Example of the two trickiest test areas: keys and root updates"""
 
