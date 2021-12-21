@@ -127,6 +127,16 @@ class Metadata(Generic[T]):
         self.signatures = signatures
         self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
 
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Metadata):
+            return False
+
+        return (
+            self.signatures == other.signatures
+            and self.signed == other.signed
+            and self.unrecognized_fields == other.unrecognized_fields
+        )
+
     @classmethod
     def from_dict(cls, metadata: Dict[str, Any]) -> "Metadata[T]":
         """Creates ``Metadata`` object from its dict representation.
@@ -490,6 +500,18 @@ class Signed(metaclass=abc.ABCMeta):
         self.version = version
         self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
 
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Signed):
+            return False
+
+        return (
+            self.type == other.type
+            and self.version == other.version
+            and self.spec_version == other.spec_version
+            and self.expires == other.expires
+            and self.unrecognized_fields == other.unrecognized_fields
+        )
+
     @abc.abstractmethod
     def to_dict(self) -> Dict[str, Any]:
         """Serialization helper that returns dict representation of self"""
@@ -597,6 +619,18 @@ class Key:
         self.scheme = scheme
         self.keyval = keyval
         self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Key):
+            return False
+
+        return (
+            self.keyid == other.keyid
+            and self.keytype == other.keytype
+            and self.scheme == other.scheme
+            and self.keyval == other.keyval
+            and self.unrecognized_fields == other.unrecognized_fields
+        )
 
     @classmethod
     def from_dict(cls, keyid: str, key_dict: Dict[str, Any]) -> "Key":
@@ -742,6 +776,16 @@ class Role:
         self.threshold = threshold
         self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
 
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Role):
+            return False
+
+        return (
+            self.keyids == other.keyids
+            and self.threshold == other.threshold
+            and self.unrecognized_fields == other.unrecognized_fields
+        )
+
     @classmethod
     def from_dict(cls, role_dict: Dict[str, Any]) -> "Role":
         """Creates ``Role`` object from its dict representation.
@@ -803,6 +847,17 @@ class Root(Signed):
             raise ValueError("Role names must be the top-level metadata roles")
 
         self.roles = roles
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Root):
+            return False
+
+        return (
+            super().__eq__(other)
+            and self.keys == other.keys
+            and self.roles == other.roles
+            and self.consistent_snapshot == other.consistent_snapshot
+        )
 
     @classmethod
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Root":
@@ -986,6 +1041,17 @@ class MetaFile(BaseFile):
         self.hashes = hashes
         self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
 
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, MetaFile):
+            return False
+
+        return (
+            self.version == other.version
+            and self.length == other.length
+            and self.hashes == other.hashes
+            and self.unrecognized_fields == other.unrecognized_fields
+        )
+
     @classmethod
     def from_dict(cls, meta_dict: Dict[str, Any]) -> "MetaFile":
         """Creates ``MetaFile`` object from its dict representation.
@@ -1066,6 +1132,14 @@ class Timestamp(Signed):
         super().__init__(version, spec_version, expires, unrecognized_fields)
         self.snapshot_meta = snapshot_meta
 
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Timestamp):
+            return False
+
+        return (
+            super().__eq__(other) and self.snapshot_meta == other.snapshot_meta
+        )
+
     @classmethod
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Timestamp":
         """Creates ``Timestamp`` object from its dict representation.
@@ -1118,6 +1192,12 @@ class Snapshot(Signed):
     ):
         super().__init__(version, spec_version, expires, unrecognized_fields)
         self.meta = meta
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Snapshot):
+            return False
+
+        return super().__eq__(other) and self.meta == other.meta
 
     @classmethod
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Snapshot":
@@ -1202,6 +1282,18 @@ class DelegatedRole(Role):
 
         self.paths = paths
         self.path_hash_prefixes = path_hash_prefixes
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, DelegatedRole):
+            return False
+
+        return (
+            super().__eq__(other)
+            and self.name == other.name
+            and self.terminating == other.terminating
+            and self.paths == other.paths
+            and self.path_hash_prefixes == other.path_hash_prefixes
+        )
 
     @classmethod
     def from_dict(cls, role_dict: Dict[str, Any]) -> "DelegatedRole":
@@ -1331,6 +1423,16 @@ class Delegations:
         self.roles = roles
         self.unrecognized_fields = unrecognized_fields or {}
 
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Delegations):
+            return False
+
+        return (
+            self.keys == other.keys
+            and self.roles == other.roles
+            and self.unrecognized_fields == other.unrecognized_fields
+        )
+
     @classmethod
     def from_dict(cls, delegations_dict: Dict[str, Any]) -> "Delegations":
         """Creates ``Delegations`` object from its dict representation.
@@ -1402,6 +1504,17 @@ class TargetFile(BaseFile):
         """Can be used to provide implementation specific data related to the
         target. python-tuf does not use or validate this data."""
         return self.unrecognized_fields.get("custom")
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, TargetFile):
+            return False
+
+        return (
+            self.length == other.length
+            and self.hashes == other.hashes
+            and self.path == other.path
+            and self.unrecognized_fields == other.unrecognized_fields
+        )
 
     @classmethod
     def from_dict(cls, target_dict: Dict[str, Any], path: str) -> "TargetFile":
@@ -1549,6 +1662,16 @@ class Targets(Signed):
         super().__init__(version, spec_version, expires, unrecognized_fields)
         self.targets = targets
         self.delegations = delegations
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Targets):
+            return False
+
+        return (
+            super().__eq__(other)
+            and self.targets == other.targets
+            and self.delegations == other.delegations
+        )
 
     @classmethod
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Targets":
