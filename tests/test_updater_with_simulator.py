@@ -14,7 +14,7 @@ from typing import Optional
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
-from tuf.exceptions import BadVersionNumberError, UnsignedMetadataError
+from tuf.exceptions import BadVersionNumberError
 from tuf.ngclient import Updater
 
 
@@ -60,46 +60,6 @@ class TestUpdater(unittest.TestCase):
         )
         updater.refresh()
         return updater
-
-    def test_keys_and_signatures(self) -> None:
-        """Example of the two trickiest test areas: keys and root updates"""
-
-        # Update top level metadata
-        self._run_refresh()
-
-        # New targets: signed with only a new key that is not in roles keys
-        old_signers = self.sim.signers.pop("targets")
-        key, signer = self.sim.create_key()
-        self.sim.add_signer("targets", signer)
-        self.sim.targets.version += 1
-        self.sim.update_snapshot()
-
-        with self.assertRaises(UnsignedMetadataError):
-            self._run_refresh()
-
-        # New root: Add the new key as targets role key
-        # (root changes require explicit publishing)
-        self.sim.root.add_key("targets", key)
-        self.sim.root.version += 1
-        self.sim.publish_root()
-
-        self._run_refresh()
-
-        # New root: Raise targets threshold to 2
-        self.sim.root.roles["targets"].threshold = 2
-        self.sim.root.version += 1
-        self.sim.publish_root()
-
-        with self.assertRaises(UnsignedMetadataError):
-            self._run_refresh()
-
-        # New targets: sign with both new and any original keys
-        for signer in old_signers.values():
-            self.sim.add_signer("targets", signer)
-        self.sim.targets.version += 1
-        self.sim.update_snapshot()
-
-        self._run_refresh()
 
     def test_snapshot_rollback_with_local_snapshot_hash_mismatch(self) -> None:
         # Test triggering snapshot rollback check on a newly downloaded snapshot
