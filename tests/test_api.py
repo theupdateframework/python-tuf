@@ -32,7 +32,6 @@ from tuf.api.metadata import (
     Delegations,
     Key,
     Metadata,
-    MetaFile,
     Root,
     Snapshot,
     TargetFile,
@@ -297,56 +296,6 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(ValueError):
             Metadata.from_dict(data)
 
-    def test_metadata_snapshot(self) -> None:
-        snapshot_path = os.path.join(self.repo_dir, "metadata", "snapshot.json")
-        snapshot = Metadata[Snapshot].from_file(snapshot_path)
-
-        # Create a MetaFile instance representing what we expect
-        # the updated data to be.
-        hashes = {
-            "sha256": "c2986576f5fdfd43944e2b19e775453b96748ec4fe2638a6d2f32f1310967095"
-        }
-        fileinfo = MetaFile(2, 123, hashes)
-
-        self.assertNotEqual(
-            snapshot.signed.meta["role1.json"].to_dict(), fileinfo.to_dict()
-        )
-        snapshot.signed.update("role1", fileinfo)
-        self.assertEqual(
-            snapshot.signed.meta["role1.json"].to_dict(), fileinfo.to_dict()
-        )
-
-    def test_metadata_timestamp(self) -> None:
-        timestamp_path = os.path.join(
-            self.repo_dir, "metadata", "timestamp.json"
-        )
-        timestamp = Metadata[Timestamp].from_file(timestamp_path)
-
-        self.assertEqual(timestamp.signed.version, 1)
-        timestamp.signed.bump_version()
-        self.assertEqual(timestamp.signed.version, 2)
-
-        self.assertEqual(timestamp.signed.expires, datetime(2030, 1, 1, 0, 0))
-        timestamp.signed.bump_expiration()
-        self.assertEqual(timestamp.signed.expires, datetime(2030, 1, 2, 0, 0))
-        timestamp.signed.bump_expiration(timedelta(days=365))
-        self.assertEqual(timestamp.signed.expires, datetime(2031, 1, 2, 0, 0))
-
-        # Create a MetaFile instance representing what we expect
-        # the updated data to be.
-        hashes = {
-            "sha256": "0ae9664468150a9aa1e7f11feecb32341658eb84292851367fea2da88e8a58dc"
-        }
-        fileinfo = MetaFile(2, 520, hashes)
-
-        self.assertNotEqual(
-            timestamp.signed.snapshot_meta.to_dict(), fileinfo.to_dict()
-        )
-        timestamp.signed.update(fileinfo)
-        self.assertEqual(
-            timestamp.signed.snapshot_meta.to_dict(), fileinfo.to_dict()
-        )
-
     def test_metadata_verify_delegate(self) -> None:
         root_path = os.path.join(self.repo_dir, "metadata", "root.json")
         root = Metadata[Root].from_file(root_path)
@@ -504,30 +453,6 @@ class TestMetadata(unittest.TestCase):
             self.assertFalse(
                 DelegatedRole._is_target_in_pathpattern(targetpath, pathpattern)
             )
-
-    def test_metadata_targets(self) -> None:
-        targets_path = os.path.join(self.repo_dir, "metadata", "targets.json")
-        targets = Metadata[Targets].from_file(targets_path)
-
-        # Create a fileinfo dict representing the expected updated data.
-        filename = "file2.txt"
-        hashes = {
-            "sha256": "141f740f53781d1ca54b8a50af22cbf74e44c21a998fa2a8a05aaac2c002886b",
-            "sha512": "ef5beafa16041bcdd2937140afebd485296cd54f7348ecd5a4d035c09759608de467a7ac0eb58753d0242df873c305e8bffad2454aa48f44480f15efae1cacd0",
-        }
-
-        fileinfo = TargetFile(length=28, hashes=hashes, path=filename)
-
-        # Assert that data is not aleady equal
-        self.assertNotEqual(
-            targets.signed.targets[filename].to_dict(), fileinfo.to_dict()
-        )
-        # Update an already existing fileinfo
-        targets.signed.update(fileinfo)
-        # Verify that data is updated
-        self.assertEqual(
-            targets.signed.targets[filename].to_dict(), fileinfo.to_dict()
-        )
 
     def test_targets_key_api(self) -> None:
         targets_path = os.path.join(self.repo_dir, "metadata", "targets.json")

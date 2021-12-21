@@ -1002,11 +1002,6 @@ class Timestamp(Signed):
         res_dict["meta"] = {"snapshot.json": self.snapshot_meta.to_dict()}
         return res_dict
 
-    # Modification.
-    def update(self, snapshot_meta: MetaFile) -> None:
-        """Assigns passed info about snapshot metadata."""
-        self.snapshot_meta = snapshot_meta
-
 
 class Snapshot(Signed):
     """A container for the signed part of snapshot metadata.
@@ -1057,12 +1052,6 @@ class Snapshot(Signed):
 
         snapshot_dict["meta"] = meta_dict
         return snapshot_dict
-
-    # Modification.
-    def update(self, rolename: str, role_info: MetaFile) -> None:
-        """Assigns passed (delegated) targets role info to meta dict."""
-        metadata_fn = f"{rolename}.json"
-        self.meta[metadata_fn] = role_info
 
 
 class DelegatedRole(Role):
@@ -1471,11 +1460,6 @@ class Targets(Signed):
         if self.delegations is not None:
             targets_dict["delegations"] = self.delegations.to_dict()
         return targets_dict
-
-    # Modification.
-    def update(self, fileinfo: TargetFile) -> None:
-        """Assigns passed target file info to meta dict."""
-        self.targets[fileinfo.path] = fileinfo
 
     def add_key(self, role: str, key: Key) -> None:
         """Adds new signing key for delegated role 'role'.
