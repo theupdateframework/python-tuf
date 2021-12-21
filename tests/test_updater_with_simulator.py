@@ -6,17 +6,14 @@
 """Test ngclient Updater using the repository simulator.
 """
 
-import builtins
 import os
 import sys
 import tempfile
 import unittest
 from typing import Optional
-from unittest.mock import MagicMock, patch
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
-from tuf.api.metadata import SPECIFICATION_VERSION, DelegatedRole, Targets
 from tuf.exceptions import BadVersionNumberError, UnsignedMetadataError
 from tuf.ngclient import Updater
 
@@ -133,33 +130,6 @@ class TestUpdater(unittest.TestCase):
         # the snapshot.meta["targets.json"] version by 1 and throws an error.
         with self.assertRaises(BadVersionNumberError):
             self._run_refresh()
-
-    @patch.object(builtins, "open", wraps=builtins.open)
-    def test_not_loading_targets_twice(self, wrapped_open: MagicMock) -> None:
-        # Do not load targets roles more than once when traversing
-        # the delegations tree
-
-        # Add new delegated targets, update the snapshot
-        spec_version = ".".join(SPECIFICATION_VERSION)
-        targets = Targets(1, spec_version, self.sim.safe_expiry, {}, None)
-        role = DelegatedRole("role1", [], 1, False, ["*"], None)
-        self.sim.add_delegation("targets", role, targets)
-        self.sim.update_snapshot()
-
-        # Run refresh, top-level roles are loaded
-        updater = self._run_refresh()
-        # Clean up calls to open during refresh()
-        wrapped_open.reset_mock()
-
-        # First time looking for "somepath", only 'role1' must be loaded
-        updater.get_targetinfo("somepath")
-        wrapped_open.assert_called_once_with(
-            os.path.join(self.metadata_dir, "role1.json"), "rb"
-        )
-        wrapped_open.reset_mock()
-        # Second call to get_targetinfo, all metadata is already loaded
-        updater.get_targetinfo("somepath")
-        wrapped_open.assert_not_called()
 
 
 if __name__ == "__main__":
