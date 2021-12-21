@@ -22,6 +22,7 @@ from tuf.api.metadata import (
     Targets,
     Timestamp,
 )
+from tuf.api.serialization.json import JSONSerializer
 from tuf.ngclient._internal.trusted_metadata_set import TrustedMetadataSet
 
 logger = logging.getLogger(__name__)
@@ -49,7 +50,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
         metadata = Metadata.from_bytes(cls.metadata[rolename])
         modification_func(metadata.signed)
         metadata.sign(cls.keystore[rolename])
-        return metadata.to_bytes()
+        return metadata.to_bytes(JSONSerializer(validate=True))
 
     @classmethod
     def setUpClass(cls) -> None:
