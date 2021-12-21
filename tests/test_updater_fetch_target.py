@@ -10,12 +10,20 @@ import os
 import sys
 import tempfile
 import unittest
-from typing import Optional, Tuple
+from dataclasses import dataclass
+from typing import Optional
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
 from tuf.exceptions import RepositoryError
 from tuf.ngclient import Updater
+
+
+@dataclass
+class TestTarget:
+    path: str
+    content: bytes
+    encoded_path: str
 
 
 class TestFetchTarget(unittest.TestCase):
@@ -61,32 +69,39 @@ class TestFetchTarget(unittest.TestCase):
         return updater
 
     targets: utils.DataSet = {
-        "standard case": ("targetpath", b"content", "targetpath"),
-        "non-asci case": ("åäö", b"more content", "%C3%A5%C3%A4%C3%B6"),
-        "subdirectory case": (
-            "a/b/c/targetpath",
-            b"dir target content",
-            "a%2Fb%2Fc%2Ftargetpath",
+        "standard case": TestTarget(
+            path="targetpath",
+            content=b"target content",
+            encoded_path="targetpath",
+        ),
+        "non-asci case": TestTarget(
+            path="åäö",
+            content=b"more content",
+            encoded_path="%C3%A5%C3%A4%C3%B6",
+        ),
+        "subdirectory case": TestTarget(
+            path="a/b/c/targetpath",
+            content=b"dir target content",
+            encoded_path="a%2Fb%2Fc%2Ftargetpath",
         ),
     }
 
     @utils.run_sub_tests_with_dataset(targets)
-    def test_fetch_target(self, test_case_data: Tuple[str, bytes, str]) -> None:
-        targetpath, content, encoded_path = test_case_data
-        path = os.path.join(self.targets_dir, encoded_path)
+    def test_fetch_target(self, target: TestTarget) -> None:
+        path = os.path.join(self.targets_dir, target.encoded_path)
 
         updater = self._init_updater()
         # target does not exist yet
-        self.assertIsNone(updater.get_targetinfo(targetpath))
+        self.assertIsNone(updater.get_targetinfo(target.path))
 
         # Add targets to repository
         self.sim.targets.version += 1
-        self.sim.add_target("targets", content, targetpath)
+        self.sim.add_target("targets", target.content, target.path)
         self.sim.update_snapshot()
 
         updater = self._init_updater()
         # target now exists, is not in cache yet
-        info = updater.get_targetinfo(targetpath)
+        info = updater.get_targetinfo(target.path)
         assert info is not None
         # Test without and with explicit local filepath
         self.assertIsNone(updater.find_cached_target(info))
@@ -98,7 +113,7 @@ class TestFetchTarget(unittest.TestCase):
         self.assertEqual(path, updater.find_cached_target(info, path))
 
         with open(path, "rb") as f:
-            self.assertEqual(f.read(), content)
+            self.assertEqual(f.read(), target.content)
 
         # download using explicit filepath as well
         os.remove(path)
@@ -107,23 +122,24 @@ class TestFetchTarget(unittest.TestCase):
         self.assertEqual(path, updater.find_cached_target(info, path))
 
     def test_invalid_target_download(self) -> None:
-        targetpath = "targetpath"
+        target = TestTarget("targetpath", b"content", "targetpath")
+
         # Add target to repository
         self.sim.targets.version += 1
-        self.sim.add_target("targets", b"content", targetpath)
+        self.sim.add_target("targets", target.content, target.path)
         self.sim.update_snapshot()
 
         updater = self._init_updater()
-        info = updater.get_targetinfo(targetpath)
+        info = updater.get_targetinfo(target.path)
         assert info is not None
 
         # Corrupt the file content to not match the hash
-        self.sim.target_files[targetpath].data = b"conten@"
+        self.sim.target_files[target.path].data = b"conten@"
         with self.assertRaises(RepositoryError):
             updater.download_target(info)
 
         # Corrupt the file content to not match the length
-        self.sim.target_files[targetpath].data = b"cont"
+        self.sim.target_files[target.path].data = b"cont"
         with self.assertRaises(RepositoryError):
             updater.download_target(info)
 
@@ -131,29 +147,29 @@ class TestFetchTarget(unittest.TestCase):
         self.assertIsNone(updater.find_cached_target(info))
 
     def test_invalid_target_cache(self) -> None:
-        targetpath = "targetpath"
-        content = b"content"
+        target = TestTarget("targetpath", b"content", "targetpath")
+
         # Add target to repository
         self.sim.targets.version += 1
-        self.sim.add_target("targets", content, targetpath)
+        self.sim.add_target("targets", target.content, target.path)
         self.sim.update_snapshot()
 
         # Download the target
         updater = self._init_updater()
-        info = updater.get_targetinfo(targetpath)
+        info = updater.get_targetinfo(target.path)
         assert info is not None
         path = updater.download_target(info)
         self.assertEqual(path, updater.find_cached_target(info))
 
         # Add newer content to the same targetpath
-        content = b"contentv2"
+        target.content = b"contentv2"
         self.sim.targets.version += 1
-        self.sim.add_target("targets", content, targetpath)
+        self.sim.add_target("targets", target.content, target.path)
         self.sim.update_snapshot()
 
         # Newer content is detected, old cached version is not used
         updater = self._init_updater()
-        info = updater.get_targetinfo(targetpath)
+        info = updater.get_targetinfo(target.path)
         assert info is not None
         self.assertIsNone(updater.find_cached_target(info))
 
@@ -161,7 +177,7 @@ class TestFetchTarget(unittest.TestCase):
         path = updater.download_target(info)
         self.assertEqual(path, updater.find_cached_target(info))
         with open(path, "rb") as f:
-            self.assertEqual(f.read(), content)
+            self.assertEqual(f.read(), target.content)
 
 
 if __name__ == "__main__":
