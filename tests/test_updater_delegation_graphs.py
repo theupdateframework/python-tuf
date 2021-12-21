@@ -11,7 +11,7 @@ import sys
 import tempfile
 import unittest
 from dataclasses import astuple, dataclass, field
-from typing import Iterable, List, Optional, Tuple
+from typing import Iterable, List, Optional
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
@@ -50,6 +50,13 @@ class DelegationsTestCase:
 
     delegations: List[TestDelegation]
     target_files: List[TestTarget] = field(default_factory=list)
+    visited_order: List[str] = field(default_factory=list)
+
+
+@dataclass
+class TargetTestCase:
+    targetpath: str
+    found: bool
     visited_order: List[str] = field(default_factory=list)
 
 
@@ -358,35 +365,39 @@ class TestTargetFileSearch(TestDelegations):
 
     # fmt: off
     targets: utils.DataSet = {
-        "target found, no delegations": ("targetfile", True, []),
-        "targetpath matches wildcard": ("README.md", True, ["A"]),
-        "targetpath with separators x": ("releases/x/x_v1", True, ["B", "C"]),
-        "targetpath with separators y": ("releases/y/y_v1.zip", True, ["B", "D"]),
-        "target exists, path is not delegated": ("releases/z/z_v1.zip", False, ["B"]),
+        "no delegations":
+            TargetTestCase("targetfile", True, []),
+        "targetpath matches wildcard":
+            TargetTestCase("README.md", True, ["A"]),
+        "targetpath with separators x":
+            TargetTestCase("releases/x/x_v1", True, ["B", "C"]),
+        "targetpath with separators y":
+            TargetTestCase("releases/y/y_v1.zip", True, ["B", "D"]),
+        "targetpath is not delegated by all roles in the chain":
+            TargetTestCase("releases/z/z_v1.zip", False, ["B"]),
     }
     # fmt: on
 
     @utils.run_sub_tests_with_dataset(targets)
-    def test_targetfile_search(
-        self, test_data: Tuple[str, bool, List[str]]
-    ) -> None:
+    def test_targetfile_search(self, test_data: TargetTestCase) -> None:
         try:
             self.setup_subtest()
-            targetpath, found, visited_order = test_data
-            exp_files = [*TOP_LEVEL_ROLE_NAMES, *visited_order]
-            exp_calls = [(role, 1) for role in visited_order]
+            # targetpath, found, visited_order = test_data
+            exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order]
+            exp_calls = [(role, 1) for role in test_data.visited_order]
+            exp_target = self.sim.target_files[test_data.targetpath].target_file
+
             updater = self._init_updater()
             # Call explicitly refresh to simplify the expected_calls list
             updater.refresh()
             self.sim.fetch_tracker.metadata.clear()
-            target = updater.get_targetinfo(targetpath)
+            target = updater.get_targetinfo(test_data.targetpath)
             if target is not None:
                 # Confirm that the expected TargetFile is found
-                self.assertTrue(found)
-                exp_target = self.sim.target_files[targetpath].target_file
+                self.assertTrue(test_data.found)
                 self.assertDictEqual(target.to_dict(), exp_target.to_dict())
             else:
-                self.assertFalse(found)
+                self.assertFalse(test_data.found)
             # Check that the delegated roles were visited in the expected
             # order and the corresponding metadata files were persisted
             self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
