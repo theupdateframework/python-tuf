@@ -64,27 +64,6 @@ class TestUpdater(unittest.TestCase):
         updater.refresh()
         return updater
 
-    def test_refresh(self) -> None:
-        # Update top level metadata
-        self._run_refresh()
-
-        # New root (root needs to be explicitly signed)
-        self.sim.root.version += 1
-        self.sim.publish_root()
-
-        self._run_refresh()
-
-        # New timestamp
-        self.sim.update_timestamp()
-
-        self._run_refresh()
-
-        # New targets, snapshot, timestamp version
-        self.sim.targets.version += 1
-        self.sim.update_snapshot()
-
-        self._run_refresh()
-
     def test_fishy_rolenames(self) -> None:
         roles_to_filenames = {
             "../a": "..%2Fa.json",
