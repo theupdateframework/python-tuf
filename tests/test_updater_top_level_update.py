@@ -499,6 +499,41 @@ class TestRefresh(unittest.TestCase):
         self._assert_version_equals("timestamp", 3)
         self._assert_version_equals("snapshot", 3)
 
+    def test_new_targets_fast_forward_recovery(self) -> None:
+        """Test targets fast-forward recovery using key rotation.
+
+        The targets recovery is made by issuing new Snapshot keys, by following
+        steps:
+            - Remove the snapshot key
+            - Create and add a new key for snapshot
+            - Bump and publish root
+            - Rollback the target version
+        """
+        # attacker updates to a higher version
+        self.sim.targets.version = 99999
+        self.sim.update_snapshot()
+
+        # client refreshes the metadata and see the new targets version
+        self._run_refresh()
+        self._assert_version_equals(Targets.type, 99999)
+
+        # repo add new snapshot keys and recovers the targets version
+        self.sim.root.roles[Snapshot.type].keyids.clear()
+        self.sim.signers[Snapshot.type].clear()
+        snapshot_key, snapshot_signer = self.sim.create_key()
+        self.sim.root.add_key(Snapshot.type, snapshot_key)
+        self.sim.add_signer(Snapshot.type, snapshot_signer)
+
+        self.sim.root.version += 1
+        self.sim.publish_root()
+
+        self.sim.targets.version = 1
+        self.sim.update_snapshot()
+
+        # client refreshes the metadata version and see initial targets version
+        self._run_refresh()
+        self._assert_version_equals(Targets.type, 1)
+
 
 if __name__ == "__main__":
     if "--dump" in sys.argv:
