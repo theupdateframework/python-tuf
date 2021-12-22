@@ -423,10 +423,12 @@ class Updater:
         # is needed to load and verify the delegated targets metadata.
         delegations_to_visit = [(Targets.type, Root.type)]
         visited_role_names: Set[str] = set()
-        number_of_delegations = self.config.max_delegations
 
         # Preorder depth-first traversal of the graph of target delegations.
-        while number_of_delegations > 0 and len(delegations_to_visit) > 0:
+        while (
+            len(visited_role_names) <= self.config.max_delegations
+            and len(delegations_to_visit) > 0
+        ):
 
             # Pop the role name from the top of the stack.
             role_name, parent_role = delegations_to_visit.pop(-1)
@@ -449,9 +451,6 @@ class Updater:
             # After preorder check, add current role to set of visited roles.
             visited_role_names.add(role_name)
 
-            # And also decrement number of visited roles.
-            number_of_delegations -= 1
-
             if targets.delegations is not None:
                 child_roles_to_visit = []
                 # NOTE: This may be a slow operation if there are many
@@ -464,7 +463,7 @@ class Updater:
                             (child_role.name, role_name)
                         )
                         if child_role.terminating:
-                            logger.debug("Not backtracking to other roles.")
+                            logger.debug("Not backtracking to other roles")
                             delegations_to_visit = []
                             break
                 # Push 'child_roles_to_visit' in reverse order of appearance
@@ -473,10 +472,9 @@ class Updater:
                 child_roles_to_visit.reverse()
                 delegations_to_visit.extend(child_roles_to_visit)
 
-        if number_of_delegations == 0 and len(delegations_to_visit) > 0:
+        if len(delegations_to_visit) > 0:
             logger.debug(
-                "%d roles left to visit, but allowed to "
-                "visit at most %d delegations.",
+                "%d roles left to visit, but allowed at most %d delegations",
                 len(delegations_to_visit),
                 self.config.max_delegations,
             )
