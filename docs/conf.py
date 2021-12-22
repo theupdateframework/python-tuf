@@ -66,5 +66,6 @@ autodoc_typehints = "description"
 
 autodoc_default_options = {
     'members': True,
+    'inherited-members': 'Exception', # excl. members inherited from 'Exception'
     'exclude-members': 'to_dict, from_dict'
 }

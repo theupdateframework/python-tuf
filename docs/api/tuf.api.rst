@@ -17,3 +17,4 @@ Metadata API
 
 .. automodule:: tuf.api.metadata
    :no-members:
+   :no-inherited-members:
