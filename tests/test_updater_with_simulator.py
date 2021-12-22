@@ -11,7 +11,7 @@ import os
 import sys
 import tempfile
 import unittest
-from typing import Optional, Tuple
+from typing import Optional
 from unittest.mock import MagicMock, patch
 
 from tests import utils
@@ -84,54 +84,6 @@ class TestUpdater(unittest.TestCase):
         self.sim.update_snapshot()
 
         self._run_refresh()
-
-    targets: utils.DataSet = {
-        "standard case": ("targetpath", b"content", "targetpath"),
-        "non-asci case": ("åäö", b"more content", "%C3%A5%C3%A4%C3%B6"),
-        "subdirectory case": (
-            "a/b/c/targetpath",
-            b"dir target content",
-            "a%2Fb%2Fc%2Ftargetpath",
-        ),
-    }
-
-    @utils.run_sub_tests_with_dataset(targets)
-    def test_targets(self, test_case_data: Tuple[str, bytes, str]) -> None:
-        targetpath, content, encoded_path = test_case_data
-        path = os.path.join(self.targets_dir, encoded_path)
-
-        updater = self._run_refresh()
-        # target does not exist yet, configuration is what we expect
-        self.assertIsNone(updater.get_targetinfo(targetpath))
-        self.assertTrue(self.sim.root.consistent_snapshot)
-        self.assertTrue(updater.config.prefix_targets_with_hash)
-
-        # Add targets to repository
-        self.sim.targets.version += 1
-        self.sim.add_target("targets", content, targetpath)
-        self.sim.update_snapshot()
-
-        updater = self._run_refresh()
-        # target now exists, is not in cache yet
-        info = updater.get_targetinfo(targetpath)
-        assert info is not None
-        # Test without and with explicit local filepath
-        self.assertIsNone(updater.find_cached_target(info))
-        self.assertIsNone(updater.find_cached_target(info, path))
-
-        # download target, assert it is in cache and content is correct
-        self.assertEqual(path, updater.download_target(info))
-        self.assertEqual(path, updater.find_cached_target(info))
-        self.assertEqual(path, updater.find_cached_target(info, path))
-
-        with open(path, "rb") as f:
-            self.assertEqual(f.read(), content)
-
-        # download using explicit filepath as well
-        os.remove(path)
-        self.assertEqual(path, updater.download_target(info, path))
-        self.assertEqual(path, updater.find_cached_target(info))
-        self.assertEqual(path, updater.find_cached_target(info, path))
 
     def test_fishy_rolenames(self) -> None:
         roles_to_filenames = {
