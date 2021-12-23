@@ -1287,7 +1287,7 @@ class TargetFile(BaseFile):
 
     @property
     def custom(self) -> Any:
-        return self.unrecognized_fields.get("custom", None)
+        return self.unrecognized_fields.get("custom")
 
     @classmethod
     def from_dict(cls, target_dict: Dict[str, Any], path: str) -> "TargetFile":
