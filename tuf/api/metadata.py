@@ -891,7 +891,8 @@ class MetaFile(BaseFile):
     Args:
         version: Version of the metadata file.
         length: Length of the metadata file.
-        hashes: Dictionary of hash algorithm names to hash values.
+        hashes: Dictionary of hash algorithm names to hashes of the metadata
+            file content.
         unrecognized_fields: Dictionary of all unrecognized fields.
     """
 
@@ -1264,7 +1265,8 @@ class TargetFile(BaseFile):
 
     Args:
         length: Length in bytes.
-        hashes: A dictionary of hash algorithm names to hash values.
+        hashes: A dictionary of hash algorithm names to hashes of the target
+            file content.
         path: URL path to a target file, relative to a base targets URL.
         unrecognized_fields: Dictionary of all unrecognized fields.
     """
