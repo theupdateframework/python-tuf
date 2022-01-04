@@ -108,6 +108,7 @@ class TestSerialization(unittest.TestCase):
     valid_roles: utils.DataSet = {
         "all": '{"keyids": ["keyid"], "threshold": 3}',
         "many keyids": '{"keyids": ["a", "b", "c", "d", "e"], "threshold": 1}',
+        "ordered keyids": '{"keyids": ["c", "b", "a"], "threshold": 1}',
         "empty keyids": '{"keyids": [], "threshold": 1}',
         "unrecognized field": '{"keyids": ["keyid"], "threshold": 3, "foo": "bar"}',
     }
@@ -294,6 +295,8 @@ class TestSerialization(unittest.TestCase):
             "path_hash_prefixes": [], "threshold": 99}',
         "unrecognized field": '{"keyids": ["keyid"], "name": "a", "terminating": true, "paths": ["fn1"], "threshold": 3, "foo": "bar"}',
         "many keyids": '{"keyids": ["keyid1", "keyid2"], "name": "a", "paths": ["fn1", "fn2"], \
+            "terminating": false, "threshold": 1}',
+        "ordered keyids": '{"keyids": ["keyid2", "keyid1"], "name": "a", "paths": ["fn1", "fn2"], \
             "terminating": false, "threshold": 1}',
     }
 

@@ -240,7 +240,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
         # new_root data with threshold which cannot be verified.
         root = Metadata.from_bytes(self.metadata[Root.type])
         # remove root role keyids representing root signatures
-        root.signed.roles[Root.type].keyids = set()
+        root.signed.roles[Root.type].keyids.clear()
         with self.assertRaises(exceptions.UnsignedMetadataError):
             self.trusted_set.update_root(root.to_bytes())
 
