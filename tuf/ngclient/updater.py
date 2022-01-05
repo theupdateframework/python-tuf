@@ -203,7 +203,7 @@ class Updater:
         Args:
             targetinfo: TargetFile from ``get_targetinfo()``.
             filepath: Local path to file. If None, a file path is generated
-            based on ``target_dir`` constructor argument.
+                based on ``target_dir`` constructor argument.
 
         Raises:
             ValueError: Incorrect arguments
