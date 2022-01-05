@@ -30,7 +30,7 @@ import io
 import logging
 import tempfile
 from collections import OrderedDict
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import (
     IO,
     Any,
@@ -409,6 +409,11 @@ class Signed(metaclass=abc.ABCMeta):
 
     @property
     def expires(self) -> datetime:
+        """The metadata expiry date::
+
+        # Use 'datetime' module to e.g. expire in seven days from now
+        obj.expires = utcnow() + timedelta(days=7)
+        """
         return self._expires
 
     @expires.setter
@@ -507,11 +512,6 @@ class Signed(metaclass=abc.ABCMeta):
             reference_time = datetime.utcnow()
 
         return reference_time >= self.expires
-
-    # Modification.
-    def bump_expiration(self, delta: timedelta = timedelta(days=1)) -> None:
-        """Increments the expires attribute by the passed timedelta."""
-        self.expires += delta
 
     def bump_version(self) -> None:
         """Increments the metadata version number by 1."""
