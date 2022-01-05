@@ -13,6 +13,7 @@ import sys
 import tempfile
 import unittest
 from typing import Callable, ClassVar, List
+from unittest.mock import MagicMock, patch
 
 from securesystemslib.interface import import_rsa_privatekey_from_file
 from securesystemslib.signer import SSlibSigner
@@ -315,6 +316,25 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
         # Get targetinfo for non-existing file
         self.assertIsNone(self.updater.get_targetinfo("file33.txt"))
+
+    @patch.object(os, "replace", wraps=os.replace)
+    @patch.object(os, "remove", wraps=os.remove)
+    def test_persist_metadata_fails(
+        self, wrapped_remove: MagicMock, wrapped_replace: MagicMock
+    ) -> None:
+        # Testing that when write succeeds (the file is created) and replace
+        # fails by throwing OSError, then the file will be deleted.
+        wrapped_replace.side_effect = OSError()
+        with self.assertRaises(OSError):
+            self.updater._persist_metadata("target", b"data")
+
+        wrapped_replace.assert_called_once()
+        wrapped_remove.assert_called_once()
+
+        # Assert that the created tempfile during writing is eventually deleted
+        # or in other words, there is no temporary file left in the folder.
+        for filename in os.listdir(self.updater._dir):
+            self.assertFalse(filename.startswith("tmp"))
 
 
 if __name__ == "__main__":
