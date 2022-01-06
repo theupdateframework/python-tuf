@@ -259,6 +259,8 @@ class RepositorySimulator(FetcherInterface):
         If version is None, non-versioned metadata is being requested.
         """
         self.fetch_tracker.metadata.append((role, version))
+        # decode role for the metadata
+        role = parse.unquote(role, encoding="utf-8")
 
         if role == Root.type:
             # return a version previously serialized in publish_root()

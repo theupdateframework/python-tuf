@@ -328,9 +328,10 @@ class TestDelegationsGraphs(TestDelegations):
         finally:
             self.teardown_subtest()
 
-    def test_fishy_rolenames(self) -> None:
-        # Test that delegated roles filenames are safely encoded
-        # when persisted to the file system.
+    def test_safely_encoded_rolenames(self) -> None:
+        """Test that delegated roles names are safely encoded in the filenames
+        and URLs.
+        """
 
         roles_to_filenames = {
             "../a": "..%2Fa.json",
@@ -343,15 +344,23 @@ class TestDelegationsGraphs(TestDelegations):
         for rolename in roles_to_filenames:
             delegations.append(TestDelegation("targets", rolename))
 
-        fishy_rolenames = DelegationsTestCase(delegations)
-        self._init_repo(fishy_rolenames)
+        delegated_rolenames = DelegationsTestCase(delegations)
+        self._init_repo(delegated_rolenames)
         updater = self._init_updater()
+        updater.refresh()
 
-        # trigger updater to fetch the delegated metadata, check filenames
+        # trigger updater to fetch the delegated metadata
+        self.sim.fetch_tracker.metadata.clear()
         updater.get_targetinfo("anything")
+
+        # assert that local delegated metadata filenames are expected
         local_metadata = os.listdir(self.metadata_dir)
         for fname in roles_to_filenames.values():
             self.assertTrue(fname in local_metadata)
+
+        # assert that requested URLs are quoted without extension
+        exp_calls = [(quoted[:-5], 1) for quoted in roles_to_filenames.values()]
+        self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
 
 
 class TestTargetFileSearch(TestDelegations):
