@@ -357,11 +357,11 @@ class TestRefresh(unittest.TestCase):
         self._assert_version_equals(Timestamp.type, 99999)
 
         # repo add new timestamp keys and recovers the timestamp version
-        self.sim.root.roles["timestamp"].keyids.clear()
-        self.sim.signers["timestamp"].clear()
+        self.sim.root.roles[Timestamp.type].keyids.clear()
+        self.sim.signers[Timestamp.type].clear()
         key, signer = self.sim.create_key()
-        self.sim.root.add_key("timestamp", key)
-        self.sim.add_signer("timestamp", signer)
+        self.sim.root.add_key(Timestamp.type, key)
+        self.sim.add_signer(Timestamp.type, signer)
         self.sim.root.version += 1
         self.sim.publish_root()
         self.sim.timestamp.version = 1
@@ -423,6 +423,47 @@ class TestRefresh(unittest.TestCase):
             self._run_refresh()
 
         self._assert_version_equals(Snapshot.type, 2)
+
+    def test_new_snapshot_fast_foward_recovery(self) -> None:
+        """Test snapshot fast-forward recovery using key rotation.
+
+        The snapshot recovery requires the snapshot and timestamp key rotation.
+        It is made by the following steps:
+        - Remove the snapshot and timestamp keys
+        - Create and add a new key for snapshot and timestamp
+        - Rollback snapshot version
+        - Bump and publish root
+        - Bump the timestamp
+        """
+
+        # attacker updates to a higher version (bumping timestamp is required)
+        self.sim.snapshot.version = 99999
+        self.sim.update_timestamp()
+
+        # client refreshes the metadata and see the new snapshot version
+        self._run_refresh()
+        self._assert_version_equals(Snapshot.type, 99999)
+
+        # repo add new snapshot and timestamp keys and recovers snapshot version
+        self.sim.root.roles[Snapshot.type].keyids.clear()
+        self.sim.signers[Snapshot.type].clear()
+        self.sim.root.roles[Timestamp.type].keyids.clear()
+        self.sim.signers[Timestamp.type].clear()
+        snapshot_key, snapshot_signer = self.sim.create_key()
+        self.sim.root.add_key(Snapshot.type, snapshot_key)
+        self.sim.add_signer(Snapshot.type, snapshot_signer)
+        timestamp_key, timestamp_signer = self.sim.create_key()
+        self.sim.root.add_key(Timestamp.type, timestamp_key)
+        self.sim.add_signer(Timestamp.type, timestamp_signer)
+        self.sim.root.version += 1
+        self.sim.publish_root()
+
+        self.sim.snapshot.version = 1
+        self.sim.update_timestamp()
+
+        # client refresh the metadata and see the initial snapshot version
+        self._run_refresh()
+        self._assert_version_equals(Snapshot.type, 1)
 
     def test_new_snapshot_expired(self) -> None:
         # Check for a freeze attack
@@ -489,15 +530,15 @@ class TestRefresh(unittest.TestCase):
         self.sim.compute_metafile_hashes_length = True
         self.sim.update_snapshot()
         self._run_refresh()
-        self._assert_version_equals("timestamp", 2)
-        self._assert_version_equals("snapshot", 2)
+        self._assert_version_equals(Timestamp.type, 2)
+        self._assert_version_equals(Snapshot.type, 2)
 
         self.sim.compute_metafile_hashes_length = False
         self.sim.update_snapshot()
         self._run_refresh()
 
-        self._assert_version_equals("timestamp", 3)
-        self._assert_version_equals("snapshot", 3)
+        self._assert_version_equals(Timestamp.type, 3)
+        self._assert_version_equals(Snapshot.type, 3)
 
 
 if __name__ == "__main__":
