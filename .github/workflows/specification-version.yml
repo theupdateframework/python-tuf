@@ -1,0 +1,55 @@
+name: Specification version check
+
+on:
+  schedule:
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-spec-version:
+    name: Open an issue when spec version bumps
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+    - name: Get supported version
+      id: get-version
+      run: |
+        python3 -m pip install -e .
+        script="from tuf.api.metadata import SPECIFICATION_VERSION; \
+                print(f\"v{'.'.join(SPECIFICATION_VERSION)}\")"
+        ver=$(python3 -c "$script")
+        echo "::set-output name=version::$ver"
+    - name: Open issue (if needed)
+      uses: actions/github-script@v5
+      with:
+        script: |
+          const release = await github.rest.repos.getLatestRelease({
+            owner: "theupdateframework",
+            repo: "specification"
+          });
+          const spec_version = release.data.tag_name
+          const supported_version = "${{ steps.get-version.outputs.version }}"
+          if (spec_version != supported_version) {
+            console.log("Specification version does not match...")
+            const repo = context.repo.owner + "/" + context.repo.repo
+            const issues = await github.rest.search.issuesAndPullRequests({
+              q: "specification+has+new+version+in:title+state:open+type:issue:" + repo,
+            })
+            if (issues.data.total_count > 0) {
+              console.log("Issue is already open, not creating.")
+            } else {
+              console.log("Creating a new issue...")
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: "specification has new version",
+                body: "It seems specification " +
+                      "(https://github.com/theupdateframework/specification/blob/master/tuf-spec.md) " +
+                      "has new version. \n" +
+                      "Please review the version."
+              })
+            }
+          } else {
+            console.log("Spec version and supported version match")
+          }
