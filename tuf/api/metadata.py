@@ -1287,7 +1287,9 @@ class TargetFile(BaseFile):
 
     @property
     def custom(self) -> Any:
-        return self.unrecognized_fields.get("custom", None)
+        """Can be used to provide implementation specific data related to the
+        target. python-tuf does not use or validate this data."""
+        return self.unrecognized_fields.get("custom")
 
     @classmethod
     def from_dict(cls, target_dict: Dict[str, Any], path: str) -> "TargetFile":
