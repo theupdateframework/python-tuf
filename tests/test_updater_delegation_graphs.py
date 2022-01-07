@@ -328,6 +328,31 @@ class TestDelegationsGraphs(TestDelegations):
         finally:
             self.teardown_subtest()
 
+    def test_fishy_rolenames(self) -> None:
+        # Test that delegated roles filenames are safely encoded
+        # when persisted to the file system.
+
+        roles_to_filenames = {
+            "../a": "..%2Fa.json",
+            ".": "..json",
+            "/": "%2F.json",
+            "ö": "%C3%B6.json",
+        }
+
+        delegations = []
+        for rolename in roles_to_filenames:
+            delegations.append(TestDelegation("targets", rolename))
+
+        fishy_rolenames = DelegationsTestCase(delegations)
+        self._init_repo(fishy_rolenames)
+        updater = self._init_updater()
+
+        # trigger updater to fetch the delegated metadata, check filenames
+        updater.get_targetinfo("anything")
+        local_metadata = os.listdir(self.metadata_dir)
+        for fname in roles_to_filenames.values():
+            self.assertTrue(fname in local_metadata)
+
 
 class TestTargetFileSearch(TestDelegations):
     r"""
@@ -382,7 +407,6 @@ class TestTargetFileSearch(TestDelegations):
     def test_targetfile_search(self, test_data: TargetTestCase) -> None:
         try:
             self.setup_subtest()
-            # targetpath, found, visited_order = test_data
             exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order]
             exp_calls = [(role, 1) for role in test_data.visited_order]
             exp_target = self.sim.target_files[test_data.targetpath].target_file

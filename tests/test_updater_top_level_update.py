@@ -5,17 +5,21 @@
 
 """Test ngclient Updater top-level metadata update workflow"""
 
+import builtins
 import os
 import sys
 import tempfile
 import unittest
 from datetime import datetime, timedelta
 from typing import Iterable, Optional
+from unittest.mock import MagicMock, patch
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
 from tuf.api.metadata import (
+    SPECIFICATION_VERSION,
     TOP_LEVEL_ROLE_NAMES,
+    DelegatedRole,
     Metadata,
     Root,
     Snapshot,
@@ -574,6 +578,63 @@ class TestRefresh(unittest.TestCase):
         # client refreshes the metadata version and see initial targets version
         self._run_refresh()
         self._assert_version_equals(Targets.type, 1)
+
+    @patch.object(builtins, "open", wraps=builtins.open)
+    def test_not_loading_targets_twice(self, wrapped_open: MagicMock) -> None:
+        # Do not load targets roles more than once when traversing
+        # the delegations tree
+
+        # Add new delegated targets, update the snapshot
+        spec_version = ".".join(SPECIFICATION_VERSION)
+        targets = Targets(1, spec_version, self.sim.safe_expiry, {}, None)
+        role = DelegatedRole("role1", [], 1, False, ["*"], None)
+        self.sim.add_delegation("targets", role, targets)
+        self.sim.update_snapshot()
+
+        # Run refresh, top-level roles are loaded
+        updater = self._run_refresh()
+        # Clean up calls to open during refresh()
+        wrapped_open.reset_mock()
+
+        # First time looking for "somepath", only 'role1' must be loaded
+        updater.get_targetinfo("somepath")
+        wrapped_open.assert_called_once_with(
+            os.path.join(self.metadata_dir, "role1.json"), "rb"
+        )
+        wrapped_open.reset_mock()
+        # Second call to get_targetinfo, all metadata is already loaded
+        updater.get_targetinfo("somepath")
+        wrapped_open.assert_not_called()
+
+    def test_snapshot_rollback_with_local_snapshot_hash_mismatch(self) -> None:
+        # Test triggering snapshot rollback check on a newly downloaded snapshot
+        # when the local snapshot is loaded even when there is a hash mismatch
+        # with timestamp.snapshot_meta.
+
+        # By raising this flag on timestamp update the simulator would:
+        # 1) compute the hash of the new modified version of snapshot
+        # 2) assign the hash to timestamp.snapshot_meta
+        # The purpose is to create a hash mismatch between timestamp.meta and
+        # the local snapshot, but to have hash match between timestamp.meta and
+        # the next snapshot version.
+        self.sim.compute_metafile_hashes_length = True
+
+        # Initialize all metadata and assign targets version higher than 1.
+        self.sim.targets.version = 2
+        self.sim.update_snapshot()
+        self._run_refresh()
+
+        # The new targets must have a lower version than the local trusted one.
+        self.sim.targets.version = 1
+        self.sim.update_snapshot()
+
+        # During the snapshot update, the local snapshot will be loaded even if
+        # there is a hash mismatch with timestamp.snapshot_meta, because it will
+        # be considered as trusted.
+        # Should fail as a new version of snapshot will be fetched which lowers
+        # the snapshot.meta["targets.json"] version by 1 and throws an error.
+        with self.assertRaises(BadVersionNumberError):
+            self._run_refresh()
 
 
 if __name__ == "__main__":
