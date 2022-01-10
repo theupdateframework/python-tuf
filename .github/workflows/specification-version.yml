@@ -34,7 +34,7 @@ jobs:
             console.log("Specification version does not match...")
             const repo = context.repo.owner + "/" + context.repo.repo
             const issues = await github.rest.search.issuesAndPullRequests({
-              q: "specification+has+new+version+in:title+state:open+type:issue:" + repo,
+              q: "specification+has+new+version+in:title+state:open+type:issue+repo:" + repo,
             })
             if (issues.data.total_count > 0) {
               console.log("Issue is already open, not creating.")
