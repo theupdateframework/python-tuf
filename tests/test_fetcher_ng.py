@@ -125,7 +125,7 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
         mock_response = Mock()
         attr = {
             "raw.read.side_effect": urllib3.exceptions.ReadTimeoutError(
-                None, None, "Read timed out."
+                urllib3.HTTPConnectionPool("localhost"), "", "Read timed out."
             )
         }
         mock_response.configure_mock(**attr)
