@@ -5,6 +5,10 @@ on:
     - cron: '0 13 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   check-spec-version:
     name: Open an issue when spec version bumps
