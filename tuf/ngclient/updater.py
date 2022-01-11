@@ -303,15 +303,24 @@ class Updater:
 
     def _persist_metadata(self, rolename: str, data: bytes) -> None:
         """Write metadata to disk atomically to avoid data loss."""
-
-        # encode the rolename to avoid issues with e.g. path separators
-        encoded_name = parse.quote(rolename, "")
-        filename = os.path.join(self._dir, f"{encoded_name}.json")
-        with tempfile.NamedTemporaryFile(
-            dir=self._dir, delete=False
-        ) as temp_file:
-            temp_file.write(data)
-        os.replace(temp_file.name, filename)
+        try:
+            # encode the rolename to avoid issues with e.g. path separators
+            encoded_name = parse.quote(rolename, "")
+            filename = os.path.join(self._dir, f"{encoded_name}.json")
+            with tempfile.NamedTemporaryFile(
+                dir=self._dir, delete=False
+            ) as temp_file:
+                temp_file.write(data)
+            os.replace(temp_file.name, filename)
+        except OSError as e:
+            # remove tempfile if we managed to create one,
+            # then let the exception happen
+            if temp_file:
+                try:
+                    os.remove(temp_file.name)
+                except FileNotFoundError:
+                    pass
+            raise e
 
     def _load_root(self) -> None:
         """Load remote root metadata.
