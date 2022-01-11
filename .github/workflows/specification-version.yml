@@ -31,7 +31,10 @@ jobs:
           const spec_version = release.data.tag_name
           const supported_version = "${{ steps.get-version.outputs.version }}"
           if (spec_version != supported_version) {
-            console.log("Specification version does not match...")
+            console.log(
+              "Specification (" + spec_version + ") version does not matches with python-tuf supported (" +
+               supported_version + ") version."
+            )
             const repo = context.repo.owner + "/" + context.repo.repo
             const issues = await github.rest.search.issuesAndPullRequests({
               q: "specification+has+new+version+in:title+state:open+type:issue+repo:" + repo,
@@ -39,7 +42,6 @@ jobs:
             if (issues.data.total_count > 0) {
               console.log("Issue is already open, not creating.")
             } else {
-              console.log("Creating a new issue...")
               await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -49,7 +51,11 @@ jobs:
                       "has new version. \n" +
                       "Please review the version."
               })
+              console.log("New issue created.")
             }
           } else {
-            console.log("Spec version and supported version match")
+            console.log(
+              "Specification (" + spec_version + ") version matches with python-tuf supported (" +
+               supported_version + ") version."
+            )
           }
