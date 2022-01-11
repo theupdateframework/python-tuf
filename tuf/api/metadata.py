@@ -839,7 +839,7 @@ class BaseFile:
             observed_hash = digest_object.hexdigest()
             if observed_hash != exp_hash:
                 raise exceptions.LengthOrHashMismatchError(
-                    f"Observed hash {observed_hash} does not match"
+                    f"Observed hash {observed_hash} does not match "
                     f"expected hash {exp_hash}"
                 )
 
@@ -857,7 +857,7 @@ class BaseFile:
 
         if observed_length != expected_length:
             raise exceptions.LengthOrHashMismatchError(
-                f"Observed length {observed_length} does not match"
+                f"Observed length {observed_length} does not match "
                 f"expected length {expected_length}"
             )
 
