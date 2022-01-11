@@ -672,15 +672,11 @@ class Role:
         threshold: int,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ):
-        keyids_set = set(keyids)
-        if len(keyids_set) != len(keyids):
-            raise ValueError(
-                f"keyids should be a list of unique strings,"
-                f" instead got {keyids}"
-            )
+        if len(set(keyids)) != len(keyids):
+            raise ValueError(f"Nonunique keyids: {keyids}")
         if threshold < 1:
             raise ValueError("threshold should be at least 1!")
-        self.keyids = keyids_set
+        self.keyids = keyids
         self.threshold = threshold
         self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
 
@@ -695,7 +691,7 @@ class Role:
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dictionary representation of self."""
         return {
-            "keyids": sorted(self.keyids),
+            "keyids": self.keyids,
             "threshold": self.threshold,
             **self.unrecognized_fields,
         }
@@ -785,7 +781,8 @@ class Root(Signed):
         """
         if role not in self.roles:
             raise ValueError(f"Role {role} doesn't exist")
-        self.roles[role].keyids.add(key.keyid)
+        if key.keyid not in self.roles[role].keyids:
+            self.roles[role].keyids.append(key.keyid)
         self.keys[key.keyid] = key
 
     def remove_key(self, role: str, keyid: str) -> None:
@@ -1474,7 +1471,8 @@ class Targets(Signed):
         """
         if self.delegations is None or role not in self.delegations.roles:
             raise ValueError(f"Delegated role {role} doesn't exist")
-        self.delegations.roles[role].keyids.add(key.keyid)
+        if key.keyid not in self.delegations.roles[role].keyids:
+            self.delegations.roles[role].keyids.append(key.keyid)
         self.delegations.keys[key.keyid] = key
 
     def remove_key(self, role: str, keyid: str) -> None:
