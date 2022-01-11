@@ -360,12 +360,8 @@ class TestRefresh(unittest.TestCase):
         self._run_refresh()
         self._assert_version_equals(Timestamp.type, 99999)
 
-        # repo add new timestamp keys and recovers the timestamp version
-        self.sim.root.roles[Timestamp.type].keyids.clear()
-        self.sim.signers[Timestamp.type].clear()
-        key, signer = self.sim.create_key()
-        self.sim.root.add_key(Timestamp.type, key)
-        self.sim.add_signer(Timestamp.type, signer)
+        # repository rotates timestamp keys, rolls back timestamp version
+        self.sim.rotate_keys(Timestamp.type)
         self.sim.root.version += 1
         self.sim.publish_root()
         self.sim.timestamp.version = 1
@@ -448,17 +444,9 @@ class TestRefresh(unittest.TestCase):
         self._run_refresh()
         self._assert_version_equals(Snapshot.type, 99999)
 
-        # repo add new snapshot and timestamp keys and recovers snapshot version
-        self.sim.root.roles[Snapshot.type].keyids.clear()
-        self.sim.signers[Snapshot.type].clear()
-        self.sim.root.roles[Timestamp.type].keyids.clear()
-        self.sim.signers[Timestamp.type].clear()
-        snapshot_key, snapshot_signer = self.sim.create_key()
-        self.sim.root.add_key(Snapshot.type, snapshot_key)
-        self.sim.add_signer(Snapshot.type, snapshot_signer)
-        timestamp_key, timestamp_signer = self.sim.create_key()
-        self.sim.root.add_key(Timestamp.type, timestamp_key)
-        self.sim.add_signer(Timestamp.type, timestamp_signer)
+        # repository rotates snapshot & timestamp keys, rolls back snapshot
+        self.sim.rotate_keys(Snapshot.type)
+        self.sim.rotate_keys(Timestamp.type)
         self.sim.root.version += 1
         self.sim.publish_root()
 
@@ -562,13 +550,8 @@ class TestRefresh(unittest.TestCase):
         self._run_refresh()
         self._assert_version_equals(Targets.type, 99999)
 
-        # repo add new snapshot keys and recovers the targets version
-        self.sim.root.roles[Snapshot.type].keyids.clear()
-        self.sim.signers[Snapshot.type].clear()
-        snapshot_key, snapshot_signer = self.sim.create_key()
-        self.sim.root.add_key(Snapshot.type, snapshot_key)
-        self.sim.add_signer(Snapshot.type, snapshot_signer)
-
+        # repository rotates snapshot keys, rolls back targets version
+        self.sim.rotate_keys(Snapshot.type)
         self.sim.root.version += 1
         self.sim.publish_root()
 

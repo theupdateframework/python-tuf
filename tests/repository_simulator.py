@@ -163,6 +163,15 @@ class RepositorySimulator(FetcherInterface):
             self.signers[role] = {}
         self.signers[role][signer.key_dict["keyid"]] = signer
 
+    def rotate_keys(self, role: str) -> None:
+        """remove all keys for role, then add threshold of new keys"""
+        self.root.roles[role].keyids.clear()
+        self.signers[role].clear()
+        for _ in range(0, self.root.roles[role].threshold):
+            key, signer = self.create_key()
+            self.root.add_key(role, key)
+            self.add_signer(role, signer)
+
     def _initialize(self) -> None:
         """Setup a minimal valid repository."""
 
