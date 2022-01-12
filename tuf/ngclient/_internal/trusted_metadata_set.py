@@ -309,12 +309,7 @@ class TrustedMetadataSet(abc.Mapping):
         # Verify non-trusted data against the hashes in timestamp, if any.
         # Trusted snapshot data has already been verified once.
         if not trusted:
-            try:
-                snapshot_meta.verify_length_and_hashes(data)
-            except exceptions.LengthOrHashMismatchError as e:
-                raise exceptions.RepositoryError(
-                    "Snapshot length or hashes do not match"
-                ) from e
+            snapshot_meta.verify_length_and_hashes(data)
 
         try:
             new_snapshot = Metadata[Snapshot].from_bytes(data)
@@ -426,12 +421,7 @@ class TrustedMetadataSet(abc.Mapping):
                 f"Snapshot does not contain information for '{role_name}'"
             )
 
-        try:
-            meta.verify_length_and_hashes(data)
-        except exceptions.LengthOrHashMismatchError as e:
-            raise exceptions.RepositoryError(
-                f"{role_name} length or hashes do not match"
-            ) from e
+        meta.verify_length_and_hashes(data)
 
         try:
             new_delegate = Metadata[Targets].from_bytes(data)

@@ -19,7 +19,7 @@ from tests.repository_simulator import RepositorySimulator
 from tuf.api.exceptions import (
     BadVersionNumberError,
     ExpiredMetadataError,
-    RepositoryError,
+    LengthOrHashMismatchError,
     UnsignedMetadataError,
 )
 from tuf.api.metadata import (
@@ -389,7 +389,7 @@ class TestRefresh(unittest.TestCase):
         self.sim.timestamp.version += 1  # timestamp v3
 
         # Hash mismatch error
-        with self.assertRaises(RepositoryError):
+        with self.assertRaises(LengthOrHashMismatchError):
             self._run_refresh()
 
         self._assert_version_equals(Timestamp.type, 3)
@@ -495,7 +495,7 @@ class TestRefresh(unittest.TestCase):
         self.sim.snapshot.version += 1
         self.sim.update_timestamp()
 
-        with self.assertRaises(RepositoryError):
+        with self.assertRaises(LengthOrHashMismatchError):
             self._run_refresh()
 
         self._assert_version_equals(Snapshot.type, 3)

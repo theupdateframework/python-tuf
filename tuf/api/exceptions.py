@@ -8,10 +8,6 @@ there is a good reason not to, and provide that reason in those cases.
 """
 
 
-class LengthOrHashMismatchError(Exception):
-    """An error while checking the length and hash values of an object."""
-
-
 #### Repository errors ####
 
 
@@ -30,6 +26,10 @@ class BadVersionNumberError(RepositoryError):
 
 class ExpiredMetadataError(RepositoryError):
     """Indicate that a TUF Metadata file has expired."""
+
+
+class LengthOrHashMismatchError(RepositoryError):
+    """An error while checking the length and hash values of an object."""
 
 
 #### Download Errors ####
