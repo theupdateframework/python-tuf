@@ -12,7 +12,9 @@ there is a good reason not to, and provide that reason in those cases.
 
 
 class RepositoryError(Exception):
-    """An error with a repository's state, such as a missing file."""
+    """An error with a repository's state, such as a missing file.
+    It covers all exceptions that come from the repository side when
+    looking from the perspective of users of metadata API or ngclient."""
 
 
 class UnsignedMetadataError(RepositoryError):
