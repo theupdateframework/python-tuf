@@ -622,7 +622,7 @@ class Key:
             signature = metadata.signatures[self.keyid]
         except KeyError:
             raise exceptions.UnsignedMetadataError(
-                f"no signature for key {self.keyid} found in metadata"
+                f"No signature for key {self.keyid} found in metadata"
             ) from None
 
         if signed_serializer is None:
