@@ -1,7 +1,7 @@
 Getting Started
 ---------------
 
-- `Overview of TUF <OVERVIEW.rst>`_
+- `Overview of TUF <https://theupdateframework.io/overview/>`_
 - `Installation <INSTALLATION.rst>`_
 - Beginner Tutorials (using the basic command-line interface):
    - `Quickstart <QUICKSTART.md>`_
