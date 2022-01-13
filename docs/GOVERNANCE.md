@@ -10,11 +10,11 @@ The project is maintained by the people indicated in
 review GitHub pull requests and (2) open issues or [submit vulnerability
 reports](https://github.com/theupdateframework/python-tuf#security-issues-and-bugs).
 A maintainer has the authority to approve or reject pull requests submitted by
-contributors.    
+contributors.
 
 More significant changes in the project, such as those that require a TAP or
-changes in governance, are guided by a maintainer called the Consensus 
-Builder (CB).  The project's Consensus Builder (CB) is Justin Cappos 
+changes in governance, are guided by a maintainer called the Consensus
+Builder (CB).  The project's Consensus Builder (CB) is Justin Cappos
 <jcappos@nyu.edu, @JustinCappos>, who has a lifetime appointment.
 
 ## Contributions
@@ -54,7 +54,7 @@ The CB has the authority to add or remove maintainers.
 
 ## Changes in governance
 
-The CB supervises changes in governance, but a majority of maintainers must vote +1 on the PR.  
+The CB supervises changes in governance, but a majority of maintainers must vote +1 on the PR.
 
 ## Changes in the consensus builder
 
