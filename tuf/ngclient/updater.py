@@ -28,35 +28,9 @@ High-level description of Updater functionality:
       * ``Updater.download_target()`` downloads a target file and ensures it is
         verified correct by the metadata.
 
-Below is a simple example of using the Updater to download and verify
-"file.txt" from a remote repository. The required environment for this example
-is:
-
-    * A webserver running on http://localhost:8000, serving TUF repository
-      metadata at "/tuf-repo/" and targets at "/targets/"
-    * Local metadata directory "~/tufclient/metadata/" is writable and contains
-      a root metadata version for the remote repository
-    * Download directory "~/tufclient/downloads/" is writable
-
-Example::
-
-    from tuf.ngclient import Updater
-
-    # Load trusted local root metadata from client metadata cache. Define
-    # where metadata and targets will be downloaded from.
-    updater = Updater(
-        metadata_dir="~/tufclient/metadata/",
-        metadata_base_url="http://localhost:8000/tuf-repo/",
-        target_dir="~/tufclient/downloads/",
-        target_base_url="http://localhost:8000/targets/",
-    )
-
-    # Update metadata, then download target if needed
-    info = updater.get_targetinfo("file.txt")
-    path = updater.find_cached_target(info)
-    if path is None:
-        path = updater.download_target(info)
-    print(f"Local file {path} contains target {info.path}")
+A simple example of using the Updater to implement a Python TUF client that
+downloads target files is available in `examples/client_example
+<https://github.com/theupdateframework/python-tuf/tree/develop/examples/client_example>`_.
 """
 
 import logging
