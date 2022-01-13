@@ -74,7 +74,6 @@ from typing import Dict, Iterator, Optional
 
 from tuf.api import exceptions
 from tuf.api.metadata import Metadata, Root, Snapshot, Targets, Timestamp
-from tuf.api.serialization import DeserializationError
 
 logger = logging.getLogger(__name__)
 
@@ -161,10 +160,7 @@ class TrustedMetadataSet(abc.Mapping):
             raise RuntimeError("Cannot update root after timestamp")
         logger.debug("Updating root")
 
-        try:
-            new_root = Metadata[Root].from_bytes(data)
-        except DeserializationError as e:
-            raise exceptions.RepositoryError("Failed to load root") from e
+        new_root = Metadata[Root].from_bytes(data)
 
         if new_root.signed.type != Root.type:
             raise exceptions.RepositoryError(
@@ -218,10 +214,7 @@ class TrustedMetadataSet(abc.Mapping):
         # No need to check for 5.3.11 (fast forward attack recovery):
         # timestamp/snapshot can not yet be loaded at this point
 
-        try:
-            new_timestamp = Metadata[Timestamp].from_bytes(data)
-        except DeserializationError as e:
-            raise exceptions.RepositoryError("Failed to load timestamp") from e
+        new_timestamp = Metadata[Timestamp].from_bytes(data)
 
         if new_timestamp.signed.type != Timestamp.type:
             raise exceptions.RepositoryError(
@@ -311,10 +304,7 @@ class TrustedMetadataSet(abc.Mapping):
         if not trusted:
             snapshot_meta.verify_length_and_hashes(data)
 
-        try:
-            new_snapshot = Metadata[Snapshot].from_bytes(data)
-        except DeserializationError as e:
-            raise exceptions.RepositoryError("Failed to load snapshot") from e
+        new_snapshot = Metadata[Snapshot].from_bytes(data)
 
         if new_snapshot.signed.type != Snapshot.type:
             raise exceptions.RepositoryError(
@@ -423,10 +413,7 @@ class TrustedMetadataSet(abc.Mapping):
 
         meta.verify_length_and_hashes(data)
 
-        try:
-            new_delegate = Metadata[Targets].from_bytes(data)
-        except DeserializationError as e:
-            raise exceptions.RepositoryError("Failed to load snapshot") from e
+        new_delegate = Metadata[Targets].from_bytes(data)
 
         if new_delegate.signed.type != Targets.type:
             raise exceptions.RepositoryError(
@@ -455,10 +442,7 @@ class TrustedMetadataSet(abc.Mapping):
         Note that an expired initial root is considered valid: expiry is
         only checked for the final root in update_timestamp().
         """
-        try:
-            new_root = Metadata[Root].from_bytes(data)
-        except DeserializationError as e:
-            raise exceptions.RepositoryError("Failed to load root") from e
+        new_root = Metadata[Root].from_bytes(data)
 
         if new_root.signed.type != Root.type:
             raise exceptions.RepositoryError(
