@@ -17,7 +17,6 @@ from typing import Any, ClassVar, Iterator
 from unittest.mock import Mock, patch
 
 import requests
-import urllib3.exceptions
 
 from tests import utils
 from tuf import unittest_toolbox
@@ -125,8 +124,8 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
     def test_response_read_timeout(self, mock_session_get: Any) -> None:
         mock_response = Mock()
         attr = {
-            "raw.read.side_effect": urllib3.exceptions.ReadTimeoutError(
-                urllib3.HTTPConnectionPool("localhost"), "", "Read timed out."
+            "iter_content.side_effect": requests.exceptions.ConnectionError(
+                "Simulated timeout"
             )
         }
         mock_response.configure_mock(**attr)
@@ -134,11 +133,13 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
 
         with self.assertRaises(exceptions.SlowRetrievalError):
             next(self.fetcher.fetch(self.url))
-        mock_response.raw.read.assert_called_once()
+        mock_response.iter_content.assert_called_once()
 
     # Read/connect session timeout error
     @patch.object(
-        requests.Session, "get", side_effect=urllib3.exceptions.TimeoutError
+        requests.Session,
+        "get",
+        side_effect=requests.exceptions.Timeout("Simulated timeout"),
     )
     def test_session_get_timeout(self, mock_session_get: Any) -> None:
         with self.assertRaises(exceptions.SlowRetrievalError):
