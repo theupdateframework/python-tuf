@@ -58,13 +58,12 @@ by various tech companies and open source organizations. A variant of TUF
 called [Uptane](https://uptane.github.io/) is used to secure over-the-air
 updates in automobiles.
 
-Please see the [TUF Introduction](docs/OVERVIEW.rst) and
-[TUF's website](https://theupdateframework.com/) for more information about TUF!
+Please see [TUF's website](https://theupdateframework.com/) for more information about TUF!
 
 
 Documentation
 -------------
-* [Introduction to TUF's Design](docs/OVERVIEW.rst)
+* [Introduction to TUF's Design](https://theupdateframework.io/overview/)
 * [The TUF Specification](https://theupdateframework.github.io/specification/latest/)
 * Examples: [client](examples/client_example) and [repository](examples/repo_example)
 * [API Reference](https://theupdateframework.readthedocs.io/)

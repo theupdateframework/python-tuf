@@ -319,5 +319,5 @@ SlowRetrievalError exception to the client application.
 ## Conclusion ##
 These are just some of the attacks that TUF provides protection against.  For
 more attacks and updater weaknesses, please see the
-[Security](https://github.com/theupdateframework/python-tuf/blob/develop/docs/SECURITY.md)
+[Security](https://theupdateframework.io/security/)
 page.
