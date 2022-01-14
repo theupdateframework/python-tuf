@@ -13,7 +13,7 @@ systems.
 .. toctree::
    :maxdepth: 1
    :caption: Contents:
-   
+
    api/api-reference
    CONTRIBUTORS
    INSTALLATION
