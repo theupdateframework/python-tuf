@@ -290,10 +290,11 @@ class Updater:
         self, rolename: str, length: int, version: Optional[int] = None
     ) -> bytes:
         """Download a metadata file and return it as bytes"""
+        encoded_name = parse.quote(rolename, "")
         if version is None:
-            url = f"{self._metadata_base_url}{rolename}.json"
+            url = f"{self._metadata_base_url}{encoded_name}.json"
         else:
-            url = f"{self._metadata_base_url}{version}.{rolename}.json"
+            url = f"{self._metadata_base_url}{version}.{encoded_name}.json"
         return self._fetcher.download_bytes(url, length)
 
     def _load_local_metadata(self, rolename: str) -> bytes:
