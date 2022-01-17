@@ -9,9 +9,9 @@
 ----------------------------
 *__IMPORTANT NOTICE:__ A stable 1.0.0 release of the modern implementation only
 is scheduled for January 2022. Please see the [*1.0.0
-announcement*](docs/1.0.0-ANNOUNCEMENT.md) page for more details about the release
-and the deprecation of the legacy implementation, including migration
-instructions.*
+announcement*](https://github.com/theupdateframework/python-tuf/blob/develop/docs/1.0.0-ANNOUNCEMENT.md)
+page for more details about the release and the deprecation of the legacy
+implementation, including migration instructions.*
 
 ----------------------------
 This repository is the **reference implementation** of
@@ -28,13 +28,13 @@ Python-TUF provides two APIs:
 
 High-level support for implementing
 [repository operations](https://theupdateframework.github.io/specification/latest/#repository-operations)
-is planned but not yet provided: see [1.0.0 plans](docs/1.0.0-ANNOUNCEMENT.md).
+is planned but not yet provided: see [1.0.0 plans](https://github.com/theupdateframework/python-tuf/blob/develop/docs/1.0.0-ANNOUNCEMENT.md).
 
 In addition to these APIs the project also provides a *legacy
 implementation* with `tuf.client` implementing the client workflow and
 `tuf.repository_tool` providing a high-level interface for repository
 operations. The legacy implementation is going to be
-[deprecated](docs/1.0.0-ANNOUNCEMENT.md) in the near future.
+[deprecated](https://github.com/theupdateframework/python-tuf/blob/develop/docs/1.0.0-ANNOUNCEMENT.md) in the near future.
 
 The reference implementation strives to be a readable guide and demonstration
 for those working on implementing TUF in their own languages, environments, or
@@ -65,11 +65,13 @@ Documentation
 -------------
 * [Introduction to TUF's Design](https://theupdateframework.io/overview/)
 * [The TUF Specification](https://theupdateframework.github.io/specification/latest/)
-* Examples: [client](examples/client_example) and [repository](examples/repo_example)
+* Examples: [client](https://github.com/theupdateframework/python-tuf/tree/develop/examples/client_example)
+and [repository](https://github.com/theupdateframework/python-tuf/tree/develop/examples/repo_example)
 * [API Reference](https://theupdateframework.readthedocs.io/)
-* [Governance](docs/GOVERNANCE.md) and [Maintainers](docs/MAINTAINERS.txt)
+* [Governance](https://github.com/theupdateframework/python-tuf/blob/develop/docs/GOVERNANCE.md)
+and [Maintainers](https://github.com/theupdateframework/python-tuf/blob/develop/docs/MAINTAINERS.txt)
 for the reference implementation
-* [Miscellaneous Docs](docs/)
+* [Miscellaneous Docs](https://github.com/theupdateframework/python-tuf/tree/develop/docs)
 
 
 Contact
@@ -100,7 +102,9 @@ PGP key fingerprint **E9C0 59EC 0D32 64FA B35F  94AD 465B F9F6 F8EB 475A**.
 Please do not use the GitHub issue tracker to submit vulnerability reports.
 The issue tracker is intended for bug reports and to make feature requests.
 Major feature requests, such as design changes to the specification, should
-be proposed via a [TUF Augmentation Proposal](docs/TAP.rst) (TAP).
+be proposed via a
+[TUF Augmentation Proposal](https://theupdateframework.github.io/specification/latest/#tuf-augmentation-proposal-tap-support)
+(TAP).
 
 Limitations
 -----------
@@ -113,7 +117,8 @@ License
 
 This work is [dual-licensed](https://en.wikipedia.org/wiki/Multi-licensing) and
 distributed under the (1) MIT License and (2) Apache License, Version 2.0.
-Please see [LICENSE-MIT](LICENSE-MIT) and [LICENSE](LICENSE).
+Please see [LICENSE-MIT](https://github.com/theupdateframework/python-tuf/blob/develop/LICENSE-MIT)
+and [LICENSE](https://github.com/theupdateframework/python-tuf/blob/develop/LICENSE).
 
 
 Acknowledgements
