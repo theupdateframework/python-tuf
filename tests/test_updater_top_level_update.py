@@ -343,7 +343,7 @@ class TestRefresh(unittest.TestCase):
 
         self._assert_files_exist([Root.type])
 
-    def test_new_timestamp_fast_foward_recovery(self) -> None:
+    def test_new_timestamp_fast_forward_recovery(self) -> None:
         """Test timestamp fast-forward recovery using key rotation.
 
         The timestamp recovery is made by the following steps
@@ -428,7 +428,7 @@ class TestRefresh(unittest.TestCase):
 
         self._assert_version_equals(Snapshot.type, 2)
 
-    def test_new_snapshot_fast_foward_recovery(self) -> None:
+    def test_new_snapshot_fast_forward_recovery(self) -> None:
         """Test snapshot fast-forward recovery using key rotation.
 
         The snapshot recovery requires the snapshot and timestamp key rotation.
