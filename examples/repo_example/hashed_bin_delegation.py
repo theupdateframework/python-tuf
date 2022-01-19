@@ -19,7 +19,6 @@ NOTE: Metadata files will be written to a 'tmp*'-directory in CWD.
 import hashlib
 import os
 import tempfile
-from collections import OrderedDict
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Tuple
@@ -160,10 +159,10 @@ roles["bins"] = Metadata[Targets](
                     keys["bin-n"]
                 )
             },
-            roles=OrderedDict(),
+            roles={},
         ),
     ),
-    signatures=OrderedDict(),
+    signatures={},
 )
 
 # The hash bin generator yields an ordered list of incremental hash bin names
@@ -190,7 +189,7 @@ for bin_n_name, bin_n_hash_prefixes in generate_hash_bins():
         signed=Targets(
             version=1, spec_version=SPEC_VERSION, expires=_in(7), targets={}
         ),
-        signatures=OrderedDict(),
+        signatures={},
     )
 
 # Add target file

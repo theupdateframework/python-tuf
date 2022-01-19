@@ -25,7 +25,6 @@ NOTE: Metadata files will be written to a 'tmp*'-directory in CWD.
 """
 import os
 import tempfile
-from collections import OrderedDict
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict
@@ -103,7 +102,7 @@ roles["targets"] = Metadata[Targets](
     signed=Targets(
         version=1, spec_version=SPEC_VERSION, expires=_in(7), targets={}
     ),
-    signatures=OrderedDict(),
+    signatures={},
 )
 
 # For the purpose of this example we use the top-level targets role to protect
@@ -134,7 +133,7 @@ roles["snapshot"] = Metadata[Snapshot](
         expires=_in(7),
         meta={"targets.json": MetaFile(version=1)},
     ),
-    OrderedDict(),
+    {},
 )
 
 # Timestamp (freshness)
@@ -156,7 +155,7 @@ roles["timestamp"] = Metadata[Timestamp](
         expires=_in(1),
         snapshot_meta=MetaFile(version=1),
     ),
-    OrderedDict(),
+    {},
 )
 
 # Root (root of trust)
@@ -195,7 +194,7 @@ roles["root"] = Metadata[Root](
         },
         consistent_snapshot=True,
     ),
-    signatures=OrderedDict(),
+    signatures={},
 )
 
 # NOTE: We only need the public part to populate root, so it is possible to use
@@ -292,7 +291,7 @@ roles[delegatee_name] = Metadata[Targets](
         expires=_in(7),
         targets={target_path: target_file_info},
     ),
-    signatures=OrderedDict(),
+    signatures={},
 )
 
 
@@ -313,20 +312,15 @@ roles["targets"].signed.delegations = Delegations(
             keys[delegatee_name]
         )
     },
-    roles=OrderedDict(
-        [
-            (
-                delegatee_name,
-                DelegatedRole(
-                    name=delegatee_name,
-                    keyids=[keys[delegatee_name]["keyid"]],
-                    threshold=1,
-                    terminating=True,
-                    paths=["*.py"],
-                ),
-            )
-        ]
-    ),
+    roles={
+        delegatee_name: DelegatedRole(
+            name=delegatee_name,
+            keyids=[keys[delegatee_name]["keyid"]],
+            threshold=1,
+            terminating=True,
+            paths=["*.py"],
+        ),
+    },
 )
 
 # Remove target file info from top-level targets (delegatee is now responsible)

@@ -47,7 +47,6 @@ Example::
 import logging
 import os
 import tempfile
-from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Dict, Iterator, List, Optional, Tuple
@@ -167,15 +166,15 @@ class RepositorySimulator(FetcherInterface):
         """Setup a minimal valid repository."""
 
         targets = Targets(1, SPEC_VER, self.safe_expiry, {}, None)
-        self.md_targets = Metadata(targets, OrderedDict())
+        self.md_targets = Metadata(targets, {})
 
         meta = {"targets.json": MetaFile(targets.version)}
         snapshot = Snapshot(1, SPEC_VER, self.safe_expiry, meta)
-        self.md_snapshot = Metadata(snapshot, OrderedDict())
+        self.md_snapshot = Metadata(snapshot, {})
 
         snapshot_meta = MetaFile(snapshot.version)
         timestamp = Timestamp(1, SPEC_VER, self.safe_expiry, snapshot_meta)
-        self.md_timestamp = Metadata(timestamp, OrderedDict())
+        self.md_timestamp = Metadata(timestamp, {})
 
         roles = {role_name: Role([], 1) for role_name in TOP_LEVEL_ROLE_NAMES}
         root = Root(1, SPEC_VER, self.safe_expiry, {}, roles, True)
@@ -185,7 +184,7 @@ class RepositorySimulator(FetcherInterface):
             root.add_key(role, key)
             self.add_signer(role, signer)
 
-        self.md_root = Metadata(root, OrderedDict())
+        self.md_root = Metadata(root, {})
         self.publish_root()
 
     def publish_root(self) -> None:
@@ -357,7 +356,7 @@ class RepositorySimulator(FetcherInterface):
 
         # Create delegation
         if delegator.delegations is None:
-            delegator.delegations = Delegations({}, OrderedDict())
+            delegator.delegations = Delegations({}, {})
         # put delegation last by default
         delegator.delegations.roles[role.name] = role
 
@@ -368,7 +367,7 @@ class RepositorySimulator(FetcherInterface):
 
         # Add metadata for the role
         if role.name not in self.md_delegates:
-            self.md_delegates[role.name] = Metadata(targets, OrderedDict())
+            self.md_delegates[role.name] = Metadata(targets, {})
 
     def write(self) -> None:
         """Dump current repository metadata to self.dump_dir

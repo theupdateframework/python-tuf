@@ -32,7 +32,6 @@ import fnmatch
 import io
 import logging
 import tempfile
-from collections import OrderedDict
 from datetime import datetime
 from typing import (
     IO,
@@ -113,7 +112,7 @@ class Metadata(Generic[T]):
             signing the canonical serialized representation of 'signed'.
     """
 
-    def __init__(self, signed: T, signatures: "OrderedDict[str, Signature]"):
+    def __init__(self, signed: T, signatures: Dict[str, Signature]):
         self.signed: T = signed
         self.signatures = signatures
 
@@ -150,7 +149,7 @@ class Metadata(Generic[T]):
             raise ValueError(f'unrecognized metadata type "{_type}"')
 
         # Make sure signatures are unique
-        signatures: "OrderedDict[str, Signature]" = OrderedDict()
+        signatures: Dict[str, Signature] = {}
         for sig_dict in metadata.pop("signatures"):
             sig = Signature.from_dict(sig_dict)
             if sig.keyid in signatures:
@@ -1211,7 +1210,7 @@ class Delegations:
     def __init__(
         self,
         keys: Dict[str, Key],
-        roles: "OrderedDict[str, DelegatedRole]",
+        roles: Dict[str, DelegatedRole],
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ):
         self.keys = keys
@@ -1233,7 +1232,7 @@ class Delegations:
         for keyid, key_dict in keys.items():
             keys_res[keyid] = Key.from_dict(keyid, key_dict)
         roles = delegations_dict.pop("roles")
-        roles_res: "OrderedDict[str, DelegatedRole]" = OrderedDict()
+        roles_res: Dict[str, DelegatedRole] = {}
         for role_dict in roles:
             new_role = DelegatedRole.from_dict(role_dict)
             if new_role.name in roles_res:
