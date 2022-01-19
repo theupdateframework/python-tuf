@@ -1,91 +1,21 @@
 Instructions for Contributors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Note: Development of TUF occurs on the "develop" branch of this repository.
-
-Contributions can be made by submitting GitHub pull requests.  Submitted code
-should follow our `code style guidelines
-<https://github.com/secure-systems-lab/code-style-guidelines>`_, which are
-enforced with linters and auto-formatters (details below).
-
-Contributors must also indicate acceptance of the `Developer Certificate of
-Origin <https://developercertificate.org/>`_  (DCO) when making a contribution
-to the project.  Acceptance of the DCO can be established by appending a
-``Signed-off-by: Your Name <example@domain.com>`` to the Git commit message.
-For example:
-
-::
-
-    Commit message
-
-    Signed-off-by: Vladimir Diaz <vladimir.v.diaz@gmail.com>
-
-The required ``Signed-off-by`` text can be automatically appended to the commit
-message via the ``-s`` command-line option to ``git commit``:
-
-::
-
-  $ git commit -s -m "Commit message"
-
-The full text of the DCO:
-
-::
-
-    Developer Certificate of Origin
-    Version 1.1
-
-    Copyright (C) 2004, 2006 The Linux Foundation and its contributors.
-    1 Letterman Drive
-    Suite D4700
-    San Francisco, CA, 94129
-
-    Everyone is permitted to copy and distribute verbatim copies of this
-    license document, but changing it is not allowed.
-
-    Developer's Certificate of Origin 1.1
-
-    By making a contribution to this project, I certify that:
-
-    (a) The contribution was created in whole or in part by me and I have the
-    right to submit it under the open source license indicated in the file; or
-
-    (b) The contribution is based upon previous work that, to the best of my
-    knowledge, is covered under an appropriate open source license and I have
-    the right under that license to submit that work with modifications,
-    whether created in whole or in part by me, under the same open source
-    license (unless I am permitted to submit under a different license), as
-    indicated in the file; or
-
-    (c) The contribution was provided directly to me by some other person who
-    certified (a), (b) or (c) and I have not modified it.
-
-    (d) I understand and agree that this project and the contribution are
-    public and that a record of the contribution (including all personal
-    information I submit with it, including my sign-off) is maintained
-    indefinitely and may be redistributed consistent with this project or the
-    open source license(s) involved.
-
-
-To facilitate development and installation of edited version of the code base,
-developers are encouraged to install `Virtualenv <https://virtualenv.pypa.io/en/latest/index.html>`_,
-which is a tool to create isolated Python environments.  It includes
-``pip`` and ``setuptools``, Python packages that can be used to
-install TUF and its dependencies. All installation methods of
-virtualenv are outlined in the `installation
-section <https://virtualenv.pypa.io/en/latest/installation.html>`_,
-and instructions for installing locally from source are provided here:
-::
-
-    $ curl -O https://pypi.python.org/packages/source/v/virtualenv/virtualenv-15.0.3.tar.gz
-    $ tar xvfz virtualenv-15.0.3.tar.gz
-    $ cd virtualenv-15.0.3
-    $ python3 virtualenv.py myVE
-
+Contribute to python-tuf by submitting pull requests against the "develop"
+branch of this repository. Detailed instructions are available in our
+`development guidelines
+<https://github.com/secure-systems-lab/lab-guidelines/blob/master/dev-workflow.md>`_.
+All submitted code should follow our `style guidelines
+<https://github.com/secure-systems-lab/code-style-guidelines/blob/master/python.md>`_
+and must be unit tested [reference to test section below] .
 
 Development Installation
 ========================
 
 To work on the TUF project, it's best to perform a development install.
+
+To facilitate development and installation of edited version of the code base,
+developers are encouraged to use `venv <https://docs.python.org/3/library/venv.html>`_.
 
 1. First, `install non-Python dependencies <INSTALLATION.rst#non-python-dependencies>`_.
 
@@ -105,8 +35,54 @@ To work on the TUF project, it's best to perform a development install.
     $ python3 -m pip install -r requirements-dev.txt
 
 
+Testing
+=======
+
+With `tox <https://testrun.org/tox/>`_, the test suite can be executed in a
+separate *venv*. While a supported Python version must already be available,
+``tox`` will install ``tuf`` and dependencies, run the tests, auto-formatting,
+and coverage.
+
+::
+
+    $ tox
+
+Below, you will see more details about each steps managed by ``tox``, in case
+you need debug/run outside ``tox``.
+
+Unit tests
+----------
+
+More specifically, the Update Framework's test suite can be executed by invoking
+the test aggregation script inside the *tests* subdirectory. ``tuf`` and its
+dependencies must already be installed.
+::
+
+    $ cd tests/
+    $ python3 aggregate_tests.py
+
+
+Individual tests can also be executed. Optional '-v' flags can be added to
+increase log level up to DEBUG ('-vvvv').
+
+    $ cd tests/
+    $ python3 test_updater_ng.py -v
+
+
+Coverage
+--------
+
+To run the tests and measure their code coverage, the aggregation script can be
+invoked with the ``coverage`` tool (requires installation of ``coverage``, e.g.
+via PyPI).
+::
+
+    $ cd tests/
+    $ coverage run aggregate_tests.py && coverage report
+
+
 Auto-formatting
-===============
+---------------
 
 CI/CD will check that new TUF code is formatted with `black
 <https://black.readthedocs.io/>`__ and `isort <https://pycqa.github.io/isort>`__.
@@ -124,77 +100,12 @@ or via source code editor plugin
 `isort <https://pycqa.github.io/isort/docs/configuration/pre-commit/>`__].
 
 
-Testing
-=======
+Submitting Contributions
+========================
 
-The Update Framework's unit test suite can be executed by invoking the test
-aggregation script inside the *tests* subdirectory. ``tuf`` and its
-dependencies must already be installed (see above).
-::
+Contributions can be made by submitting GitHub pull requests.
 
-    $ cd tests
-    $ python3 aggregate_tests.py
-
-Individual tests can also be executed. Optional '-v' flags can be added to
-increase log level up to DEBUG ('-vvvv').
-::
-
-    $ python3 test_updater_ng.py # run a specific test file
-    $ python3 test_updater_ng.py TestUpdater.test_refresh_and_download # run a specific test
-    $ python3 test_updater_ng.py -vvvv TestUpdater.test_refresh_and_download # run test with DEBUG log level
-
-
-All of the log levels and the corresponding options that could be used for testing are:
-
-.. list-table::
-   :widths: 20 25
-   :header-rows: 1
-
-   * - Option
-     - Log Level
-   * - default (no argument passed)
-     - ERROR (test names are not printed)
-   * - `-v`
-     - ERROR (test names are printed at this level and above)
-   * - `-vv`
-     - WARNING
-   * - `-vvv`
-     - INFO
-   * - `-vvvv`
-     - DEBUG
-
-
-To run the tests and measure their code coverage, the aggregation script can be
-invoked with the ``coverage`` tool (requires installation of ``coverage``, e.g.
-via PyPI).
-::
-
-    $ coverage run aggregate_tests.py && coverage report
-
-
-To develop and test ``tuf`` with above commands alongside its in-house dependency
-`securesystemslib <https://github.com/secure-systems-lab/securesystemslib>`_,
-it is recommended to first make an editable install of ``tuf`` (in
-a *venv*), and then install ``securesystemslib`` in editable mode too (in the same *venv*).
-::
-
-    $ cd path/to/tuf
-    $ python3 -m pip install -r requirements-dev.txt
-    $ cd path/to/securesystemslib
-    $ python3 -m pip install -r requirements-dev.txt
-
-
-With `tox <https://testrun.org/tox/>`_, the test suite can be executed in a
-separate *venv*. While a supported Python version must already be available,
-``tox`` will install ``tuf`` and dependencies.
-::
-
-    $ tox
-
-
-An additional non-default ``tox`` environment is available and can be used to
-test ``tuf`` against the tip of development of ``securesystemslib`` on GitHub,
-to e.g. prepare the former for a new release of the latter.
-::
-
-    $ tox -e with-sslib-master
+Contributors must also indicate acceptance of the `Developer Certificate of
+Origin <https://developercertificate.org/>`_ by appending a ``Signed-off-by:
+Your Name <example@domain.com>`` to each git commit message (see `git commit
+--signoff <https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---signoff>`_).
