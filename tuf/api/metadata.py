@@ -23,6 +23,9 @@ Python type annotations useful Metadata can be type constrained: e.g. the
 signed attribute of ``Metadata[Root]`` is known to be ``Root``.
 
 Currently Metadata API supports JSON as the file format.
+
+A basic example of repository implementation using the Metadata is available in
+`examples/repo_example <https://github.com/theupdateframework/python-tuf/tree/develop/examples/repo_example>`_.
 """
 import abc
 import fnmatch
