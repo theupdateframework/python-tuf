@@ -61,6 +61,7 @@ class RequestsFetcher(FetcherInterface):
             exceptions.SlowRetrievalError: A timeout occurs while receiving
                 data.
             exceptions.FetcherHTTPError: An HTTP error code is received.
+            exceptions.DownloadError: When there is a problem parsing the url.
 
         Returns:
             A bytes iterator
@@ -126,13 +127,16 @@ class RequestsFetcher(FetcherInterface):
     def _get_session(self, url: str) -> requests.Session:
         """Returns a different customized requests.Session per schema+hostname
         combination.
+
+        Raises:
+            exceptions.DownloadError: When there is a problem parsing the url.
         """
         # Use a different requests.Session per schema+hostname combination, to
         # reuse connections while minimizing subtle security issues.
         parsed_url = parse.urlparse(url)
 
         if not parsed_url.scheme or not parsed_url.hostname:
-            raise exceptions.DownloadError("Failed to parse URL")
+            raise exceptions.DownloadError("Failed to parse URL {url}")
 
         session_index = parsed_url.scheme + "+" + parsed_url.hostname
         session = self._sessions.get(session_index)
