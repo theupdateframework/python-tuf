@@ -17,17 +17,18 @@ API objects.
 import abc
 from typing import TYPE_CHECKING
 
+from tuf.api.exceptions import RepositoryError
+
 if TYPE_CHECKING:
     # pylint: disable=cyclic-import
     from tuf.api.metadata import Metadata, Signed
 
 
-# TODO: Should these be in tuf.exceptions or inherit from tuf.exceptions.Error?
-class SerializationError(Exception):
+class SerializationError(RepositoryError):
     """Error during serialization."""
 
 
-class DeserializationError(Exception):
+class DeserializationError(RepositoryError):
     """Error during deserialization."""
 
 

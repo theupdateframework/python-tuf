@@ -41,7 +41,7 @@ from urllib import parse
 
 from securesystemslib import util as sslib_util
 
-from tuf import exceptions
+from tuf.api import exceptions
 from tuf.api.metadata import (
     Metadata,
     Root,

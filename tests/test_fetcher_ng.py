@@ -20,7 +20,8 @@ import requests
 import urllib3.exceptions
 
 from tests import utils
-from tuf import exceptions, unittest_toolbox
+from tuf import unittest_toolbox
+from tuf.api import exceptions
 from tuf.ngclient._internal.requests_fetcher import RequestsFetcher
 
 logger = logging.getLogger(__name__)
@@ -109,7 +110,7 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
 
     # Incorrect URL parsing
     def test_url_parsing(self) -> None:
-        with self.assertRaises(exceptions.URLParsingError):
+        with self.assertRaises(exceptions.DownloadError):
             self.fetcher.fetch(self.random_string())
 
     # File not found error

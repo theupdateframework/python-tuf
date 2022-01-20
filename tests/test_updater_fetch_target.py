@@ -15,7 +15,7 @@ from typing import Optional
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
-from tuf.exceptions import RepositoryError
+from tuf.api.exceptions import RepositoryError
 from tuf.ngclient import Updater
 
 

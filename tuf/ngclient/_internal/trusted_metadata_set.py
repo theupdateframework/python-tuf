@@ -72,9 +72,8 @@ from collections import abc
 from datetime import datetime
 from typing import Dict, Iterator, Optional
 
-from tuf import exceptions
+from tuf.api import exceptions
 from tuf.api.metadata import Metadata, Root, Snapshot, Targets, Timestamp
-from tuf.api.serialization import DeserializationError
 
 logger = logging.getLogger(__name__)
 
@@ -161,10 +160,7 @@ class TrustedMetadataSet(abc.Mapping):
             raise RuntimeError("Cannot update root after timestamp")
         logger.debug("Updating root")
 
-        try:
-            new_root = Metadata[Root].from_bytes(data)
-        except DeserializationError as e:
-            raise exceptions.RepositoryError("Failed to load root") from e
+        new_root = Metadata[Root].from_bytes(data)
 
         if new_root.signed.type != Root.type:
             raise exceptions.RepositoryError(
@@ -175,10 +171,9 @@ class TrustedMetadataSet(abc.Mapping):
         self.root.verify_delegate(Root.type, new_root)
 
         if new_root.signed.version != self.root.signed.version + 1:
-            raise exceptions.ReplayedMetadataError(
-                Root.type,
-                new_root.signed.version,
-                self.root.signed.version,
+            raise exceptions.BadVersionNumberError(
+                f"Expected root version {self.root.signed.version + 1}"
+                f" instead got version {new_root.signed.version}"
             )
 
         # Verify that new root is signed by itself
@@ -219,10 +214,7 @@ class TrustedMetadataSet(abc.Mapping):
         # No need to check for 5.3.11 (fast forward attack recovery):
         # timestamp/snapshot can not yet be loaded at this point
 
-        try:
-            new_timestamp = Metadata[Timestamp].from_bytes(data)
-        except DeserializationError as e:
-            raise exceptions.RepositoryError("Failed to load timestamp") from e
+        new_timestamp = Metadata[Timestamp].from_bytes(data)
 
         if new_timestamp.signed.type != Timestamp.type:
             raise exceptions.RepositoryError(
@@ -236,20 +228,17 @@ class TrustedMetadataSet(abc.Mapping):
         if self.timestamp is not None:
             # Prevent rolling back timestamp version
             if new_timestamp.signed.version < self.timestamp.signed.version:
-                raise exceptions.ReplayedMetadataError(
-                    Timestamp.type,
-                    new_timestamp.signed.version,
-                    self.timestamp.signed.version,
+                raise exceptions.BadVersionNumberError(
+                    f"New timestamp version {new_timestamp.signed.version} must"
+                    f" be >= {self.timestamp.signed.version}"
                 )
             # Prevent rolling back snapshot version
-            if (
-                new_timestamp.signed.snapshot_meta.version
-                < self.timestamp.signed.snapshot_meta.version
-            ):
-                raise exceptions.ReplayedMetadataError(
-                    Snapshot.type,
-                    new_timestamp.signed.snapshot_meta.version,
-                    self.timestamp.signed.snapshot_meta.version,
+            snapshot_meta = self.timestamp.signed.snapshot_meta
+            new_snapshot_meta = new_timestamp.signed.snapshot_meta
+            if new_snapshot_meta.version < snapshot_meta.version:
+                raise exceptions.BadVersionNumberError(
+                    f"New snapshot version must be >= {snapshot_meta.version}"
+                    f", got version {new_snapshot_meta.version}"
                 )
 
         # expiry not checked to allow old timestamp to be used for rollback
@@ -313,17 +302,9 @@ class TrustedMetadataSet(abc.Mapping):
         # Verify non-trusted data against the hashes in timestamp, if any.
         # Trusted snapshot data has already been verified once.
         if not trusted:
-            try:
-                snapshot_meta.verify_length_and_hashes(data)
-            except exceptions.LengthOrHashMismatchError as e:
-                raise exceptions.RepositoryError(
-                    "Snapshot length or hashes do not match"
-                ) from e
+            snapshot_meta.verify_length_and_hashes(data)
 
-        try:
-            new_snapshot = Metadata[Snapshot].from_bytes(data)
-        except DeserializationError as e:
-            raise exceptions.RepositoryError("Failed to load snapshot") from e
+        new_snapshot = Metadata[Snapshot].from_bytes(data)
 
         if new_snapshot.signed.type != Snapshot.type:
             raise exceptions.RepositoryError(
@@ -430,17 +411,9 @@ class TrustedMetadataSet(abc.Mapping):
                 f"Snapshot does not contain information for '{role_name}'"
             )
 
-        try:
-            meta.verify_length_and_hashes(data)
-        except exceptions.LengthOrHashMismatchError as e:
-            raise exceptions.RepositoryError(
-                f"{role_name} length or hashes do not match"
-            ) from e
+        meta.verify_length_and_hashes(data)
 
-        try:
-            new_delegate = Metadata[Targets].from_bytes(data)
-        except DeserializationError as e:
-            raise exceptions.RepositoryError("Failed to load snapshot") from e
+        new_delegate = Metadata[Targets].from_bytes(data)
 
         if new_delegate.signed.type != Targets.type:
             raise exceptions.RepositoryError(
@@ -469,10 +442,7 @@ class TrustedMetadataSet(abc.Mapping):
         Note that an expired initial root is considered valid: expiry is
         only checked for the final root in update_timestamp().
         """
-        try:
-            new_root = Metadata[Root].from_bytes(data)
-        except DeserializationError as e:
-            raise exceptions.RepositoryError("Failed to load root") from e
+        new_root = Metadata[Root].from_bytes(data)
 
         if new_root.signed.type != Root.type:
             raise exceptions.RepositoryError(

@@ -19,7 +19,8 @@ from securesystemslib.interface import import_rsa_privatekey_from_file
 from securesystemslib.signer import SSlibSigner
 
 from tests import utils
-from tuf import exceptions, ngclient, unittest_toolbox
+from tuf import ngclient, unittest_toolbox
+from tuf.api import exceptions
 from tuf.api.metadata import (
     Metadata,
     Root,

@@ -25,7 +25,7 @@ from securesystemslib.keys import generate_ed25519_key
 from securesystemslib.signer import Signature, SSlibSigner
 
 from tests import utils
-from tuf import exceptions
+from tuf.api import exceptions
 from tuf.api.metadata import (
     TOP_LEVEL_ROLE_NAMES,
     DelegatedRole,
@@ -614,7 +614,7 @@ class TestMetadata(unittest.TestCase):
 
         # Test with an unsupported algorithm
         file_path = os.path.join(self.repo_dir, Targets.type, "file1.txt")
-        with self.assertRaises(exceptions.UnsupportedAlgorithmError):
+        with self.assertRaises(ValueError):
             TargetFile.from_file(file_path, file_path, ["123"])
 
     def test_targetfile_from_data(self) -> None:
