@@ -26,7 +26,7 @@
 # 1. Use this script to create a pinned requirements file for each Python
 #    version
 # ```
-# for v in 3.6 3.7 3.8 3.9; do
+# for v in 3.7 3.8 3.9; do
 #   mkvirtualenv tuf-env-${v} -p python${v};
 #   python3 -m pip install pip-tools;
 #   pip-compile --no-header -o requirements-${v}.txt requirements.txt;
