@@ -121,7 +121,7 @@ class Updater:
         Raises:
             OSError: New metadata could not be written to disk
             RepositoryError: Metadata failed to verify in some way
-            TODO: download-related errors
+            DownloadError: Download of a metadata file failed in some way
         """
 
         self._load_root()
@@ -157,7 +157,7 @@ class Updater:
         Raises:
             OSError: New metadata could not be written to disk
             RepositoryError: Metadata failed to verify in some way
-            TODO: download-related errors
+            DownloadError: Download of a metadata file failed in some way
 
         Returns:
             A TargetFile instance or None.
@@ -216,8 +216,10 @@ class Updater:
 
         Raises:
             ValueError: Invalid arguments
-            TODO: download-related errors
-            TODO: file write errors
+            DownloadError: Download of the target file failed in some way
+            RepositoryError: Downloaded target failed to be verified in some way
+            exceptions.StorageError: Downloaded target could not be written
+                to disk
 
         Returns:
             Local path to downloaded file
