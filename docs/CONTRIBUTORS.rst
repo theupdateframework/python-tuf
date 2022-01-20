@@ -7,7 +7,7 @@ branch of this repository. Detailed instructions are available in our
 <https://github.com/secure-systems-lab/lab-guidelines/blob/master/dev-workflow.md>`_.
 All submitted code should follow our `style guidelines
 <https://github.com/secure-systems-lab/code-style-guidelines/blob/master/python.md>`_
-and must be unit tested [reference to test section below] .
+and must be `unit tested <#unit-tests>`_.
 
 Development Installation
 ========================
@@ -38,16 +38,16 @@ developers are encouraged to use `venv <https://docs.python.org/3/library/venv.h
 Testing
 =======
 
-With `tox <https://testrun.org/tox/>`_, the test suite can be executed in a
-separate *venv*. While a supported Python version must already be available,
-``tox`` will install ``tuf`` and dependencies, run the tests, auto-formatting,
-and coverage.
+With `tox <https://testrun.org/tox/>`_ the whole test suite can be executed in
+a separate *virtual environment* for each supported Python version available on
+the system. ``tuf`` and its dependencies are installed automatically for each
+tox run.
 
 ::
 
     $ tox
 
-Below, you will see more details about each steps managed by ``tox``, in case
+Below, you will see more details about each step managed by ``tox``, in case
 you need debug/run outside ``tox``.
 
 Unit tests
@@ -62,8 +62,9 @@ dependencies must already be installed.
     $ python3 aggregate_tests.py
 
 
-Individual tests can also be executed. Optional '-v' flags can be added to
-increase log level up to DEBUG ('-vvvv').
+Individual tests can also be executed. Optional ``-v`` flags can be added to
+increase log level up to DEBUG (``-vvvv``).
+::
 
     $ cd tests/
     $ python3 test_updater_ng.py -v
@@ -100,10 +101,8 @@ or via source code editor plugin
 `isort <https://pycqa.github.io/isort/docs/configuration/pre-commit/>`__].
 
 
-Submitting Contributions
-========================
-
-Contributions can be made by submitting GitHub pull requests.
+DCO
+===
 
 Contributors must also indicate acceptance of the `Developer Certificate of
 Origin <https://developercertificate.org/>`_ by appending a ``Signed-off-by:
