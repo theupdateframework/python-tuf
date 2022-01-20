@@ -248,12 +248,7 @@ class Updater:
         with self._fetcher.download_file(
             full_url, targetinfo.length
         ) as target_file:
-            try:
-                targetinfo.verify_length_and_hashes(target_file)
-            except exceptions.LengthOrHashMismatchError as e:
-                raise exceptions.RepositoryError(
-                    f"{target_filepath} length or hashes do not match"
-                ) from e
+            targetinfo.verify_length_and_hashes(target_file)
 
             sslib_util.persist_temp_file(target_file, filepath)
 
