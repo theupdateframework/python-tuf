@@ -27,7 +27,6 @@ import sys
 import unittest
 
 from tests import utils
-from tuf import unittest_toolbox
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +46,7 @@ def can_connect(port: int) -> bool:
             sock.close()
 
 
-class TestServerProcess(unittest_toolbox.Modified_TestCase):
+class TestServerProcess(unittest.TestCase):
     """Test functionality provided in TestServerProcess from tests/utils.py."""
 
     def test_simple_server_startup(self) -> None:
