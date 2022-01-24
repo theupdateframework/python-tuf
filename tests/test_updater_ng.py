@@ -76,9 +76,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         # Copy the original repository files provided in the test folder so that
         # any modifications are restricted to the copies.
         # The 'repository_data' directory is expected to exist in 'tuf.tests/'.
-        original_repository_files = os.path.join(os.getcwd(), "repository_data")
         temporary_repository_root = self.make_temp_directory(
             directory=self.temporary_directory
+        )
+        original_repository_files = os.path.join(
+            utils.TESTS_DIR, "repository_data"
         )
 
         # The original repository, keystore, and client directories will be
