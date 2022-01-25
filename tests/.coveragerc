@@ -2,9 +2,6 @@
 branch = True
 
 omit =
-    # Command-line scripts.
-    */tuf/scripts/client.py
-    */tuf/scripts/repo.py
     */tests/*
     */site-packages/*
 
