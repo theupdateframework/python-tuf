@@ -713,7 +713,6 @@ class Root(Signed):
 
     type = _ROOT
 
-    # TODO: determine an appropriate value for max-args
     # pylint: disable=too-many-arguments
     def __init__(
         self,
@@ -1409,7 +1408,6 @@ class Targets(Signed):
 
     type = _TARGETS
 
-    # TODO: determine an appropriate value for max-args
     # pylint: disable=too-many-arguments
     def __init__(
         self,
