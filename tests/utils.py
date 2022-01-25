@@ -35,8 +35,6 @@ import warnings
 from contextlib import contextmanager
 from typing import IO, Any, Callable, Dict, Iterator, List, Optional
 
-import tuf.log
-
 logger = logging.getLogger(__name__)
 
 # May may be used to reliably read other files in tests dir regardless of cwd
@@ -154,7 +152,6 @@ def configure_test_logging(argv: List[str]) -> None:
         loglevel = logging.DEBUG
 
     logging.basicConfig(level=loglevel)
-    tuf.log.set_log_level(loglevel)
 
 
 def cleanup_dir(path: str) -> None:
