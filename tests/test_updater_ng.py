@@ -19,7 +19,7 @@ from securesystemslib.interface import import_rsa_privatekey_from_file
 from securesystemslib.signer import SSlibSigner
 
 from tests import utils
-from tuf import ngclient, unittest_toolbox
+from tuf import ngclient
 from tuf.api import exceptions
 from tuf.api.metadata import (
     Metadata,
@@ -33,56 +33,41 @@ from tuf.api.metadata import (
 logger = logging.getLogger(__name__)
 
 
-class TestUpdater(unittest_toolbox.Modified_TestCase):
+class TestUpdater(unittest.TestCase):
     """Test the Updater class from 'tuf/ngclient/updater.py'."""
 
-    temporary_directory: ClassVar[str]
+    # pylint: disable=too-many-instance-attributes
     server_process_handler: ClassVar[utils.TestServerProcess]
 
     @classmethod
     def setUpClass(cls) -> None:
-        # Create a temporary directory to store the repository, metadata, and
-        # target files. 'temporary_directory' must be deleted in
-        # TearDownModule() so that temporary files are always removed, even when
-        # exceptions occur.
-        cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
+        cls.tmp_test_root_dir = tempfile.mkdtemp(dir=os.getcwd())
 
-        # Needed because in some tests simple_server.py cannot be found.
-        # The reason is that the current working directory
-        # has been changed when executing a subprocess.
-        simple_server_path = os.path.join(os.getcwd(), "simple_server.py")
-
-        # Launch a SimpleHTTPServer (serves files in the current directory).
+        # Launch a SimpleHTTPServer
         # Test cases will request metadata and target files that have been
-        # pre-generated in 'tuf/tests/repository_data', which will be served
-        # by the SimpleHTTPServer launched here.
-        cls.server_process_handler = utils.TestServerProcess(
-            log=logger, server=simple_server_path
-        )
+        # pre-generated in 'tuf/tests/repository_data', and are copied to
+        # CWD/tmp_test_root_dir/*
+        cls.server_process_handler = utils.TestServerProcess(log=logger)
 
     @classmethod
     def tearDownClass(cls) -> None:
-        # Cleans the resources and flush the logged lines (if any).
+        # Cleans resources, flush the logged lines (if any) and remove test dir
         cls.server_process_handler.clean()
-
-        # Remove the temporary repository directory, which should contain all
-        # the metadata, targets, and key files generated for the test cases
-        shutil.rmtree(cls.temporary_directory)
+        shutil.rmtree(cls.tmp_test_root_dir)
 
     def setUp(self) -> None:
-        # We are inheriting from custom class.
-        unittest_toolbox.Modified_TestCase.setUp(self)
+        # Create tmp test dir inside of tmp test root dir to independently serve
+        # new repository files for each test. We delete all tmp dirs at once in
+        # tearDownClass after the server has released all resources.
+        self.tmp_test_dir = tempfile.mkdtemp(dir=self.tmp_test_root_dir)
 
         # Copy the original repository files provided in the test folder so that
         # any modifications are restricted to the copies.
         # The 'repository_data' directory is expected to exist in 'tuf.tests/'.
-        original_repository_files = os.path.join(os.getcwd(), "repository_data")
-        temporary_repository_root = self.make_temp_directory(
-            directory=self.temporary_directory
+        original_repository_files = os.path.join(
+            utils.TESTS_DIR, "repository_data"
         )
 
-        # The original repository, keystore, and client directories will be
-        # copied for each test case.
         original_repository = os.path.join(
             original_repository_files, "repository"
         )
@@ -98,15 +83,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         # Save references to the often-needed client repository directories.
         # Test cases need these references to access metadata and target files.
         self.repository_directory = os.path.join(
-            temporary_repository_root, "repository"
+            self.tmp_test_dir, "repository"
         )
-        self.keystore_directory = os.path.join(
-            temporary_repository_root, "keystore"
-        )
-
-        self.client_directory = os.path.join(
-            temporary_repository_root, "client"
-        )
+        self.keystore_directory = os.path.join(self.tmp_test_dir, "keystore")
+        self.client_directory = os.path.join(self.tmp_test_dir, "client")
 
         # Copy the original 'repository', 'client', and 'keystore' directories
         # to the temporary repository the test cases can use.
@@ -126,7 +106,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
         self.metadata_url = f"{url_prefix}/metadata/"
         self.targets_url = f"{url_prefix}/targets/"
-        self.dl_dir = self.make_temp_directory()
+        self.dl_dir = tempfile.mkdtemp(dir=self.tmp_test_dir)
         # Creating a repository instance.  The test cases will use this client
         # updater to refresh metadata, fetch target files, etc.
         self.updater = ngclient.Updater(
@@ -137,9 +117,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         )
 
     def tearDown(self) -> None:
-        # We are inheriting from custom class.
-        unittest_toolbox.Modified_TestCase.tearDown(self)
-
         # Logs stdout and stderr from the sever subprocess.
         self.server_process_handler.flush_log()
 

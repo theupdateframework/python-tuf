@@ -54,7 +54,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.repo_dir = os.path.join(
-            os.getcwd(), "repository_data", "repository", "metadata"
+            utils.TESTS_DIR, "repository_data", "repository", "metadata"
         )
         cls.metadata = {}
         for md in [
@@ -68,7 +68,9 @@ class TestTrustedMetadataSet(unittest.TestCase):
             with open(os.path.join(cls.repo_dir, f"{md}.json"), "rb") as f:
                 cls.metadata[md] = f.read()
 
-        keystore_dir = os.path.join(os.getcwd(), "repository_data", "keystore")
+        keystore_dir = os.path.join(
+            utils.TESTS_DIR, "repository_data", "keystore"
+        )
         cls.keystore = {}
         root_key_dict = import_rsa_privatekey_from_file(
             os.path.join(keystore_dir, Root.type + "_key"), password="password"

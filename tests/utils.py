@@ -39,9 +39,11 @@ import tuf.log
 
 logger = logging.getLogger(__name__)
 
+# May may be used to reliably read other files in tests dir regardless of cwd
+TESTS_DIR = os.path.dirname(os.path.realpath(__file__))
+
 # Used when forming URLs on the client side
 TEST_HOST_ADDRESS = "127.0.0.1"
-
 
 # DataSet is only here so type hints can be used.
 DataSet = Dict[str, Any]
@@ -183,7 +185,7 @@ class TestServerProcess:
     def __init__(
         self,
         log: logging.Logger,
-        server: str = "simple_server.py",
+        server: str = os.path.join(TESTS_DIR, "simple_server.py"),
         timeout: int = 10,
         popen_cwd: str = ".",
         extra_cmd_args: Optional[List[str]] = None,
