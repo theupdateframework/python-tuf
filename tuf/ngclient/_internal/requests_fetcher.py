@@ -11,7 +11,7 @@ from urllib import parse
 
 # Imports
 import requests
-import urllib3.exceptions
+import requests.exceptions
 
 import tuf
 from tuf.api import exceptions
@@ -80,7 +80,7 @@ class RequestsFetcher(FetcherInterface):
             response = session.get(
                 url, stream=True, timeout=self.socket_timeout
             )
-        except urllib3.exceptions.TimeoutError as e:
+        except requests.exceptions.Timeout as e:
             raise exceptions.SlowRetrievalError from e
 
         # Check response status.
@@ -99,26 +99,12 @@ class RequestsFetcher(FetcherInterface):
         download."""
 
         try:
-            while True:
-                # We download a fixed chunk of data in every round. This is
-                # so that we can defend against slow retrieval attacks.
-                # Furthermore, we do not wish to download an extremely
-                # large file in one shot.
-
-                # NOTE: This may not handle some servers adding a
-                # Content-Encoding header, which may cause urllib3 to
-                #  misbehave:
-                # https://github.com/pypa/pip/blob/404838abcca467648180b358598c597b74d568c9/src/pip/_internal/download.py#L547-L582
-                data = response.raw.read(self.chunk_size)
-
-                # We might have no more data to read, we signal
-                # that the download is complete.
-                if not data:
-                    break
-
+            for data in response.iter_content(self.chunk_size):
                 yield data
-
-        except urllib3.exceptions.ReadTimeoutError as e:
+        except (
+            requests.exceptions.ConnectionError,
+            requests.exceptions.Timeout,
+        ) as e:
             raise exceptions.SlowRetrievalError from e
 
         finally:
@@ -138,31 +124,17 @@ class RequestsFetcher(FetcherInterface):
         if not parsed_url.scheme or not parsed_url.hostname:
             raise exceptions.DownloadError("Failed to parse URL {url}")
 
-        session_index = parsed_url.scheme + "+" + parsed_url.hostname
+        session_index = f"{parsed_url.scheme}+{parsed_url.hostname}"
         session = self._sessions.get(session_index)
 
         if not session:
             session = requests.Session()
             self._sessions[session_index] = session
 
-            # Attach some default headers to every Session.
-            requests_user_agent = session.headers["User-Agent"]
-            # Follows the RFC: https://tools.ietf.org/html/rfc7231#section-5.5.3
-            tuf_user_agent = (
-                "tuf/" + tuf.__version__ + " " + requests_user_agent
-            )
-            session.headers.update(
-                {
-                    # Tell the server not to compress or modify anything.
-                    # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Encoding#Directives
-                    "Accept-Encoding": "identity",
-                    # The TUF user agent.
-                    "User-Agent": tuf_user_agent,
-                }
-            )
+            ua = f"tuf/{tuf.__version__} {session.headers['User-Agent']}"
+            session.headers["User-Agent"] = ua
 
             logger.debug("Made new session %s", session_index)
-
         else:
             logger.debug("Reusing session %s", session_index)
 
