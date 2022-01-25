@@ -17,7 +17,8 @@ To work on the TUF project, it's best to perform a development install.
 To facilitate development and installation of edited version of the code base,
 developers are encouraged to use `venv <https://docs.python.org/3/library/venv.html>`_.
 
-1. First, `install non-Python dependencies <INSTALLATION.rst#non-python-dependencies>`_.
+1. First, `install non-Python dependencies
+<https://theupdateframework.readthedocs.io/en/latest/INSTALLATION.html#non-python-dependencies>`_.
 
 2. Then clone this repository:
 
