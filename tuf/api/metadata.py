@@ -232,6 +232,13 @@ class Metadata(Generic[T]):
     ) -> bytes:
         """Return the serialized TUF file format as bytes.
 
+        Note that if bytes are first deserialized into ``Metadata`` and then
+        serialized with ``to_bytes()``, the two are not required to be
+        identical even though the signatures are guaranteed to stay valid. If
+        byte-for-byte equivalence is required (which is the case when content
+        hashes are used in other metadata), the original content should be used
+        instead of re-serializing.
+
         Arguments:
             serializer: A MetadataSerializer instance that implements the
                 desired serialization format. Default is JSONSerializer.
@@ -264,6 +271,13 @@ class Metadata(Generic[T]):
         storage_backend: Optional[StorageBackendInterface] = None,
     ) -> None:
         """Writes TUF metadata to file storage.
+
+        Note that if a file is first deserialized into ``Metadata`` and then
+        serialized with ``to_file()``, the two files are not required to be
+        identical even though the signatures are guaranteed to stay valid. If
+        byte-for-byte equivalence is required (which is the case when file
+        hashes are used in other metadata), the original file should be used
+        instead of re-serializing.
 
         Arguments:
             filename: The path to write the file to.
