@@ -35,11 +35,10 @@ downloads target files is available in `examples/client_example
 
 import logging
 import os
+import shutil
 import tempfile
 from typing import Optional, Set
 from urllib import parse
-
-from securesystemslib import util as sslib_util
 
 from tuf.api import exceptions
 from tuf.api.metadata import (
@@ -218,8 +217,7 @@ class Updater:
             ValueError: Invalid arguments
             DownloadError: Download of the target file failed in some way
             RepositoryError: Downloaded target failed to be verified in some way
-            exceptions.StorageError: Downloaded target could not be written
-                to disk
+            OSError: Failed to write target to file
 
         Returns:
             Local path to downloaded file
@@ -252,7 +250,9 @@ class Updater:
         ) as target_file:
             targetinfo.verify_length_and_hashes(target_file)
 
-            sslib_util.persist_temp_file(target_file, filepath)
+            target_file.seek(0)
+            with open(filepath, "wb") as destination_file:
+                shutil.copyfileobj(target_file, destination_file)
 
         logger.info("Downloaded target %s", targetinfo.path)
         return filepath
