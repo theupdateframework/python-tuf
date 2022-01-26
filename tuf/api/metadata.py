@@ -304,9 +304,7 @@ class Metadata(Generic[T]):
         Raises:
             tuf.api.serialization.SerializationError:
                 'signed' cannot be serialized.
-            securesystemslib.exceptions.CryptoError, \
-                    securesystemslib.exceptions.UnsupportedAlgorithmError:
-                Signing errors.
+            exceptions.UnsignedMetadataError: Signing errors.
 
         Returns:
             Securesystemslib Signature object that was added into signatures.
@@ -319,7 +317,14 @@ class Metadata(Generic[T]):
 
             signed_serializer = CanonicalJSONSerializer()
 
-        signature = signer.sign(signed_serializer.serialize(self.signed))
+        bytes_data = signed_serializer.serialize(self.signed)
+
+        try:
+            signature = signer.sign(bytes_data)
+        except Exception as e:
+            raise exceptions.UnsignedMetadataError(
+                "Problem signing the metadata"
+            ) from e
 
         if not append:
             self.signatures.clear()

@@ -10,6 +10,7 @@ there is a good reason not to, and provide that reason in those cases.
 
 #### Repository errors ####
 
+# pylint: disable=unused-import
 from securesystemslib.exceptions import StorageError
 
 
