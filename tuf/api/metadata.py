@@ -183,7 +183,7 @@ class Metadata(Generic[T]):
                 a (local) FilesystemBackend is used.
 
         Raises:
-            securesystemslib.exceptions.StorageError: The file cannot be read.
+            exceptions.StorageError: The file cannot be read.
             tuf.api.serialization.DeserializationError:
                 The file cannot be deserialized.
 
@@ -275,8 +275,7 @@ class Metadata(Generic[T]):
         Raises:
             tuf.api.serialization.SerializationError:
                 The metadata object cannot be serialized.
-            securesystemslib.exceptions.StorageError:
-                The file cannot be written.
+            exceptions.StorageError: The file cannot be written.
         """
 
         bytes_data = self.to_bytes(serializer)
