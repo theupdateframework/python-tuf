@@ -44,8 +44,8 @@ class TestSerialization(unittest.TestCase):
         "_type wrong type": '{"_type": "foo", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
         "version wrong type": '{"_type": "signed", "spec_version": "1.0.0", "version": "a", "expires": "2030-01-01T00:00:00Z", "meta": {}}',
         "invalid spec_version str": '{"_type": "signed", "spec_version": "abc", "version": 1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
-        "two digit spec_version": '{"_type": "signed", "spec_version": "1.2.a", "version": 1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
-        "no digit spec_version": '{"_type": "signed", "spec_version": "a.b.c", "version": 1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
+        "non-number spec_version": '{"_type": "signed", "spec_version": "1.2.a", "version": 1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
+        "one part spec_version": '{"_type": "signed", "spec_version": "1", "version": 1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
         "different major spec_version": '{"_type": "signed", "spec_version": "0.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
         "version 0": '{"_type": "signed", "spec_version": "1.0.0", "version": 0, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
         "version below 0": '{"_type": "signed", "spec_version": "1.0.0", "version": -1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
@@ -253,6 +253,8 @@ class TestSerialization(unittest.TestCase):
 
     valid_timestamps: utils.DataSet = {
         "all": '{ "_type": "timestamp", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
+            "meta": {"snapshot.json": {"hashes": {"sha256" : "abc"}, "version": 1}}}',
+        "legacy spec_version": '{ "_type": "timestamp", "spec_version": "1.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
             "meta": {"snapshot.json": {"hashes": {"sha256" : "abc"}, "version": 1}}}',
         "unrecognized field": '{ "_type": "timestamp", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
             "meta": {"snapshot.json": {"hashes": {"sha256" : "abc"}, "version": 1}}, "foo": "bar"}',
