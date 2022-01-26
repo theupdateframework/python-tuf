@@ -36,20 +36,20 @@ class TestSerialization(unittest.TestCase):
     # repository it's required that meta has at least one element inside it.
     invalid_signed: utils.DataSet = {
         "no _type": '{"spec_version": "1.0.0", "expires": "2030-01-01T00:00:00Z", "meta": {}}',
-        "no spec_version": '{"_type": "signed", "version": 1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
-        "no version": '{"_type": "signed", "spec_version": "1.0.0", "expires": "2030-01-01T00:00:00Z", "meta": {}}',
-        "no expires": '{"_type": "signed", "spec_version": "1.0.0", "version": 1, "meta": {}}',
+        "no spec_version": '{"_type": "snapshot", "version": 1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
+        "no version": '{"_type": "snapshot", "spec_version": "1.0.0", "expires": "2030-01-01T00:00:00Z", "meta": {}}',
+        "no expires": '{"_type": "snapshot", "spec_version": "1.0.0", "version": 1, "meta": {}}',
         "empty str _type": '{"_type": "", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
-        "empty str spec_version": '{"_type": "signed", "spec_version": "", "version": 1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
+        "empty str spec_version": '{"_type": "snapshot", "spec_version": "", "version": 1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
         "_type wrong type": '{"_type": "foo", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
-        "version wrong type": '{"_type": "signed", "spec_version": "1.0.0", "version": "a", "expires": "2030-01-01T00:00:00Z", "meta": {}}',
-        "invalid spec_version str": '{"_type": "signed", "spec_version": "abc", "version": 1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
-        "non-number spec_version": '{"_type": "signed", "spec_version": "1.2.a", "version": 1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
-        "one part spec_version": '{"_type": "signed", "spec_version": "1", "version": 1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
-        "different major spec_version": '{"_type": "signed", "spec_version": "0.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
-        "version 0": '{"_type": "signed", "spec_version": "1.0.0", "version": 0, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
-        "version below 0": '{"_type": "signed", "spec_version": "1.0.0", "version": -1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
-        "wrong datetime string": '{"_type": "signed", "spec_version": "1.0.0", "version": 1, "expires": "abc", "meta": {}}',
+        "version wrong type": '{"_type": "snapshot", "spec_version": "1.0.0", "version": "a", "expires": "2030-01-01T00:00:00Z", "meta": {}}',
+        "invalid spec_version str": '{"_type": "snapshot", "spec_version": "abc", "version": 1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
+        "non-number spec_version": '{"_type": "snapshot", "spec_version": "1.2.a", "version": 1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
+        "one part spec_version": '{"_type": "snapshot", "spec_version": "1", "version": 1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
+        "different major spec_version": '{"_type": "snapshot", "spec_version": "0.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
+        "version 0": '{"_type": "snapshot", "spec_version": "1.0.0", "version": 0, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
+        "version below 0": '{"_type": "snapshot", "spec_version": "1.0.0", "version": -1, "expires": "2030-01-01T00:00:00Z", "meta": {}}',
+        "wrong datetime string": '{"_type": "snapshot", "spec_version": "1.0.0", "version": 1, "expires": "abc", "meta": {}}',
     }
 
     @utils.run_sub_tests_with_dataset(invalid_signed)
