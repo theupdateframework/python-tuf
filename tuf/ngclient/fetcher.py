@@ -90,6 +90,17 @@ class FetcherInterface:
         """Download bytes from given url
 
         Returns the downloaded bytes, otherwise like download_file()
+
+        Args:
+            url: a URL string that represents the location of the file.
+            max_length: upper bound of data size in bytes.
+
+        Raises:
+            exceptions.DownloadLengthMismatchError: downloaded bytes exceed
+                'max_length'.
+
+        Returns:
+            The content of the file in bytes.
         """
         with self.download_file(url, max_length) as dl_file:
             return dl_file.read()

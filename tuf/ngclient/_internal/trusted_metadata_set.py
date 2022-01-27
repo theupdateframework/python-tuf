@@ -150,6 +150,7 @@ class TrustedMetadataSet(abc.Mapping):
             data: unverified new root metadata as bytes
 
         Raises:
+            RuntimeError: This function is called after updating timestamp.
             RepositoryError: Metadata failed to load or verify. The actual
                 error type and content will contain more details.
 
@@ -198,6 +199,7 @@ class TrustedMetadataSet(abc.Mapping):
             data: unverified new timestamp metadata as bytes
 
         Raises:
+            RuntimeError: This function is called after updating snapshot.
             RepositoryError: Metadata failed to load or verify as final
                 timestamp. The actual error type and content will contain
                 more details.
@@ -281,6 +283,8 @@ class TrustedMetadataSet(abc.Mapping):
                 match data. Default is False.
 
         Raises:
+            RuntimeError: This function is called before updating timestamp
+                or after updating targets.
             RepositoryError: data failed to load or verify as final snapshot.
                 The actual error type and content will contain more details.
 
@@ -385,6 +389,7 @@ class TrustedMetadataSet(abc.Mapping):
             delegator_name: The name of the role delegating to the new metadata
 
         Raises:
+            RuntimeError: This function is called before updating snapshot.
             RepositoryError: Metadata failed to load or verify. The actual
                 error type and content will contain more details.
 
