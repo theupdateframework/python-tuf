@@ -57,14 +57,6 @@ Example of loading root, timestamp and snapshot:
 >>>     # (RepositoryErrors here stop the update)
 >>>     with download(Snapshot.type, version) as f:
 >>>         trusted_set.update_snapshot(f.read())
-
-TODO:
- * exceptions are not final: the idea is that client could just handle
-   a generic RepositoryError that covers every issue that server provided
-   metadata could inflict (other errors would be user errors), but this is not
-   yet the case
- * Progress through Specification update process should be documented
-   (not sure yet how: maybe a spec_logger that logs specification events?)
 """
 
 import logging
