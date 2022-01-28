@@ -42,11 +42,16 @@ class TestSerialization(unittest.TestCase):
             { "_type": "timestamp", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
             "meta": {"snapshot.json": {"hashes": {"sha256" : "abc"}, "version": 1}}} \
         }',
+        "non unique duplicating signatures": b'{"signed": \
+                { "_type": "timestamp", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
+                "meta": {"snapshot.json": {"hashes": {"sha256" : "abc"}, "version": 1}}}, \
+            "signatures": [{"keyid": "id", "sig": "b"}, {"keyid": "id", "sig": "b"}] \
+        }',
     }
 
     @utils.run_sub_tests_with_dataset(invalid_metadata)
     def test_invalid_metadata_serialization(self, test_data: bytes) -> None:
-        # We expect a DeserializationError reraised from KeyError.
+        # We expect a DeserializationError reraised from ValueError or KeyError.
         with self.assertRaises(DeserializationError):
             Metadata.from_bytes(test_data)
 
