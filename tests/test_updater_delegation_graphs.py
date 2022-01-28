@@ -32,7 +32,7 @@ class TestDelegation:
     keyids: List[str] = field(default_factory=list)
     threshold: int = 1
     terminating: bool = False
-    paths: List[str] = field(default_factory=lambda: ["*"])
+    paths: Optional[List[str]] = field(default_factory=lambda: ["*"])
     path_hash_prefixes: Optional[List[str]] = None
 
 
@@ -361,6 +361,69 @@ class TestDelegationsGraphs(TestDelegations):
         # assert that requested URLs are quoted without extension
         exp_calls = [(quoted[:-5], 1) for quoted in roles_to_filenames.values()]
         self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
+
+    hash_bins_graph: utils.DataSet = {
+        "delegations": DelegationsTestCase(
+            delegations=[
+                TestDelegation(
+                    "targets",
+                    "role1",
+                    paths=None,
+                    path_hash_prefixes=["8", "9", "a", "b"],
+                ),
+                TestDelegation(
+                    "targets",
+                    "role2",
+                    paths=None,
+                    path_hash_prefixes=["0", "1", "2", "3"],
+                ),
+                TestDelegation(
+                    "targets",
+                    "role3",
+                    paths=None,
+                    path_hash_prefixes=["c", "d", "e", "f"],
+                ),
+            ],
+            visited_order=["role1", "role2", "role3"],
+        ),
+    }
+
+    @utils.run_sub_tests_with_dataset(hash_bins_graph)
+    def test_hash_bins_graph_traversal(
+        self, test_data: DelegationsTestCase
+    ) -> None:
+        """Test that delegated roles are traversed in the order of appearance
+        in the delegator's metadata, using pre-order depth-first search and that
+        they correctly reffer to the corresponding hash bin prefixes"""
+
+        try:
+            exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order]
+            exp_calls = [(role, 1) for role in test_data.visited_order]
+
+            self._init_repo(test_data)
+            self.setup_subtest()
+
+            updater = self._init_updater()
+            # Call explicitly refresh to simplify the expected_calls list
+            updater.refresh()
+            self.sim.fetch_tracker.metadata.clear()
+            # Check that metadata dir contains only top-level roles
+            self._assert_files_exist(TOP_LEVEL_ROLE_NAMES)
+
+            # Looking for a non-existing targetpath forces updater
+            # to visit a correspondning delegated role
+            targetfile = updater.get_targetinfo("missingpath")
+            self.assertIsNone(targetfile)
+            targetfile = updater.get_targetinfo("othermissingpath")
+            self.assertIsNone(targetfile)
+            targetfile = updater.get_targetinfo("thirdmissingpath")
+            self.assertIsNone(targetfile)
+            # Check that the delegated roles were visited in the expected
+            # order and the corresponding metadata files were persisted
+            self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
+            self._assert_files_exist(exp_files)
+        finally:
+            self.teardown_subtest()
 
 
 class TestTargetFileSearch(TestDelegations):
