@@ -60,7 +60,7 @@ class RequestsFetcher(FetcherInterface):
         Raises:
             exceptions.SlowRetrievalError: A timeout occurs while receiving
                 data.
-            exceptions.FetcherHTTPError: An HTTP error code is received.
+            exceptions.DownloadHTTPError: An HTTP error code is received.
 
         Returns:
             A bytes iterator
@@ -88,7 +88,7 @@ class RequestsFetcher(FetcherInterface):
         except requests.HTTPError as e:
             response.close()
             status = e.response.status_code
-            raise exceptions.FetcherHTTPError(str(e), status)
+            raise exceptions.DownloadHTTPError(str(e), status)
 
         return self._chunks(response)
 

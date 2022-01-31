@@ -31,7 +31,7 @@ class FetcherInterface:
     def _fetch(self, url: str) -> Iterator[bytes]:
         """Fetches the contents of HTTP/HTTPS url from a remote server.
 
-        Implementations must raise FetcherHTTPError if they receive an
+        Implementations must raise DownloadHTTPError if they receive an
         HTTP error code.
 
         Implementations may raise any errors but the ones that are not
@@ -41,7 +41,7 @@ class FetcherInterface:
             url: A URL string that represents a file location.
 
         Raises:
-            exceptions.FetcherHTTPError: An HTTP error code was received.
+            exceptions.DownloadHTTPError: An HTTP error code was received.
 
         Returns:
             A bytes iterator
@@ -56,7 +56,7 @@ class FetcherInterface:
 
         Raises:
             exceptions.DownloadError: An error occurred during download.
-            exceptions.FetcherHTTPError: An HTTP error code was received.
+            exceptions.DownloadHTTPError: An HTTP error code was received.
 
         Returns:
             A bytes iterator
@@ -84,7 +84,7 @@ class FetcherInterface:
             exceptions.DownloadError: An error occurred during download.
             exceptions.DownloadLengthMismatchError: downloaded bytes exceed
                 'max_length'.
-            exceptions.FetcherHTTPError: An HTTP error code was received.
+            exceptions.DownloadHTTPError: An HTTP error code was received.
 
         Yields:
             A TemporaryFile object that points to the contents of 'url'.
@@ -127,7 +127,7 @@ class FetcherInterface:
             exceptions.DownloadError: An error occurred during download.
             exceptions.DownloadLengthMismatchError: downloaded bytes exceed
                 'max_length'.
-            exceptions.FetcherHTTPError: An HTTP error code was received.
+            exceptions.DownloadHTTPError: An HTTP error code was received.
 
         Returns:
             The content of the file in bytes.

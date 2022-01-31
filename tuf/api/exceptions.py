@@ -52,7 +52,7 @@ class SlowRetrievalError(DownloadError):
     """Indicate that downloading a file took an unreasonably long time."""
 
 
-class FetcherHTTPError(DownloadError):
+class DownloadHTTPError(DownloadError):
     """
     Returned by FetcherInterface implementations for HTTP errors.
 

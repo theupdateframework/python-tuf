@@ -101,7 +101,7 @@ class TestFetcher(unittest.TestCase):
 
     # File not found error
     def test_http_error(self) -> None:
-        with self.assertRaises(exceptions.FetcherHTTPError) as cm:
+        with self.assertRaises(exceptions.DownloadHTTPError) as cm:
             self.url = f"{self.url_prefix}/non-existing-path"
             self.fetcher.fetch(self.url)
         self.assertEqual(cm.exception.status_code, 404)
