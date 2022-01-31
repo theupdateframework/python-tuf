@@ -51,7 +51,7 @@ class RequestsFetcher(FetcherInterface):
         self.socket_timeout: int = 4  # seconds
         self.chunk_size: int = 400000  # bytes
 
-    def fetch(self, url: str) -> Iterator[bytes]:
+    def _fetch(self, url: str) -> Iterator[bytes]:
         """Fetches the contents of HTTP/HTTPS url from a remote server
 
         Arguments:
@@ -61,7 +61,6 @@ class RequestsFetcher(FetcherInterface):
             exceptions.SlowRetrievalError: A timeout occurs while receiving
                 data.
             exceptions.FetcherHTTPError: An HTTP error code is received.
-            exceptions.DownloadError: When there is a problem parsing the url.
 
         Returns:
             A bytes iterator

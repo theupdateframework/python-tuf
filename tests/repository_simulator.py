@@ -205,7 +205,7 @@ class RepositorySimulator(FetcherInterface):
         self.signed_roots.append(self.md_root.to_bytes(JSONSerializer()))
         logger.debug("Published root v%d", self.root.version)
 
-    def fetch(self, url: str) -> Iterator[bytes]:
+    def _fetch(self, url: str) -> Iterator[bytes]:
         """Fetches data from the given url and returns an Iterator (or yields
         bytes).
         """

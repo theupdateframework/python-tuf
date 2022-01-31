@@ -28,6 +28,26 @@ class FetcherInterface:
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
+    def _fetch(self, url: str) -> Iterator[bytes]:
+        """Fetches the contents of HTTP/HTTPS url from a remote server.
+
+        Implementations must raise FetcherHTTPError if they receive an
+        HTTP error code.
+
+        Implementations may raise any errors but the ones that are not
+        DownloadErrors will be wrapped in a DownloadError by fetch().
+
+        Arguments:
+            url: A URL string that represents a file location.
+
+        Raises:
+            exceptions.FetcherHTTPError: An HTTP error code was received.
+
+        Returns:
+            A bytes iterator
+        """
+        raise NotImplementedError  # pragma: no cover
+
     def fetch(self, url: str) -> Iterator[bytes]:
         """Fetches the contents of HTTP/HTTPS url from a remote server.
 
@@ -35,14 +55,20 @@ class FetcherInterface:
             url: A URL string that represents a file location.
 
         Raises:
-            exceptions.SlowRetrievalError: A timeout occurs while receiving
-                data.
-            exceptions.FetcherHTTPError: An HTTP error code is received.
+            exceptions.DownloadError: An error occurred during download.
+            exceptions.FetcherHTTPError: An HTTP error code was received.
 
         Returns:
             A bytes iterator
         """
-        raise NotImplementedError  # pragma: no cover
+        # Ensure that fetch() only raises DownloadErrors, regardless of the
+        # fetcher implementation
+        try:
+            return self._fetch(url)
+        except Exception as e:
+            if isinstance(e, exceptions.DownloadError):
+                raise e
+            raise exceptions.DownloadError(f"Failed to download {url}") from e
 
     @contextmanager
     def download_file(self, url: str, max_length: int) -> Iterator[IO]:
@@ -50,16 +76,18 @@ class FetcherInterface:
         up to 'max_length'.
 
         Args:
-          url: a URL string that represents the location of the file.
-          max_length: an integer value representing the length of
-              the file or an upper bound.
+            url: a URL string that represents the location of the file.
+            max_length: an integer value representing the length of
+                the file or an upper bound.
 
         Raises:
-          exceptions.DownloadLengthMismatchError: downloaded bytes exceed
-            'max_length'.
+            exceptions.DownloadError: An error occurred during download.
+            exceptions.DownloadLengthMismatchError: downloaded bytes exceed
+                'max_length'.
+            exceptions.FetcherHTTPError: An HTTP error code was received.
 
         Yields:
-          A TemporaryFile object that points to the contents of 'url'.
+            A TemporaryFile object that points to the contents of 'url'.
         """
         logger.debug("Downloading: %s", url)
 
@@ -96,8 +124,10 @@ class FetcherInterface:
             max_length: upper bound of data size in bytes.
 
         Raises:
+            exceptions.DownloadError: An error occurred during download.
             exceptions.DownloadLengthMismatchError: downloaded bytes exceed
                 'max_length'.
+            exceptions.FetcherHTTPError: An HTTP error code was received.
 
         Returns:
             The content of the file in bytes.
