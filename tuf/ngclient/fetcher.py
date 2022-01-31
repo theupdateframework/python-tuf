@@ -77,8 +77,7 @@ class FetcherInterface:
 
         Args:
             url: a URL string that represents the location of the file.
-            max_length: an integer value representing the length of
-                the file or an upper bound.
+            max_length: upper bound of file size in bytes.
 
         Raises:
             exceptions.DownloadError: An error occurred during download.
