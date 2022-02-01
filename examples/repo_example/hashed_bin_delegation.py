@@ -74,7 +74,7 @@ PREFIX_LEN = len(f"{(NUMBER_OF_BINS - 1):x}")  # ... 2.
 # Compared to decimal, hexadecimal numbers can express higher numbers with
 # fewer digits and thus further decrease metadata sizes. With the above prefix
 # length of 2 we can represent at most ...
-NUMBER_OF_PREFIXES = 16 ** PREFIX_LEN  # ... 256 prefixes, i.e. 00, 01, ..., ff.
+NUMBER_OF_PREFIXES = 16**PREFIX_LEN  # ... 256 prefixes, i.e. 00, 01, ..., ff.
 #
 # If the number of bins is a power of two, hash prefixes are evenly distributed
 # over all bins, which allows to calculate the uniform size of ...
