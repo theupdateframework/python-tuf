@@ -121,7 +121,7 @@ class Metadata(Generic[T]):
     def from_dict(cls, metadata: Dict[str, Any]) -> "Metadata[T]":
         """Creates ``Metadata`` object from its dict representation.
 
-        Arguments:
+        Args:
             metadata: TUF metadata in dict representation.
 
         Raises:
@@ -173,15 +173,14 @@ class Metadata(Generic[T]):
     ) -> "Metadata[T]":
         """Loads TUF metadata from file storage.
 
-        Arguments:
+        Args:
             filename: The path to read the file from.
             deserializer: A ``MetadataDeserializer`` subclass instance that
                 implements the desired wireline format deserialization. Per
                 default a ``JSONDeserializer`` is used.
             storage_backend: An object that implements
                 ``securesystemslib.storage.StorageBackendInterface``.
-                Per default a (local) ``FilesystemBackend`` is used.
-
+                Default is ``FilesystemBackend`` (i.e. a local file).
         Raises:
             exceptions.StorageError: The file cannot be read.
             tuf.api.serialization.DeserializationError:
@@ -205,7 +204,7 @@ class Metadata(Generic[T]):
     ) -> "Metadata[T]":
         """Loads TUF metadata from raw data.
 
-        Arguments:
+        Args:
             data: metadata content.
             deserializer: ``MetadataDeserializer`` implementation to use.
                 Default is ``JSONDeserializer``.
@@ -239,7 +238,7 @@ class Metadata(Generic[T]):
         hashes are used in other metadata), the original content should be used
         instead of re-serializing.
 
-        Arguments:
+        Args:
             serializer: A ``MetadataSerializer`` instance that implements the
                 desired serialization format. Default is ``JSONSerializer``.
 
@@ -279,7 +278,7 @@ class Metadata(Generic[T]):
         hashes are used in other metadata), the original file should be used
         instead of re-serializing.
 
-        Arguments:
+        Args:
             filename: The path to write the file to.
             serializer: A ``MetadataSerializer`` instance that implements the
                 desired serialization format. Default is ``JSONSerializer``.
@@ -307,9 +306,9 @@ class Metadata(Generic[T]):
     ) -> Signature:
         """Creates signature over ``signed`` and assigns it to ``signatures``.
 
-        Arguments:
+        Args:
             signer: A securesystemslib.signer.Signer implementation.
-            append: A boolean indicating if the signature should be appended to
+            append: ``True`` if the signature should be appended to
                 the list of signatures or replace any existing signatures. The
                 default behavior is to replace signatures.
             signed_serializer: A ``SignedSerializer`` that implements the desired
@@ -637,7 +636,7 @@ class Key:
         """Verifies that the ``metadata.signatures`` contains a signature made
         with this key, correctly signing ``metadata.signed``.
 
-        Arguments:
+        Args:
             metadata: Metadata to verify
             signed_serializer: ``SignedSerializer`` to serialize
                 ``metadata.signed`` with. Default is ``CanonicalJSONSerializer``.
@@ -830,7 +829,7 @@ class Root(Signed):
 
         Args:
             role: The name of the role, for which a signing key is removed.
-            key: The identifier of the key to be removed for ``role``.
+            keyid: The identifier of the key to be removed for ``role``.
 
         Raises:
             ValueError: If ``role`` doesn't exist or if ``role`` doesn't include
@@ -923,7 +922,7 @@ class MetaFile(BaseFile):
 
     Args:
         version: Version of the metadata file.
-        length: Length of the metadata file.
+        length: Length of the metadata file in bytes.
         hashes: Dictionary of hash algorithm names to hashes of the metadata
             file content.
         unrecognized_fields: Dictionary of all unrecognized fields.
@@ -1206,8 +1205,8 @@ class DelegatedRole(Role):
 
     @staticmethod
     def _is_target_in_pathpattern(targetpath: str, pathpattern: str) -> bool:
-        """Determines whether ``targetname`` matches the ``pathpattern``."""
-        # We need to make sure that targetname and pathpattern are pointing to
+        """Determines whether ``targetpath`` matches the ``pathpattern``."""
+        # We need to make sure that targetpath and pathpattern are pointing to
         # the same directory as fnmatch doesn't threat "/" as a special symbol.
         target_parts = targetpath.split("/")
         pattern_parts = pathpattern.split("/")
@@ -1332,7 +1331,7 @@ class TargetFile(BaseFile):
     instance attributes.*
 
     Args:
-        length: Length in bytes.
+        length: Length of the target file in bytes.
         hashes: A dictionary of hash algorithm names to hashes of the target
             file content.
         path: URL path to a target file, relative to a base targets URL.
@@ -1394,7 +1393,7 @@ class TargetFile(BaseFile):
     ) -> "TargetFile":
         """Creates ``TargetFile`` object from a file.
 
-        Arguments:
+        Args:
             target_file_path: URL path to a target file, relative to a base
                 targets URL.
             local_path: The local path to target file content.
@@ -1417,7 +1416,7 @@ class TargetFile(BaseFile):
     ) -> "TargetFile":
         """Creates ``TargetFile`` object from bytes.
 
-        Arguments:
+        Args:
             target_file_path: URL path to a target file, relative to a base
                 targets URL.
             data: The target file content.
@@ -1462,7 +1461,7 @@ class TargetFile(BaseFile):
         """Verifies that length and hashes of ``data`` match expected values.
 
         Args:
-            data: File object or its content in bytes.
+            data: Target file object or its content in bytes.
 
         Raises:
             LengthOrHashMismatchError: Calculated length or hashes do not
@@ -1567,7 +1566,7 @@ class Targets(Signed):
 
         Args:
             role: The name of the role, for which a signing key is removed.
-            key: The identifier of the key to be removed for ``role``.
+            keyid: The identifier of the key to be removed for ``role``.
 
         Raises:
             ValueError: If there are no delegated roles or if ``role`` is not
