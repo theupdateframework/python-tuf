@@ -107,9 +107,9 @@ class Metadata(Generic[T]):
     instance attributes.*
 
     Args:
-        signed: The actual metadata payload, i.e. one of ``Targets``,
+        signed: Actual metadata payload, i.e. one of ``Targets``,
             ``Snapshot``, ``Timestamp`` or ``Root``.
-        signatures: An ordered dictionary of keyids to ``Signature`` objects, each
+        signatures: Ordered dictionary of keyids to ``Signature`` objects, each
             signing the canonical serialized representation of ``signed``.
     """
 
@@ -131,7 +131,7 @@ class Metadata(Generic[T]):
             Destroys the metadata dict passed by reference.
 
         Returns:
-            A TUF ``Metadata`` object.
+            TUF ``Metadata`` object.
         """
 
         # Dispatch to contained metadata class on metadata _type field.
@@ -174,11 +174,11 @@ class Metadata(Generic[T]):
         """Loads TUF metadata from file storage.
 
         Args:
-            filename: The path to read the file from.
-            deserializer: A ``MetadataDeserializer`` subclass instance that
+            filename: Path to read the file from.
+            deserializer: ``MetadataDeserializer`` subclass instance that
                 implements the desired wireline format deserialization. Per
                 default a ``JSONDeserializer`` is used.
-            storage_backend: An object that implements
+            storage_backend: Object that implements
                 ``securesystemslib.storage.StorageBackendInterface``.
                 Default is ``FilesystemBackend`` (i.e. a local file).
         Raises:
@@ -187,7 +187,7 @@ class Metadata(Generic[T]):
                 The file cannot be deserialized.
 
         Returns:
-            A TUF ``Metadata`` object.
+            TUF ``Metadata`` object.
         """
 
         if storage_backend is None:
@@ -205,7 +205,7 @@ class Metadata(Generic[T]):
         """Loads TUF metadata from raw data.
 
         Args:
-            data: metadata content.
+            data: Metadata content.
             deserializer: ``MetadataDeserializer`` implementation to use.
                 Default is ``JSONDeserializer``.
 
@@ -214,7 +214,7 @@ class Metadata(Generic[T]):
                 The file cannot be deserialized.
 
         Returns:
-            A TUF ``Metadata`` object.
+            TUF ``Metadata`` object.
         """
 
         if deserializer is None:
@@ -239,7 +239,7 @@ class Metadata(Generic[T]):
         instead of re-serializing.
 
         Args:
-            serializer: A ``MetadataSerializer`` instance that implements the
+            serializer: ``MetadataSerializer`` instance that implements the
                 desired serialization format. Default is ``JSONSerializer``.
 
         Raises:
@@ -279,10 +279,10 @@ class Metadata(Generic[T]):
         instead of re-serializing.
 
         Args:
-            filename: The path to write the file to.
-            serializer: A ``MetadataSerializer`` instance that implements the
+            filename: Path to write the file to.
+            serializer: ``MetadataSerializer`` instance that implements the
                 desired serialization format. Default is ``JSONSerializer``.
-            storage_backend: A ``StorageBackendInterface`` implementation. Default
+            storage_backend: ``StorageBackendInterface`` implementation. Default
                 is ``FilesystemBackend`` (i.e. a local file).
 
         Raises:
@@ -307,11 +307,11 @@ class Metadata(Generic[T]):
         """Creates signature over ``signed`` and assigns it to ``signatures``.
 
         Args:
-            signer: A securesystemslib.signer.Signer implementation.
+            signer: ``securesystemslib.signer.Signer`` implementation.
             append: ``True`` if the signature should be appended to
                 the list of signatures or replace any existing signatures. The
                 default behavior is to replace signatures.
-            signed_serializer: A ``SignedSerializer`` that implements the desired
+            signed_serializer: ``SignedSerializer`` that implements the desired
                 serialization format. Default is ``CanonicalJSONSerializer``.
 
         Raises:
@@ -320,7 +320,8 @@ class Metadata(Generic[T]):
             exceptions.UnsignedMetadataError: Signing errors.
 
         Returns:
-            ``securesystemslib.signer.Signature`` object that was added into signatures.
+            ``securesystemslib.signer.Signature`` object that was added into
+            signatures.
         """
 
         if signed_serializer is None:
@@ -357,8 +358,8 @@ class Metadata(Generic[T]):
 
         Args:
             delegated_role: Name of the delegated role to verify
-            delegated_metadata: The ``Metadata`` object for the delegated role
-            signed_serializer: serializer used for delegate
+            delegated_metadata: ``Metadata`` object for the delegated role
+            signed_serializer: Serializer used for delegate
                 serialization. Default is ``CanonicalJSONSerializer``.
 
         Raises:
@@ -411,9 +412,9 @@ class Signed(metaclass=abc.ABCMeta):
     instance attributes.*
 
     Args:
-        version: The metadata version number.
-        spec_version: The supported TUF specification version number.
-        expires: The metadata expiry date.
+        version: Metadata version number.
+        spec_version: Supported TUF specification version number.
+        expires: Metadata expiry date.
         unrecognized_fields: Dictionary of all unrecognized fields.
 
     Raises:
@@ -524,7 +525,7 @@ class Signed(metaclass=abc.ABCMeta):
         """Checks metadata expiration against a reference time.
 
         Args:
-            reference_time: The time to check expiration date against. A naive
+            reference_time: Time to check expiration date against. A naive
                 datetime in UTC expected. Default is current UTC date and time.
 
         Returns:
@@ -549,8 +550,8 @@ class Key:
         keyid: Key identifier that is unique within the metadata it is used in.
             Keyid is not verified to be the hash of a specific representation
             of the key.
-        keytype: key type, e.g. "rsa", "ed25519" or "ecdsa-sha2-nistp256".
-        scheme: signature scheme. For example:
+        keytype: Key type, e.g. "rsa", "ed25519" or "ecdsa-sha2-nistp256".
+        scheme: Signature scheme. For example:
             "rsassa-pss-sha256", "ed25519", and "ecdsa-sha2-nistp256".
         keyval: Opaque key content
         unrecognized_fields: Dictionary of all unrecognized fields.
@@ -614,7 +615,7 @@ class Key:
         removing the private key from keyval.
 
         Args:
-            key_dict: A key in securesystemlib dict representation.
+            key_dict: Key in securesystemlib dict representation.
         """
         key_meta = sslib_keys.format_keyval_to_metadata(
             key_dict["keytype"],
@@ -687,7 +688,7 @@ class Role:
     instance attributes.*
 
     Args:
-        keyids: The roles signing key identifiers.
+        keyids: Roles signing key identifiers.
         threshold: Number of keys required to sign this role's metadata.
         unrecognized_fields: Dictionary of all unrecognized fields.
 
@@ -736,9 +737,9 @@ class Root(Signed):
     Parameters listed below are also instance attributes.
 
     Args:
-        version: The metadata version number.
-        spec_version: The supported TUF specification version number.
-        expires: The metadata expiry date.
+        version: Metadata version number.
+        spec_version: Supported TUF specification version number.
+        expires: Metadata expiry date.
         keys: Dictionary of keyids to Keys. Defines the keys used in ``roles``.
         roles: Dictionary of role names to Roles. Defines which keys are
             required to sign the metadata for a specific role.
@@ -812,8 +813,8 @@ class Root(Signed):
         """Adds new signing key for delegated role ``role``.
 
         Args:
-            role: The name of the role, for which ``key`` is added.
-            key: The signing key to be added for ``role``.
+            role: Name of the role, for which ``key`` is added.
+            key: Signing key to be added for ``role``.
 
         Raises:
             ValueError: If ``role`` doesn't exist.
@@ -828,8 +829,8 @@ class Root(Signed):
         """Removes key from ``role`` and updates the key store.
 
         Args:
-            role: The name of the role, for which a signing key is removed.
-            keyid: The identifier of the key to be removed for ``role``.
+            role: Name of the role, for which a signing key is removed.
+            keyid: Identifier of the key to be removed for ``role``.
 
         Raises:
             ValueError: If ``role`` doesn't exist or if ``role`` doesn't include
@@ -1007,9 +1008,9 @@ class Timestamp(Signed):
     instance attributes.*
 
     Args:
-        version: The metadata version number.
-        spec_version: The supported TUF specification version number.
-        expires: The metadata expiry date.
+        version: Metadata version number.
+        spec_version: Supported TUF specification version number.
+        expires: Metadata expiry date.
         unrecognized_fields: Dictionary of all unrecognized fields.
         snapshot_meta: Meta information for snapshot metadata.
 
@@ -1059,11 +1060,11 @@ class Snapshot(Signed):
     instance attributes.*
 
     Args:
-        version: The metadata version number.
-        spec_version: The supported TUF specification version number.
-        expires: The metadata expiry date.
+        version: Metadata version number.
+        spec_version: Supported TUF specification version number.
+        expires: Metadata expiry date.
         unrecognized_fields: Dictionary of all unrecognized fields.
-        meta: A dictionary of target metadata filenames to ``MetaFile`` objects.
+        meta: Dictionary of target metadata filenames to ``MetaFile`` objects.
 
     Raises:
         ValueError: Invalid arguments.
@@ -1332,7 +1333,7 @@ class TargetFile(BaseFile):
 
     Args:
         length: Length of the target file in bytes.
-        hashes: A dictionary of hash algorithm names to hashes of the target
+        hashes: Dictionary of hash algorithm names to hashes of the target
             file content.
         path: URL path to a target file, relative to a base targets URL.
         unrecognized_fields: Dictionary of all unrecognized fields.
@@ -1396,8 +1397,8 @@ class TargetFile(BaseFile):
         Args:
             target_file_path: URL path to a target file, relative to a base
                 targets URL.
-            local_path: The local path to target file content.
-            hash_algorithms: hash algorithms to calculate hashes with. If not
+            local_path: Local path to target file content.
+            hash_algorithms: Hash algorithms to calculate hashes with. If not
                 specified the securesystemslib default hash algorithm is used.
         Raises:
             FileNotFoundError: The file doesn't exist.
@@ -1419,7 +1420,7 @@ class TargetFile(BaseFile):
         Args:
             target_file_path: URL path to a target file, relative to a base
                 targets URL.
-            data: The target file content.
+            data: Target file content.
             hash_algorithms: Hash algorithms to create the hashes with. If not
                 specified the securesystemslib default hash algorithm is used.
 
@@ -1481,10 +1482,10 @@ class Targets(Signed):
     instance attributes.*
 
     Args:
-        version: The metadata version number.
-        spec_version: The supported TUF specification version number.
-        expires: The metadata expiry date.
-        targets: A dictionary of target filenames to TargetFiles
+        version: Metadata version number.
+        spec_version: Supported TUF specification version number.
+        expires: Metadata expiry date.
+        targets: Dictionary of target filenames to TargetFiles
         delegations: Defines how this Targets delegates responsibility to other
             Targets Metadata files.
         unrecognized_fields: Dictionary of all unrecognized fields.
@@ -1547,8 +1548,8 @@ class Targets(Signed):
         """Adds new signing key for delegated role ``role``.
 
         Args:
-            role: The name of the role, for which ``key`` is added.
-            key: The signing key to be added for ``role``.
+            role: Name of the role, for which ``key`` is added.
+            key: Signing key to be added for ``role``.
 
         Raises:
             ValueError: If there are no delegated roles or if ``role`` is not
@@ -1565,8 +1566,8 @@ class Targets(Signed):
         key store.
 
         Args:
-            role: The name of the role, for which a signing key is removed.
-            keyid: The identifier of the key to be removed for ``role``.
+            role: Name of the role, for which a signing key is removed.
+            keyid: Identifier of the key to be removed for ``role``.
 
         Raises:
             ValueError: If there are no delegated roles or if ``role`` is not
