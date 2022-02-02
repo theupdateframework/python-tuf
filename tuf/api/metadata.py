@@ -307,7 +307,7 @@ class Metadata(Generic[T]):
         """Creates signature over ``signed`` and assigns it to ``signatures``.
 
         Args:
-            signer: ``securesystemslib.signer.Signer`` implementation.
+            signer: A securesystemslib.signer.Signer implementation.
             append: ``True`` if the signature should be appended to
                 the list of signatures or replace any existing signatures. The
                 default behavior is to replace signatures.
@@ -415,7 +415,8 @@ class Signed(metaclass=abc.ABCMeta):
         version: Metadata version number.
         spec_version: Supported TUF specification version number.
         expires: Metadata expiry date.
-        unrecognized_fields: Dictionary of all unrecognized fields.
+        unrecognized_fields: Dictionary of all attributes that are not managed
+            by TUF Metadata API
 
     Raises:
         ValueError: Invalid arguments.
@@ -554,7 +555,8 @@ class Key:
         scheme: Signature scheme. For example:
             "rsassa-pss-sha256", "ed25519", and "ecdsa-sha2-nistp256".
         keyval: Opaque key content
-        unrecognized_fields: Dictionary of all unrecognized fields.
+        unrecognized_fields: Dictionary of all attributes that are not managed
+            by TUF Metadata API
 
     Raises:
         TypeError: Invalid type for an argument.
@@ -690,7 +692,8 @@ class Role:
     Args:
         keyids: Roles signing key identifiers.
         threshold: Number of keys required to sign this role's metadata.
-        unrecognized_fields: Dictionary of all unrecognized fields.
+        unrecognized_fields: Dictionary of all attributes that are not managed
+            by TUF Metadata API
 
     Raises:
         ValueError: Invalid arguments.
@@ -744,7 +747,8 @@ class Root(Signed):
         roles: Dictionary of role names to Roles. Defines which keys are
             required to sign the metadata for a specific role.
         consistent_snapshot: ``True`` if repository supports consistent snapshots.
-        unrecognized_fields: Dictionary of all unrecognized fields.
+        unrecognized_fields: Dictionary of all attributes that are not managed
+            by TUF Metadata API
 
     Raises:
         ValueError: Invalid arguments.
@@ -926,7 +930,8 @@ class MetaFile(BaseFile):
         length: Length of the metadata file in bytes.
         hashes: Dictionary of hash algorithm names to hashes of the metadata
             file content.
-        unrecognized_fields: Dictionary of all unrecognized fields.
+        unrecognized_fields: Dictionary of all attributes that are not managed
+            by TUF Metadata API
 
     Raises:
         ValueError, TypeError: Invalid arguments.
@@ -1011,7 +1016,8 @@ class Timestamp(Signed):
         version: Metadata version number.
         spec_version: Supported TUF specification version number.
         expires: Metadata expiry date.
-        unrecognized_fields: Dictionary of all unrecognized fields.
+        unrecognized_fields: Dictionary of all attributes that are not managed
+            by TUF Metadata API
         snapshot_meta: Meta information for snapshot metadata.
 
     Raises:
@@ -1063,7 +1069,8 @@ class Snapshot(Signed):
         version: Metadata version number.
         spec_version: Supported TUF specification version number.
         expires: Metadata expiry date.
-        unrecognized_fields: Dictionary of all unrecognized fields.
+        unrecognized_fields: Dictionary of all attributes that are not managed
+            by TUF Metadata API
         meta: Dictionary of target metadata filenames to ``MetaFile`` objects.
 
     Raises:
@@ -1131,7 +1138,8 @@ class DelegatedRole(Role):
         terminating: ``True`` if this delegation terminates a target lookup.
         paths: Path patterns. See note above.
         path_hash_prefixes: Hash prefixes. See note above.
-        unrecognized_fields: Attributes not managed by TUF Metadata API.
+        unrecognized_fields: Dictionary of all attributes that are not managed
+            by TUF Metadata API
 
     Raises:
         ValueError: Invalid arguments.
@@ -1270,7 +1278,8 @@ class Delegations:
             defines which keys are required to sign the metadata for a specific
             role. The roles order also defines the order that role delegations
             are considered during target searches.
-        unrecognized_fields: Dictionary of all unrecognized fields.
+        unrecognized_fields: Dictionary of all attributes that are not managed
+            by TUF Metadata API
 
     Raises:
         ValueError: Invalid arguments.
@@ -1336,7 +1345,8 @@ class TargetFile(BaseFile):
         hashes: Dictionary of hash algorithm names to hashes of the target
             file content.
         path: URL path to a target file, relative to a base targets URL.
-        unrecognized_fields: Dictionary of all unrecognized fields.
+        unrecognized_fields: Dictionary of all attributes that are not managed
+            by TUF Metadata API
 
     Raises:
         ValueError, TypeError: Invalid arguments.
@@ -1488,7 +1498,8 @@ class Targets(Signed):
         targets: Dictionary of target filenames to TargetFiles
         delegations: Defines how this Targets delegates responsibility to other
             Targets Metadata files.
-        unrecognized_fields: Dictionary of all unrecognized fields.
+        unrecognized_fields: Dictionary of all attributes that are not managed
+            by TUF Metadata API
 
     Raises:
         ValueError: Invalid arguments.
