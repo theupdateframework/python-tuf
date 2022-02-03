@@ -6,11 +6,11 @@
 """Test ngclient Updater top-level metadata update workflow"""
 
 import builtins
+import datetime
 import os
 import sys
 import tempfile
 import unittest
-from datetime import datetime, timedelta
 from typing import Iterable, Optional
 from unittest.mock import MagicMock, Mock, call, patch
 
@@ -43,7 +43,9 @@ class TestRefresh(unittest.TestCase):
     # set dump_dir to trigger repository state dumps
     dump_dir: Optional[str] = None
 
-    past_datetime = datetime.utcnow().replace(microsecond=0) - timedelta(days=5)
+    past_datetime = datetime.datetime.utcnow().replace(
+        microsecond=0
+    ) - datetime.timedelta(days=5)
 
     def setUp(self) -> None:
         # pylint: disable=consider-using-with
@@ -306,32 +308,32 @@ class TestRefresh(unittest.TestCase):
 
         self._assert_files_exist([Root.type])
 
-    def test_expired_timestamp_version_rollback(self) -> None:
+    @patch.object(datetime, "datetime", wraps=datetime.datetime)
+    def test_expired_timestamp_version_rollback(self, mock_time: Mock) -> None:
         self._run_refresh()
 
-        mock_time = Mock()
-        mock_time.return_value = (
-            int(self.sim.timestamp.expires.strftime("%Y%m%d%H%M%S")) + 1
+        mock_time.utcnow.return_value = (
+            datetime.datetime.utcnow() + datetime.timedelta(seconds=1)
         )
-        with patch("time.time", mock_time):
+        with patch("datetime.datetime", mock_time):
             # Check for a rollback attack
             self.sim.timestamp.version = 2
             self._run_refresh()
 
             self.sim.timestamp.version = 1
-            with self.assertRaises(ReplayedMetadataError):
+            with self.assertRaises(BadVersionNumberError):
                 self._run_refresh()
 
             self._assert_version_equals(Timestamp.type, 2)
 
-    def test_expired_timestamp_snapshot_rollback(self) -> None:
+    @patch.object(datetime, "datetime", wraps=datetime.datetime)
+    def test_expired_timestamp_snapshot_rollback(self, mock_time: Mock) -> None:
         self._run_refresh()
 
-        mock_time = Mock()
-        mock_time.return_value = (
-            int(self.sim.timestamp.expires.strftime("%Y%m%d%H%M%S")) + 1
+        mock_time.utcnow.return_value = (
+            datetime.datetime.utcnow() + datetime.timedelta(seconds=1)
         )
-        with patch("time.time", mock_time):
+        with patch("datetime.datetime", mock_time):
             # Check for a rollback attack.
             self.sim.snapshot.version = 2
             self.sim.update_timestamp()  # timestamp v2
@@ -341,7 +343,7 @@ class TestRefresh(unittest.TestCase):
             self.sim.timestamp.snapshot_meta.version = 1
             self.sim.timestamp.version += 1  # timestamp v3
 
-            with self.assertRaises(ReplayedMetadataError):
+            with self.assertRaises(BadVersionNumberError):
                 self._run_refresh()
 
             self._assert_version_equals(Timestamp.type, 2)
@@ -419,7 +421,7 @@ class TestRefresh(unittest.TestCase):
 
         # Modify snapshot contents without updating
         # timestamp's snapshot hash
-        self.sim.snapshot.expires += timedelta(days=1)
+        self.sim.snapshot.expires += datetime.timedelta(days=1)
         self.sim.snapshot.version += 1  # snapshot v2
         self.sim.timestamp.snapshot_meta.version = self.sim.snapshot.version
         self.sim.timestamp.version += 1  # timestamp v3
@@ -702,7 +704,8 @@ class TestRefresh(unittest.TestCase):
         expected_calls = [("root", 2), ("timestamp", None)]
         self.assertListEqual(self.sim.fetch_tracker.metadata, expected_calls)
 
-    def test_expired_metadata(self) -> None:
+    @patch.object(datetime, "datetime", wraps=datetime.datetime)
+    def test_expired_metadata(self, mock_time: Mock) -> None:
         # Test that expired local timestamp/snapshot can be used for updating
         # from remote
 
@@ -710,16 +713,15 @@ class TestRefresh(unittest.TestCase):
         self._run_refresh()
 
         # Simulate expired local metadata by mocking system time one second ahead
-        mock_time = Mock()
-        mock_time.return_value = (
-            int(self.sim.timestamp.expires.strftime("%Y%m%d%H%M%S")) + 1
+        mock_time.utcnow.return_value = (
+            datetime.datetime.utcnow() + datetime.timedelta(seconds=1)
         )
-        with patch("time.time", mock_time):
+        with patch("datetime.datetime", mock_time):
             self.sim.targets.version += 1
             self.sim.update_snapshot()
-            # Create a new updater and perform a second update while
-            # the metadata is already stored in cache (metadata dir)
-            self._run_refresh()
+        # Create a new updater and perform a second update while
+        # the metadata is already stored in cache (metadata dir)
+        self._run_refresh()
 
         # Assert that the final version of timestamp/snapshot is version 2
         # which means a successful refresh is performed
