@@ -65,9 +65,9 @@ class FetcherInterface:
         # fetcher implementation
         try:
             return self._fetch(url)
+        except exceptions.DownloadError as e:
+            raise e
         except Exception as e:
-            if isinstance(e, exceptions.DownloadError):
-                raise e
             raise exceptions.DownloadError(f"Failed to download {url}") from e
 
     @contextmanager
