@@ -1,0 +1,52 @@
+name: Maintainer review reminder
+
+on:
+  schedule:
+    - cron: '10 10 10 2 *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  file-reminder-issue:
+    name: File issue to review maintainer permissions
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/github-script@v5
+      with:
+        script: |
+          await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: "Yearly maintainer permissions review",
+            body: `
+          This is a checklist for evaluating python-tuf maintainer accounts and permissions. This issue is automatically opened once a year.
+
+          ### Tasks
+
+          1. Update this list to include any new services
+          2. Evaluate the accounts and permissions for each service on the list. Some rules of thumb:
+             * Critical services should have a minimum of 3 _active_ maintainers/admins to prevent project lockout
+             * Each additional maintainer/admin increases the risk of project compromise: for this reason permissions should be removed if they are no longer used
+             * For services that are not frequently used, each maintainer/admin should check that they really are still able to authenticate to the service and confirm this in the comments
+          3. Update MAINTAINERS.txt to reflect current permissions
+
+          ### Critical services
+
+          * [ ] **PyPI**: maintainer list is visible to everyone at https://pypi.org/project/tuf/
+              * Only maintainers who do releases (+potentially org admins to prevent locking the project out)
+          * [ ] **GitHub**: permissions visible to admins at https://github.com/theupdateframework/python-tuf/settings/access
+              * "admin" permission: Only for maintainers and org admins who do project administration
+              * "push/maintain" permission: Maintainers who actively approve and merge PRs (+admins)
+              * "triage" permission: All contributors trusted to manage issues
+
+          ### Other
+
+          * [ ] **ReadTheDocs**: admin list is visible to everyone at https://readthedocs.org/projects/theupdateframework/
+          * [ ] **Coveralls**: everyone with github "admin" permissions is a Coveralls admin: https://coveralls.io/github/theupdateframework/python-tuf
+          `
+          })
+          console.log("New issue created.")
+
+
