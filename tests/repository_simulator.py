@@ -56,7 +56,7 @@ import securesystemslib.hash as sslib_hash
 from securesystemslib.keys import generate_ed25519_key
 from securesystemslib.signer import SSlibSigner
 
-from tuf.api.exceptions import FetcherHTTPError
+from tuf.api.exceptions import DownloadHTTPError
 from tuf.api.metadata import (
     SPECIFICATION_VERSION,
     TOP_LEVEL_ROLE_NAMES,
@@ -205,7 +205,7 @@ class RepositorySimulator(FetcherInterface):
         self.signed_roots.append(self.md_root.to_bytes(JSONSerializer()))
         logger.debug("Published root v%d", self.root.version)
 
-    def fetch(self, url: str) -> Iterator[bytes]:
+    def _fetch(self, url: str) -> Iterator[bytes]:
         """Fetches data from the given url and returns an Iterator (or yields
         bytes).
         """
@@ -238,7 +238,7 @@ class RepositorySimulator(FetcherInterface):
 
             yield self.fetch_target(target_path, prefix)
         else:
-            raise FetcherHTTPError(f"Unknown path '{path}'", 404)
+            raise DownloadHTTPError(f"Unknown path '{path}'", 404)
 
     def fetch_target(
         self, target_path: str, target_hash: Optional[str]
@@ -251,12 +251,12 @@ class RepositorySimulator(FetcherInterface):
 
         repo_target = self.target_files.get(target_path)
         if repo_target is None:
-            raise FetcherHTTPError(f"No target {target_path}", 404)
+            raise DownloadHTTPError(f"No target {target_path}", 404)
         if (
             target_hash
             and target_hash not in repo_target.target_file.hashes.values()
         ):
-            raise FetcherHTTPError(f"hash mismatch for {target_path}", 404)
+            raise DownloadHTTPError(f"hash mismatch for {target_path}", 404)
 
         logger.debug("fetched target %s", target_path)
         return repo_target.data
@@ -273,7 +273,7 @@ class RepositorySimulator(FetcherInterface):
         if role == Root.type:
             # return a version previously serialized in publish_root()
             if version is None or version > len(self.signed_roots):
-                raise FetcherHTTPError(f"Unknown root version {version}", 404)
+                raise DownloadHTTPError(f"Unknown root version {version}", 404)
             logger.debug("fetched root version %d", version)
             return self.signed_roots[version - 1]
 
@@ -289,7 +289,7 @@ class RepositorySimulator(FetcherInterface):
             md = self.md_delegates.get(role)
 
         if md is None:
-            raise FetcherHTTPError(f"Unknown role {role}", 404)
+            raise DownloadHTTPError(f"Unknown role {role}", 404)
 
         md.signatures.clear()
         for signer in self.signers[role].values():

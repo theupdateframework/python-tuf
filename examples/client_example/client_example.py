@@ -10,7 +10,7 @@ import os
 import shutil
 from pathlib import Path
 
-from tuf.api.exceptions import RepositoryError
+from tuf.api.exceptions import DownloadError, RepositoryError
 from tuf.ngclient import Updater
 
 # constants
@@ -73,8 +73,8 @@ def download(target: str) -> bool:
         path = updater.download_target(info)
         print(f"Target downloaded and available in {path}")
 
-    except (OSError, RepositoryError) as e:
-        print(str(e))
+    except (OSError, RepositoryError, DownloadError) as e:
+        print(f"Failed to download target {target}: {e}")
         return False
 
     return True

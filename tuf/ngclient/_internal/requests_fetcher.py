@@ -51,7 +51,7 @@ class RequestsFetcher(FetcherInterface):
         self.socket_timeout: int = 4  # seconds
         self.chunk_size: int = 400000  # bytes
 
-    def fetch(self, url: str) -> Iterator[bytes]:
+    def _fetch(self, url: str) -> Iterator[bytes]:
         """Fetches the contents of HTTP/HTTPS url from a remote server
 
         Arguments:
@@ -60,8 +60,7 @@ class RequestsFetcher(FetcherInterface):
         Raises:
             exceptions.SlowRetrievalError: A timeout occurs while receiving
                 data.
-            exceptions.FetcherHTTPError: An HTTP error code is received.
-            exceptions.DownloadError: When there is a problem parsing the url.
+            exceptions.DownloadHTTPError: An HTTP error code is received.
 
         Returns:
             A bytes iterator
@@ -89,7 +88,7 @@ class RequestsFetcher(FetcherInterface):
         except requests.HTTPError as e:
             response.close()
             status = e.response.status_code
-            raise exceptions.FetcherHTTPError(str(e), status)
+            raise exceptions.DownloadHTTPError(str(e), status)
 
         return self._chunks(response)
 
@@ -122,7 +121,7 @@ class RequestsFetcher(FetcherInterface):
         parsed_url = parse.urlparse(url)
 
         if not parsed_url.scheme or not parsed_url.hostname:
-            raise exceptions.DownloadError("Failed to parse URL {url}")
+            raise exceptions.DownloadError(f"Failed to parse URL {url}")
 
         session_index = f"{parsed_url.scheme}+{parsed_url.hostname}"
         session = self._sessions.get(session_index)

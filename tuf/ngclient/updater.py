@@ -315,7 +315,7 @@ class Updater:
                 self._trusted_set.update_root(data)
                 self._persist_metadata(Root.type, data)
 
-            except exceptions.FetcherHTTPError as exception:
+            except exceptions.DownloadHTTPError as exception:
                 if exception.status_code not in {403, 404}:
                     raise
                 # 404/403 means current root is newest available
