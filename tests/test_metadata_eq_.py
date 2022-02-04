@@ -12,6 +12,8 @@ import sys
 import unittest
 from typing import Any, ClassVar, Dict
 
+from securesystemslib.signer import Signature
+
 from tests import utils
 from tuf.api.metadata import (
     TOP_LEVEL_ROLE_NAMES,
@@ -59,6 +61,23 @@ class TestMetadataComparisions(unittest.TestCase):
         for attr, value in [("signed", None), ("signatures", None)]:
             setattr(md_2, attr, value)
             self.assertNotEqual(md, md_2, f"Failed case: {attr}")
+
+    def test_md_eq_signatures_reversed_order(self) -> None:
+        # Test comparing objects with same signatures but different order.
+
+        # Remove all signatures and create new ones.
+        md = Metadata.from_bytes(self.metadata["snapshot"])
+        md.signatures = {"a": Signature("a", "a"), "b": Signature("b", "b")}
+        md_2 = copy.deepcopy(md)
+        # Reverse signatures order in md_2.
+        # In python3.7 we need to cast to a list and then reverse.
+        md_2.signatures = dict(reversed(list(md_2.signatures.items())))
+        # Assert that both objects are not the same because of signatures order.
+        self.assertNotEqual(md, md_2)
+
+        # but if we fix the signatures order they will be equal
+        md_2.signatures = {"a": Signature("a", "a"), "b": Signature("b", "b")}
+        self.assertEqual(md, md_2)
 
     def test_md_eq_special_signatures_tests(self) -> None:
         # Test that metadata objects with different signatures are not equal.
@@ -225,6 +244,48 @@ class TestMetadataComparisions(unittest.TestCase):
         # Common attr between TargetFile and MetaFile doesn't need testing.
         setattr(targetfile_2, "path", "")
         self.assertNotEqual(targetfile, targetfile_2)
+
+    def test_delegations_eq_roles_reversed_order(self) -> None:
+        # Test comparing objects with same delegated roles but different order.
+        role_one_dict = {
+            "keyids": ["keyid1"],
+            "name": "a",
+            "terminating": False,
+            "paths": ["fn1"],
+            "threshold": 1,
+        }
+        role_two_dict = {
+            "keyids": ["keyid2"],
+            "name": "b",
+            "terminating": True,
+            "paths": ["fn2"],
+            "threshold": 4,
+        }
+
+        delegations_dict = {
+            "keys": {
+                "keyid2": {
+                    "keytype": "ed25519",
+                    "scheme": "ed25519",
+                    "keyval": {"public": "bar"},
+                }
+            },
+            "roles": [role_one_dict, role_two_dict],
+        }
+        delegations = Delegations.from_dict(copy.deepcopy(delegations_dict))
+
+        # Create a second delegations obj with reversed roles order
+        delegations_2 = copy.deepcopy(delegations)
+        # In python3.7 we need to cast to a list and then reverse.
+        delegations_2.roles = dict(reversed(list(delegations.roles.items())))
+
+        # Both objects are not the equal because of delegated roles order.
+        self.assertNotEqual(delegations, delegations_2)
+
+        # but if we fix the delegated roles order they will be equal
+        delegations_2.roles = delegations.roles
+
+        self.assertEqual(delegations, delegations_2)
 
     def test_targets_eq_(self) -> None:
         md = Metadata.from_bytes(self.metadata["targets"])

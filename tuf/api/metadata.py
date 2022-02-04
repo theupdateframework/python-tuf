@@ -133,6 +133,8 @@ class Metadata(Generic[T]):
 
         return (
             self.signatures == other.signatures
+            # Order of the signatures matters (see issue #1788).
+            and list(self.signatures.items()) == list(other.signatures.items())
             and self.signed == other.signed
             and self.unrecognized_fields == other.unrecognized_fields
         )
@@ -1429,6 +1431,8 @@ class Delegations:
 
         return (
             self.keys == other.keys
+            # Order of the delegated roles matters (see issue #1788).
+            and list(self.roles.items()) == list(other.roles.items())
             and self.roles == other.roles
             and self.unrecognized_fields == other.unrecognized_fields
         )
