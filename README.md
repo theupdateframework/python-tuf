@@ -1,6 +1,6 @@
 # <img src="https://cdn.rawgit.com/theupdateframework/artwork/3a649fa6/tuf-logo.svg" height="100" valign="middle" alt="TUF"/> A Framework for Securing Software Update Systems
 
-![Build](https://github.com/theupdateframework/python-tuf/workflows/Run%20TUF%20tests%20and%20linter/badge.svg)
+![Build](https://github.com/theupdateframework/python-tuf/actions/workflows/ci.yml/badge.svg)
 [![Coveralls](https://coveralls.io/repos/theupdateframework/python-tuf/badge.svg?branch=develop)](https://coveralls.io/r/theupdateframework/python-tuf?branch=develop)
 [![Docs](https://readthedocs.org/projects/theupdateframework/badge/)](https://theupdateframework.readthedocs.io/)
 [![CII](https://bestpractices.coreinfrastructure.org/projects/1351/badge)](https://bestpractices.coreinfrastructure.org/projects/1351)
