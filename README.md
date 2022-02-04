@@ -30,12 +30,6 @@ High-level support for implementing
 [repository operations](https://theupdateframework.github.io/specification/latest/#repository-operations)
 is planned but not yet provided: see [1.0.0 plans](https://github.com/theupdateframework/python-tuf/blob/develop/docs/1.0.0-ANNOUNCEMENT.md).
 
-In addition to these APIs the project also provides a *legacy
-implementation* with `tuf.client` implementing the client workflow and
-`tuf.repository_tool` providing a high-level interface for repository
-operations. The legacy implementation is going to be
-[deprecated](https://github.com/theupdateframework/python-tuf/blob/develop/docs/1.0.0-ANNOUNCEMENT.md) in the near future.
-
 The reference implementation strives to be a readable guide and demonstration
 for those working on implementing TUF in their own languages, environments, or
 update systems.

@@ -1,13 +1,10 @@
 """
 A TUF repository example using the low-level TUF Metadata API.
 
-
-As 'repository_tool' and 'repository_lib' are being deprecated, repository
-metadata must be created and maintained *manually* using the low-level
-Metadata API. The example code in this file demonstrates how to
-implement similar functionality to that of the legacy 'repository_tool'
-and 'repository_lib' until a new repository implementation is available.
-
+The example code in this file demonstrates how to *manually* create and
+maintain repository metadata using the low-level Metadata API. It implements
+similar functionality to that of the deprecated legacy 'repository_tool' and
+'repository_lib'. (see ADR-0010 for details about repository library design)
 
 Contents:
  * creation of top-level metadata

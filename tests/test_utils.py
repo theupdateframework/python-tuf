@@ -21,7 +21,6 @@
 """
 
 import logging
-import os
 import socket
 import sys
 import unittest
@@ -52,50 +51,6 @@ class TestServerProcess(unittest.TestCase):
     def test_simple_server_startup(self) -> None:
         # Test normal case
         server_process_handler = utils.TestServerProcess(log=logger)
-
-        # Make sure we can connect to the server
-        self.assertTrue(can_connect(server_process_handler.port))
-        server_process_handler.clean()
-
-    def test_simple_https_server_startup(self) -> None:
-        # Test normal case
-        good_cert_path = os.path.join("ssl_certs", "ssl_cert.crt")
-        server_process_handler = utils.TestServerProcess(
-            log=logger,
-            server="simple_https_server_old.py",
-            extra_cmd_args=[good_cert_path],
-        )
-
-        # Make sure we can connect to the server
-        self.assertTrue(can_connect(server_process_handler.port))
-        server_process_handler.clean()
-
-        # Test when no cert file is provided
-        server_process_handler = utils.TestServerProcess(
-            log=logger, server="simple_https_server_old.py"
-        )
-
-        # Make sure we can connect to the server
-        self.assertTrue(can_connect(server_process_handler.port))
-        server_process_handler.clean()
-
-        # Test with a non existing cert file.
-        non_existing_cert_path = os.path.join("ssl_certs", "non_existing.crt")
-        server_process_handler = utils.TestServerProcess(
-            log=logger,
-            server="simple_https_server_old.py",
-            extra_cmd_args=[non_existing_cert_path],
-        )
-
-        # Make sure we can connect to the server
-        self.assertTrue(can_connect(server_process_handler.port))
-        server_process_handler.clean()
-
-    def test_slow_retrieval_server_startup(self) -> None:
-        # Test normal case
-        server_process_handler = utils.TestServerProcess(
-            log=logger, server="slow_retrieval_server_old.py"
-        )
 
         # Make sure we can connect to the server
         self.assertTrue(can_connect(server_process_handler.port))

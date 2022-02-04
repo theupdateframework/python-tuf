@@ -1,11 +1,10 @@
 """
 A TUF hash bin delegation example using the low-level TUF Metadata API.
 
-As 'repository_tool' and 'repository_lib' are being deprecated, hash bin
-delegation interfaces are no longer available in this implementation. The
-example code in this file demonstrates how to easily implement those
-interfaces, and how to use them together with the TUF metadata API, to perform
-hash bin delegation.
+The example code in this file demonstrates how to *manually* perform hash bin
+delegation using the low-level Metadata API. It implements similar
+functionality to that of the deprecated legacy 'repository_tool' and
+'repository_lib'. (see ADR-0010 for details about repository library design)
 
 Contents:
 - Re-usable hash bin delegation helpers

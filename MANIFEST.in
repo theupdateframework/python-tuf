@@ -10,6 +10,3 @@ graft tests
 # Documentation
 graft docs
 recursive-include tuf *.md
-
-# To remove
-recursive-include tuf/scripts *.py
