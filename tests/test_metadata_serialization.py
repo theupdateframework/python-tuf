@@ -214,6 +214,7 @@ class TestSerialization(unittest.TestCase):
 
     invalid_metafiles: utils.DataSet = {
         "wrong length type": '{"version": 1, "length": "a", "hashes": {"sha256" : "abc"}}',
+        "version 0": '{"version": 0, "length": 1, "hashes": {"sha256" : "abc"}}',
         "length 0": '{"version": 1, "length": 0, "hashes": {"sha256" : "abc"}}',
         "length below 0": '{"version": 1, "length": -1, "hashes": {"sha256" : "abc"}}',
         "empty hashes dict": '{"version": 1, "length": 1, "hashes": {}}',
