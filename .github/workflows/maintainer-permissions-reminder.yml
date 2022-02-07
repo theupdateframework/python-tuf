@@ -13,7 +13,7 @@ jobs:
     name: File issue to review maintainer permissions
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/github-script@v5
+    - uses: actions/github-script@e3cbab99d3a9b271e1b79fc96d103a4a5534998c
       with:
         script: |
           await github.rest.issues.create({

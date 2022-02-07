@@ -14,8 +14,8 @@ jobs:
     name: Open an issue when spec version bumps
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
+    - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+    - uses: actions/setup-python@7f80679172b057fc5e90d70d197929d454754a5a
     - name: Get supported version
       id: get-version
       run: |
@@ -25,7 +25,7 @@ jobs:
         ver=$(python3 -c "$script")
         echo "::set-output name=version::$ver"
     - name: Open issue (if needed)
-      uses: actions/github-script@v5
+      uses: actions/github-script@e3cbab99d3a9b271e1b79fc96d103a4a5534998c
       with:
         script: |
           const release = await github.rest.repos.getLatestRelease({
