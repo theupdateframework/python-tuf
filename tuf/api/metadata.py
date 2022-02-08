@@ -141,7 +141,7 @@ class Metadata(Generic[T]):
 
     @classmethod
     def from_dict(cls, metadata: Dict[str, Any]) -> "Metadata[T]":
-        """Creates ``Metadata`` object from its dict representation.
+        """Creates ``Metadata`` object from its json/dict representation.
 
         Args:
             metadata: TUF metadata in dict representation.
@@ -335,7 +335,8 @@ class Metadata(Generic[T]):
         """Creates signature over ``signed`` and assigns it to ``signatures``.
 
         Args:
-            signer: A securesystemslib.signer.Signer implementation.
+            signer: Custom or securesystemslib implementation of the
+                ``securesystemslib.signer.Signer`` interface.
             append: ``True`` if the signature should be appended to
                 the list of signatures or replace any existing signatures. The
                 default behavior is to replace signatures.
@@ -522,7 +523,7 @@ class Signed(metaclass=abc.ABCMeta):
     @classmethod
     @abc.abstractmethod
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Signed":
-        """Deserialization helper, creates object from dict representation"""
+        """Deserialization helper, creates object from json/dict representation"""
         raise NotImplementedError
 
     @classmethod
@@ -636,7 +637,7 @@ class Key:
 
     @classmethod
     def from_dict(cls, keyid: str, key_dict: Dict[str, Any]) -> "Key":
-        """Creates ``Key`` object from its dict representation.
+        """Creates ``Key`` object from its json/dict representation.
 
         Raises:
             KeyError, TypeError: Invalid arguments.
@@ -667,7 +668,7 @@ class Key:
 
     @classmethod
     def from_securesystemslib_key(cls, key_dict: Dict[str, Any]) -> "Key":
-        """Creates a ``Key`` object from a securesystemlib key dict representation
+        """Creates a ``Key`` object from a securesystemlib key json/dict representation
         removing the private key from keyval.
 
         Args:
@@ -790,7 +791,7 @@ class Role:
 
     @classmethod
     def from_dict(cls, role_dict: Dict[str, Any]) -> "Role":
-        """Creates ``Role`` object from its dict representation.
+        """Creates ``Role`` object from its json/dict representation.
 
         Raises:
             ValueError, KeyError: Invalid arguments.
@@ -863,7 +864,7 @@ class Root(Signed):
 
     @classmethod
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Root":
-        """Creates ``Root`` object from its dict representation.
+        """Creates ``Root`` object from its json/dict representation.
 
         Raises:
             ValueError, KeyError, TypeError: Invalid arguments.
@@ -1056,7 +1057,7 @@ class MetaFile(BaseFile):
 
     @classmethod
     def from_dict(cls, meta_dict: Dict[str, Any]) -> "MetaFile":
-        """Creates ``MetaFile`` object from its dict representation.
+        """Creates ``MetaFile`` object from its json/dict representation.
 
         Raises:
             ValueError, KeyError: Invalid arguments.
@@ -1144,7 +1145,7 @@ class Timestamp(Signed):
 
     @classmethod
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Timestamp":
-        """Creates ``Timestamp`` object from its dict representation.
+        """Creates ``Timestamp`` object from its json/dict representation.
 
         Raises:
             ValueError, KeyError: Invalid arguments.
@@ -1203,7 +1204,7 @@ class Snapshot(Signed):
 
     @classmethod
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Snapshot":
-        """Creates ``Snapshot`` object from its dict representation.
+        """Creates ``Snapshot`` object from its json/dict representation.
 
         Raises:
             ValueError, KeyError: Invalid arguments.
@@ -1299,7 +1300,7 @@ class DelegatedRole(Role):
 
     @classmethod
     def from_dict(cls, role_dict: Dict[str, Any]) -> "DelegatedRole":
-        """Creates ``DelegatedRole`` object from its dict representation.
+        """Creates ``DelegatedRole`` object from its json/dict representation.
 
         Raises:
             ValueError, KeyError: Invalid arguments.
@@ -1439,7 +1440,7 @@ class Delegations:
 
     @classmethod
     def from_dict(cls, delegations_dict: Dict[str, Any]) -> "Delegations":
-        """Creates ``Delegations`` object from its dict representation.
+        """Creates ``Delegations`` object from its json/dict representation.
 
         Raises:
             ValueError, KeyError, TypeError: Invalid arguments.
@@ -1522,7 +1523,7 @@ class TargetFile(BaseFile):
 
     @classmethod
     def from_dict(cls, target_dict: Dict[str, Any], path: str) -> "TargetFile":
-        """Creates ``TargetFile`` object from its dict representation.
+        """Creates ``TargetFile`` object from its json/dict representation.
 
         Raises:
             ValueError, KeyError, TypeError: Invalid arguments.
@@ -1679,7 +1680,7 @@ class Targets(Signed):
 
     @classmethod
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Targets":
-        """Creates ``Targets`` object from its dict representation.
+        """Creates ``Targets`` object from its json/dict representation.
 
         Raises:
             ValueError, KeyError, TypeError: Invalid arguments.
