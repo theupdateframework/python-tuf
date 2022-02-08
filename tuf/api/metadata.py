@@ -618,12 +618,22 @@ class Key:
 
         Args:
             key_dict: Key in securesystemlib dict representation.
+
+        Raises:
+            ValueError: ``key_dict`` value is not following the securesystemslib
+                format.
         """
-        key_meta = sslib_keys.format_keyval_to_metadata(
-            key_dict["keytype"],
-            key_dict["scheme"],
-            key_dict["keyval"],
-        )
+        try:
+            key_meta = sslib_keys.format_keyval_to_metadata(
+                key_dict["keytype"],
+                key_dict["scheme"],
+                key_dict["keyval"],
+            )
+        except sslib_exceptions.FormatError as e:
+            raise ValueError(
+                "key_dict value is not following the securesystemslib format"
+            ) from e
+
         return cls(
             key_dict["keyid"],
             key_meta["keytype"],
