@@ -451,16 +451,17 @@ class Signed(metaclass=abc.ABCMeta):
         expires: datetime,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ):
+        # Accept semver (X.Y.Z) but also X.Y for legacy compatibility
         spec_list = spec_version.split(".")
-        if (
-            len(spec_list) != 3
-            or not all(el.isdigit() for el in spec_list)
-            or spec_list[0] != SPECIFICATION_VERSION[0]
+        if len(spec_list) not in [2, 3] or not all(
+            el.isdigit() for el in spec_list
         ):
-            raise ValueError(
-                f"Unsupported spec_version, got {spec_list}, "
-                f"supported {'.'.join(SPECIFICATION_VERSION)}"
-            )
+            raise ValueError(f"Failed to parse spec_version {spec_version}")
+
+        # major version must match
+        if spec_list[0] != SPECIFICATION_VERSION[0]:
+            raise ValueError(f"Unsupported spec_version {spec_version}")
+
         self.spec_version = spec_version
         self.expires = expires
 
