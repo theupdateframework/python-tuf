@@ -3,7 +3,6 @@ include LICENSE*
 
 # Development and testing
 include *.txt
-global-include pylintrc
 include tox.ini
 graft tests
 
