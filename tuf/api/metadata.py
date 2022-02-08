@@ -364,7 +364,9 @@ class Metadata(Generic[T]):
 
         Raises:
             UnsignedMetadataError: ``delegated_role`` was not signed with
-                required threshold of keys for ``role_name``
+                required threshold of keys for ``role_name``.
+            ValueError: no delegation was found for ``delegated_role``.
+            TypeError: called this function on non-delegating metadata class.
         """
 
         # Find the keys and role in delegator metadata
