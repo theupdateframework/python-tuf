@@ -124,8 +124,7 @@ class Metadata(Generic[T]):
             metadata: TUF metadata in dict representation.
 
         Raises:
-            KeyError: The metadata dict format is invalid.
-            ValueError: The metadata has an unrecognized signed._type field.
+            ValueError, KeyError, TypeError: Invalid arguments.
 
         Side Effect:
             Destroys the metadata dict passed by reference.
@@ -416,6 +415,9 @@ class Signed(metaclass=abc.ABCMeta):
         spec_version: The supported TUF specification version number.
         expires: The metadata expiry date.
         unrecognized_fields: Dictionary of all unrecognized fields.
+
+    Raises:
+        ValueError: Invalid arguments.
     """
 
     # type is required for static reference without changing the API
@@ -551,6 +553,9 @@ class Key:
             "rsassa-pss-sha256", "ed25519", and "ecdsa-sha2-nistp256".
         keyval: Opaque key content
         unrecognized_fields: Dictionary of all unrecognized fields.
+
+    Raises:
+        TypeError: Invalid type for an argument.
     """
 
     def __init__(
@@ -573,7 +578,11 @@ class Key:
 
     @classmethod
     def from_dict(cls, keyid: str, key_dict: Dict[str, Any]) -> "Key":
-        """Creates Key object from its dict representation."""
+        """Creates Key object from its dict representation.
+
+        Raises:
+            KeyError, TypeError: Invalid arguments.
+        """
         keytype = key_dict.pop("keytype")
         scheme = key_dict.pop("scheme")
         keyval = key_dict.pop("keyval")
@@ -680,6 +689,9 @@ class Role:
         keyids: The roles signing key identifiers.
         threshold: Number of keys required to sign this role's metadata.
         unrecognized_fields: Dictionary of all unrecognized fields.
+
+    Raises:
+        ValueError: Invalid arguments.
     """
 
     def __init__(
@@ -698,7 +710,11 @@ class Role:
 
     @classmethod
     def from_dict(cls, role_dict: Dict[str, Any]) -> "Role":
-        """Creates Role object from its dict representation."""
+        """Creates Role object from its dict representation.
+
+        Raises:
+            ValueError, KeyError: Invalid arguments.
+        """
         keyids = role_dict.pop("keyids")
         threshold = role_dict.pop("threshold")
         # All fields left in the role_dict are unrecognized.
@@ -727,6 +743,9 @@ class Root(Signed):
             required to sign the metadata for a specific role.
         consistent_snapshot: Does repository support consistent snapshots.
         unrecognized_fields: Dictionary of all unrecognized fields.
+
+    Raises:
+        ValueError: Invalid arguments.
     """
 
     type = _ROOT
@@ -752,7 +771,11 @@ class Root(Signed):
 
     @classmethod
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Root":
-        """Creates Root object from its dict representation."""
+        """Creates Root object from its dict representation.
+
+        Raises:
+            ValueError, KeyError, TypeError: Invalid arguments.
+        """
         common_args = cls._common_fields_from_dict(signed_dict)
         consistent_snapshot = signed_dict.pop("consistent_snapshot", None)
         keys = signed_dict.pop("keys")
@@ -902,6 +925,9 @@ class MetaFile(BaseFile):
         hashes: Dictionary of hash algorithm names to hashes of the metadata
             file content.
         unrecognized_fields: Dictionary of all unrecognized fields.
+
+    Raises:
+        ValueError, TypeError: Invalid arguments.
     """
 
     def __init__(
@@ -926,7 +952,11 @@ class MetaFile(BaseFile):
 
     @classmethod
     def from_dict(cls, meta_dict: Dict[str, Any]) -> "MetaFile":
-        """Creates MetaFile object from its dict representation."""
+        """Creates MetaFile object from its dict representation.
+
+        Raises:
+            ValueError, KeyError: Invalid arguments.
+        """
         version = meta_dict.pop("version")
         length = meta_dict.pop("length", None)
         hashes = meta_dict.pop("hashes", None)
@@ -981,6 +1011,9 @@ class Timestamp(Signed):
         expires: The metadata expiry date.
         unrecognized_fields: Dictionary of all unrecognized fields.
         snapshot_meta: Meta information for snapshot metadata.
+
+    Raises:
+        ValueError: Invalid arguments.
     """
 
     type = _TIMESTAMP
@@ -998,7 +1031,11 @@ class Timestamp(Signed):
 
     @classmethod
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Timestamp":
-        """Creates Timestamp object from its dict representation."""
+        """Creates Timestamp object from its dict representation.
+
+        Raises:
+            ValueError, KeyError: Invalid arguments.
+        """
         common_args = cls._common_fields_from_dict(signed_dict)
         meta_dict = signed_dict.pop("meta")
         snapshot_meta = MetaFile.from_dict(meta_dict["snapshot.json"])
@@ -1026,6 +1063,9 @@ class Snapshot(Signed):
         expires: The metadata expiry date.
         unrecognized_fields: Dictionary of all unrecognized fields.
         meta: A dictionary of target metadata filenames to MetaFile objects.
+
+    Raises:
+        ValueError: Invalid arguments.
     """
 
     type = _SNAPSHOT
@@ -1043,7 +1083,11 @@ class Snapshot(Signed):
 
     @classmethod
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Snapshot":
-        """Creates Snapshot object from its dict representation."""
+        """Creates Snapshot object from its dict representation.
+
+        Raises:
+            ValueError, KeyError: Invalid arguments.
+        """
         common_args = cls._common_fields_from_dict(signed_dict)
         meta_dicts = signed_dict.pop("meta")
         meta = {}
@@ -1086,6 +1130,9 @@ class DelegatedRole(Role):
         paths: Path patterns. See note above.
         path_hash_prefixes: Hash prefixes. See note above.
         unrecognized_fields: Attributes not managed by TUF Metadata API.
+
+    Raises:
+        ValueError: Invalid arguments.
     """
 
     def __init__(
@@ -1119,7 +1166,11 @@ class DelegatedRole(Role):
 
     @classmethod
     def from_dict(cls, role_dict: Dict[str, Any]) -> "DelegatedRole":
-        """Creates DelegatedRole object from its dict representation."""
+        """Creates DelegatedRole object from its dict representation.
+
+        Raises:
+            ValueError, KeyError: Invalid arguments.
+        """
         name = role_dict.pop("name")
         keyids = role_dict.pop("keyids")
         threshold = role_dict.pop("threshold")
@@ -1218,6 +1269,9 @@ class Delegations:
             role. The roles order also defines the order that role delegations
             are considered during target searches.
         unrecognized_fields: Dictionary of all unrecognized fields.
+
+    Raises:
+        ValueError: Invalid arguments.
     """
 
     def __init__(
@@ -1239,7 +1293,11 @@ class Delegations:
 
     @classmethod
     def from_dict(cls, delegations_dict: Dict[str, Any]) -> "Delegations":
-        """Creates Delegations object from its dict representation."""
+        """Creates Delegations object from its dict representation.
+
+        Raises:
+            ValueError, KeyError, TypeError: Invalid arguments.
+        """
         keys = delegations_dict.pop("keys")
         keys_res = {}
         for keyid, key_dict in keys.items():
@@ -1277,6 +1335,9 @@ class TargetFile(BaseFile):
             file content.
         path: URL path to a target file, relative to a base targets URL.
         unrecognized_fields: Dictionary of all unrecognized fields.
+
+    Raises:
+        ValueError, TypeError: Invalid arguments.
     """
 
     def __init__(
@@ -1303,7 +1364,11 @@ class TargetFile(BaseFile):
 
     @classmethod
     def from_dict(cls, target_dict: Dict[str, Any], path: str) -> "TargetFile":
-        """Creates TargetFile object from its dict representation."""
+        """Creates TargetFile object from its dict representation.
+
+        Raises:
+            ValueError, KeyError, TypeError: Invalid arguments.
+        """
         length = target_dict.pop("length")
         hashes = target_dict.pop("hashes")
 
@@ -1422,6 +1487,9 @@ class Targets(Signed):
         delegations: Defines how this Targets delegates responsibility to other
             Targets Metadata files.
         unrecognized_fields: Dictionary of all unrecognized fields.
+
+    Raises:
+        ValueError: Invalid arguments.
     """
 
     type = _TARGETS
@@ -1442,7 +1510,11 @@ class Targets(Signed):
 
     @classmethod
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Targets":
-        """Creates Targets object from its dict representation."""
+        """Creates Targets object from its dict representation.
+
+        Raises:
+            ValueError, KeyError, TypeError: Invalid arguments.
+        """
         common_args = cls._common_fields_from_dict(signed_dict)
         targets = signed_dict.pop(_TARGETS)
         try:
