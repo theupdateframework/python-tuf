@@ -639,6 +639,13 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(ValueError):
             TargetFile.from_file(file_path, file_path, ["123"])
 
+    def test_targetfile_custom(self) -> None:
+        # Test creating TargetFile and accessing custom.
+        targetfile = TargetFile(
+            100, {"sha256": "abc"}, "file.txt", {"custom": "foo"}
+        )
+        self.assertEqual(targetfile.custom, "foo")
+
     def test_targetfile_from_data(self) -> None:
         data = b"Inline test content"
         target_file_path = os.path.join(
