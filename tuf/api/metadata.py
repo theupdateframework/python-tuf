@@ -60,6 +60,7 @@ from tuf.api import exceptions
 from tuf.api.serialization import (
     MetadataDeserializer,
     MetadataSerializer,
+    SerializationError,
     SignedSerializer,
 )
 
@@ -686,6 +687,7 @@ class Key:
             sslib_exceptions.CryptoError,
             sslib_exceptions.FormatError,
             sslib_exceptions.UnsupportedAlgorithmError,
+            SerializationError,
         ) as e:
             raise exceptions.UnsignedMetadataError(
                 f"Failed to verify {self.keyid} signature"
