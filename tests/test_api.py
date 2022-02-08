@@ -379,6 +379,11 @@ class TestMetadata(unittest.TestCase):
         key = Key.from_securesystemslib_key(sslib_key)
         self.assertFalse("private" in key.keyval.keys())
 
+        # Test raising ValueError with non-existent keytype
+        sslib_key["keytype"] = "bad keytype"
+        with self.assertRaises(ValueError):
+            Key.from_securesystemslib_key(sslib_key)
+
     def test_root_add_key_and_remove_key(self) -> None:
         root_path = os.path.join(self.repo_dir, "metadata", "root.json")
         root = Metadata[Root].from_file(root_path)
