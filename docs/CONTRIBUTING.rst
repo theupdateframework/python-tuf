@@ -16,7 +16,7 @@ and must be `unit tested <#unit-tests>`_.
 Testing
 =======
 
-With `tox <https://testrun.org/tox/>`_ the whole test suite can be executed in
+With `tox <https:///tox.wiki>`_ the whole test suite can be executed in
 a separate *virtual environment* for each supported Python version available on
 the system. ``tuf`` and its dependencies are installed automatically for each
 tox run.
