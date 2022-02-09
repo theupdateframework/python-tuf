@@ -9,32 +9,9 @@ All submitted code should follow our `style guidelines
 <https://github.com/secure-systems-lab/code-style-guidelines/blob/master/python.md>`_
 and must be `unit tested <#unit-tests>`_.
 
-Development Installation
-========================
+.. note::
 
-To work on the TUF project, it's best to perform a development install.
-
-To facilitate development and installation of edited version of the code base,
-developers are encouraged to use `venv <https://docs.python.org/3/library/venv.html>`_.
-
-1. First, `install non-Python dependencies
-<https://theupdateframework.readthedocs.io/en/latest/INSTALLATION.html#non-python-dependencies>`_.
-
-2. Then clone this repository:
-
-::
-
-    $ git clone https://github.com/theupdateframework/python-tuf
-
-3. Then perform a full, editable/development install.  This will include all
-   optional cryptographic support, the testing/linting dependencies, etc.
-   With a development installation, modifications to the code in the current
-   directory will affect the installed version of TUF.
-
-::
-
-    $ python3 -m pip install -r requirements-dev.txt
-
+     Also see :ref:`development installation instructions <installation:Install for development>`.
 
 Testing
 =======
