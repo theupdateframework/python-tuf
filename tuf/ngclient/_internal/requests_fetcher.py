@@ -1,8 +1,8 @@
 # Copyright 2021, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""Provides an implementation of FetcherInterface using the Requests HTTP
-  library.
+"""Provides an implementation of ``FetcherInterface`` using the Requests
+  HTTP library.
 """
 
 import logging
@@ -22,11 +22,11 @@ logger = logging.getLogger(__name__)
 
 # Classes
 class RequestsFetcher(FetcherInterface):
-    """A concrete implementation of FetcherInterface based on the Requests
+    """A concrete implementation of ``FetcherInterface`` based on the Requests
     library.
 
     Attributes:
-        _sessions: A dictionary of Requests.Session objects storing a separate
+        _sessions: A dictionary of ``Requests.Session`` objects storing a separate
             session per scheme+hostname combination.
     """
 

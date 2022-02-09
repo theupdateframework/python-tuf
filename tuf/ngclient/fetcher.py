@@ -31,11 +31,12 @@ class FetcherInterface:
     def _fetch(self, url: str) -> Iterator[bytes]:
         """Fetches the contents of HTTP/HTTPS url from a remote server.
 
-        Implementations must raise DownloadHTTPError if they receive an
-        HTTP error code.
+        Implementations must raise ``DownloadHTTPError`` if they receive
+        an HTTP error code.
 
         Implementations may raise any errors but the ones that are not
-        DownloadErrors will be wrapped in a DownloadError by fetch().
+        ``DownloadErrors`` will be wrapped in a ``DownloadError`` by
+        ``fetch()``.
 
         Arguments:
             url: A URL string that represents a file location.
@@ -72,8 +73,8 @@ class FetcherInterface:
 
     @contextmanager
     def download_file(self, url: str, max_length: int) -> Iterator[IO]:
-        """Opens a connection to 'url' and downloads the content
-        up to 'max_length'.
+        """Opens a connection to ``url`` and downloads the content
+        up to ``max_length``.
 
         Args:
             url: a URL string that represents the location of the file.
@@ -82,11 +83,11 @@ class FetcherInterface:
         Raises:
             exceptions.DownloadError: An error occurred during download.
             exceptions.DownloadLengthMismatchError: downloaded bytes exceed
-                'max_length'.
+                ``max_length``.
             exceptions.DownloadHTTPError: An HTTP error code was received.
 
         Yields:
-            A TemporaryFile object that points to the contents of 'url'.
+            A ``TemporaryFile`` object that points to the contents of ``url``.
         """
         logger.debug("Downloading: %s", url)
 
@@ -116,7 +117,7 @@ class FetcherInterface:
     def download_bytes(self, url: str, max_length: int) -> bytes:
         """Download bytes from given url
 
-        Returns the downloaded bytes, otherwise like download_file()
+        Returns the downloaded bytes, otherwise like ``download_file()``
 
         Args:
             url: a URL string that represents the location of the file.
@@ -125,7 +126,7 @@ class FetcherInterface:
         Raises:
             exceptions.DownloadError: An error occurred during download.
             exceptions.DownloadLengthMismatchError: downloaded bytes exceed
-                'max_length'.
+                ``max_length``.
             exceptions.DownloadHTTPError: An HTTP error code was received.
 
         Returns:

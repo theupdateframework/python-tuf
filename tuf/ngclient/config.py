@@ -1,7 +1,7 @@
 # Copyright 2021, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""Configuration options for Updater class
+"""Configuration options for ``Updater`` class
 """
 
 from dataclasses import dataclass
@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 @dataclass
 class UpdaterConfig:
-    """Used to store Updater configuration.
+    """Used to store ``Updater`` configuration.
 
     Arguments:
         max_root_rotations: The maximum number of root rotations.
@@ -22,7 +22,7 @@ class UpdaterConfig:
             <https://theupdateframework.github.io/specification/latest/#consistent-snapshots>`_
             are used, target download URLs are formed by prefixing the filename
             with a hash digest of file content by default. This can be
-            overridden by setting prefix_targets_with_hash to False.
+            overridden by setting ``prefix_targets_with_hash`` to ``False``.
 
     """
 

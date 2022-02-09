@@ -3,13 +3,13 @@
 
 """Client update workflow implementation
 
-The Updater class provides an implementation of the
+The ``Updater`` class provides an implementation of the
 `TUF client workflow
 <https://theupdateframework.github.io/specification/latest/#detailed-client-workflow>`_.
-Updater provides an API to query available targets and to download them in a
+``Updater`` provides an API to query available targets and to download them in a
 secure manner: All downloaded files are verified by signed metadata.
 
-High-level description of Updater functionality:
+High-level description of ``Updater`` functionality:
   * Initializing an ``Updater`` loads and validates the trusted local root
     metadata: This root metadata is used as the source of trust for all other
     metadata.
@@ -18,7 +18,7 @@ High-level description of Updater functionality:
     metadata and metadata downloaded from the remote repository. If refresh is
     not done explicitly, it will happen automatically during the first target
     info lookup.
-  * Updater can be used to download targets. For each target:
+  * ``Updater`` can be used to download targets. For each target:
 
       * ``Updater.get_targetinfo()`` is first used to find information about a
         specific target. This will load new targets metadata as needed (from
@@ -57,19 +57,19 @@ logger = logging.getLogger(__name__)
 
 
 class Updater:
-    """Creates a new Updater instance and loads trusted root metadata.
+    """Creates a new ``Updater`` instance and loads trusted root metadata.
 
     Args:
         metadata_dir: Local metadata directory. Directory must be
-            writable and it must contain a trusted root.json file.
+            writable and it must contain a trusted root.json file
         metadata_base_url: Base URL for all remote metadata downloads
         target_dir: Local targets directory. Directory must be writable. It
             will be used as the default target download directory by
             ``find_cached_target()`` and ``download_target()``
-        target_base_url: Optional; Default base URL for all remote target
-            downloads. Can be individually set in download_target()
-        fetcher: Optional; FetcherInterface implementation used to download
-            both metadata and targets. Default is RequestsFetcher
+        target_base_url: ``Optional``; Default base URL for all remote target
+            downloads. Can be individually set in ``download_target()``
+        fetcher: ``Optional``; ``FetcherInterface`` implementation used to
+            download both metadata and targets. Default is ``RequestsFetcher``
 
     Raises:
         OSError: Local root.json cannot be read
@@ -137,7 +137,7 @@ class Updater:
         return os.path.join(self.target_dir, filename)
 
     def get_targetinfo(self, target_path: str) -> Optional[TargetFile]:
-        """Returns TargetFile instance with information for 'target_path'.
+        """Returns ``TargetFile`` instance with information for ``target_path``.
 
         The return value can be used as an argument to
         ``download_target()`` and ``find_cached_target()``.
@@ -159,7 +159,7 @@ class Updater:
             DownloadError: Download of a metadata file failed in some way
 
         Returns:
-            A TargetFile instance or None.
+            A ``TargetFile`` instance or ``None``.
         """
 
         if self._trusted_set.targets is None:
@@ -174,9 +174,9 @@ class Updater:
         """Checks whether a local file is an up to date target
 
         Args:
-            targetinfo: TargetFile from ``get_targetinfo()``.
-            filepath: Local path to file. If None, a file path is generated
-                based on ``target_dir`` constructor argument.
+            targetinfo: ``TargetFile`` from ``get_targetinfo()``.
+            filepath: Local path to file. If ``None``, a file path is
+                generated based on ``target_dir`` constructor argument.
 
         Raises:
             ValueError: Incorrect arguments
@@ -205,13 +205,13 @@ class Updater:
         """Downloads the target file specified by ``targetinfo``.
 
         Args:
-            targetinfo: TargetFile from ``get_targetinfo()``.
-            filepath: Local path to download into. If None, the file is
+            targetinfo: ``TargetFile`` from ``get_targetinfo()``.
+            filepath: Local path to download into. If ``None``, the file is
                 downloaded into directory defined by ``target_dir`` constructor
                 argument using a generated filename. If file already exists,
                 it is overwritten.
             target_base_url: Base URL used to form the final target
-                download URL. Default is the value provided in Updater()
+                download URL. Default is the value provided in ``Updater()``
 
         Raises:
             ValueError: Invalid arguments
@@ -359,7 +359,7 @@ class Updater:
             self._persist_metadata(Snapshot.type, data)
 
     def _load_targets(self, role: str, parent_role: str) -> Metadata[Targets]:
-        """Load local (and if needed remote) metadata for 'role'."""
+        """Load local (and if needed remote) metadata for ``role``."""
 
         # Avoid loading 'role' more than once during "get_targetinfo"
         if role in self._trusted_set:
