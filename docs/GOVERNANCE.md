@@ -19,7 +19,7 @@ Builder (CB).  The project's Consensus Builder (CB) is Justin Cappos
 
 ## Contributions
 [A contributor can submit GitHub pull
-requests](CONTRIBUTORS.rst)
+requests](CONTRIBUTING.rst)
 to the project's repositories.  They must follow the project's [code of
 conduct](CODE-OF-CONDUCT.md), the [developer certificate of
 origin](https://developercertificate.org/), the [code style
