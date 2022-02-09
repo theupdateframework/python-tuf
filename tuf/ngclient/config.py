@@ -11,7 +11,7 @@ from dataclasses import dataclass
 class UpdaterConfig:
     """Used to store ``Updater`` configuration.
 
-    Arguments:
+    Args:
         max_root_rotations: Maximum number of root rotations.
         max_delegations: Maximum number of delegations.
         root_max_length: Maxmimum length of a root metadata file.

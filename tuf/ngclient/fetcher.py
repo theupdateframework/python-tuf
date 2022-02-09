@@ -38,7 +38,7 @@ class FetcherInterface:
         ``DownloadErrors`` will be wrapped in a ``DownloadError`` by
         ``fetch()``.
 
-        Arguments:
+        Args:
             url: URL string that represents a file location.
 
         Raises:
@@ -52,7 +52,7 @@ class FetcherInterface:
     def fetch(self, url: str) -> Iterator[bytes]:
         """Fetches the contents of HTTP/HTTPS url from a remote server.
 
-        Arguments:
+        Args:
             url: URL string that represents a file location.
 
         Raises:
@@ -125,7 +125,7 @@ class FetcherInterface:
 
         Raises:
             exceptions.DownloadError: An error occurred during download.
-            exceptions.DownloadLengthMismatchError: downloaded bytes exceed
+            exceptions.DownloadLengthMismatchError: Downloaded bytes exceed
                 ``max_length``.
             exceptions.DownloadHTTPError: An HTTP error code was received.
 

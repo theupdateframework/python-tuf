@@ -54,7 +54,7 @@ class RequestsFetcher(FetcherInterface):
     def _fetch(self, url: str) -> Iterator[bytes]:
         """Fetches the contents of HTTP/HTTPS url from a remote server
 
-        Arguments:
+        Args:
             url: URL string that represents a file location.
 
         Raises:
