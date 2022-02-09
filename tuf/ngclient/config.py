@@ -12,12 +12,12 @@ class UpdaterConfig:
     """Used to store ``Updater`` configuration.
 
     Arguments:
-        max_root_rotations: The maximum number of root rotations.
-        max_delegations: The maximum number of delegations.
-        root_max_length: The maxmimum length of a root metadata file.
-        timestamp_max_length: The maximum length of a timestamp metadata file.
-        snapshot_max_length: The maximum length of a snapshot metadata file.
-        targets_max_length: The maximum length of a targets metadata file.
+        max_root_rotations: Maximum number of root rotations.
+        max_delegations: Maximum number of delegations.
+        root_max_length: Maxmimum length of a root metadata file.
+        timestamp_max_length: Maximum length of a timestamp metadata file.
+        snapshot_max_length: Maximum length of a snapshot metadata file.
+        targets_max_length: Maximum length of a targets metadata file.
         prefix_targets_with_hash: When `consistent snapshots
             <https://theupdateframework.github.io/specification/latest/#consistent-snapshots>`_
             are used, target download URLs are formed by prefixing the filename

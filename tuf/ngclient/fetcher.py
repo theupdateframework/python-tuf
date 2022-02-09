@@ -39,13 +39,13 @@ class FetcherInterface:
         ``fetch()``.
 
         Arguments:
-            url: A URL string that represents a file location.
+            url: URL string that represents a file location.
 
         Raises:
-            exceptions.DownloadHTTPError: An HTTP error code was received.
+            exceptions.DownloadHTTPError: HTTP error code was received.
 
         Returns:
-            A bytes iterator
+            Bytes iterator
         """
         raise NotImplementedError  # pragma: no cover
 
@@ -53,14 +53,14 @@ class FetcherInterface:
         """Fetches the contents of HTTP/HTTPS url from a remote server.
 
         Arguments:
-            url: A URL string that represents a file location.
+            url: URL string that represents a file location.
 
         Raises:
             exceptions.DownloadError: An error occurred during download.
             exceptions.DownloadHTTPError: An HTTP error code was received.
 
         Returns:
-            A bytes iterator
+            Bytes iterator
         """
         # Ensure that fetch() only raises DownloadErrors, regardless of the
         # fetcher implementation
@@ -77,17 +77,17 @@ class FetcherInterface:
         up to ``max_length``.
 
         Args:
-            url: a URL string that represents the location of the file.
-            max_length: upper bound of file size in bytes.
+            url: URL string that represents the location of the file.
+            max_length: Upper bound of file size in bytes.
 
         Raises:
             exceptions.DownloadError: An error occurred during download.
-            exceptions.DownloadLengthMismatchError: downloaded bytes exceed
+            exceptions.DownloadLengthMismatchError: Downloaded bytes exceed
                 ``max_length``.
             exceptions.DownloadHTTPError: An HTTP error code was received.
 
         Yields:
-            A ``TemporaryFile`` object that points to the contents of ``url``.
+            ``TemporaryFile`` object that points to the contents of ``url``.
         """
         logger.debug("Downloading: %s", url)
 
@@ -120,8 +120,8 @@ class FetcherInterface:
         Returns the downloaded bytes, otherwise like ``download_file()``
 
         Args:
-            url: a URL string that represents the location of the file.
-            max_length: upper bound of data size in bytes.
+            url: URL string that represents the location of the file.
+            max_length: Upper bound of data size in bytes.
 
         Raises:
             exceptions.DownloadError: An error occurred during download.
@@ -130,7 +130,7 @@ class FetcherInterface:
             exceptions.DownloadHTTPError: An HTTP error code was received.
 
         Returns:
-            The content of the file in bytes.
+            Content of the file in bytes.
         """
         with self.download_file(url, max_length) as dl_file:
             return dl_file.read()

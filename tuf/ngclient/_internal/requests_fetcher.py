@@ -26,7 +26,7 @@ class RequestsFetcher(FetcherInterface):
     library.
 
     Attributes:
-        _sessions: A dictionary of ``Requests.Session`` objects storing a separate
+        _sessions: Dictionary of ``Requests.Session`` objects storing a separate
             session per scheme+hostname combination.
     """
 
@@ -55,15 +55,15 @@ class RequestsFetcher(FetcherInterface):
         """Fetches the contents of HTTP/HTTPS url from a remote server
 
         Arguments:
-            url: A URL string that represents a file location.
+            url: URL string that represents a file location.
 
         Raises:
-            exceptions.SlowRetrievalError: A timeout occurs while receiving
+            exceptions.SlowRetrievalError: Timeout occurs while receiving
                 data.
-            exceptions.DownloadHTTPError: An HTTP error code is received.
+            exceptions.DownloadHTTPError: HTTP error code is received.
 
         Returns:
-            A bytes iterator
+            Bytes iterator
         """
         # Get a customized session for each new schema+hostname combination.
         session = self._get_session(url)

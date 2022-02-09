@@ -139,7 +139,7 @@ class TrustedMetadataSet(abc.Mapping):
         only checked for the final root in ``update_timestamp()``.
 
         Args:
-            data: unverified new root metadata as bytes
+            data: Unverified new root metadata as bytes
 
         Raises:
             RuntimeError: This function is called after updating timestamp.
@@ -188,7 +188,7 @@ class TrustedMetadataSet(abc.Mapping):
         will prevent loading snapshot metadata.
 
         Args:
-            data: unverified new timestamp metadata as bytes
+            data: Unverified new timestamp metadata as bytes
 
         Raises:
             RuntimeError: This function is called after updating snapshot.
@@ -267,8 +267,8 @@ class TrustedMetadataSet(abc.Mapping):
         does not match timestamp meta version will prevent loading targets.
 
         Args:
-            data: unverified new snapshot metadata as bytes
-            trusted: whether data has at some point been verified by
+            data: Unverified new snapshot metadata as bytes
+            trusted: ``True`` if data has at some point been verified by
                 ``TrustedMetadataSet`` as a valid snapshot. Purpose of trusted
                 is to allow loading of locally stored snapshot as intermediate
                 snapshot even if hashes in current timestamp meta no longer
@@ -277,7 +277,7 @@ class TrustedMetadataSet(abc.Mapping):
         Raises:
             RuntimeError: This function is called before updating timestamp
                 or after updating targets.
-            RepositoryError: data failed to load or verify as final snapshot.
+            RepositoryError: Data failed to load or verify as final snapshot.
                 The actual error type and content will contain more details.
 
         Returns:
@@ -359,7 +359,7 @@ class TrustedMetadataSet(abc.Mapping):
         """Verifies and loads ``data`` as new top-level targets metadata.
 
         Args:
-            data: unverified new targets metadata as bytes
+            data: Unverified new targets metadata as bytes
 
         Raises:
             RepositoryError: Metadata failed to load or verify. The actual
@@ -376,9 +376,9 @@ class TrustedMetadataSet(abc.Mapping):
         """Verifies and loads ``data`` as new metadata for target ``role_name``.
 
         Args:
-            data: unverified new metadata as bytes
-            role_name: The role name of the new metadata
-            delegator_name: The name of the role delegating to the new metadata
+            data: Unverified new metadata as bytes
+            role_name: Role name of the new metadata
+            delegator_name: Name of the role delegating to the new metadata
 
         Raises:
             RuntimeError: This function is called before updating snapshot.

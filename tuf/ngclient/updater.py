@@ -149,7 +149,7 @@ class Updater:
         targets) metadata it needs to return the target information.
 
         Args:
-            target_path: A `path-relative-URL string
+            target_path: `path-relative-URL string
                 <https://url.spec.whatwg.org/#path-relative-url-string>`_
                 that uniquely identifies the target within the repository.
 
@@ -159,7 +159,7 @@ class Updater:
             DownloadError: Download of a metadata file failed in some way
 
         Returns:
-            A ``TargetFile`` instance or ``None``.
+            ``TargetFile`` instance or ``None``.
         """
 
         if self._trusted_set.targets is None:
