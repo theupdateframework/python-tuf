@@ -17,4 +17,4 @@ systems.
    api/api-reference
    INSTALLATION
    Usage examples <https://github.com/theupdateframework/python-tuf/tree/develop/examples>
-   CONTRIBUTORS
+   CONTRIBUTING
