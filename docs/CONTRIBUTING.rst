@@ -1,4 +1,4 @@
-Instructions for Contributors
+Instructions for contributors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Contribute to python-tuf by submitting pull requests against the "develop"
