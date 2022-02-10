@@ -13,38 +13,6 @@ By default tuf is installed as pure python package with limited cryptographic
 abilities. See `Install with full cryptographic abilities`_ for more options.
 
 
-Verify release signatures
--------------------------
-
-Releases on PyPI are signed with a maintainer key using
-`gpg <https://gnupg.org/>`_  (see
-`MAINTAINERS.txt <https://github.com/theupdateframework/python-tuf/blob/develop/docs/MAINTAINERS.txt>`_
-for key fingerprints). Signatures can be downloaded from the
-`GitHub release <https://github.com/theupdateframework/python-tuf/releases>`_
-page (look for *\*.asc* files in the *Assets* section).
-
-Below code shows how to verify the signature of a
-`built <https://packaging.python.org/en/latest/glossary/#term-Built-Distribution>`_ distribution,
-signed by the maintainer *Lukas Pühringer*. It works
-alike for `source  <https://packaging.python.org/en/latest/glossary/#term-Source-Distribution-or-sdist>`_ distributions.
-
-::
-
-   # Get wheel from PyPI and signature from GitHub
-   python3 -m pip download --no-deps tuf==0.20.0
-   wget https://github.com/theupdateframework/python-tuf/releases/download/v0.20.0/tuf-0.20.0-py3-none-any.whl.asc
-
-   # Get public key, compare fingerprint in MAINTAINERS.txt, and verify with gpg
-   gpg --recv-keys 89A2AD3C07D962E8
-   gpg --verify tuf-0.20.0-py3-none-any.whl.asc
-
-   # Output:
-   # gpg: assuming signed data in 'tuf-0.20.0-py3-none-any.whl'
-   # gpg: Signature made Thu Dec 16 09:21:38 2021 CET
-   # gpg:                using RSA key 8BA69B87D43BE294F23E812089A2AD3C07D962E8
-   # gpg: Good signature from "Lukas Pühringer <lukas.puehringer@nyu.edu>" [ultimate]
-
-
 Install with full cryptographic abilities
 -----------------------------------------
 
@@ -84,3 +52,35 @@ from GitHub, change into the project root directory, and install with pip
 ::
 
    python3 -m pip install -r requirements-dev.txt
+
+
+Verify release signatures
+-------------------------
+
+Releases on PyPI are signed with a maintainer key using
+`gpg <https://gnupg.org/>`_  (see
+`MAINTAINERS.txt <https://github.com/theupdateframework/python-tuf/blob/develop/docs/MAINTAINERS.txt>`_
+for key fingerprints). Signatures can be downloaded from the
+`GitHub release <https://github.com/theupdateframework/python-tuf/releases>`_
+page (look for *\*.asc* files in the *Assets* section).
+
+Below code shows how to verify the signature of a
+`built <https://packaging.python.org/en/latest/glossary/#term-Built-Distribution>`_ distribution,
+signed by the maintainer *Lukas Pühringer*. It works
+alike for `source  <https://packaging.python.org/en/latest/glossary/#term-Source-Distribution-or-sdist>`_ distributions.
+
+::
+
+   # Get wheel from PyPI and signature from GitHub
+   python3 -m pip download --no-deps tuf==0.20.0
+   wget https://github.com/theupdateframework/python-tuf/releases/download/v0.20.0/tuf-0.20.0-py3-none-any.whl.asc
+
+   # Get public key, compare fingerprint in MAINTAINERS.txt, and verify with gpg
+   gpg --recv-keys 89A2AD3C07D962E8
+   gpg --verify tuf-0.20.0-py3-none-any.whl.asc
+
+   # Output:
+   # gpg: assuming signed data in 'tuf-0.20.0-py3-none-any.whl'
+   # gpg: Signature made Thu Dec 16 09:21:38 2021 CET
+   # gpg:                using RSA key 8BA69B87D43BE294F23E812089A2AD3C07D962E8
+   # gpg: Good signature from "Lukas Pühringer <lukas.puehringer@nyu.edu>" [ultimate]
