@@ -11,7 +11,7 @@ and must be `unit tested <#unit-tests>`_.
 
 .. note::
 
-     Also see :ref:`development installation instructions <installation:Install for development>`.
+     Also see `development installation instructions <https://theupdateframework.readthedocs.io/en/latest/INSTALLATION.html#install-for-development>`_.
 
 Testing
 =======
