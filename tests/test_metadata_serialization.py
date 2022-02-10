@@ -122,7 +122,7 @@ class TestSerialization(unittest.TestCase):
     def test_invalid_signed_serialization(self, test_case_data: str) -> None:
         case_dict = json.loads(test_case_data)
         with self.assertRaises((KeyError, ValueError, TypeError)):
-            Snapshot.from_dict(copy.deepcopy(case_dict))
+            Snapshot.from_dict(case_dict)
 
     valid_keys: utils.DataSet = {
         "all": '{"keytype": "rsa", "scheme": "rsassa-pss-sha256", \
@@ -155,7 +155,7 @@ class TestSerialization(unittest.TestCase):
         case_dict = json.loads(test_case_data)
         with self.assertRaises((TypeError, KeyError)):
             keyid = case_dict.pop("keyid")
-            Key.from_dict(keyid, copy.copy(case_dict))
+            Key.from_dict(keyid, case_dict)
 
     invalid_roles: utils.DataSet = {
         "no threshold": '{"keyids": ["keyid"]}',
@@ -169,7 +169,7 @@ class TestSerialization(unittest.TestCase):
     def test_invalid_role_serialization(self, test_case_data: str) -> None:
         case_dict = json.loads(test_case_data)
         with self.assertRaises((KeyError, TypeError, ValueError)):
-            Role.from_dict(copy.deepcopy(case_dict))
+            Role.from_dict(case_dict)
 
     valid_roles: utils.DataSet = {
         "all": '{"keyids": ["keyid"], "threshold": 3}',
@@ -276,7 +276,7 @@ class TestSerialization(unittest.TestCase):
     def test_invalid_root_serialization(self, test_case_data: str) -> None:
         case_dict = json.loads(test_case_data)
         with self.assertRaises(ValueError):
-            Root.from_dict(copy.deepcopy(case_dict))
+            Root.from_dict(case_dict)
 
     invalid_metafiles: utils.DataSet = {
         "wrong length type": '{"version": 1, "length": "a", "hashes": {"sha256" : "abc"}}',
@@ -292,7 +292,7 @@ class TestSerialization(unittest.TestCase):
     def test_invalid_metafile_serialization(self, test_case_data: str) -> None:
         case_dict = json.loads(test_case_data)
         with self.assertRaises((TypeError, ValueError, AttributeError)):
-            MetaFile.from_dict(copy.deepcopy(case_dict))
+            MetaFile.from_dict(case_dict)
 
     valid_metafiles: utils.DataSet = {
         "all": '{"hashes": {"sha256" : "abc"}, "length": 12, "version": 1}',
@@ -316,7 +316,7 @@ class TestSerialization(unittest.TestCase):
     def test_invalid_timestamp_serialization(self, test_case_data: str) -> None:
         case_dict = json.loads(test_case_data)
         with self.assertRaises((ValueError, KeyError)):
-            Timestamp.from_dict(copy.deepcopy(case_dict))
+            Timestamp.from_dict(case_dict)
 
     valid_timestamps: utils.DataSet = {
         "all": '{ "_type": "timestamp", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
@@ -392,7 +392,7 @@ class TestSerialization(unittest.TestCase):
     ) -> None:
         case_dict = json.loads(test_case_data)
         with self.assertRaises(ValueError):
-            DelegatedRole.from_dict(copy.copy(case_dict))
+            DelegatedRole.from_dict(case_dict)
 
     invalid_delegations: utils.DataSet = {
         "empty delegations": "{}",
@@ -453,7 +453,7 @@ class TestSerialization(unittest.TestCase):
     ) -> None:
         case_dict = json.loads(test_case_data)
         with self.assertRaises((ValueError, KeyError, AttributeError)):
-            Delegations.from_dict(copy.deepcopy(case_dict))
+            Delegations.from_dict(case_dict)
 
     valid_delegations: utils.DataSet = {
         "all": '{"keys": { \
@@ -490,7 +490,7 @@ class TestSerialization(unittest.TestCase):
     ) -> None:
         case_dict = json.loads(test_case_data)
         with self.assertRaises(KeyError):
-            TargetFile.from_dict(copy.deepcopy(case_dict), "file1.txt")
+            TargetFile.from_dict(case_dict, "file1.txt")
 
     valid_targetfiles: utils.DataSet = {
         "all": '{"length": 12, "hashes": {"sha256" : "abc"}, \
