@@ -276,7 +276,7 @@ class TestMetadata(unittest.TestCase):
             timestamp_key.verify_signature(md_obj)
         sig.signature = correct_sig
 
-    def test_metadata_base(self) -> None:
+    def test_metadata_signed_is_expired(self) -> None:
         # Use of Snapshot is arbitrary, we're just testing the base class
         # features with real data
         snapshot_path = os.path.join(self.repo_dir, "metadata", "snapshot.json")
@@ -302,14 +302,6 @@ class TestMetadata(unittest.TestCase):
         is_expired = md.signed.is_expired()
         self.assertFalse(is_expired)
         md.signed.expires = expires
-
-        # Test deserializing metadata with non-unique signatures:
-        data = md.to_dict()
-        data["signatures"].append(
-            {"keyid": data["signatures"][0]["keyid"], "sig": "foo"}
-        )
-        with self.assertRaises(ValueError):
-            Metadata.from_dict(data)
 
     def test_metadata_verify_delegate(self) -> None:
         root_path = os.path.join(self.repo_dir, "metadata", "root.json")
