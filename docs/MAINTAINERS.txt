@@ -35,3 +35,10 @@ Maintainers:
     Email: jkukkonen@vmware.com
     GitHub username: @jku
     PGP fingerprint: 1343 C98F AB84 859F E5EC  9E37 0527 D8A3 7F52 1A2F
+
+Emeritus Maintainers:
+
+  Sebastien Awwad
+  Vladimir Diaz
+  Teodora Sechkova
+  Santiago Torres-Arias
