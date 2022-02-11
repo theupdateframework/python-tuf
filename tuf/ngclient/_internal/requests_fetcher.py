@@ -22,8 +22,7 @@ logger = logging.getLogger(__name__)
 
 # Classes
 class RequestsFetcher(FetcherInterface):
-    """A concrete implementation of ``FetcherInterface`` based on the Requests
-    library.
+    """An implementation of ``FetcherInterface`` based on the requests library.
 
     Attributes:
         _sessions: Dictionary of ``Requests.Session`` objects storing a separate

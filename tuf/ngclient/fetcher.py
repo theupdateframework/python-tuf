@@ -29,7 +29,7 @@ class FetcherInterface:
 
     @abc.abstractmethod
     def _fetch(self, url: str) -> Iterator[bytes]:
-        """Fetches the contents of HTTP/HTTPS url from a remote server.
+        """Fetches the contents of HTTP/HTTPS ``url`` from a remote server.
 
         Implementations must raise ``DownloadHTTPError`` if they receive
         an HTTP error code.
@@ -50,7 +50,7 @@ class FetcherInterface:
         raise NotImplementedError  # pragma: no cover
 
     def fetch(self, url: str) -> Iterator[bytes]:
-        """Fetches the contents of HTTP/HTTPS url from a remote server.
+        """Fetches the contents of HTTP/HTTPS ``url`` from a remote server.
 
         Args:
             url: URL string that represents a file location.
@@ -73,8 +73,11 @@ class FetcherInterface:
 
     @contextmanager
     def download_file(self, url: str, max_length: int) -> Iterator[IO]:
-        """Opens a connection to ``url`` and downloads the content
-        up to ``max_length``.
+        """Download file from given ``url``.
+
+        It is recommended to use ``download_file()`` within a ``with``
+        block to guarantee that allocated file resources will always
+        be released even if download fails.
 
         Args:
             url: URL string that represents the location of the file.
@@ -115,9 +118,9 @@ class FetcherInterface:
             yield temp_file
 
     def download_bytes(self, url: str, max_length: int) -> bytes:
-        """Download bytes from given url
+        """Download bytes from given ``url``.
 
-        Returns the downloaded bytes, otherwise like ``download_file()``
+        Returns the downloaded bytes, otherwise like ``download_file()``.
 
         Args:
             url: URL string that represents the location of the file.

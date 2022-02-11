@@ -10,8 +10,8 @@ in the TUF specification: the remaining steps are related to filesystem and
 network IO, which are not handled here.
 
 Loaded metadata can be accessed via index access with rolename as key
-(``trusted_set[Root.type]``) or, in the case of top-level metadata, using the helper
-properties (``trusted_set.root``).
+(``trusted_set[Root.type]``) or, in the case of top-level metadata, using the
+helper properties (``trusted_set.root``).
 
 The rules that ``TrustedMetadataSet`` follows for top-level metadata are
  * Metadata must be loaded in order:
@@ -107,7 +107,7 @@ class TrustedMetadataSet(abc.Mapping):
         return len(self._trusted_set)
 
     def __iter__(self) -> Iterator[Metadata]:
-        """Returns iterator over all ``Metadata`` objects in ``TrustedMetadataSet``"""
+        """Returns iterator over ``Metadata`` objects in ``TrustedMetadataSet``"""
         return iter(self._trusted_set.values())
 
     # Helper properties for top level metadata
@@ -259,10 +259,10 @@ class TrustedMetadataSet(abc.Mapping):
         """Verifies and loads ``data`` as new snapshot metadata.
 
         Note that an intermediate snapshot is allowed to be expired and version
-        is allowed to not match timestamp meta version: TrustedMetadataSet will
-        throw an ``ExpiredMetadataError``/``BadVersionNumberError`` in these
-        cases but the intermediate snapshot will be loaded. This way a newer
-        snapshot can still be loaded (and the intermediate snapshot will
+        is allowed to not match timestamp meta version: ``TrustedMetadataSet``
+        will throw an ``ExpiredMetadataError``/``BadVersionNumberError`` in
+        these cases but the intermediate snapshot will be loaded. This way a
+        newer snapshot can still be loaded (and the intermediate snapshot will
         be used for rollback protection). Expired snapshot or snapshot that
         does not match timestamp meta version will prevent loading targets.
 
