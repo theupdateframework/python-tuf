@@ -73,8 +73,15 @@ class TestSerialization(unittest.TestCase):
     @utils.run_sub_tests_with_dataset(valid_metadata)
     def test_valid_metadata_serialization(self, test_case_data: bytes) -> None:
         md = Metadata.from_bytes(test_case_data)
-        input_dict = json.loads(test_case_data)
-        self.assertDictEqual(input_dict, md.to_dict())
+
+        # Convert to a JSON and sort the keys the way we do in JSONSerializer.
+        separators = (",", ":")
+        test_json = json.loads(test_case_data)
+        test_bytes = json.dumps(
+            test_json, separators=separators, sort_keys=True
+        ).encode("utf-8")
+
+        self.assertEqual(test_bytes, md.to_bytes())
 
     invalid_signatures: utils.DataSet = {
         "missing keyid attribute in a signature": '{ "sig": "abc" }',
