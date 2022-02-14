@@ -1,93 +1,86 @@
 Installation
 ============
 
-*pip* is the recommended installer for installing and managing Python packages.
-The project can be installed either locally or from the Python Package Index.
-All `TUF releases
-<https://github.com/theupdateframework/python-tuf/releases>`_ are cryptographically
-signed, with GPG signatures available on both GitHub and `PyPI
-<https://pypi.python.org/pypi/tuf/>`_.  PGP key information for our maintainers
-is available on our `website
-<https://theupdateframework.github.io/people.html>`_, on major keyservers,
-and on the `maintainers page
-<https://github.com/theupdateframework/python-tuf/blob/develop/docs/MAINTAINERS.txt>`_.
+All versions of ``python-tuf`` can be installed from
+`PyPI <https://pypi.org/project/tuf/>`_ with
+`pip <https://pip.pypa.io/en/stable/>`_.
+
+::
+
+   python3 -m pip install tuf
+
+By default tuf is installed as pure python package with limited cryptographic
+abilities. See `Install with full cryptographic abilities`_ for more options.
 
 
-Release Verification
---------------------
+Install with full cryptographic abilities
+-----------------------------------------
 
-Assuming you trust `the maintainer's PGP key
-<https://github.com/theupdateframework/python-tuf/blob/develop/docs/MAINTAINERS.txt>`_,
-the detached ASC signature can be downloaded and verified.  For example::
+Default installation supports signature verification only, using a pure Python
+*ed25519* implementation. While this allows to operate a *basic client* on
+almost any computing device, you will need additional cryptographic abilities
+for *repository* code, i.e. key and signature generation, additional
+algorithms, and more performant backends. Opt-in is available via
+``securesystemslib``.
 
-   $ gpg --verify securesystemslib-0.10.8.tar.gz.asc
-   gpg: assuming signed data in 'securesystemslib-0.10.8.tar.gz'
-   gpg: Signature made Wed Nov  8 15:21:47 2017 EST
-   gpg:                using RSA key 3E87BB339378BC7B3DD0E5B25DEE9B97B0E2289A
-   gpg: Good signature from "Vladimir Diaz (Vlad) <vladimir.v.diaz@gmail.com>" [ultimate]
+.. note::
 
+   Please consult with underlying crypto backend installation docs --
+   `cryptography <https://cryptography.io/en/latest/installation/>`_ and
+   `pynacl <https://pynacl.readthedocs.io/en/latest/install/>`_  --
+   for possible system dependencies.
 
+::
 
-Simple Installation
--------------------
-
-If you are only using ed25519-based cryptography, you can employ a pure-Python
-installation, done simply with one of the following commands:
-
-Installing from Python Package Index (https://pypi.python.org/pypi).
-(Note: Please use "python3 -m pip install --no-use-wheel tuf" if your version
-of pip <= 1.5.6)::
-
-    $ python3 -m pip install tuf
+   python3 -m pip securesystemslib[crypto,pynacl] tuf
 
 
-**Alternatively**, if you wish to install from a GitHub release you've already
-downloaded, or a package you obtained in another way, you can instead:
-
-Install from a local source archive::
-
-    $ python3 -m pip install <path to archive>
-
-Or install from the root directory of the unpacked archive::
-
-    $ python3 -m pip install .
-
-
-
-Install with More Cryptographic Flexibility
--------------------------------------------
-
-By default, C extensions are not installed and only Ed25519 signatures can
-be verified, in pure Python.  To fully support RSA, Ed25519, ECDSA, and
-other crypto, you must install the extra dependencies declared by
-securesystemslib.  **Note**: that may require non-Python dependencies, so if
-you encounter an error attempting this pip command, see
-`more instructions below <#non-python-dependencies>`_). ::
-
-    $ python3 -m pip install securesystemslib[crypto,pynacl] tuf
-
-
-
-Non-Python Dependencies
+Install for development
 -----------------------
 
-If you encounter errors during installation, you may be missing
-certain system libraries.
+To install tuf in editable mode together with development dependencies,
+`clone <https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository>`_ the
+`python-tuf repository <https://github.com/theupdateframework/python-tuf>`_
+from GitHub, change into the project root directory, and install with pip
+(using `venv <https://docs.python.org/3/library/venv.html>`_ is recommended).
 
-For example, PyNaCl and Cryptography -- two libraries used in the full
-installation to support certain cryptographic functions -- may require FFI
-(Foreign Function Interface) development header files.
+.. note::
 
-Debian-based distributions can install the necessary header libraries with apt::
+   Development installation will `Install with full cryptographic abilities`_.
+   Please check above for possible system dependencies.
 
-    $ apt-get install build-essential libssl-dev libffi-dev python-dev
+::
 
-Fedora-based distributions can instead install these libraries with dnf::
+   python3 -m pip install -r requirements-dev.txt
 
-    $ dnf install libffi-devel redhat-rpm-config openssl-devel
 
-OS X users can install these header libraries with the `Homebrew <https://brew.sh/>`_
-package manager, among other options::
+Verify release signatures
+-------------------------
 
-    $ brew install python3
-    $ brew install libffi
+Releases on PyPI are signed with a maintainer key using
+`gpg <https://gnupg.org/>`_  (see
+`MAINTAINERS.txt <https://github.com/theupdateframework/python-tuf/blob/develop/docs/MAINTAINERS.txt>`_
+for key fingerprints). Signatures can be downloaded from the
+`GitHub release <https://github.com/theupdateframework/python-tuf/releases>`_
+page (look for *\*.asc* files in the *Assets* section).
+
+Below code shows how to verify the signature of a
+`built <https://packaging.python.org/en/latest/glossary/#term-Built-Distribution>`_ distribution,
+signed by the maintainer *Lukas Pühringer*. It works
+alike for `source  <https://packaging.python.org/en/latest/glossary/#term-Source-Distribution-or-sdist>`_ distributions.
+
+::
+
+   # Get wheel from PyPI and signature from GitHub
+   python3 -m pip download --no-deps tuf==0.20.0
+   wget https://github.com/theupdateframework/python-tuf/releases/download/v0.20.0/tuf-0.20.0-py3-none-any.whl.asc
+
+   # Get public key, compare fingerprint in MAINTAINERS.txt, and verify with gpg
+   gpg --recv-keys 89A2AD3C07D962E8
+   gpg --verify tuf-0.20.0-py3-none-any.whl.asc
+
+   # Output:
+   # gpg: assuming signed data in 'tuf-0.20.0-py3-none-any.whl'
+   # gpg: Signature made Thu Dec 16 09:21:38 2021 CET
+   # gpg:                using RSA key 8BA69B87D43BE294F23E812089A2AD3C07D962E8
+   # gpg: Good signature from "Lukas Pühringer <lukas.puehringer@nyu.edu>" [ultimate]
