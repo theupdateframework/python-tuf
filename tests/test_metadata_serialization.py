@@ -68,6 +68,13 @@ class TestSerialization(unittest.TestCase):
                 "meta": {"snapshot.json": {"hashes": {"sha256" : "abc"}, "version": 1}}}, \
             "signatures": [] \
         }',
+        "unrecognized fields": b'{ \
+            "signed": \
+                { "_type": "timestamp", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
+                "meta": {"snapshot.json": {"hashes": {"sha256" : "abc"}, "version": 1}}}, \
+            "signatures": [{"keyid": "id", "sig": "b"}], \
+            "foo": "bar" \
+        }',
     }
 
     @utils.run_sub_tests_with_dataset(valid_metadata)

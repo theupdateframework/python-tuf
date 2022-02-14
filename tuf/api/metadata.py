@@ -112,11 +112,20 @@ class Metadata(Generic[T]):
             ``Snapshot``, ``Timestamp`` or ``Root``.
         signatures: Ordered dictionary of keyids to ``Signature`` objects, each
             signing the canonical serialized representation of ``signed``.
+        unrecognized_fields: Dictionary of all attributes that are not managed
+            by TUF Metadata API. These fields are NOT signed and it's preferable
+            if unrecognized fields are added to the Signed derivative classes.
     """
 
-    def __init__(self, signed: T, signatures: Dict[str, Signature]):
+    def __init__(
+        self,
+        signed: T,
+        signatures: Dict[str, Signature],
+        unrecognized_fields: Optional[Mapping[str, Any]] = None,
+    ):
         self.signed: T = signed
         self.signatures = signatures
+        self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
 
     @classmethod
     def from_dict(cls, metadata: Dict[str, Any]) -> "Metadata[T]":
@@ -163,6 +172,8 @@ class Metadata(Generic[T]):
             # Specific type T is not known at static type check time: use cast
             signed=cast(T, inner_cls.from_dict(metadata.pop("signed"))),
             signatures=signatures,
+            # All fields left in the metadata dict are unrecognized.
+            unrecognized_fields=metadata,
         )
 
     @classmethod
@@ -262,7 +273,11 @@ class Metadata(Generic[T]):
 
         signatures = [sig.to_dict() for sig in self.signatures.values()]
 
-        return {"signatures": signatures, "signed": self.signed.to_dict()}
+        return {
+            "signatures": signatures,
+            "signed": self.signed.to_dict(),
+            **self.unrecognized_fields,
+        }
 
     def to_file(
         self,
