@@ -29,37 +29,38 @@ class FetcherInterface:
 
     @abc.abstractmethod
     def _fetch(self, url: str) -> Iterator[bytes]:
-        """Fetches the contents of HTTP/HTTPS url from a remote server.
+        """Fetches the contents of HTTP/HTTPS ``url`` from a remote server.
 
-        Implementations must raise DownloadHTTPError if they receive an
-        HTTP error code.
+        Implementations must raise ``DownloadHTTPError`` if they receive
+        an HTTP error code.
 
         Implementations may raise any errors but the ones that are not
-        DownloadErrors will be wrapped in a DownloadError by fetch().
+        ``DownloadErrors`` will be wrapped in a ``DownloadError`` by
+        ``fetch()``.
 
-        Arguments:
-            url: A URL string that represents a file location.
+        Args:
+            url: URL string that represents a file location.
 
         Raises:
-            exceptions.DownloadHTTPError: An HTTP error code was received.
+            exceptions.DownloadHTTPError: HTTP error code was received.
 
         Returns:
-            A bytes iterator
+            Bytes iterator
         """
         raise NotImplementedError  # pragma: no cover
 
     def fetch(self, url: str) -> Iterator[bytes]:
-        """Fetches the contents of HTTP/HTTPS url from a remote server.
+        """Fetches the contents of HTTP/HTTPS ``url`` from a remote server.
 
-        Arguments:
-            url: A URL string that represents a file location.
+        Args:
+            url: URL string that represents a file location.
 
         Raises:
             exceptions.DownloadError: An error occurred during download.
             exceptions.DownloadHTTPError: An HTTP error code was received.
 
         Returns:
-            A bytes iterator
+            Bytes iterator
         """
         # Ensure that fetch() only raises DownloadErrors, regardless of the
         # fetcher implementation
@@ -72,21 +73,24 @@ class FetcherInterface:
 
     @contextmanager
     def download_file(self, url: str, max_length: int) -> Iterator[IO]:
-        """Opens a connection to 'url' and downloads the content
-        up to 'max_length'.
+        """Download file from given ``url``.
+
+        It is recommended to use ``download_file()`` within a ``with``
+        block to guarantee that allocated file resources will always
+        be released even if download fails.
 
         Args:
-            url: a URL string that represents the location of the file.
-            max_length: upper bound of file size in bytes.
+            url: URL string that represents the location of the file.
+            max_length: Upper bound of file size in bytes.
 
         Raises:
             exceptions.DownloadError: An error occurred during download.
-            exceptions.DownloadLengthMismatchError: downloaded bytes exceed
-                'max_length'.
+            exceptions.DownloadLengthMismatchError: Downloaded bytes exceed
+                ``max_length``.
             exceptions.DownloadHTTPError: An HTTP error code was received.
 
         Yields:
-            A TemporaryFile object that points to the contents of 'url'.
+            ``TemporaryFile`` object that points to the contents of ``url``.
         """
         logger.debug("Downloading: %s", url)
 
@@ -114,22 +118,22 @@ class FetcherInterface:
             yield temp_file
 
     def download_bytes(self, url: str, max_length: int) -> bytes:
-        """Download bytes from given url
+        """Download bytes from given ``url``.
 
-        Returns the downloaded bytes, otherwise like download_file()
+        Returns the downloaded bytes, otherwise like ``download_file()``.
 
         Args:
-            url: a URL string that represents the location of the file.
-            max_length: upper bound of data size in bytes.
+            url: URL string that represents the location of the file.
+            max_length: Upper bound of data size in bytes.
 
         Raises:
             exceptions.DownloadError: An error occurred during download.
-            exceptions.DownloadLengthMismatchError: downloaded bytes exceed
-                'max_length'.
+            exceptions.DownloadLengthMismatchError: Downloaded bytes exceed
+                ``max_length``.
             exceptions.DownloadHTTPError: An HTTP error code was received.
 
         Returns:
-            The content of the file in bytes.
+            Content of the file in bytes.
         """
         with self.download_file(url, max_length) as dl_file:
             return dl_file.read()

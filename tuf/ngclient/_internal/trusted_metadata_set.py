@@ -3,17 +3,17 @@
 
 """Trusted collection of client-side TUF Metadata
 
-TrustedMetadataSet keeps track of the current valid set of metadata for the
+``TrustedMetadataSet`` keeps track of the current valid set of metadata for the
 client, and handles almost every step of the "Detailed client workflow" (
 https://theupdateframework.github.io/specification/latest#detailed-client-workflow)
 in the TUF specification: the remaining steps are related to filesystem and
 network IO, which are not handled here.
 
 Loaded metadata can be accessed via index access with rolename as key
-(trusted_set[Root.type]) or, in the case of top-level metadata, using the helper
-properties (trusted_set.root).
+(``trusted_set[Root.type]``) or, in the case of top-level metadata, using the
+helper properties (``trusted_set.root``).
 
-The rules that TrustedMetadataSet follows for top-level metadata are
+The rules that ``TrustedMetadataSet`` follows for top-level metadata are
  * Metadata must be loaded in order:
    root -> timestamp -> snapshot -> targets -> (delegated targets).
  * Metadata can be loaded even if it is expired (or in the snapshot case if the
@@ -71,20 +71,20 @@ logger = logging.getLogger(__name__)
 
 
 class TrustedMetadataSet(abc.Mapping):
-    """Internal class to keep track of trusted metadata in Updater
+    """Internal class to keep track of trusted metadata in ``Updater``
 
-    TrustedMetadataSet ensures that the collection of metadata in it is valid
+    ``TrustedMetadataSet`` ensures that the collection of metadata in it is valid
     and trusted through the whole client update workflow. It provides easy ways
     to update the metadata with the caller making decisions on what is updated.
     """
 
     def __init__(self, root_data: bytes):
-        """Initialize TrustedMetadataSet by loading trusted root metadata
+        """Initialize ``TrustedMetadataSet`` by loading trusted root metadata
 
         Args:
             root_data: Trusted root metadata as bytes. Note that this metadata
                 will only be verified by itself: it is the source of trust for
-                all metadata in the TrustedMetadataSet
+                all metadata in the ``TrustedMetadataSet``
 
         Raises:
             RepositoryError: Metadata failed to load or verify. The actual
@@ -99,47 +99,47 @@ class TrustedMetadataSet(abc.Mapping):
         self._load_trusted_root(root_data)
 
     def __getitem__(self, role: str) -> Metadata:
-        """Returns current Metadata for 'role'"""
+        """Returns current ``Metadata`` for ``role``"""
         return self._trusted_set[role]
 
     def __len__(self) -> int:
-        """Returns number of Metadata objects in TrustedMetadataSet"""
+        """Returns number of ``Metadata`` objects in ``TrustedMetadataSet``"""
         return len(self._trusted_set)
 
     def __iter__(self) -> Iterator[Metadata]:
-        """Returns iterator over all Metadata objects in TrustedMetadataSet"""
+        """Returns iterator over ``Metadata`` objects in ``TrustedMetadataSet``"""
         return iter(self._trusted_set.values())
 
     # Helper properties for top level metadata
     @property
     def root(self) -> Metadata[Root]:
-        """Current root Metadata"""
+        """Current root ``Metadata``"""
         return self._trusted_set[Root.type]
 
     @property
     def timestamp(self) -> Optional[Metadata[Timestamp]]:
-        """Current timestamp Metadata or None"""
+        """Current timestamp ``Metadata`` or ``None``"""
         return self._trusted_set.get(Timestamp.type)
 
     @property
     def snapshot(self) -> Optional[Metadata[Snapshot]]:
-        """Current snapshot Metadata or None"""
+        """Current snapshot ``Metadata`` or ``None``"""
         return self._trusted_set.get(Snapshot.type)
 
     @property
     def targets(self) -> Optional[Metadata[Targets]]:
-        """Current targets Metadata or None"""
+        """Current targets ``Metadata`` or ``None``"""
         return self._trusted_set.get(Targets.type)
 
     # Methods for updating metadata
     def update_root(self, data: bytes) -> Metadata[Root]:
-        """Verifies and loads 'data' as new root metadata.
+        """Verifies and loads ``data`` as new root metadata.
 
         Note that an expired intermediate root is considered valid: expiry is
-        only checked for the final root in update_timestamp().
+        only checked for the final root in ``update_timestamp()``.
 
         Args:
-            data: unverified new root metadata as bytes
+            data: Unverified new root metadata as bytes
 
         Raises:
             RuntimeError: This function is called after updating timestamp.
@@ -147,7 +147,7 @@ class TrustedMetadataSet(abc.Mapping):
                 error type and content will contain more details.
 
         Returns:
-            Deserialized and verified root Metadata object
+            Deserialized and verified root ``Metadata`` object
         """
         if self.timestamp is not None:
             raise RuntimeError("Cannot update root after timestamp")
@@ -178,17 +178,17 @@ class TrustedMetadataSet(abc.Mapping):
         return new_root
 
     def update_timestamp(self, data: bytes) -> Metadata[Timestamp]:
-        """Verifies and loads 'data' as new timestamp metadata.
+        """Verifies and loads ``data`` as new timestamp metadata.
 
         Note that an intermediate timestamp is allowed to be expired:
-        TrustedMetadataSet will throw an ExpiredMetadataError in this case
-        but the intermediate timestamp will be loaded. This way a newer
-        timestamp can still be loaded (and the intermediate timestamp will
-        be used for rollback protection). Expired timestamp will prevent
-        loading snapshot metadata.
+        ``TrustedMetadataSet`` will throw an ``ExpiredMetadataError`` in
+        this case but the intermediate timestamp will be loaded. This way
+        a newer timestamp can still be loaded (and the intermediate
+        timestamp will be used for rollback protection). Expired timestamp
+        will prevent loading snapshot metadata.
 
         Args:
-            data: unverified new timestamp metadata as bytes
+            data: Unverified new timestamp metadata as bytes
 
         Raises:
             RuntimeError: This function is called after updating snapshot.
@@ -197,7 +197,7 @@ class TrustedMetadataSet(abc.Mapping):
                 more details.
 
         Returns:
-            Deserialized and verified timestamp Metadata object
+            Deserialized and verified timestamp ``Metadata`` object
         """
         if self.snapshot is not None:
             raise RuntimeError("Cannot update timestamp after snapshot")
@@ -256,32 +256,32 @@ class TrustedMetadataSet(abc.Mapping):
     def update_snapshot(
         self, data: bytes, trusted: Optional[bool] = False
     ) -> Metadata[Snapshot]:
-        """Verifies and loads 'data' as new snapshot metadata.
+        """Verifies and loads ``data`` as new snapshot metadata.
 
         Note that an intermediate snapshot is allowed to be expired and version
-        is allowed to not match timestamp meta version: TrustedMetadataSet will
-        throw an ExpiredMetadataError/BadVersionNumberError in these cases
-        but the intermediate snapshot will be loaded. This way a newer
-        snapshot can still be loaded (and the intermediate snapshot will
+        is allowed to not match timestamp meta version: ``TrustedMetadataSet``
+        will throw an ``ExpiredMetadataError``/``BadVersionNumberError`` in
+        these cases but the intermediate snapshot will be loaded. This way a
+        newer snapshot can still be loaded (and the intermediate snapshot will
         be used for rollback protection). Expired snapshot or snapshot that
         does not match timestamp meta version will prevent loading targets.
 
         Args:
-            data: unverified new snapshot metadata as bytes
-            trusted: whether data has at some point been verified by
-                TrustedMetadataSet as a valid snapshot. Purpose of trusted is
-                to allow loading of locally stored snapshot as intermediate
+            data: Unverified new snapshot metadata as bytes
+            trusted: ``True`` if data has at some point been verified by
+                ``TrustedMetadataSet`` as a valid snapshot. Purpose of trusted
+                is to allow loading of locally stored snapshot as intermediate
                 snapshot even if hashes in current timestamp meta no longer
                 match data. Default is False.
 
         Raises:
             RuntimeError: This function is called before updating timestamp
                 or after updating targets.
-            RepositoryError: data failed to load or verify as final snapshot.
+            RepositoryError: Data failed to load or verify as final snapshot.
                 The actual error type and content will contain more details.
 
         Returns:
-            Deserialized and verified snapshot Metadata object
+            Deserialized and verified snapshot ``Metadata`` object
         """
 
         if self.timestamp is None:
@@ -356,29 +356,29 @@ class TrustedMetadataSet(abc.Mapping):
             )
 
     def update_targets(self, data: bytes) -> Metadata[Targets]:
-        """Verifies and loads 'data' as new top-level targets metadata.
+        """Verifies and loads ``data`` as new top-level targets metadata.
 
         Args:
-            data: unverified new targets metadata as bytes
+            data: Unverified new targets metadata as bytes
 
         Raises:
             RepositoryError: Metadata failed to load or verify. The actual
                 error type and content will contain more details.
 
         Returns:
-            Deserialized and verified targets Metadata object
+            Deserialized and verified targets ``Metadata`` object
         """
         return self.update_delegated_targets(data, Targets.type, Root.type)
 
     def update_delegated_targets(
         self, data: bytes, role_name: str, delegator_name: str
     ) -> Metadata[Targets]:
-        """Verifies and loads 'data' as new metadata for target 'role_name'.
+        """Verifies and loads ``data`` as new metadata for target ``role_name``.
 
         Args:
-            data: unverified new metadata as bytes
-            role_name: The role name of the new metadata
-            delegator_name: The name of the role delegating to the new metadata
+            data: Unverified new metadata as bytes
+            role_name: Role name of the new metadata
+            delegator_name: Name of the role delegating to the new metadata
 
         Raises:
             RuntimeError: This function is called before updating snapshot.
@@ -386,7 +386,7 @@ class TrustedMetadataSet(abc.Mapping):
                 error type and content will contain more details.
 
         Returns:
-            Deserialized and verified targets Metadata object
+            Deserialized and verified targets ``Metadata`` object
         """
         if self.snapshot is None:
             raise RuntimeError("Cannot load targets before snapshot")
@@ -434,10 +434,10 @@ class TrustedMetadataSet(abc.Mapping):
         return new_delegate
 
     def _load_trusted_root(self, data: bytes) -> None:
-        """Verifies and loads 'data' as trusted root metadata.
+        """Verifies and loads ``data`` as trusted root metadata.
 
         Note that an expired initial root is considered valid: expiry is
-        only checked for the final root in update_timestamp().
+        only checked for the final root in ``update_timestamp()``.
         """
         new_root = Metadata[Root].from_bytes(data)
 

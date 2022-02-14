@@ -1,8 +1,8 @@
 # Copyright 2021, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""Provides an implementation of FetcherInterface using the Requests HTTP
-  library.
+"""Provides an implementation of ``FetcherInterface`` using the Requests
+  HTTP library.
 """
 
 import logging
@@ -22,11 +22,10 @@ logger = logging.getLogger(__name__)
 
 # Classes
 class RequestsFetcher(FetcherInterface):
-    """A concrete implementation of FetcherInterface based on the Requests
-    library.
+    """An implementation of ``FetcherInterface`` based on the requests library.
 
     Attributes:
-        _sessions: A dictionary of Requests.Session objects storing a separate
+        _sessions: Dictionary of ``Requests.Session`` objects storing a separate
             session per scheme+hostname combination.
     """
 
@@ -54,16 +53,16 @@ class RequestsFetcher(FetcherInterface):
     def _fetch(self, url: str) -> Iterator[bytes]:
         """Fetches the contents of HTTP/HTTPS url from a remote server
 
-        Arguments:
-            url: A URL string that represents a file location.
+        Args:
+            url: URL string that represents a file location.
 
         Raises:
-            exceptions.SlowRetrievalError: A timeout occurs while receiving
+            exceptions.SlowRetrievalError: Timeout occurs while receiving
                 data.
-            exceptions.DownloadHTTPError: An HTTP error code is received.
+            exceptions.DownloadHTTPError: HTTP error code is received.
 
         Returns:
-            A bytes iterator
+            Bytes iterator
         """
         # Get a customized session for each new schema+hostname combination.
         session = self._get_session(url)
