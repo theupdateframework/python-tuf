@@ -14,10 +14,12 @@ page for more details about the release and the deprecation of the legacy
 implementation, including migration instructions.*
 
 ----------------------------
-This repository is the **reference implementation** of
-[The Update Framework (TUF)](https://theupdateframework.github.io/).
-It is written in Python and intended to conform to version 1.0 of the
-[TUF specification](https://theupdateframework.github.io/specification/latest/).
+[The Update Framework (TUF)](https://theupdateframework.io/) is a framework for
+secure content delivery and updates. It protects against various types of
+supply chain attacks and provides resilience to compromise. This repository is a
+**reference implementation** written in Python. It is intended to conform to
+version 1.0 of the [TUF
+specification](https://theupdateframework.github.io/specification/latest/).
 
 Python-TUF provides two APIs:
   * [`tuf.api.metadata`](https://theupdateframework.readthedocs.io/en/latest/api/tuf.api.html),
@@ -69,10 +71,10 @@ for the reference implementation
 
 Contact
 -------
-Please contact us via our [mailing
-list](https://groups.google.com/forum/?fromgroups#!forum/theupdateframework).
-Questions, feedback, and suggestions are welcomed on this low volume mailing
-list.
+Questions, feedback, and suggestions are welcomed on our low volume [mailing
+list](https://groups.google.com/forum/?fromgroups#!forum/theupdateframework) or
+the [#tuf](https://cloud-native.slack.com/archives/C8NMD3QJ3) channel on [CNCF
+Slack](https://slack.cncf.io/).
 
 We strive to make the specification easy to implement, so if you come across
 any inconsistencies or experience any difficulty, do let us know by sending an
