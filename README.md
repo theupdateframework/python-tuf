@@ -7,13 +7,6 @@
 [![PyPI](https://img.shields.io/pypi/v/tuf)](https://pypi.org/project/tuf/)
 
 ----------------------------
-*__IMPORTANT NOTICE:__ A stable 1.0.0 release of the modern implementation only
-is scheduled for January 2022. Please see the [*1.0.0
-announcement*](https://github.com/theupdateframework/python-tuf/blob/develop/docs/1.0.0-ANNOUNCEMENT.md)
-page for more details about the release and the deprecation of the legacy
-implementation, including migration instructions.*
-
-----------------------------
 [The Update Framework (TUF)](https://theupdateframework.io/) is a framework for
 secure content delivery and updates. It protects against various types of
 supply chain attacks and provides resilience to compromise. This repository is a
@@ -30,7 +23,7 @@ Python-TUF provides two APIs:
 
 High-level support for implementing
 [repository operations](https://theupdateframework.github.io/specification/latest/#repository-operations)
-is planned but not yet provided: see [1.0.0 plans](https://github.com/theupdateframework/python-tuf/blob/develop/docs/1.0.0-ANNOUNCEMENT.md).
+is planned but not yet provided: see [ADR 10](https://github.com/theupdateframework/python-tuf/blob/develop/docs/adr/0010-repository-library-design.md).
 
 The reference implementation strives to be a readable guide and demonstration
 for those working on implementing TUF in their own languages, environments, or
