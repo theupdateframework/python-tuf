@@ -25,7 +25,7 @@ jobs:
         ver=$(python3 -c "$script")
         echo "::set-output name=version::$ver"
     - name: Open issue (if needed)
-      uses: actions/github-script@e3cbab99d3a9b271e1b79fc96d103a4a5534998c
+      uses: actions/github-script@9ac08808f993958e9de277fe43a64532a609130e
       with:
         script: |
           const release = await github.rest.repos.getLatestRelease({
