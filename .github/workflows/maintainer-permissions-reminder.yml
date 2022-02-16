@@ -31,6 +31,7 @@ jobs:
              * Each additional maintainer/admin increases the risk of project compromise: for this reason permissions should be removed if they are no longer used
              * For services that are not frequently used, each maintainer/admin should check that they really are still able to authenticate to the service and confirm this in the comments
           3. Update MAINTAINERS.txt to reflect current permissions
+          4. (Bonus) Update significant contributors in README.md#acknowledgements
 
           ### Critical services
 
