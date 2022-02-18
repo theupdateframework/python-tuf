@@ -24,11 +24,12 @@ in `tuf.api` or `tuf.ngclient`.
 * ngclient: Allow HTTP payload compression (#1774)
 * ngclient: Make exceptions more consistent (#1799, #1810)
 * docs: Improve documentation (#1744, #1749, #1750, #1755, #1771, #1776, #1772,
-  #1780, #1781, #1800, #1815, #1820, #1829, #1838, #1850, #1853, #1855, #1856)
+  #1780, #1781, #1800, #1815, #1820, #1829, #1838, #1850, #1853, #1855, #1856
+  #1868, #1871)
 * build: Various build infrastructure improvements (#1718, #1724, #1760, #1762,
   #1767, #1803, #1830, #1832, #1837, #1839)
 * build: Stop supporting EOL Python 3.6 (#1783)
-* build: Update dependencies (#1809, #1827, #1834, #1863, #1865)
+* build: Update dependencies (#1809, #1827, #1834, #1863, #1865, #1870)
 
 ### Removed
 * Remove all legacy code including old client, repository_tool, repository_lib
