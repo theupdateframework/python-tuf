@@ -310,43 +310,78 @@ class TestRefresh(unittest.TestCase):
 
     @patch.object(datetime, "datetime", wraps=datetime.datetime)
     def test_expired_timestamp_version_rollback(self, mock_time: Mock) -> None:
+        """Verifies that local timestamp is used in rollback checks even if it is expired.
+
+        The timestamp updates and rollback checks are performed
+        with the following timing:
+         - Timestamp v1 expiry set to day 7
+         - First updater refresh performed on day 0
+         - Repository publishes timestamp v2 on day 0
+         - Timestamp v2 expiry set to day 21
+         - Second updater refresh performed on day 18:
+           assert that rollback check uses expired timestamp v1"""
+
+        now = datetime.datetime.utcnow()
+        self.sim.timestamp.expires = now + datetime.timedelta(days=7)
+
+        self.sim.timestamp.version = 2
+
+        # Make a successful update of valid metadata which stores it in cache
         self._run_refresh()
 
+        self.sim.timestamp.expires = now + datetime.timedelta(days=21)
+
+        self.sim.timestamp.version = 1
+
         mock_time.utcnow.return_value = (
-            datetime.datetime.utcnow() + datetime.timedelta(seconds=1)
+            datetime.datetime.utcnow() + datetime.timedelta(days=18)
         )
         with patch("datetime.datetime", mock_time):
-            # Check for a rollback attack
-            self.sim.timestamp.version = 2
-            self._run_refresh()
-
-            self.sim.timestamp.version = 1
+            # Check that a rollback protection is performed even if
+            # local timestamp has expired
             with self.assertRaises(BadVersionNumberError):
                 self._run_refresh()
 
-            self._assert_version_equals(Timestamp.type, 2)
+        self._assert_version_equals(Timestamp.type, 2)
 
     @patch.object(datetime, "datetime", wraps=datetime.datetime)
     def test_expired_timestamp_snapshot_rollback(self, mock_time: Mock) -> None:
+        """Verifies that rollback protection is done even if local timestamp has expired.
+
+        The snapshot updates and rollback protection checks are performed
+        with the following timing:
+         - Timestamp v1 expiry set to day 7
+         - Repository bumps snapshot to v3 on day 0
+         - First updater refresh performed on day 0
+         - Timestamp v2 expiry set to day 21
+         - Second updater refresh performed on day 18:
+           assert that rollback protection is done with expired timestamp v1"""
+
+        now = datetime.datetime.utcnow()
+        self.sim.timestamp.expires = now + datetime.timedelta(days=7)
+
+        # Bump the snapshot version number to 3
+        self.sim.update_snapshot()
+        self.sim.update_snapshot()
+
+        # Make a successful update of valid metadata which stores it in cache
         self._run_refresh()
 
+        self.sim.snapshot.version = 1
+        # Snapshot version number is set to 2, which is still less than 3
+        self.sim.update_snapshot()
+        self.sim.timestamp.expires = now + datetime.timedelta(days=21)
+
         mock_time.utcnow.return_value = (
-            datetime.datetime.utcnow() + datetime.timedelta(seconds=1)
+            datetime.datetime.utcnow() + datetime.timedelta(days=18)
         )
         with patch("datetime.datetime", mock_time):
-            # Check for a rollback attack.
-            self.sim.snapshot.version = 2
-            self.sim.update_timestamp()  # timestamp v2
-            self._run_refresh()
-
-            # Snapshot meta version is smaller than previous
-            self.sim.timestamp.snapshot_meta.version = 1
-            self.sim.timestamp.version += 1  # timestamp v3
-
+            # Assert that rollback protection is done even if
+            # local timestamp has expired
             with self.assertRaises(BadVersionNumberError):
                 self._run_refresh()
 
-            self._assert_version_equals(Timestamp.type, 2)
+        self._assert_version_equals(Timestamp.type, 3)
 
     def test_new_timestamp_version_rollback(self) -> None:
         # Check for a rollback attack
@@ -706,22 +741,34 @@ class TestRefresh(unittest.TestCase):
 
     @patch.object(datetime, "datetime", wraps=datetime.datetime)
     def test_expired_metadata(self, mock_time: Mock) -> None:
-        # Test that expired local timestamp/snapshot can be used for updating
-        # from remote
+        """Verifies that expired local timestamp/snapshot can be used for
+        updating from remote.
+
+        The updates and verifications are performed with the following timing:
+         - Timestamp v1 expiry set to day 7
+         - First updater refresh performed on day 0
+         - Repository bumps snapshot and targets to v2 on day 0
+         - Timestamp v2 expiry set to day 21
+         - Second updater refresh performed on day 18,
+           it is successful and timestamp/snaphot final versions are v2"""
+
+        now = datetime.datetime.utcnow()
+        self.sim.timestamp.expires = now + datetime.timedelta(days=7)
 
         # Make a successful update of valid metadata which stores it in cache
         self._run_refresh()
 
-        # Simulate expired local metadata by mocking system time one second ahead
+        self.sim.targets.version += 1
+        self.sim.update_snapshot()
+        self.sim.timestamp.expires = now + datetime.timedelta(days=21)
+
+        # Mocking time so that local timestam has expired
+        # but the new timestamp has not
         mock_time.utcnow.return_value = (
-            datetime.datetime.utcnow() + datetime.timedelta(seconds=1)
+            datetime.datetime.utcnow() + datetime.timedelta(days=18)
         )
         with patch("datetime.datetime", mock_time):
-            self.sim.targets.version += 1
-            self.sim.update_snapshot()
-        # Create a new updater and perform a second update while
-        # the metadata is already stored in cache (metadata dir)
-        self._run_refresh()
+            self._run_refresh()
 
         # Assert that the final version of timestamp/snapshot is version 2
         # which means a successful refresh is performed
