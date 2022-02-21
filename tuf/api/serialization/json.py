@@ -36,7 +36,7 @@ class JSONDeserializer(MetadataDeserializer):
             metadata_obj = Metadata.from_dict(json_dict)
 
         except Exception as e:
-            raise DeserializationError from e
+            raise DeserializationError("Failed to deserialize JSON") from e
 
         return metadata_obj
 
@@ -66,7 +66,7 @@ class JSONSerializer(MetadataSerializer):
             ).encode("utf-8")
 
         except Exception as e:
-            raise SerializationError from e
+            raise SerializationError("Failed to serialize JSON") from e
 
         return json_bytes
 
