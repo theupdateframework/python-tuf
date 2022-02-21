@@ -1,5 +1,45 @@
 # Changelog
 
+## v1.0.0
+
+This release makes ngclient and the Metadata API the supported python-tuf APIs.
+It also removes the legacy implementation as documented in the
+[1.0.0 announcement](1.0.0-ANNOUNCEMENT.md): all library code is now contained
+in `tuf.api` or `tuf.ngclient`.
+
+### Added
+* tests: Extend testing (#1689, #1703, #1711, #1728, #1735, #1738,
+  #1742, #1766, #1777, #1809, #1831)
+
+### Changed
+* Metadata API: Disallow microseconds in expiry (#1712)
+* Metadata API: Preserve role keyid order (#1754)
+* Metadata API: Make exceptions more consistent (#1725, #1734, #1787, #1840,
+  #1836)
+* Metadata API: Update supported spec version to "1.0.28" (#1825)
+* Metadata API: Accept legacy spec version "1.0" (#1796)
+* Metadata API: Accept custom fields in Metadata (#1861)
+* ngclient: Remove temporary file in failure cases (#1757)
+* ngclient: Explicitly encode rolename in URL (#1759)
+* ngclient: Allow HTTP payload compression (#1774)
+* ngclient: Make exceptions more consistent (#1799, #1810)
+* docs: Improve documentation (#1744, #1749, #1750, #1755, #1771, #1776, #1772,
+  #1780, #1781, #1800, #1815, #1820, #1829, #1838, #1850, #1853, #1855, #1856
+  #1868, #1871)
+* build: Various build infrastructure improvements (#1718, #1724, #1760, #1762,
+  #1767, #1803, #1830, #1832, #1837, #1839)
+* build: Stop supporting EOL Python 3.6 (#1783)
+* build: Update dependencies (#1809, #1827, #1834, #1863, #1865, #1870)
+
+### Removed
+* Remove all legacy code including old client, repository_tool, repository_lib
+  and the scripts (#1790)
+* Metadata API: Remove modification helper methods that are no longer necessary
+  (#1736, #1740, #1743)
+* tests: Remove client tests that were replaced with better ones (#1741)
+* tests: Stop using unittest_toolbox (#1792)
+* docs: Remove deprecated documentation (#1768, #1769, #1773, #1848)
+
 
 ## v0.20.0
 
