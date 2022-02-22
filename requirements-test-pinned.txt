@@ -18,7 +18,7 @@ mypy==0.931               # via -r requirements-test.txt
 mypy-extensions==0.4.3    # via black, mypy
 pathspec==0.9.0           # via black
 pbr==5.8.1                # via stevedore
-platformdirs==2.5.0       # via black, pylint
+platformdirs==2.5.1       # via black, pylint
 pycparser==2.21           # via -r requirements-pinned.txt, cffi
 pylint==2.12.2            # via -r requirements-test.txt
 pynacl==1.5.0             # via -r requirements-pinned.txt, securesystemslib
