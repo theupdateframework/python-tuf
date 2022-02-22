@@ -8,7 +8,7 @@ click==8.0.3              # via black
 coverage==6.3.1           # via -r requirements-test.txt
 cryptography==36.0.1      # via -r requirements-pinned.txt, securesystemslib
 gitdb==4.0.9              # via gitpython
-gitpython==3.1.26         # via bandit
+gitpython==3.1.27         # via bandit
 idna==3.3                 # via -r requirements-pinned.txt, requests
 importlib-metadata==4.11.1; python_version < '3.8'  # via click, stevedore
 isort==5.10.1             # via -r requirements-test.txt, pylint
