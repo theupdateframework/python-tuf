@@ -13,7 +13,7 @@ idna==3.3                 # via -r requirements-pinned.txt, requests
 importlib-metadata==4.11.1; python_version < '3.8'  # via click, stevedore
 isort==5.10.1             # via -r requirements-test.txt, pylint
 lazy-object-proxy==1.7.1  # via astroid
-mccabe==0.6.1             # via pylint
+mccabe==0.7.0             # via pylint
 mypy==0.931               # via -r requirements-test.txt
 mypy-extensions==0.4.3    # via black, mypy
 pathspec==0.9.0           # via black
