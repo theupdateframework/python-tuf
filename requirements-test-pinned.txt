@@ -5,7 +5,7 @@ certifi==2021.10.8        # via -r requirements-pinned.txt, requests
 cffi==1.15.0              # via -r requirements-pinned.txt, cryptography, pynacl
 charset-normalizer==2.0.12  # via -r requirements-pinned.txt, requests
 click==8.0.3              # via black
-coverage==6.3.1           # via -r requirements-test.txt
+coverage==6.3.2           # via -r requirements-test.txt
 cryptography==36.0.1      # via -r requirements-pinned.txt, securesystemslib
 gitdb==4.0.9              # via gitpython
 gitpython==3.1.26         # via bandit
