@@ -1,4 +1,4 @@
-astroid==2.9.3            # via pylint
+astroid==2.10.0            # via pylint
 bandit==1.7.2             # via -r requirements-test.txt
 black==22.1.0             # via -r requirements-test.txt
 certifi==2021.10.8        # via -r requirements-pinned.txt, requests
