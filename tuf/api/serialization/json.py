@@ -9,6 +9,7 @@ verification.
 """
 
 import json
+from typing import Optional
 
 from securesystemslib.formats import encode_canonical
 
@@ -44,17 +45,22 @@ class JSONDeserializer(MetadataDeserializer):
 class JSONSerializer(MetadataSerializer):
     """Provides Metadata to JSON serialize method.
 
-    Attributes:
+    Args:
         compact: A boolean indicating if the JSON bytes generated in
-                'serialize' should be compact by excluding whitespace.
+            'serialize' should be compact by excluding whitespace.
+        validate: Check that the metadata object can be deserialized again
+            without change of contents and thus find common mistakes.
+            This validation might slow down serialization significantly.
 
     """
 
-    def __init__(self, compact: bool = False):
+    def __init__(self, compact: bool = False, validate: Optional[bool] = False):
         self.compact = compact
+        self.validate = validate
 
     def serialize(self, metadata_obj: Metadata) -> bytes:
         """Serialize Metadata object into utf-8 encoded JSON bytes."""
+
         try:
             indent = None if self.compact else 1
             separators = (",", ":") if self.compact else (",", ": ")
@@ -64,6 +70,16 @@ class JSONSerializer(MetadataSerializer):
                 separators=separators,
                 sort_keys=True,
             ).encode("utf-8")
+
+            if self.validate:
+                try:
+                    new_md_obj = JSONDeserializer().deserialize(json_bytes)
+                    if metadata_obj != new_md_obj:
+                        raise ValueError(
+                            "Metadata changes if you serialize and deserialize."
+                        )
+                except Exception as e:
+                    raise ValueError("Metadata cannot be validated!") from e
 
         except Exception as e:
             raise SerializationError from e

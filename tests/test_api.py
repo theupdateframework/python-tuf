@@ -39,7 +39,7 @@ from tuf.api.metadata import (
     Targets,
     Timestamp,
 )
-from tuf.api.serialization import DeserializationError
+from tuf.api.serialization import DeserializationError, SerializationError
 from tuf.api.serialization.json import CanonicalJSONSerializer, JSONSerializer
 
 logger = logging.getLogger(__name__)
@@ -156,6 +156,13 @@ class TestMetadata(unittest.TestCase):
             self.assertDictEqual(md_obj.to_dict(), md_obj_2.to_dict())
 
             os.remove(path_2)
+
+    def test_serialize_with_validate(self) -> None:
+        # Assert that by changing one required attribute validation will fail.
+        root = Metadata.from_file(f"{self.repo_dir}/metadata/root.json")
+        root.signed.version = 0
+        with self.assertRaises(SerializationError):
+            root.to_bytes(JSONSerializer(validate=True))
 
     def test_to_from_bytes(self) -> None:
         for metadata in TOP_LEVEL_ROLE_NAMES:
