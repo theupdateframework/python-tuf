@@ -50,7 +50,7 @@ html_theme_options = {
   'logo_only': True
 }
 html_logo = 'tuf-horizontal-white.png'
-html_favicon = 'tuf-icon-color.png'
+html_favicon = 'tuf-icon-32.png'
 
 
 # Add any paths that contain custom static files (such as style sheets) here,

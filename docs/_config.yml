@@ -1,0 +1,13 @@
+title: Python-TUF
+author: Python-TUF community
+#email: your-email@domain.com
+description: > # for footer and for search engines 
+  Development blog for Python-TUF, a supply chain security framework
+  for secure content delivery and updates.
+
+github_username:  theupdateframework
+
+show_excerpts: true # set to false to remove excerpts on the homepage
+
+theme: minima
+
