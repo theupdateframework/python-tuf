@@ -9,5 +9,8 @@ github_username:  theupdateframework
 
 show_excerpts: true # set to false to remove excerpts on the homepage
 
+header_pages: # make sure ordinary docs are not linked from blog header
+  - index.md
+
 theme: minima
 
