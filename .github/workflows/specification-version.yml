@@ -14,7 +14,7 @@ jobs:
     name: Open an issue when spec version bumps
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+    - uses: actions/checkout@a12a3943b4bdde767164f792f33f40b04645d846
     - uses: actions/setup-python@0ebf233433c08fb9061af664d501c3f3ff0e9e20
     - name: Get supported version
       id: get-version
