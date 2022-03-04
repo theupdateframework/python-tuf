@@ -1,6 +1,6 @@
 # Build-system section
 [build-system]
-requires = ["setuptools>=40.8.0", "wheel"]
+requires = ["setuptools>=46.4.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 # Black section
