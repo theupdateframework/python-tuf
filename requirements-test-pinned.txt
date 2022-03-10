@@ -34,7 +34,7 @@ types-requests==2.27.9    # via -r requirements-test.txt
 types-urllib3==1.26.9     # via types-requests
 typing-extensions==4.1.1  # via astroid, black, gitpython, importlib-metadata, mypy, pylint
 urllib3==1.26.8           # via -r requirements-pinned.txt, requests
-wrapt==1.13.3             # via astroid
+wrapt==1.14.0             # via astroid
 zipp==3.7.0; python_version < '3.8'  # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
