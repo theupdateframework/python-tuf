@@ -33,5 +33,7 @@
   * Upload to PyPI `twine upload dist/*`
   * Verify the package at https://pypi.org/project/tuf/ and by installing with pip
 * Attach both signed dists and their detached signatures to the release on GitHub
+* `verify_release` should be used to make sure the release artifacts match the
+  git sources, preferably by another developer on a different machine.
 * Announce the release on [#tuf on CNCF Slack](https://cloud-native.slack.com/archives/C8NMD3QJ3)
 * Ensure [POUF 1](https://github.com/theupdateframework/taps/blob/master/POUFs/reference-POUF/pouf1.md), for the reference implementation, is up-to-date
