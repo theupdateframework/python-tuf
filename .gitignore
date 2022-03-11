@@ -1,10 +1,10 @@
 # root level directories
-dist/*
-build/*
-env/*
+dist/
+build/
+env/
 
 # docs build directory
-docs/build/*
+docs/build/
 
 # global file patterns
 *.log
@@ -14,10 +14,10 @@ docs/build/*
 *.swp
 *.egg-info
 .coverage
-.tox/*
-tests/htmlcov/*
+.tox/
+tests/htmlcov/
 .DS_Store
-.pybuild/*
+.pybuild/
 .python-version
 *~
 *.tmp
@@ -25,9 +25,9 @@ tests/htmlcov/*
 .vscode
 
 # Debian generated files
-debian/.debhelper/*
+debian/.debhelper/
 debian/*-stamp
 debian/files
 debian/*.debhelper
 debian/*.substvars
-debian/python*-tuf/*
+debian/python*-tuf/
