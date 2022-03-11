@@ -1,3 +1,3 @@
-# Files that will always have LF line endings on checkout.
-tests/repository_data/** text eol=lf
-
+# All JSON files will always have LF line endings on checkout.
+# This prevents git replacing line endings with CRLF on Windows.
+*.json text eol=lf
