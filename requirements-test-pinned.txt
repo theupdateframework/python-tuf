@@ -31,7 +31,7 @@ toml==0.10.2              # via pylint
 tomli==2.0.1              # via black, mypy
 typed-ast==1.5.2; python_version < '3.8'  # via astroid, black, mypy
 types-requests==2.27.9    # via -r requirements-test.txt
-types-urllib3==1.26.9     # via types-requests
+types-urllib3==1.26.11     # via types-requests
 typing-extensions==4.1.1  # via astroid, black, gitpython, importlib-metadata, mypy, pylint
 urllib3==1.26.8           # via -r requirements-pinned.txt, requests
 wrapt==1.13.3             # via astroid
