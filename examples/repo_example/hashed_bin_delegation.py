@@ -26,6 +26,7 @@ from securesystemslib.keys import generate_ed25519_key
 from securesystemslib.signer import SSlibSigner
 
 from tuf.api.metadata import (
+    SPECIFICATION_VERSION,
     DelegatedRole,
     Delegations,
     Key,
@@ -41,7 +42,7 @@ def _in(days: float) -> datetime:
     return datetime.utcnow().replace(microsecond=0) + timedelta(days=days)
 
 
-SPEC_VERSION = "1.0.19"
+SPEC_VERSION = ".".join(SPECIFICATION_VERSION)
 roles: Dict[str, Metadata] = {}
 keys: Dict[str, Dict[str, Any]] = {}
 
