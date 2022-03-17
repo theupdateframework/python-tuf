@@ -30,6 +30,7 @@ from securesystemslib.keys import generate_ed25519_key
 from securesystemslib.signer import SSlibSigner
 
 from tuf.api.metadata import (
+    SPECIFICATION_VERSION,
     DelegatedRole,
     Delegations,
     Key,
@@ -82,7 +83,7 @@ def _in(days: float) -> datetime:
 # expiration intervals, whereas roles that change less and might use offline
 # keys (root, delegating targets) may have longer expiration intervals.
 
-SPEC_VERSION = "1.0.19"
+SPEC_VERSION = ".".join(SPECIFICATION_VERSION)
 
 # Define containers for role objects and cryptographic keys created below. This
 # allows us to sign and write metadata in a batch more easily.
