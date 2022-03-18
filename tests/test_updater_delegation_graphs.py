@@ -32,7 +32,7 @@ class TestDelegation:
     keyids: List[str] = field(default_factory=list)
     threshold: int = 1
     terminating: bool = False
-    paths: List[str] = field(default_factory=lambda: ["*"])
+    paths: Optional[List[str]] = field(default_factory=lambda: ["*"])
     path_hash_prefixes: Optional[List[str]] = None
 
 
@@ -435,6 +435,84 @@ class TestTargetFileSearch(TestDelegations):
             # order and the corresponding metadata files were persisted
             self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
             self._assert_files_exist(exp_files)
+        finally:
+            self.teardown_subtest()
+
+    hash_bins_metadata: utils.DataSet = {
+        "delegated hash bins": DelegationsTestCase(
+            delegations=[
+                TestDelegation(
+                    "targets",
+                    "f8-ff",
+                    paths=None,
+                    path_hash_prefixes=[
+                        "f8",
+                        "f9",
+                        "fa",
+                        "fb",
+                        "fc",
+                        "fd",
+                        "fe",
+                        "ff",
+                    ],
+                ),
+                TestDelegation(
+                    "targets",
+                    "20-27",
+                    paths=None,
+                    path_hash_prefixes=[
+                        "20",
+                        "21",
+                        "22",
+                        "23",
+                        "24",
+                        "25",
+                        "26",
+                        "27",
+                    ],
+                ),
+            ],
+            target_files=[
+                TestTarget(
+                    "f8-ff",
+                    b"fff0838676c1dacb8827b02511e89f85b43814a74dd2c3ffb31d952a1db94311",
+                    "non_matching_path_to_prefix.ext",
+                ),
+                TestTarget(
+                    "20-27",
+                    b"22992ae806e6d652835f3c84e169f05127da69e599f902e4dbdc6ff27ce46d01",
+                    "delegate_1.ext",
+                ),
+            ],
+            visited_order=["f8-ff", "20-27"],
+        ),
+    }
+
+    @utils.run_sub_tests_with_dataset(hash_bins_metadata)
+    def test_delegated_hash_bins(self, test_data: DelegationsTestCase) -> None:
+        try:
+            self._init_repo(test_data)
+            self.setup_subtest()
+            updater = self._init_updater()
+            # Call explicitly refresh to simplify the expected_calls list
+            updater.refresh()
+            self.sim.fetch_tracker.metadata.clear()
+
+            # verify that no metadata file was downloaded for existing
+            # path that doesn't match correct prefix
+            target_info = updater.get_targetinfo(
+                "non_matching_path_to_prefix.ext"
+            )
+            self.assertIsNone(target_info)
+            # verify that the target info was successfully found
+            # and the correct delegated metadata file was downloaded
+            target_info = updater.get_targetinfo("delegate_1.ext")
+            assert target_info is not None
+            self.assertEqual(target_info.path, "delegate_1.ext")
+            target_file = updater.download_target(target_info)
+            self.assertEqual(
+                target_file, os.path.join(self.targets_dir, "delegate_1.ext")
+            )
         finally:
             self.teardown_subtest()
 
