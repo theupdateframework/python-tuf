@@ -335,8 +335,9 @@ class Metadata(Generic[T]):
         """Creates signature over ``signed`` and assigns it to ``signatures``.
 
         Args:
-            signer: Custom or securesystemslib implementation of the
-                ``securesystemslib.signer.Signer`` interface.
+            signer: A ``securesystemslib.signer.Signer`` object that provides a private
+                key and signing implementation to generate the signature. A standard
+                implementation is available in ``securesystemslib.signer.SSlibSigner``.
             append: ``True`` if the signature should be appended to
                 the list of signatures or replace any existing signatures. The
                 default behavior is to replace signatures.
