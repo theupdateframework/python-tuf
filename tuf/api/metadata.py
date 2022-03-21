@@ -742,6 +742,8 @@ class Key:
             sslib_exceptions.UnsupportedAlgorithmError,
             SerializationError,
         ) as e:
+            # Log unexpected failure, but continue as if there was no signature
+            logger.info("Key %s failed to verify sig: %s", self.keyid, str(e))
             raise exceptions.UnsignedMetadataError(
                 f"Failed to verify {self.keyid} signature"
             ) from e
