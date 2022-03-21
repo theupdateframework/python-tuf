@@ -44,11 +44,11 @@ Example::
     updater.refresh()
 """
 
+import datetime
 import logging
 import os
 import tempfile
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
 from typing import Dict, Iterator, List, Optional, Tuple
 from urllib import parse
 
@@ -125,8 +125,10 @@ class RepositorySimulator(FetcherInterface):
 
         self.fetch_tracker = FetchTracker()
 
-        now = datetime.utcnow()
-        self.safe_expiry = now.replace(microsecond=0) + timedelta(days=30)
+        now = datetime.datetime.utcnow()
+        self.safe_expiry = now.replace(microsecond=0) + datetime.timedelta(
+            days=30
+        )
 
         self._initialize()
 

@@ -59,9 +59,9 @@ Example of loading root, timestamp and snapshot:
 >>>         trusted_set.update_snapshot(f.read())
 """
 
+import datetime
 import logging
 from collections import abc
-from datetime import datetime
 from typing import Dict, Iterator, Optional
 
 from tuf.api import exceptions
@@ -91,7 +91,7 @@ class TrustedMetadataSet(abc.Mapping):
                 error type and content will contain more details.
         """
         self._trusted_set: Dict[str, Metadata] = {}
-        self.reference_time = datetime.utcnow()
+        self.reference_time = datetime.datetime.utcnow()
 
         # Load and validate the local root metadata. Valid initial trusted root
         # metadata is required
