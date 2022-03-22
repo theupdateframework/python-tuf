@@ -7,14 +7,16 @@ version: 2
 
 # Build documentation with Sphinx
 sphinx:
-   builder: html
-   configuration: docs/conf.py
-   fail_on_warning: true
+  builder: html
+  configuration: docs/conf.py
+  fail_on_warning: true
 
 # Optionally build your docs in additional formats such as PDF
 formats: []
 
 # Optionally set the version of Python and requirements required to build your docs
 python:
-   install:
-   - requirements: requirements-docs.txt
+  install:
+  - requirements: requirements-docs.txt
+  - method: pip
+    path: .

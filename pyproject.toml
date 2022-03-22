@@ -1,7 +1,75 @@
 # Build-system section
 [build-system]
-requires = ["setuptools>=46.4.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling>=0.21.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tuf"
+description = "A secure updater framework for Python"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+requires-python = ">=3.7"
+authors = [
+  { email = "theupdateframework@googlegroups.com" },
+]
+keywords = [
+  "authentication",
+  "compromise",
+  "key",
+  "revocation",
+  "secure",
+  "update",
+  "updater",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "License :: OSI Approved :: MIT License",
+  "Natural Language :: English",
+  "Operating System :: MacOS :: MacOS X",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Topic :: Security",
+  "Topic :: Software Development",
+]
+dependencies = [
+  "requests>=2.19.1",
+  "securesystemslib>=0.22.0",
+]
+dynamic = ["version"]
+
+[project.urls]
+Documentation = "https://theupdateframework.readthedocs.io/en/stable/"
+Homepage = "https://www.updateframework.com"
+Issues = "https://github.com/theupdateframework/python-tuf/issues"
+Source = "https://github.com/theupdateframework/python-tuf"
+
+[tool.hatch.version]
+path = "tuf/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/docs",
+  "/tests",
+  "/tuf",
+  "/requirements*.txt",
+  "/tox.ini",
+  "/setup.py",
+]
+
+[tool.hatch.build.targets.wheel]
+# The testing phase changes the current working directory to `tests` but the test scripts import
+# from `tests` so the root directory must be added to Python's path for editable installations
+dev-mode-dirs = ["."]
 
 # Black section
 # Read more here: https://black.readthedocs.io/en/stable/usage_and_configuration/the_basics.html#configuration-via-a-file
