@@ -4,10 +4,10 @@
 -r requirements-pinned.txt
 
 # additional test tools for linting and coverage measurement
-coverage
-black
-isort
-pylint
-mypy
-bandit
-types-requests
+coverage==6.3.2
+black==22.1.0
+isort==5.10.1
+pylint==2.12.2
+mypy==0.941
+bandit==1.7.4
+types-requests==2.27.14
