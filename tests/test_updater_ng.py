@@ -314,6 +314,18 @@ class TestUpdater(unittest.TestCase):
         for filename in os.listdir(self.updater._dir):
             self.assertFalse(filename.startswith("tmp"))
 
+    def test_invalid_target_base_url(self) -> None:
+        info = TargetFile(1, {"sha256": ""}, "targetpath")
+        with self.assertRaises(exceptions.DownloadError):
+            self.updater.download_target(info, target_base_url="invalid_url")
+
+    def test_non_existing_target_file(self) -> None:
+        info = TargetFile(1, {"sha256": ""}, "/non_existing_file.txt")
+        # When non-existing target file is given, download fails with
+        # "404 Client Error: File not found for url"
+        with self.assertRaises(exceptions.DownloadHTTPError):
+            self.updater.download_target(info)
+
 
 if __name__ == "__main__":
     utils.configure_test_logging(sys.argv)
