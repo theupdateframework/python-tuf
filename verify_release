@@ -54,10 +54,10 @@ def get_github_version() -> str:
     return releases["tag_name"][1:]
 
 
-def get_pypi_version() -> str:
-    """Return latest version string available on PyPI"""
-    # pip is sad: it can't even tell what the newest available version is...
-    # FIXME: Maybe think of something better than downloading latest tarball here?
+def get_pypi_pip_version() -> str:
+    """Return latest version string available on PyPI according to pip"""
+    # pip can't tell us what the newest available version is... So we download
+    # newest tarball and figure out the version from the filename
     with TemporaryDirectory() as pypi_dir:
         cmd = ["pip", "download", "--no-deps", "--dest", pypi_dir]
         source_download = cmd + ["--no-binary", ":all:", PYPI_PROJECT]
@@ -133,7 +133,7 @@ def main() -> int:
             finished(f"WARNING: GitHub latest version is {github_version}")
 
         progress("Checking PyPI latest version")
-        pypi_version = get_pypi_version()
+        pypi_version = get_pypi_pip_version()
         if pypi_version != build_version:
             finished(f"WARNING: PyPI latest version is {pypi_version}")
 
