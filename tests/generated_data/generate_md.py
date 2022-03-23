@@ -16,7 +16,6 @@ from tuf.api.metadata import (
     TOP_LEVEL_ROLE_NAMES,
     Key,
     Metadata,
-    MetaFile,
     Role,
     Root,
     Snapshot,
@@ -97,23 +96,15 @@ def generate_all_files(
         verify: Whether to verify the newly generated files with the
             local staored.
     """
-    root = Root(1, SPEC_VERSION, EXPIRY, {}, ROLES, True)
-    root.add_key("root", keys["ed25519_0"])
-    root.add_key("timestamp", keys["ed25519_1"])
-    root.add_key("snapshot", keys["ed25519_2"])
-    root.add_key("targets", keys["ed25519_3"])
+    md_root = Metadata(Root(expires=EXPIRY))
+    md_timestamp = Metadata(Timestamp(expires=EXPIRY))
+    md_snapshot = Metadata(Snapshot(expires=EXPIRY))
+    md_targets = Metadata(Targets(expires=EXPIRY))
 
-    md_root: Metadata[Root] = Metadata(root, {})
-
-    timestamp = Timestamp(1, SPEC_VERSION, EXPIRY, MetaFile(1))
-    md_timestamp: Metadata[Timestamp] = Metadata(timestamp, {})
-
-    meta: Dict[str, MetaFile] = {"targets.json": MetaFile(1)}
-    snapshot = Snapshot(1, SPEC_VERSION, EXPIRY, meta)
-    md_snapshot: Metadata[Snapshot] = Metadata(snapshot, {})
-
-    targets = Targets(1, SPEC_VERSION, EXPIRY, {})
-    md_targets: Metadata[Targets] = Metadata(targets, {})
+    md_root.signed.add_key("root", keys["ed25519_0"])
+    md_root.signed.add_key("timestamp", keys["ed25519_1"])
+    md_root.signed.add_key("snapshot", keys["ed25519_2"])
+    md_root.signed.add_key("targets", keys["ed25519_3"])
 
     for i, md in enumerate([md_root, md_timestamp, md_snapshot, md_targets]):
         assert isinstance(md, Metadata)

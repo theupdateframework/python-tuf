@@ -65,7 +65,6 @@ from tuf.api.metadata import (
     Key,
     Metadata,
     MetaFile,
-    Role,
     Root,
     Snapshot,
     TargetFile,
@@ -176,26 +175,16 @@ class RepositorySimulator(FetcherInterface):
     def _initialize(self) -> None:
         """Setup a minimal valid repository."""
 
-        targets = Targets(1, SPEC_VER, self.safe_expiry, {}, None)
-        self.md_targets = Metadata(targets, {})
-
-        meta = {"targets.json": MetaFile(targets.version)}
-        snapshot = Snapshot(1, SPEC_VER, self.safe_expiry, meta)
-        self.md_snapshot = Metadata(snapshot, {})
-
-        snapshot_meta = MetaFile(snapshot.version)
-        timestamp = Timestamp(1, SPEC_VER, self.safe_expiry, snapshot_meta)
-        self.md_timestamp = Metadata(timestamp, {})
-
-        roles = {role_name: Role([], 1) for role_name in TOP_LEVEL_ROLE_NAMES}
-        root = Root(1, SPEC_VER, self.safe_expiry, {}, roles, True)
+        self.md_targets = Metadata(Targets(expires=self.safe_expiry))
+        self.md_snapshot = Metadata(Snapshot(expires=self.safe_expiry))
+        self.md_timestamp = Metadata(Timestamp(expires=self.safe_expiry))
+        self.md_root = Metadata(Root(expires=self.safe_expiry))
 
         for role in TOP_LEVEL_ROLE_NAMES:
             key, signer = self.create_key()
-            root.add_key(role, key)
+            self.md_root.signed.add_key(role, key)
             self.add_signer(role, signer)
 
-        self.md_root = Metadata(root, {})
         self.publish_root()
 
     def publish_root(self) -> None:
