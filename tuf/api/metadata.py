@@ -32,7 +32,7 @@ import fnmatch
 import io
 import logging
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import (
     IO,
     Any,
@@ -500,7 +500,7 @@ class Signed(metaclass=abc.ABCMeta):
 
         self.spec_version = spec_version
 
-        self.expires = expires or datetime.utcnow() + timedelta(days=1)
+        self.expires = expires or datetime.utcnow()
 
         if version is None:
             version = 1
