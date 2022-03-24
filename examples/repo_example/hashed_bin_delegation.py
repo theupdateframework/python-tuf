@@ -147,22 +147,11 @@ for name in ["bin-n", "bins"]:
 
 # Create preliminary delegating targets role (bins) and add public key for
 # delegated targets (bin_n) to key store. Delegation details are update below.
-roles["bins"] = Metadata[Targets](
-    signed=Targets(
-        version=1,
-        spec_version=SPEC_VERSION,
-        expires=_in(365),
-        targets={},
-        delegations=Delegations(
-            keys={
-                keys["bin-n"]["keyid"]: Key.from_securesystemslib_key(
-                    keys["bin-n"]
-                )
-            },
-            roles={},
-        ),
-    ),
-    signatures={},
+roles["bins"] = Metadata(Targets(expires=_in(365)))
+bin_n_key = Key.from_securesystemslib_key(keys["bin-n"])
+roles["bins"].signed.delegations = Delegations(
+    keys={bin_n_key.keyid: bin_n_key},
+    roles={},
 )
 
 # The hash bin generator yields an ordered list of incremental hash bin names
@@ -185,12 +174,7 @@ for bin_n_name, bin_n_hash_prefixes in generate_hash_bins():
     )
 
     # Create delegated targets roles (bin_n)
-    roles[bin_n_name] = Metadata[Targets](
-        signed=Targets(
-            version=1, spec_version=SPEC_VERSION, expires=_in(7), targets={}
-        ),
-        signatures={},
-    )
+    roles[bin_n_name] = Metadata(Targets(expires=_in(7)))
 
 # Add target file
 # ---------------
