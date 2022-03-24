@@ -124,7 +124,7 @@ class Metadata(Generic[T]):
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ):
         self.signed: T = signed
-        self.signatures = signatures or {}
+        self.signatures = signatures if signatures is not None else {}
         self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
 
     def __eq__(self, other: Any) -> bool:
@@ -854,7 +854,7 @@ class Root(Signed):
     ):
         super().__init__(version, spec_version, expires, unrecognized_fields)
         self.consistent_snapshot = consistent_snapshot
-        self.keys = keys or {}
+        self.keys = keys if keys is not None else {}
 
         if roles is None:
             roles = {r: Role([], 1) for r in TOP_LEVEL_ROLE_NAMES}
@@ -1676,7 +1676,7 @@ class Targets(Signed):
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
         super().__init__(version, spec_version, expires, unrecognized_fields)
-        self.targets = targets or {}
+        self.targets = targets if targets is not None else {}
         self.delegations = delegations
 
     def __eq__(self, other: Any) -> bool:
