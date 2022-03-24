@@ -84,11 +84,15 @@ def verify_github_release(version: str, compare_dir: str) -> bool:
                 for data in response.iter_content():
                     f.write(data)
 
-        return not dircmp(github_dir, compare_dir).diff_files
+        same = dircmp(github_dir, compare_dir).same_files
+        return sorted(same) == [wheel, tar]
 
 
 def verify_pypi_release(version: str, compare_dir: str) -> bool:
     """Verify that given PyPI version artifacts match expected artifacts"""
+    tar = f"{PYPI_PROJECT}-{version}.tar.gz"
+    wheel = f"{PYPI_PROJECT}-{version}-py3-none-any.whl"
+
     with TemporaryDirectory() as pypi_dir:
         cmd = ["pip", "download", "--no-deps", "--dest", pypi_dir]
         target = f"{PYPI_PROJECT}=={version}"
@@ -98,16 +102,17 @@ def verify_pypi_release(version: str, compare_dir: str) -> bool:
         subprocess.run(binary_download, stdout=subprocess.DEVNULL, check=True)
         subprocess.run(source_download, stdout=subprocess.DEVNULL, check=True)
 
-        return not dircmp(pypi_dir, compare_dir).diff_files
+        same = dircmp(pypi_dir, compare_dir).same_files
+        return sorted(same) == [wheel, tar]
 
 
-def finished(s: str):
+def finished(s: str) -> None:
     # clear line
     sys.stdout.write("\033[K")
     print(f"* {s}")
 
 
-def progress(s: str):
+def progress(s: str) -> None:
     # clear line
     sys.stdout.write("\033[K")
     # carriage return but no newline: next print will overwrite this one
