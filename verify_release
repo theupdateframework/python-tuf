@@ -1,0 +1,164 @@
+#!/usr/bin/env python
+
+# Copyright 2022, TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+"""verify_release - verify that published release matches a locally built one
+
+Builds a release from current commit and verifies that the release artifacts
+on GitHub and PyPI match the built release artifacts.
+"""
+
+import json
+import os
+import subprocess
+import sys
+from filecmp import dircmp
+from tempfile import TemporaryDirectory
+
+import requests
+
+# Project variables
+# Note that only these project artifacts are supported:
+# [f"{PYPI_PROJECT}-{VER}-none-any.whl",  f"{PYPI_PROJECT}-{VER}.tar.gz"]
+GITHUB_ORG = "theupdateframework"
+GITHUB_PROJECT = "python-tuf"
+PYPI_PROJECT = "tuf"
+
+
+def build(build_dir: str) -> str:
+    """Build release locally. Return version as string"""
+    cmd = ["python3", "-m", "build", "--outdir", build_dir]
+    subprocess.run(cmd, stdout=subprocess.DEVNULL, check=True)
+    build_version = None
+    for filename in os.listdir(build_dir):
+        prefix, postfix = f"{PYPI_PROJECT}-", ".tar.gz"
+        if filename.startswith(prefix) and filename.endswith(postfix):
+            build_version = filename[len(prefix) : -len(postfix)]
+    assert build_version
+    return build_version
+
+
+def get_git_version() -> str:
+    """Return version string from git describe"""
+    cmd = ["git", "describe"]
+    process = subprocess.run(cmd, text=True, capture_output=True, check=True)
+    assert process.stdout.startswith("v") and process.stdout.endswith("\n")
+    return process.stdout[1:-1]
+
+
+def get_github_version() -> str:
+    """Return version string of latest GitHub release"""
+    release_json = f"https://api.github.com/repos/{GITHUB_ORG}/{GITHUB_PROJECT}/releases/latest"
+    releases = json.loads(requests.get(release_json).content)
+    return releases["tag_name"][1:]
+
+
+def get_pypi_pip_version() -> str:
+    """Return latest version string available on PyPI according to pip"""
+    # pip can't tell us what the newest available version is... So we download
+    # newest tarball and figure out the version from the filename
+    with TemporaryDirectory() as pypi_dir:
+        cmd = ["pip", "download", "--no-deps", "--dest", pypi_dir]
+        source_download = cmd + ["--no-binary", ":all:", PYPI_PROJECT]
+        subprocess.run(source_download, stdout=subprocess.DEVNULL, check=True)
+        for filename in os.listdir(pypi_dir):
+            prefix, postfix = f"{PYPI_PROJECT}-", ".tar.gz"
+            if filename.startswith(prefix) and filename.endswith(postfix):
+                return filename[len(prefix) : -len(postfix)]
+        assert False
+
+
+def verify_github_release(version: str, compare_dir: str) -> bool:
+    """Verify that given GitHub version artifacts match expected artifacts"""
+    base_url = (
+        f"https://github.com/{GITHUB_ORG}/{GITHUB_PROJECT}/releases/download"
+    )
+    tar = f"{PYPI_PROJECT}-{version}.tar.gz"
+    wheel = f"{PYPI_PROJECT}-{version}-py3-none-any.whl"
+    with TemporaryDirectory() as github_dir:
+        for filename in [tar, wheel]:
+            url = f"{base_url}/v{version}/{filename}"
+            response = requests.get(url, stream=True)
+            with open(os.path.join(github_dir, filename), "wb") as f:
+                for data in response.iter_content():
+                    f.write(data)
+
+        same = dircmp(github_dir, compare_dir).same_files
+        return sorted(same) == [wheel, tar]
+
+
+def verify_pypi_release(version: str, compare_dir: str) -> bool:
+    """Verify that given PyPI version artifacts match expected artifacts"""
+    tar = f"{PYPI_PROJECT}-{version}.tar.gz"
+    wheel = f"{PYPI_PROJECT}-{version}-py3-none-any.whl"
+
+    with TemporaryDirectory() as pypi_dir:
+        cmd = ["pip", "download", "--no-deps", "--dest", pypi_dir]
+        target = f"{PYPI_PROJECT}=={version}"
+        binary_download = cmd + [target]
+        source_download = cmd + ["--no-binary", ":all:", target]
+
+        subprocess.run(binary_download, stdout=subprocess.DEVNULL, check=True)
+        subprocess.run(source_download, stdout=subprocess.DEVNULL, check=True)
+
+        same = dircmp(pypi_dir, compare_dir).same_files
+        return sorted(same) == [wheel, tar]
+
+
+def finished(s: str) -> None:
+    # clear line
+    sys.stdout.write("\033[K")
+    print(f"* {s}")
+
+
+def progress(s: str) -> None:
+    # clear line
+    sys.stdout.write("\033[K")
+    # carriage return but no newline: next print will overwrite this one
+    print(f"  {s}...", end="\r", flush=True)
+
+
+def main() -> int:
+    success = True
+    with TemporaryDirectory() as build_dir:
+
+        progress("Building release")
+        build_version = build(build_dir)
+        finished(f"Built release {build_version}")
+
+        git_version = get_git_version()
+        assert git_version.startswith(build_version)
+        if git_version != build_version:
+            finished(f"WARNING: Git describes version as {git_version}")
+
+        progress("Checking GitHub latest version")
+        github_version = get_github_version()
+        if github_version != build_version:
+            finished(f"WARNING: GitHub latest version is {github_version}")
+
+        progress("Checking PyPI latest version")
+        pypi_version = get_pypi_pip_version()
+        if pypi_version != build_version:
+            finished(f"WARNING: PyPI latest version is {pypi_version}")
+
+        progress("Downloading release from PyPI")
+        if not verify_pypi_release(build_version, build_dir):
+            # This is expected while build is not reproducible
+            finished("ERROR: PyPI artifacts do not match built release")
+            success = False
+
+        progress("Downloading release from GitHub")
+        if not verify_github_release(build_version, build_dir):
+            # This is expected while build is not reproducible
+            finished("ERROR: GitHub artifacts do not match built release")
+            success = False
+
+        if success:
+            finished("Github and PyPI artifacts match the built release")
+
+    return 0 if success else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
