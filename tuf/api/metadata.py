@@ -104,6 +104,14 @@ class Metadata(Generic[T]):
     ``[Root]`` is not validated at runtime (as pure annotations are not available
     then).
 
+    New Metadata instances can be created from scratch with::
+
+        one_day = datetime.utcnow() + timedelta(days=1)
+        timestamp = Metadata(Timestamp(expires=one_day))
+
+    Apart from ``expires`` all of the arguments to the inner constructors have
+    reasonable default values for new metadata.
+
     *All parameters named below are not just constructor arguments but also
     instance attributes.*
 
@@ -112,6 +120,7 @@ class Metadata(Generic[T]):
             ``Snapshot``, ``Timestamp`` or ``Root``.
         signatures: Ordered dictionary of keyids to ``Signature`` objects, each
             signing the canonical serialized representation of ``signed``.
+            Default is an empty dictionary.
         unrecognized_fields: Dictionary of all attributes that are not managed
             by TUF Metadata API. These fields are NOT signed and it's preferable
             if unrecognized fields are added to the Signed derivative classes.
@@ -444,9 +453,11 @@ class Signed(metaclass=abc.ABCMeta):
     instance attributes.*
 
     Args:
-        version: Metadata version number.
-        spec_version: Supported TUF specification version number.
-        expires: Metadata expiry date.
+        version: Metadata version number. If None, then 1 is assigned.
+        spec_version: Supported TUF specification version. If None, then the
+            version currently supported by the library is assigned.
+        expires: Metadata expiry date. If None, then current date and time is
+            assigned.
         unrecognized_fields: Dictionary of all attributes that are not managed
             by TUF Metadata API
 
@@ -825,13 +836,17 @@ class Root(Signed):
     Parameters listed below are also instance attributes.
 
     Args:
-        version: Metadata version number.
-        spec_version: Supported TUF specification version number.
-        expires: Metadata expiry date.
+        version: Metadata version number. Default is 1.
+        spec_version: Supported TUF specification version. Default is the
+            version currently supported by the library.
+        expires: Metadata expiry date. Default is current date and time.
         keys: Dictionary of keyids to Keys. Defines the keys used in ``roles``.
+            Default is empty dictionary.
         roles: Dictionary of role names to Roles. Defines which keys are
-            required to sign the metadata for a specific role.
+            required to sign the metadata for a specific role. Default is
+            a dictionary of top level roles without keys and threshold of 1.
         consistent_snapshot: ``True`` if repository supports consistent snapshots.
+            Default is True.
         unrecognized_fields: Dictionary of all attributes that are not managed
             by TUF Metadata API
 
@@ -1122,12 +1137,14 @@ class Timestamp(Signed):
     instance attributes.*
 
     Args:
-        version: Metadata version number.
-        spec_version: Supported TUF specification version number.
-        expires: Metadata expiry date.
+        version: Metadata version number. Default is 1.
+        spec_version: Supported TUF specification version. Default is the
+            version currently supported by the library.
+        expires: Metadata expiry date. Default is current date and time.
         unrecognized_fields: Dictionary of all attributes that are not managed
             by TUF Metadata API
-        snapshot_meta: Meta information for snapshot metadata.
+        snapshot_meta: Meta information for snapshot metadata. Default is a
+            MetaFile with version 1.
 
     Raises:
         ValueError: Invalid arguments.
@@ -1183,12 +1200,14 @@ class Snapshot(Signed):
     instance attributes.*
 
     Args:
-        version: Metadata version number.
-        spec_version: Supported TUF specification version number.
-        expires: Metadata expiry date.
+        version: Metadata version number. Default is 1.
+        spec_version: Supported TUF specification version. Default is the
+            version currently supported by the library.
+        expires: Metadata expiry date. Default is current date and time.
         unrecognized_fields: Dictionary of all attributes that are not managed
             by TUF Metadata API
-        meta: Dictionary of target metadata filenames to ``MetaFile`` objects.
+        meta: Dictionary of targets filenames to ``MetaFile`` objects. Default
+            is a dictionary with a Metafile for "snapshot.json" version 1.
 
     Raises:
         ValueError: Invalid arguments.
@@ -1650,12 +1669,14 @@ class Targets(Signed):
     instance attributes.*
 
     Args:
-        version: Metadata version number.
-        spec_version: Supported TUF specification version number.
-        expires: Metadata expiry date.
-        targets: Dictionary of target filenames to TargetFiles
+        version: Metadata version number. Default is 1.
+        spec_version: Supported TUF specification version. Default is the
+            version currently supported by the library.
+        expires: Metadata expiry date. Default is current date and time.
+        targets: Dictionary of target filenames to TargetFiles. Default is an
+            empty dictionary.
         delegations: Defines how this Targets delegates responsibility to other
-            Targets Metadata files.
+            Targets Metadata files. Default is None.
         unrecognized_fields: Dictionary of all attributes that are not managed
             by TUF Metadata API
 
