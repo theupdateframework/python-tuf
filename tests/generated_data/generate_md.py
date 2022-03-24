@@ -11,17 +11,7 @@ from typing import Dict, List, Optional
 from securesystemslib.signer import SSlibSigner
 
 from tests import utils
-from tuf.api.metadata import (
-    SPECIFICATION_VERSION,
-    TOP_LEVEL_ROLE_NAMES,
-    Key,
-    Metadata,
-    Role,
-    Root,
-    Snapshot,
-    Targets,
-    Timestamp,
-)
+from tuf.api.metadata import Key, Metadata, Root, Snapshot, Targets, Timestamp
 from tuf.api.serialization.json import JSONSerializer
 
 # Hardcode keys and expiry time to achieve reproducibility.
@@ -60,13 +50,11 @@ for index in range(4):
 
 expires_str = "2050-01-01T00:00:00Z"
 EXPIRY = datetime.strptime(expires_str, "%Y-%m-%dT%H:%M:%SZ")
-SPEC_VERSION = ".".join(SPECIFICATION_VERSION)
 OUT_DIR = "generated_data/ed25519_metadata"
 if not os.path.exists(OUT_DIR):
     os.mkdir(OUT_DIR)
 
 SERIALIZER = JSONSerializer()
-ROLES = {role_name: Role([], 1) for role_name in TOP_LEVEL_ROLE_NAMES}
 
 
 def verify_generation(md: Metadata, path: str) -> None:
