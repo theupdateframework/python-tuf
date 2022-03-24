@@ -213,6 +213,7 @@ class TestMetadataComparisions(unittest.TestCase):
             ("terminating", None),
             ("paths", [""]),
             ("path_hash_prefixes", [""]),
+            ("succinct_hash_info", ""),
         ]:
             setattr(delegated_role_2, attr, value)
             msg = f"Failed case: {attr}"

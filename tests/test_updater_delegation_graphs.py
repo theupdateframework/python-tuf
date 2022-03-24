@@ -32,7 +32,7 @@ class TestDelegation:
     keyids: List[str] = field(default_factory=list)
     threshold: int = 1
     terminating: bool = False
-    paths: Optional[List[str]] = field(default_factory=lambda: ["*"])
+    paths: List[str] = field(default_factory=lambda: ["*"])
     path_hash_prefixes: Optional[List[str]] = None
 
 
@@ -344,8 +344,8 @@ class TestDelegationsGraphs(TestDelegations):
         for rolename in roles_to_filenames:
             delegations.append(TestDelegation("targets", rolename))
 
-        delegated_rolenames = DelegationsTestCase(delegations)
-        self._init_repo(delegated_rolenames)
+        delegated_names = DelegationsTestCase(delegations)
+        self._init_repo(delegated_names)
         updater = self._init_updater()
         updater.refresh()
 

@@ -1276,14 +1276,20 @@ class Snapshot(Signed):
 class DelegatedRole(Role):
     """A container with information about a delegated role.
 
-    A delegation can happen in two ways:
+    A delegation can happen in three ways:
 
         - ``paths`` is set: delegates targets matching any path pattern in ``paths``
         - ``path_hash_prefixes`` is set: delegates targets whose target path hash
           starts with any of the prefixes in ``path_hash_prefixes``
+        - ``succinct_hash_info`` is set: this DelegatedRole is trusted to handle
+          all possible targets through the use of succinct hash delegations.
+          For more information see: https://github.com/theupdateframework/taps/blob/master/tap15.md
 
-        ``paths`` and ``path_hash_prefixes`` are mutually exclusive: both cannot be
-        set, at least one of them must be set.
+        Exactly one of ``paths``, ``path_hash_prefixes`` and
+        ``succinct_hash_info`` must be set.
+
+        Additionally, if ``succinct_hash_info`` is set then only a ``None``
+        value is accepted for ``name``.
 
     *All parameters named below are not just constructor arguments but also
     instance attributes.*
@@ -1295,6 +1301,8 @@ class DelegatedRole(Role):
         terminating: ``True`` if this delegation terminates a target lookup.
         paths: Path patterns. See note above.
         path_hash_prefixes: Hash prefixes. See note above.
+        succinct_hash_info: Contains succinct information about hash bin
+            delegations. For more information see: https://github.com/theupdateframework/taps/blob/master/tap15.md
         unrecognized_fields: Dictionary of all attributes that are not managed
             by TUF Metadata API
 
@@ -1304,22 +1312,28 @@ class DelegatedRole(Role):
 
     def __init__(
         self,
-        name: str,
+        name: Optional[str],
         keyids: List[str],
         threshold: int,
         terminating: bool,
         paths: Optional[List[str]] = None,
         path_hash_prefixes: Optional[List[str]] = None,
+        succinct_hash_info: Optional[Dict[str, Any]] = None,
         unrecognized_fields: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(keyids, threshold, unrecognized_fields)
+        if sum(1 for var in [name, succinct_hash_info] if var is not None) != 1:
+            raise ValueError(
+                "Only one of name and succinct_hash_info must be set"
+            )
         self.name = name
         self.terminating = terminating
-        if paths is not None and path_hash_prefixes is not None:
-            raise ValueError("Either paths or path_hash_prefixes can be set")
-
-        if paths is None and path_hash_prefixes is None:
-            raise ValueError("One of paths or path_hash_prefixes must be set")
+        exclusive_vars = [paths, path_hash_prefixes, succinct_hash_info]
+        if sum(1 for var in exclusive_vars if var is not None) != 1:
+            raise ValueError(
+                "Only one of (paths, path_hash_prefixes, succinct_hash_info) "
+                "must be set"
+            )
 
         if paths is not None and any(not isinstance(p, str) for p in paths):
             raise ValueError("Paths must be strings")
@@ -1327,9 +1341,19 @@ class DelegatedRole(Role):
             not isinstance(p, str) for p in path_hash_prefixes
         ):
             raise ValueError("Path_hash_prefixes must be strings")
+        if succinct_hash_info is not None:
+            if not isinstance(succinct_hash_info, Dict):
+                raise ValueError("succinct_hash_info must be a dict")
+            if "delegation_hash_prefix_len" not in succinct_hash_info:
+                raise ValueError(
+                    "succinct_hash_info requires delegation_hash_prefix_len"
+                )
+            if "bin_name_prefix" not in succinct_hash_info:
+                raise ValueError("succinct_hash_info requires bin_name_prefix")
 
         self.paths = paths
         self.path_hash_prefixes = path_hash_prefixes
+        self.succinct_hash_info = succinct_hash_info
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, DelegatedRole):
@@ -1341,6 +1365,7 @@ class DelegatedRole(Role):
             and self.terminating == other.terminating
             and self.paths == other.paths
             and self.path_hash_prefixes == other.path_hash_prefixes
+            and self.succinct_hash_info == other.succinct_hash_info
         )
 
     @classmethod
@@ -1350,12 +1375,13 @@ class DelegatedRole(Role):
         Raises:
             ValueError, KeyError: Invalid arguments.
         """
-        name = role_dict.pop("name")
+        name = role_dict.pop("name", None)
         keyids = role_dict.pop("keyids")
         threshold = role_dict.pop("threshold")
         terminating = role_dict.pop("terminating")
         paths = role_dict.pop("paths", None)
         path_hash_prefixes = role_dict.pop("path_hash_prefixes", None)
+        succinct_hash_info = role_dict.pop("succinct_hash_delegations", None)
         # All fields left in the role_dict are unrecognized.
         return cls(
             name,
@@ -1364,21 +1390,25 @@ class DelegatedRole(Role):
             terminating,
             paths,
             path_hash_prefixes,
+            succinct_hash_info,
             role_dict,
         )
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
         base_role_dict = super().to_dict()
-        res_dict = {
-            "name": self.name,
+        res_dict: Dict[str, Any] = {
             "terminating": self.terminating,
             **base_role_dict,
         }
+        if self.name is not None:
+            res_dict["name"] = self.name
         if self.paths is not None:
             res_dict["paths"] = self.paths
         elif self.path_hash_prefixes is not None:
             res_dict["path_hash_prefixes"] = self.path_hash_prefixes
+        elif self.succinct_hash_info is not None:
+            res_dict["succinct_hash_delegations"] = self.succinct_hash_info
         return res_dict
 
     @staticmethod

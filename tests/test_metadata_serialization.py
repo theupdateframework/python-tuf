@@ -368,10 +368,14 @@ class TestSerialization(unittest.TestCase):
 
     valid_delegated_roles: utils.DataSet = {
         # DelegatedRole inherits Role and some use cases can be found in the valid_roles.
-        "no hash prefix attribute": '{"keyids": ["keyid"], "name": "a", "paths": ["fn1", "fn2"], \
+        "missing name when succinct_hash_delegations is used": '{"keyids": ["keyid"], "terminating": false, \
+            "threshold": 1, "succinct_hash_delegations": {"delegation_hash_prefix_len": 8, "bin_name_prefix": "foo"}}',
+        "no hash prefix and succinct_hash_delegations": '{"keyids": ["keyid"], "name": "a", "paths": ["fn1", "fn2"], \
             "terminating": false, "threshold": 1}',
-        "no path attribute": '{"keyids": ["keyid"], "name": "a", "terminating": false, \
+        "no path and succinct_hash_delegations": '{"keyids": ["keyid"], "name": "a", "terminating": false, \
             "path_hash_prefixes": ["h1", "h2"], "threshold": 99}',
+        "no path and path_hash_prefixes": '{"keyids": ["keyid"], "terminating": false, \
+            "threshold": 99, "succinct_hash_delegations": {"delegation_hash_prefix_len": 8, "bin_name_prefix": "foo"}}',
         "empty paths": '{"keyids": ["keyid"], "name": "a", "paths": [], \
             "terminating": false, "threshold": 1}',
         "empty path_hash_prefixes": '{"keyids": ["keyid"], "name": "a", "terminating": false, \
@@ -391,13 +395,24 @@ class TestSerialization(unittest.TestCase):
 
     invalid_delegated_roles: utils.DataSet = {
         # DelegatedRole inherits Role and some use cases can be found in the invalid_roles.
-        "missing hash prefixes and paths": '{"name": "a", "keyids": ["keyid"], "threshold": 1, "terminating": false}',
-        "both hash prefixes and paths": '{"name": "a", "keyids": ["keyid"], "threshold": 1, "terminating": false, \
-            "paths": ["fn1", "fn2"], "path_hash_prefixes": ["h1", "h2"]}',
+        "missing name and succinct_hash_delegations": '{"keyids": ["keyid"], "paths": ["fn1", "fn2"], \
+            "terminating": false, "threshold": 1}',
+        "missing hash prefixes, paths and succinct_hash_delegations": '{"name": "a", "keyids": ["keyid"], "threshold": 1, "terminating": false}',
+        "hash prefixes, paths and succinct_hash_delegations set": '{"name": "a", "keyids": ["keyid"], "threshold": 1, "terminating": false, \
+            "paths": ["fn1", "fn2"], "path_hash_prefixes": ["h1", "h2"], "succinct_hash_delegations": {}}',
+        "paths and succinct_hash_delegations set": '{"name": "a", "keyids": ["keyid"], "threshold": 1, "terminating": false, \
+            "paths": ["fn1", "fn2"], "succinct_hash_delegations": {}}',
+        "path_hash_prefixes and succinct_hash_delegations": '{"name": "a", "keyids": ["keyid"], "threshold": 1, "terminating": false, \
+            "path_hash_prefixes": ["h1", "h2"], "succinct_hash_delegations": {}}',
         "invalid path type": '{"keyids": ["keyid"], "name": "a", "paths": [1,2,3], \
             "terminating": false, "threshold": 1}',
         "invalid path_hash_prefixes type": '{"keyids": ["keyid"], "name": "a", "path_hash_prefixes": [1,2,3], \
             "terminating": false, "threshold": 1}',
+        "invalid succinct_hash_delegations type": '{"name": "a", "keyids": ["keyid"], "threshold": 1, "terminating": false, "succinct_hash_delegations": ""}',
+        "missing delegation_hash_prefix_len from succinct_hash_delegations": '{"name": "a", "keyids": ["keyid"], "threshold": 1, "terminating": false, \
+                "succinct_hash_delegations": {"bin_name_prefix" : "foo"}}',
+        "missing bin_name_prefix from succinct_hash_delegations": '{"name": "a", "keyids": ["keyid"], "threshold": 1, "terminating": false, \
+                "succinct_hash_delegations": {"delegation_hash_prefix_len" : 8}}',
     }
 
     @utils.run_sub_tests_with_dataset(invalid_delegated_roles)
