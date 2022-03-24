@@ -16,7 +16,13 @@ import sys
 from filecmp import dircmp
 from tempfile import TemporaryDirectory
 
-import requests
+try:
+    import requests
+    import build
+except ImportError:
+    print ("Error: verify_release requires modules 'requests' and 'build':")
+    print ("    pip install requests build")
+    exit(1)
 
 # Project variables
 # Note that only these project artifacts are supported:
