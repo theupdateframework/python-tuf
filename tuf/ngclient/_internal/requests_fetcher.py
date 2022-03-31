@@ -11,7 +11,6 @@ from urllib import parse
 
 # Imports
 import requests
-import requests.exceptions
 
 import tuf
 from tuf.api import exceptions
