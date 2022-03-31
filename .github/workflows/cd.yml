@@ -11,6 +11,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    if: ${{ github.ref_type == 'tag' }}
     steps:
       - name: Checkout release tag
         uses: actions/checkout@a12a3943b4bdde767164f792f33f40b04645d846
@@ -26,14 +27,26 @@ jobs:
       - name: Build binary wheel and source tarball
         run: python3 -m build --sdist --wheel --outdir dist/ .
 
-      - name: Store build artifacts for review and release
+      - name: Publish GitHub release candiate
+        uses: softprops/action-gh-release@1e07f4398721186383de40550babbdf2b84acfc5
+        with:
+          name: ${{ github.ref_name }}-rc
+          tag_name: ${{ github.ref }}
+          # prerelease: true # <- verify_release script 'get_github_version' ignores pre-releases (and drafts)
+          body: "Release waiting for review..."
+          files: dist/*
+
+      - name: Store build artifacts
+        # NOTE: The release job could download the assets from the GitHub release page,
+        # published in the previous step. But using the GitHub upload/download actions
+        # seems more robust as there is no need to compute download URLs.
         uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
         with:
           name: build-artifacts
           path: dist
 
-  release-on-pypi:
-    name: Release on PyPI
+  release:
+    name: Release
     runs-on: ubuntu-latest
     needs: build
     environment: release
@@ -43,11 +56,18 @@ jobs:
         with:
           name: build-artifacts
           path: dist
+          
+      # - name: Publish binary wheel and source tarball on PyPI
+      #   uses: pypa/gh-action-pypi-publish@717ba43cfbb0387f6ce311b169a825772f54d295
+      #   with:
+      #     user: __token__
+      #     # TODO: Change to PyPI and update token
+      #     repository_url: https://test.pypi.org/legacy/
+      #     password: ${{ secrets.TEST_PYPI_API_TOKEN }}
 
-      - name: Publish binary wheel and source tarball on PyPI
-        uses: pypa/gh-action-pypi-publish@717ba43cfbb0387f6ce311b169a825772f54d295
+      - name: Finalize GitHub release
+        uses: softprops/action-gh-release@1e07f4398721186383de40550babbdf2b84acfc5
         with:
-          user: __token__
-          # TODO: Change to PyPI and update token
-          repository_url: https://test.pypi.org/legacy/
-          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref }}
+          body: "See CHANGELOG.md for details."
