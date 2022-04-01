@@ -71,8 +71,8 @@ jobs:
       - name: Finalize GitHub release
         uses: actions/github-script@9ac08808f993958e9de277fe43a64532a609130e
         with:
-        script: |
-          console.log(${{needs.build.outputs.release_id}})
+          script: |
+            console.log(${{needs.build.outputs.release_id}})
 #           await github.rest.repos.updateRelease({
 
 
