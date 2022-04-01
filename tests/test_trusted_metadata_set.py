@@ -240,12 +240,14 @@ class TestTrustedMetadataSet(unittest.TestCase):
         self.trusted_set.update_root(root)
 
     def test_update_root_new_root_fail_threshold_verification(self) -> None:
-        # new_root data with threshold which cannot be verified.
-        root = Metadata.from_bytes(self.metadata[Root.type])
-        # remove root role keyids representing root signatures
-        root.signed.roles[Root.type].keyids.clear()
+        # Increase threshold in new root, do not add enough keys
+        def root_threshold_bump(root: Root) -> None:
+            root.version += 1
+            root.roles[Root.type].threshold += 1
+
+        root = self.modify_metadata(Root.type, root_threshold_bump)
         with self.assertRaises(exceptions.UnsignedMetadataError):
-            self.trusted_set.update_root(root.to_bytes())
+            self.trusted_set.update_root(root)
 
     def test_update_root_new_root_ver_same_as_trusted_root_ver(self) -> None:
         with self.assertRaises(exceptions.BadVersionNumberError):
