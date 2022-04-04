@@ -104,6 +104,14 @@ class Metadata(Generic[T]):
     ``[Root]`` is not validated at runtime (as pure annotations are not available
     then).
 
+    New Metadata instances can be created from scratch with::
+
+        one_day = datetime.utcnow() + timedelta(days=1)
+        timestamp = Metadata(Timestamp(expires=one_day))
+
+    Apart from ``expires`` all of the arguments to the inner constructors have
+    reasonable default values for new metadata.
+
     *All parameters named below are not just constructor arguments but also
     instance attributes.*
 
@@ -112,6 +120,7 @@ class Metadata(Generic[T]):
             ``Snapshot``, ``Timestamp`` or ``Root``.
         signatures: Ordered dictionary of keyids to ``Signature`` objects, each
             signing the canonical serialized representation of ``signed``.
+            Default is an empty dictionary.
         unrecognized_fields: Dictionary of all attributes that are not managed
             by TUF Metadata API. These fields are NOT signed and it's preferable
             if unrecognized fields are added to the Signed derivative classes.
@@ -120,11 +129,11 @@ class Metadata(Generic[T]):
     def __init__(
         self,
         signed: T,
-        signatures: Dict[str, Signature],
+        signatures: Optional[Dict[str, Signature]] = None,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ):
         self.signed: T = signed
-        self.signatures = signatures
+        self.signatures = signatures if signatures is not None else {}
         self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
 
     def __eq__(self, other: Any) -> bool:
@@ -444,9 +453,11 @@ class Signed(metaclass=abc.ABCMeta):
     instance attributes.*
 
     Args:
-        version: Metadata version number.
-        spec_version: Supported TUF specification version number.
-        expires: Metadata expiry date.
+        version: Metadata version number. If None, then 1 is assigned.
+        spec_version: Supported TUF specification version. If None, then the
+            version currently supported by the library is assigned.
+        expires: Metadata expiry date. If None, then current date and time is
+            assigned.
         unrecognized_fields: Dictionary of all attributes that are not managed
             by TUF Metadata API
 
@@ -480,11 +491,13 @@ class Signed(metaclass=abc.ABCMeta):
     # or "inner metadata")
     def __init__(
         self,
-        version: int,
-        spec_version: str,
-        expires: datetime,
-        unrecognized_fields: Optional[Mapping[str, Any]] = None,
+        version: Optional[int],
+        spec_version: Optional[str],
+        expires: Optional[datetime],
+        unrecognized_fields: Optional[Mapping[str, Any]],
     ):
+        if spec_version is None:
+            spec_version = ".".join(SPECIFICATION_VERSION)
         # Accept semver (X.Y.Z) but also X.Y for legacy compatibility
         spec_list = spec_version.split(".")
         if len(spec_list) not in [2, 3] or not all(
@@ -497,11 +510,15 @@ class Signed(metaclass=abc.ABCMeta):
             raise ValueError(f"Unsupported spec_version {spec_version}")
 
         self.spec_version = spec_version
-        self.expires = expires
 
-        if version <= 0:
+        self.expires = expires or datetime.utcnow()
+
+        if version is None:
+            version = 1
+        elif version <= 0:
             raise ValueError(f"version must be > 0, got {version}")
         self.version = version
+
         self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
 
     def __eq__(self, other: Any) -> bool:
@@ -819,13 +836,17 @@ class Root(Signed):
     Parameters listed below are also instance attributes.
 
     Args:
-        version: Metadata version number.
-        spec_version: Supported TUF specification version number.
-        expires: Metadata expiry date.
+        version: Metadata version number. Default is 1.
+        spec_version: Supported TUF specification version. Default is the
+            version currently supported by the library.
+        expires: Metadata expiry date. Default is current date and time.
         keys: Dictionary of keyids to Keys. Defines the keys used in ``roles``.
+            Default is empty dictionary.
         roles: Dictionary of role names to Roles. Defines which keys are
-            required to sign the metadata for a specific role.
+            required to sign the metadata for a specific role. Default is
+            a dictionary of top level roles without keys and threshold of 1.
         consistent_snapshot: ``True`` if repository supports consistent snapshots.
+            Default is True.
         unrecognized_fields: Dictionary of all attributes that are not managed
             by TUF Metadata API
 
@@ -838,20 +859,22 @@ class Root(Signed):
     # pylint: disable=too-many-arguments
     def __init__(
         self,
-        version: int,
-        spec_version: str,
-        expires: datetime,
-        keys: Dict[str, Key],
-        roles: Mapping[str, Role],
-        consistent_snapshot: Optional[bool] = None,
+        version: Optional[int] = None,
+        spec_version: Optional[str] = None,
+        expires: Optional[datetime] = None,
+        keys: Optional[Dict[str, Key]] = None,
+        roles: Optional[Mapping[str, Role]] = None,
+        consistent_snapshot: Optional[bool] = True,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ):
         super().__init__(version, spec_version, expires, unrecognized_fields)
         self.consistent_snapshot = consistent_snapshot
-        self.keys = keys
-        if set(roles) != TOP_LEVEL_ROLE_NAMES:
-            raise ValueError("Role names must be the top-level metadata roles")
+        self.keys = keys if keys is not None else {}
 
+        if roles is None:
+            roles = {r: Role([], 1) for r in TOP_LEVEL_ROLE_NAMES}
+        elif set(roles) != TOP_LEVEL_ROLE_NAMES:
+            raise ValueError("Role names must be the top-level metadata roles")
         self.roles = roles
 
     def __eq__(self, other: Any) -> bool:
@@ -1114,12 +1137,14 @@ class Timestamp(Signed):
     instance attributes.*
 
     Args:
-        version: Metadata version number.
-        spec_version: Supported TUF specification version number.
-        expires: Metadata expiry date.
+        version: Metadata version number. Default is 1.
+        spec_version: Supported TUF specification version. Default is the
+            version currently supported by the library.
+        expires: Metadata expiry date. Default is current date and time.
         unrecognized_fields: Dictionary of all attributes that are not managed
             by TUF Metadata API
-        snapshot_meta: Meta information for snapshot metadata.
+        snapshot_meta: Meta information for snapshot metadata. Default is a
+            MetaFile with version 1.
 
     Raises:
         ValueError: Invalid arguments.
@@ -1129,14 +1154,14 @@ class Timestamp(Signed):
 
     def __init__(
         self,
-        version: int,
-        spec_version: str,
-        expires: datetime,
-        snapshot_meta: MetaFile,
+        version: Optional[int] = None,
+        spec_version: Optional[str] = None,
+        expires: Optional[datetime] = None,
+        snapshot_meta: Optional[MetaFile] = None,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ):
         super().__init__(version, spec_version, expires, unrecognized_fields)
-        self.snapshot_meta = snapshot_meta
+        self.snapshot_meta = snapshot_meta or MetaFile(1)
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Timestamp):
@@ -1175,12 +1200,14 @@ class Snapshot(Signed):
     instance attributes.*
 
     Args:
-        version: Metadata version number.
-        spec_version: Supported TUF specification version number.
-        expires: Metadata expiry date.
+        version: Metadata version number. Default is 1.
+        spec_version: Supported TUF specification version. Default is the
+            version currently supported by the library.
+        expires: Metadata expiry date. Default is current date and time.
         unrecognized_fields: Dictionary of all attributes that are not managed
             by TUF Metadata API
-        meta: Dictionary of target metadata filenames to ``MetaFile`` objects.
+        meta: Dictionary of targets filenames to ``MetaFile`` objects. Default
+            is a dictionary with a Metafile for "snapshot.json" version 1.
 
     Raises:
         ValueError: Invalid arguments.
@@ -1190,14 +1217,14 @@ class Snapshot(Signed):
 
     def __init__(
         self,
-        version: int,
-        spec_version: str,
-        expires: datetime,
-        meta: Dict[str, MetaFile],
+        version: Optional[int] = None,
+        spec_version: Optional[str] = None,
+        expires: Optional[datetime] = None,
+        meta: Optional[Dict[str, MetaFile]] = None,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ):
         super().__init__(version, spec_version, expires, unrecognized_fields)
-        self.meta = meta
+        self.meta = meta if meta is not None else {"targets.json": MetaFile(1)}
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Snapshot):
@@ -1642,12 +1669,14 @@ class Targets(Signed):
     instance attributes.*
 
     Args:
-        version: Metadata version number.
-        spec_version: Supported TUF specification version number.
-        expires: Metadata expiry date.
-        targets: Dictionary of target filenames to TargetFiles
+        version: Metadata version number. Default is 1.
+        spec_version: Supported TUF specification version. Default is the
+            version currently supported by the library.
+        expires: Metadata expiry date. Default is current date and time.
+        targets: Dictionary of target filenames to TargetFiles. Default is an
+            empty dictionary.
         delegations: Defines how this Targets delegates responsibility to other
-            Targets Metadata files.
+            Targets Metadata files. Default is None.
         unrecognized_fields: Dictionary of all attributes that are not managed
             by TUF Metadata API
 
@@ -1660,15 +1689,15 @@ class Targets(Signed):
     # pylint: disable=too-many-arguments
     def __init__(
         self,
-        version: int,
-        spec_version: str,
-        expires: datetime,
-        targets: Dict[str, TargetFile],
+        version: Optional[int] = None,
+        spec_version: Optional[str] = None,
+        expires: Optional[datetime] = None,
+        targets: Optional[Dict[str, TargetFile]] = None,
         delegations: Optional[Delegations] = None,
         unrecognized_fields: Optional[Mapping[str, Any]] = None,
     ) -> None:
         super().__init__(version, spec_version, expires, unrecognized_fields)
-        self.targets = targets
+        self.targets = targets if targets is not None else {}
         self.delegations = delegations
 
     def __eq__(self, other: Any) -> bool:

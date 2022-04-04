@@ -36,7 +36,6 @@ from tuf.api.metadata import (
     Key,
     Metadata,
     MetaFile,
-    Role,
     Root,
     Snapshot,
     TargetFile,
@@ -96,12 +95,7 @@ keys: Dict[str, Dict[str, Any]] = {}
 # The targets role guarantees integrity for the files that TUF aims to protect,
 # i.e. target files. It does so by listing the relevant target files, along
 # with their hash and length.
-roles["targets"] = Metadata[Targets](
-    signed=Targets(
-        version=1, spec_version=SPEC_VERSION, expires=_in(7), targets={}
-    ),
-    signatures={},
-)
+roles["targets"] = Metadata(Targets(expires=_in(7)))
 
 # For the purpose of this example we use the top-level targets role to protect
 # the integrity of this very example script. The metadata entry contains the
@@ -124,15 +118,7 @@ roles["targets"].signed.targets[target_path] = target_file_info
 # by listing all available targets metadata files at their latest version. This
 # becomes relevant, when there are multiple targets metadata files in a
 # repository and we want to protect the client against mix-and-match attacks.
-roles["snapshot"] = Metadata[Snapshot](
-    Snapshot(
-        version=1,
-        spec_version=SPEC_VERSION,
-        expires=_in(7),
-        meta={"targets.json": MetaFile(version=1)},
-    ),
-    {},
-)
+roles["snapshot"] = Metadata(Snapshot(expires=_in(7)))
 
 # Timestamp (freshness)
 # ---------------------
@@ -146,15 +132,7 @@ roles["snapshot"] = Metadata[Snapshot](
 # format. But given that timestamp metadata always has only one entry in its
 # 'meta' field, i.e. for the latest snapshot file, the timestamp object
 # provides the shortcut 'snapshot_meta'.
-roles["timestamp"] = Metadata[Timestamp](
-    Timestamp(
-        version=1,
-        spec_version=SPEC_VERSION,
-        expires=_in(1),
-        snapshot_meta=MetaFile(version=1),
-    ),
-    {},
-)
+roles["timestamp"] = Metadata(Timestamp(expires=_in(1)))
 
 # Root (root of trust)
 # --------------------
@@ -168,32 +146,19 @@ roles["timestamp"] = Metadata[Timestamp](
 # 'keys' field), and a configuration parameter that describes whether a
 # repository uses consistent snapshots (see section 'Persist metadata' below
 # for more details).
-#
+
+# Create root metadata object
+roles["root"] = Metadata(Root(expires=_in(365)))
+
 # For this example, we generate one 'ed25519' key pair for each top-level role
 # using python-tuf's in-house crypto library.
 # See https://github.com/secure-systems-lab/securesystemslib for more details
 # about key handling, and don't forget to password-encrypt your private keys!
 for name in ["targets", "snapshot", "timestamp", "root"]:
     keys[name] = generate_ed25519_key()
-
-# Create root metadata object
-roles["root"] = Metadata[Root](
-    signed=Root(
-        version=1,
-        spec_version=SPEC_VERSION,
-        expires=_in(365),
-        keys={
-            key["keyid"]: Key.from_securesystemslib_key(key)
-            for key in keys.values()
-        },
-        roles={
-            role: Role([key["keyid"]], threshold=1)
-            for role, key in keys.items()
-        },
-        consistent_snapshot=True,
-    ),
-    signatures={},
-)
+    roles["root"].signed.add_key(
+        name, Key.from_securesystemslib_key(keys[name])
+    )
 
 # NOTE: We only need the public part to populate root, so it is possible to use
 # out-of-band mechanisms to generate key pairs and only expose the public part
