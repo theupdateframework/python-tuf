@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - develop
+    tags:
+      # TODO: Should we restrict to vX.Y.Z tags?
+      - v*
+
   pull_request:
   workflow_dispatch:
 

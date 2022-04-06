@@ -1,21 +1,35 @@
 name: CD
 concurrency: cd
 
-# Trigger workflow on release tag push
+# Trigger workflow on completed CI (further checks below)
 on:
-  push:
-    # TODO: Should we restrict to vX.Y.Z tags?
-    tags: v*
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
 
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    # Skip unless CI was successful and ran on a ref starting with 'v' (release tag)
+    if: ${{ github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'v') }}
+    # NOTE: This works because we currently only trigger CI on a push to the 'develop'
+    # branch or a 'v*'-tag, but it seems rather brittle.
+    # Unfortunately, there is not much more info we get from the CI workflow
+    # ('workflow_run') than the ref name. No ref, ref_type, etc., so we don't even know
+    # if a tag or a branch was pushed. :(
+    # See https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_run
+    # NOTE: (2) An alternative solution might be to restructure workflows, so that all
+    # test logic from 'ci.yml' is moved to a separate workflow file '_test.yml', that
+    # can be included in both CI (triggered on push to 'develop'-branch) and CD
+    # (triggered on push to 'v*'-tag) workflows.
     outputs:
       release_id: ${{ steps.gh-release.outputs.id }}
     steps:
       - name: Checkout release tag
         uses: actions/checkout@a12a3943b4bdde767164f792f33f40b04645d846
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
 
       - name: Set up Python
         uses: actions/setup-python@0ebf233433c08fb9061af664d501c3f3ff0e9e20
@@ -32,8 +46,8 @@ jobs:
         name: Publish GitHub release candiate
         uses: softprops/action-gh-release@1e07f4398721186383de40550babbdf2b84acfc5
         with:
-          name: ${{ github.ref_name }}-rc
-          tag_name: ${{ github.ref }}
+          name: ${{ github.event.workflow_run.head_branch }}-rc
+          tag_name: ${{ github.event.workflow_run.head_branch }}
           body: "Release waiting for review..."
           files: dist/*
 
@@ -75,6 +89,6 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               release_id: '${{ needs.build.outputs.release_id }}',
-              name: '${{ github.ref_name }}',
-              body: 'See [CHANGELOG.md](https://github.com/'+ context.repo.owner +'/'+ context.repo.repo +'/blob/${{ github.ref_name }}/docs/CHANGELOG.md) for details.'
+              name: '${{ github.event.workflow_run.head_branch }}',
+              body: 'See [CHANGELOG.md](https://github.com/'+ context.repo.owner +'/'+ context.repo.repo +'/blob/${{ github.event.workflow_run.head_branch }}/docs/CHANGELOG.md) for details.'
             })
