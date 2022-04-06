@@ -9,6 +9,7 @@ Builds a release from current commit and verifies that the release artifacts
 on GitHub and PyPI match the built release artifacts.
 """
 
+import argparse
 import json
 import os
 import subprocess
@@ -126,6 +127,15 @@ def progress(s: str) -> None:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--skip-pypi",
+        action="store_true",
+        dest="skip_pypi",
+        help="Skip PyPI release check.",
+    )
+    args = parser.parse_args()
+
     success = True
     with TemporaryDirectory() as build_dir:
         progress("Building release")
@@ -142,16 +152,17 @@ def main() -> int:
         if github_version != build_version:
             finished(f"WARNING: GitHub latest version is {github_version}")
 
-        progress("Checking PyPI latest version")
-        pypi_version = get_pypi_pip_version()
-        if pypi_version != build_version:
-            finished(f"WARNING: PyPI latest version is {pypi_version}")
+        if not args.skip_pypi:
+            progress("Checking PyPI latest version")
+            pypi_version = get_pypi_pip_version()
+            if pypi_version != build_version:
+                finished(f"WARNING: PyPI latest version is {pypi_version}")
 
-        progress("Downloading release from PyPI")
-        if not verify_pypi_release(build_version, build_dir):
-            # This is expected while build is not reproducible
-            finished("ERROR: PyPI artifacts do not match built release")
-            success = False
+            progress("Downloading release from PyPI")
+            if not verify_pypi_release(build_version, build_dir):
+                # This is expected while build is not reproducible
+                finished("ERROR: PyPI artifacts do not match built release")
+                success = False
 
         progress("Downloading release from GitHub")
         if not verify_github_release(build_version, build_dir):
