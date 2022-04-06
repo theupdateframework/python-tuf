@@ -17,12 +17,12 @@ from filecmp import dircmp
 from tempfile import TemporaryDirectory
 
 try:
+    import build as _  # type: ignore
     import requests
-    import build
 except ImportError:
-    print ("Error: verify_release requires modules 'requests' and 'build':")
-    print ("    pip install requests build")
-    exit(1)
+    print("Error: verify_release requires modules 'requests' and 'build':")
+    print("    pip install requests build")
+    sys.exit(1)
 
 # Project variables
 # Note that only these project artifacts are supported:
@@ -128,7 +128,6 @@ def progress(s: str) -> None:
 def main() -> int:
     success = True
     with TemporaryDirectory() as build_dir:
-
         progress("Building release")
         build_version = build(build_dir)
         finished(f"Built release {build_version}")
