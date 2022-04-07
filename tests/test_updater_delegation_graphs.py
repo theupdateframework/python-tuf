@@ -32,7 +32,7 @@ class TestDelegation:
     keyids: List[str] = field(default_factory=list)
     threshold: int = 1
     terminating: bool = False
-    paths: List[str] = field(default_factory=lambda: ["*"])
+    paths: Optional[List[str]] = field(default_factory=lambda: ["*"])
     path_hash_prefixes: Optional[List[str]] = None
 
 
