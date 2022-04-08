@@ -1429,6 +1429,54 @@ class DelegatedRole(Role):
 
         return True
 
+    def _find_bin_for_bits(self, hash_bits_representation: str) -> str:
+        """Helper function for get_rolename calculating the actual rolename.
+
+        Args:
+            hash_bits_representation: binary bit representation of the target
+                hash.
+        """
+        if self.succinct_hash_info is None:
+            raise ValueError(
+                "succinct_hash_info must be set to calculate the delegation"
+            )
+
+        bit_length = self.succinct_hash_info["delegation_hash_prefix_len"]
+        # Get the first bit_length of bits and then cast them to decimal.
+        bin_number = int(hash_bits_representation[:bit_length], 2)
+
+        return f"{self.succinct_hash_info['bin_name_prefix']}-{bin_number}"
+
+    def find_delegation(self, target_filepath: str) -> Optional[str]:
+        """Find the delegated rolename based on the given ``target filepath``.
+
+        If the given ``target_filepath`` is not in any of the paths that
+        ``DelegatedRole`` is trusted to provide it returns None.
+
+        Args:
+            target_filepath: URL path to a target file, relative to a base
+                targets URL.
+        """
+        # Check if the given target_filepath is in any of the "paths" or
+        # "path_hash_prefixes" that DelegatedRole is trusted to provide.
+        if self.succinct_hash_info is None and self.is_delegated_path(
+            target_filepath
+        ):
+            return self.name
+
+        if self.succinct_hash_info is not None:
+            # Split hash calculation and from the rest for easier testing.
+            hasher = sslib_hash.digest(algorithm="sha256")
+            hasher.update(target_filepath.encode("utf-8"))
+            # Get the bit representation of the hash.
+            hash_bits = "".join(
+                f"{one_byte:08b}" for one_byte in hasher.digest()
+            )
+
+            return self._find_bin_for_bits(hash_bits)
+
+        return None
+
     def is_delegated_path(self, target_filepath: str) -> bool:
         """Determines whether the given ``target_filepath`` is in one of
         the paths that ``DelegatedRole`` is trusted to provide.

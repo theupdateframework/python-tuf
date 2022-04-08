@@ -14,6 +14,7 @@ import sys
 import tempfile
 import unittest
 from copy import copy
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, ClassVar, Dict
 
@@ -694,6 +695,114 @@ class TestMetadata(unittest.TestCase):
             role = DelegatedRole("", [], 1, False, None, hash_prefixes)
             self.assertFalse(role.is_delegated_path("a/non-matching path"))
             self.assertTrue(role.is_delegated_path("a/path"))
+
+    @dataclass
+    class TestData:
+        hash_prefix_len: int
+        lowest_binary: str
+        highest_binary: str
+        expected_bin_name: str
+
+    # For ease of testing we are going to use target files with short names.
+    get_rolename_dataset: utils.DataSet = {
+        "one-hash-prefix & target hash inside zero bin": TestData(
+            # The binary representation of all numbers starts with 0
+            hash_prefix_len=1,
+            lowest_binary="00000000",  # 0
+            highest_binary="01111111",  # 127
+            expected_bin_name="delegated_role-0",
+        ),
+        "one-hash-prefix & target name inside first bin": TestData(
+            # The binary representation of all numbers starts with 1
+            hash_prefix_len=1,
+            lowest_binary="10000000",  # 128
+            highest_binary="11111111",  # 255
+            expected_bin_name="delegated_role-1",
+        ),
+        "two-hash-prefix & target name inside zero bin": TestData(
+            # The binary representation of all numbers starts with 00
+            hash_prefix_len=2,
+            lowest_binary="00000000",  # 0
+            highest_binary="00111111",  # 63
+            expected_bin_name="delegated_role-0",
+        ),
+        "two-hash-prefix & target name inside first bin": TestData(
+            # The binary representation of all numbers starts with 01
+            hash_prefix_len=2,
+            lowest_binary="01000000",  # 64
+            highest_binary="01111111",  # 127
+            expected_bin_name="delegated_role-1",
+        ),
+        "two-hash-prefix & target name inside second bin": TestData(
+            # The binary representation of all numbers starts with 10
+            hash_prefix_len=2,
+            lowest_binary="10000000",  # 128
+            highest_binary="10111111",  # 191
+            expected_bin_name="delegated_role-2",
+        ),
+        "two-hash-prefix & target name inside third bin": TestData(
+            # The binary representation of all numbers starts with 11
+            hash_prefix_len=2,
+            lowest_binary="11000000",  # 192
+            highest_binary="11111111",  # 255
+            expected_bin_name="delegated_role-3",
+        ),
+        "three-hash-prefix & target name inside zero bin": TestData(
+            # The binary representation of all numbers starts with 000
+            hash_prefix_len=3,
+            lowest_binary="00000000",  # 0
+            highest_binary="00011111",  # 31
+            expected_bin_name="delegated_role-0",
+        ),
+        "three-hash-prefix & target name inside second bin": TestData(
+            # The binary representation of all numbers starts with 010
+            hash_prefix_len=3,
+            lowest_binary="01000000",  # 64
+            highest_binary="01011111",  # 95
+            expected_bin_name="delegated_role-2",
+        ),
+        "three-hash-prefix & target name inside fourth bin": TestData(
+            # The binary representation of all numbers starts with 100
+            hash_prefix_len=3,
+            lowest_binary="10000000",  # 128
+            highest_binary="10011111",  # 159
+            expected_bin_name="delegated_role-4",
+        ),
+        "three-hash-prefix & target name inside sixth bin": TestData(
+            # The binary representation of all numbers starts with 110
+            hash_prefix_len=3,
+            lowest_binary="11000000",  # 192
+            highest_binary="11011111",  # 223
+            expected_bin_name="delegated_role-6",
+        ),
+    }
+
+    @utils.run_sub_tests_with_dataset(get_rolename_dataset)
+    def test_find_bin_for_delegated_role_with_succinct_hash_info(
+        self, test_data: TestData
+    ) -> None:
+        r = DelegatedRole(
+            None,
+            [],
+            1,
+            False,
+            succinct_hash_info={
+                "delegation_hash_prefix_len": test_data.hash_prefix_len,
+                "bin_name_prefix": "delegated_role",
+            },
+        )
+        lowest_decimal = int(test_data.lowest_binary, 2)
+        highest_decimal = int(test_data.highest_binary, 2)
+        for target_hash_int in range(lowest_decimal, highest_decimal + 1):
+            # Convert target hash from decimal to a string bit representation.
+            hash_bits = f"{target_hash_int:08b}"
+            expected_rolename = test_data.expected_bin_name
+            msg = f"Error for {hash_bits} expected {expected_rolename}"
+
+            # pylint: disable=protected-access
+            self.assertEqual(
+                r._find_bin_for_bits(hash_bits), expected_rolename, msg
+            )
 
 
 # Run unit test.

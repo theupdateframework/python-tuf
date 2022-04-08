@@ -437,12 +437,11 @@ class Updater:
                 # NOTE: This may be a slow operation if there are many
                 # delegated roles.
                 for child_role in targets.delegations.roles.values():
-                    if child_role.is_delegated_path(target_filepath):
-                        logger.debug("Adding child role %s", child_role.name)
+                    child_name = child_role.find_delegation(target_filepath)
+                    if child_name is not None:
+                        logger.debug("Adding child role %s", child_name)
 
-                        child_roles_to_visit.append(
-                            (child_role.name, role_name)
-                        )
+                        child_roles_to_visit.append((child_name, role_name))
                         if child_role.terminating:
                             logger.debug("Not backtracking to other roles")
                             delegations_to_visit = []
