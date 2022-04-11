@@ -34,13 +34,22 @@ PYPI_PROJECT = "tuf"
 
 def build(build_dir: str) -> str:
     """Build release locally. Return version as string"""
-    cmd = ["python3", "-m", "build", "--outdir", build_dir]
-    subprocess.run(cmd, stdout=subprocess.DEVNULL, check=True)
+    orig_dir = os.path.dirname(os.path.abspath(__file__))
+
+    with TemporaryDirectory() as src_dir:
+        # fresh git clone: this prevents uncommitted files from affecting build
+        git_cmd = ["git", "clone", "--quiet", orig_dir, src_dir]
+        subprocess.run(git_cmd, stdout=subprocess.DEVNULL, check=True)
+
+        build_cmd = ["python3", "-m", "build", "--outdir", build_dir, src_dir]
+        subprocess.run(build_cmd, stdout=subprocess.DEVNULL, check=True)
+
     build_version = None
     for filename in os.listdir(build_dir):
         prefix, postfix = f"{PYPI_PROJECT}-", ".tar.gz"
         if filename.startswith(prefix) and filename.endswith(postfix):
             build_version = filename[len(prefix) : -len(postfix)]
+
     assert build_version
     return build_version
 
