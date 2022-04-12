@@ -1273,6 +1273,90 @@ class Snapshot(Signed):
         return snapshot_dict
 
 
+class SuccinctHashDelegations:
+    """A container with information about a succinct hash delegation.
+
+    Succinct hash delegation describes delegations for all possible target paths
+    to a variable number of bins, the names of which are generated based on the
+    two class attributes.
+
+    Args:
+        prefix_bit_len: Number of bits between 1 and 32 used to separate the
+            different bins.
+        bin_name_prefix: Prefix of all bin names.
+        unrecognized_fields: Dictionary of all attributes that are not managed
+            by TUF Metadata API.
+
+    Raises:
+            ValueError, TypeError, AttributeError: Invalid arguments.
+    """
+
+    def __init__(
+        self,
+        prefix_bit_len: int,
+        bin_name_prefix: str,
+        unrecognized_fields: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        if prefix_bit_len <= 0 or prefix_bit_len > 32:
+            raise ValueError("prefix_bit_len must be between 1 and 32")
+        if not isinstance(bin_name_prefix, str):
+            raise ValueError("bin_name_prefix must be a string")
+
+        self.prefix_bit_len = prefix_bit_len
+        self.bin_name_prefix = bin_name_prefix
+
+        if unrecognized_fields is None:
+            unrecognized_fields = {}
+
+        self.unrecognized_fields: Dict[str, Any] = unrecognized_fields
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, SuccinctHashDelegations):
+            return False
+
+        return (
+            self.prefix_bit_len == other.prefix_bit_len
+            and self.bin_name_prefix == other.bin_name_prefix
+            and self.unrecognized_fields == other.unrecognized_fields
+        )
+
+    @classmethod
+    def from_dict(
+        cls, succinct_hash_info: Dict[str, Any]
+    ) -> "SuccinctHashDelegations":
+        """Creates ``SuccinctHashDelegations`` object from its json/dict
+        representation.
+
+        Raises:
+            ValueError, KeyError, TypeError, AttributeError: Invalid arguments.
+        """
+        prefix_bit_len = succinct_hash_info.pop("delegation_hash_prefix_len")
+        bin_name_prefix = succinct_hash_info.pop("bin_name_prefix")
+        # All fields left in the succinct_hash_info are unrecognized.
+        return cls(prefix_bit_len, bin_name_prefix, succinct_hash_info)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Returns the dict representation of self."""
+        return {
+            "delegation_hash_prefix_len": self.prefix_bit_len,
+            "bin_name_prefix": self.bin_name_prefix,
+            **self.unrecognized_fields,
+        }
+
+    def _find_bin_for_bits(self, hash_bits_representation: str) -> str:
+        """Helper function for find_delegation calculating the actual rolename.
+
+        Args:
+            hash_bits_representation: binary bit representation of the target
+                hash.
+        """
+
+        bit_length = self.prefix_bit_len
+        # Get the first bit_length of bits and then cast them to decimal.
+        bin_number = int(hash_bits_representation[:bit_length], 2)
+        return f"{self.bin_name_prefix}-{bin_number}"
+
+
 class DelegatedRole(Role):
     """A container with information about a delegated role.
 
@@ -1318,7 +1402,7 @@ class DelegatedRole(Role):
         terminating: bool,
         paths: Optional[List[str]] = None,
         path_hash_prefixes: Optional[List[str]] = None,
-        succinct_hash_info: Optional[Dict[str, Any]] = None,
+        succinct_hash_info: Optional[SuccinctHashDelegations] = None,
         unrecognized_fields: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(keyids, threshold, unrecognized_fields)
@@ -1341,15 +1425,6 @@ class DelegatedRole(Role):
             not isinstance(p, str) for p in path_hash_prefixes
         ):
             raise ValueError("Path_hash_prefixes must be strings")
-        if succinct_hash_info is not None:
-            if not isinstance(succinct_hash_info, Dict):
-                raise ValueError("succinct_hash_info must be a dict")
-            if "delegation_hash_prefix_len" not in succinct_hash_info:
-                raise ValueError(
-                    "succinct_hash_info requires delegation_hash_prefix_len"
-                )
-            if "bin_name_prefix" not in succinct_hash_info:
-                raise ValueError("succinct_hash_info requires bin_name_prefix")
 
         self.paths = paths
         self.path_hash_prefixes = path_hash_prefixes
@@ -1373,7 +1448,7 @@ class DelegatedRole(Role):
         """Creates ``DelegatedRole`` object from its json/dict representation.
 
         Raises:
-            ValueError, KeyError: Invalid arguments.
+            ValueError, KeyError, TypeError: Invalid arguments.
         """
         name = role_dict.pop("name", None)
         keyids = role_dict.pop("keyids")
@@ -1381,7 +1456,12 @@ class DelegatedRole(Role):
         terminating = role_dict.pop("terminating")
         paths = role_dict.pop("paths", None)
         path_hash_prefixes = role_dict.pop("path_hash_prefixes", None)
-        succinct_hash_info = role_dict.pop("succinct_hash_delegations", None)
+        succinct_hash_dict = role_dict.pop("succinct_hash_delegations", None)
+        succinct_hash_info = None
+        if succinct_hash_dict is not None:
+            succinct_hash_info = SuccinctHashDelegations.from_dict(
+                succinct_hash_dict
+            )
         # All fields left in the role_dict are unrecognized.
         return cls(
             name,
@@ -1397,19 +1477,19 @@ class DelegatedRole(Role):
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
         base_role_dict = super().to_dict()
-        res_dict: Dict[str, Any] = {
+        res: Dict[str, Any] = {
             "terminating": self.terminating,
             **base_role_dict,
         }
         if self.name is not None:
-            res_dict["name"] = self.name
+            res["name"] = self.name
         if self.paths is not None:
-            res_dict["paths"] = self.paths
+            res["paths"] = self.paths
         elif self.path_hash_prefixes is not None:
-            res_dict["path_hash_prefixes"] = self.path_hash_prefixes
+            res["path_hash_prefixes"] = self.path_hash_prefixes
         elif self.succinct_hash_info is not None:
-            res_dict["succinct_hash_delegations"] = self.succinct_hash_info
-        return res_dict
+            res["succinct_hash_delegations"] = self.succinct_hash_info.to_dict()
+        return res
 
     @staticmethod
     def _is_target_in_pathpattern(targetpath: str, pathpattern: str) -> bool:
@@ -1428,24 +1508,6 @@ class DelegatedRole(Role):
                 return False
 
         return True
-
-    def _find_bin_for_bits(self, hash_bits_representation: str) -> str:
-        """Helper function for get_rolename calculating the actual rolename.
-
-        Args:
-            hash_bits_representation: binary bit representation of the target
-                hash.
-        """
-        if self.succinct_hash_info is None:
-            raise ValueError(
-                "succinct_hash_info must be set to calculate the delegation"
-            )
-
-        bit_length = self.succinct_hash_info["delegation_hash_prefix_len"]
-        # Get the first bit_length of bits and then cast them to decimal.
-        bin_number = int(hash_bits_representation[:bit_length], 2)
-
-        return f"{self.succinct_hash_info['bin_name_prefix']}-{bin_number}"
 
     def find_delegation(self, target_filepath: str) -> Optional[str]:
         """Find the delegated rolename based on the given ``target filepath``.
@@ -1473,7 +1535,8 @@ class DelegatedRole(Role):
                 f"{one_byte:08b}" for one_byte in hasher.digest()
             )
 
-            return self._find_bin_for_bits(hash_bits)
+            # pylint: disable=protected-access
+            return self.succinct_hash_info._find_bin_for_bits(hash_bits)
 
         return None
 

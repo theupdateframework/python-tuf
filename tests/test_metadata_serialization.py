@@ -24,6 +24,7 @@ from tuf.api.metadata import (
     Role,
     Root,
     Snapshot,
+    SuccinctHashDelegations,
     TargetFile,
     Targets,
     Timestamp,
@@ -366,6 +367,38 @@ class TestSerialization(unittest.TestCase):
         snapshot = Snapshot.from_dict(copy.deepcopy(case_dict))
         self.assertDictEqual(case_dict, snapshot.to_dict())
 
+    valid_succinct_delegations: utils.DataSet = {
+        "standard succinct_hash_delegation information": '{"delegation_hash_prefix_len": 8, "bin_name_prefix": "foo"}',
+        "succinct_hash_delegation with unrecognized fields": '{"delegation_hash_prefix_len": 8, "bin_name_prefix": "foo", "foo": "bar"}',
+    }
+
+    @utils.run_sub_tests_with_dataset(valid_succinct_delegations)
+    def test_succinct_delegations_serialization(
+        self, test_case_data: str
+    ) -> None:
+        case_dict = json.loads(test_case_data)
+        succinct_delegations = SuccinctHashDelegations.from_dict(
+            copy.copy(case_dict)
+        )
+        self.assertDictEqual(case_dict, succinct_delegations.to_dict())
+
+    invalid_succinct_delegations: utils.DataSet = {
+        "missing delegation_hash_prefix_len from succinct_hash_delegations": '{"bin_name_prefix": "foo"}',
+        "missing bin_name_prefix from succinct_hash_delegations": '{"delegation_hash_prefix_len": 8}',
+        "succinct_hash_delegation with invalid delegation_hash_prefix_len type": '{"delegation_hash_prefix_len": "a", "bin_name_prefix": "foo"}',
+        "succinct_hash_delegation with invalid bin_name_prefix type": '{"delegation_hash_prefix_len": 8, "bin_name_prefix": 1}',
+        "succinct_hash_delegation with high delegation_hash_prefix_len value": '{"delegation_hash_prefix_len": 50, "bin_name_prefix": "foo"}',
+        "succinct_hash_delegation with low delegation_hash_prefix_len value": '{"delegation_hash_prefix_len": 0, "bin_name_prefix": "foo"}',
+    }
+
+    @utils.run_sub_tests_with_dataset(invalid_succinct_delegations)
+    def test_invalid_succinct_delegations_serialization(
+        self, test_case_data: str
+    ) -> None:
+        case_dict = json.loads(test_case_data)
+        with self.assertRaises((ValueError, KeyError, TypeError)):
+            SuccinctHashDelegations.from_dict(case_dict)
+
     valid_delegated_roles: utils.DataSet = {
         # DelegatedRole inherits Role and some use cases can be found in the valid_roles.
         "missing name when succinct_hash_delegations is used": '{"keyids": ["keyid"], "terminating": false, \
@@ -390,7 +423,7 @@ class TestSerialization(unittest.TestCase):
     @utils.run_sub_tests_with_dataset(valid_delegated_roles)
     def test_delegated_role_serialization(self, test_case_data: str) -> None:
         case_dict = json.loads(test_case_data)
-        deserialized_role = DelegatedRole.from_dict(copy.copy(case_dict))
+        deserialized_role = DelegatedRole.from_dict(copy.deepcopy(case_dict))
         self.assertDictEqual(case_dict, deserialized_role.to_dict())
 
     invalid_delegated_roles: utils.DataSet = {
@@ -399,20 +432,16 @@ class TestSerialization(unittest.TestCase):
             "terminating": false, "threshold": 1}',
         "missing hash prefixes, paths and succinct_hash_delegations": '{"name": "a", "keyids": ["keyid"], "threshold": 1, "terminating": false}',
         "hash prefixes, paths and succinct_hash_delegations set": '{"name": "a", "keyids": ["keyid"], "threshold": 1, "terminating": false, \
-            "paths": ["fn1", "fn2"], "path_hash_prefixes": ["h1", "h2"], "succinct_hash_delegations": {}}',
+            "paths": ["fn1", "fn2"], "path_hash_prefixes": ["h1", "h2"], "succinct_hash_delegations": {"delegation_hash_prefix_len": 8, "bin_name_prefix": "f"}}',
         "paths and succinct_hash_delegations set": '{"name": "a", "keyids": ["keyid"], "threshold": 1, "terminating": false, \
-            "paths": ["fn1", "fn2"], "succinct_hash_delegations": {}}',
+            "paths": ["fn1", "fn2"], "succinct_hash_delegations": {"delegation_hash_prefix_len": 8, "bin_name_prefix": "f"}}',
         "path_hash_prefixes and succinct_hash_delegations": '{"name": "a", "keyids": ["keyid"], "threshold": 1, "terminating": false, \
-            "path_hash_prefixes": ["h1", "h2"], "succinct_hash_delegations": {}}',
+            "path_hash_prefixes": ["h1", "h2"], "succinct_hash_delegations": {"delegation_hash_prefix_len": 8, "bin_name_prefix": "foo"}}',
         "invalid path type": '{"keyids": ["keyid"], "name": "a", "paths": [1,2,3], \
             "terminating": false, "threshold": 1}',
         "invalid path_hash_prefixes type": '{"keyids": ["keyid"], "name": "a", "path_hash_prefixes": [1,2,3], \
             "terminating": false, "threshold": 1}',
         "invalid succinct_hash_delegations type": '{"name": "a", "keyids": ["keyid"], "threshold": 1, "terminating": false, "succinct_hash_delegations": ""}',
-        "missing delegation_hash_prefix_len from succinct_hash_delegations": '{"name": "a", "keyids": ["keyid"], "threshold": 1, "terminating": false, \
-                "succinct_hash_delegations": {"bin_name_prefix" : "foo"}}',
-        "missing bin_name_prefix from succinct_hash_delegations": '{"name": "a", "keyids": ["keyid"], "threshold": 1, "terminating": false, \
-                "succinct_hash_delegations": {"delegation_hash_prefix_len" : 8}}',
     }
 
     @utils.run_sub_tests_with_dataset(invalid_delegated_roles)
@@ -420,7 +449,7 @@ class TestSerialization(unittest.TestCase):
         self, test_case_data: str
     ) -> None:
         case_dict = json.loads(test_case_data)
-        with self.assertRaises(ValueError):
+        with self.assertRaises((ValueError, AttributeError)):
             DelegatedRole.from_dict(case_dict)
 
     invalid_delegations: utils.DataSet = {

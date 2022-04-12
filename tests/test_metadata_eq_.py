@@ -25,6 +25,7 @@ from tuf.api.metadata import (
     Role,
     Root,
     Snapshot,
+    SuccinctHashDelegations,
     TargetFile,
     Targets,
     Timestamp,
@@ -193,6 +194,19 @@ class TestMetadataComparisions(unittest.TestCase):
         # Common attributes between Signed and Snapshot doesn't need testing.
         setattr(signed_copy, "meta", None)
         self.assertNotEqual(md.signed, signed_copy)
+
+    def test_hash_delegations_eq(self) -> None:
+        hash_deleg = SuccinctHashDelegations(8, "delegated")
+        hash_deleg_2: SuccinctHashDelegations = self.copy_and_simple_assert(
+            hash_deleg
+        )
+
+        for attr, value in [("prefix_bit_len", 0), ("bin_name_prefix", "")]:
+            setattr(hash_deleg_2, attr, value)
+            msg = f"Failed case: {attr}"
+            self.assertNotEqual(hash_deleg, hash_deleg_2, msg)
+            # Restore the old value of the attribute.
+            setattr(hash_deleg_2, attr, getattr(hash_deleg, attr))
 
     def test_delegated_role_eq_(self) -> None:
         delegated_role_dict = {
