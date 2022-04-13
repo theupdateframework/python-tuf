@@ -130,11 +130,11 @@ class Metadata(Generic[T]):
         self,
         signed: T,
         signatures: Optional[Dict[str, Signature]] = None,
-        unrecognized_fields: Optional[Mapping[str, Any]] = None,
+        unrecognized_fields: Optional[Dict[str, Any]] = None,
     ):
         self.signed: T = signed
         self.signatures = signatures if signatures is not None else {}
-        self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
+        self.unrecognized_fields: Dict[str, Any] = unrecognized_fields or {}
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Metadata):
@@ -494,7 +494,7 @@ class Signed(metaclass=abc.ABCMeta):
         version: Optional[int],
         spec_version: Optional[str],
         expires: Optional[datetime],
-        unrecognized_fields: Optional[Mapping[str, Any]],
+        unrecognized_fields: Optional[Dict[str, Any]],
     ):
         if spec_version is None:
             spec_version = ".".join(SPECIFICATION_VERSION)
@@ -519,7 +519,7 @@ class Signed(metaclass=abc.ABCMeta):
             raise ValueError(f"version must be > 0, got {version}")
         self.version = version
 
-        self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
+        self.unrecognized_fields: Dict[str, Any] = unrecognized_fields or {}
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Signed):
@@ -629,7 +629,7 @@ class Key:
         keytype: str,
         scheme: str,
         keyval: Dict[str, str],
-        unrecognized_fields: Optional[Mapping[str, Any]] = None,
+        unrecognized_fields: Optional[Dict[str, Any]] = None,
     ):
         if not all(
             isinstance(at, str) for at in [keyid, keytype, scheme]
@@ -639,7 +639,7 @@ class Key:
         self.keytype = keytype
         self.scheme = scheme
         self.keyval = keyval
-        self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
+        self.unrecognized_fields: Dict[str, Any] = unrecognized_fields or {}
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Key):
@@ -789,7 +789,7 @@ class Role:
         self,
         keyids: List[str],
         threshold: int,
-        unrecognized_fields: Optional[Mapping[str, Any]] = None,
+        unrecognized_fields: Optional[Dict[str, Any]] = None,
     ):
         if len(set(keyids)) != len(keyids):
             raise ValueError(f"Nonunique keyids: {keyids}")
@@ -797,7 +797,7 @@ class Role:
             raise ValueError("threshold should be at least 1!")
         self.keyids = keyids
         self.threshold = threshold
-        self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
+        self.unrecognized_fields: Dict[str, Any] = unrecognized_fields or {}
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Role):
@@ -865,7 +865,7 @@ class Root(Signed):
         keys: Optional[Dict[str, Key]] = None,
         roles: Optional[Mapping[str, Role]] = None,
         consistent_snapshot: Optional[bool] = True,
-        unrecognized_fields: Optional[Mapping[str, Any]] = None,
+        unrecognized_fields: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(version, spec_version, expires, unrecognized_fields)
         self.consistent_snapshot = consistent_snapshot
@@ -1055,7 +1055,7 @@ class MetaFile(BaseFile):
         version: int,
         length: Optional[int] = None,
         hashes: Optional[Dict[str, str]] = None,
-        unrecognized_fields: Optional[Mapping[str, Any]] = None,
+        unrecognized_fields: Optional[Dict[str, Any]] = None,
     ):
 
         if version <= 0:
@@ -1068,7 +1068,7 @@ class MetaFile(BaseFile):
         self.version = version
         self.length = length
         self.hashes = hashes
-        self.unrecognized_fields: Mapping[str, Any] = unrecognized_fields or {}
+        self.unrecognized_fields: Dict[str, Any] = unrecognized_fields or {}
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, MetaFile):
@@ -1158,7 +1158,7 @@ class Timestamp(Signed):
         spec_version: Optional[str] = None,
         expires: Optional[datetime] = None,
         snapshot_meta: Optional[MetaFile] = None,
-        unrecognized_fields: Optional[Mapping[str, Any]] = None,
+        unrecognized_fields: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(version, spec_version, expires, unrecognized_fields)
         self.snapshot_meta = snapshot_meta or MetaFile(1)
@@ -1221,7 +1221,7 @@ class Snapshot(Signed):
         spec_version: Optional[str] = None,
         expires: Optional[datetime] = None,
         meta: Optional[Dict[str, MetaFile]] = None,
-        unrecognized_fields: Optional[Mapping[str, Any]] = None,
+        unrecognized_fields: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(version, spec_version, expires, unrecognized_fields)
         self.meta = meta if meta is not None else {"targets.json": MetaFile(1)}
@@ -1295,7 +1295,7 @@ class DelegatedRole(Role):
         terminating: bool,
         paths: Optional[List[str]] = None,
         path_hash_prefixes: Optional[List[str]] = None,
-        unrecognized_fields: Optional[Mapping[str, Any]] = None,
+        unrecognized_fields: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(keyids, threshold, unrecognized_fields)
         self.name = name
@@ -1443,7 +1443,7 @@ class Delegations:
         self,
         keys: Dict[str, Key],
         roles: Dict[str, DelegatedRole],
-        unrecognized_fields: Optional[Mapping[str, Any]] = None,
+        unrecognized_fields: Optional[Dict[str, Any]] = None,
     ):
         self.keys = keys
 
@@ -1523,7 +1523,7 @@ class TargetFile(BaseFile):
         length: int,
         hashes: Dict[str, str],
         path: str,
-        unrecognized_fields: Optional[Mapping[str, Any]] = None,
+        unrecognized_fields: Optional[Dict[str, Any]] = None,
     ):
 
         self._validate_length(length)
@@ -1694,7 +1694,7 @@ class Targets(Signed):
         expires: Optional[datetime] = None,
         targets: Optional[Dict[str, TargetFile]] = None,
         delegations: Optional[Delegations] = None,
-        unrecognized_fields: Optional[Mapping[str, Any]] = None,
+        unrecognized_fields: Optional[Dict[str, Any]] = None,
     ) -> None:
         super().__init__(version, spec_version, expires, unrecognized_fields)
         self.targets = targets if targets is not None else {}
