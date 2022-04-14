@@ -1557,7 +1557,10 @@ class DelegatedRole(Role):
         return None
 
     def is_delegated_path(self, target_filepath: str) -> bool:
-        """Determines whether the given ``target_filepath`` is in one of
+        """.. warning::
+            This method is deprecated, use ``find_delegation()`` instead.
+
+        Determines whether the given ``target_filepath`` is in one of
         the paths that ``DelegatedRole`` is trusted to provide.
 
         The ``target_filepath`` and the ``DelegatedRole`` paths are expected to be
@@ -1588,6 +1591,10 @@ class DelegatedRole(Role):
                 # pattern (Unix shell-style wildcards).
                 if self._is_target_in_pathpattern(target_filepath, pathpattern):
                     return True
+
+        elif self.succinct_hash_info is not None:
+            # All targetpaths have a bin and are considered as trusted.
+            return True
 
         return False
 
