@@ -104,8 +104,8 @@ class TestUpdater(unittest.TestCase):
             + repository_basepath.replace("\\", "/")
         )
 
-        self.metadata_url = os.path.join(url_prefix, "metadata", "")
-        self.targets_url = os.path.join(url_prefix, "targets", "")
+        self.metadata_url = f"{url_prefix}/metadata/"
+        self.targets_url = f"{url_prefix}/targets/"
         self.dl_dir = tempfile.mkdtemp(dir=self.tmp_test_dir)
         # Creating a repository instance.  The test cases will use this client
         # updater to refresh metadata, fetch target files, etc.

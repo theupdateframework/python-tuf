@@ -50,7 +50,7 @@ class TestFetcher(unittest.TestCase):
             f"{str(cls.server_process_handler.port)}"
         )
         target_filename = os.path.basename(cls.target_file.name)
-        cls.url = os.path.join(cls.url_prefix, target_filename)
+        cls.url = f"{cls.url_prefix}/{target_filename}"
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -102,7 +102,7 @@ class TestFetcher(unittest.TestCase):
     # File not found error
     def test_http_error(self) -> None:
         with self.assertRaises(exceptions.DownloadHTTPError) as cm:
-            self.url = os.path.join(self.url_prefix, "non-existing-path")
+            self.url = f"{self.url_prefix}/non-existing-path"
             self.fetcher.fetch(self.url)
         self.assertEqual(cm.exception.status_code, 404)
 
