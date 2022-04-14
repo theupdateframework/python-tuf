@@ -774,7 +774,9 @@ class TestRefresh(unittest.TestCase):
         # which means a successful refresh is performed
         # with expired local metadata
         for role in ["timestamp", "snapshot", "targets"]:
-            md = Metadata.from_file(f"{self.metadata_dir}/{role}.json")
+            md = Metadata.from_file(
+                os.path.join(self.metadata_dir, f"{role}.json")
+            )
             self.assertEqual(md.signed.version, 2)
 
 
