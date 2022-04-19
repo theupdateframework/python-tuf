@@ -2,7 +2,7 @@
  "signatures": [
   {
    "keyid": "3458204ed467519c19a5316eb278b5608472a1bbf15850ebfb462d5315e4f86d",
-   "sig": "40853c2711d5ea49066c6b27a078f9e65419e0a4a3e298b75204e83713fe1d8ae9db91eccda5a8bfc14a5d71b3862c3ab27339db630056948ca0548a3e0edf03"
+   "sig": "259dc96079f9b49e811b69b79253914ac5a963333eb24e5ac2d779a2d5d9d305c96c745613da59c1c48ae92d6f01a619b25066e51fc028a6ec8b56d744387006"
   }
  ],
  "signed": {
@@ -13,7 +13,7 @@
     "version": 1
    }
   },
-  "spec_version": "1.0.28",
+  "spec_version": "1.0.29",
   "version": 1
  }
 }
