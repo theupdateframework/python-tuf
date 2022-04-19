@@ -18,6 +18,7 @@ from tests import utils
 from tests.repository_simulator import RepositorySimulator
 from tuf.api.exceptions import (
     BadVersionNumberError,
+    DownloadLengthMismatchError,
     ExpiredMetadataError,
     LengthOrHashMismatchError,
     UnsignedMetadataError,
@@ -778,6 +779,30 @@ class TestRefresh(unittest.TestCase):
                 os.path.join(self.metadata_dir, f"{role}.json")
             )
             self.assertEqual(md.signed.version, 2)
+
+    def test_max_metadata_lengths(self) -> None:
+        """Test that clients configured max metadata lengths are respected"""
+
+        # client has root v1 already: create a new one available for download
+        self.sim.root.version += 1
+        self.sim.publish_root()
+
+        config_vars = [
+            "root_max_length",
+            "timestamp_max_length",
+            "snapshot_max_length",
+            "targets_max_length",
+        ]
+        # make sure going over any length limit raises DownloadLengthMismatchError
+        for var_name in config_vars:
+            updater = self._init_updater()
+            setattr(updater.config, var_name, 100)
+            with self.assertRaises(DownloadLengthMismatchError):
+                updater.refresh()
+
+        # All good with normal length limits
+        updater = self._init_updater()
+        updater.refresh()
 
 
 if __name__ == "__main__":
