@@ -134,7 +134,9 @@ class TestMetadata(unittest.TestCase):
 
         # Test serializing to a file with bad filename
         with self.assertRaises(exceptions.StorageError):
-            md = Metadata.from_file(f"{self.repo_dir}/metadata/root.json")
+            md = Metadata.from_file(
+                os.path.join(self.repo_dir, "metadata", "root.json")
+            )
             md.to_file("")
 
     def test_compact_json(self) -> None:
@@ -159,7 +161,9 @@ class TestMetadata(unittest.TestCase):
 
     def test_serialize_with_validate(self) -> None:
         # Assert that by changing one required attribute validation will fail.
-        root = Metadata.from_file(f"{self.repo_dir}/metadata/root.json")
+        root = Metadata.from_file(
+            os.path.join(self.repo_dir, "metadata", "root.json")
+        )
         root.signed.version = 0
         with self.assertRaises(SerializationError):
             root.to_bytes(JSONSerializer(validate=True))
@@ -233,7 +237,9 @@ class TestMetadata(unittest.TestCase):
     def test_sign_failures(self) -> None:
         # Test throwing UnsignedMetadataError because of signing problems
         # related to bad information in the signer.
-        md = Metadata.from_file(f"{self.repo_dir}/metadata/snapshot.json")
+        md = Metadata.from_file(
+            os.path.join(self.repo_dir, "metadata", "snapshot.json")
+        )
         key_dict = copy(self.keystore[Snapshot.type])
         key_dict["keytype"] = "rsa"
         key_dict["scheme"] = "bad_scheme"
