@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@dcd71f646680f2efd8db4afa5ad64fdcba30e748
-    - uses: actions/setup-python@21c0493ecfd34b1217f0a90ec19a327f3cc0a048
+    - uses: actions/setup-python@98f2ad02fd48d057ee3b4d4f66525b231c3e52b6
     - name: Get supported version
       id: get-version
       run: |
