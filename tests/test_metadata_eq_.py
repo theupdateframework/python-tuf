@@ -61,6 +61,8 @@ class TestMetadataComparisions(unittest.TestCase):
         for attr, value in [("signed", None), ("signatures", None)]:
             setattr(md_2, attr, value)
             self.assertNotEqual(md, md_2, f"Failed case: {attr}")
+            # Restore the old value of the attribute.
+            setattr(md_2, attr, getattr(md, attr))
 
     def test_md_eq_signatures_reversed_order(self) -> None:
         # Test comparing objects with same signatures but different order.
@@ -103,6 +105,8 @@ class TestMetadataComparisions(unittest.TestCase):
         for attr, value in [("version", -1), ("spec_version", "0.0.0")]:
             setattr(md_2.signed, attr, value)
             self.assertNotEqual(md.signed, md_2.signed, f"Failed case: {attr}")
+            # Restore the old value of the attribute.
+            setattr(md_2.signed, attr, getattr(md.signed, attr))
 
     def test_key_eq_(self) -> None:
         key_dict = {
@@ -120,6 +124,8 @@ class TestMetadataComparisions(unittest.TestCase):
         ]:
             setattr(key_2, attr, value)
             self.assertNotEqual(key, key_2, f"Failed case: {attr}")
+            # Restore the old value of the attribute.
+            setattr(key_2, attr, getattr(key, attr))
 
     def test_role_eq_(self) -> None:
         role_dict = {
@@ -132,6 +138,8 @@ class TestMetadataComparisions(unittest.TestCase):
         for attr, value in [("keyids", []), ("threshold", 10)]:
             setattr(role_2, attr, value)
             self.assertNotEqual(role, role_2, f"Failed case: {attr}")
+            # Restore the old value of the attribute.
+            setattr(role_2, attr, getattr(role, attr))
 
     def test_root_eq_(self) -> None:
         md = Metadata.from_bytes(self.metadata["root"])
@@ -147,6 +155,8 @@ class TestMetadataComparisions(unittest.TestCase):
 
             setattr(signed_copy, attr, value)
             self.assertNotEqual(md.signed, signed_copy, f"Failed case: {attr}")
+            # Restore the old value of the attribute.
+            setattr(signed_copy, attr, getattr(md.signed, attr))
 
     def test_metafile_eq_(self) -> None:
         metafile_dict = {
@@ -165,6 +175,8 @@ class TestMetadataComparisions(unittest.TestCase):
         ]:
             setattr(metafile_2, attr, value)
             self.assertNotEqual(metafile, metafile_2, f"Failed case: {attr}")
+            # Restore the old value of the attribute.
+            setattr(metafile_2, attr, getattr(metafile, attr))
 
     def test_timestamp_eq_(self) -> None:
         md = Metadata.from_bytes(self.metadata["timestamp"])
@@ -205,6 +217,8 @@ class TestMetadataComparisions(unittest.TestCase):
             setattr(delegated_role_2, attr, value)
             msg = f"Failed case: {attr}"
             self.assertNotEqual(delegated_role, delegated_role_2, msg)
+            # Restore the old value of the attribute.
+            setattr(delegated_role_2, attr, getattr(delegated_role, attr))
 
     def test_delegations_eq_(self) -> None:
         delegations_dict = {
@@ -232,6 +246,8 @@ class TestMetadataComparisions(unittest.TestCase):
             setattr(delegations_2, attr, value)
             msg = f"Failed case: {attr}"
             self.assertNotEqual(delegations, delegations_2, msg)
+            # Restore the old value of the attribute.
+            setattr(delegations_2, attr, getattr(delegations, attr))
 
     def test_targetfile_eq_(self) -> None:
         targetfile_dict = {
@@ -296,6 +312,8 @@ class TestMetadataComparisions(unittest.TestCase):
         for attr, value in [("targets", {}), ("delegations", [])]:  # type: ignore
             setattr(signed_copy, attr, value)
             self.assertNotEqual(md.signed, signed_copy, f"Failed case: {attr}")
+            # Restore the old value of the attribute.
+            setattr(signed_copy, attr, getattr(md.signed, attr))
 
 
 # Run unit test.
