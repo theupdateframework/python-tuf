@@ -1,5 +1,23 @@
 # Release process
 
+
+**Prerequisites (one-time setup)**
+
+
+1. Go to [PyPI management page](https://pypi.org/manage/account/#api-tokens) and create
+   an [API token](https://pypi.org/help/#apitoken) with its scope limited to the tuf project.
+1. Go to [GitHub
+   settings](https://github.com/theupdateframework/python-tuf/settings/environments),
+   create an
+   [environment](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment#creating-an-environment)
+   called `release` and configure [review
+   protection](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment#required-reviewers).
+1. In the environment create a
+   [secret](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment#environment-secrets)
+   called `PYPI_API_TOKEN` and paste the token created above.
+
+## Release
+
 1. Ensure `docs/CHANGELOG.md` contains a one-line summary of each [notable
   change](https://keepachangelog.com/) since the prior release
 2. Update `tuf/__init__.py` to the new version number `A.B.C`
@@ -12,18 +30,21 @@
   `git tag --sign vA.B.C -m "vA.B.C"`
 6. Push the tag to GitHub `git push origin vA.B.C`
 
-  *A push triggers the [CI workflow](.github/workfows/ci.yml), which, on success, triggers
-  the [CD worfklow](.github/workfows/cd.yml), which builds source dist and wheel,
-  creates a preliminary GitHub release under `vA.B.C-rc`, and pauses for review.*
+  *A push triggers the [CI workflow](.github/workfows/ci.yml), which, on success,
+  triggers the [CD workflow](.github/workfows/cd.yml), which builds source dist and
+  wheel, creates a preliminary GitHub release under `vA.B.C-rc`, and pauses for review.*
 
 7. Run `verify_release --skip-pypi` locally to make sure a build on your machine matches
   the preliminary release artifacts published on GitHub.
 
-&#10132; [Review *deployemnt*](https://docs.github.com/en/actions/managing-workflow-runs/reviewing-deployments) on GitHub
+&#10132; [Review *deployment*](https://docs.github.com/en/actions/managing-workflow-runs/reviewing-deployments)
+on GitHub
 
   *An approval resumes the CD workflow to publish the release on PyPI, and to finalize the
-  GitHub release (removse `-rc` suffix and updates release notes).*
+  GitHub release (removes `-rc` suffix and updates release notes).*
 
-8. `verify_release` may be used again to make sure the release artifacts PyPI.
+8. `verify_release` may be used again to make sure the PyPI release artifacts match the
+   local build as well.
 9. Announce the release on [#tuf on CNCF Slack](https://cloud-native.slack.com/archives/C8NMD3QJ3)
-10. Ensure [POUF 1](https://github.com/theupdateframework/taps/blob/master/POUFs/reference-POUF/pouf1.md), for the reference implementation, is up-to-date
+10. Ensure [POUF 1](https://github.com/theupdateframework/taps/blob/master/POUFs/reference-POUF/pouf1.md),
+    for the reference implementation, is up-to-date
