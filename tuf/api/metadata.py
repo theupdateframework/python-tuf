@@ -31,6 +31,7 @@ import abc
 import fnmatch
 import io
 import logging
+import math
 import tempfile
 from datetime import datetime
 from typing import (
@@ -1363,21 +1364,29 @@ class SuccinctHashDelegations:
         suffix = f"{bin_number:0{self.suffix_len}x}"
         return f"{self.bin_name_prefix}-{suffix}"
 
-    def _find_bin_for_bits(self, hash_bits_representation: str) -> str:
-        """Helper function for find_delegation calculating the actual rolename.
+    def find_bin(self, target_filepath: str) -> str:
+        """Calculates the name of the bin responsible for ``target_filepath``.
 
         Args:
-            hash_bits_representation: binary bit representation of the target
-                hash.
+            target_filepath: URL path to a target file, relative to a base
+                targets URL.
         """
-
+        hasher = sslib_hash.digest(algorithm="sha256")
+        hasher.update(target_filepath.encode("utf-8"))
+        # Get the bit representation of the hash. The bit representation is
+        # calculated for a small number of symbols required by prefix_bit_len.
+        needed_bits = self.prefix_bit_len  # aliased for emphasis
+        needed_bytes = math.ceil(needed_bits / 8)
+        hash_bits = "".join(
+            f"{one_byte:08b}" for one_byte in hasher.digest()[:needed_bytes]
+        )
+        needed_hash_bits = hash_bits[:needed_bits]
         bit_length = self.prefix_bit_len
         # Get the first bit_length of bits and then cast them to decimal.
-        bin_number = int(hash_bits_representation[:bit_length], 2)
-        # Add zero padding if necessary and cast to hex the suffix.
-        suffix = f"{bin_number:0{self.suffix_len}x}"
+        bin_number = int(needed_hash_bits[:bit_length], 2)
 
-        return f"{self.bin_name_prefix}-{suffix}"
+        # Split hash calculation from the rest for easier testing.
+        return self.get_bin_name(bin_number)
 
 
 class DelegatedRole(Role):
@@ -1550,16 +1559,7 @@ class DelegatedRole(Role):
             return self.name
 
         if self.succinct_hash_info is not None:
-            # Split hash calculation and from the rest for easier testing.
-            hasher = sslib_hash.digest(algorithm="sha256")
-            hasher.update(target_filepath.encode("utf-8"))
-            # Get the bit representation of the hash.
-            hash_bits = "".join(
-                f"{one_byte:08b}" for one_byte in hasher.digest()
-            )
-
-            # pylint: disable=protected-access
-            return self.succinct_hash_info._find_bin_for_bits(hash_bits)
+            return self.succinct_hash_info.find_bin(target_filepath)
 
         return None
 
