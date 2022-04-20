@@ -1,11 +1,11 @@
 name: CI
 
 on:
+  # NOTE: CD relies on this configuration (see #1961)
   push:
     branches:
       - develop
     tags:
-      # TODO: Should we restrict to vX.Y.Z tags?
       - v*
 
   pull_request:
