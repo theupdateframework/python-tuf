@@ -1351,6 +1351,18 @@ class SuccinctHashDelegations:
             **self.unrecognized_fields,
         }
 
+    def get_bin_name(self, bin_number: int = 0) -> str:
+        """Return the name of bin with number ``bin_number``.
+        The ``bin_number`` default is 0 as that is used to uniquely identify
+        delegated roles containing succinct hash delegations from the rest.
+
+        Args:
+            bin_number: Number of the bin that we want the name for.
+        """
+        # Add zero padding if necessary and cast to hex the suffix.
+        suffix = f"{bin_number:0{self.suffix_len}x}"
+        return f"{self.bin_name_prefix}-{suffix}"
+
     def _find_bin_for_bits(self, hash_bits_representation: str) -> str:
         """Helper function for find_delegation calculating the actual rolename.
 
@@ -1653,9 +1665,13 @@ class Delegations:
         roles_res: Dict[str, DelegatedRole] = {}
         for role_dict in roles:
             new_role = DelegatedRole.from_dict(role_dict)
-            if new_role.name in roles_res:
+            role_name: str = new_role.name if new_role.name is not None else ""
+            if new_role.succinct_hash_info:
+                role_name = new_role.succinct_hash_info.get_bin_name()
+
+            if role_name in roles_res:
                 raise ValueError(f"Duplicate role {new_role.name}")
-            roles_res[new_role.name] = new_role
+            roles_res[role_name] = new_role
         # All fields left in the delegations_dict are unrecognized.
         return cls(keys_res, roles_res, delegations_dict)
 

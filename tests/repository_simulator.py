@@ -357,17 +357,22 @@ class RepositorySimulator(FetcherInterface):
         # Create delegation
         if delegator.delegations is None:
             delegator.delegations = Delegations({}, {})
+
+        role_name: str = role.name if role.name is not None else ""
+        if role.succinct_hash_info:
+            role_name = role.succinct_hash_info.get_bin_name()
+
         # put delegation last by default
-        delegator.delegations.roles[role.name] = role
+        delegator.delegations.roles[role_name] = role
 
         # By default add one new key for the role
         key, signer = self.create_key()
-        delegator.add_key(role.name, key)
-        self.add_signer(role.name, signer)
+        delegator.add_key(role_name, key)
+        self.add_signer(role_name, signer)
 
         # Add metadata for the role
-        if role.name not in self.md_delegates:
-            self.md_delegates[role.name] = Metadata(targets, {})
+        if role_name not in self.md_delegates:
+            self.md_delegates[role_name] = Metadata(targets, {})
 
     def write(self) -> None:
         """Dump current repository metadata to self.dump_dir
