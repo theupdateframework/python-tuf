@@ -1,9 +1,13 @@
 name: CI
 
 on:
+  # NOTE: CD relies on this configuration (see #1961)
   push:
     branches:
       - develop
+    tags:
+      - v*
+
   pull_request:
   workflow_dispatch:
 
