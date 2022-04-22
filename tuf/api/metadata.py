@@ -1554,6 +1554,7 @@ class TargetFile(BaseFile):
             unrecognized_fields = {}
 
         self.unrecognized_fields = unrecognized_fields
+
     @property
     def custom(self) -> Any:
         """Can be used to provide implementation specific data related to the
