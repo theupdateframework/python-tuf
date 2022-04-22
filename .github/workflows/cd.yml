@@ -1,21 +1,20 @@
 name: CD
 concurrency: cd
 
-# Trigger workflow on any completed CI (see further checks below)
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
+  push:
+    tags:
+      - v*
+
 
 jobs:
+  test:
+    uses: ./.github/workflows/_test.yml
+
   build:
     name: Build
     runs-on: ubuntu-latest
-    # Skip unless CI was successful and ran on release tag, a ref starting with 'v'.
-    # NOTE: We assume CI does not trigger on branches that start with 'v' (see #1961)
-    if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      startsWith(github.event.workflow_run.head_branch, 'v')
+    needs: test
     outputs:
       release_id: ${{ steps.gh-release.outputs.id }}
     steps:
@@ -39,8 +38,8 @@ jobs:
         name: Publish GitHub release candiate
         uses: softprops/action-gh-release@1e07f4398721186383de40550babbdf2b84acfc5
         with:
-          name: ${{ github.event.workflow_run.head_branch }}-rc
-          tag_name: ${{ github.event.workflow_run.head_branch }}
+          name: ${{ github.ref_name }}-rc
+          tag_name: ${{ github.ref }}
           body: "Release waiting for review..."
           files: dist/*
 
@@ -79,9 +78,8 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               release_id: '${{ needs.build.outputs.release_id }}',
-              name: '${{ github.event.workflow_run.head_branch }}',
+              name: '${{ github.ref_name }}',
               body: 'See [CHANGELOG.md](https://github.com/' +
-                     context.repo.owner + '/' + context.repo.repo + '/blob/' +
-                     '${{ github.event.workflow_run.head_branch }}'+
-                     '/docs/CHANGELOG.md) for details.'
+                     context.repo.owner + '/' + context.repo.repo +
+                    '/blob/${{ github.ref_name }}/docs/CHANGELOG.md) for details.'
             })

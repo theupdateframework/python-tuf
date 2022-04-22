@@ -1,18 +1,7 @@
-name: CI
-
 on:
-  # NOTE: CD relies on this configuration (see #1961)
-  push:
-    branches:
-      - develop
-    tags:
-      - v*
+  workflow_call:
+  # Permissions inherited from caller workflow
 
-  pull_request:
-  workflow_dispatch:
-
-permissions:
-  contents: read
 
 jobs:
   tests:
