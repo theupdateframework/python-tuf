@@ -134,10 +134,10 @@ class Metadata(Generic[T]):
     ):
         self.signed: T = signed
         self.signatures = signatures if signatures is not None else {}
-        if unrecognized_fields is not None:
-            self.unrecognized_fields = unrecognized_fields
-        else:
-            self.unrecognized_fields = {}
+        if unrecognized_fields is None:
+            unrecognized_fields = {}
+
+        self.unrecognized_fields = unrecognized_fields
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Metadata):
@@ -522,10 +522,10 @@ class Signed(metaclass=abc.ABCMeta):
             raise ValueError(f"version must be > 0, got {version}")
         self.version = version
 
-        if unrecognized_fields is not None:
-            self.unrecognized_fields = unrecognized_fields
-        else:
-            self.unrecognized_fields = {}
+        if unrecognized_fields is None:
+            unrecognized_fields = {}
+
+        self.unrecognized_fields = unrecognized_fields
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Signed):
@@ -645,10 +645,10 @@ class Key:
         self.keytype = keytype
         self.scheme = scheme
         self.keyval = keyval
-        if unrecognized_fields is not None:
-            self.unrecognized_fields = unrecognized_fields
-        else:
-            self.unrecognized_fields = {}
+        if unrecognized_fields is None:
+            unrecognized_fields = {}
+
+        self.unrecognized_fields = unrecognized_fields
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Key):
@@ -806,10 +806,10 @@ class Role:
             raise ValueError("threshold should be at least 1!")
         self.keyids = keyids
         self.threshold = threshold
-        if unrecognized_fields is not None:
-            self.unrecognized_fields = unrecognized_fields
-        else:
-            self.unrecognized_fields = {}
+        if unrecognized_fields is None:
+            unrecognized_fields = {}
+
+        self.unrecognized_fields = unrecognized_fields
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Role):
@@ -1080,10 +1080,10 @@ class MetaFile(BaseFile):
         self.version = version
         self.length = length
         self.hashes = hashes
-        if unrecognized_fields is not None:
-            self.unrecognized_fields = unrecognized_fields
-        else:
-            self.unrecognized_fields = {}
+        if unrecognized_fields is None:
+            unrecognized_fields = {}
+
+        self.unrecognized_fields = unrecognized_fields
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, MetaFile):
@@ -1469,10 +1469,10 @@ class Delegations:
                 )
 
         self.roles = roles
-        if unrecognized_fields is not None:
-            self.unrecognized_fields = unrecognized_fields
-        else:
-            self.unrecognized_fields = {}
+        if unrecognized_fields is None:
+            unrecognized_fields = {}
+
+        self.unrecognized_fields = unrecognized_fields
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Delegations):
@@ -1550,11 +1550,10 @@ class TargetFile(BaseFile):
         self.length = length
         self.hashes = hashes
         self.path = path
-        if unrecognized_fields is not None:
-            self.unrecognized_fields = unrecognized_fields
-        else:
-            self.unrecognized_fields = {}
+        if unrecognized_fields is None:
+            unrecognized_fields = {}
 
+        self.unrecognized_fields = unrecognized_fields
     @property
     def custom(self) -> Any:
         """Can be used to provide implementation specific data related to the
