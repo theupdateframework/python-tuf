@@ -6,6 +6,8 @@ on:
     tags:
       - v*
 
+permissions:
+  contents: write
 
 jobs:
   test:
