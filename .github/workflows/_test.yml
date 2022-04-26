@@ -1,0 +1,90 @@
+on:
+  workflow_call:
+  # Permissions inherited from caller workflow
+
+
+jobs:
+  tests:
+    name: Tests
+    strategy:
+      fail-fast: false
+      # Run regular TUF tests on each OS/Python combination, plus special tests
+      # (sslib master) and linters on Linux/Python3.x only.
+      matrix:
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        toxenv: [py]
+        include:
+          - python-version: 3.x
+            os: ubuntu-latest
+            toxenv: with-sslib-master
+            experimental: true
+          - python-version: 3.x
+            os: ubuntu-latest
+            toxenv: lint
+
+    env:
+      # Set TOXENV env var to tell tox which testenv (see tox.ini) to use
+      # NOTE: The Python 2.7 runner has two Python versions on the path (see
+      # setup-python below), so we tell tox explicitly to use the 'py27'
+      # testenv. For all other runners the toxenv configured above suffices.
+      TOXENV: ${{ matrix.toxenv }}
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout TUF
+        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@98f2ad02fd48d057ee3b4d4f66525b231c3e52b6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: 'requirements*.txt'
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install --upgrade tox coveralls
+
+      - name: Run tox (${{ env.TOXENV }})
+        # See TOXENV environment variable for the testenv to be executed here
+        run: tox
+
+      - name: Publish on coveralls.io
+        # A failure to publish coverage results on coveralls should not
+        # be a reason for a job failure.
+        continue-on-error: true
+        # TODO: Maybe make 'lint' a separate job instead of case handling here
+        if: ${{ env.TOXENV != 'lint' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_FLAG_NAME: ${{ runner.os }} / Python ${{ matrix.python-version }} / ${{ env.TOXENV }}
+          COVERALLS_PARALLEL: true
+        # Use cp workaround to publish coverage reports with relative paths
+        # FIXME: Consider refactoring the tests to not require the test
+        # aggregation script being invoked from the `tests` directory, so
+        # that `.coverage` is written to and .coveragrc can also reside in
+        # the project root directory as is the convention.
+        run: |
+          cp tests/.coverage .
+          coveralls --service=github --rcfile=tests/.coveragerc
+
+  coveralls-fin:
+    # Always run when all 'tests' jobs have finished even if they failed
+    # TODO: Replace always() with a 'at least one job succeeded' expression
+    if: always()
+    needs: tests
+    runs-on: ubuntu-latest
+    container: python:3-slim
+    steps:
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install --upgrade coveralls
+      - name: Finalize publishing on coveralls.io
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: coveralls --finish
