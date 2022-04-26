@@ -30,9 +30,10 @@
   `git tag --sign vA.B.C -m "vA.B.C"`
 6. Push the tag to GitHub `git push origin vA.B.C`
 
-  *A push triggers the [CI workflow](.github/workfows/ci.yml), which, on success,
-  triggers the [CD workflow](.github/workfows/cd.yml), which builds source dist and
-  wheel, creates a preliminary GitHub release under `vA.B.C-rc`, and pauses for review.*
+  *A tag push triggers the [CD
+  workflow](https://github.com/theupdateframework/python-tuf/blob/develop/.github/workflows/cd.yml),
+  which runs the tests, builds source dist and wheel, creates a preliminary GitHub
+  release under `vA.B.C-rc`, and pauses for review.*
 
 7. Run `verify_release --skip-pypi` locally to make sure a build on your machine matches
   the preliminary release artifacts published on GitHub.
