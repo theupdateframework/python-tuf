@@ -59,6 +59,7 @@ path = "tuf/__init__.py"
 [tool.hatch.build.targets.sdist]
 include = [
   "/docs",
+  "/examples",
   "/tests",
   "/tuf",
   "/requirements*.txt",
