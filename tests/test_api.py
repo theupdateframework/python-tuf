@@ -807,6 +807,15 @@ class TestMetadata(unittest.TestCase):
                 msg,
             )
 
+    def test_zero_padding_in_succinct_hash_delegations(self) -> None:
+        hash_prefix_lens = [2, 6, 8, 10, 16, 32]
+        expected_paddings = [1, 2, 3, 3, 5, 9]
+
+        for prefix_len, expected in zip(hash_prefix_lens, expected_paddings):
+            succinct_delegation = SuccinctHashDelegations(prefix_len, "foo")
+            m = f"Error for {prefix_len} expected padding {expected}"
+            self.assertEqual(succinct_delegation.suffix_len, expected, m)
+
 
 # Run unit test.
 if __name__ == "__main__":

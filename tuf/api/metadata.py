@@ -1305,6 +1305,14 @@ class SuccinctHashDelegations:
         self.prefix_bit_len = prefix_bit_len
         self.bin_name_prefix = bin_name_prefix
 
+        # Calculate the suffix_len value based on the total number of bins in
+        # hex. If hash_prefix_len = 8 then number_of_bins = 256 or 100 in hex
+        # and suffix_len = 3 meaning the third bin will have a suffix of "003"
+        self.number_of_bins = 2**prefix_bit_len
+        # suffix_len is calculated based on "number_of_bins - 1" as the name
+        # of the last bin contains the number "number_of_bins -1" as a suffix.
+        self.suffix_len = len(f"{self.number_of_bins-1:x}")
+
         if unrecognized_fields is None:
             unrecognized_fields = {}
 
@@ -1354,7 +1362,10 @@ class SuccinctHashDelegations:
         bit_length = self.prefix_bit_len
         # Get the first bit_length of bits and then cast them to decimal.
         bin_number = int(hash_bits_representation[:bit_length], 2)
-        return f"{self.bin_name_prefix}-{bin_number}"
+        # Add zero padding if necessary and cast to hex the suffix.
+        suffix = f"{bin_number:0{self.suffix_len}x}"
+
+        return f"{self.bin_name_prefix}-{suffix}"
 
 
 class DelegatedRole(Role):
