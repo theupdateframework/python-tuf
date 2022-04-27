@@ -122,6 +122,26 @@ def verify_pypi_release(version: str, compare_dir: str) -> bool:
         return sorted(same) == [wheel, tar]
 
 
+def sign_release_artifacts(
+    version: str, build_dir: str, key_id: str = None
+) -> None:
+    """Sign built release artifacts with gpg and write signature files to cwd"""
+    tar = f"{PYPI_PROJECT}-{version}.tar.gz"
+    wheel = f"{PYPI_PROJECT}-{version}-py3-none-any.whl"
+    cmd = ["gpg", "--detach-sign", "--armor"]
+
+    if key_id is not None:
+        cmd += ["--local-user", key_id]
+
+    for filename in [tar, wheel]:
+        artifact_path = os.path.join(build_dir, filename)
+        signature_path = f"{filename}.asc"
+        subprocess.run(
+            cmd + ["--output", signature_path, artifact_path], check=True
+        )
+        assert os.path.exists(signature_path)
+
+
 def finished(s: str) -> None:
     # clear line
     sys.stdout.write("\033[K")
@@ -142,6 +162,15 @@ def main() -> int:
         action="store_true",
         dest="skip_pypi",
         help="Skip PyPI release check.",
+    )
+    parser.add_argument(
+        "--sign",
+        nargs="?",
+        const=True,
+        metavar="<key id>",
+        dest="sign",
+        help="Sign release artifacts with 'gpg'. If no <key id> is passed, the default "
+        "signing key is used. Resulting '*.asc' files are written to CWD.",
     )
     args = parser.parse_args()
 
@@ -173,7 +202,7 @@ def main() -> int:
                 finished("ERROR: PyPI artifacts do not match built release")
                 success = False
             else:
-                finished(f"PyPI artifacts match the built release")
+                finished("PyPI artifacts match the built release")
 
         progress("Downloading release from GitHub")
         if not verify_github_release(build_version, build_dir):
@@ -181,7 +210,20 @@ def main() -> int:
             finished("ERROR: GitHub artifacts do not match built release")
             success = False
         else:
-            finished(f"GitHub artifacts match the built release")
+            finished("GitHub artifacts match the built release")
+
+        # NOTE: 'gpg' might prompt for password or ask if it should override files...
+        if args.sign:
+            progress("Signing built release with gpg")
+            if success:
+                key_id = None
+                if args.sign is not True:
+                    key_id = args.sign
+
+                sign_release_artifacts(build_version, build_dir, key_id)
+                finished("Created signatures in cwd (see '*.asc' files)")
+            else:
+                finished("WARNING: Skip signing of non-matching artifacts")
 
     return 0 if success else 1
 
