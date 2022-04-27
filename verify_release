@@ -126,14 +126,14 @@ def sign_release_artifacts(
     version: str, build_dir: str, key_id: str = None
 ) -> None:
     """Sign built release artifacts with gpg and write signature files to cwd"""
-    tar = f"{PYPI_PROJECT}-{version}.tar.gz"
+    sdist = f"{PYPI_PROJECT}-{version}.tar.gz"
     wheel = f"{PYPI_PROJECT}-{version}-py3-none-any.whl"
     cmd = ["gpg", "--detach-sign", "--armor"]
 
     if key_id is not None:
         cmd += ["--local-user", key_id]
 
-    for filename in [tar, wheel]:
+    for filename in [sdist, wheel]:
         artifact_path = os.path.join(build_dir, filename)
         signature_path = f"{filename}.asc"
         subprocess.run(
@@ -216,14 +216,12 @@ def main() -> int:
         if args.sign:
             progress("Signing built release with gpg")
             if success:
-                key_id = None
-                if args.sign is not True:
-                    key_id = args.sign
+                key_id = args.sign if args.sign is not True else None
 
                 sign_release_artifacts(build_version, build_dir, key_id)
                 finished("Created signatures in cwd (see '*.asc' files)")
             else:
-                finished("WARNING: Skip signing of non-matching artifacts")
+                finished("WARNING: Skipped signing of non-matching artifacts")
 
     return 0 if success else 1
 
