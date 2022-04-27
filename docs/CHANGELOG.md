@@ -1,5 +1,30 @@
 # Changelog
 
+
+## v1.1.0
+
+This release contains major build improvements as well as fixes and
+backwards-compatible API improvements.
+
+### Added
+* build: Release process was moved to CD platform (#1946, #1971, #1976)
+* build: Build is now reproducible thanks to Hatchling (#1896, #1900)
+* build: Build results are now verifiable (#1913, #1926, #1947, #1979)
+* build: test dependencies are now pinned for reproducibility (#1867, #1918)
+* Metadata API: Validation is now possible during serialization (#1775)
+* Infrastructure: Setup development blog (#1886, #1887)
+
+### Changed
+* Metadata API: Supported specification version updated (#1908, #1960)
+* Metadata API: unrecognized_fields annotation fix (#1950)
+* Metadata API: Constructors are now easier to use (#1922)
+* Metadata API: Logging and error message improvements (#1876)
+* build: Include examples in source distribution (#1970)
+* build: Updated pinned dependency versions
+* tests: Various improvements (#1707, #1758, #1808, #1860, #1915, #1936,
+  #1953, #1954, #1955)
+
+
 ## v1.0.0
 
 This release makes ngclient and the Metadata API the supported python-tuf APIs.
