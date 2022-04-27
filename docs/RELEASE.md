@@ -44,8 +44,11 @@ on GitHub
   *An approval resumes the CD workflow to publish the release on PyPI, and to finalize the
   GitHub release (removes `-rc` suffix and updates release notes).*
 
-8. `verify_release` may be used again to make sure the PyPI release artifacts match the
-   local build as well.
+8. Run `verify_release` to make sure the PyPI release artifacts match the local build as
+   well. When called as `verify_release --sign [<key id>]` the script additionally
+   creates gpg release signatures. When signed by maintainers with a corresponding GPG
+   fingerprint in the MAINTAINERS.md file, these signature files should be made available on
+   the GitHub release page under Assets.
 9. Announce the release on [#tuf on CNCF Slack](https://cloud-native.slack.com/archives/C8NMD3QJ3)
 10. Ensure [POUF 1](https://github.com/theupdateframework/taps/blob/master/POUFs/reference-POUF/pouf1.md),
     for the reference implementation, is up-to-date
