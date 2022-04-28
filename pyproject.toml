@@ -1,6 +1,6 @@
-# Build-system section
 [build-system]
-requires = ["hatchling>=0.21.0"]
+# hatchling pinned for reproducibility: version should be kept up-to-date
+requires = ["hatchling==0.22.0"]
 build-backend = "hatchling.build"
 
 [project]
