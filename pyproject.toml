@@ -149,6 +149,7 @@ disable_error_code = ["attr-defined"]
 
 [[tool.mypy.overrides]]
 module = [
+  "requests.*",
   "securesystemslib.*",
   "urllib3.*"
 ]

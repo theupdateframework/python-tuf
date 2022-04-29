@@ -10,4 +10,3 @@ isort==5.10.1
 pylint==2.13.7
 mypy==0.942
 bandit==1.7.4
-types-requests==2.27.20
