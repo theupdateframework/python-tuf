@@ -39,6 +39,7 @@ from typing import (
     ClassVar,
     Dict,
     Generic,
+    Iterator,
     List,
     Mapping,
     Optional,
@@ -1362,6 +1363,33 @@ class SuccinctHashDelegations:
         # Add zero padding if necessary and cast to hex the suffix.
         suffix = f"{bin_number:0{self.suffix_len}x}"
         return f"{self.bin_name_prefix}-{suffix}"
+
+    def get_all_bin_names(self) -> Iterator[str]:
+        """Yield the names of all different bins one by one."""
+        for i in range(0, self.number_of_bins):
+            yield self.get_bin_name(i)
+
+    def is_bin(self, role_name: str) -> bool:
+        """Determines whether the given ``role_name`` is in one of
+        the bins that ``SuccinctHashDelegations`` is trusted to provide.
+
+        Args:
+            role_name: The name of the delegated role to check against.
+        """
+        desired_prefix = self.bin_name_prefix + "-"
+
+        if role_name.startswith(desired_prefix):
+            suffix = role_name[len(desired_prefix) :]
+            try:
+                # bin name suffixes are in hex format.
+                num = int(suffix, 16)
+                if 0 <= num < self.number_of_bins:
+                    return True
+            except ValueError:
+                # suffix is not a number
+                return False
+
+        return False
 
     def find_bin(self, target_filepath: str) -> str:
         """Calculates the name of the bin responsible for ``target_filepath``.

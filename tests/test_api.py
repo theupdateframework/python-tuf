@@ -781,6 +781,35 @@ class TestMetadata(unittest.TestCase):
         result_bin = r.find_delegation(test_data.target_path)
         self.assertEqual(result_bin, test_data.expected_bin_name)
 
+    def test_is_bin_in_succinct_hash_delegations(self) -> None:
+        succinct_delegation = SuccinctHashDelegations(5, "delegated")
+        # delegated role name suffixes are in hex format.
+        false_role_name_examples = [
+            "foo",
+            "delegated-",
+            "delegated-s",
+            "delegated-20",
+            "delegated-100",
+        ]
+        for role_name in false_role_name_examples:
+            msg = f"Error for {role_name}"
+            self.assertFalse(succinct_delegation.is_bin(role_name), msg)
+
+        true_role_name_examples = ["delegated-0", "delegated-f", "delegated-1f"]
+        for role_name in true_role_name_examples:
+            msg = f"Error for {role_name}"
+            self.assertTrue(succinct_delegation.is_bin(role_name), msg)
+
+    def test_get_all_bin_names_in_succinct_hash_delegations(self) -> None:
+        succinct_delegation = SuccinctHashDelegations(3, "delegated")
+        bin_amount = 0
+        for i, role_name in enumerate(succinct_delegation.get_all_bin_names()):
+            self.assertEqual(role_name, f"delegated-{i}")
+            bin_amount = i
+
+        # Assert that the last bin is number 7 (starting to count from 0).
+        self.assertEqual(bin_amount, 7)
+
 
 # Run unit test.
 if __name__ == "__main__":
