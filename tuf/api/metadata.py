@@ -423,6 +423,17 @@ class Metadata(Generic[T]):
 
             keys = self.signed.delegations.keys
             role = self.signed.delegations.roles.get(delegated_role)
+            if role is None:
+                # Find a succinct delegation role that delegates
+                # to `delegated_role`. This is not trivial when there can be
+                # other, normal, delegations and multiple succinct delegations
+                # in the same Delegations instance.
+                for r in self.signed.delegations.roles.values():
+                    if (
+                        r.succinct_hash_info is not None
+                        and r.succinct_hash_info.is_bin(delegated_role)
+                    ):
+                        role = r
         else:
             raise TypeError("Call is valid only on delegator metadata")
 
