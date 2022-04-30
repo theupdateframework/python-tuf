@@ -20,6 +20,7 @@ from tuf.api.metadata import (
     SPECIFICATION_VERSION,
     TOP_LEVEL_ROLE_NAMES,
     DelegatedRole,
+    SuccinctHashDelegations,
     Targets,
 )
 from tuf.ngclient import Updater
@@ -422,6 +423,99 @@ class TestDelegationsGraphs(TestDelegations):
             # order and the corresponding metadata files were persisted
             self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
             self._assert_files_exist(exp_files)
+        finally:
+            self.teardown_subtest()
+
+    @dataclass
+    class SuccinctHashTestCase:
+        prefix_bit_len: int
+        target_path: str
+        expected_visited_bin: str
+
+    succinct_bins_graph: utils.DataSet = {
+        "case 1": SuccinctHashTestCase(
+            prefix_bit_len=1,
+            target_path="othermissingpath",
+            expected_visited_bin="delegated-0",
+        ),
+        "case 2": SuccinctHashTestCase(
+            prefix_bit_len=1,
+            target_path="missingpath",
+            expected_visited_bin="delegated-1",
+        ),
+        "case 3": SuccinctHashTestCase(
+            prefix_bit_len=2,
+            target_path="foo",
+            expected_visited_bin="delegated-0",
+        ),
+        "case 4": SuccinctHashTestCase(
+            prefix_bit_len=2,
+            target_path="doo",
+            expected_visited_bin="delegated-1",
+        ),
+        "case 5": SuccinctHashTestCase(
+            prefix_bit_len=2,
+            target_path="missingpath",
+            expected_visited_bin="delegated-2",
+        ),
+        "case 6": SuccinctHashTestCase(
+            prefix_bit_len=2,
+            target_path="bar",
+            expected_visited_bin="delegated-3",
+        ),
+        "many bins case": SuccinctHashTestCase(
+            prefix_bit_len=8,
+            target_path="bar",
+            expected_visited_bin="delegated-fc",
+        ),
+    }
+
+    @utils.run_sub_tests_with_dataset(succinct_bins_graph)
+    def test_succinct_hash_bins_graph_traversal(
+        self, test_data: SuccinctHashTestCase
+    ) -> None:
+        # Test traversing the delegation tree when succinct hash delegation is
+        # used. For a successful traversal all top level metadata files plus the
+        # expected bin should exist locally and only the bin must be downloaded.
+
+        try:
+            exp_files = [*TOP_LEVEL_ROLE_NAMES, test_data.expected_visited_bin]
+            exp_calls = [(test_data.expected_visited_bin, 1)]
+
+            self.sim = RepositorySimulator()
+            delegated_role = DelegatedRole(
+                None,
+                [],
+                1,
+                False,
+                succinct_hash_info=SuccinctHashDelegations(
+                    test_data.prefix_bit_len, "delegated"
+                ),
+            )
+            # Add "delegated_role" as delegation and create target metadata
+            # instances for all bins.
+            self.sim.add_delegation("targets", delegated_role, None)
+            self.sim.update_snapshot()
+
+            self.setup_subtest()
+
+            updater = self._init_updater()
+            # Call explicitly refresh to simplify the expected_calls list
+            updater.refresh()
+            self.sim.fetch_tracker.metadata.clear()
+            # Check that metadata dir contains only top-level roles
+            self._assert_files_exist(TOP_LEVEL_ROLE_NAMES)
+
+            # Looking for a non-existing targetpath forces updater
+            # to visit a correspondning delegated role
+            targetfile = updater.get_targetinfo(test_data.target_path)
+            self.assertIsNone(targetfile)
+
+            # Check that the delegated roles were visited in the expected
+            # order and the corresponding metadata files were persisted
+            self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
+            self._assert_files_exist(exp_files)
+
         finally:
             self.teardown_subtest()
 
