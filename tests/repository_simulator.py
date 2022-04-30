@@ -346,7 +346,10 @@ class RepositorySimulator(FetcherInterface):
         self.target_files[path] = RepositoryTarget(data, target)
 
     def add_delegation(
-        self, delegator_name: str, role: DelegatedRole, targets: Targets
+        self,
+        delegator_name: str,
+        role: DelegatedRole,
+        targets: Optional[Targets],
     ) -> None:
         """Add delegated target role to the repository."""
         if delegator_name == Targets.type:
@@ -359,20 +362,31 @@ class RepositorySimulator(FetcherInterface):
             delegator.delegations = Delegations({}, {})
 
         role_name: str = role.name if role.name is not None else ""
+        key, signer = self.create_key()
+
         if role.succinct_hash_info:
+            # Add target metadata for all bins.
+            for delegated_name in role.succinct_hash_info.get_all_bin_names():
+                self.md_delegates[delegated_name] = Metadata(
+                    Targets(expires=self.safe_expiry)
+                )
+
+                self.add_signer(delegated_name, signer)
+
             role_name = role.succinct_hash_info.get_bin_name()
+
+        else:
+            # By default add one new key for the role
+            self.add_signer(role_name, signer)
+
+            # Add metadata for the role
+            if targets is not None:
+                if role_name not in self.md_delegates:
+                    self.md_delegates[role_name] = Metadata(targets)
 
         # put delegation last by default
         delegator.delegations.roles[role_name] = role
-
-        # By default add one new key for the role
-        key, signer = self.create_key()
         delegator.add_key(role_name, key)
-        self.add_signer(role_name, signer)
-
-        # Add metadata for the role
-        if role_name not in self.md_delegates:
-            self.md_delegates[role_name] = Metadata(targets, {})
 
     def write(self) -> None:
         """Dump current repository metadata to self.dump_dir
