@@ -31,7 +31,6 @@ import abc
 import fnmatch
 import io
 import logging
-import math
 import tempfile
 from datetime import datetime
 from typing import (
@@ -1373,19 +1372,13 @@ class SuccinctHashDelegations:
         """
         hasher = sslib_hash.digest(algorithm="sha256")
         hasher.update(target_filepath.encode("utf-8"))
-        # Get the bit representation of the hash. The bit representation is
-        # calculated for a small number of symbols required by prefix_bit_len.
-        needed_bits = self.prefix_bit_len  # aliased for emphasis
-        needed_bytes = math.ceil(needed_bits / 8)
-        hash_bits = "".join(
-            f"{one_byte:08b}" for one_byte in hasher.digest()[:needed_bytes]
-        )
-        needed_hash_bits = hash_bits[:needed_bits]
-        bit_length = self.prefix_bit_len
-        # Get the first bit_length of bits and then cast them to decimal.
-        bin_number = int(needed_hash_bits[:bit_length], 2)
 
-        # Split hash calculation from the rest for easier testing.
+        # We can't ever need more than 4 bytes (32 bits).
+        hash_bytes = hasher.digest()[:4]
+        # Right shift hash bytes, so that we only have the leftmost
+        # prefix_bit_len bits that we care about.
+        shift_value = 32 - self.prefix_bit_len
+        bin_number = int.from_bytes(hash_bytes, byteorder="big") >> shift_value
         return self.get_bin_name(bin_number)
 
 
