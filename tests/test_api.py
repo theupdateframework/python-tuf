@@ -700,81 +700,66 @@ class TestMetadata(unittest.TestCase):
     @dataclass
     class TestData:
         prefix_bit_len: int
-        lowest_binary: str
-        highest_binary: str
+        target_path: str
         expected_bin_name: str
 
-    # For ease of testing we are going to use target files with short names.
+    # Every hex digit can be fitted in 4 bits. This means that if
+    # prefix_bit_len is a power of 4, then the expected bin name will have a
+    # suffix which will contain and a (prefix_bit_len / 4) number of common hex
+    # digits with target_hash. Part of the test cases verify that.
+    # For "target.txt" the hex is: 199b3badd968634ea14e351d1134ada738894a90a2efa66983101ece99a33572
+
+    # The rest of the test cases are validating that zero padding is added.
     find_delegation_dataset: utils.DataSet = {
-        "one-hash-prefix & target hash inside zero bin": TestData(
-            # The binary representation of all numbers starts with 0
+        "1 hash-prefix": TestData(
             prefix_bit_len=1,
-            lowest_binary="00000000",  # 0
-            highest_binary="01111111",  # 127
-            expected_bin_name="delegated_role-0",
+            target_path="target.txt",
+            expected_bin_name="delegated-0",
         ),
-        "one-hash-prefix & target name inside first bin": TestData(
-            # The binary representation of all numbers starts with 1
-            prefix_bit_len=1,
-            lowest_binary="10000000",  # 128
-            highest_binary="11111111",  # 255
-            expected_bin_name="delegated_role-1",
+        "4 hash_prefix": TestData(
+            prefix_bit_len=4,
+            target_path="target.txt",
+            expected_bin_name="delegated-1",
         ),
-        "two-hash-prefix & target name inside zero bin": TestData(
-            # The binary representation of all numbers starts with 00
-            prefix_bit_len=2,
-            lowest_binary="00000000",  # 0
-            highest_binary="00111111",  # 63
-            expected_bin_name="delegated_role-0",
+        "5 hash_prefix": TestData(
+            prefix_bit_len=5,
+            target_path="target.txt",
+            expected_bin_name="delegated-03",  # Validating zero padding.
         ),
-        "two-hash-prefix & target name inside first bin": TestData(
-            # The binary representation of all numbers starts with 01
-            prefix_bit_len=2,
-            lowest_binary="01000000",  # 64
-            highest_binary="01111111",  # 127
-            expected_bin_name="delegated_role-1",
+        "8 hash_prefix": TestData(
+            prefix_bit_len=8,
+            target_path="target.txt",
+            expected_bin_name="delegated-19",
         ),
-        "two-hash-prefix & target name inside second bin": TestData(
-            # The binary representation of all numbers starts with 10
-            prefix_bit_len=2,
-            lowest_binary="10000000",  # 128
-            highest_binary="10111111",  # 191
-            expected_bin_name="delegated_role-2",
+        "9 hash_prefix": TestData(
+            prefix_bit_len=9,
+            target_path="target.txt",
+            expected_bin_name="delegated-033",  # Validating zero padding.
         ),
-        "two-hash-prefix & target name inside third bin": TestData(
-            # The binary representation of all numbers starts with 11
-            prefix_bit_len=2,
-            lowest_binary="11000000",  # 192
-            highest_binary="11111111",  # 255
-            expected_bin_name="delegated_role-3",
+        "16 hash_prefix": TestData(
+            prefix_bit_len=16,
+            target_path="target.txt",
+            expected_bin_name="delegated-199b",
         ),
-        "three-hash-prefix & target name inside zero bin": TestData(
-            # The binary representation of all numbers starts with 000
-            prefix_bit_len=3,
-            lowest_binary="00000000",  # 0
-            highest_binary="00011111",  # 31
-            expected_bin_name="delegated_role-0",
+        "21 hash_prefix": TestData(
+            prefix_bit_len=21,
+            target_path="target.txt",
+            expected_bin_name="delegated-033367",  # Validating zero padding.
         ),
-        "three-hash-prefix & target name inside second bin": TestData(
-            # The binary representation of all numbers starts with 010
-            prefix_bit_len=3,
-            lowest_binary="01000000",  # 64
-            highest_binary="01011111",  # 95
-            expected_bin_name="delegated_role-2",
+        "24 hash_prefix": TestData(
+            prefix_bit_len=24,
+            target_path="target.txt",
+            expected_bin_name="delegated-199b3b",
         ),
-        "three-hash-prefix & target name inside fourth bin": TestData(
-            # The binary representation of all numbers starts with 100
-            prefix_bit_len=3,
-            lowest_binary="10000000",  # 128
-            highest_binary="10011111",  # 159
-            expected_bin_name="delegated_role-4",
+        "31 hash_prefix": TestData(
+            prefix_bit_len=31,
+            target_path="target.txt",
+            expected_bin_name="delegated-0ccd9dd6",  # Validating zero padding.
         ),
-        "three-hash-prefix & target name inside sixth bin": TestData(
-            # The binary representation of all numbers starts with 110
-            prefix_bit_len=3,
-            lowest_binary="11000000",  # 192
-            highest_binary="11011111",  # 223
-            expected_bin_name="delegated_role-6",
+        "32 hash_prefix": TestData(
+            prefix_bit_len=32,
+            target_path="target.txt",
+            expected_bin_name="delegated-199b3bad",
         ),
     }
 
@@ -788,33 +773,13 @@ class TestMetadata(unittest.TestCase):
             1,
             False,
             succinct_hash_info=SuccinctHashDelegations(
-                test_data.prefix_bit_len, "delegated_role"
+                test_data.prefix_bit_len, "delegated"
             ),
         )
-        lowest_decimal = int(test_data.lowest_binary, 2)
-        highest_decimal = int(test_data.highest_binary, 2)
-        for target_hash_int in range(lowest_decimal, highest_decimal + 1):
-            # Convert target hash from decimal to a string bit representation.
-            hash_bits = f"{target_hash_int:08b}"
-            expected_rolename = test_data.expected_bin_name
-            msg = f"Error for {hash_bits} expected {expected_rolename}"
+        assert r.succinct_hash_info is not None
 
-            assert r.succinct_hash_info is not None
-            self.assertEqual(
-                # pylint: disable=protected-access
-                r.succinct_hash_info._find_bin_for_bits(hash_bits),
-                expected_rolename,
-                msg,
-            )
-
-    def test_zero_padding_in_succinct_hash_delegations(self) -> None:
-        hash_prefix_lens = [2, 6, 8, 10, 16, 32]
-        expected_paddings = [1, 2, 3, 3, 5, 9]
-
-        for prefix_len, expected in zip(hash_prefix_lens, expected_paddings):
-            succinct_delegation = SuccinctHashDelegations(prefix_len, "foo")
-            m = f"Error for {prefix_len} expected padding {expected}"
-            self.assertEqual(succinct_delegation.suffix_len, expected, m)
+        result_bin = r.find_delegation(test_data.target_path)
+        self.assertEqual(result_bin, test_data.expected_bin_name)
 
 
 # Run unit test.
