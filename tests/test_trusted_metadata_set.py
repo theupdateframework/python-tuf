@@ -73,12 +73,12 @@ class TestTrustedMetadataSet(unittest.TestCase):
             utils.TESTS_DIR, "repository_data", "keystore"
         )
         cls.keystore = {}
-        root_key_dict = import_rsa_privatekey_from_file(
+        root_key_dict = import_rsa_privatekey_from_file(  # nosec
             os.path.join(keystore_dir, Root.type + "_key"), password="password"
         )
         cls.keystore[Root.type] = SSlibSigner(root_key_dict)
         for role in ["delegation", Snapshot.type, Targets.type, Timestamp.type]:
-            key_dict = import_ed25519_privatekey_from_file(
+            key_dict = import_ed25519_privatekey_from_file(  # nosec
                 os.path.join(keystore_dir, role + "_key"), password="password"
             )
             cls.keystore[role] = SSlibSigner(key_dict)

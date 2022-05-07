@@ -79,7 +79,7 @@ class TestMetadata(unittest.TestCase):
         # Load keys into memory
         cls.keystore = {}
         for role in ["delegation", Snapshot.type, Targets.type, Timestamp.type]:
-            cls.keystore[role] = import_ed25519_privatekey_from_file(
+            cls.keystore[role] = import_ed25519_privatekey_from_file(  # nosec
                 os.path.join(cls.keystore_dir, role + "_key"),
                 password="password",
             )
