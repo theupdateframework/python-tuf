@@ -313,9 +313,13 @@ class RepositorySimulator(FetcherInterface):
         if self.compute_metafile_hashes_length:
             hashes, length = self._compute_hashes_and_length(Snapshot.type)
 
-        self.timestamp.snapshot_meta = MetaFile(
-            self.snapshot.version, length, hashes
-        )
+        metafile_dict = {
+            "version": self.snapshot.version,
+            "length": length,
+            "hashes": hashes,
+        }
+
+        self.timestamp.snapshot_meta = MetaFile.from_dict(metafile_dict)
 
         self.timestamp.version += 1
 
@@ -326,9 +330,14 @@ class RepositorySimulator(FetcherInterface):
             length = None
             if self.compute_metafile_hashes_length:
                 hashes, length = self._compute_hashes_and_length(role)
+            metafile_dict = {
+                "version": delegate.version,
+                "length": length,
+                "hashes": hashes,
+            }
 
-            self.snapshot.meta[f"{role}.json"] = MetaFile(
-                delegate.version, length, hashes
+            self.snapshot.meta[f"{role}.json"] = MetaFile.from_dict(
+                metafile_dict
             )
 
         self.snapshot.version += 1
