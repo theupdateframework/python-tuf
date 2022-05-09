@@ -37,7 +37,7 @@ import logging
 import os
 import shutil
 import tempfile
-from typing import Optional, Set
+from typing import Any, Optional, Set
 from urllib import parse
 
 from tuf.api import exceptions
@@ -275,6 +275,7 @@ class Updater:
 
     def _persist_metadata(self, rolename: str, data: bytes) -> None:
         """Write metadata to disk atomically to avoid data loss."""
+        temp_file: Optional[tempfile._TemporaryFileWrapper[Any]] = None
         try:
             # encode the rolename to avoid issues with e.g. path separators
             encoded_name = parse.quote(rolename, "")
@@ -287,7 +288,7 @@ class Updater:
         except OSError as e:
             # remove tempfile if we managed to create one,
             # then let the exception happen
-            if temp_file:
+            if temp_file is not None:
                 try:
                     os.remove(temp_file.name)
                 except FileNotFoundError:
