@@ -114,8 +114,8 @@ class Updater:
         that happens on demand during ``get_targetinfo()``. However, if the
         repository uses `consistent_snapshot
         <https://theupdateframework.github.io/specification/latest/#consistent-snapshots>`_,
-        then all metadata downloaded downloaded by the Updater will use the same
-        consistent repository state.
+        then all metadata downloaded by the Updater will use the same consistent
+        repository state.
 
         Raises:
             OSError: New metadata could not be written to disk
