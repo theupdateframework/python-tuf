@@ -21,6 +21,9 @@ jobs:
           echo "::set-output name=version::$ver"
   # Get the latest TUF specification release and open an issue (if needed)
   specification-bump-check:
+    permissions:
+      contents: read
+      issues: write
     needs: get-supported-tuf-version
     uses: theupdateframework/specification/.github/workflows/check-latest-spec-version.yml@master
     with:
