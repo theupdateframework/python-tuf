@@ -4,7 +4,7 @@
 -r requirements-pinned.txt
 
 # additional test tools for linting and coverage measurement
-coverage==6.3.2
+coverage==6.3.3
 black==22.3.0
 isort==5.10.1
 pylint==2.13.8
