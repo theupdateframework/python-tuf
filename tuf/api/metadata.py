@@ -1443,12 +1443,9 @@ class SuccinctRoles(Role):
     in the graph.
 
     The total number of bins is 2 to the power of the passed ``bit_length``.
-    Targets are assigned to bins by casting the left-most ``bit_length`` of
-    bits of the file path hash digest to int, using it as bin index between 0
-    and ``2**bit_length - 1``.
 
-    Bin names are the concatenation of the passed ``name_prefix`` and a hex
-    representation of the bin index between separated by a hyphen.
+    Bin names are the concatenation of the passed ``name_prefix`` and a
+    zero-padded hex representation of the bin index separated by a hyphen.
 
     The passed ``keyids`` and ``threshold`` is used for each bin, and each bin
     is 'terminating'.
@@ -1484,6 +1481,14 @@ class SuccinctRoles(Role):
 
         self.bit_length = bit_length
         self.name_prefix = name_prefix
+
+        # Calculate the suffix_len value based on the total number of bins in
+        # hex. If bit_length = 8 then number_of_bins = 256 or 100 in hex
+        # and suffix_len = 3 meaning the third bin will have a suffix of "003"
+        self.number_of_bins = 2**bit_length
+        # suffix_len is calculated based on "number_of_bins - 1" as the name
+        # of the last bin contains the number "number_of_bins -1" as a suffix.
+        self.suffix_len = len(f"{self.number_of_bins-1:x}")
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, SuccinctRoles):
@@ -1522,6 +1527,10 @@ class SuccinctRoles(Role):
         """Calculates the name of the delegated role responsible for
         ``target_filepath``.
 
+        The target at path ``target_filepath`` is assigned to a bin by casting
+        the left-most ``bit_length`` of bits of the file path hash digest to
+        int, using it as bin index between 0 and ``2**bit_length - 1``.
+
         Args:
             target_filepath: URL path to a target file, relative to a base
                 targets URL.
@@ -1535,7 +1544,9 @@ class SuccinctRoles(Role):
         # bit_length bits that we care about.
         shift_value = 32 - self.bit_length
         bin_number = int.from_bytes(hash_bytes, byteorder="big") >> shift_value
-        return f"{self.name_prefix}-{bin_number}"
+        # Add zero padding if necessary and cast to hex the suffix.
+        suffix = f"{bin_number:0{self.suffix_len}x}"
+        return f"{self.name_prefix}-{suffix}"
 
 
 class Delegations:
