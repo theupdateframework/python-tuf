@@ -24,6 +24,7 @@ from tuf.api.metadata import (
     Role,
     Root,
     Snapshot,
+    SuccinctRoles,
     TargetFile,
     Targets,
     Timestamp,
@@ -407,6 +408,36 @@ class TestSerialization(unittest.TestCase):
         case_dict = json.loads(test_case_data)
         with self.assertRaises(ValueError):
             DelegatedRole.from_dict(case_dict)
+
+    valid_succinct_roles: utils.DataSet = {
+        # SuccinctRoles inherits Role and some use cases can be found in the valid_roles.
+        "standard succinct_roles information": '{"keyids": ["keyid"], "threshold": 1, \
+            "bit_length": 8, "name_prefix": "foo"}',
+        "succinct_roles with unrecognized fields": '{"keyids": ["keyid"], "threshold": 1, \
+            "bit_length": 8, "name_prefix": "foo", "foo": "bar"}',
+    }
+
+    @utils.run_sub_tests_with_dataset(valid_succinct_roles)
+    def test_succinct_roles_serialization(self, test_case_data: str) -> None:
+        case_dict = json.loads(test_case_data)
+        succinct_roles = SuccinctRoles.from_dict(copy.copy(case_dict))
+        self.assertDictEqual(case_dict, succinct_roles.to_dict())
+
+    invalid_succinct_roles: utils.DataSet = {
+        # SuccinctRoles inherits Role and some use cases can be found in the invalid_roles.
+        "missing bit_length from succinct_roles": '{"keyids": ["keyid"], "threshold": 1, "name_prefix": "foo"}',
+        "missing name_prefix from succinct_roles": '{"keyids": ["keyid"], "threshold": 1, "bit_length": 8}',
+        "succinct_roles with invalid bit_length type": '{"keyids": ["keyid"], "threshold": 1, "bit_length": "a", "name_prefix": "foo"}',
+        "succinct_roles with invalid name_prefix type": '{"keyids": ["keyid"], "threshold": 1, "bit_length": 8, "name_prefix": 1}',
+        "succinct_roles with high bit_length value": '{"keyids": ["keyid"], "threshold": 1, "bit_length": 50, "name_prefix": "foo"}',
+        "succinct_roles with low bit_length value": '{"keyids": ["keyid"], "threshold": 1, "bit_length": 0, "name_prefix": "foo"}',
+    }
+
+    @utils.run_sub_tests_with_dataset(invalid_succinct_roles)
+    def test_invalid_succinct_roles_serialization(self, test_data: str) -> None:
+        case_dict = json.loads(test_data)
+        with self.assertRaises((ValueError, KeyError, TypeError)):
+            SuccinctRoles.from_dict(case_dict)
 
     invalid_delegations: utils.DataSet = {
         "empty delegations": "{}",

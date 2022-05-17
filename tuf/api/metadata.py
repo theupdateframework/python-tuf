@@ -1435,6 +1435,109 @@ class DelegatedRole(Role):
         return False
 
 
+class SuccinctRoles(Role):
+    """Succinctly defines a hash bin delegation graph.
+
+    A ``SuccinctRoles`` object describes a delegation graph that covers all
+    targets, distributing them uniformly over the delegated roles (i.e. bins)
+    in the graph.
+
+    The total number of bins is 2 to the power of the passed ``bit_length``.
+    Targets are assigned to bins by casting the left-most ``bit_length`` of
+    bits of the file path hash digest to int, using it as bin index between 0
+    and ``2**bit_length - 1``.
+
+    Bin names are the concatenation of the passed ``name_prefix`` and a hex
+    representation of the bin index between separated by a hyphen.
+
+    The passed ``keyids`` and ``threshold`` is used for each bin, and each bin
+    is 'terminating'.
+
+    For details: https://github.com/theupdateframework/taps/blob/master/tap15.md
+
+    Args:
+        keyids: Signing key identifiers for any bin metadata.
+        threshold: Number of keys required to sign any bin metadata.
+        bit_length: Number of bits between 1 and 32.
+        name_prefix: Prefix of all bin names.
+        unrecognized_fields: Dictionary of all attributes that are not managed
+            by TUF Metadata API.
+
+    Raises:
+            ValueError, TypeError, AttributeError: Invalid arguments.
+    """
+
+    def __init__(
+        self,
+        keyids: List[str],
+        threshold: int,
+        bit_length: int,
+        name_prefix: str,
+        unrecognized_fields: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(keyids, threshold, unrecognized_fields)
+
+        if bit_length <= 0 or bit_length > 32:
+            raise ValueError("bit_length must be between 1 and 32")
+        if not isinstance(name_prefix, str):
+            raise ValueError("name_prefix must be a string")
+
+        self.bit_length = bit_length
+        self.name_prefix = name_prefix
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, SuccinctRoles):
+            return False
+
+        return (
+            super().__eq__(other)
+            and self.bit_length == other.bit_length
+            and self.name_prefix == other.name_prefix
+        )
+
+    @classmethod
+    def from_dict(cls, role_dict: Dict[str, Any]) -> "SuccinctRoles":
+        """Creates ``SuccinctRoles`` object from its json/dict representation.
+
+        Raises:
+            ValueError, KeyError, AttributeError, TypeError: Invalid arguments.
+        """
+        keyids = role_dict.pop("keyids")
+        threshold = role_dict.pop("threshold")
+        bit_length = role_dict.pop("bit_length")
+        name_prefix = role_dict.pop("name_prefix")
+        # All fields left in the role_dict are unrecognized.
+        return cls(keyids, threshold, bit_length, name_prefix, role_dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Returns the dict representation of self."""
+        base_role_dict = super().to_dict()
+        return {
+            "bit_length": self.bit_length,
+            "name_prefix": self.name_prefix,
+            **base_role_dict,
+        }
+
+    def get_role_for_target(self, target_filepath: str) -> str:
+        """Calculates the name of the delegated role responsible for
+        ``target_filepath``.
+
+        Args:
+            target_filepath: URL path to a target file, relative to a base
+                targets URL.
+        """
+        hasher = sslib_hash.digest(algorithm="sha256")
+        hasher.update(target_filepath.encode("utf-8"))
+
+        # We can't ever need more than 4 bytes (32 bits).
+        hash_bytes = hasher.digest()[:4]
+        # Right shift hash bytes, so that we only have the leftmost
+        # bit_length bits that we care about.
+        shift_value = 32 - self.bit_length
+        bin_number = int.from_bytes(hash_bytes, byteorder="big") >> shift_value
+        return f"{self.name_prefix}-{bin_number}"
+
+
 class Delegations:
     """A container object storing information about all delegations.
 
