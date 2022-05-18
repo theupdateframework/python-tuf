@@ -35,6 +35,7 @@ from tuf.api.metadata import (
     Metadata,
     Root,
     Snapshot,
+    SuccinctRoles,
     TargetFile,
     Targets,
     Timestamp,
@@ -694,6 +695,31 @@ class TestMetadata(unittest.TestCase):
             role = DelegatedRole("", [], 1, False, None, hash_prefixes)
             self.assertFalse(role.is_delegated_path("a/non-matching path"))
             self.assertTrue(role.is_delegated_path("a/path"))
+
+    def test_is_delegated_role_in_succinct_roles(self) -> None:
+        succinct_roles = SuccinctRoles([], 1, 5, "bin")
+        false_role_name_examples = ["foo", "bin-", "bin-s", "bin-20", "bin-100"]
+        for role_name in false_role_name_examples:
+            msg = f"Error for {role_name}"
+            self.assertFalse(succinct_roles.is_delegated_role(role_name), msg)
+
+        # delegated role name suffixes are in hex format.
+        true_name_examples = ["bin-00", "bin-0f", "bin-1f"]
+        for role_name in true_name_examples:
+            msg = f"Error for {role_name}"
+            self.assertTrue(succinct_roles.is_delegated_role(role_name), msg)
+
+    def test_get_roles_in_succinct_roles(self) -> None:
+        succinct_roles = SuccinctRoles([], 1, 16, "bin")
+        # bin names are in hex format and 4 hex digits are enough to represent
+        # all bins between 0 and 2^16 - 1 meaning suffix_len must be 4
+        expected_suffix_length = 4
+        self.assertEqual(succinct_roles.suffix_len, expected_suffix_length)
+        for bin_numer, role_name in enumerate(succinct_roles.get_roles()):
+            # This adds zero-padding if the bin_numer is represented by a hex
+            # number with a length less than expected_suffix_length.
+            expected_bin_suffix = f"{bin_numer:0{expected_suffix_length}x}"
+            self.assertEqual(role_name, f"bin-{expected_bin_suffix}")
 
 
 # Run unit test.

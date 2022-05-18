@@ -39,6 +39,7 @@ from typing import (
     ClassVar,
     Dict,
     Generic,
+    Iterator,
     List,
     Mapping,
     Optional,
@@ -1547,6 +1548,36 @@ class SuccinctRoles(Role):
         # Add zero padding if necessary and cast to hex the suffix.
         suffix = f"{bin_number:0{self.suffix_len}x}"
         return f"{self.name_prefix}-{suffix}"
+
+    def get_roles(self) -> Iterator[str]:
+        """Yield the names of all different delegated roles one by one."""
+        for i in range(0, self.number_of_bins):
+            suffix = f"{i:0{self.suffix_len}x}"
+            yield f"{self.name_prefix}-{suffix}"
+
+    def is_delegated_role(self, role_name: str) -> bool:
+        """Determines whether the given ``role_name`` is in one of
+        the delegated roles that ``SuccinctRoles`` represents.
+
+        Args:
+            role_name: The name of the role to check against.
+        """
+        desired_prefix = self.name_prefix + "-"
+
+        if not role_name.startswith(desired_prefix):
+            return False
+
+        suffix = role_name[len(desired_prefix) :]
+        if len(suffix) != self.suffix_len:
+            return False
+
+        try:
+            # make sure suffix is hex value
+            num = int(suffix, 16)
+        except ValueError:
+            return False
+
+        return 0 <= num < self.number_of_bins
 
 
 class Delegations:
