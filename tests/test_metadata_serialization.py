@@ -176,6 +176,7 @@ class TestSerialization(unittest.TestCase):
         "no threshold": '{"keyids": ["keyid"]}',
         "no keyids": '{"threshold": 3}',
         "wrong threshold type": '{"keyids": ["keyid"], "threshold": "a"}',
+        "wrong keyids type": '{"keyids": 1, "threshold": 3}',
         "threshold below 1": '{"keyids": ["keyid"], "threshold": 0}',
         "duplicate keyids": '{"keyids": ["keyid", "keyid"], "threshold": 3}',
     }

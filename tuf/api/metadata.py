@@ -1297,7 +1297,7 @@ class DelegatedRole(Role):
         paths: Path patterns. See note above.
         path_hash_prefixes: Hash prefixes. See note above.
         unrecognized_fields: Dictionary of all attributes that are not managed
-            by TUF Metadata API
+            by TUF Metadata API.
 
     Raises:
         ValueError: Invalid arguments.
@@ -1316,11 +1316,11 @@ class DelegatedRole(Role):
         super().__init__(keyids, threshold, unrecognized_fields)
         self.name = name
         self.terminating = terminating
-        if paths is not None and path_hash_prefixes is not None:
-            raise ValueError("Either paths or path_hash_prefixes can be set")
-
-        if paths is None and path_hash_prefixes is None:
-            raise ValueError("One of paths or path_hash_prefixes must be set")
+        exclusive_vars = [paths, path_hash_prefixes]
+        if sum(1 for var in exclusive_vars if var is not None) != 1:
+            raise ValueError(
+                "Only one of (paths, path_hash_prefixes) must be set"
+            )
 
         if paths is not None and any(not isinstance(p, str) for p in paths):
             raise ValueError("Paths must be strings")
@@ -1349,7 +1349,7 @@ class DelegatedRole(Role):
         """Creates ``DelegatedRole`` object from its json/dict representation.
 
         Raises:
-            ValueError, KeyError: Invalid arguments.
+            ValueError, KeyError, TypeError: Invalid arguments.
         """
         name = role_dict.pop("name")
         keyids = role_dict.pop("keyids")
