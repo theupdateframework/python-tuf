@@ -425,6 +425,91 @@ class TestDelegationsGraphs(TestDelegations):
         finally:
             self.teardown_subtest()
 
+    @dataclass
+    class SuccinctRolesTestCase:
+        bit_length: int
+        target_path: str
+        expected_target_bin: str
+
+    # By setting the bit_length the total number of bins is 2^bit_length.
+    # In each test case target_path is a path to a random target we want to
+    # fetch and expected_target_bin is the bin we are expecting to visit.
+    succinct_bins_graph: utils.DataSet = {
+        "bin amount = 2, taget bin index 0": SuccinctRolesTestCase(
+            bit_length=1,
+            target_path="boo",
+            expected_target_bin="bin-0",
+        ),
+        "bin amount = 2, taget bin index 1": SuccinctRolesTestCase(
+            bit_length=1,
+            target_path="too",
+            expected_target_bin="bin-1",
+        ),
+        "bin amount = 4, taget bin index 0": SuccinctRolesTestCase(
+            bit_length=2,
+            target_path="foo",
+            expected_target_bin="bin-0",
+        ),
+        "bin amount = 4, taget bin index 1": SuccinctRolesTestCase(
+            bit_length=2,
+            target_path="doo",
+            expected_target_bin="bin-1",
+        ),
+        "bin amount = 4, taget bin index 2": SuccinctRolesTestCase(
+            bit_length=2,
+            target_path="too",
+            expected_target_bin="bin-2",
+        ),
+        "bin amount = 4, taget bin index 3": SuccinctRolesTestCase(
+            bit_length=2,
+            target_path="bar",
+            expected_target_bin="bin-3",
+        ),
+        "bin amount = 256, taget bin index fc": SuccinctRolesTestCase(
+            bit_length=8,
+            target_path="bar",
+            expected_target_bin="bin-fc",
+        ),
+    }
+
+    @utils.run_sub_tests_with_dataset(succinct_bins_graph)
+    def test_succinct_roles_graph_traversal(
+        self, test_data: SuccinctRolesTestCase
+    ) -> None:
+        # Test traversing the delegation tree when succinct roles is used. For a
+        # successful traversal all top level metadata files plus the expected
+        # bin should exist locally and only one bin must be downloaded.
+
+        try:
+            exp_files = [*TOP_LEVEL_ROLE_NAMES, test_data.expected_target_bin]
+            exp_calls = [(test_data.expected_target_bin, 1)]
+
+            self.sim = RepositorySimulator()
+            self.sim.add_succinct_roles("targets", test_data.bit_length, "bin")
+            self.sim.update_snapshot()
+
+            self.setup_subtest()
+
+            updater = self._init_updater()
+            # Call explicitly refresh to simplify the expected_calls list.
+            updater.refresh()
+            self.sim.fetch_tracker.metadata.clear()
+            # Check that metadata dir contains only top-level roles
+            self._assert_files_exist(TOP_LEVEL_ROLE_NAMES)
+
+            # Looking for a non-existing targetpath forces updater
+            # to visit a corresponding delegated role.
+            targetfile = updater.get_targetinfo(test_data.target_path)
+            self.assertIsNone(targetfile)
+
+            # Check that the delegated roles were visited in the expected
+            # order and the corresponding metadata files were persisted.
+            self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
+            self._assert_files_exist(exp_files)
+
+        finally:
+            self.teardown_subtest()
+
 
 class TestTargetFileSearch(TestDelegations):
     r"""
