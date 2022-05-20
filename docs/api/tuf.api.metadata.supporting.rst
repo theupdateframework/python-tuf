@@ -13,6 +13,7 @@ ones (Root, Timestamp, Snapshot, Targets):
    tuf.api.metadata.MetaFile
    tuf.api.metadata.Role
    tuf.api.metadata.TargetFile
+   tuf.api.metadata.SuccinctRoles
 
 .. autoclass:: tuf.api.metadata.DelegatedRole
 
@@ -25,3 +26,5 @@ ones (Root, Timestamp, Snapshot, Targets):
 .. autoclass:: tuf.api.metadata.Role
 
 .. autoclass:: tuf.api.metadata.TargetFile
+
+.. autoclass:: tuf.api.metadata.SuccinctRoles
