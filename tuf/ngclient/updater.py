@@ -275,6 +275,7 @@ class Updater:
 
     def _persist_metadata(self, rolename: str, data: bytes) -> None:
         """Write metadata to disk atomically to avoid data loss."""
+        temp_file_name: Optional[str] = None
         try:
             # encode the rolename to avoid issues with e.g. path separators
             encoded_name = parse.quote(rolename, "")
@@ -282,14 +283,15 @@ class Updater:
             with tempfile.NamedTemporaryFile(
                 dir=self._dir, delete=False
             ) as temp_file:
+                temp_file_name = temp_file.name
                 temp_file.write(data)
             os.replace(temp_file.name, filename)
         except OSError as e:
             # remove tempfile if we managed to create one,
             # then let the exception happen
-            if temp_file:
+            if temp_file_name is not None:
                 try:
-                    os.remove(temp_file.name)
+                    os.remove(temp_file_name)
                 except FileNotFoundError:
                     pass
             raise e
