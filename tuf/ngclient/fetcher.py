@@ -23,6 +23,9 @@ class FetcherInterface:
     By providing a concrete implementation of the abstract interface,
     users of the framework can plug-in their preferred/customized
     network stack.
+
+    Implementations of FetcherInterface only need to implement ``_fetch()``.
+    The public API of the class is already implemented.
     """
 
     __metaclass__ = abc.ABCMeta
