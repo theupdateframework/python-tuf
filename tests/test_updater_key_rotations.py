@@ -184,7 +184,7 @@ class TestUpdaterKeyRotations(unittest.TestCase):
 
             self.sim.root.roles[Root.type].threshold = rootver.threshold
             for i in rootver.keys:
-                self.sim.root.add_key(Root.type, self.keys[i])
+                self.sim.root.add_key(self.keys[i], Root.type)
             for i in rootver.sigs:
                 self.sim.add_signer(Root.type, self.signers[i])
             self.sim.root.version += 1
@@ -254,7 +254,7 @@ class TestUpdaterKeyRotations(unittest.TestCase):
 
             self.sim.root.roles[role].threshold = md_version.threshold
             for i in md_version.keys:
-                self.sim.root.add_key(role, self.keys[i])
+                self.sim.root.add_key(self.keys[i], role)
 
             for i in md_version.sigs:
                 self.sim.add_signer(role, self.signers[i])

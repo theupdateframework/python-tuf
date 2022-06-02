@@ -361,7 +361,7 @@ class TestMetadata(unittest.TestCase):
 
         # Add a key to snapshot role, make sure the new sig fails to verify
         ts_keyid = next(iter(root.signed.roles[Timestamp.type].keyids))
-        root.signed.add_key(Snapshot.type, root.signed.keys[ts_keyid])
+        root.signed.add_key(root.signed.keys[ts_keyid], Snapshot.type)
         snapshot.signatures[ts_keyid] = Signature(ts_keyid, "ff" * 64)
 
         # verify succeeds if threshold is reached even if some signatures
@@ -390,7 +390,7 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(ValueError):
             Key.from_securesystemslib_key(sslib_key)
 
-    def test_root_add_key_and_remove_key(self) -> None:
+    def test_root_add_key_and_revoke_key(self) -> None:
         root_path = os.path.join(self.repo_dir, "metadata", "root.json")
         root = Metadata[Root].from_file(root_path)
 
@@ -410,8 +410,12 @@ class TestMetadata(unittest.TestCase):
         self.assertNotIn(keyid, root.signed.roles[Root.type].keyids)
         self.assertNotIn(keyid, root.signed.keys)
 
+        # Assert that add_key with old argument order will raise an error
+        with self.assertRaises(ValueError):
+            root.signed.add_key(Root.type, key_metadata)  # type: ignore
+
         # Add new root key
-        root.signed.add_key(Root.type, key_metadata)
+        root.signed.add_key(key_metadata, Root.type)
 
         # Assert that key is added
         self.assertIn(keyid, root.signed.roles[Root.type].keyids)
@@ -423,30 +427,30 @@ class TestMetadata(unittest.TestCase):
 
         # Try adding the same key again and assert its ignored.
         pre_add_keyid = root.signed.roles[Root.type].keyids.copy()
-        root.signed.add_key(Root.type, key_metadata)
+        root.signed.add_key(key_metadata, Root.type)
         self.assertEqual(pre_add_keyid, root.signed.roles[Root.type].keyids)
 
         # Add the same key to targets role as well
-        root.signed.add_key(Targets.type, key_metadata)
+        root.signed.add_key(key_metadata, Targets.type)
 
         # Add the same key to a nonexistent role.
         with self.assertRaises(ValueError):
-            root.signed.add_key("nosuchrole", key_metadata)
+            root.signed.add_key(key_metadata, "nosuchrole")
 
         # Remove the key from root role (targets role still uses it)
-        root.signed.remove_key(Root.type, keyid)
+        root.signed.revoke_key(keyid, Root.type)
         self.assertNotIn(keyid, root.signed.roles[Root.type].keyids)
         self.assertIn(keyid, root.signed.keys)
 
         # Remove the key from targets as well
-        root.signed.remove_key(Targets.type, keyid)
+        root.signed.revoke_key(keyid, Targets.type)
         self.assertNotIn(keyid, root.signed.roles[Targets.type].keyids)
         self.assertNotIn(keyid, root.signed.keys)
 
         with self.assertRaises(ValueError):
-            root.signed.remove_key(Root.type, "nosuchkey")
+            root.signed.revoke_key("nosuchkey", Root.type)
         with self.assertRaises(ValueError):
-            root.signed.remove_key("nosuchrole", keyid)
+            root.signed.revoke_key(keyid, "nosuchrole")
 
     def test_is_target_in_pathpattern(self) -> None:
         # pylint: disable=protected-access
@@ -507,9 +511,13 @@ class TestMetadata(unittest.TestCase):
         }
         key = Key.from_dict("id2", key_dict)
 
+        # Assert that add_key with old argument order will raise an error
+        with self.assertRaises(ValueError):
+            targets.add_key("role1", key)  # type: ignore
+
         # Assert that delegated role "role1" does not contain the new key
         self.assertNotIn(key.keyid, targets.delegations.roles["role1"].keyids)
-        targets.add_key("role1", key)
+        targets.add_key(key, "role1")
 
         # Assert that the new key is added to the delegated role "role1"
         self.assertIn(key.keyid, targets.delegations.roles["role1"].keyids)
@@ -519,45 +527,88 @@ class TestMetadata(unittest.TestCase):
 
         # Try adding the same key again and assert its ignored.
         past_keyid = targets.delegations.roles["role1"].keyids.copy()
-        targets.add_key("role1", key)
+        targets.add_key(key, "role1")
         self.assertEqual(past_keyid, targets.delegations.roles["role1"].keyids)
 
         # Try adding a key to a delegated role that doesn't exists
         with self.assertRaises(ValueError):
-            targets.add_key("nosuchrole", key)
+            targets.add_key(key, "nosuchrole")
 
         # Add the same key to "role2" as well
-        targets.add_key("role2", key)
+        targets.add_key(key, "role2")
 
         # Remove the key from "role1" role ("role2" still uses it)
-        targets.remove_key("role1", key.keyid)
+        targets.revoke_key(key.keyid, "role1")
 
         # Assert that delegated role "role1" doesn't contain the key.
         self.assertNotIn(key.keyid, targets.delegations.roles["role1"].keyids)
         self.assertIn(key.keyid, targets.delegations.roles["role2"].keyids)
 
         # Remove the key from "role2" as well
-        targets.remove_key("role2", key.keyid)
+        targets.revoke_key(key.keyid, "role2")
         self.assertNotIn(key.keyid, targets.delegations.roles["role2"].keyids)
 
         # Try remove key not used by "role1"
         with self.assertRaises(ValueError):
-            targets.remove_key("role1", key.keyid)
+            targets.revoke_key(key.keyid, "role1")
 
         # Try removing a key from delegated role that doesn't exists
         with self.assertRaises(ValueError):
-            targets.remove_key("nosuchrole", key.keyid)
+            targets.revoke_key(key.keyid, "nosuchrole")
 
         # Remove delegations as a whole
         targets.delegations = None
-        # Test that calling add_key and remove_key throws an error
+        # Test that calling add_key and revoke_key throws an error
         # and that delegations is still None after each of the api calls
         with self.assertRaises(ValueError):
-            targets.add_key("role1", key)
+            targets.add_key(key, "role1")
         self.assertTrue(targets.delegations is None)
         with self.assertRaises(ValueError):
-            targets.remove_key("role1", key.keyid)
+            targets.revoke_key(key.keyid, "role1")
         self.assertTrue(targets.delegations is None)
+
+    def test_targets_key_api_with_succinct_roles(self) -> None:
+        targets_path = os.path.join(self.repo_dir, "metadata", "targets.json")
+        targets: Targets = Metadata[Targets].from_file(targets_path).signed
+        key_dict = {
+            "keytype": "ed25519",
+            "keyval": {
+                "public": "edcd0a32a07dce33f7c7873aaffbff36d20ea30787574ead335eefd337e4dacd"
+            },
+            "scheme": "ed25519",
+        }
+        key = Key.from_dict("id2", key_dict)
+
+        # Remove delegated roles.
+        assert targets.delegations is not None
+        assert targets.delegations.roles is not None
+        targets.delegations.roles = None
+        targets.delegations.keys = {}
+
+        # Add succinct_roles information.
+        targets.delegations.succinct_roles = SuccinctRoles([], 1, 8, "foo")
+        self.assertEqual(len(targets.delegations.keys), 0)
+        self.assertEqual(len(targets.delegations.succinct_roles.keyids), 0)
+
+        # Add a key to succinct_roles and verify it's saved.
+        targets.add_key(key)
+        self.assertIn(key.keyid, targets.delegations.keys)
+        self.assertIn(key.keyid, targets.delegations.succinct_roles.keyids)
+        self.assertEqual(len(targets.delegations.keys), 1)
+
+        # Try adding the same key again and verify that noting is added.
+        targets.add_key(key)
+        self.assertEqual(len(targets.delegations.keys), 1)
+
+        # Remove the key and verify it's not stored anymore.
+        targets.revoke_key(key.keyid)
+        self.assertNotIn(key.keyid, targets.delegations.keys)
+        self.assertNotIn(key.keyid, targets.delegations.succinct_roles.keyids)
+        self.assertEqual(len(targets.delegations.keys), 0)
+
+        # Try removing it again.
+        with self.assertRaises(ValueError):
+            targets.revoke_key(key.keyid)
 
     def test_length_and_hash_validation(self) -> None:
 

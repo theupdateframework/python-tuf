@@ -945,28 +945,33 @@ class Root(Signed):
         )
         return root_dict
 
-    def add_key(self, role: str, key: Key) -> None:
+    def add_key(self, key: Key, role: str) -> None:
         """Adds new signing key for delegated role ``role``.
 
         Args:
-            role: Name of the role, for which ``key`` is added.
             key: Signing key to be added for ``role``.
+            role: Name of the role, for which ``key`` is added.
 
         Raises:
-            ValueError: If ``role`` doesn't exist.
+            ValueError: If the argument order is wrong or if ``role`` doesn't
+                exist.
         """
+        # Verify that our users are not using the old argument order.
+        if isinstance(role, Key):
+            raise ValueError("Role must be a string, not a Key instance")
+
         if role not in self.roles:
             raise ValueError(f"Role {role} doesn't exist")
         if key.keyid not in self.roles[role].keyids:
             self.roles[role].keyids.append(key.keyid)
         self.keys[key.keyid] = key
 
-    def remove_key(self, role: str, keyid: str) -> None:
-        """Removes key from ``role`` and updates the key store.
+    def revoke_key(self, keyid: str, role: str) -> None:
+        """Revoke key from ``role`` and updates the key store.
 
         Args:
-            role: Name of the role, for which a signing key is removed.
             keyid: Identifier of the key to be removed for ``role``.
+            role: Name of the role, for which a signing key is removed.
 
         Raises:
             ValueError: If ``role`` doesn't exist or if ``role`` doesn't include
@@ -1972,17 +1977,23 @@ class Targets(Signed):
             targets_dict["delegations"] = self.delegations.to_dict()
         return targets_dict
 
-    def add_key(self, role: str, key: Key) -> None:
+    def add_key(self, key: Key, role: Optional[str] = None) -> None:
         """Adds new signing key for delegated role ``role``.
 
+        If succinct_roles is used then the ``role`` argument is not required.
+
         Args:
-            role: Name of the role, for which ``key`` is added.
             key: Signing key to be added for ``role``.
+            role: Name of the role, for which ``key`` is added.
 
         Raises:
-            ValueError: If there are no delegated roles or if ``role`` is not
-                delegated by this Target.
+            ValueError: If the argument order is wrong or if there are no
+                delegated roles or if ``role`` is not delegated by this Target.
         """
+        # Verify that our users are not using the old argument order.
+        if isinstance(role, Key):
+            raise ValueError("Role must be a string, not a Key instance")
+
         if self.delegations is None:
             raise ValueError(f"Delegated role {role} doesn't exist")
 
@@ -1991,19 +2002,27 @@ class Targets(Signed):
                 raise ValueError(f"Delegated role {role} doesn't exist")
             if key.keyid not in self.delegations.roles[role].keyids:
                 self.delegations.roles[role].keyids.append(key.keyid)
-            self.delegations.keys[key.keyid] = key
 
-    def remove_key(self, role: str, keyid: str) -> None:
-        """Removes key from delegated role ``role`` and updates the delegations
+        elif self.delegations.succinct_roles is not None:
+            if key.keyid not in self.delegations.succinct_roles.keyids:
+                self.delegations.succinct_roles.keyids.append(key.keyid)
+
+        self.delegations.keys[key.keyid] = key
+
+    def revoke_key(self, keyid: str, role: Optional[str] = None) -> None:
+        """Revokes key from delegated role ``role`` and updates the delegations
         key store.
 
+        If succinct_roles is used then the ``role`` argument is not required.
+
         Args:
-            role: Name of the role, for which a signing key is removed.
             keyid: Identifier of the key to be removed for ``role``.
+            role: Name of the role, for which a signing key is removed.
 
         Raises:
             ValueError: If there are no delegated roles or if ``role`` is not
-                delegated by this ``Target`` or if key is not used by ``role``.
+                delegated by this ``Target`` or if key is not used by ``role``
+                or if key with id ``keyid`` is not used by succinct roles.
         """
         if self.delegations is None:
             raise ValueError(f"Delegated role {role} doesn't exist")
@@ -2019,4 +2038,12 @@ class Targets(Signed):
                 if keyid in keyinfo.keyids:
                     return
 
-            del self.delegations.keys[keyid]
+        elif self.delegations.succinct_roles is not None:
+            if keyid not in self.delegations.succinct_roles.keyids:
+                raise ValueError(
+                    f"Key with id {keyid} is not used by succinct_roles"
+                )
+
+            self.delegations.succinct_roles.keyids.remove(keyid)
+
+        del self.delegations.keys[keyid]

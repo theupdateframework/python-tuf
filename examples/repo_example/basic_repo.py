@@ -157,7 +157,7 @@ roles["root"] = Metadata(Root(expires=_in(365)))
 for name in ["targets", "snapshot", "timestamp", "root"]:
     keys[name] = generate_ed25519_key()
     roles["root"].signed.add_key(
-        name, Key.from_securesystemslib_key(keys[name])
+        Key.from_securesystemslib_key(keys[name]), name
     )
 
 # NOTE: We only need the public part to populate root, so it is possible to use
@@ -173,7 +173,7 @@ for name in ["targets", "snapshot", "timestamp", "root"]:
 # required signature threshold.
 another_root_key = generate_ed25519_key()
 roles["root"].signed.add_key(
-    "root", Key.from_securesystemslib_key(another_root_key)
+    Key.from_securesystemslib_key(another_root_key), "root"
 )
 roles["root"].signed.roles["root"].threshold = 2
 
@@ -343,9 +343,9 @@ for role_name in ["targets", "python-scripts", "snapshot", "timestamp"]:
 # remains in place, it can be used to count towards the old and new threshold.
 new_root_key = generate_ed25519_key()
 
-roles["root"].signed.remove_key("root", keys["root"]["keyid"])
+roles["root"].signed.revoke_key(keys["root"]["keyid"], "root")
 roles["root"].signed.add_key(
-    "root", Key.from_securesystemslib_key(new_root_key)
+    Key.from_securesystemslib_key(new_root_key), "root"
 )
 roles["root"].signed.version += 1
 

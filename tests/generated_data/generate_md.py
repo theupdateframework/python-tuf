@@ -89,10 +89,10 @@ def generate_all_files(
     md_snapshot = Metadata(Snapshot(expires=EXPIRY))
     md_targets = Metadata(Targets(expires=EXPIRY))
 
-    md_root.signed.add_key("root", keys["ed25519_0"])
-    md_root.signed.add_key("timestamp", keys["ed25519_1"])
-    md_root.signed.add_key("snapshot", keys["ed25519_2"])
-    md_root.signed.add_key("targets", keys["ed25519_3"])
+    md_root.signed.add_key(keys["ed25519_0"], "root")
+    md_root.signed.add_key(keys["ed25519_1"], "timestamp")
+    md_root.signed.add_key(keys["ed25519_2"], "snapshot")
+    md_root.signed.add_key(keys["ed25519_3"], "targets")
 
     for i, md in enumerate([md_root, md_timestamp, md_snapshot, md_targets]):
         assert isinstance(md, Metadata)

@@ -169,7 +169,7 @@ class RepositorySimulator(FetcherInterface):
         self.signers[role].clear()
         for _ in range(0, self.root.roles[role].threshold):
             key, signer = self.create_key()
-            self.root.add_key(role, key)
+            self.root.add_key(key, role)
             self.add_signer(role, signer)
 
     def _initialize(self) -> None:
@@ -182,7 +182,7 @@ class RepositorySimulator(FetcherInterface):
 
         for role in TOP_LEVEL_ROLE_NAMES:
             key, signer = self.create_key()
-            self.md_root.signed.add_key(role, key)
+            self.md_root.signed.add_key(key, role)
             self.add_signer(role, signer)
 
         self.publish_root()
@@ -370,7 +370,7 @@ class RepositorySimulator(FetcherInterface):
 
         # By default add one new key for the role
         key, signer = self.create_key()
-        delegator.add_key(role.name, key)
+        delegator.add_key(key, role.name)
         self.add_signer(role.name, signer)
 
         # Add metadata for the role

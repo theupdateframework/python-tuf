@@ -63,7 +63,7 @@ are found, in the python-tuf library):
 ```python
 with repository.edit(“targets”) as targets:
     # adds a key for role1 (as an example, arbitrary edits are allowed)
-    targets.add_key(“role1”, key)
+    targets.add_key(key, “role1”)
 ```
 
 This code loads current targets metadata for editing, adds the key to a role,
