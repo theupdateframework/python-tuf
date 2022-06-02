@@ -491,6 +491,13 @@ class TestSerialization(unittest.TestCase):
                 {"keyids": ["keyid1"], "name": "b", "terminating": true, "paths": ["fn1"], "threshold": 3}, \
                 {"keyids": ["keyid2"], "name": "root", "terminating": true, "paths": ["fn2"], "threshold": 4} ] \
             }',
+        "roles and succinct_roles set": '{"keys": { \
+                "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}, \
+                "keyid2" : {"keytype": "ed25519", "scheme": "ed25519", "keyval": {"public": "bar"}}}, \
+            "roles": [ \
+                {"keyids": ["keyid"], "name": "a", "terminating": true, "paths": ["fn1"], "threshold": 3}, \
+                {"keyids": ["keyid2"], "name": "b", "terminating": true, "paths": ["fn2"], "threshold": 4} ], \
+            "succinct_roles": {"keyids": ["keyid"], "threshold": 1, "bit_length": 8, "name_prefix": "foo"}}',
     }
 
     @utils.run_sub_tests_with_dataset(invalid_delegations)
@@ -502,13 +509,17 @@ class TestSerialization(unittest.TestCase):
             Delegations.from_dict(case_dict)
 
     valid_delegations: utils.DataSet = {
-        "all": '{"keys": { \
+        "with roles": '{"keys": { \
                 "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}, \
                 "keyid2" : {"keytype": "ed25519", "scheme": "ed25519", "keyval": {"public": "bar"}}}, \
             "roles": [ \
                 {"keyids": ["keyid"], "name": "a", "terminating": true, "paths": ["fn1"], "threshold": 3}, \
                 {"keyids": ["keyid2"], "name": "b", "terminating": true, "paths": ["fn2"], "threshold": 4} ] \
             }',
+        "with succinct_roles": '{"keys": { \
+                "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}, \
+                "keyid2" : {"keytype": "ed25519", "scheme": "ed25519", "keyval": {"public": "bar"}}}, \
+            "succinct_roles": {"keyids": ["keyid"], "threshold": 1, "bit_length": 8, "name_prefix": "foo"}}',
         "unrecognized field": '{"keys": {"keyid" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
             "roles": [ {"keyids": ["keyid"], "name": "a", "paths": ["fn1", "fn2"], "terminating": true, "threshold": 3} ], \
             "foo": "bar"}',

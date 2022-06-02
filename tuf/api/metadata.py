@@ -413,7 +413,7 @@ class Metadata(Generic[T]):
         """
 
         # Find the keys and role in delegator metadata
-        role = None
+        role: Optional[Role] = None
         if isinstance(self.signed, Root):
             keys = self.signed.keys
             role = self.signed.roles.get(delegated_role)
@@ -422,7 +422,13 @@ class Metadata(Generic[T]):
                 raise ValueError(f"No delegation found for {delegated_role}")
 
             keys = self.signed.delegations.keys
-            role = self.signed.delegations.roles.get(delegated_role)
+            if self.signed.delegations.roles is not None:
+                role = self.signed.delegations.roles.get(delegated_role)
+            elif self.signed.delegations.succinct_roles is not None:
+                if self.signed.delegations.succinct_roles.is_delegated_role(
+                    delegated_role
+                ):
+                    role = self.signed.delegations.succinct_roles
         else:
             raise TypeError("Call is valid only on delegator metadata")
 
@@ -1592,8 +1598,16 @@ class Delegations:
             defines which keys are required to sign the metadata for a specific
             role. The roles order also defines the order that role delegations
             are considered during target searches.
+        succinct_roles: Contains succinct information about hash bin
+            delegations. Note that succinct roles is not a TUF specification
+            feature yet and setting `succinct_roles` to a value makes the
+            resulting metadata non-compliant. The metadata will not be accepted
+            as valid by specification compliant clients such as those built with
+            python-tuf <= 1.1.0. For more information see: https://github.com/theupdateframework/taps/blob/master/tap15.md
         unrecognized_fields: Dictionary of all attributes that are not managed
             by TUF Metadata API
+
+    Exactly one of ``roles`` and ``succinct_roles`` must be set.
 
     Raises:
         ValueError: Invalid arguments.
@@ -1602,18 +1616,24 @@ class Delegations:
     def __init__(
         self,
         keys: Dict[str, Key],
-        roles: Dict[str, DelegatedRole],
+        roles: Optional[Dict[str, DelegatedRole]] = None,
+        succinct_roles: Optional[SuccinctRoles] = None,
         unrecognized_fields: Optional[Dict[str, Any]] = None,
     ):
         self.keys = keys
+        if sum(1 for v in [roles, succinct_roles] if v is not None) != 1:
+            raise ValueError("One of roles and succinct_roles must be set")
 
-        for role in roles:
-            if not role or role in TOP_LEVEL_ROLE_NAMES:
-                raise ValueError(
-                    "Delegated roles cannot be empty or use top-level role names"
-                )
+        if roles is not None:
+            for role in roles:
+                if not role or role in TOP_LEVEL_ROLE_NAMES:
+                    raise ValueError(
+                        "Delegated roles cannot be empty or use top-level "
+                        "role names"
+                    )
 
         self.roles = roles
+        self.succinct_roles = succinct_roles
         if unrecognized_fields is None:
             unrecognized_fields = {}
 
@@ -1623,13 +1643,21 @@ class Delegations:
         if not isinstance(other, Delegations):
             return False
 
-        return (
+        all_attributes_check = (
             self.keys == other.keys
-            # Order of the delegated roles matters (see issue #1788).
-            and list(self.roles.items()) == list(other.roles.items())
             and self.roles == other.roles
+            and self.succinct_roles == other.succinct_roles
             and self.unrecognized_fields == other.unrecognized_fields
         )
+
+        if self.roles is not None and other.roles is not None:
+            all_attributes_check = (
+                all_attributes_check
+                # Order of the delegated roles matters (see issue #1788).
+                and list(self.roles.items()) == list(other.roles.items())
+            )
+
+        return all_attributes_check
 
     @classmethod
     def from_dict(cls, delegations_dict: Dict[str, Any]) -> "Delegations":
@@ -1642,25 +1670,59 @@ class Delegations:
         keys_res = {}
         for keyid, key_dict in keys.items():
             keys_res[keyid] = Key.from_dict(keyid, key_dict)
-        roles = delegations_dict.pop("roles")
-        roles_res: Dict[str, DelegatedRole] = {}
-        for role_dict in roles:
-            new_role = DelegatedRole.from_dict(role_dict)
-            if new_role.name in roles_res:
-                raise ValueError(f"Duplicate role {new_role.name}")
-            roles_res[new_role.name] = new_role
+        roles = delegations_dict.pop("roles", None)
+        roles_res: Optional[Dict[str, DelegatedRole]] = None
+
+        if roles is not None:
+            roles_res = {}
+            for role_dict in roles:
+                new_role = DelegatedRole.from_dict(role_dict)
+                if new_role.name in roles_res:
+                    raise ValueError(f"Duplicate role {new_role.name}")
+                roles_res[new_role.name] = new_role
+
+        succinct_roles_dict = delegations_dict.pop("succinct_roles", None)
+        succinct_roles_info = None
+        if succinct_roles_dict is not None:
+            succinct_roles_info = SuccinctRoles.from_dict(succinct_roles_dict)
+
         # All fields left in the delegations_dict are unrecognized.
-        return cls(keys_res, roles_res, delegations_dict)
+        return cls(keys_res, roles_res, succinct_roles_info, delegations_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
         keys = {keyid: key.to_dict() for keyid, key in self.keys.items()}
-        roles = [role_obj.to_dict() for role_obj in self.roles.values()]
-        return {
+        res_dict: Dict[str, Any] = {
             "keys": keys,
-            "roles": roles,
             **self.unrecognized_fields,
         }
+        if self.roles is not None:
+            roles = [role_obj.to_dict() for role_obj in self.roles.values()]
+            res_dict["roles"] = roles
+        elif self.succinct_roles is not None:
+            res_dict["succinct_roles"] = self.succinct_roles.to_dict()
+
+        return res_dict
+
+    def get_roles_for_target(
+        self, target_filepath: str
+    ) -> Iterator[Tuple[str, bool]]:
+        """Given ``target_filepath`` get names and terminating status of all
+        delegated roles who are responsible for it.
+
+        Args:
+            target_filepath: URL path to a target file, relative to a base
+                targets URL.
+        """
+        if self.roles is not None:
+            for role in self.roles.values():
+                if role.is_delegated_path(target_filepath):
+                    yield role.name, role.terminating
+
+        elif self.succinct_roles is not None:
+            # We consider all succinct_roles as terminating.
+            # For more information read TAP 15.
+            yield self.succinct_roles.get_role_for_target(target_filepath), True
 
 
 class TargetFile(BaseFile):
@@ -1921,11 +1983,15 @@ class Targets(Signed):
             ValueError: If there are no delegated roles or if ``role`` is not
                 delegated by this Target.
         """
-        if self.delegations is None or role not in self.delegations.roles:
+        if self.delegations is None:
             raise ValueError(f"Delegated role {role} doesn't exist")
-        if key.keyid not in self.delegations.roles[role].keyids:
-            self.delegations.roles[role].keyids.append(key.keyid)
-        self.delegations.keys[key.keyid] = key
+
+        if self.delegations.roles is not None:
+            if role not in self.delegations.roles:
+                raise ValueError(f"Delegated role {role} doesn't exist")
+            if key.keyid not in self.delegations.roles[role].keyids:
+                self.delegations.roles[role].keyids.append(key.keyid)
+            self.delegations.keys[key.keyid] = key
 
     def remove_key(self, role: str, keyid: str) -> None:
         """Removes key from delegated role ``role`` and updates the delegations
@@ -1939,13 +2005,18 @@ class Targets(Signed):
             ValueError: If there are no delegated roles or if ``role`` is not
                 delegated by this ``Target`` or if key is not used by ``role``.
         """
-        if self.delegations is None or role not in self.delegations.roles:
+        if self.delegations is None:
             raise ValueError(f"Delegated role {role} doesn't exist")
-        if keyid not in self.delegations.roles[role].keyids:
-            raise ValueError(f"Key with id {keyid} is not used by {role}")
-        self.delegations.roles[role].keyids.remove(keyid)
-        for keyinfo in self.delegations.roles.values():
-            if keyid in keyinfo.keyids:
-                return
 
-        del self.delegations.keys[keyid]
+        if self.delegations.roles is not None:
+            if role not in self.delegations.roles:
+                raise ValueError(f"Delegated role {role} doesn't exist")
+            if keyid not in self.delegations.roles[role].keyids:
+                raise ValueError(f"Key with id {keyid} is not used by {role}")
+
+            self.delegations.roles[role].keyids.remove(keyid)
+            for keyinfo in self.delegations.roles.values():
+                if keyid in keyinfo.keyids:
+                    return
+
+            del self.delegations.keys[keyid]

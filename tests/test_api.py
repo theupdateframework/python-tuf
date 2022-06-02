@@ -495,6 +495,7 @@ class TestMetadata(unittest.TestCase):
             }
         )
         assert isinstance(targets.delegations, Delegations)
+        assert isinstance(targets.delegations.roles, Dict)
         targets.delegations.roles["role2"] = delegated_role
 
         key_dict = {

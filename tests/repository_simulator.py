@@ -354,9 +354,17 @@ class RepositorySimulator(FetcherInterface):
         else:
             delegator = self.md_delegates[delegator_name].signed
 
+        if (
+            delegator.delegations is not None
+            and delegator.delegations.succinct_roles is not None
+        ):
+            raise ValueError("Can't add a role when succinct_roles is used")
+
         # Create delegation
         if delegator.delegations is None:
-            delegator.delegations = Delegations({}, {})
+            delegator.delegations = Delegations({}, roles={})
+
+        assert delegator.delegations.roles is not None
         # put delegation last by default
         delegator.delegations.roles[role.name] = role
 

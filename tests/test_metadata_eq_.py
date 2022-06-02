@@ -169,6 +169,7 @@ class TestMetadataComparisions(unittest.TestCase):
         # Create a second delegations obj with reversed roles order
         delegations_2 = copy.deepcopy(delegations)
         # In python3.7 we need to cast to a list and then reverse.
+        assert isinstance(delegations.roles, dict)
         delegations_2.roles = dict(reversed(list(delegations.roles.items())))
 
         # Both objects are not the equal because of delegated roles order.
