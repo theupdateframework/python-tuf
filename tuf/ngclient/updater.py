@@ -336,7 +336,13 @@ class Updater:
         data = self._download_metadata(
             Timestamp.type, self.config.timestamp_max_length
         )
-        self._trusted_set.update_timestamp(data)
+        try:
+            self._trusted_set.update_timestamp(data)
+        except exceptions.EqualVersionNumberError:
+            # If the new timestamp version is the same as current, discard the
+            # new timestamp. This is normal and it shouldn't raise any error.
+            return
+
         self._persist_metadata(Timestamp.type, data)
 
     def _load_snapshot(self) -> None:

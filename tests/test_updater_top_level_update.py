@@ -804,6 +804,27 @@ class TestRefresh(unittest.TestCase):
         updater = self._init_updater()
         updater.refresh()
 
+    def test_timestamp_eq_versions_check(self) -> None:
+        # Test that a modified timestamp with different content, but the same
+        # version doesn't replace the valid locally stored one.
+
+        # Make a successful update of valid metadata which stores it in cache
+        self._run_refresh()
+        initial_timestamp_meta_ver = self.sim.timestamp.snapshot_meta.version
+
+        # Change timestamp without bumping its version in order to test if a new
+        # timestamp with the same version will be persisted.
+        self.sim.timestamp.snapshot_meta.version = 100
+        self._run_refresh()
+
+        # If the local timestamp md file has the same snapshot_meta.version as
+        # the initial one, then the new modified timestamp has not been stored.
+        timestamp_path = os.path.join(self.metadata_dir, "timestamp.json")
+        timestamp: Metadata[Timestamp] = Metadata.from_file(timestamp_path)
+        self.assertEqual(
+            initial_timestamp_meta_ver, timestamp.signed.snapshot_meta.version
+        )
+
 
 if __name__ == "__main__":
     if "--dump" in sys.argv:

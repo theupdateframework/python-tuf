@@ -274,9 +274,25 @@ class TestTrustedMetadataSet(unittest.TestCase):
         with self.assertRaises(exceptions.BadVersionNumberError):
             self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
 
+    def test_update_timestamp_with_same_timestamp(self) -> None:
+        # Test that timestamp is NOT updated if:
+        # new_timestamp.version == trusted_timestamp.version
+        self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
+        initial_timestamp = self.trusted_set.timestamp
+
+        # Update timestamp with the same version.
+        with self.assertRaises(exceptions.EqualVersionNumberError):
+            self.trusted_set.update_timestamp((self.metadata[Timestamp.type]))
+
+        # Every object has a unique id() if they are equal, this means timestamp
+        # was not updated.
+        self.assertEqual(id(initial_timestamp), id(self.trusted_set.timestamp))
+
     def test_update_timestamp_snapshot_ver_below_current(self) -> None:
         def bump_snapshot_version(timestamp: Timestamp) -> None:
             timestamp.snapshot_meta.version = 2
+            # The timestamp version must be increased to initiate a update.
+            timestamp.version += 1
 
         # set current known snapshot.json version to 2
         timestamp = self.modify_metadata(Timestamp.type, bump_snapshot_version)
@@ -382,6 +398,8 @@ class TestTrustedMetadataSet(unittest.TestCase):
     def test_update_snapshot_successful_rollback_checks(self) -> None:
         def meta_version_bump(timestamp: Timestamp) -> None:
             timestamp.snapshot_meta.version += 1
+            # The timestamp version must be increased to initiate a update.
+            timestamp.version += 1
 
         def version_bump(snapshot: Snapshot) -> None:
             snapshot.version += 1
