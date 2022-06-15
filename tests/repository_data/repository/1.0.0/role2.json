@@ -8,7 +8,7 @@
  "signed": {
   "_type": "targets",
   "expires": "2030-01-01T00:00:00Z",
-  "spec_version": "1.0.0",
+  "spec_version": "2.0.0",
   "targets": {},
   "version": 1
  }
