@@ -510,6 +510,66 @@ class TestDelegationsGraphs(TestDelegations):
         finally:
             self.teardown_subtest()
 
+    succinct_roles_targets_test_cases: utils.DataSet = {
+        "bin amount = 2, taget bin index 0": SuccinctRolesTestCase(
+            bit_length=1,
+            target_path="boo",
+            expected_target_bin="bin-0",
+        ),
+        "bin amount = 4, taget bin index 0": SuccinctRolesTestCase(
+            bit_length=2,
+            target_path="foo",
+            expected_target_bin="bin-0",
+        ),
+        "bin amount = 256, taget bin index fc": SuccinctRolesTestCase(
+            bit_length=8,
+            target_path="bar",
+            expected_target_bin="bin-fc",
+        ),
+    }
+
+    @utils.run_sub_tests_with_dataset(succinct_roles_targets_test_cases)
+    def test_download_targets_with_succinct_roles(
+        self, test_data: SuccinctRolesTestCase
+    ) -> None:
+
+        try:
+            self.setup_subtest()
+            exp_files = [*TOP_LEVEL_ROLE_NAMES, test_data.expected_target_bin]
+            exp_calls = [(test_data.expected_target_bin, 1)]
+            exp_path = os.path.join(self.targets_dir, test_data.target_path)
+
+            self.sim = RepositorySimulator()
+            self.sim.add_succinct_roles("targets", test_data.bit_length, "bin")
+            self.sim.update_snapshot()
+
+            self.sim.add_target(
+                test_data.expected_target_bin, b"abc", test_data.target_path
+            )
+
+            updater = self._init_updater()
+            # Call explicitly refresh to simplify the expected_calls list.
+            updater.refresh()
+            self.sim.fetch_tracker.metadata.clear()
+            # Check that metadata dir contains only top-level roles
+            self._assert_files_exist(TOP_LEVEL_ROLE_NAMES)
+
+            # Verify that the target info was successfully found
+            # and the correct delegated metadata file was downloaded
+            target_info = updater.get_targetinfo(test_data.target_path)
+            assert target_info is not None
+            self.assertEqual(target_info.path, test_data.target_path)
+            target_file = updater.download_target(target_info)
+            self.assertEqual(target_file, exp_path)
+
+            # Check that the delegated roles were visited in the expected
+            # order and the corresponding metadata files were persisted.
+            self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
+            self._assert_files_exist(exp_files)
+
+        finally:
+            self.teardown_subtest()
+
 
 class TestTargetFileSearch(TestDelegations):
     r"""
