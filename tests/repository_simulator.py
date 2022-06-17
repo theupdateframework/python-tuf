@@ -67,6 +67,7 @@ from tuf.api.metadata import (
     MetaFile,
     Root,
     Snapshot,
+    SuccinctRoles,
     TargetFile,
     Targets,
     Timestamp,
@@ -169,7 +170,7 @@ class RepositorySimulator(FetcherInterface):
         self.signers[role].clear()
         for _ in range(0, self.root.roles[role].threshold):
             key, signer = self.create_key()
-            self.root.add_key(role, key)
+            self.root.add_key(key, role)
             self.add_signer(role, signer)
 
     def _initialize(self) -> None:
@@ -182,7 +183,7 @@ class RepositorySimulator(FetcherInterface):
 
         for role in TOP_LEVEL_ROLE_NAMES:
             key, signer = self.create_key()
-            self.md_root.signed.add_key(role, key)
+            self.md_root.signed.add_key(key, role)
             self.add_signer(role, signer)
 
         self.publish_root()
@@ -334,12 +335,16 @@ class RepositorySimulator(FetcherInterface):
         self.snapshot.version += 1
         self.update_timestamp()
 
+    def _get_delegator(self, delegator_name: str) -> Targets:
+        """Given a delegator name return, its corresponding Targets object."""
+        if delegator_name == Targets.type:
+            return self.targets
+
+        return self.md_delegates[delegator_name].signed
+
     def add_target(self, role: str, data: bytes, path: str) -> None:
         """Create a target from data and add it to the target_files."""
-        if role == Targets.type:
-            targets = self.targets
-        else:
-            targets = self.md_delegates[role].signed
+        targets = self._get_delegator(role)
 
         target = TargetFile.from_data(path, data, ["sha256"])
         targets.targets[path] = target
@@ -349,25 +354,62 @@ class RepositorySimulator(FetcherInterface):
         self, delegator_name: str, role: DelegatedRole, targets: Targets
     ) -> None:
         """Add delegated target role to the repository."""
-        if delegator_name == Targets.type:
-            delegator = self.targets
-        else:
-            delegator = self.md_delegates[delegator_name].signed
+        delegator = self._get_delegator(delegator_name)
+
+        if (
+            delegator.delegations is not None
+            and delegator.delegations.succinct_roles is not None
+        ):
+            raise ValueError("Can't add a role when succinct_roles is used")
 
         # Create delegation
         if delegator.delegations is None:
-            delegator.delegations = Delegations({}, {})
+            delegator.delegations = Delegations({}, roles={})
+
+        assert delegator.delegations.roles is not None
         # put delegation last by default
         delegator.delegations.roles[role.name] = role
 
         # By default add one new key for the role
         key, signer = self.create_key()
-        delegator.add_key(role.name, key)
+        delegator.add_key(key, role.name)
         self.add_signer(role.name, signer)
 
         # Add metadata for the role
         if role.name not in self.md_delegates:
             self.md_delegates[role.name] = Metadata(targets, {})
+
+    def add_succinct_roles(
+        self, delegator_name: str, bit_length: int, name_prefix: str
+    ) -> None:
+        """Add succinct roles info to a delegator with name "delegator_name".
+
+        Note that for each delegated role represented by succinct roles an empty
+        Targets instance is created.
+        """
+        delegator = self._get_delegator(delegator_name)
+
+        if (
+            delegator.delegations is not None
+            and delegator.delegations.roles is not None
+        ):
+            raise ValueError(
+                "Can't add a succinct_roles when delegated roles are used"
+            )
+
+        key, signer = self.create_key()
+        succinct_roles = SuccinctRoles([], 1, bit_length, name_prefix)
+        delegator.delegations = Delegations({}, None, succinct_roles)
+
+        # Add targets metadata for all bins.
+        for delegated_name in succinct_roles.get_roles():
+            self.md_delegates[delegated_name] = Metadata(
+                Targets(expires=self.safe_expiry)
+            )
+
+            self.add_signer(delegated_name, signer)
+
+        delegator.add_key(key)
 
     def write(self) -> None:
         """Dump current repository metadata to self.dump_dir

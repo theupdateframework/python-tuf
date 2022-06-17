@@ -438,17 +438,17 @@ class Updater:
                 child_roles_to_visit = []
                 # NOTE: This may be a slow operation if there are many
                 # delegated roles.
-                for child_role in targets.delegations.roles.values():
-                    if child_role.is_delegated_path(target_filepath):
-                        logger.debug("Adding child role %s", child_role.name)
+                for (
+                    child_name,
+                    terminating,
+                ) in targets.delegations.get_roles_for_target(target_filepath):
 
-                        child_roles_to_visit.append(
-                            (child_role.name, role_name)
-                        )
-                        if child_role.terminating:
-                            logger.debug("Not backtracking to other roles")
-                            delegations_to_visit = []
-                            break
+                    logger.debug("Adding child role %s", child_name)
+                    child_roles_to_visit.append((child_name, role_name))
+                    if terminating:
+                        logger.debug("Not backtracking to other roles")
+                        delegations_to_visit = []
+                        break
                 # Push 'child_roles_to_visit' in reverse order of appearance
                 # onto 'delegations_to_visit'.  Roles are popped from the end of
                 # the list.

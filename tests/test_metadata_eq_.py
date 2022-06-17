@@ -23,6 +23,7 @@ from tuf.api.metadata import (
     Metadata,
     MetaFile,
     Role,
+    SuccinctRoles,
     TargetFile,
 )
 
@@ -55,6 +56,7 @@ class TestMetadataComparisions(unittest.TestCase):
         cls.objects["Role"] = Role(["keyid1", "keyid2"], 3)
         cls.objects["MetaFile"] = MetaFile(1, 12, {"sha256": "abc"})
         cls.objects["DelegatedRole"] = DelegatedRole("a", [], 1, False, ["d"])
+        cls.objects["SuccinctRoles"] = SuccinctRoles(["keyid"], 1, 8, "foo")
         cls.objects["Delegations"] = Delegations(
             {"keyid": cls.objects["Key"]}, {"a": cls.objects["DelegatedRole"]}
         )
@@ -79,6 +81,7 @@ class TestMetadataComparisions(unittest.TestCase):
             "paths": [""],
             "path_hash_prefixes": [""],
         },
+        "SuccinctRoles": {"bit_length": 0, "name_prefix": ""},
         "Delegations": {"keys": {}, "roles": {}},
         "TargetFile": {"length": 0, "hashes": {}, "path": ""},
         "Targets": {"targets": {}, "delegations": []},
@@ -166,6 +169,7 @@ class TestMetadataComparisions(unittest.TestCase):
         # Create a second delegations obj with reversed roles order
         delegations_2 = copy.deepcopy(delegations)
         # In python3.7 we need to cast to a list and then reverse.
+        assert isinstance(delegations.roles, dict)
         delegations_2.roles = dict(reversed(list(delegations.roles.items())))
 
         # Both objects are not the equal because of delegated roles order.

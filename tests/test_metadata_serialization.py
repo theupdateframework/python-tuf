@@ -24,6 +24,7 @@ from tuf.api.metadata import (
     Role,
     Root,
     Snapshot,
+    SuccinctRoles,
     TargetFile,
     Targets,
     Timestamp,
@@ -175,6 +176,7 @@ class TestSerialization(unittest.TestCase):
         "no threshold": '{"keyids": ["keyid"]}',
         "no keyids": '{"threshold": 3}',
         "wrong threshold type": '{"keyids": ["keyid"], "threshold": "a"}',
+        "wrong keyids type": '{"keyids": 1, "threshold": 3}',
         "threshold below 1": '{"keyids": ["keyid"], "threshold": 0}',
         "duplicate keyids": '{"keyids": ["keyid", "keyid"], "threshold": 3}',
     }
@@ -408,6 +410,36 @@ class TestSerialization(unittest.TestCase):
         with self.assertRaises(ValueError):
             DelegatedRole.from_dict(case_dict)
 
+    valid_succinct_roles: utils.DataSet = {
+        # SuccinctRoles inherits Role and some use cases can be found in the valid_roles.
+        "standard succinct_roles information": '{"keyids": ["keyid"], "threshold": 1, \
+            "bit_length": 8, "name_prefix": "foo"}',
+        "succinct_roles with unrecognized fields": '{"keyids": ["keyid"], "threshold": 1, \
+            "bit_length": 8, "name_prefix": "foo", "foo": "bar"}',
+    }
+
+    @utils.run_sub_tests_with_dataset(valid_succinct_roles)
+    def test_succinct_roles_serialization(self, test_case_data: str) -> None:
+        case_dict = json.loads(test_case_data)
+        succinct_roles = SuccinctRoles.from_dict(copy.copy(case_dict))
+        self.assertDictEqual(case_dict, succinct_roles.to_dict())
+
+    invalid_succinct_roles: utils.DataSet = {
+        # SuccinctRoles inherits Role and some use cases can be found in the invalid_roles.
+        "missing bit_length from succinct_roles": '{"keyids": ["keyid"], "threshold": 1, "name_prefix": "foo"}',
+        "missing name_prefix from succinct_roles": '{"keyids": ["keyid"], "threshold": 1, "bit_length": 8}',
+        "succinct_roles with invalid bit_length type": '{"keyids": ["keyid"], "threshold": 1, "bit_length": "a", "name_prefix": "foo"}',
+        "succinct_roles with invalid name_prefix type": '{"keyids": ["keyid"], "threshold": 1, "bit_length": 8, "name_prefix": 1}',
+        "succinct_roles with high bit_length value": '{"keyids": ["keyid"], "threshold": 1, "bit_length": 50, "name_prefix": "foo"}',
+        "succinct_roles with low bit_length value": '{"keyids": ["keyid"], "threshold": 1, "bit_length": 0, "name_prefix": "foo"}',
+    }
+
+    @utils.run_sub_tests_with_dataset(invalid_succinct_roles)
+    def test_invalid_succinct_roles_serialization(self, test_data: str) -> None:
+        case_dict = json.loads(test_data)
+        with self.assertRaises((ValueError, KeyError, TypeError)):
+            SuccinctRoles.from_dict(case_dict)
+
     invalid_delegations: utils.DataSet = {
         "empty delegations": "{}",
         "missing keys": '{ "roles": [ \
@@ -459,6 +491,13 @@ class TestSerialization(unittest.TestCase):
                 {"keyids": ["keyid1"], "name": "b", "terminating": true, "paths": ["fn1"], "threshold": 3}, \
                 {"keyids": ["keyid2"], "name": "root", "terminating": true, "paths": ["fn2"], "threshold": 4} ] \
             }',
+        "roles and succinct_roles set": '{"keys": { \
+                "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}, \
+                "keyid2" : {"keytype": "ed25519", "scheme": "ed25519", "keyval": {"public": "bar"}}}, \
+            "roles": [ \
+                {"keyids": ["keyid"], "name": "a", "terminating": true, "paths": ["fn1"], "threshold": 3}, \
+                {"keyids": ["keyid2"], "name": "b", "terminating": true, "paths": ["fn2"], "threshold": 4} ], \
+            "succinct_roles": {"keyids": ["keyid"], "threshold": 1, "bit_length": 8, "name_prefix": "foo"}}',
     }
 
     @utils.run_sub_tests_with_dataset(invalid_delegations)
@@ -470,13 +509,17 @@ class TestSerialization(unittest.TestCase):
             Delegations.from_dict(case_dict)
 
     valid_delegations: utils.DataSet = {
-        "all": '{"keys": { \
+        "with roles": '{"keys": { \
                 "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}, \
                 "keyid2" : {"keytype": "ed25519", "scheme": "ed25519", "keyval": {"public": "bar"}}}, \
             "roles": [ \
                 {"keyids": ["keyid"], "name": "a", "terminating": true, "paths": ["fn1"], "threshold": 3}, \
                 {"keyids": ["keyid2"], "name": "b", "terminating": true, "paths": ["fn2"], "threshold": 4} ] \
             }',
+        "with succinct_roles": '{"keys": { \
+                "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}, \
+                "keyid2" : {"keytype": "ed25519", "scheme": "ed25519", "keyval": {"public": "bar"}}}, \
+            "succinct_roles": {"keyids": ["keyid"], "threshold": 1, "bit_length": 8, "name_prefix": "foo"}}',
         "unrecognized field": '{"keys": {"keyid" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
             "roles": [ {"keyids": ["keyid"], "name": "a", "paths": ["fn1", "fn2"], "terminating": true, "threshold": 3} ], \
             "foo": "bar"}',

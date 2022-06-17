@@ -162,6 +162,7 @@ roles["bins"].signed.delegations = Delegations(
 #              10-17                       10 11 12 13 14 15 16 17
 #              ...                         ...
 #              f8-ff                       f8 f9 fa fb fc fd fe ff
+assert roles["bins"].signed.delegations.roles is not None
 for bin_n_name, bin_n_hash_prefixes in generate_hash_bins():
     # Update delegating targets role (bins) with delegation details for each
     # delegated targets role (bin_n).
