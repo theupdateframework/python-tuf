@@ -29,6 +29,10 @@ class BadVersionNumberError(RepositoryError):
     """An error for metadata that contains an invalid version number."""
 
 
+class EqualVersionNumberError(BadVersionNumberError):
+    """An error for metadata containing a previously verified version number."""
+
+
 class ExpiredMetadataError(RepositoryError):
     """Indicate that a TUF Metadata file has expired."""
 

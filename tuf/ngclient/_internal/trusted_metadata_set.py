@@ -226,6 +226,10 @@ class TrustedMetadataSet(abc.Mapping):
                     f"New timestamp version {new_timestamp.signed.version} must"
                     f" be >= {self.timestamp.signed.version}"
                 )
+            # Keep using old timestamp if versions are equal.
+            if new_timestamp.signed.version == self.timestamp.signed.version:
+                raise exceptions.EqualVersionNumberError()
+
             # Prevent rolling back snapshot version
             snapshot_meta = self.timestamp.signed.snapshot_meta
             new_snapshot_meta = new_timestamp.signed.snapshot_meta
