@@ -128,6 +128,46 @@ class TestRepoExamples(unittest.TestCase):
             ],
         )
 
+    def test_succinct_hash_bin_delegation(self) -> None:
+        self._run_script_and_assert_files(
+            "succinct_hash_bin_delegations.py",
+            [
+                "1.targets.json",
+                "1.delegated_bin-00.json",
+                "1.delegated_bin-01.json",
+                "1.delegated_bin-02.json",
+                "1.delegated_bin-03.json",
+                "1.delegated_bin-04.json",
+                "1.delegated_bin-05.json",
+                "1.delegated_bin-06.json",
+                "1.delegated_bin-07.json",
+                "1.delegated_bin-08.json",
+                "1.delegated_bin-09.json",
+                "1.delegated_bin-0a.json",
+                "1.delegated_bin-0b.json",
+                "1.delegated_bin-0c.json",
+                "1.delegated_bin-0d.json",
+                "1.delegated_bin-0e.json",
+                "1.delegated_bin-0f.json",
+                "1.delegated_bin-10.json",
+                "1.delegated_bin-11.json",
+                "1.delegated_bin-12.json",
+                "1.delegated_bin-13.json",
+                "1.delegated_bin-14.json",
+                "1.delegated_bin-15.json",
+                "1.delegated_bin-16.json",
+                "1.delegated_bin-17.json",
+                "1.delegated_bin-18.json",
+                "1.delegated_bin-19.json",
+                "1.delegated_bin-1a.json",
+                "1.delegated_bin-1b.json",
+                "1.delegated_bin-1c.json",
+                "1.delegated_bin-1d.json",
+                "1.delegated_bin-1e.json",
+                "1.delegated_bin-1f.json",
+            ],
+        )
+
 
 if __name__ == "__main__":
     utils.configure_test_logging(sys.argv)
