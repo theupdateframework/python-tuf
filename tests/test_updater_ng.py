@@ -326,6 +326,16 @@ class TestUpdater(unittest.TestCase):
         with self.assertRaises(exceptions.DownloadHTTPError):
             self.updater.download_target(info)
 
+    # test case to check for the TAP 14 folder
+    def test_check_folder_tap14(self) -> None:
+        # Creating the parent folder for the TAP 14 folder       
+        original_repository_files = os.path.join(
+            utils.TESTS_DIR, "repository_data"
+        )
+        #Adding the TAP 14 folder to the file path
+        tap_14 = os.path.join(
+            original_repository_files, "TAP 14")
+        self.assertTrue(os.path.isdir(tap_14))
 
 if __name__ == "__main__":
     utils.configure_test_logging(sys.argv)
