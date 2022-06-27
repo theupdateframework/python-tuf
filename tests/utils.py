@@ -37,7 +37,7 @@ from typing import IO, Any, Callable, Dict, Iterator, List, Optional
 
 logger = logging.getLogger(__name__)
 
-# May may be used to reliably read other files in tests dir regardless of cwd
+# May be used to reliably read other files in tests dir regardless of cwd
 TESTS_DIR = os.path.dirname(os.path.realpath(__file__))
 
 # Used when forming URLs on the client side
