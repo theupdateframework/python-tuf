@@ -750,7 +750,14 @@ class TestMetadata(unittest.TestCase):
 
     def test_is_delegated_role_in_succinct_roles(self) -> None:
         succinct_roles = SuccinctRoles([], 1, 5, "bin")
-        false_role_name_examples = ["foo", "bin-", "bin-s", "bin-20", "bin-100"]
+        false_role_name_examples = [
+            "foo",
+            "bin-",
+            "bin-s",
+            "bin-0t",
+            "bin-20",
+            "bin-100",
+        ]
         for role_name in false_role_name_examples:
             msg = f"Error for {role_name}"
             self.assertFalse(succinct_roles.is_delegated_role(role_name), msg)
