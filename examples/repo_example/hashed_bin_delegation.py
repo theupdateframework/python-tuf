@@ -198,8 +198,8 @@ roles[bin_for_target].signed.targets[target_path] = target_file_info
 
 # Sign and persist
 # ----------------
-# Sign all metadata and persist to temporary directory at CWD for review
-# (most notably see 'bins.json' and '80-87.json').
+# Sign all metadata and persist to temporary directory at CWD for review using
+# versioned file names. Most notably see '1.bins.json' and '1.80-87.json'.
 
 # NOTE: See "Persist metadata" paragraph in 'basic_repo.py' example for more
 # details about serialization formats and metadata file name convention.
@@ -211,6 +211,6 @@ for role_name, role in roles.items():
     signer = SSlibSigner(key)
     role.sign(signer)
 
-    filename = f"{role_name}.json"
+    filename = f"1.{role_name}.json"
     filepath = os.path.join(TMP_DIR, filename)
     role.to_file(filepath, serializer=PRETTY)
