@@ -1495,8 +1495,9 @@ class SuccinctRoles(Role):
         self.name_prefix = name_prefix
 
         # Calculate the suffix_len value based on the total number of bins in
-        # hex. If bit_length = 8 then number_of_bins = 256 or 100 in hex
-        # and suffix_len = 3 meaning the third bin will have a suffix of "003"
+        # hex. If bit_length = 10 then number_of_bins = 1024 or bin names will
+        # have a suffix between "000" and "3ff" in hex and suffix_len will be 3
+        # meaning the third bin will have a suffix of "003".
         self.number_of_bins = 2**bit_length
         # suffix_len is calculated based on "number_of_bins - 1" as the name
         # of the last bin contains the number "number_of_bins -1" as a suffix.
