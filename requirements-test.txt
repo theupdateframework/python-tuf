@@ -5,7 +5,7 @@
 
 # additional test tools for linting and coverage measurement
 coverage==6.4.1
-black==22.3.0
+black==22.6.0
 isort==5.10.1
 pylint==2.14.3
 mypy==0.961
