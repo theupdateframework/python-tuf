@@ -7,6 +7,6 @@
 coverage==6.4.1
 black==22.6.0
 isort==5.10.1
-pylint==2.14.3
+pylint==2.14.4
 mypy==0.961
 bandit==1.7.4
