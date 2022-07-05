@@ -110,8 +110,6 @@ class TestFetcher(unittest.TestCase):
     # Response read timeout error
     @patch.object(requests.Session, "get")
     def test_response_read_timeout(self, mock_session_get: Any) -> None:
-        # from urllib3.connectionpool import ConnectionPool
-        # dummy_pool = ConnectionPool("dummy")
         mock_response = Mock(raw=Mock())
         attr = {
             "read.side_effect": ReadTimeoutError(
