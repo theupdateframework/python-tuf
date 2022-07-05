@@ -17,6 +17,7 @@ from typing import Any, ClassVar, Iterator
 from unittest.mock import Mock, patch
 
 import requests
+from requests.models import ReadTimeoutError  # actually from urllib3
 
 from tests import utils
 from tuf.api import exceptions
@@ -109,18 +110,20 @@ class TestFetcher(unittest.TestCase):
     # Response read timeout error
     @patch.object(requests.Session, "get")
     def test_response_read_timeout(self, mock_session_get: Any) -> None:
-        mock_response = Mock()
+        # from urllib3.connectionpool import ConnectionPool
+        # dummy_pool = ConnectionPool("dummy")
+        mock_response = Mock(raw=Mock())
         attr = {
-            "iter_content.side_effect": requests.exceptions.ConnectionError(
-                "Simulated timeout"
+            "read.side_effect": ReadTimeoutError(
+                None, None, "Simulated timeout"
             )
         }
-        mock_response.configure_mock(**attr)
+        mock_response.raw.configure_mock(**attr)
         mock_session_get.return_value = mock_response
 
         with self.assertRaises(exceptions.SlowRetrievalError):
             next(self.fetcher.fetch(self.url))
-        mock_response.iter_content.assert_called_once()
+        mock_response.raw.read.assert_called_once()
 
     # Read/connect session timeout error
     @patch.object(
@@ -170,6 +173,14 @@ class TestFetcher(unittest.TestCase):
             # Force download_file to execute and raise the error since it is a
             # context manager and returns Iterator[IO]
             yield self.fetcher.download_file(self.url, self.file_length - 4)
+
+    # Download a file with Content-Encoding gzip (or deflate)
+    def test_download_file_content_encoding(self):
+        # todo:
+        #  - enable custom headers in simple_server.py, so we can return a
+        #    file with Content-Encoding header
+        #  - serve a gzipped file (in TestFetcher.setUpClass?)
+        pass
 
 
 # Run unit test.

@@ -11,6 +11,7 @@ from urllib import parse
 
 # Imports
 import requests
+from requests.models import ReadTimeoutError  # todo: import directly from urllib3?
 
 import tuf
 from tuf.api import exceptions
@@ -18,6 +19,7 @@ from tuf.ngclient.fetcher import FetcherInterface
 
 # Globals
 logger = logging.getLogger(__name__)
+
 
 # Classes
 class RequestsFetcher(FetcherInterface):
@@ -96,11 +98,20 @@ class RequestsFetcher(FetcherInterface):
         download."""
 
         try:
-            for data in response.iter_content(self.chunk_size):
+            while True:
+                # Requests already calls `urlopen(..., decode_content=False)`,
+                # but we explicitly disable decode_content here, to be safe.
+                data = response.raw.read(
+                    amt=self.chunk_size, decode_content=False
+                )
+                if not data:
+                    break
                 yield data
         except (
-            requests.exceptions.ConnectionError,
-            requests.exceptions.Timeout,
+            # Catch urllib3 exceptions instead of requests exceptions.
+            ReadTimeoutError,
+            # todo: Is this sufficient? Do we need to catch IncompleteRead too?
+            #  https://github.com/urllib3/urllib3/blob/43c372f6eb9f9f94848c7b7645ad19ebf6c047c5/src/urllib3/response.py#L734
         ) as e:
             raise exceptions.SlowRetrievalError from e
 
