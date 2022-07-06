@@ -22,6 +22,8 @@
 
 import argparse
 import errno
+from http.server import SimpleHTTPRequestHandler
+import json
 import logging
 import os
 import queue
@@ -45,6 +47,11 @@ TEST_HOST_ADDRESS = "127.0.0.1"
 
 # DataSet is only here so type hints can be used.
 DataSet = Dict[str, Any]
+
+# May be used in a request to add headers to the response that is returned by
+# the customized http request handler.
+REQUEST_RESPONSE_HEADERS = "Request-Response-Headers"
+
 
 # Test runner decorator: Runs the test as a set of N SubTests,
 # (where N is number of items in dataset), feeding the actual test
@@ -364,3 +371,15 @@ class TestServerProcess:
         assert isinstance(self.__server_process, subprocess.Popen)
         # pylint: disable=simplifiable-if-expression
         return True if self.__server_process.poll() is None else False
+
+
+class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
+    def end_headers(self) -> None:
+        # If Custom-Response-Headers is found in the request headers, add the
+        # specified headers to the response.
+        requested_headers = self.headers.get(REQUEST_RESPONSE_HEADERS)
+        if requested_headers:
+            headers = json.loads(requested_headers)
+            for key, value in headers.items():
+                self.send_header(keyword=key, value=value)
+        super().end_headers()
