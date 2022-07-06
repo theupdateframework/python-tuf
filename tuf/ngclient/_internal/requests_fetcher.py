@@ -11,7 +11,7 @@ from urllib import parse
 
 # Imports
 import requests
-from requests.models import ReadTimeoutError  # todo: import directly from urllib3?
+from requests.adapters import ReadTimeoutError  # this is a urllib3 exception
 
 import tuf
 from tuf.api import exceptions
@@ -107,12 +107,7 @@ class RequestsFetcher(FetcherInterface):
                 if not data:
                     break
                 yield data
-        except (
-            # Catch urllib3 exceptions instead of requests exceptions.
-            ReadTimeoutError,
-            # todo: Is this sufficient? Do we need to catch IncompleteRead too?
-            #  https://github.com/urllib3/urllib3/blob/43c372f6eb9f9f94848c7b7645ad19ebf6c047c5/src/urllib3/response.py#L734
-        ) as e:
+        except ReadTimeoutError as e:
             raise exceptions.SlowRetrievalError from e
 
         finally:
