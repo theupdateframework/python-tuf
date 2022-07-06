@@ -259,10 +259,10 @@ class Updater:
 
     def _download_metadata(
         self, rolename: str, length: int, version: Optional[int] = None
-    ) -> bytes:
+    ) -> bytes:   # ADD ANOTHER VARIABLE FOR SPECIFICATION VERSION
         """Download a metadata file and return it as bytes"""
-        encoded_name = parse.quote(rolename, "")
-        if version is None:
+        encoded_name = parse.quote(rolename, "")  
+        if version is None:   # THIS IS SNAPSHOT VERSION !!
             url = f"{self._metadata_base_url}{encoded_name}.json"
         else:
             url = f"{self._metadata_base_url}{version}.{encoded_name}.json"
@@ -471,6 +471,19 @@ class Updater:
         # If this point is reached then target is not found, return None
         return None
 
+    def _tap14_implementation(self, folder:str) -> None:
+        # Downloading all metadata inside the specified folder
+
+        path = f"{BASE_URL}/repository_data/TAP 14" # File path to download from 
+        path = os.path.join(path,folder) # Add the folder to the path
+
+        # I'll need to know exactly how the repository stores the metadata for me to know
+        # the file path I have to download from.
+
+        files = next(os.walk(path))[2] # Get all the files inside the list
+        for file in files:
+            if file.endswith(".json"):
+                self._download_metadata(file)
 
 def _ensure_trailing_slash(url: str) -> str:
     """Return url guaranteed to end in a slash"""
