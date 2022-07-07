@@ -375,7 +375,7 @@ class TestServerProcess:
 
 class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
     def end_headers(self) -> None:
-        # If Custom-Response-Headers is found in the request headers, add the
+        # If REQUEST_RESPONSE_HEADERS is found in the request headers, add the
         # specified headers to the response.
         requested_headers = self.headers.get(REQUEST_RESPONSE_HEADERS)
         if requested_headers:

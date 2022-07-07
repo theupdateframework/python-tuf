@@ -111,7 +111,6 @@ class CustomHTTPRequestHandlerTests(unittest.TestCase):
         raw_request += raw_header
         raw_request += b'\r\n'
         raw_response = b''.join(self.send_request(message=raw_request))
-        print(raw_response)
         self.assertIn(header_name.encode('utf-8'), raw_response)
         self.assertIn(header_value.encode('utf-8'), raw_response)
 
