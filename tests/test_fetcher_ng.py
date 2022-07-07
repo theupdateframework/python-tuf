@@ -6,7 +6,9 @@
 """Unit test for RequestsFetcher.
 """
 
+from functools import partialmethod
 import io
+import json
 import logging
 import math
 import os
@@ -95,6 +97,40 @@ class TestFetcher(unittest.TestCase):
             # Check that we calculate chunks as expected
             self.assertEqual(chunks_count, expected_chunks_count)
 
+    # Fetch data with Content-Encoding gzip (or deflate)
+    def test_fetch_content_encoding(self):
+        """
+        Regression test for issue #2047
+
+        By default, requests/urllib3 will automatically try to decode data
+        that is served with a "Content-Encoding: gzip" header (or "deflate").
+        As the length of the decoded data typically would be different from
+        the expected number of bytes specified in the TUF targets metadata,
+        this would give rise to a DownloadLengthMismatchError later on. Thus,
+        we need to ensure that a file served with the "Content-Encoding"
+        header is *not* decoded by the RequestsFetcher.
+        """
+        # Serve dummy file with "Content-Encoding: gzip" header
+        content_encoding_header = json.dumps({"Content-Encoding": "gzip"})
+        headers = {utils.REQUEST_RESPONSE_HEADERS: content_encoding_header}
+        get_with_headers = partialmethod(requests.Session.get, headers=headers)
+        target = 'tuf.ngclient._internal.requests_fetcher.requests.Session.get'
+        # The test file content does not represent a real gzip file,
+        # so we can expect an error to be raised if requests/urllib3 tries to
+        # decode the file (urllib3 uses zlib for this).
+        try:
+            with tempfile.TemporaryFile() as temp_file:
+                with patch(target, get_with_headers):
+                    for chunk in self.fetcher.fetch(self.url):
+                        temp_file.write(chunk)
+                temp_file.seek(0)
+                fetched_data = temp_file.read()
+        except requests.exceptions.ContentDecodingError as e:
+            self.fail(f'fetch() raised unexpected decoding error: {e}')
+        # If all is well, decoding has *not* been attempted, and the fetched
+        # data matches the original file contents
+        self.assertEqual(self.file_contents, fetched_data)
+
     # Incorrect URL parsing
     def test_url_parsing(self) -> None:
         with self.assertRaises(exceptions.DownloadError):
@@ -171,14 +207,6 @@ class TestFetcher(unittest.TestCase):
             # Force download_file to execute and raise the error since it is a
             # context manager and returns Iterator[IO]
             yield self.fetcher.download_file(self.url, self.file_length - 4)
-
-    # Download a file with Content-Encoding gzip (or deflate)
-    def test_download_file_content_encoding(self):
-        # todo:
-        #  - enable custom headers in simple_server.py, so we can return a
-        #    file with Content-Encoding header
-        #  - serve a gzipped file (in TestFetcher.setUpClass?)
-        pass
 
 
 # Run unit test.
