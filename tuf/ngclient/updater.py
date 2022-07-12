@@ -183,7 +183,7 @@ class Updater:
 
         Returns:
             Local file path if the file is an up to date target file.
-            None if file is not found or it is not up to date.
+            ``None`` if file is not found or it is not up to date.
         """
 
         if filepath is None:
