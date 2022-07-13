@@ -114,7 +114,7 @@ class TestFetcher(unittest.TestCase):
         content_encoding_header = json.dumps({"Content-Encoding": "gzip"})
         headers = {utils.REQUEST_RESPONSE_HEADERS: content_encoding_header}
         get_with_headers = partialmethod(requests.Session.get, headers=headers)
-        target = 'tuf.ngclient._internal.requests_fetcher.requests.Session.get'
+        target = "tuf.ngclient._internal.requests_fetcher.requests.Session.get"
         # The test file content does not represent a real gzip file,
         # so we can expect an error to be raised if requests/urllib3 tries to
         # decode the file (urllib3 uses zlib for this).
@@ -126,7 +126,7 @@ class TestFetcher(unittest.TestCase):
                 temp_file.seek(0)
                 fetched_data = temp_file.read()
         except requests.exceptions.ContentDecodingError as e:
-            self.fail(f'fetch() raised unexpected decoding error: {e}')
+            self.fail(f"fetch() raised unexpected decoding error: {e}")
         # If all is well, decoding has *not* been attempted, and the fetched
         # data matches the original file contents
         self.assertEqual(self.file_contents, fetched_data)

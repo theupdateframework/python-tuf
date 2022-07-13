@@ -90,7 +90,7 @@ class CustomHTTPRequestHandlerTests(unittest.TestCase):
         )
         self.handler.get_called = False
         self.handler.protocol_version = "HTTP/1.1"
-        self.handler.client_address = ('localhost', 0)
+        self.handler.client_address = ("localhost", 0)
 
     def send_request(self, message):
         # Based on cpython tests BaseHTTPRequestHandlerTestCase:
@@ -102,17 +102,17 @@ class CustomHTTPRequestHandlerTests(unittest.TestCase):
         return self.handler.wfile.readlines()
 
     def test_custom_response_headers(self):
-        header_name = 'Some-Header'
-        header_value = 'some value'
+        header_name = "Some-Header"
+        header_value = "some value"
         req_header = utils.REQUEST_RESPONSE_HEADERS
         resp_headers = json.dumps({header_name: header_value})
-        raw_header = f'{req_header}: {resp_headers}\r\n'.encode('utf-8')
-        raw_request = b'GET / HTTP/1.1\r\n'
+        raw_header = f"{req_header}: {resp_headers}\r\n".encode("utf-8")
+        raw_request = b"GET / HTTP/1.1\r\n"
         raw_request += raw_header
-        raw_request += b'\r\n'
-        raw_response = b''.join(self.send_request(message=raw_request))
-        self.assertIn(header_name.encode('utf-8'), raw_response)
-        self.assertIn(header_value.encode('utf-8'), raw_response)
+        raw_request += b"\r\n"
+        raw_response = b"".join(self.send_request(message=raw_request))
+        self.assertIn(header_name.encode("utf-8"), raw_response)
+        self.assertIn(header_value.encode("utf-8"), raw_response)
 
 
 if __name__ == "__main__":
