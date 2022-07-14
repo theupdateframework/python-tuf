@@ -6,7 +6,6 @@
 """Unit test for RequestsFetcher.
 """
 
-from functools import partialmethod
 import io
 import json
 import logging
@@ -15,6 +14,7 @@ import os
 import sys
 import tempfile
 import unittest
+from functools import partialmethod
 from typing import Any, ClassVar, Iterator
 from unittest.mock import Mock, patch
 

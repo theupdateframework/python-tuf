@@ -22,7 +22,6 @@
 
 import argparse
 import errno
-from http.server import SimpleHTTPRequestHandler
 import json
 import logging
 import os
@@ -35,6 +34,7 @@ import time
 import unittest
 import warnings
 from contextlib import contextmanager
+from http.server import SimpleHTTPRequestHandler
 from typing import IO, Any, Callable, Dict, Iterator, List, Optional
 
 logger = logging.getLogger(__name__)
