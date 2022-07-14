@@ -112,7 +112,7 @@ class TestFetcher(unittest.TestCase):
         """
         # Serve dummy file with "Content-Encoding: gzip" header
         content_encoding_header = json.dumps({"Content-Encoding": "gzip"})
-        headers = {utils.REQUEST_RESPONSE_HEADERS: content_encoding_header}
+        headers = {utils.DESIRED_RESPONSE_HEADERS: content_encoding_header}
         get_with_headers = partialmethod(requests.Session.get, headers=headers)
         target = "tuf.ngclient._internal.requests_fetcher.requests.Session.get"
         # The test file content does not represent a real gzip file,

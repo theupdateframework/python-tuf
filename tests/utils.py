@@ -48,9 +48,10 @@ TEST_HOST_ADDRESS = "127.0.0.1"
 # DataSet is only here so type hints can be used.
 DataSet = Dict[str, Any]
 
-# May be used in a request to add headers to the response that is returned by
-# the customized http request handler.
-REQUEST_RESPONSE_HEADERS = "Request-Response-Headers"
+# If the test-server receives an HTTP-request with this custom header,
+# it will add the specified headers to the HTTP-response. The corresponding
+# value must be a JSON object with header name/value pairs.
+DESIRED_RESPONSE_HEADERS = "Desired-Response-Headers"
 
 
 # Test runner decorator: Runs the test as a set of N SubTests,
@@ -375,11 +376,11 @@ class TestServerProcess:
 
 class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
     def end_headers(self) -> None:
-        # If REQUEST_RESPONSE_HEADERS is found in the request headers, add the
+        # If DESIRED_RESPONSE_HEADERS is found in the request headers, add the
         # specified headers to the response.
-        requested_headers = self.headers.get(REQUEST_RESPONSE_HEADERS)
-        if requested_headers:
-            headers = json.loads(requested_headers)
+        desired_headers = self.headers.get(DESIRED_RESPONSE_HEADERS)
+        if desired_headers:
+            headers = json.loads(desired_headers)
             for key, value in headers.items():
                 self.send_header(keyword=key, value=value)
         super().end_headers()

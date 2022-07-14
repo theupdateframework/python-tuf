@@ -104,7 +104,7 @@ class CustomHTTPRequestHandlerTests(unittest.TestCase):
     def test_custom_response_headers(self):
         header_name = "Some-Header"
         header_value = "some value"
-        req_header = utils.REQUEST_RESPONSE_HEADERS
+        req_header = utils.DESIRED_RESPONSE_HEADERS
         resp_headers = json.dumps({header_name: header_value})
         raw_header = f"{req_header}: {resp_headers}\r\n".encode("utf-8")
         raw_request = b"GET / HTTP/1.1\r\n"
