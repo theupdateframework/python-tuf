@@ -11,7 +11,7 @@ from urllib import parse
 
 # Imports
 import requests
-from requests.adapters import ReadTimeoutError  # this is a urllib3 exception
+from urllib3.exceptions import ReadTimeoutError
 
 import tuf
 from tuf.api import exceptions

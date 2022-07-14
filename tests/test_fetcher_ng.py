@@ -19,7 +19,7 @@ from typing import Any, ClassVar, Iterator
 from unittest.mock import Mock, patch
 
 import requests
-from requests.adapters import ReadTimeoutError  # this is a urllib3 exception
+from urllib3.exceptions import ReadTimeoutError
 
 from tests import utils
 from tuf.api import exceptions
