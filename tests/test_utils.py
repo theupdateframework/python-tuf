@@ -82,6 +82,7 @@ class TestServerProcess(unittest.TestCase):
 
 class CustomHTTPRequestHandlerTests(unittest.TestCase):
     """Test functionality provided by CustomHTTPRequestHandler"""
+
     def setUp(self) -> None:
         # Based on cpython tests SocketlessRequestHandler:
         # https://github.com/python/cpython/blob/main/Lib/test/test_httpservers.py#L921
