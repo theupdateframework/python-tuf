@@ -26,6 +26,7 @@ import logging
 import socket
 import sys
 import unittest
+from typing import List
 from unittest import mock
 
 from tests import utils
@@ -80,19 +81,20 @@ class TestServerProcess(unittest.TestCase):
 
 
 class CustomHTTPRequestHandlerTests(unittest.TestCase):
+    """Test functionality provided by CustomHTTPRequestHandler"""
     def setUp(self) -> None:
         # Based on cpython tests SocketlessRequestHandler:
         # https://github.com/python/cpython/blob/main/Lib/test/test_httpservers.py#L921
         request = mock.Mock()
         request.makefile.return_value = io.BytesIO()
         self.handler = utils.CustomHTTPRequestHandler(
-            request, None, None, directory=None
+            request, None, None, directory=None  # type: ignore
         )
         self.handler.get_called = False
         self.handler.protocol_version = "HTTP/1.1"
         self.handler.client_address = ("localhost", 0)
 
-    def send_request(self, message):
+    def send_request(self, message: bytes) -> List[bytes]:
         # Based on cpython tests BaseHTTPRequestHandlerTestCase:
         # https://github.com/python/cpython/blob/main/Lib/test/test_httpservers.py#L973
         self.handler.rfile = io.BytesIO(message)
@@ -101,7 +103,7 @@ class CustomHTTPRequestHandlerTests(unittest.TestCase):
         self.handler.wfile.seek(0)
         return self.handler.wfile.readlines()
 
-    def test_custom_response_headers(self):
+    def test_custom_response_headers(self) -> None:
         header_name = "Some-Header"
         header_value = "some value"
         req_header = utils.DESIRED_RESPONSE_HEADERS

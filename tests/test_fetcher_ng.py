@@ -98,7 +98,7 @@ class TestFetcher(unittest.TestCase):
             self.assertEqual(chunks_count, expected_chunks_count)
 
     # Fetch data with Content-Encoding gzip (or deflate)
-    def test_fetch_content_encoding(self):
+    def test_fetch_content_encoding(self) -> None:
         """
         Regression test for issue #2047
 
