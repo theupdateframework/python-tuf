@@ -510,62 +510,41 @@ class TestDelegationsGraphs(TestDelegations):
         finally:
             self.teardown_subtest()
 
-    succinct_roles_targets_test_cases: utils.DataSet = {
-        "bin amount = 2, taget bin index 0": SuccinctRolesTestCase(
-            bit_length=1,
-            target_path="boo",
-            expected_target_bin="bin-0",
-        ),
-        "bin amount = 4, taget bin index 0": SuccinctRolesTestCase(
-            bit_length=2,
-            target_path="foo",
-            expected_target_bin="bin-0",
-        ),
-        "bin amount = 256, taget bin index fc": SuccinctRolesTestCase(
-            bit_length=8,
-            target_path="bar",
-            expected_target_bin="bin-fc",
-        ),
-    }
-
-    @utils.run_sub_tests_with_dataset(succinct_roles_targets_test_cases)
-    def test_download_targets_with_succinct_roles(
-        self, test_data: SuccinctRolesTestCase
-    ) -> None:
-
+    def test_download_targets_with_succinct_roles(self) -> None:
         try:
             self.setup_subtest()
-            exp_files = [*TOP_LEVEL_ROLE_NAMES, test_data.expected_target_bin]
-            exp_calls = [(test_data.expected_target_bin, 1)]
-            exp_path = os.path.join(self.targets_dir, test_data.target_path)
-
             self.sim = RepositorySimulator()
-            self.sim.add_succinct_roles("targets", test_data.bit_length, "bin")
+            self.sim.add_succinct_roles("targets", 8, "bin")
             self.sim.update_snapshot()
 
-            self.sim.add_target(
-                test_data.expected_target_bin, b"abc", test_data.target_path
-            )
+            assert self.sim.targets.delegations is not None
+            assert self.sim.targets.delegations.succinct_roles is not None
+            succinct_roles = self.sim.targets.delegations.succinct_roles
+
+            # Add lots of targets with unique data to imitate a real repository.
+            for i in range(1000):
+                target_name = f"target-{i}"
+                target_bin = succinct_roles.get_role_for_target(target_name)
+                self.sim.add_target(
+                    target_bin, bytes(target_name, "utf-8"), target_name
+                )
 
             updater = self._init_updater()
             # Call explicitly refresh to simplify the expected_calls list.
             updater.refresh()
-            self.sim.fetch_tracker.metadata.clear()
-            # Check that metadata dir contains only top-level roles
-            self._assert_files_exist(TOP_LEVEL_ROLE_NAMES)
 
-            # Verify that the target info was successfully found
-            # and the correct delegated metadata file was downloaded
-            target_info = updater.get_targetinfo(test_data.target_path)
-            assert target_info is not None
-            self.assertEqual(target_info.path, test_data.target_path)
-            target_file = updater.download_target(target_info)
-            self.assertEqual(target_file, exp_path)
+            for i in range(1000):
+                # Verify that the target info was successfully found.
+                target_info = updater.get_targetinfo(f"target-{i}")
+                assert target_info is not None
+                target_full_path = updater.download_target(target_info)
 
-            # Check that the delegated roles were visited in the expected
-            # order and the corresponding metadata files were persisted.
-            self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
-            self._assert_files_exist(exp_files)
+                # Verify that the target content is the same as the target name.
+                with open(target_full_path, encoding="utf-8") as target:
+                    target_content = target.readline()
+                    self.assertEqual(
+                        target_content, os.path.basename(target_full_path)
+                    )
 
         finally:
             self.teardown_subtest()
