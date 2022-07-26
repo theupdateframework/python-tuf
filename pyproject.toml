@@ -7,7 +7,7 @@ build-backend = "hatchling.build"
 name = "tuf"
 description = "A secure updater framework for Python"
 readme = "README.md"
-license = "MIT OR Apache-2.0"
+license = { text = "MIT OR Apache-2.0" }
 requires-python = ">=3.7"
 authors = [
   { email = "theupdateframework@googlegroups.com" },
