@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 """Test Updater class
-"""
+""" 
 
 import logging
 import os
@@ -347,6 +347,29 @@ class TestUpdater(unittest.TestCase):
         foldernames = ["targets","1.0.0"]
         for folder in foldernames:
             self.assertTrue(os.path.isdir(os.path.join(self.tap14_directory, folder)))
+
+    def test_get_spec_version1(self) -> None:
+        #This uses the default SUPPORTED_VERSIONS variable from updater.py
+        with self.assertRaises(exceptions.DownloadError):
+            self.updater._get_spec_version(["1","2","3"],"4",ngclient.updater.SUPPORTED_VERSIONS)
+        
+        self.assertEqual(self.updater._get_spec_version(["1","2","3"],"3",ngclient.updater.SUPPORTED_VERSIONS), "3") 
+    
+    def test_get_spec_version2(self) -> None:
+        #Checks with different values
+        with self.assertRaises(exceptions.DownloadError):  #Checks under point 2
+            self.updater._get_spec_version(["3","5","6"],"7",["1","2","3","4"])
+        
+        self.assertEqual(self.updater._get_spec_version(["3","5","6"],"3",["1","2","3","4"]), "3")
+        self.assertEqual(self.updater._get_spec_version(["1","2","3"],"3",["3","5","6"]), "3")
+
+        with self.assertRaises(exceptions.DownloadError):  #Checks under point 3
+            self.updater._get_spec_version(["3","5","6"],"3",["1","2","4"])
+        
+        # TODO Testing logging functionality. 
+        #with self.assertLogs(ngclient.updater.__name__) as cm:
+        #    logging.getLogger('foo').info('first message')
+        #    self.updater._get_spec_version(["3","5","6"],"3",["1","2","3","4"])
 
 if __name__ == "__main__":
     utils.configure_test_logging(sys.argv)

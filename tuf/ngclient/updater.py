@@ -37,11 +37,12 @@ import logging
 import os
 import shutil
 import tempfile
-from typing import Optional, Set
+from typing import Optional, Set, List
 from urllib import parse
 
 from tuf.api import exceptions
 from tuf.api.metadata import (
+    SPECIFICATION_VERSION,
     Metadata,
     Root,
     Snapshot,
@@ -54,7 +55,7 @@ from tuf.ngclient.config import UpdaterConfig
 from tuf.ngclient.fetcher import FetcherInterface
 
 logger = logging.getLogger(__name__)
-
+SUPPORTED_VERSIONS = ["1","2","3"]
 
 class Updater:
     """Creates a new ``Updater`` instance and loads trusted root metadata.
@@ -76,15 +77,16 @@ class Updater:
         RepositoryError: Local root.json is invalid
     """
 
-    def __init__(
-        self,
-        metadata_dir: str,
+    def __init__(           
+        self,            
+        metadata_dir: str,  
         metadata_base_url: str,
         target_dir: Optional[str] = None,
         target_base_url: Optional[str] = None,
         fetcher: Optional[FetcherInterface] = None,
         config: Optional[UpdaterConfig] = None,
     ):
+        self.spec_version = None      #spec_version is the last used version by the client to get metadata
         self._dir = metadata_dir
         self._metadata_base_url = _ensure_trailing_slash(metadata_base_url)
         self.target_dir = target_dir
@@ -123,10 +125,70 @@ class Updater:
             DownloadError: Download of a metadata file failed in some way
         """
 
+        repository_versions = self._get_repository_versions()
+        
+        #Updating self.spec_version
+        self.spec_version = self._get_spec_version(repository_versions, self.spec_version, SUPPORTED_VERSIONS)        
+
         self._load_root()
         self._load_timestamp()
         self._load_snapshot()
         self._load_targets(Targets.type, Root.type)
+
+    def _get_repository_versions(self) -> List[str]:
+        """Returns a list of all the repository versions."""
+        
+        encoded_name = parse.quote("root", "")
+        url = f"{self._metadata_base_url}{self.spec_version}{encoded_name}.json"
+        repository_versions = []
+
+        # Here we manually enter the list of all possible versions that might exist on the 
+        # repository side and then we check for each. Not an optimal solution.
+        for i in ["1", "2", "3"]:
+            try:
+                response = self._fetcher._look(url.replace(self.spec_version, i))  #Can I call _look()?
+                if response.status_code == 200:
+                    repository_versions.append(i)
+            except Exception as e:
+                #logger.debug(f"Could not get root metadata from {url.replace(self.spec_version, i)}")
+                continue
+        
+        # Acc to the TAP, repository metadata is supposed to be kept under a folder strucutre
+        # but that isn't being used here. So, that might be a way to go
+
+        #repository_versions = ["3.0.0","4.0.0","5.0.0"]
+                
+        #repository_versions = [i[0] for i in repository_versions]
+        
+        #return repository_versions
+        return ["1","2","3"]
+
+    def _get_spec_version(self, repository_versions: List[str], spec_version: str, supported_versions: List[str]) -> str:
+        """Returns the specification version to be used."""
+        
+        # point 1
+        latestrep_ver = max(repository_versions)  # To be used for a later warning
+        
+        # point 2
+        if spec_version:
+            if latestrep_ver < spec_version:
+                raise exceptions.DownloadError("The repository version is lower than the last used spec version")
+        
+       # point 3
+        try:
+            spec_version = max(set(supported_versions) & set(repository_versions)) 
+        except ValueError:
+            raise exceptions.DownloadError(f"""No matching specification version found. Found {repository_versions} in
+                                              repository and {supported_versions} in client.""")
+        # Common error case for point 4 and point 3
+          
+        # point 5
+        # Warning for client
+        if latestrep_ver > spec_version:
+            logger.warning("Not using the latest specification version available on the repository")
+
+        # TODO use logger.warning or store and return the warning message in a variable?
+        return spec_version 
 
     def _generate_target_file_path(self, targetinfo: TargetFile) -> str:
         if self.target_dir is None:
@@ -259,13 +321,15 @@ class Updater:
 
     def _download_metadata(
         self, rolename: str, length: int, version: Optional[int] = None
-    ) -> bytes:   # ADD ANOTHER VARIABLE FOR SPECIFICATION VERSION
+    ) -> bytes:   
         """Download a metadata file and return it as bytes"""
         encoded_name = parse.quote(rolename, "")  
+
+        self.spec_version += ".0.0"   
         if version is None:   # THIS IS SNAPSHOT VERSION !!
-            url = f"{self._metadata_base_url}{encoded_name}.json"
+            url = f"{self._metadata_base_url}{self.spec_version}{encoded_name}.json"
         else:
-            url = f"{self._metadata_base_url}{version}.{encoded_name}.json"
+            url = f"{self._metadata_base_url}{self.spec_version}{version}.{encoded_name}.json"
         return self._fetcher.download_bytes(url, length)
 
     def _load_local_metadata(self, rolename: str) -> bytes:
@@ -471,14 +535,13 @@ class Updater:
         # If this point is reached then target is not found, return None
         return None
 
-    def _tap14_implementation(self, folder:str) -> None:
+    def _download_directory(self, folder:str) -> None:
         # Downloading all metadata inside the specified folder
 
         path = f"{BASE_URL}/repository_data/TAP 14" # File path to download from 
         path = os.path.join(path,folder) # Add the folder to the path
 
-        # I'll need to know exactly how the repository stores the metadata for me to know
-        # the file path I have to download from.
+        # Repository might be storing data in different formats.
 
         files = next(os.walk(path))[2] # Get all the files inside the list
         for file in files:
