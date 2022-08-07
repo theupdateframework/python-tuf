@@ -48,6 +48,20 @@ class RequestsFetcher(FetcherInterface):
         # Default settings
         self.socket_timeout: int = 4  # seconds
         self.chunk_size: int = 400000  # bytes
+    
+    def _look(self, url: str) -> str:
+        """Function used for checking if a certain file exists"""
+        
+        response = requests.head(url)
+
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            response.close()
+            status = e.response.status_code
+            raise exceptions.DownloadHTTPError(str(e), status)
+            
+        return response
 
     def _fetch(self, url: str) -> Iterator[bytes]:
         """Fetches the contents of HTTP/HTTPS url from a remote server

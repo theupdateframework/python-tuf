@@ -31,6 +31,11 @@ class FetcherInterface:
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
+    def _look(self, url: str) -> str:
+        """Function used for checking if a certain file exists"""
+        raise NotImplementedError  # pragma: no cover
+
+    @abc.abstractmethod
     def _fetch(self, url: str) -> Iterator[bytes]:
         """Fetches the contents of HTTP/HTTPS ``url`` from a remote server.
 
