@@ -121,6 +121,36 @@ class TestFetchTarget(unittest.TestCase):
         self.assertEqual(path, updater.find_cached_target(info))
         self.assertEqual(path, updater.find_cached_target(info, path))
 
+    def test_download_targets_with_succinct_roles(self) -> None:
+        self.sim.add_succinct_roles("targets", 8, "bin")
+        self.sim.update_snapshot()
+
+        assert self.sim.targets.delegations is not None
+        assert self.sim.targets.delegations.succinct_roles is not None
+        succinct_roles = self.sim.targets.delegations.succinct_roles
+
+        # Add lots of targets with unique data to imitate a real repository.
+        for i in range(20):
+            target_name = f"target-{i}"
+            target_bin = succinct_roles.get_role_for_target(target_name)
+            self.sim.add_target(
+                target_bin, bytes(target_name, "utf-8"), target_name
+            )
+
+        # download each target
+        updater = self._init_updater()
+        for i in range(20):
+            target_name = f"target-{i}"
+
+            # Verify that the target info was successfully found.
+            target_info = updater.get_targetinfo(target_name)
+            assert target_info is not None
+            target_full_path = updater.download_target(target_info)
+
+            # Verify that the target content is the same as the target name.
+            with open(target_full_path, encoding="utf-8") as target:
+                self.assertEqual(target.read(), target_name)
+
     def test_invalid_target_download(self) -> None:
         target = TestTarget("targetpath", b"content", "targetpath")
 

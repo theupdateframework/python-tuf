@@ -510,45 +510,6 @@ class TestDelegationsGraphs(TestDelegations):
         finally:
             self.teardown_subtest()
 
-    def test_download_targets_with_succinct_roles(self) -> None:
-        try:
-            self.setup_subtest()
-            self.sim = RepositorySimulator()
-            self.sim.add_succinct_roles("targets", 8, "bin")
-            self.sim.update_snapshot()
-
-            assert self.sim.targets.delegations is not None
-            assert self.sim.targets.delegations.succinct_roles is not None
-            succinct_roles = self.sim.targets.delegations.succinct_roles
-
-            # Add lots of targets with unique data to imitate a real repository.
-            for i in range(1000):
-                target_name = f"target-{i}"
-                target_bin = succinct_roles.get_role_for_target(target_name)
-                self.sim.add_target(
-                    target_bin, bytes(target_name, "utf-8"), target_name
-                )
-
-            updater = self._init_updater()
-            # Call explicitly refresh to simplify the expected_calls list.
-            updater.refresh()
-
-            for i in range(1000):
-                # Verify that the target info was successfully found.
-                target_info = updater.get_targetinfo(f"target-{i}")
-                assert target_info is not None
-                target_full_path = updater.download_target(target_info)
-
-                # Verify that the target content is the same as the target name.
-                with open(target_full_path, encoding="utf-8") as target:
-                    target_content = target.readline()
-                    self.assertEqual(
-                        target_content, os.path.basename(target_full_path)
-                    )
-
-        finally:
-            self.teardown_subtest()
-
 
 class TestTargetFileSearch(TestDelegations):
     r"""
