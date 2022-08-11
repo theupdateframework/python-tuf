@@ -85,7 +85,9 @@ def create_key() -> Tuple[Key, SSlibSigner]:
     return Key.from_securesystemslib_key(sslib_key), SSlibSigner(sslib_key)
 
 
-key, signer = create_key()
+# Create one signing key for all bins, and one for the delegating targets role.
+bins_key, bins_signer = create_key()
+_, targets_signer = create_key()
 
 # Delegating targets role
 # -----------------------
@@ -101,16 +103,13 @@ expiration_date = datetime.utcnow().replace(microsecond=0) + timedelta(days=7)
 targets = Metadata(Targets(expires=expiration_date))
 
 succinct_roles = SuccinctRoles(
-    keyids=[],
+    keyids=[bins_key.keyid],
     threshold=THRESHOLD,
     bit_length=BIT_LENGTH,
     name_prefix=NAME_PREFIX,
 )
-
-# Now we will populate the keyids by using the succinct_roles_keys list.
 delegations_keys_info: Dict[str, Key] = {}
-succinct_roles.keyids.append(key.keyid)
-delegations_keys_info[key.keyid] = key
+delegations_keys_info[bins_key.keyid] = bins_key
 
 targets.signed.delegations = Delegations(
     delegations_keys_info, roles=None, succinct_roles=succinct_roles
@@ -164,8 +163,7 @@ delegated_bins[target_bin].signed.targets[target_path] = target_file_info
 PRETTY = JSONSerializer(compact=False)
 TMP_DIR = tempfile.mkdtemp(dir=os.getcwd())
 
-# Generate a key for targets we haven't added one up to this point.
-_, targets_signer = create_key()
+
 targets.sign(targets_signer)
 targets.to_file(os.path.join(TMP_DIR, "1.targets.json"), serializer=PRETTY)
 
@@ -173,6 +171,6 @@ for bin_name, bin_target_role in delegated_bins.items():
     file_name = f"1.{bin_name}.json"
     file_path = os.path.join(TMP_DIR, file_name)
 
-    bin_target_role.sign(signer, append=True)
+    bin_target_role.sign(bins_signer, append=True)
 
     bin_target_role.to_file(file_path, serializer=PRETTY)
