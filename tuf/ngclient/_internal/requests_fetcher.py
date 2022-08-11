@@ -6,7 +6,7 @@
 """
 
 import logging
-from typing import Dict, Iterator
+from typing import Dict, Iterator, Tuple
 from urllib import parse
 
 # Imports
@@ -43,7 +43,7 @@ class RequestsFetcher(FetcherInterface):
         # improve efficiency, but avoiding sharing state between different
         # hosts-scheme combinations to minimize subtle security issues.
         # Some cookies may not be HTTP-safe.
-        self._sessions: Dict[str, requests.Session] = {}
+        self._sessions: Dict[Tuple[str, str], requests.Session] = {}
 
         # Default settings
         self.socket_timeout: int = 4  # seconds
@@ -118,10 +118,10 @@ class RequestsFetcher(FetcherInterface):
         # reuse connections while minimizing subtle security issues.
         parsed_url = parse.urlparse(url)
 
-        if not parsed_url.scheme or not parsed_url.hostname:
+        if not parsed_url.scheme:
             raise exceptions.DownloadError(f"Failed to parse URL {url}")
 
-        session_index = f"{parsed_url.scheme}+{parsed_url.hostname}"
+        session_index = (parsed_url.scheme, parsed_url.hostname)
         session = self._sessions.get(session_index)
 
         if not session:
