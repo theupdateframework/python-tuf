@@ -198,11 +198,11 @@ roles[bin_for_target].signed.targets[target_path] = target_file_info
 
 # Sign and persist
 # ----------------
-# Sign all metadata and persist to temporary directory at CWD for review using
+# Sign all metadata and write to temporary directory at CWD for review using
 # versioned file names. Most notably see '1.bins.json' and '1.80-87.json'.
 
 # NOTE: See "Persist metadata" paragraph in 'basic_repo.py' example for more
-# details about serialization formats and metadata file name convention.
+# details about serialization formats and metadata file name conventions.
 PRETTY = JSONSerializer(compact=False)
 TMP_DIR = tempfile.mkdtemp(dir=os.getcwd())
 

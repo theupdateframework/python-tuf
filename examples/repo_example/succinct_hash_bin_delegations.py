@@ -6,7 +6,7 @@ A TUF succinct hash bin delegation example using the low-level TUF Metadata API.
 The example code in this file demonstrates how to perform succinct hash bin
 delegation using the low-level Metadata API.
 Succinct hash bin delegation achieves a similar result as using a standard hash
-bin delegation, but the delegating metadata is smaller resulting in fewer bytes
+bin delegation, but the delegating metadata is smaller, resulting in fewer bytes
 to transfer and parse.
 
 See 'basic_repo.py' for a more comprehensive TUF metadata API example.
@@ -40,24 +40,24 @@ from tuf.api.serialization.json import JSONSerializer
 # Succinct hash bin delegation
 # ============================
 # Succinct hash bin delegation aims to distribute a large number of target files
-# over multiple delegated targets metadata roles (bins). The consequence is a
+# over multiple delegated targets metadata roles (bins). The consequence is
 # smaller metadata files and thus a lower network overhead for repository-client
 # communication.
 #
 # The assignment of target files to a target's metadata is done automatically,
 # based on the byte digest of the target file name.
 #
-# The number of the bins, name prefix for all bins and key threshold are all
+# The number of bins, name prefix for all bins and key threshold are all
 # attributes that need to be configured.
 
 # Number of bins, bit length and bin number computation
 # -----------------------------------------------------
-# The right number of bins depends on the expected number of target files in a
-# repository. For the purpose of this example we choose:
+# Determining the correct number of bins is dependent on the expected number of
+# target files in a repository. For the purpose of this example we choose:
 NUMBER_OF_BINS = 32
 #
-# The bit length is the number of bins that will be used to calculate the bin
-# for each target path. It can be calculated directly from NUMBER_OF_BINS:
+# The number of bins will determine the number of bits in a target path
+# considered in assigning the target to a bin.
 BIT_LENGTH = int(math.log2(NUMBER_OF_BINS))
 
 # Delegated role (bin) name format
@@ -73,15 +73,10 @@ NAME_PREFIX = "delegated_bin"
 
 # Keys and threshold
 # ------------------
-# Given that the primary concern of succinct hash bin delegation is to reduce
-# network overhead it was decided that all bins will be signed by the same
-# set of one or more signing keys.
-#
-# Before generating the keys a decision has to be made about the number of keys
-# required for signing the bins or in other words the value of the threshold.
-# For the purpose of this example we choose the threshold to be:
+# Succinct hash bin delegation uses the same key(s) to sign all bins. This is
+# acceptable because the primary concern of this type of delegation is to reduce
+# network overhead. For the purpose of this example only one key is required.
 THRESHOLD = 1
-# Note: If THRESHOLD is changed to more than 1 the example should be modified.
 
 
 def create_key() -> Tuple[Key, SSlibSigner]:
@@ -92,28 +87,19 @@ def create_key() -> Tuple[Key, SSlibSigner]:
 
 key, signer = create_key()
 
-# Top level targets instance with succinct hash bin delegation
-# ------------------------------------------------------------
+# Delegating targets role
+# -----------------------
+# Akin to regular targets delegation, the delegating role ships the public keys
+# of the delegated roles. However, instead of providing individual delegation
+# information about each role, one single `SuccinctRoles` object is used to
+# provide the information for all delegated roles (bins).
+
 # NOTE: See "Targets" and "Targets delegation" paragraphs in 'basic_repo.py'
 # example for more details about the Targets object.
-#
-# Now we have all the ingredients needed to create a Targets instance using
-# succinct hash bin delegation.
-#
-# First, we create a Targets metadata instance without any delegations.
 
-# We define expire as 7 days from today.
 expiration_date = datetime.utcnow().replace(microsecond=0) + timedelta(days=7)
 targets = Metadata(Targets(expires=expiration_date))
 
-# Then, we want to add delegations and with it information about the succinct
-# hash bin delegations which are represented by SuccinctRoles instance.
-#
-# Using succinct hash bin delegations has two restrictions:
-# 1) no other delegated roles have to be used
-# 2) only one succinct hash bin delegation can exist for one targets role
-
-# We have all information needed to create a SuccinctRoles instance:
 succinct_roles = SuccinctRoles(
     keyids=[],
     threshold=THRESHOLD,
@@ -126,25 +112,17 @@ delegations_keys_info: Dict[str, Key] = {}
 succinct_roles.keyids.append(key.keyid)
 delegations_keys_info[key.keyid] = key
 
-# We are ready to define the Delegations instance which we will add to targets.
-# As mentioned, standard roles are not allowed together with succinct_roles.
-delegations = Delegations(
+targets.signed.delegations = Delegations(
     delegations_keys_info, roles=None, succinct_roles=succinct_roles
 )
 
-targets.signed.delegations = delegations
-
-# Delegated targets (bins) roles
+# Delegated targets roles (bins)
 # ------------------------------
-# We have defined the top-level targets metadata instance which utilizes
-# succinct_roles. With succinct_roles we have defined the bins number, common
-# bin properties and keys information, but we haven't actually created the
-# bins targets metadata instances.
+# We can use the SuccinctRoles object from the delegating role above to iterate
+# over all bin names in the delegation and create the corresponding metadata.
 
-# mypy linter requires that we verify that succinct_roles is not None
-assert targets.signed.delegations.succinct_roles is not None
+assert targets.signed.delegations.succinct_roles is not None  # make mypy happy
 
-# We can get all bin names for a SuccinctRoles instance with get_roles()
 delegated_bins: Dict[str, Metadata[Targets]] = {}
 for delegated_bin_name in targets.signed.delegations.succinct_roles.get_roles():
     delegated_bins[delegated_bin_name] = Metadata(
@@ -153,7 +131,7 @@ for delegated_bin_name in targets.signed.delegations.succinct_roles.get_roles():
 
 # Add target file inside a delegated role (bin)
 # ---------------------------------------------
-# For the purpose of this example we will protect the integrity of this very
+# For the purpose of this example we will protect the integrity of this
 # example script by adding its file info to the corresponding bin metadata.
 
 # NOTE: See "Targets" paragraph in 'basic_repo.py' example for more details
@@ -177,10 +155,9 @@ delegated_bins[target_bin].signed.targets[target_path] = target_file_info
 
 # Sign and persist
 # ----------------
-# Sign all metadata and persist to a temporary directory at CWD for review using
-# versioned file names. Most notably see 'targets.json' and
-# 'delegated_bin-0d.json'. For more information on versioned file names see:
-# https://theupdateframework.github.io/specification/latest/#writing-consistent-snapshots
+# Sign all metadata and write to a temporary directory at CWD for review using
+# versioned file names. Most notably see '1.targets.json' and
+# '1.delegated_bin-0d.json'.
 
 # NOTE: See "Persist metadata" paragraph in 'basic_repo.py' example for more
 # details about serialization formats and metadata file name convention.
