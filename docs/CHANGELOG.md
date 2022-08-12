@@ -1,5 +1,40 @@
 # Changelog
 
+## v2.0.0
+
+This release, most notably, adds support for [TAP 15] - succinct hash bin delegation,
+which results in a few backwards-incompatible changes in the Metadata API.
+
+**NOTE**: While TAP 15 has been accepted it is not yet part of the TUF specification.
+Therefore, adopters should be prepared for potential changes to the implementation
+in future and for a lack of support for TAP 15 in other TUF implementations.
+
+[TAP 15]: https://github.com/theupdateframework/taps/blob/master/tap15.md
+
+### Added
+* Metadata API: TAP 15 - succinct hash bin delegation (#2010, #2031, #2038, #2039)
+* build: CodeQL analysis action (#1932)
+* build: Dependency review action (#1974)
+* blog: ngclient design (#1914)
+* blog: tricky test cases (#1941, #2027)
+
+### Changed
+* Metadata API: **BREAKING CHANGES** in Root and Targets class (#2010)
+  - Argument order changed in add_key() and remove_key()
+  - remove_key() renamed to revoke_key()
+* Metadata API: Update supported spec version to 1.0.30 (#2035)
+* ngclient: Use trusted timestamp role if new timestamp has equal version (#2024)
+* docs: Misc improvements (#1983, #2002, #2004, #2041, #2051, #2064)
+* tests: Misc improvements (#2017)
+* tests: Stop using requests type annotations (#1991)
+* build: Pin hatchling version (#1989)
+* build: Tweak pip download in verify_release script (#1982)
+* build: Update pinned dependency versions
+
+### Fixes
+* Metadata API: Check None instead of falsyness for some optional arguments (#1975)
+* ngclient: Prevent use of potentially undefined variable (#2003)
+* tests: Change git attributes for test data (#2063)
 
 ## v1.1.0
 
@@ -695,4 +730,3 @@ hyphen.)
 @trishankkkarthik trishankkarthik released this on Sep 21, 2013 · 1877 commits to develop since this release
 
 * TUF 0.7.5 (pre-release)
-
