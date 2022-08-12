@@ -26,7 +26,6 @@ from securesystemslib.keys import generate_ed25519_key
 from securesystemslib.signer import SSlibSigner
 
 from tuf.api.metadata import (
-    SPECIFICATION_VERSION,
     DelegatedRole,
     Delegations,
     Key,
@@ -42,8 +41,7 @@ def _in(days: float) -> datetime:
     return datetime.utcnow().replace(microsecond=0) + timedelta(days=days)
 
 
-SPEC_VERSION = ".".join(SPECIFICATION_VERSION)
-roles: Dict[str, Metadata] = {}
+roles: Dict[str, Metadata[Targets]] = {}
 keys: Dict[str, Dict[str, Any]] = {}
 
 # Hash bin delegation
@@ -200,11 +198,11 @@ roles[bin_for_target].signed.targets[target_path] = target_file_info
 
 # Sign and persist
 # ----------------
-# Sign all metadata and persist to temporary directory at CWD for review
-# (most notably see 'bins.json' and '80-87.json').
+# Sign all metadata and write to temporary directory at CWD for review using
+# versioned file names. Most notably see '1.bins.json' and '1.80-87.json'.
 
 # NOTE: See "Persist metadata" paragraph in 'basic_repo.py' example for more
-# details about serialization formats and metadata file name convention.
+# details about serialization formats and metadata file name conventions.
 PRETTY = JSONSerializer(compact=False)
 TMP_DIR = tempfile.mkdtemp(dir=os.getcwd())
 
@@ -213,6 +211,6 @@ for role_name, role in roles.items():
     signer = SSlibSigner(key)
     role.sign(signer)
 
-    filename = f"{role_name}.json"
+    filename = f"1.{role_name}.json"
     filepath = os.path.join(TMP_DIR, filename)
     role.to_file(filepath, serializer=PRETTY)
