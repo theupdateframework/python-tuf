@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 """Test Updater class
-""" 
+"""
 
 import logging
 import os
@@ -29,6 +29,7 @@ from tuf.api.metadata import (
     Targets,
     Timestamp,
 )
+from tuf.ngclient.updater import _get_spec_version
 
 logger = logging.getLogger(__name__)
 
@@ -332,44 +333,69 @@ class TestUpdater(unittest.TestCase):
         with self.assertRaises(exceptions.DownloadHTTPError):
             self.updater.download_target(info)
 
+    # TAP 14 tests ~ REMOVE COMMENT BEFORE THE NEXT COMMIT!!
+
     # test case to check for the TAP 14 folder
     def test_check_folder_tap14(self) -> None:
-        # Creating the parent folder for the TAP 14 folder       
+        # Creating the parent folder for the TAP 14 folder
         self.assertTrue(os.path.isdir(self.tap14_directory))
 
-    def test_check_tap14_contents(self) -> None:        
+    def test_check_tap14_contents(self) -> None:
         # Checking specific files inside TAP 14
-        filenames = ["targets.json","root.json"]
+        filenames = ["targets.json", "root.json"]
         for file in filenames:
-            self.assertTrue(os.path.isfile(os.path.join(self.tap14_directory, file)))
+            self.assertTrue(
+                os.path.isfile(os.path.join(self.tap14_directory, file))
+            )
 
-        #Checking specific folders inside TAP 14
-        foldernames = ["targets","1.0.0"]
+        # Checking specific folders inside TAP 14
+        foldernames = ["targets", "1.0.0"]
         for folder in foldernames:
-            self.assertTrue(os.path.isdir(os.path.join(self.tap14_directory, folder)))
+            self.assertTrue(
+                os.path.isdir(os.path.join(self.tap14_directory, folder))
+            )
 
     def test_get_spec_version1(self) -> None:
-        #This uses the default SUPPORTED_VERSIONS variable from updater.py
+        # This uses the default SUPPORTED_VERSIONS variable from updater.py
         with self.assertRaises(exceptions.DownloadError):
-            self.updater._get_spec_version(["1","2","3"],"4",ngclient.updater.SUPPORTED_VERSIONS)
-        
-        self.assertEqual(self.updater._get_spec_version(["1","2","3"],"3",ngclient.updater.SUPPORTED_VERSIONS), "3") 
-    
-    def test_get_spec_version2(self) -> None:
-        #Checks with different values
-        with self.assertRaises(exceptions.DownloadError):  #Checks under point 2
-            self.updater._get_spec_version(["3","5","6"],"7",["1","2","3","4"])
-        
-        self.assertEqual(self.updater._get_spec_version(["3","5","6"],"3",["1","2","3","4"]), "3")
-        self.assertEqual(self.updater._get_spec_version(["1","2","3"],"3",["3","5","6"]), "3")
+            _get_spec_version(
+                ["1", "2", "3"], "4", ngclient.updater.SUPPORTED_VERSIONS
+            )
 
-        with self.assertRaises(exceptions.DownloadError):  #Checks under point 3
-            self.updater._get_spec_version(["3","5","6"],"3",["1","2","4"])
-        
-        # TODO Testing logging functionality. 
-        #with self.assertLogs(ngclient.updater.__name__) as cm:
+        self.assertEqual(
+            _get_spec_version(
+                ["1", "2", "3"], "3", ngclient.updater.SUPPORTED_VERSIONS
+            ),
+            ("3", None),
+        )
+
+    def test_get_spec_version2(self) -> None:
+        warningchecker = "Not using the latest specification version available on the repository"
+        # Checks with different values
+        with self.assertRaises(exceptions.DownloadError):
+            _get_spec_version(["3", "5", "6"], "7", ["1", "2", "3", "4"])
+
+        self.assertEqual(
+            _get_spec_version(["3", "5", "6"], "3", ["1", "2", "3", "4"]),
+            ("3", warningchecker),
+        )
+        self.assertEqual(
+            _get_spec_version(["1", "2", "3"], "3", ["3", "5", "6"]),
+            ("3", None),
+        )
+        self.assertEqual(
+            _get_spec_version(["8", "11", "13"], "12", ["8", "11", "12"]),
+            ("11", warningchecker),
+        )
+
+        with self.assertRaises(exceptions.DownloadError):
+            _get_spec_version(["3", "5", "6"], "3", ["1", "2", "4"])
+
+        # TODO Testing logging functionality.
+        # with self.assertLogs(ngclient.updater.__name__) as cm:
         #    logging.getLogger('foo').info('first message')
         #    self.updater._get_spec_version(["3","5","6"],"3",["1","2","3","4"])
+
 
 if __name__ == "__main__":
     utils.configure_test_logging(sys.argv)
