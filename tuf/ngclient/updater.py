@@ -37,6 +37,7 @@ import logging
 import os
 import shutil
 import tempfile
+import json
 from typing import Optional, Set, List
 from urllib import parse
 
@@ -139,6 +140,7 @@ class Updater:
             logger.warning(specver_message(1))
         self.spec_version = specver_message(0)
         self._persist_metadata("spec_version", json.dumps(self.spec_version))
+
         self._load_root()
         self._load_timestamp()
         self._load_snapshot()
@@ -147,32 +149,14 @@ class Updater:
     def _get_repository_versions(self) -> List[str]:
         """Returns a list of all the repository versions."""
 
-        encoded_name = parse.quote("root", "")
-        url = f"{self._metadata_base_url}{self.spec_version}{encoded_name}.json"
-        repository_versions = []
+        url = f"{self._metadata_base_url}supported-versions.json"
 
-        # Here we manually enter the list of all possible versions that might exist on the
-        # repository side and then we check for each. Not an optimal solution.
-        for i in ["1", "2", "3"]:
-            try:
-                response = self._fetcher._look(
-                    url.replace(self.spec_version, i)
-                )  # Can I call _look()?
-                if response.status_code == 200:
-                    repository_versions.append(i)
-            except Exception as e:
-                # logger.debug(f"Could not get root metadata from {url.replace(self.spec_version, i)}")
-                continue
+        with self._fetcher.download_file(
+            url, "length placeholder"
+        ) as target_file:
+            repository_versions = json.loads(target_file)
 
-        # Acc to the TAP, repository metadata is supposed to be kept under a folder strucutre
-        # but that isn't being used here. So, that might be a way to go
-
-        # repository_versions = ["3.0.0","4.0.0","5.0.0"]
-
-        # repository_versions = [i[0] for i in repository_versions]
-
-        # return repository_versions
-        return ["1", "2", "3"]
+        return repository_versions["supported_versions"]
 
     def _generate_target_file_path(self, targetinfo: TargetFile) -> str:
         if self.target_dir is None:
