@@ -32,6 +32,8 @@ GITHUB_ORG = "theupdateframework"
 GITHUB_PROJECT = "python-tuf"
 PYPI_PROJECT = "tuf"
 
+HTTP_TIMEOUT = 5
+
 
 def build(build_dir: str) -> str:
     """Build release locally. Return version as string"""
@@ -66,7 +68,9 @@ def get_git_version() -> str:
 def get_github_version() -> str:
     """Return version string of latest GitHub release"""
     release_json = f"https://api.github.com/repos/{GITHUB_ORG}/{GITHUB_PROJECT}/releases/latest"
-    releases = json.loads(requests.get(release_json).content)
+    releases = json.loads(
+        requests.get(release_json, timeout=HTTP_TIMEOUT).content
+    )
     return releases["tag_name"][1:]
 
 
@@ -95,7 +99,7 @@ def verify_github_release(version: str, compare_dir: str) -> bool:
     with TemporaryDirectory() as github_dir:
         for filename in [tar, wheel]:
             url = f"{base_url}/v{version}/{filename}"
-            response = requests.get(url, stream=True)
+            response = requests.get(url, stream=True, timeout=HTTP_TIMEOUT)
             with open(os.path.join(github_dir, filename), "wb") as f:
                 for data in response.iter_content():
                     f.write(data)
