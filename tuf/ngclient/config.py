@@ -28,6 +28,7 @@ class UpdaterConfig:
 
     max_root_rotations: int = 32
     max_delegations: int = 32
+    supported_versions_max_length: int = 1000  # bytes
     root_max_length: int = 512000  # bytes
     timestamp_max_length: int = 16384  # bytes
     snapshot_max_length: int = 2000000  # bytes

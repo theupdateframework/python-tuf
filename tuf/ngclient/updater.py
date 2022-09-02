@@ -38,7 +38,7 @@ import os
 import shutil
 import tempfile
 import json
-from typing import Optional, Set, List
+from typing import Optional, Set, List, Tuple
 from urllib import parse
 
 from tuf.api import exceptions
@@ -56,7 +56,7 @@ from tuf.ngclient.config import UpdaterConfig
 from tuf.ngclient.fetcher import FetcherInterface
 
 logger = logging.getLogger(__name__)
-SUPPORTED_VERSIONS = ["1", "2", "3"]
+SUPPORTED_VERSIONS = [SPECIFICATION_VERSION]
 
 
 class Updater:
@@ -88,7 +88,7 @@ class Updater:
         fetcher: Optional[FetcherInterface] = None,
         config: Optional[UpdaterConfig] = None,
     ):
-        self.spec_version = None  # spec_version is the last used version by the client to get metadata
+        self._spec_version = None  # spec_version is the last used version by the client to get metadata
         self._dir = metadata_dir
         self._metadata_base_url = _ensure_trailing_slash(metadata_base_url)
         self.target_dir = target_dir
@@ -132,14 +132,14 @@ class Updater:
         repository_versions = self._get_repository_versions()
 
         # Updating self.spec_version
-        specver_message = _get_spec_version(
-            repository_versions, self.spec_version, SUPPORTED_VERSIONS
+        spec_version, message = _get_spec_version(
+            repository_versions, self._spec_version, SUPPORTED_VERSIONS
         )
 
-        if specver_message(1):
-            logger.warning(specver_message(1))
-        self.spec_version = specver_message(0)
-        self._persist_metadata("spec_version", json.dumps(self.spec_version))
+        if message:
+            logger.warning(message)
+        self.spec_version = f"{spec_version}/" if spec_version is not None else ""
+        self._persist_metadata("spec_version", json.dumps(self._spec_version))
 
         self._load_root()
         self._load_timestamp()
@@ -151,8 +151,8 @@ class Updater:
 
         url = f"{self._metadata_base_url}supported-versions.json"
 
-        with self._fetcher.download_file(
-            url, "length placeholder"
+        with self._fetcher.download_bytes(
+            url, self.config.supported_versions_max_length
         ) as target_file:
             repository_versions = json.loads(target_file)
 
@@ -293,11 +293,10 @@ class Updater:
         """Download a metadata file and return it as bytes"""
         encoded_name = parse.quote(rolename, "")
 
-        self.spec_version += ".0.0"
         if version is None:  # THIS IS SNAPSHOT VERSION !!
-            url = f"{self._metadata_base_url}{self.spec_version}{encoded_name}.json"
+            url = f"{self._metadata_base_url}{self._spec_version}{encoded_name}.json"
         else:
-            url = f"{self._metadata_base_url}{self.spec_version}{version}.{encoded_name}.json"
+            url = f"{self._metadata_base_url}{self._spec_version}{version}.{encoded_name}.json"
         return self._fetcher.download_bytes(url, length)
 
     def _load_local_metadata(self, rolename: str) -> bytes:
@@ -503,21 +502,6 @@ class Updater:
         # If this point is reached then target is not found, return None
         return None
 
-    def _download_directory(self, folder: str) -> None:
-        # Downloading all metadata inside the specified folder
-
-        path = (
-            f"{BASE_URL}/repository_data/TAP 14"  # File path to download from
-        )
-        path = os.path.join(path, folder)  # Add the folder to the path
-
-        # Repository might be storing data in different formats.
-
-        files = next(os.walk(path))[2]  # Get all the files inside the list
-        for file in files:
-            if file.endswith(".json"):
-                self._download_metadata(file)
-
 
 def _ensure_trailing_slash(url: str) -> str:
     """Return url guaranteed to end in a slash"""
@@ -528,8 +512,17 @@ def _get_spec_version(
     repository_versions: List[str],
     spec_version: str,
     supported_versions: List[str],
-) -> str:
-    """Returns the specification version to be used."""
+) -> Tuple[str, Optional[str]]:
+    """Returns the specification version to be used, following the rules of TAP-14 
+       and displays a warning if chosen spec_version is lower than the highest repository version.
+       
+    Raises:
+        ValueError: supported_versions, repository_version or spec_version contains an 
+        invalid entry (not parseable as ``int()``)
+        RepositoryError: Latest repository version lower than the last used version from
+        this repository
+        RepositoryError: #TODO
+    """
 
     repository_versions = [int(i) for i in repository_versions]
     supported_versions = [int(i) for i in supported_versions]
@@ -537,33 +530,34 @@ def _get_spec_version(
 
     # The client determines the latest version available on the repository by looking
     # for the directory with the largest version number.
-    latestrep_ver = max(repository_versions)
+    latest_repo_version = max(repository_versions)
 
     # If the latest version on the repository is lower than the previous specification
     # version the client used from this repository, the client should report an error
     # and terminate the update.
     if spec_version:
-        if latestrep_ver < spec_version:
-            raise exceptions.DownloadError(
-                "The repository version is lower than the last used spec version"
+        if latest_repo_version < spec_version:
+            raise exceptions.RepositoryError(
+                f"The latest repository version ({latest_repo_version}) is lower than the last used spec version ({spec_version})."
             )
 
     # If the latest version on the client is found on the repository or vice versa, the
     # client will use this directory to download the metadata.
+    # Checks for the highest matching version between the client and the repository
+    # and reports an error if no matching version is found.
     try:
         spec_version = max(set(repository_versions) & set(supported_versions))
     except ValueError:
-        raise exceptions.DownloadError(
-            f"""No matching specification version found. Found {repository_versions} in
-                                              repository and {supported_versions} in client."""
+        raise exceptions.RepositoryError(
+            f"No matching specification version found. Found {repository_versions} in"
+            f"repository and {supported_versions} in client."
         )
-    # Checks for the highest matching version between the client and the repository
-    # and reports an error if no matching version is found.
+
 
     # If the latest version on the repository is higher than the client spec version,
     # the client should report to the user that it is not using the most up to date version
     warning = None
-    if latestrep_ver > spec_version:
+    if latest_repo_version > spec_version:
         warning = "Not using the latest specification version available on the repository"
 
     return (str(spec_version), warning)
