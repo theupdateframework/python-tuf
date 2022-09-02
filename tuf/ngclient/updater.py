@@ -138,7 +138,9 @@ class Updater:
 
         if message:
             logger.warning(message)
-        self.spec_version = f"{spec_version}/" if spec_version is not None else ""
+        self.spec_version = (
+            f"{spec_version}/" if spec_version is not None else ""
+        )
         self._persist_metadata("spec_version", json.dumps(self._spec_version))
 
         self._load_root()
@@ -513,15 +515,15 @@ def _get_spec_version(
     spec_version: str,
     supported_versions: List[str],
 ) -> Tuple[str, Optional[str]]:
-    """Returns the specification version to be used, following the rules of TAP-14 
+    """Returns the specification version to be used, following the rules of TAP-14
        and displays a warning if chosen spec_version is lower than the highest repository version.
-       
+
     Raises:
-        ValueError: supported_versions, repository_version or spec_version contains an 
+        ValueError: supported_versions, repository_version or spec_version contains an
         invalid entry (not parseable as ``int()``)
         RepositoryError: Latest repository version lower than the last used version from
         this repository
-        RepositoryError: #TODO
+        RepositoryError: No matching version found between supported_versions and repository_versions
     """
 
     repository_versions = [int(i) for i in repository_versions]
@@ -552,7 +554,6 @@ def _get_spec_version(
             f"No matching specification version found. Found {repository_versions} in"
             f"repository and {supported_versions} in client."
         )
-
 
     # If the latest version on the repository is higher than the client spec version,
     # the client should report to the user that it is not using the most up to date version
