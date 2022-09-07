@@ -80,7 +80,7 @@ repo](https://github.com/theupdateframework/specification/issues).
 Security Issues and Bugs
 ------------------------
 
-See [SECURITY.md](https://github.com/theupdateframework/python-tuf/blob/develop/SECURITY.md)
+See [SECURITY.md](SECURITY.md)
 
 Limitations
 -----------
