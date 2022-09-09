@@ -38,7 +38,7 @@ import os
 import shutil
 import tempfile
 import json
-from typing import Optional, Set, List, Tuple
+from typing import Optional, Set, List, Tuple, NewType
 from urllib import parse
 
 from tuf.api import exceptions
@@ -126,9 +126,11 @@ class Updater:
             RepositoryError: Metadata failed to verify in some way
             DownloadError: Download of a metadata file failed in some way
         """
-        #                                     json.load()
-        # Load self.spec_version using self._load_local_metadata() here from disk
-        # Exception would be raised if spec_version is not found locally. Set to "1" in that case
+        try:
+            self._spec_version = self._load_local_metadata("spec_version")
+        except OSError:
+            self._spec_version = "1"
+
         repository_versions = self._get_repository_versions()
 
         # Updating self.spec_version
@@ -138,10 +140,14 @@ class Updater:
 
         if message:
             logger.warning(message)
-        self.spec_version = (
-            f"{spec_version}/" if spec_version is not None else ""
+        self._spec_version = (
+            f"{spec_version}/"
+            if spec_version is not None or spec_version == "1"
+            else ""
         )
-        self._persist_metadata("spec_version", json.dumps(self._spec_version))
+        self._persist_metadata(
+            "spec_version", json.dumps(self._spec_version)
+        )
 
         self._load_root()
         self._load_timestamp()
@@ -151,14 +157,18 @@ class Updater:
     def _get_repository_versions(self) -> List[str]:
         """Returns a list of all the repository versions."""
 
-        url = f"{self._metadata_base_url}supported-versions.json"
+        try:
+            url = f"{self._metadata_base_url}supported-versions.json"
 
-        with self._fetcher.download_bytes(
-            url, self.config.supported_versions_max_length
-        ) as target_file:
-            repository_versions = json.loads(target_file)
+            with self._fetcher.download_bytes(
+                url, self.config.supported_versions_max_length
+            ) as target_file:
+                repository_versions = json.loads(target_file)
+                return repository_versions["supported_versions"]
 
-        return repository_versions["supported_versions"]
+        # If supported-versions.json is not found, then look through the root directory to find supported versions
+        except exceptions.DownloadHTTPError as e:
+            return ["1"]
 
     def _generate_target_file_path(self, targetinfo: TargetFile) -> str:
         if self.target_dir is None:
@@ -295,6 +305,7 @@ class Updater:
         """Download a metadata file and return it as bytes"""
         encoded_name = parse.quote(rolename, "")
 
+        # TODO Seperate URL for when snapshot-version.json doesn't exist
         if version is None:  # THIS IS SNAPSHOT VERSION !!
             url = f"{self._metadata_base_url}{self._spec_version}{encoded_name}.json"
         else:
@@ -525,6 +536,8 @@ def _get_spec_version(
         this repository
         RepositoryError: No matching version found between supported_versions and repository_versions
     """
+    SpecificationVersion = NewType("SpecificationVersion", str)
+    WarningMessage = NewType("WarningMessage", str)
 
     repository_versions = [int(i) for i in repository_versions]
     supported_versions = [int(i) for i in supported_versions]
@@ -543,10 +556,17 @@ def _get_spec_version(
                 f"The latest repository version ({latest_repo_version}) is lower than the last used spec version ({spec_version})."
             )
 
-    # If the latest version on the client is found on the repository or vice versa, the
-    # client will use this directory to download the metadata.
-    # Checks for the highest matching version between the client and the repository
-    # and reports an error if no matching version is found.
+    # If the latest version on the repository is equal to that of the client, it will use this directory to download metadata.
+
+    # If the latest version pre-dates the client specification version, it may call functions from a previous client version
+    # to download the metadata. The client may support as many or as few versions as desired for the application. If the
+    # previous version is not available, the client shall report that an update can not be performed due to an old
+    # specification version on the repository.
+
+    # If the latest version on the repository is higher than the client spec version, the client should report
+    # to the user that it is not using the most up to date version, and then perform the update with the directory
+    # that corresponds with the latest client specification version, if available. If no such directory exists,
+    # the client terminates the update.
     try:
         spec_version = max(set(repository_versions) & set(supported_versions))
     except ValueError:
@@ -555,8 +575,6 @@ def _get_spec_version(
             f"repository and {supported_versions} in client."
         )
 
-    # If the latest version on the repository is higher than the client spec version,
-    # the client should report to the user that it is not using the most up to date version
     warning = None
     if latest_repo_version > spec_version:
         warning = "Not using the latest specification version available on the repository"

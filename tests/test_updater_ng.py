@@ -355,9 +355,13 @@ class TestUpdater(unittest.TestCase):
                 os.path.isdir(os.path.join(self.tap14_directory, folder))
             )
 
-    def test_get_spec_version1(self) -> None:
-        # This uses the default SUPPORTED_VERSIONS variable from updater.py
-        with self.assertRaises(exceptions.DownloadError):
+    def test_get_spec_version_supported(self) -> None:
+        """This uses the default SUPPORTED_VERSIONS variable from updater.py"""
+
+        with self.assertRaises(
+            exceptions.RepositoryError,
+            msg="Latest repository version less than 4",
+        ):
             _get_spec_version(
                 ["1", "2", "3"], "4", ngclient.updater.SUPPORTED_VERSIONS
             )
@@ -367,29 +371,65 @@ class TestUpdater(unittest.TestCase):
                 ["1", "2", "3"], "3", ngclient.updater.SUPPORTED_VERSIONS
             ),
             ("3", None),
+            "3 is selected as the spec version and no warning ensues",
         )
 
-    def test_get_spec_version2(self) -> None:
+    def test_get_spec_version(self) -> None:
         warningchecker = "Not using the latest specification version available on the repository"
         # Checks with different values
-        with self.assertRaises(exceptions.DownloadError):
-            _get_spec_version(["3", "5", "6"], "7", ["1", "2", "3", "4"])
+        test_cases = [
+            (
+                ["3", "5", "6"],
+                "7",
+                ["1", "2", "3", "4"],
+            ),  # Latest repository version less than 7
+            (
+                ["3", "5", "6"],
+                "3",
+                ["1", "2", "4"],
+            ),  # No common specification version between repository and client
+        ]
+        for repo_versions, spec_version, supported_versions in test_cases:
+            with self.assertRaises(exceptions.RepositoryError):
+                _get_spec_version(
+                    repo_versions, spec_version, supported_versions
+                )
 
-        self.assertEqual(
-            _get_spec_version(["3", "5", "6"], "3", ["1", "2", "3", "4"]),
-            ("3", warningchecker),
-        )
-        self.assertEqual(
-            _get_spec_version(["1", "2", "3"], "3", ["3", "5", "6"]),
-            ("3", None),
-        )
-        self.assertEqual(
-            _get_spec_version(["8", "11", "13"], "12", ["8", "11", "12"]),
-            ("11", warningchecker),
-        )
-
-        with self.assertRaises(exceptions.DownloadError):
-            _get_spec_version(["3", "5", "6"], "3", ["1", "2", "4"])
+        test_cases = [
+            (
+                ["3", "5", "6"],
+                "3",
+                ["1", "2", "3", "4"],
+                "3",
+                True,
+            ),  # 3 is selected as the spec version but a warning ensues
+            (
+                ["1", "2", "3"],
+                "3",
+                ["3", "5", "6"],
+                "3",
+                False,
+            ),  # 3 is selected as the spec version and no warning ensues
+            (
+                ["8", "11", "13"],
+                "12",
+                ["8", "11", "12"],
+                "11",
+                True,
+            ),  # 11 is selected as the spec version but a warning ensues
+        ]
+        for (
+            repo_versions,
+            spec_version,
+            supported_versions,
+            expected_version,
+            should_have_warning,
+        ) in test_cases:
+            actual_version, warning = _get_spec_version(
+                repo_versions, spec_version, supported_versions
+            )
+            self.assertEqual(actual_version, expected_version)
+            self.assertEqual(bool(warning), should_have_warning)
 
         # TODO Testing logging functionality.
         # with self.assertLogs(ngclient.updater.__name__) as cm:
