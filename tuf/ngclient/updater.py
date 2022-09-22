@@ -158,9 +158,10 @@ class Updater:
         self._spec_version = spec_version
 
         ordered_version_paths = []
-        filter_fn = lambda a: a["version"] == version and version <= int(
-            spec_version
-        )
+
+        def filter_fn(a):
+            return a["version"] == version and version <= int(spec_version)
+
         for version in sorted(repository_versions):
             path = list(
                 filter(
