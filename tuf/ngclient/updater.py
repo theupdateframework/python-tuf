@@ -158,11 +158,13 @@ class Updater:
         self._spec_version = spec_version
 
         ordered_version_paths = []
+        filter_fn = lambda a: a["version"] == version and version <= int(
+            spec_version
+        )
         for version in sorted(repository_versions):
             path = list(
                 filter(
-                    lambda a: a["version"] == version
-                    and version <= int(spec_version),
+                    filter_fn,
                     repository_versions_and_paths,
                 )
             )
@@ -337,7 +339,7 @@ class Updater:
         """Download a metadata file and return it as bytes"""
         encoded_name = parse.quote(rolename, "")
 
-        if self._spec_version_dir is "":
+        if self._spec_version_dir == "":
             spec_folder = ""
         else:
             spec_folder = f"{self._spec_version_dir}/"
@@ -614,11 +616,11 @@ def _get_spec_version(
     # the client terminates the update.
     try:
         spec_version = max(set(repository_versions) & set(supported_versions))
-    except ValueError:
+    except ValueError as e:
         raise exceptions.RepositoryError(
             f"No matching specification version found. Found {repository_versions} in"
             f"repository and {supported_versions} in client."
-        )
+        ) from e
 
     warning = None
     if latest_repo_version > spec_version:

@@ -36,7 +36,7 @@ from tuf.ngclient.updater import _get_spec_version
 
 logger = logging.getLogger(__name__)
 
-
+# pylint: disable=too-many-public-methods
 class TestUpdater(unittest.TestCase):
     """Test the Updater class from 'tuf/ngclient/updater.py'."""
 
@@ -403,7 +403,7 @@ class TestUpdater(unittest.TestCase):
         )
 
     def test_get_spec_version(self) -> None:
-        warningchecker = "Not using the latest specification version available on the repository"
+        # warningchecker = "Not using the latest specification version available on the repository"
         # Checks with different values
         test_cases = [
             (
