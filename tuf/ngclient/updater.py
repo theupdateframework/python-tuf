@@ -176,8 +176,7 @@ class Updater:
         except exceptions.DownloadHTTPError as e:
             if e.status_code == 404:
                 return ["1"]
-            else:
-                raise
+            raise
 
     def _generate_target_file_path(self, targetinfo: TargetFile) -> str:
         if self.target_dir is None:
@@ -549,9 +548,6 @@ def _get_spec_version(
         this repository
         RepositoryError: No matching version found between supported_versions and repository_versions
     """
-    SpecificationVersion = NewType("SpecificationVersion", str)
-    WarningMessage = NewType("WarningMessage", str)
-
     repository_versions = [int(i) for i in repository_versions]
     supported_versions = [int(i) for i in supported_versions]
     spec_version = int(spec_version)
