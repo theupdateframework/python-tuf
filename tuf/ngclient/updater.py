@@ -105,6 +105,7 @@ class Updater:
         self._trusted_set = trusted_metadata_set.TrustedMetadataSet(data)
         self._fetcher = fetcher or requests_fetcher.RequestsFetcher()
         self.config = config or UpdaterConfig()
+        self._supported_versions = SUPPORTED_VERSIONS
 
     def refresh(self) -> None:
         """Refreshes top-level metadata.
@@ -144,7 +145,7 @@ class Updater:
 
         # Updating self.spec_version
         spec_version, message = _get_spec_version(
-            repository_versions, self._spec_version, SUPPORTED_VERSIONS
+            repository_versions, self._spec_version, self._supported_versions
         )
 
         if message:
@@ -167,11 +168,9 @@ class Updater:
         try:
             url = f"{self._metadata_base_url}supported-versions.json"
 
-            with self._fetcher.download_bytes(
-                url, self.config.supported_versions_max_length
-            ) as target_file:
-                repository_versions = json.loads(target_file)
-                return repository_versions["supported_versions"]
+            target_bytes = self._fetcher.download_bytes(url, self.config.supported_versions_max_length)
+            repository_versions = json.loads(target_bytes)
+            return repository_versions["supported_versions"]
 
         # If supported-versions.json is not found, then default to version 1
         except exceptions.DownloadHTTPError as e:
