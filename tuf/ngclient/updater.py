@@ -144,7 +144,6 @@ class Updater:
 
         repository_versions_and_paths = self._get_repository_versions()
 
-        print(repository_versions_and_paths)
         repository_versions = [i["version"] for i in repository_versions_and_paths]
 
         # Updating self.spec_version
@@ -156,6 +155,12 @@ class Updater:
             logger.warning(message)
         self._spec_version = spec_version
 
+        ordered_version_paths = []
+        for version in sorted(repository_versions):
+            path = list(filter(lambda a: a["version"] == version and version <= int(spec_version), repository_versions_and_paths))
+            if len(path) > 0:
+                ordered_version_paths.append(path[0]["path"])
+
         for i in repository_versions_and_paths:
             if i["version"] == spec_version:
                 self._spec_version_dir = i["path"]
@@ -166,7 +171,7 @@ class Updater:
             json.dumps({"version": spec_version}).encode("utf-8"),
         )
 
-        self._load_root()
+        self._load_root(ordered_version_paths)
         self._load_timestamp()
         self._load_snapshot()
         self._load_targets(Targets.type, Root.type)
@@ -361,7 +366,7 @@ class Updater:
                     pass
             raise e
 
-    def _load_root(self) -> None:
+    def _load_root(self, supported_version_repos) -> None:
         """Load remote root metadata.
 
         Sequentially load and persist on local disk every newer root metadata
@@ -372,21 +377,33 @@ class Updater:
         lower_bound = self._trusted_set.root.signed.version + 1
         upper_bound = lower_bound + self.config.max_root_rotations
 
-        for next_version in range(lower_bound, upper_bound):
-            try:
-                data = self._download_metadata(
-                    Root.type,
-                    self.config.root_max_length,
-                    next_version,
-                )
-                self._trusted_set.update_root(data)
-                self._persist_metadata(Root.type, data)
+        save_repo_version_dir = self._spec_version_dir
 
-            except exceptions.DownloadHTTPError as exception:
-                if exception.status_code not in {403, 404}:
-                    raise
-                # 404/403 means current root is newest available
-                break
+        for next_version in range(lower_bound, upper_bound):
+            for version_repo in supported_version_repos:
+                to_break = True
+                self._spec_version_dir = version_repo
+                try:
+                    data = self._download_metadata(
+                        Root.type,
+                        self.config.root_max_length,
+                        next_version,
+                    )
+                    self._trusted_set.update_root(data)
+                    self._persist_metadata(Root.type, data)
+                    # if found, don't check older supported versions
+                    to_break = False
+                    break
+
+                except exceptions.DownloadHTTPError as exception:
+                    if exception.status_code not in {403, 404}:
+                        raise
+                    # 404/403 means current root is newest available
+                if to_break:
+                    self._spec_version_dir = save_repo_version_dir
+                    return
+
+        self._spec_version_dir = save_repo_version_dir
 
     def _load_timestamp(self) -> None:
         """Load local and remote timestamp metadata"""

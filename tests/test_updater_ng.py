@@ -543,7 +543,50 @@ class TestUpdater(unittest.TestCase):
                 self.updater.refresh()
 
 
+    def test_spec_version_root_update_order(self) -> None:
+        # copy the current metadata to 2/
+        shutil.copytree(os.path.join(self.repository_directory, "metadata"), os.path.join(self.repository_directory, "metadata", "2"))
 
+        # update root not in 2/
+        self._modify_repository_root(lambda root: None, bump_version=True)
+
+        # switch repository supported versions
+        repo_version_path = os.path.join(
+            self.repository_directory, "metadata", "supported-versions.json"
+        )
+        repo_version_json = json.dumps({"supported_versions": [{"version": 2, "path": "2"}]})
+        with tempfile.TemporaryFile() as temp_file:
+            temp_file.write(repo_version_json.encode('utf-8'))
+            persist_temp_file(temp_file, repo_version_path, FilesystemBackend())
+
+        # switch client supported versions
+        self.updater._supported_versions = ["2"]
+
+        self.updater.refresh()
+        # it should not find version 2 of root as it is missing from 2/
+        self.assertEqual(self.updater._trusted_set.root.signed.version, 1)
+
+    def test_spec_version_root_update(self) -> None:
+        # update root
+        self._modify_repository_root(lambda root: None, bump_version=True)
+
+        # copy the current metadata to 2/
+        shutil.copytree(os.path.join(self.repository_directory, "metadata"), os.path.join(self.repository_directory, "metadata", "2"))
+
+        # switch repository supported versions
+        repo_version_path = os.path.join(
+            self.repository_directory, "metadata", "supported-versions.json"
+        )
+        repo_version_json = json.dumps({"supported_versions": [{"version": 2, "path": "2"}]})
+        with tempfile.TemporaryFile() as temp_file:
+            temp_file.write(repo_version_json.encode('utf-8'))
+            persist_temp_file(temp_file, repo_version_path, FilesystemBackend())
+
+        # switch client supported versions
+        self.updater._supported_versions = ["2"]
+
+        self.updater.refresh()
+        self.assertEqual(self.updater._trusted_set.root.signed.version, 2)
 
 
 
