@@ -469,16 +469,21 @@ class TestUpdater(unittest.TestCase):
         repo_version_path = os.path.join(
             self.repository_directory, "metadata", "supported-versions.json"
         )
-        repo_version_json = json.dumps({"supported_versions": [{"version": 2, "path": "2"}]})
+        repo_version_json = json.dumps(
+            {"supported_versions": [{"version": 2, "path": "2"}]}
+        )
         with tempfile.TemporaryFile() as temp_file:
-            temp_file.write(repo_version_json.encode('utf-8'))
+            temp_file.write(repo_version_json.encode("utf-8"))
             persist_temp_file(temp_file, repo_version_path, FilesystemBackend())
 
         # switch client supported versions
         self.updater._supported_versions = ["2"]
 
         # copy the current metadata to 2/
-        shutil.copytree(os.path.join(self.repository_directory, "metadata"), os.path.join(self.repository_directory, "metadata", "2"))
+        shutil.copytree(
+            os.path.join(self.repository_directory, "metadata"),
+            os.path.join(self.repository_directory, "metadata", "2"),
+        )
 
         self.updater.refresh()
         self.assertEqual(self.updater._spec_version, "2")
@@ -488,64 +493,86 @@ class TestUpdater(unittest.TestCase):
         repo_version_path = os.path.join(
             self.repository_directory, "metadata", "supported-versions.json"
         )
-        repo_version_json = json.dumps({"supported_versions": [{"version": 2, "path": "2"}, {"version": 3, "path": "3"}]})
+        repo_version_json = json.dumps(
+            {
+                "supported_versions": [
+                    {"version": 2, "path": "2"},
+                    {"version": 3, "path": "3"},
+                ]
+            }
+        )
         with tempfile.TemporaryFile() as temp_file:
-            temp_file.write(repo_version_json.encode('utf-8'))
+            temp_file.write(repo_version_json.encode("utf-8"))
             persist_temp_file(temp_file, repo_version_path, FilesystemBackend())
 
         # client supports version 1 and 2
         self.updater._supported_versions = ["1", "2"]
 
         # copy the current metadata to 2/
-        shutil.copytree(os.path.join(self.repository_directory, "metadata"), os.path.join(self.repository_directory, "metadata", "2"))
+        shutil.copytree(
+            os.path.join(self.repository_directory, "metadata"),
+            os.path.join(self.repository_directory, "metadata", "2"),
+        )
 
         self.updater.refresh()
         self.assertEqual(self.updater._spec_version, "2")
         # TODO assert that higher repo version available warning was logged
 
-
     def test_tap14_backwards_compat(self) -> None:
         # copy the current metadata to 2/
-        shutil.copytree(os.path.join(self.repository_directory, "metadata"), os.path.join(self.repository_directory, "metadata", "2"))
+        shutil.copytree(
+            os.path.join(self.repository_directory, "metadata"),
+            os.path.join(self.repository_directory, "metadata", "2"),
+        )
 
         # add supported-versions.json
         repo_version_path = os.path.join(
             self.repository_directory, "metadata", "supported-versions.json"
         )
-        repo_version_json = json.dumps({"supported_versions": [{"version": 1, "path": ""}]})
+        repo_version_json = json.dumps(
+            {"supported_versions": [{"version": 1, "path": ""}]}
+        )
         with tempfile.TemporaryFile() as temp_file:
-            temp_file.write(repo_version_json.encode('utf-8'))
+            temp_file.write(repo_version_json.encode("utf-8"))
             persist_temp_file(temp_file, repo_version_path, FilesystemBackend())
 
         self.updater.refresh()
 
     def test_spec_version_rollback(self) -> None:
         # set _spec_version to 2
-        client_spec_version_path = os.path.join(self.client_directory, "spec_version.json")
+        client_spec_version_path = os.path.join(
+            self.client_directory, "spec_version.json"
+        )
         client_spec_version_json = json.dumps({"version": 2})
         with tempfile.TemporaryFile() as temp_file:
-            temp_file.write(client_spec_version_json.encode('utf-8'))
-            persist_temp_file(temp_file, client_spec_version_path, FilesystemBackend())
+            temp_file.write(client_spec_version_json.encode("utf-8"))
+            persist_temp_file(
+                temp_file, client_spec_version_path, FilesystemBackend()
+            )
 
         # but supported-versions only contains 1
         # add supported-versions.json
         repo_version_path = os.path.join(
             self.repository_directory, "metadata", "supported-versions.json"
         )
-        repo_version_json = json.dumps({"supported_versions": [{"version": 1, "path": ""}]})
+        repo_version_json = json.dumps(
+            {"supported_versions": [{"version": 1, "path": ""}]}
+        )
         with tempfile.TemporaryFile() as temp_file:
-            temp_file.write(repo_version_json.encode('utf-8'))
+            temp_file.write(repo_version_json.encode("utf-8"))
             persist_temp_file(temp_file, repo_version_path, FilesystemBackend())
 
         self.assertEqual(self.updater._supported_versions, ["1"])
 
         with self.assertRaises(exceptions.RepositoryError):
-                self.updater.refresh()
-
+            self.updater.refresh()
 
     def test_spec_version_root_update_order(self) -> None:
         # copy the current metadata to 2/
-        shutil.copytree(os.path.join(self.repository_directory, "metadata"), os.path.join(self.repository_directory, "metadata", "2"))
+        shutil.copytree(
+            os.path.join(self.repository_directory, "metadata"),
+            os.path.join(self.repository_directory, "metadata", "2"),
+        )
 
         # update root not in 2/
         self._modify_repository_root(lambda root: None, bump_version=True)
@@ -554,9 +581,11 @@ class TestUpdater(unittest.TestCase):
         repo_version_path = os.path.join(
             self.repository_directory, "metadata", "supported-versions.json"
         )
-        repo_version_json = json.dumps({"supported_versions": [{"version": 2, "path": "2"}]})
+        repo_version_json = json.dumps(
+            {"supported_versions": [{"version": 2, "path": "2"}]}
+        )
         with tempfile.TemporaryFile() as temp_file:
-            temp_file.write(repo_version_json.encode('utf-8'))
+            temp_file.write(repo_version_json.encode("utf-8"))
             persist_temp_file(temp_file, repo_version_path, FilesystemBackend())
 
         # switch client supported versions
@@ -571,15 +600,20 @@ class TestUpdater(unittest.TestCase):
         self._modify_repository_root(lambda root: None, bump_version=True)
 
         # copy the current metadata to 2/
-        shutil.copytree(os.path.join(self.repository_directory, "metadata"), os.path.join(self.repository_directory, "metadata", "2"))
+        shutil.copytree(
+            os.path.join(self.repository_directory, "metadata"),
+            os.path.join(self.repository_directory, "metadata", "2"),
+        )
 
         # switch repository supported versions
         repo_version_path = os.path.join(
             self.repository_directory, "metadata", "supported-versions.json"
         )
-        repo_version_json = json.dumps({"supported_versions": [{"version": 2, "path": "2"}]})
+        repo_version_json = json.dumps(
+            {"supported_versions": [{"version": 2, "path": "2"}]}
+        )
         with tempfile.TemporaryFile() as temp_file:
-            temp_file.write(repo_version_json.encode('utf-8'))
+            temp_file.write(repo_version_json.encode("utf-8"))
             persist_temp_file(temp_file, repo_version_path, FilesystemBackend())
 
         # switch client supported versions
@@ -587,7 +621,6 @@ class TestUpdater(unittest.TestCase):
 
         self.updater.refresh()
         self.assertEqual(self.updater._trusted_set.root.signed.version, 2)
-
 
 
 if __name__ == "__main__":
