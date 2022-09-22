@@ -39,7 +39,7 @@ import logging
 import os
 import shutil
 import tempfile
-from typing import List, NewType, Optional, Set, Tuple
+from typing import List, Optional, Set, Tuple
 from urllib import parse
 
 from tuf.api import exceptions
@@ -81,6 +81,7 @@ class Updater:
         RepositoryError: Local root.json is invalid
     """
 
+    # pylint: disable=too-many-instance-attributes
     def __init__(
         self,
         metadata_dir: str,
