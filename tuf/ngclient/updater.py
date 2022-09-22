@@ -92,6 +92,7 @@ class Updater:
         config: Optional[UpdaterConfig] = None,
     ):
         self._spec_version = None  # spec_version is the last used version by the client to get metadata
+        self._spec_version_dir = ""
         self._dir = metadata_dir
         self._metadata_base_url = _ensure_trailing_slash(metadata_base_url)
         self.target_dir = target_dir
@@ -141,7 +142,10 @@ class Updater:
                 raise
             self._spec_version = "1"
 
-        repository_versions = self._get_repository_versions()
+        repository_versions_and_paths = self._get_repository_versions()
+
+        print(repository_versions_and_paths)
+        repository_versions = [i["version"] for i in repository_versions_and_paths]
 
         # Updating self.spec_version
         spec_version, message = _get_spec_version(
@@ -152,9 +156,14 @@ class Updater:
             logger.warning(message)
         self._spec_version = spec_version
 
+        for i in repository_versions_and_paths:
+            if i["version"] == spec_version:
+                self._spec_version_dir = i["path"]
+
+        # persist the version number
         self._persist_metadata(
             "spec_version",
-            json.dumps({"version": self._spec_version}).encode("utf-8"),
+            json.dumps({"version": spec_version}).encode("utf-8"),
         )
 
         self._load_root()
@@ -163,7 +172,7 @@ class Updater:
         self._load_targets(Targets.type, Root.type)
 
     def _get_repository_versions(self) -> List[str]:
-        """Returns a list of all the repository versions."""
+        """Returns a list of all the repository versions and paths."""
 
         try:
             url = f"{self._metadata_base_url}supported-versions.json"
@@ -175,7 +184,7 @@ class Updater:
         # If supported-versions.json is not found, then default to version 1
         except exceptions.DownloadHTTPError as e:
             if e.status_code == 404:
-                return ["1"]
+                return [{"version":1, "path": ""}]
             raise
 
     def _generate_target_file_path(self, targetinfo: TargetFile) -> str:
@@ -313,10 +322,10 @@ class Updater:
         """Download a metadata file and return it as bytes"""
         encoded_name = parse.quote(rolename, "")
 
-        if self._spec_version is None or self._spec_version == "1":
+        if self._spec_version_dir is "":
             spec_folder = ""
         else:
-            spec_folder = f"{self._spec_version}/"
+            spec_folder = f"{self._spec_version_dir}/"
 
         if version is None:  # THIS IS SNAPSHOT VERSION !!
             url = f"{self._metadata_base_url}{spec_folder}{encoded_name}.json"

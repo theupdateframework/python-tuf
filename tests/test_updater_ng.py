@@ -469,7 +469,7 @@ class TestUpdater(unittest.TestCase):
         repo_version_path = os.path.join(
             self.repository_directory, "metadata", "supported-versions.json"
         )
-        repo_version_json = json.dumps({"supported_versions": [2]})
+        repo_version_json = json.dumps({"supported_versions": [{"version": 2, "path": "2"}]})
         with tempfile.TemporaryFile() as temp_file:
             temp_file.write(repo_version_json.encode('utf-8'))
             persist_temp_file(temp_file, repo_version_path, FilesystemBackend())
@@ -488,7 +488,7 @@ class TestUpdater(unittest.TestCase):
         repo_version_path = os.path.join(
             self.repository_directory, "metadata", "supported-versions.json"
         )
-        repo_version_json = json.dumps({"supported_versions": [2, 3]})
+        repo_version_json = json.dumps({"supported_versions": [{"version": 2, "path": "2"}, {"version": 3, "path": "3"}]})
         with tempfile.TemporaryFile() as temp_file:
             temp_file.write(repo_version_json.encode('utf-8'))
             persist_temp_file(temp_file, repo_version_path, FilesystemBackend())
@@ -512,7 +512,7 @@ class TestUpdater(unittest.TestCase):
         repo_version_path = os.path.join(
             self.repository_directory, "metadata", "supported-versions.json"
         )
-        repo_version_json = json.dumps({"supported_versions": [1]})
+        repo_version_json = json.dumps({"supported_versions": [{"version": 1, "path": ""}]})
         with tempfile.TemporaryFile() as temp_file:
             temp_file.write(repo_version_json.encode('utf-8'))
             persist_temp_file(temp_file, repo_version_path, FilesystemBackend())
@@ -532,7 +532,7 @@ class TestUpdater(unittest.TestCase):
         repo_version_path = os.path.join(
             self.repository_directory, "metadata", "supported-versions.json"
         )
-        repo_version_json = json.dumps({"supported_versions": [1]})
+        repo_version_json = json.dumps({"supported_versions": [{"version": 1, "path": ""}]})
         with tempfile.TemporaryFile() as temp_file:
             temp_file.write(repo_version_json.encode('utf-8'))
             persist_temp_file(temp_file, repo_version_path, FilesystemBackend())
