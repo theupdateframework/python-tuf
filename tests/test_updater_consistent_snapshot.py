@@ -104,7 +104,7 @@ class TestConsistentSnapshot(unittest.TestCase):
         "consistent_snaphot disabled": {
             "consistent_snapshot": False,
             "calls": [
-                ('supported-versions', None),
+                ("supported-versions", None),
                 ("root", 3),
                 ("timestamp", None),
                 ("snapshot", None),
@@ -114,7 +114,7 @@ class TestConsistentSnapshot(unittest.TestCase):
         "consistent_snaphot enabled": {
             "consistent_snapshot": True,
             "calls": [
-                ('supported-versions', None),
+                ("supported-versions", None),
                 ("root", 3),
                 ("timestamp", None),
                 ("snapshot", 1),

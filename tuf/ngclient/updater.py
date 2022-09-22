@@ -130,7 +130,9 @@ class Updater:
         """
         try:
             version_bytes = self._load_local_metadata("spec_version")
-            self._spec_version = json.loads(version_bytes.decode('utf-8'))["version"]
+            self._spec_version = json.loads(version_bytes.decode("utf-8"))[
+                "version"
+            ]
 
         except OSError as e:
             if e.errno != errno.ENOENT:
@@ -149,7 +151,8 @@ class Updater:
         self._spec_version = spec_version
 
         self._persist_metadata(
-                "spec_version", json.dumps({"version": self._spec_version}).encode('utf-8')
+            "spec_version",
+            json.dumps({"version": self._spec_version}).encode("utf-8"),
         )
 
         self._load_root()

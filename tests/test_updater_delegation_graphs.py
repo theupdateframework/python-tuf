@@ -263,7 +263,11 @@ class TestDelegationsGraphs(TestDelegations):
         in the delegator's metadata, using pre-order depth-first search"""
 
         try:
-            exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order, "spec_version"]
+            exp_files = [
+                *TOP_LEVEL_ROLE_NAMES,
+                *test_data.visited_order,
+                "spec_version",
+            ]
             exp_calls = [(role, 1) for role in test_data.visited_order]
 
             self._init_repo(test_data)
@@ -311,7 +315,11 @@ class TestDelegationsGraphs(TestDelegations):
 
             self.setup_subtest()
             # The invalid role metadata must not be persisted
-            exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order[:-1], "spec_version"]
+            exp_files = [
+                *TOP_LEVEL_ROLE_NAMES,
+                *test_data.visited_order[:-1],
+                "spec_version",
+            ]
             exp_calls = [(role, 1) for role in test_data.visited_order]
 
             updater = self._init_updater()
@@ -397,7 +405,11 @@ class TestDelegationsGraphs(TestDelegations):
         they correctly reffer to the corresponding hash bin prefixes"""
 
         try:
-            exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order, "spec_version"]
+            exp_files = [
+                *TOP_LEVEL_ROLE_NAMES,
+                *test_data.visited_order,
+                "spec_version",
+            ]
             exp_calls = [(role, 1) for role in test_data.visited_order]
 
             self._init_repo(test_data)
@@ -481,7 +493,11 @@ class TestDelegationsGraphs(TestDelegations):
         # bin should exist locally and only one bin must be downloaded.
 
         try:
-            exp_files = [*TOP_LEVEL_ROLE_NAMES, test_data.expected_target_bin, "spec_version"]
+            exp_files = [
+                *TOP_LEVEL_ROLE_NAMES,
+                test_data.expected_target_bin,
+                "spec_version",
+            ]
             exp_calls = [(test_data.expected_target_bin, 1)]
 
             self.sim = RepositorySimulator()
@@ -564,7 +580,11 @@ class TestTargetFileSearch(TestDelegations):
     def test_targetfile_search(self, test_data: TargetTestCase) -> None:
         try:
             self.setup_subtest()
-            exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order, "spec_version"]
+            exp_files = [
+                *TOP_LEVEL_ROLE_NAMES,
+                *test_data.visited_order,
+                "spec_version",
+            ]
             exp_calls = [(role, 1) for role in test_data.visited_order]
             exp_target = self.sim.target_files[test_data.targetpath].target_file
 
