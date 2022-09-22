@@ -205,10 +205,14 @@ class RepositorySimulator(FetcherInterface):
         if path.startswith("/metadata/") and path.endswith(".json"):
             # figure out rolename and version
             ver_and_name = path[len("/metadata/") :][: -len(".json")]
+            # inside a version folder
+            if "/" in ver_and_name:
+                ver_and_name = ver_and_name.split("/")[1]
             version_str, _, role = ver_and_name.partition(".")
             # root is always version-prefixed while timestamp is always NOT
             if role == Root.type or (
                 self.root.consistent_snapshot and ver_and_name != Timestamp.type
+                and ver_and_name != "supported-versions"
             ):
                 version: Optional[int] = int(version_str)
             else:

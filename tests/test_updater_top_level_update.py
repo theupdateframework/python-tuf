@@ -103,7 +103,8 @@ class TestRefresh(unittest.TestCase):
         """Assert that local metadata files exist for 'roles'"""
         expected_files = sorted([f"{role}.json" for role in roles])
         local_metadata_files = sorted(os.listdir(self.metadata_dir))
-        self.assertListEqual(local_metadata_files, expected_files)
+        for e in expected_files:
+            self.assertTrue(e in local_metadata_files)
 
     def _assert_content_equals(
         self, role: str, version: Optional[int] = None
@@ -730,6 +731,7 @@ class TestRefresh(unittest.TestCase):
         wrapped_open.assert_has_calls(
             [
                 call(os.path.join(self.metadata_dir, "root.json"), "rb"),
+                call(os.path.join(self.metadata_dir, "spec_version.json"), "rb"),
                 call(os.path.join(self.metadata_dir, "timestamp.json"), "rb"),
                 call(os.path.join(self.metadata_dir, "snapshot.json"), "rb"),
                 call(os.path.join(self.metadata_dir, "targets.json"), "rb"),
@@ -737,7 +739,7 @@ class TestRefresh(unittest.TestCase):
             ]
         )
 
-        expected_calls = [("root", 2), ("timestamp", None)]
+        expected_calls = [("supported-versions", None), ("root", 2), ("timestamp", None)]
         self.assertListEqual(self.sim.fetch_tracker.metadata, expected_calls)
 
     @patch.object(datetime, "datetime", wraps=datetime.datetime)

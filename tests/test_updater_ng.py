@@ -174,14 +174,14 @@ class TestUpdater(unittest.TestCase):
         # top-level metadata is in local directory already
         self.updater.refresh()
         self._assert_files(
-            [Root.type, Snapshot.type, Targets.type, Timestamp.type]
+            [Root.type, Snapshot.type, "spec_version", Targets.type, Timestamp.type]
         )
 
         # Get targetinfos, assert that cache does not contain files
         info1 = self.updater.get_targetinfo("file1.txt")
         assert isinstance(info1, TargetFile)
         self._assert_files(
-            [Root.type, Snapshot.type, Targets.type, Timestamp.type]
+            [Root.type, Snapshot.type, "spec_version", Targets.type, Timestamp.type]
         )
 
         # Get targetinfo for 'file3.txt' listed in the delegated role1
@@ -191,6 +191,7 @@ class TestUpdater(unittest.TestCase):
             "role1",
             Root.type,
             Snapshot.type,
+            "spec_version",
             Targets.type,
             Timestamp.type,
         ]
@@ -221,7 +222,7 @@ class TestUpdater(unittest.TestCase):
 
         self.updater.refresh()
         self._assert_files(
-            [Root.type, Snapshot.type, Targets.type, Timestamp.type]
+            [Root.type, Snapshot.type, "spec_version", Targets.type, Timestamp.type]
         )
 
         # Get targetinfo for 'file3.txt' listed in the delegated role1
@@ -230,6 +231,7 @@ class TestUpdater(unittest.TestCase):
             "role1",
             Root.type,
             Snapshot.type,
+            "spec_version",
             Targets.type,
             Timestamp.type,
         ]
@@ -246,7 +248,7 @@ class TestUpdater(unittest.TestCase):
 
         # Get targetinfo for 'file3.txt' listed in the delegated role1
         self.updater.get_targetinfo("file3.txt")
-        expected_files = ["role1", "root", "snapshot", "targets", "timestamp"]
+        expected_files = ["role1", "root", "snapshot", "spec_version", "targets", "timestamp"]
         self._assert_files(expected_files)
 
     def test_both_target_urls_not_set(self) -> None:
@@ -349,7 +351,7 @@ class TestUpdater(unittest.TestCase):
             )
 
         # Checking specific folders inside TAP 14
-        foldernames = ["targets", "1.0.0"]
+        foldernames = ["targets", "1"]
         for folder in foldernames:
             self.assertTrue(
                 os.path.isdir(os.path.join(self.tap14_directory, folder))
@@ -368,7 +370,7 @@ class TestUpdater(unittest.TestCase):
 
         self.assertEqual(
             _get_spec_version(
-                ["1", "2", "3"], "3", ngclient.updater.SUPPORTED_VERSIONS
+                ["1", "2", "3"], "3", [3]
             ),
             ("3", None),
             "3 is selected as the spec version and no warning ensues",

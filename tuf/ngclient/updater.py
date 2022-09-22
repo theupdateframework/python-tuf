@@ -33,6 +33,7 @@ downloads target files is available in `examples/client_example
 <https://github.com/theupdateframework/python-tuf/tree/develop/examples/client_example>`_.
 """
 
+import errno
 import logging
 import os
 import shutil
@@ -56,7 +57,8 @@ from tuf.ngclient.config import UpdaterConfig
 from tuf.ngclient.fetcher import FetcherInterface
 
 logger = logging.getLogger(__name__)
-SUPPORTED_VERSIONS = [SPECIFICATION_VERSION]
+# only include the major version
+SUPPORTED_VERSIONS = [SPECIFICATION_VERSION[0]]
 
 
 class Updater:
@@ -127,8 +129,12 @@ class Updater:
             DownloadError: Download of a metadata file failed in some way
         """
         try:
-            self._spec_version = self._load_local_metadata("spec_version")
-        except OSError:
+            version_bytes = self._load_local_metadata("spec_version")
+            self._spec_version = json.loads(version_bytes.decode('utf-8'))["version"]
+
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                raise
             self._spec_version = "1"
 
         repository_versions = self._get_repository_versions()
@@ -140,13 +146,10 @@ class Updater:
 
         if message:
             logger.warning(message)
-        self._spec_version = (
-            f"{spec_version}/"
-            if spec_version is not None or spec_version == "1"
-            else ""
-        )
+        self._spec_version = spec_version
+
         self._persist_metadata(
-            "spec_version", json.dumps(self._spec_version)
+                "spec_version", json.dumps({"version": self._spec_version}).encode('utf-8')
         )
 
         self._load_root()
@@ -166,9 +169,12 @@ class Updater:
                 repository_versions = json.loads(target_file)
                 return repository_versions["supported_versions"]
 
-        # If supported-versions.json is not found, then look through the root directory to find supported versions
+        # If supported-versions.json is not found, then default to version 1
         except exceptions.DownloadHTTPError as e:
-            return ["1"]
+            if e.status_code == 404:
+                return ["1"]
+            else:
+                raise
 
     def _generate_target_file_path(self, targetinfo: TargetFile) -> str:
         if self.target_dir is None:
@@ -305,11 +311,15 @@ class Updater:
         """Download a metadata file and return it as bytes"""
         encoded_name = parse.quote(rolename, "")
 
-        # TODO Seperate URL for when snapshot-version.json doesn't exist
-        if version is None:  # THIS IS SNAPSHOT VERSION !!
-            url = f"{self._metadata_base_url}{self._spec_version}{encoded_name}.json"
+        if self._spec_version is None or self._spec_version == "1":
+            spec_folder = ""
         else:
-            url = f"{self._metadata_base_url}{self._spec_version}{version}.{encoded_name}.json"
+            spec_folder = f"{self._spec_version}/"
+
+        if version is None:  # THIS IS SNAPSHOT VERSION !!
+            url = f"{self._metadata_base_url}{spec_folder}{encoded_name}.json"
+        else:
+            url = f"{self._metadata_base_url}{spec_folder}{version}.{encoded_name}.json"
         return self._fetcher.download_bytes(url, length)
 
     def _load_local_metadata(self, rolename: str) -> bytes:
