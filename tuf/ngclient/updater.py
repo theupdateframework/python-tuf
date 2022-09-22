@@ -144,7 +144,9 @@ class Updater:
 
         repository_versions_and_paths = self._get_repository_versions()
 
-        repository_versions = [i["version"] for i in repository_versions_and_paths]
+        repository_versions = [
+            i["version"] for i in repository_versions_and_paths
+        ]
 
         # Updating self.spec_version
         spec_version, message = _get_spec_version(
@@ -157,7 +159,13 @@ class Updater:
 
         ordered_version_paths = []
         for version in sorted(repository_versions):
-            path = list(filter(lambda a: a["version"] == version and version <= int(spec_version), repository_versions_and_paths))
+            path = list(
+                filter(
+                    lambda a: a["version"] == version
+                    and version <= int(spec_version),
+                    repository_versions_and_paths,
+                )
+            )
             if len(path) > 0:
                 ordered_version_paths.append(path[0]["path"])
 
@@ -182,14 +190,16 @@ class Updater:
         try:
             url = f"{self._metadata_base_url}supported-versions.json"
 
-            target_bytes = self._fetcher.download_bytes(url, self.config.supported_versions_max_length)
+            target_bytes = self._fetcher.download_bytes(
+                url, self.config.supported_versions_max_length
+            )
             repository_versions = json.loads(target_bytes)
             return repository_versions["supported_versions"]
 
         # If supported-versions.json is not found, then default to version 1
         except exceptions.DownloadHTTPError as e:
             if e.status_code == 404:
-                return [{"version":1, "path": ""}]
+                return [{"version": 1, "path": ""}]
             raise
 
     def _generate_target_file_path(self, targetinfo: TargetFile) -> str:
