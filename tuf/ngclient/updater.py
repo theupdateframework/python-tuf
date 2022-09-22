@@ -34,12 +34,12 @@ downloads target files is available in `examples/client_example
 """
 
 import errno
+import json
 import logging
 import os
 import shutil
 import tempfile
-import json
-from typing import Optional, Set, List, Tuple, NewType
+from typing import List, NewType, Optional, Set, Tuple
 from urllib import parse
 
 from tuf.api import exceptions
