@@ -83,8 +83,6 @@ class TestUpdater(unittest.TestCase):
             "metadata",
             "current",
         )
-        # Adding the TAP14 folder
-        original_tap14 = os.path.join(original_repository_files, "TAP 14")
 
         # Save references to the often-needed client repository directories.
         # Test cases need these references to access metadata and target files.
@@ -93,16 +91,12 @@ class TestUpdater(unittest.TestCase):
         )
         self.keystore_directory = os.path.join(self.tmp_test_dir, "keystore")
         self.client_directory = os.path.join(self.tmp_test_dir, "client")
-        # Adding the TAP14 folder
-        self.tap14_directory = os.path.join(self.tmp_test_dir, "TAP 14")
 
         # Copy the original 'repository', 'client', and 'keystore' directories
         # to the temporary repository the test cases can use.
         shutil.copytree(original_repository, self.repository_directory)
         shutil.copytree(original_client, self.client_directory)
         shutil.copytree(original_keystore, self.keystore_directory)
-        # Copying over the TAP 14 folder
-        shutil.copytree(original_tap14, self.tap14_directory)
 
         # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
         repository_basepath = self.repository_directory[len(os.getcwd()) :]
@@ -362,28 +356,6 @@ class TestUpdater(unittest.TestCase):
         # "404 Client Error: File not found for url"
         with self.assertRaises(exceptions.DownloadHTTPError):
             self.updater.download_target(info)
-
-    # TAP 14 tests ~ REMOVE COMMENT BEFORE THE NEXT COMMIT!!
-
-    # test case to check for the TAP 14 folder
-    def test_check_folder_tap14(self) -> None:
-        # Creating the parent folder for the TAP 14 folder
-        self.assertTrue(os.path.isdir(self.tap14_directory))
-
-    def test_check_tap14_contents(self) -> None:
-        # Checking specific files inside TAP 14
-        filenames = ["targets.json", "root.json"]
-        for file in filenames:
-            self.assertTrue(
-                os.path.isfile(os.path.join(self.tap14_directory, file))
-            )
-
-        # Checking specific folders inside TAP 14
-        foldernames = ["targets", "1"]
-        for folder in foldernames:
-            self.assertTrue(
-                os.path.isdir(os.path.join(self.tap14_directory, folder))
-            )
 
     def test_get_spec_version_supported(self) -> None:
         """This uses the default SUPPORTED_VERSIONS variable from updater.py"""
