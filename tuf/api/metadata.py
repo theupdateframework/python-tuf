@@ -76,7 +76,7 @@ logger = logging.getLogger(__name__)
 
 # We aim to support SPECIFICATION_VERSION and require the input metadata
 # files to have the same major version (the first number) as ours.
-SPECIFICATION_VERSION = ["1", "0", "30"]
+SPECIFICATION_VERSION = ["1", "0", "31"]
 TOP_LEVEL_ROLE_NAMES = {_ROOT, _TIMESTAMP, _SNAPSHOT, _TARGETS}
 
 # T is a Generic type constraint for Metadata.signed
