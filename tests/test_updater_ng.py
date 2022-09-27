@@ -442,7 +442,7 @@ class TestUpdater(unittest.TestCase):
             self.repository_directory, "metadata", "supported-versions.json"
         )
         repo_version_json = json.dumps(
-            {"supported_versions": [{"version": 2, "path": "2"}]}
+            {"supported_versions": [{"version": 2, "path": "2/"}]}
         )
         with tempfile.TemporaryFile() as temp_file:
             temp_file.write(repo_version_json.encode("utf-8"))
@@ -468,8 +468,8 @@ class TestUpdater(unittest.TestCase):
         repo_version_json = json.dumps(
             {
                 "supported_versions": [
-                    {"version": 2, "path": "2"},
-                    {"version": 3, "path": "3"},
+                    {"version": 2, "path": "2/"},
+                    {"version": 3, "path": "3/"},
                 ]
             }
         )
@@ -554,7 +554,7 @@ class TestUpdater(unittest.TestCase):
             self.repository_directory, "metadata", "supported-versions.json"
         )
         repo_version_json = json.dumps(
-            {"supported_versions": [{"version": 2, "path": "2"}]}
+            {"supported_versions": [{"version": 2, "path": "2/"}]}
         )
         with tempfile.TemporaryFile() as temp_file:
             temp_file.write(repo_version_json.encode("utf-8"))
@@ -577,12 +577,15 @@ class TestUpdater(unittest.TestCase):
             os.path.join(self.repository_directory, "metadata", "2"),
         )
 
+        # update root outside of 2/ **this should be ignored**
+        self._modify_repository_root(lambda root: None, bump_version=True)
+
         # switch repository supported versions
         repo_version_path = os.path.join(
             self.repository_directory, "metadata", "supported-versions.json"
         )
         repo_version_json = json.dumps(
-            {"supported_versions": [{"version": 2, "path": "2"}]}
+            {"supported_versions": [{"version": 2, "path": "2/"}]}
         )
         with tempfile.TemporaryFile() as temp_file:
             temp_file.write(repo_version_json.encode("utf-8"))

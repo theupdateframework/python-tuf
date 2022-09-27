@@ -131,6 +131,14 @@ class Updater:
             RepositoryError: Metadata failed to verify in some way
             DownloadError: Download of a metadata file failed in some way
         """
+        ordered_version_paths = self._set_spec_version()
+
+        self._load_root(ordered_version_paths)
+        self._load_timestamp()
+        self._load_snapshot()
+        self._load_targets(Targets.type, Root.type)
+
+    def _set_spec_version(self) -> List[str]:
         try:
             version_bytes = self._load_local_metadata("spec_version")
             self._spec_version = json.loads(version_bytes.decode("utf-8"))[
@@ -159,18 +167,12 @@ class Updater:
 
         ordered_version_paths = []
 
-        def filter_fn(a):
-            return a["version"] == version and version <= int(spec_version)
-
         for version in sorted(repository_versions):
-            path = list(
-                filter(
-                    filter_fn,
-                    repository_versions_and_paths,
-                )
-            )
+            path = [i["path"] for i in repository_versions_and_paths if version <= int(spec_version) and i["version"] == version]
+
+            # found this version
             if len(path) > 0:
-                ordered_version_paths.append(path[0]["path"])
+                ordered_version_paths.append(path[0])
 
         for i in repository_versions_and_paths:
             if i["version"] == spec_version:
@@ -182,12 +184,10 @@ class Updater:
             json.dumps({"version": spec_version}).encode("utf-8"),
         )
 
-        self._load_root(ordered_version_paths)
-        self._load_timestamp()
-        self._load_snapshot()
-        self._load_targets(Targets.type, Root.type)
+        return ordered_version_paths
 
-    def _get_repository_versions(self) -> List[str]:
+
+    def _get_repository_versions(self) -> List[object]:
         """Returns a list of all the repository versions and paths."""
 
         try:
@@ -340,10 +340,7 @@ class Updater:
         """Download a metadata file and return it as bytes"""
         encoded_name = parse.quote(rolename, "")
 
-        if self._spec_version_dir == "":
-            spec_folder = ""
-        else:
-            spec_folder = f"{self._spec_version_dir}/"
+        spec_folder = f"{self._spec_version_dir}"
 
         if version is None:  # THIS IS SNAPSHOT VERSION !!
             url = f"{self._metadata_base_url}{spec_folder}{encoded_name}.json"
@@ -393,7 +390,7 @@ class Updater:
         save_repo_version_dir = self._spec_version_dir
 
         for next_version in range(lower_bound, upper_bound):
-            for version_repo in supported_version_repos:
+            for i, version_repo in enumerate(supported_version_repos):
                 to_break = True
                 self._spec_version_dir = version_repo
                 try:
@@ -405,6 +402,7 @@ class Updater:
                     self._trusted_set.update_root(data)
                     self._persist_metadata(Root.type, data)
                     # if found, don't check older supported versions
+                    supported_version_repos = supported_version_repos[:i+1]
                     to_break = False
                     break
 
