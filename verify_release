@@ -14,7 +14,7 @@ import json
 import os
 import subprocess
 import sys
-from filecmp import dircmp
+from filecmp import cmp
 from tempfile import TemporaryDirectory
 
 try:
@@ -104,8 +104,15 @@ def verify_github_release(version: str, compare_dir: str) -> bool:
                 for data in response.iter_content():
                     f.write(data)
 
-        same = dircmp(github_dir, compare_dir).same_files
-        return sorted(same) == [wheel, tar]
+        return cmp(
+            os.path.join(github_dir, tar),
+            os.path.join(compare_dir, tar),
+            shallow=False,
+        ) and cmp(
+            os.path.join(github_dir, wheel),
+            os.path.join(compare_dir, wheel),
+            shallow=False,
+        )
 
 
 def verify_pypi_release(version: str, compare_dir: str) -> bool:
@@ -122,8 +129,15 @@ def verify_pypi_release(version: str, compare_dir: str) -> bool:
         subprocess.run(binary_download, stdout=subprocess.DEVNULL, check=True)
         subprocess.run(source_download, stdout=subprocess.DEVNULL, check=True)
 
-        same = dircmp(pypi_dir, compare_dir).same_files
-        return sorted(same) == [wheel, tar]
+        return cmp(
+            os.path.join(pypi_dir, wheel),
+            os.path.join(compare_dir, wheel),
+            shallow=False,
+        ) and cmp(
+            os.path.join(pypi_dir, tar),
+            os.path.join(compare_dir, tar),
+            shallow=False,
+        )
 
 
 def sign_release_artifacts(
