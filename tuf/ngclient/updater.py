@@ -131,14 +131,15 @@ class Updater:
             RepositoryError: Metadata failed to verify in some way
             DownloadError: Download of a metadata file failed in some way
         """
-        ordered_version_paths = self._set_spec_version()
+        self._set_spec_version()
 
-        self._load_root(ordered_version_paths)
+        self._load_root()
         self._load_timestamp()
         self._load_snapshot()
         self._load_targets(Targets.type, Root.type)
 
-    def _set_spec_version(self) -> List[str]:
+    def _set_spec_version(self) -> None:
+        # get previous spec version
         try:
             version_bytes = self._load_local_metadata("spec_version")
             self._spec_version = json.loads(version_bytes.decode("utf-8"))[
@@ -150,25 +151,31 @@ class Updater:
                 raise
             self._spec_version = "1"
 
-        repository_versions_and_paths = self._get_repository_versions()
-
+    def _find_matching_spec_version(
+        self, repository_versions_and_paths
+    ) -> List[str]:
         repository_versions = [
             i["version"] for i in repository_versions_and_paths
         ]
 
         # Updating self.spec_version
-        spec_version, message = _get_spec_version(
+        spec_version = _get_spec_version(
             repository_versions, self._spec_version, self._supported_versions
         )
 
-        if message:
-            logger.warning(message)
         self._spec_version = spec_version
 
         ordered_version_paths = []
 
-        for version in sorted(repository_versions):
-            path = [i["path"] for i in repository_versions_and_paths if version <= int(spec_version) and i["version"] == version]
+        repository_versions = sorted(repository_versions)
+        repository_versions.reverse()
+
+        for version in repository_versions:
+            path = [
+                i["path"]
+                for i in repository_versions_and_paths
+                if version >= int(spec_version) and i["version"] == version
+            ]
 
             # found this version
             if len(path) > 0:
@@ -186,24 +193,14 @@ class Updater:
 
         return ordered_version_paths
 
-
     def _get_repository_versions(self) -> List[object]:
         """Returns a list of all the repository versions and paths."""
 
-        try:
-            url = f"{self._metadata_base_url}supported-versions.json"
-
-            target_bytes = self._fetcher.download_bytes(
-                url, self.config.supported_versions_max_length
-            )
-            repository_versions = json.loads(target_bytes)
-            return repository_versions["supported_versions"]
-
-        # If supported-versions.json is not found, then default to version 1
-        except exceptions.DownloadHTTPError as e:
-            if e.status_code == 404:
-                return [{"version": 1, "path": ""}]
-            raise
+        # If supported-versions is not found, then default to version 1
+        if len(self._trusted_set.root.signed.supported_versions) > 0:
+            return self._trusted_set.root.signed.supported_versions
+        else:
+            return [{"version": 1, "path": ""}]
 
     def _generate_target_file_path(self, targetinfo: TargetFile) -> str:
         if self.target_dir is None:
@@ -376,23 +373,27 @@ class Updater:
                     pass
             raise e
 
-    def _load_root(self, supported_version_repos) -> None:
+    def _load_root(self) -> None:
         """Load remote root metadata.
 
         Sequentially load and persist on local disk every newer root metadata
         version available on the remote.
         """
 
+        # find the current highest compatible spec version and get the
+        # list of versions to look for root metadata
+        repository_versions_and_paths = self._get_repository_versions()
+        supported_version_repos = self._find_matching_spec_version(
+            repository_versions_and_paths
+        )
+
         # Update the root role
         lower_bound = self._trusted_set.root.signed.version + 1
         upper_bound = lower_bound + self.config.max_root_rotations
 
-        save_repo_version_dir = self._spec_version_dir
-
-        for next_version in range(lower_bound, upper_bound):
-            for i, version_repo in enumerate(supported_version_repos):
-                to_break = True
-                self._spec_version_dir = version_repo
+        for version_repo in supported_version_repos:
+            self._spec_version_dir = version_repo
+            for next_version in range(lower_bound, upper_bound):
                 try:
                     data = self._download_metadata(
                         Root.type,
@@ -401,20 +402,23 @@ class Updater:
                     )
                     self._trusted_set.update_root(data)
                     self._persist_metadata(Root.type, data)
-                    # if found, don't check older supported versions
-                    supported_version_repos = supported_version_repos[:i+1]
-                    to_break = False
-                    break
+                    # check if supported_versions was updated in this root
+                    repository_versions_and_paths = (
+                        self._get_repository_versions()
+                    )
+                    supported_version_repos = self._find_matching_spec_version(
+                        repository_versions_and_paths
+                    )
+                    # if found, don't check older versions
+                    lower_bound = self._trusted_set.root.signed.version + 1
 
                 except exceptions.DownloadHTTPError as exception:
                     if exception.status_code not in {403, 404}:
                         raise
                     # 404/403 means current root is newest available
-                if to_break:
-                    self._spec_version_dir = save_repo_version_dir
-                    return
+                    break
 
-        self._spec_version_dir = save_repo_version_dir
+        # self._spec_version_dir = save_repo_version_dir
 
     def _load_timestamp(self) -> None:
         """Load local and remote timestamp metadata"""
@@ -574,7 +578,7 @@ def _get_spec_version(
     repository_versions: List[str],
     spec_version: str,
     supported_versions: List[str],
-) -> Tuple[str, Optional[str]]:
+) -> str:
     """Returns the specification version to be used, following the rules of TAP-14
        and displays a warning if chosen spec_version is lower than the highest repository version.
 
@@ -621,8 +625,9 @@ def _get_spec_version(
             f"repository and {supported_versions} in client."
         ) from e
 
-    warning = None
     if latest_repo_version > spec_version:
-        warning = "Not using the latest specification version available on the repository"
+        logger.warning(
+            "Not using the latest specification version available on the repository"
+        )
 
-    return (str(spec_version), warning)
+    return str(spec_version)

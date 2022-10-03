@@ -370,7 +370,7 @@ class TestUpdater(unittest.TestCase):
 
         self.assertEqual(
             _get_spec_version(["1", "2", "3"], "3", [3]),
-            ("3", None),
+            ("3"),
             "3 is selected as the spec version and no warning ensues",
         )
 
@@ -425,11 +425,12 @@ class TestUpdater(unittest.TestCase):
             expected_version,
             should_have_warning,
         ) in test_cases:
-            actual_version, warning = _get_spec_version(
+            actual_version = _get_spec_version(
                 repo_versions, spec_version, supported_versions
             )
             self.assertEqual(actual_version, expected_version)
-            self.assertEqual(bool(warning), should_have_warning)
+            # TODO ensure warning was logged
+            # self.assertEqual(bool(warning), should_have_warning)
 
         # TODO Testing logging functionality.
         # with self.assertLogs(ngclient.updater.__name__) as cm:
@@ -438,18 +439,15 @@ class TestUpdater(unittest.TestCase):
 
     def test_spec_version_increase(self) -> None:
         # switch repository supported versions
-        repo_version_path = os.path.join(
-            self.repository_directory, "metadata", "supported-versions.json"
-        )
-        repo_version_json = json.dumps(
-            {"supported_versions": [{"version": 2, "path": "2/"}]}
-        )
-        with tempfile.TemporaryFile() as temp_file:
-            temp_file.write(repo_version_json.encode("utf-8"))
-            persist_temp_file(temp_file, repo_version_path, FilesystemBackend())
+        def _set_supported_version(root) -> Root:
+            repo_version = [{"version": 2, "path": "2/"}]
+            root.signed.supported_versions = repo_version
+            return root
+
+        self._modify_repository_root(_set_supported_version, bump_version=True)
 
         # switch client supported versions
-        self.updater._supported_versions = ["2"]
+        self.updater._supported_versions = ["1", "2"]
 
         # copy the current metadata to 2/
         shutil.copytree(
@@ -462,20 +460,15 @@ class TestUpdater(unittest.TestCase):
 
     def test_spec_version_overlap(self) -> None:
         # repository supports version 2 and 3
-        repo_version_path = os.path.join(
-            self.repository_directory, "metadata", "supported-versions.json"
-        )
-        repo_version_json = json.dumps(
-            {
-                "supported_versions": [
-                    {"version": 2, "path": "2/"},
-                    {"version": 3, "path": "3/"},
-                ]
-            }
-        )
-        with tempfile.TemporaryFile() as temp_file:
-            temp_file.write(repo_version_json.encode("utf-8"))
-            persist_temp_file(temp_file, repo_version_path, FilesystemBackend())
+        def _set_supported_version(root) -> Root:
+            repo_version = [
+                {"version": 2, "path": "2/"},
+                {"version": 3, "path": "3/"},
+            ]
+            root.signed.supported_versions = repo_version
+            return root
+
+        self._modify_repository_root(_set_supported_version, bump_version=True)
 
         # client supports version 1 and 2
         self.updater._supported_versions = ["1", "2"]
@@ -497,16 +490,13 @@ class TestUpdater(unittest.TestCase):
             os.path.join(self.repository_directory, "metadata", "2"),
         )
 
-        # add supported-versions.json
-        repo_version_path = os.path.join(
-            self.repository_directory, "metadata", "supported-versions.json"
-        )
-        repo_version_json = json.dumps(
-            {"supported_versions": [{"version": 1, "path": ""}]}
-        )
-        with tempfile.TemporaryFile() as temp_file:
-            temp_file.write(repo_version_json.encode("utf-8"))
-            persist_temp_file(temp_file, repo_version_path, FilesystemBackend())
+        # add supported-versions to root
+        def _set_supported_version(root) -> Root:
+            repo_version = [{"version": 1, "path": ""}]
+            root.signed.supported_versions = repo_version
+            return root
+
+        self._modify_repository_root(_set_supported_version, bump_version=True)
 
         self.updater.refresh()
 
@@ -523,16 +513,13 @@ class TestUpdater(unittest.TestCase):
             )
 
         # but supported-versions only contains 1
-        # add supported-versions.json
-        repo_version_path = os.path.join(
-            self.repository_directory, "metadata", "supported-versions.json"
-        )
-        repo_version_json = json.dumps(
-            {"supported_versions": [{"version": 1, "path": ""}]}
-        )
-        with tempfile.TemporaryFile() as temp_file:
-            temp_file.write(repo_version_json.encode("utf-8"))
-            persist_temp_file(temp_file, repo_version_path, FilesystemBackend())
+        # add supported-versions to root
+        def _set_supported_version(root) -> Root:
+            repo_version = [{"version": 1, "path": ""}]
+            root.signed.supported_versions = repo_version
+            return root
+
+        self._modify_repository_root(_set_supported_version, bump_version=True)
 
         self.assertEqual(self.updater._supported_versions, ["1"])
 
@@ -540,6 +527,17 @@ class TestUpdater(unittest.TestCase):
             self.updater.refresh()
 
     def test_spec_version_root_update_order(self) -> None:
+        # set supported versions in root
+        def _set_supported_version(root) -> Root:
+            repo_version = [
+                {"version": 1, "path": ""},
+                {"version": 2, "path": ""},
+            ]
+            root.signed.supported_versions = repo_version
+            return root
+
+        self._modify_repository_root(_set_supported_version, bump_version=True)
+
         # copy the current metadata to 2/
         shutil.copytree(
             os.path.join(self.repository_directory, "metadata"),
@@ -549,23 +547,13 @@ class TestUpdater(unittest.TestCase):
         # update root not in 2/
         self._modify_repository_root(lambda root: None, bump_version=True)
 
-        # switch repository supported versions
-        repo_version_path = os.path.join(
-            self.repository_directory, "metadata", "supported-versions.json"
-        )
-        repo_version_json = json.dumps(
-            {"supported_versions": [{"version": 2, "path": "2/"}]}
-        )
-        with tempfile.TemporaryFile() as temp_file:
-            temp_file.write(repo_version_json.encode("utf-8"))
-            persist_temp_file(temp_file, repo_version_path, FilesystemBackend())
-
         # switch client supported versions
-        self.updater._supported_versions = ["2"]
+        self.updater._supported_versions = ["1", "2"]
 
         self.updater.refresh()
-        # it should not find version 2 of root as it is missing from 2/
-        self.assertEqual(self.updater._trusted_set.root.signed.version, 1)
+        # version 2 is missing the most recent root
+        self.assertEqual(self.updater._trusted_set.root.signed.version, 3)
+        self.assertEqual(self.updater._spec_version, "2")
 
     def test_spec_version_root_update(self) -> None:
         # update root
@@ -577,25 +565,23 @@ class TestUpdater(unittest.TestCase):
             os.path.join(self.repository_directory, "metadata", "2"),
         )
 
-        # update root outside of 2/ **this should be ignored**
-        self._modify_repository_root(lambda root: None, bump_version=True)
-
         # switch repository supported versions
-        repo_version_path = os.path.join(
-            self.repository_directory, "metadata", "supported-versions.json"
-        )
-        repo_version_json = json.dumps(
-            {"supported_versions": [{"version": 2, "path": "2/"}]}
-        )
-        with tempfile.TemporaryFile() as temp_file:
-            temp_file.write(repo_version_json.encode("utf-8"))
-            persist_temp_file(temp_file, repo_version_path, FilesystemBackend())
+        def _set_supported_version(root) -> Root:
+            repo_version = [
+                {"version": 1, "path": ""},
+                {"version": 2, "path": ""},
+            ]
+            root.signed.supported_versions = repo_version
+            return root
+
+        self._modify_repository_root(_set_supported_version, bump_version=True)
 
         # switch client supported versions
-        self.updater._supported_versions = ["2"]
+        self.updater._supported_versions = ["1", "2"]
 
         self.updater.refresh()
-        self.assertEqual(self.updater._trusted_set.root.signed.version, 2)
+        self.assertEqual(self.updater._trusted_set.root.signed.version, 3)
+        self.assertEqual(self.updater._spec_version, "2")
 
 
 if __name__ == "__main__":

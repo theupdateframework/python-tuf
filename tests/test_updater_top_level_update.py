@@ -742,7 +742,6 @@ class TestRefresh(unittest.TestCase):
         )
 
         expected_calls = [
-            ("supported-versions", None),
             ("root", 2),
             ("timestamp", None),
         ]
