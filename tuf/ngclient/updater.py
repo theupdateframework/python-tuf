@@ -91,7 +91,7 @@ class Updater:
         fetcher: Optional[FetcherInterface] = None,
         config: Optional[UpdaterConfig] = None,
     ):
-        self._spec_version = None  # spec_version is the last used version by the client to get metadata
+        self._spec_version: str = "1"  # spec_version is the last used version by the client to get metadata
         self._spec_version_dir = ""
         self._dir = metadata_dir
         self._metadata_base_url = _ensure_trailing_slash(metadata_base_url)
@@ -152,7 +152,7 @@ class Updater:
             self._spec_version = "1"
 
     def _find_matching_spec_version(
-        self, repository_versions_and_paths
+        self, repository_versions_and_paths: List[dict]
     ) -> List[str]:
         repository_versions = [
             i["version"] for i in repository_versions_and_paths
@@ -193,12 +193,13 @@ class Updater:
 
         return ordered_version_paths
 
-    def _get_repository_versions(self) -> List[object]:
+    def _get_repository_versions(self) -> List[dict]:
         """Returns a list of all the repository versions and paths."""
 
         # If supported-versions is not found, then default to version 1
-        if len(self._trusted_set.root.signed.supported_versions) > 0:
-            return self._trusted_set.root.signed.supported_versions
+        supported = self._trusted_set.root.signed.supported_versions
+        if supported is not None and len(supported) > 0:
+            return supported
         else:
             return [{"version": 1, "path": ""}]
 
@@ -589,22 +590,21 @@ def _get_spec_version(
         this repository
         RepositoryError: No matching version found between supported_versions and repository_versions
     """
-    repository_versions = [int(i) for i in repository_versions]
-    supported_versions = [int(i) for i in supported_versions]
-    spec_version = int(spec_version)
+    repository_versions_int = [int(i) for i in repository_versions]
+    supported_versions_int = [int(i) for i in supported_versions]
+    spec_version_int = int(spec_version)
 
     # The client determines the latest version available on the repository by looking
     # for the directory with the largest version number.
-    latest_repo_version = max(repository_versions)
+    latest_repo_version = max(repository_versions_int)
 
     # If the latest version on the repository is lower than the previous specification
     # version the client used from this repository, the client should report an error
     # and terminate the update.
-    if spec_version:
-        if latest_repo_version < spec_version:
-            raise exceptions.RepositoryError(
-                f"The latest repository version ({latest_repo_version}) is lower than the last used spec version ({spec_version})."
-            )
+    if latest_repo_version < spec_version_int:
+        raise exceptions.RepositoryError(
+            f"The latest repository version ({latest_repo_version}) is lower than the last used spec version ({spec_version})."
+        )
 
     # If the latest version on the repository is equal to that of the client, it will use this directory to download metadata.
 
@@ -618,16 +618,18 @@ def _get_spec_version(
     # that corresponds with the latest client specification version, if available. If no such directory exists,
     # the client terminates the update.
     try:
-        spec_version = max(set(repository_versions) & set(supported_versions))
+        spec_version_int = max(
+            set(repository_versions_int) & set(supported_versions_int)
+        )
     except ValueError as e:
         raise exceptions.RepositoryError(
             f"No matching specification version found. Found {repository_versions} in"
             f"repository and {supported_versions} in client."
         ) from e
 
-    if latest_repo_version > spec_version:
+    if latest_repo_version > spec_version_int:
         logger.warning(
             "Not using the latest specification version available on the repository"
         )
 
-    return str(spec_version)
+    return str(spec_version_int)

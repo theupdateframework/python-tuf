@@ -949,7 +949,10 @@ class Root(Signed):
             roles[role_name] = role.to_dict()
         if self.consistent_snapshot is not None:
             root_dict["consistent_snapshot"] = self.consistent_snapshot
-        if len(self.supported_versions) > 0:
+        if (
+            self.supported_versions is not None
+            and len(self.supported_versions) > 0
+        ):
             supported_versions = [
                 {field: value for (field, value) in v.items()}
                 for v in self.supported_versions
