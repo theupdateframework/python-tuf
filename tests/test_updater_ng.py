@@ -401,21 +401,18 @@ class TestUpdater(unittest.TestCase):
                 "3",
                 ["1", "2", "3", "4"],
                 "3",
-                True,
             ),  # 3 is selected as the spec version but a warning ensues
             (
                 ["1", "2", "3"],
                 "3",
                 ["3", "5", "6"],
                 "3",
-                False,
             ),  # 3 is selected as the spec version and no warning ensues
             (
                 ["8", "11", "13"],
                 "12",
                 ["8", "11", "12"],
                 "11",
-                True,
             ),  # 11 is selected as the spec version but a warning ensues
         ]
         for t in test_cases:
@@ -424,13 +421,12 @@ class TestUpdater(unittest.TestCase):
                 spec_version,
                 supported_versions,
                 expected_version,
-                should_have_warning,
             ) = t
             actual_version = _get_spec_version(
                 repo_versions, spec_version, supported_versions
             )
             self.assertEqual(actual_version, expected_version)
-            # TODO ensure warning was logged
+            # TODO ensure warning was logged for case 1 and 3
 
         # TODO Testing logging functionality.
         # with self.assertLogs(ngclient.updater.__name__) as cm:
@@ -442,7 +438,6 @@ class TestUpdater(unittest.TestCase):
         def _set_supported_version(root: Metadata) -> None:
             repo_version = [{"version": 2, "path": "2/"}]
             root.signed.supported_versions = repo_version
-            return None
 
         self._modify_repository_root(_set_supported_version, bump_version=True)
 
@@ -466,7 +461,6 @@ class TestUpdater(unittest.TestCase):
                 {"version": 3, "path": "3/"},
             ]
             root.signed.supported_versions = repo_version
-            return None
 
         self._modify_repository_root(_set_supported_version, bump_version=True)
 
@@ -494,7 +488,6 @@ class TestUpdater(unittest.TestCase):
         def _set_supported_version(root: Metadata) -> None:
             repo_version = [{"version": 1, "path": ""}]
             root.signed.supported_versions = repo_version
-            return None
 
         self._modify_repository_root(_set_supported_version, bump_version=True)
 
@@ -517,7 +510,6 @@ class TestUpdater(unittest.TestCase):
         def _set_supported_version(root: Metadata) -> None:
             repo_version = [{"version": 1, "path": ""}]
             root.signed.supported_versions = repo_version
-            return None
 
         self._modify_repository_root(_set_supported_version, bump_version=True)
 
@@ -534,7 +526,6 @@ class TestUpdater(unittest.TestCase):
                 {"version": 2, "path": ""},
             ]
             root.signed.supported_versions = repo_version
-            return None
 
         self._modify_repository_root(_set_supported_version, bump_version=True)
 
@@ -572,7 +563,6 @@ class TestUpdater(unittest.TestCase):
                 {"version": 2, "path": ""},
             ]
             root.signed.supported_versions = repo_version
-            return None
 
         self._modify_repository_root(_set_supported_version, bump_version=True)
 

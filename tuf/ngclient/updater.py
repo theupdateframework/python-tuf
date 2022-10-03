@@ -39,7 +39,7 @@ import logging
 import os
 import shutil
 import tempfile
-from typing import List, Optional, Set, Tuple
+from typing import List, Optional, Set
 from urllib import parse
 
 from tuf.api import exceptions
@@ -139,6 +139,7 @@ class Updater:
         self._load_targets(Targets.type, Root.type)
 
     def _set_spec_version(self) -> None:
+        """Load previous spec version from disk"""
         # get previous spec version
         try:
             version_bytes = self._load_local_metadata("spec_version")
@@ -154,6 +155,10 @@ class Updater:
     def _find_matching_spec_version(
         self, repository_versions_and_paths: List[dict]
     ) -> List[str]:
+        """Find the set of spec versions that match between the client and repository.
+        Returns the paths for these spec versions in order
+        """
+
         repository_versions = [
             i["version"] for i in repository_versions_and_paths
         ]
@@ -200,8 +205,7 @@ class Updater:
         supported = self._trusted_set.root.signed.supported_versions
         if supported is not None and len(supported) > 0:
             return supported
-        else:
-            return [{"version": 1, "path": ""}]
+        return [{"version": 1, "path": ""}]
 
     def _generate_target_file_path(self, targetinfo: TargetFile) -> str:
         if self.target_dir is None:

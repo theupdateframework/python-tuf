@@ -886,7 +886,7 @@ class Root(Signed):
         keys: Optional[Dict[str, Key]] = None,
         roles: Optional[Mapping[str, Role]] = None,
         consistent_snapshot: Optional[bool] = True,
-        supported_versions: Optional[List[Dict]] = [],
+        supported_versions: Optional[List[Dict]] = None,
         unrecognized_fields: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(version, spec_version, expires, unrecognized_fields)
@@ -920,7 +920,7 @@ class Root(Signed):
             ValueError, KeyError, TypeError: Invalid arguments.
         """
         common_args = cls._common_fields_from_dict(signed_dict)
-        supported_versions = signed_dict.pop("supported_versions", [])
+        supported_versions = signed_dict.pop("supported_versions", None)
         consistent_snapshot = signed_dict.pop("consistent_snapshot", None)
         keys = signed_dict.pop("keys")
         roles = signed_dict.pop("roles")
@@ -949,14 +949,8 @@ class Root(Signed):
             roles[role_name] = role.to_dict()
         if self.consistent_snapshot is not None:
             root_dict["consistent_snapshot"] = self.consistent_snapshot
-        if (
-            self.supported_versions is not None
-            and len(self.supported_versions) > 0
-        ):
-            supported_versions = [
-                {field: value for (field, value) in v.items()}
-                for v in self.supported_versions
-            ]
+        if self.supported_versions is not None:
+            supported_versions = self.supported_versions
             root_dict["supported_versions"] = supported_versions
 
         root_dict.update(
