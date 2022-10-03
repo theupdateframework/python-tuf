@@ -886,7 +886,7 @@ class Root(Signed):
         keys: Optional[Dict[str, Key]] = None,
         roles: Optional[Mapping[str, Role]] = None,
         consistent_snapshot: Optional[bool] = True,
-        supported_versions: Optional[list[Dict]] = [],
+        supported_versions: Optional[List[Dict]] = [],
         unrecognized_fields: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(version, spec_version, expires, unrecognized_fields)
