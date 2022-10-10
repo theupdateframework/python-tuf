@@ -37,7 +37,7 @@ jobs:
         run: python3 -m build --sdist --wheel --outdir dist/ .
 
       - id: gh-release
-        name: Publish GitHub release candiate
+        name: Publish GitHub release candidate
         uses: softprops/action-gh-release@1e07f4398721186383de40550babbdf2b84acfc5
         with:
           name: ${{ github.ref_name }}-rc
