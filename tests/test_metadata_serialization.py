@@ -297,7 +297,6 @@ class TestSerialization(unittest.TestCase):
     invalid_metafiles: utils.DataSet = {
         "wrong length type": '{"version": 1, "length": "a", "hashes": {"sha256" : "abc"}}',
         "version 0": '{"version": 0, "length": 1, "hashes": {"sha256" : "abc"}}',
-        "length 0": '{"version": 1, "length": 0, "hashes": {"sha256" : "abc"}}',
         "length below 0": '{"version": 1, "length": -1, "hashes": {"sha256" : "abc"}}',
         "empty hashes dict": '{"version": 1, "length": 1, "hashes": {}}',
         "hashes wrong type": '{"version": 1, "length": 1, "hashes": 1}',
@@ -313,6 +312,7 @@ class TestSerialization(unittest.TestCase):
     valid_metafiles: utils.DataSet = {
         "all": '{"hashes": {"sha256" : "abc"}, "length": 12, "version": 1}',
         "no length": '{"hashes": {"sha256" : "abc"}, "version": 1 }',
+        "length 0": '{"version": 1, "length": 0, "hashes": {"sha256" : "abc"}}',
         "no hashes": '{"length": 12, "version": 1}',
         "unrecognized field": '{"hashes": {"sha256" : "abc"}, "length": 12, "version": 1, "foo": "bar"}',
         "many hashes": '{"hashes": {"sha256" : "abc", "sha512": "cde"}, "length": 12, "version": 1}',
