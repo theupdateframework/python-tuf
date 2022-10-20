@@ -1052,8 +1052,8 @@ class BaseFile:
 
     @staticmethod
     def _validate_length(length: int) -> None:
-        if length <= 0:
-            raise ValueError(f"Length must be > 0, got {length}")
+        if length < 0:
+            raise ValueError(f"Length must be >= 0, got {length}")
 
 
 class MetaFile(BaseFile):
