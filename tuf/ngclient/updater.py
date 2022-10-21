@@ -33,14 +33,17 @@ downloads target files is available in `examples/client_example
 <https://github.com/theupdateframework/python-tuf/tree/develop/examples/client_example>`_.
 """
 
+import base64
 import errno
 import json
 import logging
 import os
 import shutil
 import tempfile
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Tuple
 from urllib import parse
+
+from securesystemslib import hash as sslib_hash
 
 from tuf.api import exceptions
 from tuf.api.metadata import (
@@ -151,52 +154,36 @@ class Updater:
             if e.errno != errno.ENOENT:
                 raise
             self._spec_version = "1"
+            # persist the version number
+            self._persist_metadata(
+                "spec_version",
+                json.dumps({"version": "1"}).encode("utf-8"),
+            )
 
     def _find_matching_spec_version(
-        self, repository_versions_and_paths: List[dict]
-    ) -> List[str]:
+        self, repository_versions_dicts: List[dict]
+    ) -> Tuple[str, str, str]:
         """Find the set of spec versions that match between the client and repository.
-        Returns the paths for these spec versions in order
+        Returns the largest matching version and information about
+        the new root
         """
 
-        repository_versions = [
-            i["version"] for i in repository_versions_and_paths
-        ]
+        repository_versions = [i["version"] for i in repository_versions_dicts]
 
         # Updating self.spec_version
         spec_version = _get_spec_version(
             repository_versions, self._spec_version, self._supported_versions
         )
 
-        self._spec_version = spec_version
+        for i in repository_versions_dicts:
+            if i["version"] == int(spec_version):
+                if "root-filename" in i and "root-digest" in i:
+                    return spec_version, i["root-filename"], i["root-digest"]
+                # root info will be empty if the version does not change
+                return spec_version, "", ""
 
-        ordered_version_paths = []
-
-        repository_versions = sorted(repository_versions)
-        repository_versions.reverse()
-
-        for version in repository_versions:
-            path = [
-                i["path"]
-                for i in repository_versions_and_paths
-                if version >= int(spec_version) and i["version"] == version
-            ]
-
-            # found this version
-            if len(path) > 0:
-                ordered_version_paths.append(path[0])
-
-        for i in repository_versions_and_paths:
-            if i["version"] == spec_version:
-                self._spec_version_dir = i["path"]
-
-        # persist the version number
-        self._persist_metadata(
-            "spec_version",
-            json.dumps({"version": spec_version}).encode("utf-8"),
-        )
-
-        return ordered_version_paths
+        # we shouldn't get here...
+        raise ValueError("current repository version not found")
 
     def _get_repository_versions(self) -> List[dict]:
         """Returns a list of all the repository versions and paths."""
@@ -205,7 +192,7 @@ class Updater:
         supported = self._trusted_set.root.signed.supported_versions
         if supported is not None and len(supported) > 0:
             return supported
-        return [{"version": 1, "path": ""}]
+        return [{"version": 1}]
 
     def _generate_target_file_path(self, targetinfo: TargetFile) -> str:
         if self.target_dir is None:
@@ -336,6 +323,11 @@ class Updater:
         logger.info("Downloaded target %s", targetinfo.path)
         return filepath
 
+    def _download_new_spec_root(self, rolename: str, length: int) -> bytes:
+        spec_folder = f"{self._spec_version_dir}"
+        url = f"{self._metadata_base_url}{spec_folder}{rolename}"
+        return self._fetcher.download_bytes(url, length)
+
     def _download_metadata(
         self, rolename: str, length: int, version: Optional[int] = None
     ) -> bytes:
@@ -387,43 +379,67 @@ class Updater:
 
         # find the current highest compatible spec version and get the
         # list of versions to look for root metadata
-        repository_versions_and_paths = self._get_repository_versions()
-        supported_version_repos = self._find_matching_spec_version(
-            repository_versions_and_paths
-        )
+        (
+            supported_version,
+            new_root_filename,
+            new_root_bytes,
+        ) = self._find_matching_spec_version(self._get_repository_versions())
+
+        # if compatible version higher than current, jump to that root
+        # call _load_root in new version
+        if int(supported_version) > int(self._spec_version):
+            save_dir = self._spec_version_dir
+            self._spec_version_dir = supported_version + "/"
+            actual_bytes = self._download_new_spec_root(
+                new_root_filename, self.config.root_max_length
+            )
+            hasher = sslib_hash.digest(algorithm="sha256")
+            hasher.update(actual_bytes)
+            if base64.b64decode(new_root_bytes) == hasher.digest():
+                # set trustedroot
+                self._trusted_set.update_root_spec_rotation(actual_bytes)
+
+                # try update again, checking for new supported versions first
+                self._spec_version = supported_version
+
+                # persist the version number
+                self._persist_metadata(
+                    "spec_version",
+                    json.dumps({"version": self._spec_version}).encode("utf-8"),
+                )
+
+                self._load_root()
+            else:
+                # error loading new version, stay with this version
+                self._spec_version_dir = save_dir
 
         # Update the root role
         lower_bound = self._trusted_set.root.signed.version + 1
         upper_bound = lower_bound + self.config.max_root_rotations
 
-        for version_repo in supported_version_repos:
-            self._spec_version_dir = version_repo
-            for next_version in range(lower_bound, upper_bound):
-                try:
-                    data = self._download_metadata(
-                        Root.type,
-                        self.config.root_max_length,
-                        next_version,
-                    )
-                    self._trusted_set.update_root(data)
-                    self._persist_metadata(Root.type, data)
-                    # check if supported_versions was updated in this root
-                    repository_versions_and_paths = (
-                        self._get_repository_versions()
-                    )
-                    supported_version_repos = self._find_matching_spec_version(
-                        repository_versions_and_paths
-                    )
-                    # if found, don't check older versions
-                    lower_bound = self._trusted_set.root.signed.version + 1
+        for next_version in range(lower_bound, upper_bound):
+            try:
+                data = self._download_metadata(
+                    Root.type,
+                    self.config.root_max_length,
+                    next_version,
+                )
+                self._trusted_set.update_root(data)
+                self._persist_metadata(Root.type, data)
+                # check if supported_versions was updated in this root
+                repository_versions = self._get_repository_versions()
+                new_supported_version, _, _ = self._find_matching_spec_version(
+                    repository_versions
+                )
+                # if found, recurse to try loading new spec version
+                if int(new_supported_version) > int(self._spec_version):
+                    self._load_root()
 
-                except exceptions.DownloadHTTPError as exception:
-                    if exception.status_code not in {403, 404}:
-                        raise
-                    # 404/403 means current root is newest available
-                    break
-
-        # self._spec_version_dir = save_repo_version_dir
+            except exceptions.DownloadHTTPError as exception:
+                if exception.status_code not in {403, 404}:
+                    raise
+                # 404/403 means current root is newest available
+                break
 
     def _load_timestamp(self) -> None:
         """Load local and remote timestamp metadata"""

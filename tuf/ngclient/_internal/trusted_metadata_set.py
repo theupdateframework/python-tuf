@@ -177,6 +177,19 @@ class TrustedMetadataSet(abc.Mapping):
 
         return new_root
 
+    def update_root_spec_rotation(self, data: bytes) -> Metadata[Root]:
+        """Loads ``data`` as new root metadata, skipping version and
+        signature checks.
+        """
+        new_root = Metadata[Root].from_bytes(data)
+        self._trusted_set[Root.type] = new_root
+        logger.info(
+            "Updated root to new specification version root, new root version is v%d",
+            new_root.signed.version,
+        )
+
+        return new_root
+
     def update_timestamp(self, data: bytes) -> Metadata[Timestamp]:
         """Verifies and loads ``data`` as new timestamp metadata.
 

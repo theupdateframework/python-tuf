@@ -6,6 +6,7 @@
 """Test Updater class
 """
 
+import base64
 import json
 import logging
 import os
@@ -20,6 +21,7 @@ from securesystemslib.interface import import_rsa_privatekey_from_file
 from securesystemslib.signer import SSlibSigner
 from securesystemslib.storage import FilesystemBackend
 from securesystemslib.util import persist_temp_file
+from securesystemslib import hash as sslib_hash
 
 from tests import utils
 from tuf import ngclient
@@ -434,15 +436,21 @@ class TestUpdater(unittest.TestCase):
         #    self.updater._get_spec_version(["3","5","6"],"3",["1","2","3","4"])
 
     def test_spec_version_increase(self) -> None:
-        # switch repository supported versions
-        def _set_supported_version(root: Metadata) -> None:
-            repo_version = [{"version": 2, "path": "2/"}]
-            root.signed.supported_versions = repo_version
-
-        self._modify_repository_root(_set_supported_version, bump_version=True)
-
         # switch client supported versions
         self.updater._supported_versions = ["1", "2"]
+
+        # copy the current metadata to 1/
+        shutil.copytree(
+            os.path.join(self.repository_directory, "metadata"),
+            os.path.join(self.repository_directory, "metadata", "1"),
+        )
+
+        # switch repository supported versions
+        def _set_supported_version_v2(root: Metadata) -> None:
+            repo_version = [{"version": 2}]
+            root.signed.supported_versions = repo_version
+
+        self._modify_repository_root(_set_supported_version_v2, bump_version=True)
 
         # copy the current metadata to 2/
         shutil.copytree(
@@ -450,28 +458,96 @@ class TestUpdater(unittest.TestCase):
             os.path.join(self.repository_directory, "metadata", "2"),
         )
 
-        self.updater.refresh()
-        self.assertEqual(self.updater._spec_version, "2")
+        # switch back to version 1
+        shutil.copytree(
+            os.path.join(self.repository_directory, "metadata", "1"),
+            os.path.join(self.repository_directory, "metadata"),
+            dirs_exist_ok=True,
+        )
 
-    def test_spec_version_overlap(self) -> None:
-        # repository supports version 2 and 3
+        # get root digest
+        root_path = os.path.join(
+            self.repository_directory, "metadata", "2", "2.root.json"
+        )
+        with open(root_path, "rb") as f:
+            hasher = sslib_hash.digest_fileobject(f, algorithm="sha256")
+            root_digest = base64.b64encode(hasher.digest())
+
+        # set supported versions in root
         def _set_supported_version(root: Metadata) -> None:
             repo_version = [
-                {"version": 2, "path": "2/"},
-                {"version": 3, "path": "3/"},
+                {"version": 1},
+                {
+                    "version": 2,
+                    "root-filename": "2.root.json",
+                    "root-digest": root_digest.decode("utf-8"),
+                },
             ]
             root.signed.supported_versions = repo_version
 
         self._modify_repository_root(_set_supported_version, bump_version=True)
 
+        self.updater.refresh()
+        self.assertEqual(self.updater._spec_version, "2")
+
+    def test_spec_version_overlap(self) -> None:
         # client supports version 1 and 2
         self.updater._supported_versions = ["1", "2"]
+
+        # copy the current metadata to 1/
+        shutil.copytree(
+            os.path.join(self.repository_directory, "metadata"),
+            os.path.join(self.repository_directory, "metadata", "1"),
+        )
+
+        # repository supports version 2 and 3
+        def _set_supported_version_v2(root: Metadata) -> None:
+            repo_version = [
+                {"version": 2},
+                {
+                    "version": 3,
+                    "root-filename": "wontuse",
+                    "root-digest": "wontuse",
+                },
+            ]
+            root.signed.supported_versions = repo_version
+
+        self._modify_repository_root(_set_supported_version_v2, bump_version=True)
 
         # copy the current metadata to 2/
         shutil.copytree(
             os.path.join(self.repository_directory, "metadata"),
             os.path.join(self.repository_directory, "metadata", "2"),
         )
+
+        # switch back to version 1
+        shutil.copytree(
+            os.path.join(self.repository_directory, "metadata", "1"),
+            os.path.join(self.repository_directory, "metadata"),
+            dirs_exist_ok=True,
+        )
+
+        # get root digest
+        root_path = os.path.join(
+            self.repository_directory, "metadata", "2", "2.root.json"
+        )
+        with open(root_path, "rb") as f:
+            hasher = sslib_hash.digest_fileobject(f, algorithm="sha256")
+            root_digest = base64.b64encode(hasher.digest())
+
+        # set supported versions in root
+        def _set_supported_version(root: Metadata) -> None:
+            repo_version = [
+                {"version": 1},
+                {
+                    "version": 2,
+                    "root-filename": "2.root.json",
+                    "root-digest": root_digest.decode("utf-8"),
+                },
+            ]
+            root.signed.supported_versions = repo_version
+
+        self._modify_repository_root(_set_supported_version, bump_version=True)
 
         self.updater.refresh()
         self.assertEqual(self.updater._spec_version, "2")
@@ -486,7 +562,7 @@ class TestUpdater(unittest.TestCase):
 
         # add supported-versions to root
         def _set_supported_version(root: Metadata) -> None:
-            repo_version = [{"version": 1, "path": ""}]
+            repo_version = [{"version": 1}]
             root.signed.supported_versions = repo_version
 
         self._modify_repository_root(_set_supported_version, bump_version=True)
@@ -508,7 +584,7 @@ class TestUpdater(unittest.TestCase):
         # but supported-versions only contains 1
         # add supported-versions to root
         def _set_supported_version(root: Metadata) -> None:
-            repo_version = [{"version": 1, "path": ""}]
+            repo_version = [{"version": 1}]
             root.signed.supported_versions = repo_version
 
         self._modify_repository_root(_set_supported_version, bump_version=True)
@@ -519,21 +595,56 @@ class TestUpdater(unittest.TestCase):
             self.updater.refresh()
 
     def test_spec_version_root_update_order(self) -> None:
-        # set supported versions in root
-        def _set_supported_version(root: Metadata) -> None:
+
+        # copy the current metadata to 1/ to save it
+        shutil.copytree(
+            os.path.join(self.repository_directory, "metadata"),
+            os.path.join(self.repository_directory, "metadata", "1"),
+        )
+
+        # make version 2 metadata
+        def _set_supported_version_v2(root: Metadata) -> None:
             repo_version = [
-                {"version": 1, "path": ""},
-                {"version": 2, "path": ""},
+                {"version": 2},
             ]
             root.signed.supported_versions = repo_version
 
-        self._modify_repository_root(_set_supported_version, bump_version=True)
+        self._modify_repository_root(_set_supported_version_v2, bump_version=True)
 
-        # copy the current metadata to 2/
+        # move this metadata to 2/
         shutil.copytree(
             os.path.join(self.repository_directory, "metadata"),
             os.path.join(self.repository_directory, "metadata", "2"),
         )
+
+        # switch back to version 1
+        shutil.copytree(
+            os.path.join(self.repository_directory, "metadata", "1"),
+            os.path.join(self.repository_directory, "metadata"),
+            dirs_exist_ok=True,
+        )
+
+        # get root digest
+        root_path = os.path.join(
+            self.repository_directory, "metadata", "2", "2.root.json"
+        )
+        with open(root_path, "rb") as f:
+            hasher = sslib_hash.digest_fileobject(f, algorithm="sha256")
+            root_digest = base64.b64encode(hasher.digest())
+
+        # set supported versions in root
+        def _set_supported_version(root: Metadata) -> None:
+            repo_version = [
+                {"version": 1},
+                {
+                    "version": 2,
+                    "root-filename": "2.root.json",
+                    "root-digest": root_digest.decode("utf-8"),
+                },
+            ]
+            root.signed.supported_versions = repo_version
+
+        self._modify_repository_root(_set_supported_version, bump_version=True)
 
         # update root not in 2/
         self._modify_repository_root(lambda root: None, bump_version=True)
@@ -543,24 +654,60 @@ class TestUpdater(unittest.TestCase):
 
         self.updater.refresh()
         # version 2 is missing the most recent root
-        self.assertEqual(self.updater._trusted_set.root.signed.version, 3)
+        self.assertEqual(self.updater._trusted_set.root.signed.version, 2)
         self.assertEqual(self.updater._spec_version, "2")
 
     def test_spec_version_root_update(self) -> None:
         # update root
         self._modify_repository_root(lambda root: None, bump_version=True)
 
-        # copy the current metadata to 2/
+        # save the current metadata to 1/
+        shutil.copytree(
+            os.path.join(self.repository_directory, "metadata"),
+            os.path.join(self.repository_directory, "metadata", "1"),
+        )
+
+        # make repository supported versions for version 2
+        def _set_supported_version_v2(root: Metadata) -> None:
+            repo_version = [
+                {"version": 2},
+            ]
+            root.signed.supported_versions = repo_version
+
+        self._modify_repository_root(_set_supported_version_v2, bump_version=True)
+
+        # move this metadata to 2/
         shutil.copytree(
             os.path.join(self.repository_directory, "metadata"),
             os.path.join(self.repository_directory, "metadata", "2"),
         )
 
+        # switch back to version 1
+        shutil.copytree(
+            os.path.join(self.repository_directory, "metadata", "1"),
+            os.path.join(self.repository_directory, "metadata"),
+            dirs_exist_ok=True,
+        )
+
+        # get root digest
+        root_path = os.path.join(
+            self.repository_directory, "metadata", "2", "3.root.json"
+        )
+        with open(root_path, "rb") as f:
+            file_bytes = f.read()
+            hasher = sslib_hash.digest(algorithm="sha256")
+            hasher.update(file_bytes)
+            root_digest = base64.b64encode(hasher.digest())
+
         # switch repository supported versions
         def _set_supported_version(root: Metadata) -> None:
             repo_version = [
-                {"version": 1, "path": ""},
-                {"version": 2, "path": ""},
+                {"version": 1},
+                {
+                    "version": 2,
+                    "root-filename": "3.root.json",
+                    "root-digest": root_digest.decode("utf-8"),
+                },
             ]
             root.signed.supported_versions = repo_version
 
