@@ -13,7 +13,7 @@ import shutil
 import sys
 import tempfile
 import unittest
-from typing import Callable, ClassVar, List
+from typing import Callable, ClassVar, List, Tuple
 from unittest.mock import MagicMock, patch
 
 from securesystemslib.interface import import_rsa_privatekey_from_file
@@ -377,7 +377,7 @@ class TestUpdater(unittest.TestCase):
     def test_get_spec_version(self) -> None:
         # warningchecker = "Not using the latest specification version available on the repository"
         # Checks with different values
-        test_cases = [
+        test_cases: List[Tuple[List[str], str, List[str]]] = [
             (
                 ["3", "5", "6"],
                 "7",
@@ -395,7 +395,7 @@ class TestUpdater(unittest.TestCase):
                     repo_versions, spec_version, supported_versions
                 )
 
-        test_cases = [
+        test_cases_2: List[Tuple[List[str], str, List[str], str]] = [
             (
                 ["3", "5", "6"],
                 "3",
@@ -415,7 +415,7 @@ class TestUpdater(unittest.TestCase):
                 "11",
             ),  # 11 is selected as the spec version but a warning ensues
         ]
-        for t in test_cases:
+        for t in test_cases_2:
             (
                 repo_versions,
                 spec_version,
