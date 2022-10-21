@@ -450,7 +450,9 @@ class TestUpdater(unittest.TestCase):
             repo_version = [{"version": 2}]
             root.signed.supported_versions = repo_version
 
-        self._modify_repository_root(_set_supported_version_v2, bump_version=True)
+        self._modify_repository_root(
+            _set_supported_version_v2, bump_version=True
+        )
 
         # copy the current metadata to 2/
         shutil.copytree(
@@ -512,7 +514,9 @@ class TestUpdater(unittest.TestCase):
             ]
             root.signed.supported_versions = repo_version
 
-        self._modify_repository_root(_set_supported_version_v2, bump_version=True)
+        self._modify_repository_root(
+            _set_supported_version_v2, bump_version=True
+        )
 
         # copy the current metadata to 2/
         shutil.copytree(
@@ -609,7 +613,9 @@ class TestUpdater(unittest.TestCase):
             ]
             root.signed.supported_versions = repo_version
 
-        self._modify_repository_root(_set_supported_version_v2, bump_version=True)
+        self._modify_repository_root(
+            _set_supported_version_v2, bump_version=True
+        )
 
         # move this metadata to 2/
         shutil.copytree(
@@ -674,7 +680,9 @@ class TestUpdater(unittest.TestCase):
             ]
             root.signed.supported_versions = repo_version
 
-        self._modify_repository_root(_set_supported_version_v2, bump_version=True)
+        self._modify_repository_root(
+            _set_supported_version_v2, bump_version=True
+        )
 
         # move this metadata to 2/
         shutil.copytree(
