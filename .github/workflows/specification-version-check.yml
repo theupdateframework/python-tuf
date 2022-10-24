@@ -21,7 +21,7 @@ jobs:
           script="from tuf.api.metadata import SPECIFICATION_VERSION; \
                   print(f\"v{'.'.join(SPECIFICATION_VERSION)}\")"
           ver=$(python3 -c "$script")
-          echo "::set-output name=version::$ver"
+          echo "version=$ver" >> $GITHUB_OUTPUT
   # Get the latest TUF specification release and open an issue (if needed)
   specification-bump-check:
     permissions:
