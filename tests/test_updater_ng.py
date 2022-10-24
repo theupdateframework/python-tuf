@@ -17,11 +17,11 @@ import unittest
 from typing import Callable, ClassVar, List, Tuple
 from unittest.mock import MagicMock, patch
 
+from securesystemslib import hash as sslib_hash
 from securesystemslib.interface import import_rsa_privatekey_from_file
 from securesystemslib.signer import SSlibSigner
 from securesystemslib.storage import FilesystemBackend
 from securesystemslib.util import persist_temp_file
-from securesystemslib import hash as sslib_hash
 
 from tests import utils
 from tuf import ngclient
@@ -461,10 +461,11 @@ class TestUpdater(unittest.TestCase):
         )
 
         # switch back to version 1
-        shutil.copytree(
-            os.path.join(self.repository_directory, "metadata", "1"),
-            os.path.join(self.repository_directory, "metadata"),
-            dirs_exist_ok=True,
+        shutil.copyfile(
+            os.path.join(
+                self.repository_directory, "metadata", "1", "1.root.json"
+            ),
+            os.path.join(self.repository_directory, "metadata", "1.root.json"),
         )
 
         # get root digest
@@ -525,10 +526,11 @@ class TestUpdater(unittest.TestCase):
         )
 
         # switch back to version 1
-        shutil.copytree(
-            os.path.join(self.repository_directory, "metadata", "1"),
-            os.path.join(self.repository_directory, "metadata"),
-            dirs_exist_ok=True,
+        shutil.copyfile(
+            os.path.join(
+                self.repository_directory, "metadata", "1", "1.root.json"
+            ),
+            os.path.join(self.repository_directory, "metadata", "1.root.json"),
         )
 
         # get root digest
@@ -624,10 +626,11 @@ class TestUpdater(unittest.TestCase):
         )
 
         # switch back to version 1
-        shutil.copytree(
-            os.path.join(self.repository_directory, "metadata", "1"),
-            os.path.join(self.repository_directory, "metadata"),
-            dirs_exist_ok=True,
+        shutil.copyfile(
+            os.path.join(
+                self.repository_directory, "metadata", "1", "1.root.json"
+            ),
+            os.path.join(self.repository_directory, "metadata", "1.root.json"),
         )
 
         # get root digest
@@ -691,10 +694,11 @@ class TestUpdater(unittest.TestCase):
         )
 
         # switch back to version 1
-        shutil.copytree(
-            os.path.join(self.repository_directory, "metadata", "1"),
-            os.path.join(self.repository_directory, "metadata"),
-            dirs_exist_ok=True,
+        shutil.copyfile(
+            os.path.join(
+                self.repository_directory, "metadata", "1", "1.root.json"
+            ),
+            os.path.join(self.repository_directory, "metadata", "1.root.json"),
         )
 
         # get root digest
