@@ -50,6 +50,13 @@ updates in automobiles.
 Please see [TUF's website](https://theupdateframework.com/) for more information about TUF!
 
 
+## Install
+
+```
+$ pip install tuf
+```
+
+ 
 Documentation
 -------------
 * [Introduction to TUF's Design](https://theupdateframework.io/overview/)
