@@ -32,7 +32,7 @@ releasing today.
 
 # Results and resolutions
 
-The report prepared by X41 included one medium severity and four low severity
+The report prepared by X41 included one medium severity and three low severity
 issues, we describe below how we are addressing each of those reported items.
 
 **Private Key World-Readable (TUF-CR-22-01) – Medium**
