@@ -121,7 +121,7 @@ class RequestsFetcher(FetcherInterface):
         if not parsed_url.scheme:
             raise exceptions.DownloadError(f"Failed to parse URL {url}")
 
-        session_index = (parsed_url.scheme, parsed_url.hostname)
+        session_index = (parsed_url.scheme, parsed_url.hostname or "")
         session = self._sessions.get(session_index)
 
         if not session:
