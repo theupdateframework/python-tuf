@@ -6,8 +6,7 @@ on:
     tags:
       - v*
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   test:
@@ -17,8 +16,6 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     needs: test
-    outputs:
-      release_id: ${{ steps.gh-release.outputs.id }}
     steps:
       - name: Checkout release tag
         uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
@@ -36,15 +33,6 @@ jobs:
       - name: Build binary wheel and source tarball
         run: python3 -m build --sdist --wheel --outdir dist/ .
 
-      - id: gh-release
-        name: Publish GitHub release candidate
-        uses: softprops/action-gh-release@1e07f4398721186383de40550babbdf2b84acfc5
-        with:
-          name: ${{ github.ref_name }}-rc
-          tag_name: ${{ github.ref }}
-          body: "Release waiting for review..."
-          files: dist/*
-
       - name: Store build artifacts
         uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb
         # NOTE: The GitHub release page contains the release artifacts too, but using
@@ -54,11 +42,38 @@ jobs:
           name: build-artifacts
           path: dist
 
+  candidate_release:
+    name: Release candidate on Github for review
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write # to modify GitHub releases
+    outputs:
+      release_id: ${{ steps.gh-release.outputs.id }}
+    steps:
+      - name: Fetch build artifacts
+        uses: actions/download-artifact@9782bd6a9848b53b110e712e20e42d89988822b7
+        with:
+          name: build-artifacts
+          path: dist
+
+      - id: gh-release
+        name: Publish GitHub release candidate
+        uses: softprops/action-gh-release@1e07f4398721186383de40550babbdf2b84acfc5
+        with:
+          name: ${{ github.ref_name }}-rc
+          tag_name: ${{ github.ref }}
+          body: "Release waiting for review..."
+          files: dist/*
+
+
   release:
     name: Release
     runs-on: ubuntu-latest
-    needs: build
+    needs: candidate_release
     environment: release
+    permissions:
+      contents: write # to modify GitHub releases
     steps:
       - name: Fetch build artifacts
         uses: actions/download-artifact@9782bd6a9848b53b110e712e20e42d89988822b7
@@ -79,7 +94,7 @@ jobs:
             await github.rest.repos.updateRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              release_id: '${{ needs.build.outputs.release_id }}',
+              release_id: '${{ needs.candidate_release.outputs.release_id }}',
               name: '${{ github.ref_name }}',
               body: 'See [CHANGELOG.md](https://github.com/' +
                      context.repo.owner + '/' + context.repo.repo +
