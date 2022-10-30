@@ -2,6 +2,7 @@ on:
   workflow_call:
   # Permissions inherited from caller workflow
 
+permissions: {}
 
 jobs:
   tests:
