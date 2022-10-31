@@ -34,7 +34,6 @@ from tuf.api.metadata import (
     Targets,
     Timestamp,
 )
-from tuf.ngclient.updater import _get_spec_version
 
 logger = logging.getLogger(__name__)
 
@@ -366,52 +365,67 @@ class TestUpdater(unittest.TestCase):
             exceptions.RepositoryError,
             msg="Latest repository version less than 4",
         ):
-            _get_spec_version(
-                ["1", "2", "3"], "4", ngclient.updater.SUPPORTED_VERSIONS
+            self.updater._get_spec_version(
+                ["1", "2", "3"], [""], "4", ngclient.updater.SUPPORTED_VERSIONS
             )
 
         self.assertEqual(
-            _get_spec_version(["1", "2", "3"], "3", ["3"]),
-            ("3"),
+            self.updater._get_spec_version(
+                ["1", "2", "3"], ["", "", ""], "3", ["3"]
+            ),
+            ("3", ""),
             "3 is selected as the spec version and no warning ensues",
         )
 
     def test_get_spec_version(self) -> None:
         # warningchecker = "Not using the latest specification version available on the repository"
         # Checks with different values
-        test_cases: List[Tuple[List[str], str, List[str]]] = [
+        test_cases: List[Tuple[List[str], List[str], str, List[str]]] = [
             (
                 ["3", "5", "6"],
+                ["", "", ""],
                 "7",
                 ["1", "2", "3", "4"],
             ),  # Latest repository version less than 7
             (
                 ["3", "5", "6"],
+                ["", "", ""],
                 "3",
                 ["1", "2", "4"],
             ),  # No common specification version between repository and client
         ]
-        for repo_versions, spec_version, supported_versions in test_cases:
+        for (
+            repo_versions,
+            repo_features,
+            spec_version,
+            supported_versions,
+        ) in test_cases:
             with self.assertRaises(exceptions.RepositoryError):
-                _get_spec_version(
-                    repo_versions, spec_version, supported_versions
+                self.updater._get_spec_version(
+                    repo_versions,
+                    repo_features,
+                    spec_version,
+                    supported_versions,
                 )
 
-        test_cases_2: List[Tuple[List[str], str, List[str], str]] = [
+        test_cases_2: List[Tuple[List[str], List[str], str, List[str], str]] = [
             (
                 ["3", "5", "6"],
+                ["", "", ""],
                 "3",
                 ["1", "2", "3", "4"],
                 "3",
             ),  # 3 is selected as the spec version but a warning ensues
             (
                 ["1", "2", "3"],
+                ["", "", ""],
                 "3",
                 ["3", "5", "6"],
                 "3",
             ),  # 3 is selected as the spec version and no warning ensues
             (
                 ["8", "11", "13"],
+                ["", "", ""],
                 "12",
                 ["8", "11", "12"],
                 "11",
@@ -420,12 +434,13 @@ class TestUpdater(unittest.TestCase):
         for t in test_cases_2:
             (
                 repo_versions,
+                repo_features,
                 spec_version,
                 supported_versions,
                 expected_version,
             ) = t
-            actual_version = _get_spec_version(
-                repo_versions, spec_version, supported_versions
+            actual_version, _ = self.updater._get_spec_version(
+                repo_versions, repo_features, spec_version, supported_versions
             )
             self.assertEqual(actual_version, expected_version)
             # TODO ensure warning was logged for case 1 and 3
@@ -482,6 +497,8 @@ class TestUpdater(unittest.TestCase):
                 {"version": 1},
                 {
                     "version": 2,
+                    "path": "2/",
+                    "features": "",
                     "root-filename": "2.root.json",
                     "root-digest": root_digest.decode("utf-8"),
                 },
@@ -509,6 +526,8 @@ class TestUpdater(unittest.TestCase):
                 {"version": 2},
                 {
                     "version": 3,
+                    "path": "3/",
+                    "features": "",
                     "root-filename": "wontuse",
                     "root-digest": "wontuse",
                 },
@@ -547,6 +566,8 @@ class TestUpdater(unittest.TestCase):
                 {"version": 1},
                 {
                     "version": 2,
+                    "path": "2/",
+                    "features": "",
                     "root-filename": "2.root.json",
                     "root-digest": root_digest.decode("utf-8"),
                 },
@@ -647,6 +668,8 @@ class TestUpdater(unittest.TestCase):
                 {"version": 1},
                 {
                     "version": 2,
+                    "path": "2/",
+                    "features": "",
                     "root-filename": "2.root.json",
                     "root-digest": root_digest.decode("utf-8"),
                 },
@@ -717,6 +740,8 @@ class TestUpdater(unittest.TestCase):
                 {"version": 1},
                 {
                     "version": 2,
+                    "path": "2/",
+                    "features": "",
                     "root-filename": "3.root.json",
                     "root-digest": root_digest.decode("utf-8"),
                 },
@@ -731,6 +756,79 @@ class TestUpdater(unittest.TestCase):
         self.updater.refresh()
         self.assertEqual(self.updater._trusted_set.root.signed.version, 3)
         self.assertEqual(self.updater._spec_version, "2")
+
+    def test_feature_change(self) -> None:
+        # switch client supported versions
+        self.updater._supported_versions = ["1"]
+        self.updater._supported_features = ["new_features"]
+
+        # copy the current metadata to 1/
+        shutil.copytree(
+            os.path.join(self.repository_directory, "metadata"),
+            os.path.join(self.repository_directory, "metadata", "1"),
+        )
+
+        # self._modify_repository_root(
+        # lambda root: None, bump_version=True
+        # )
+
+        # switch repository supported versions
+        def _set_supported_version_v2(root: Metadata) -> None:
+            repo_version = [
+                {"version": 1, "path": "feature/", "features": "new_features"}
+            ]
+            root.signed.supported_versions = repo_version
+
+        self._modify_repository_root(
+            _set_supported_version_v2, bump_version=False
+        )
+
+        # copy the current metadata to feature/
+        shutil.copytree(
+            os.path.join(self.repository_directory, "metadata"),
+            os.path.join(self.repository_directory, "metadata", "feature"),
+        )
+
+        # switch back to version 1
+        shutil.copytree(
+            os.path.join(self.repository_directory, "metadata", "1"),
+            os.path.join(self.repository_directory, "metadata"),
+            dirs_exist_ok=True,
+        )
+        # shutil.copyfile(
+        # os.path.join(
+        # self.repository_directory, "metadata", "1", "1.root.json"
+        # ),
+        # os.path.join(self.repository_directory, "metadata", "1.root.json"),
+        # )
+
+        # get root digest
+        root_path = os.path.join(
+            self.repository_directory, "metadata", "feature", "1.root.json"
+        )
+        with open(root_path, "rb") as f:
+            hasher = sslib_hash.digest_fileobject(f, algorithm="sha256")
+            root_digest = base64.b64encode(hasher.digest())
+
+        # set supported versions in root
+        def _set_supported_version(root: Metadata) -> None:
+            repo_version = [
+                {
+                    "version": 1,
+                    "path": "feature/",
+                    "features": "new_features",
+                    "root-filename": "1.root.json",
+                    "root-digest": root_digest.decode("utf-8"),
+                },
+                {"version": 1},
+            ]
+            root.signed.supported_versions = repo_version
+
+        self._modify_repository_root(_set_supported_version, bump_version=True)
+
+        self.updater.refresh()
+        self.assertEqual(self.updater._spec_version, "1")
+        self.assertEqual(self.updater._spec_version_dir, "feature/")
 
 
 if __name__ == "__main__":

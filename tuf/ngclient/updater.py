@@ -62,6 +62,7 @@ from tuf.ngclient.fetcher import FetcherInterface
 logger = logging.getLogger(__name__)
 # only include the major version
 SUPPORTED_VERSIONS = [SPECIFICATION_VERSION[0]]
+SUPPORTED_FEATURES = [""]
 
 
 class Updater:
@@ -110,6 +111,7 @@ class Updater:
         self._fetcher = fetcher or requests_fetcher.RequestsFetcher()
         self.config = config or UpdaterConfig()
         self._supported_versions = SUPPORTED_VERSIONS
+        self._supported_features = SUPPORTED_FEATURES
 
     def refresh(self) -> None:
         """Refreshes top-level metadata.
@@ -162,25 +164,42 @@ class Updater:
 
     def _find_matching_spec_version(
         self, repository_versions_dicts: List[dict]
-    ) -> Tuple[str, str, str]:
+    ) -> Tuple[str, str, str, str]:
         """Find the set of spec versions that match between the client and repository.
         Returns the largest matching version and information about
-        the new root
+        the new root and its path
         """
 
         repository_versions = [i["version"] for i in repository_versions_dicts]
+        repository_features = [
+            i["features"] if "features" in i else ""
+            for i in repository_versions_dicts
+        ]
 
         # Updating self.spec_version
-        spec_version = _get_spec_version(
-            repository_versions, self._spec_version, self._supported_versions
+        spec_version, features = self._get_spec_version(
+            repository_versions,
+            repository_features,
+            self._spec_version,
+            self._supported_versions,
         )
 
         for i in repository_versions_dicts:
-            if i["version"] == int(spec_version):
+            if i["version"] == int(spec_version) and (
+                "features" not in i or i["features"] == features
+            ):
+                new_path = self._spec_version_dir
+                if "path" in i:
+                    new_path = i["path"]
                 if "root-filename" in i and "root-digest" in i:
-                    return spec_version, i["root-filename"], i["root-digest"]
+                    return (
+                        spec_version,
+                        i["root-filename"],
+                        i["root-digest"],
+                        new_path,
+                    )
                 # root info will be empty if the version does not change
-                return spec_version, "", ""
+                return spec_version, "", "", new_path
 
         # we shouldn't get here...
         raise ValueError("current repository version not found")
@@ -383,13 +402,14 @@ class Updater:
             supported_version,
             new_root_filename,
             new_root_bytes,
+            new_spec_version_path,
         ) = self._find_matching_spec_version(self._get_repository_versions())
 
         # if compatible version higher than current, jump to that root
         # call _load_root in new version
-        if int(supported_version) > int(self._spec_version):
+        if new_spec_version_path != self._spec_version_dir:
             save_dir = self._spec_version_dir
-            self._spec_version_dir = supported_version + "/"
+            self._spec_version_dir = new_spec_version_path
             actual_bytes = self._download_new_spec_root(
                 new_root_filename, self.config.root_max_length
             )
@@ -409,6 +429,7 @@ class Updater:
                 )
 
                 self._load_root()
+                return
             else:
                 # error loading new version, stay with this version
                 self._spec_version_dir = save_dir
@@ -428,12 +449,16 @@ class Updater:
                 self._persist_metadata(Root.type, data)
                 # check if supported_versions was updated in this root
                 repository_versions = self._get_repository_versions()
-                new_supported_version, _, _ = self._find_matching_spec_version(
-                    repository_versions
-                )
-                # if found, recurse to try loading new spec version
-                if int(new_supported_version) > int(self._spec_version):
+                (
+                    new_supported_version,
+                    _,
+                    _,
+                    new_path,
+                ) = self._find_matching_spec_version(repository_versions)
+                # if path changed, recurse to try loading new spec version
+                if self._spec_version_dir != new_path:
                     self._load_root()
+                    return
 
             except exceptions.DownloadHTTPError as exception:
                 if exception.status_code not in {403, 404}:
@@ -589,67 +614,75 @@ class Updater:
         # If this point is reached then target is not found, return None
         return None
 
+    def _get_spec_version(
+        self,
+        repository_versions: List[str],
+        repository_features: List[str],
+        spec_version: str,
+        supported_versions: List[str],
+    ) -> Tuple[str, str]:
+        """Returns the specification version and features to be used, following the rules of TAP-14
+           and displays a warning if chosen spec_version is lower than the highest repository version.
+
+        Raises:
+            ValueError: supported_versions, repository_version or spec_version contains an
+            invalid entry (not parseable as ``int()``)
+            RepositoryError: Latest repository version lower than the last used version from
+            this repository
+            RepositoryError: No matching version found between supported_versions and repository_versions
+        """
+        repository_versions_int = [int(i) for i in repository_versions]
+        supported_versions_int = [int(i) for i in supported_versions]
+        spec_version_int = int(spec_version)
+
+        # The client determines the latest version available on the repository by looking
+        # for the directory with the largest version number.
+        latest_repo_version = max(repository_versions_int)
+
+        # If the latest version on the repository is lower than the previous specification
+        # version the client used from this repository, the client should report an error
+        # and terminate the update.
+        if latest_repo_version < spec_version_int:
+            raise exceptions.RepositoryError(
+                f"The latest repository version ({latest_repo_version}) is lower than the last used spec version ({spec_version})."
+            )
+
+        # If the latest version on the repository is equal to that of the client, it will use this directory to download metadata.
+
+        # If the latest version pre-dates the client specification version, it may call functions from a previous client version
+        # to download the metadata. The client may support as many or as few versions as desired for the application. If the
+        # previous version is not available, the client shall report that an update can not be performed due to an old
+        # specification version on the repository.
+
+        # If the latest version on the repository is higher than the client spec version, the client should report
+        # to the user that it is not using the most up to date version, and then perform the update with the directory
+        # that corresponds with the latest client specification version, if available. If no such directory exists,
+        # the client terminates the update.
+        try:
+            spec_version_int = max(
+                set(repository_versions_int) & set(supported_versions_int)
+            )
+        except ValueError as e:
+            raise exceptions.RepositoryError(
+                f"No matching specification version found. Found {repository_versions} in"
+                f"repository and {supported_versions} in client."
+            ) from e
+
+        if latest_repo_version > spec_version_int:
+            logger.warning(
+                "Not using the latest specification version available on the repository"
+            )
+
+        features = ""
+        for i in range(len(repository_versions_int)):
+            if repository_versions_int[i] == spec_version_int:
+                # current version, check for valid features
+                if repository_features[i] in self._supported_features:
+                    features = repository_features[i]
+
+        return str(spec_version_int), features
+
 
 def _ensure_trailing_slash(url: str) -> str:
     """Return url guaranteed to end in a slash"""
     return url if url.endswith("/") else f"{url}/"
-
-
-def _get_spec_version(
-    repository_versions: List[str],
-    spec_version: str,
-    supported_versions: List[str],
-) -> str:
-    """Returns the specification version to be used, following the rules of TAP-14
-       and displays a warning if chosen spec_version is lower than the highest repository version.
-
-    Raises:
-        ValueError: supported_versions, repository_version or spec_version contains an
-        invalid entry (not parseable as ``int()``)
-        RepositoryError: Latest repository version lower than the last used version from
-        this repository
-        RepositoryError: No matching version found between supported_versions and repository_versions
-    """
-    repository_versions_int = [int(i) for i in repository_versions]
-    supported_versions_int = [int(i) for i in supported_versions]
-    spec_version_int = int(spec_version)
-
-    # The client determines the latest version available on the repository by looking
-    # for the directory with the largest version number.
-    latest_repo_version = max(repository_versions_int)
-
-    # If the latest version on the repository is lower than the previous specification
-    # version the client used from this repository, the client should report an error
-    # and terminate the update.
-    if latest_repo_version < spec_version_int:
-        raise exceptions.RepositoryError(
-            f"The latest repository version ({latest_repo_version}) is lower than the last used spec version ({spec_version})."
-        )
-
-    # If the latest version on the repository is equal to that of the client, it will use this directory to download metadata.
-
-    # If the latest version pre-dates the client specification version, it may call functions from a previous client version
-    # to download the metadata. The client may support as many or as few versions as desired for the application. If the
-    # previous version is not available, the client shall report that an update can not be performed due to an old
-    # specification version on the repository.
-
-    # If the latest version on the repository is higher than the client spec version, the client should report
-    # to the user that it is not using the most up to date version, and then perform the update with the directory
-    # that corresponds with the latest client specification version, if available. If no such directory exists,
-    # the client terminates the update.
-    try:
-        spec_version_int = max(
-            set(repository_versions_int) & set(supported_versions_int)
-        )
-    except ValueError as e:
-        raise exceptions.RepositoryError(
-            f"No matching specification version found. Found {repository_versions} in"
-            f"repository and {supported_versions} in client."
-        ) from e
-
-    if latest_repo_version > spec_version_int:
-        logger.warning(
-            "Not using the latest specification version available on the repository"
-        )
-
-    return str(spec_version_int)
