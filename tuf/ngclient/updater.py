@@ -430,9 +430,8 @@ class Updater:
 
                 self._load_root()
                 return
-            else:
-                # error loading new version, stay with this version
-                self._spec_version_dir = save_dir
+            # error loading new version, stay with this version
+            self._spec_version_dir = save_dir
 
         # Update the root role
         lower_bound = self._trusted_set.root.signed.version + 1
@@ -450,13 +449,13 @@ class Updater:
                 # check if supported_versions was updated in this root
                 repository_versions = self._get_repository_versions()
                 (
-                    new_supported_version,
                     _,
                     _,
-                    new_path,
+                    _,
+                    new_spec_version_path,
                 ) = self._find_matching_spec_version(repository_versions)
                 # if path changed, recurse to try loading new spec version
-                if self._spec_version_dir != new_path:
+                if self._spec_version_dir != new_spec_version_path:
                     self._load_root()
                     return
 
@@ -674,8 +673,8 @@ class Updater:
             )
 
         features = ""
-        for i in range(len(repository_versions_int)):
-            if repository_versions_int[i] == spec_version_int:
+        for i, v in enumerate(repository_versions_int):
+            if v == spec_version_int:
                 # current version, check for valid features
                 if repository_features[i] in self._supported_features:
                     features = repository_features[i]

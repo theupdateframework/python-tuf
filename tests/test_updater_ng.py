@@ -790,17 +790,12 @@ class TestUpdater(unittest.TestCase):
         )
 
         # switch back to version 1
-        shutil.copytree(
-            os.path.join(self.repository_directory, "metadata", "1"),
-            os.path.join(self.repository_directory, "metadata"),
-            dirs_exist_ok=True,
+        shutil.copyfile(
+            os.path.join(
+                self.repository_directory, "metadata", "1", "1.root.json"
+            ),
+            os.path.join(self.repository_directory, "metadata", "1.root.json"),
         )
-        # shutil.copyfile(
-        # os.path.join(
-        # self.repository_directory, "metadata", "1", "1.root.json"
-        # ),
-        # os.path.join(self.repository_directory, "metadata", "1.root.json"),
-        # )
 
         # get root digest
         root_path = os.path.join(
