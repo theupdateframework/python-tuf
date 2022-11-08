@@ -77,12 +77,21 @@ jobs:
     if: always()
     needs: tests
     runs-on: ubuntu-latest
-    container: python:3-slim
     steps:
+      - name: Add requirements file to make setup-python happy
+        run: touch requirements.txt
+
+      - name: Set up Python
+        uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984
+        with:
+          python-version: '3.x'
+          cache: 'pip'
+
       - name: Install dependencies
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install --upgrade coveralls
+
       - name: Finalize publishing on coveralls.io
         continue-on-error: true
         env:
