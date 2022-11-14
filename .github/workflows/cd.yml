@@ -31,10 +31,55 @@ jobs:
           python-version: '3.x'
 
       - name: Install build dependency
-        run: python3 -m pip install --upgrade pip build
+        run: python3 -m pip install --upgrade pip build in-toto[pynacl]
 
       - name: Build binary wheel and source tarball
-        run: python3 -m build --sdist --wheel --outdir dist/ .
+        env:
+            IN_TOTO_KEY: ${{ secrets.IN_TOTO_KEY }}
+            IN_TOTO_KEY_PW: ${{ secrets.IN_TOTO_KEY_PW }}
+        run: |
+          #######################################################
+          # Build and generate signed attestions with in-toto CLI
+
+          # Make signing key available to in-toto commands
+          echo -n "$IN_TOTO_KEY" > .in_toto/key
+
+          # Define patterns for files that need not be recorded as materials below
+          exclude=('__pycache__' 'build' 'htmlcov' '.?*' '*~' '*.egg-info' '*.pyc')
+
+          # Grab TUF version to construct build artifact names for product recording
+          version=$(python3 -c 'import tuf; print(tuf.__version__)')
+
+          # Build sdist and record all files in CWD as materials and the build artifact
+          # as product in a signed attestation 'sdist.<signing key id>.link'.
+          in-toto-run \
+            --step-name sdist \
+            --key .in_toto/key \
+            --key-type ed25519 \
+            --password "$IN_TOTO_KEY_PW" \
+            --materials . \
+            --products dist/tuf-${version}.tar.gz \
+            --exclude ${exclude[@]} \
+            --metadata-directory .in_toto \
+            --verbose \
+            -- python3 -m build --sdist --outdir dist/ .
+
+          # Build wheel and record all files in CWD as materials and the build artifact
+          # as product in a signed attestation 'wheel.<signing key id>.link'.
+          in-toto-run \
+            --step-name wheel \
+            --key .in_toto/key \
+            --key-type ed25519 \
+            --password "$IN_TOTO_KEY_PW" \
+            --materials . \
+            --products dist/tuf-${version}-py3-none-any.whl \
+            --exclude ${exclude[@]} dist/tuf-${version}.tar.gz \
+            --metadata-directory .in_toto \
+            --verbose \
+            -- python3 -m build --wheel --outdir dist/ .
+
+          # Remove signing key file
+          rm .in_toto/key
 
       - id: gh-release
         name: Publish GitHub release candidate
@@ -43,7 +88,9 @@ jobs:
           name: ${{ github.ref_name }}-rc
           tag_name: ${{ github.ref }}
           body: "Release waiting for review..."
-          files: dist/*
+          files: |
+            dist/*
+            .in_toto/*.link
 
       - name: Store build artifacts
         uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb

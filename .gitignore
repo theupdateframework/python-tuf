@@ -24,6 +24,10 @@ tests/htmlcov/
 .pre-commit-config.yaml
 .vscode
 
+# Ignore in-toto metadata
+.in_toto/*
+!.in_toto/create_layout.py
+
 # Debian generated files
 debian/.debhelper/
 debian/*-stamp
