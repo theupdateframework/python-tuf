@@ -140,7 +140,6 @@ def verify_pypi_release(version: str, compare_dir: str) -> bool:
         )
 
 
-
 def sign_release_artifacts(
     version: str, build_dir: str, Optional[str]: str
 ) -> None:
