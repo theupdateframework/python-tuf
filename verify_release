@@ -141,7 +141,7 @@ def verify_pypi_release(version: str, compare_dir: str) -> bool:
 
 
 def sign_release_artifacts(
-    version: str, build_dir: str, key_id: str = None
+    version: str, build_dir: str, Optional[str]: str
 ) -> None:
     """Sign built release artifacts with gpg and write signature files to cwd"""
     sdist = f"{PYPI_PROJECT}-{version}.tar.gz"
