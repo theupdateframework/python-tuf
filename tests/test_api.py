@@ -725,6 +725,12 @@ class TestMetadata(unittest.TestCase):
         targetfile_from_data = TargetFile.from_data(target_file_path, data)
         targetfile_from_data.verify_length_and_hashes(data)
 
+    def test_targetfile_hash_prefix_paths(self) -> None:
+        target = TargetFile(
+            100, {"sha256": "abc", "md5": "def"}, "public/path/file.ext"
+        )
+        self.assertEqual(sorted(target.get_prefixed_paths()), ["public/path/abc.file.ext", "public/path/def.file.ext"])
+
     def test_is_delegated_role(self) -> None:
         # test path matches
         # see more extensive tests in test_is_target_in_pathpattern()
