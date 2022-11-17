@@ -1739,6 +1739,9 @@ class TargetFile(BaseFile):
         self._verify_hashes(data, self.hashes)
 
     def get_prefixed_paths(self) -> List[str]:
+        """
+        Returns hash-prefixed paths for the given target file path.
+        """
         paths = []
         path = pathlib.Path(self.path)
         name, parent = path.name, path.parent
