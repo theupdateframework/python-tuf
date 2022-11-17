@@ -32,6 +32,7 @@ import fnmatch
 import io
 import logging
 import tempfile
+import pathlib
 from datetime import datetime
 from typing import (
     IO,
@@ -1891,6 +1892,14 @@ class TargetFile(BaseFile):
         """
         self._verify_length(data, self.length)
         self._verify_hashes(data, self.hashes)
+
+    def get_prefixed_paths(self) -> List[str]:
+        paths = []
+        path = pathlib.Path(self.path)
+        name, parent = path.name, path.parent
+        for hash in self.hashes.values():
+            paths.append(str(parent.joinpath(f"{hash}.{name}")))
+        return paths
 
 
 class Targets(Signed):
