@@ -731,6 +731,36 @@ class TestMetadata(unittest.TestCase):
         )
         self.assertEqual(sorted(target.get_prefixed_paths()), ["public/path/abc.file.ext", "public/path/def.file.ext"])
 
+        target = TargetFile(
+            100, {"sha256": "abc", "md5": "def"}, ""
+        )
+        self.assertEqual(sorted(target.get_prefixed_paths()), [])
+
+        target = TargetFile(
+            100, {"sha256": "abc", "md5": "def"}, "public/path/"
+        )
+        self.assertEqual(sorted(target.get_prefixed_paths()), [])
+
+        target = TargetFile(
+            100, {"sha256": "abc", "md5": "def"}, "file.ext"
+        )
+        self.assertEqual(sorted(target.get_prefixed_paths()), ["abc.file.ext", "def.file.ext"])
+
+        target = TargetFile(
+            100, {"sha256": "abc", "md5": "def"}, "public/path/.ext"
+        )
+        self.assertEqual(sorted(target.get_prefixed_paths()), ["public/path/abc..ext", "public/path/def..ext"])
+
+        target = TargetFile(
+            100, {"sha256": "abc"}, "/root/file.ext"
+        )
+        self.assertEqual(sorted(target.get_prefixed_paths()), ["/root/abc.file.ext"])
+
+        target = TargetFile(
+            100, {"sha256": "abc"}, "/"
+        )
+        self.assertEqual(sorted(target.get_prefixed_paths()), [])
+
     def test_is_delegated_role(self) -> None:
         # test path matches
         # see more extensive tests in test_is_target_in_pathpattern()
