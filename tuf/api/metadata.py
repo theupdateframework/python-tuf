@@ -1740,13 +1740,28 @@ class TargetFile(BaseFile):
 
     def get_prefixed_paths(self) -> List[str]:
         """
-        Returns hash-prefixed paths for the given target file path.
+        Returns hash-prefixed paths for the given target file path. Empty result in the case of an invalid path.
+
+        Expects self.path to be a URL path fragment, not a filesystem path.
         """
         paths = []
-        path = pathlib.Path(self.path)
-        name, parent = path.name, path.parent
+        try:
+            if not self.path:
+                raise ValueError
+            elif "/" not in self.path:
+                parent, name = None, self.path
+            else:
+                parent, name = self.path.rsplit("/", 1)
+                if name == "": 
+                    raise ValueError
+        except ValueError:
+            return paths
+
         for hash in self.hashes.values():
-            paths.append(str(parent.joinpath(f"{hash}.{name}")))
+            path = f"{hash}.{name}"
+            if parent is not None:
+                path = f"{parent}/{path}"
+            paths.append(path)
         return paths
 
 
