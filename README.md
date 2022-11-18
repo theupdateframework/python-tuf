@@ -82,12 +82,6 @@ Security Issues and Bugs
 
 See [SECURITY.md](docs/SECURITY.md)
 
-Limitations
------------
-
-The reference implementation may behave unexpectedly when concurrently
-downloading the same target files with the same TUF client.
-
 License
 -------
 
