@@ -1153,6 +1153,80 @@ class MetaFile(BaseFile):
         if self.hashes is not None:
             self._verify_hashes(data, self.hashes)
 
+    @classmethod
+    def from_data(
+        cls,
+        version: int,
+        data: Union[bytes, IO[bytes]],
+        hash_algorithms: List[str],
+    ) -> "MetaFile":
+        """
+        Creates ``MetaFile`` object from bytes.
+        This constructor should only be used if hashes are wanted. 
+        By default, MetaFile(ver) should be used.
+
+        Args:
+            version: Version of the metadata file.
+            data: Metadata bytes that the metafile represents.
+            hash_algorithms: Hash algorithms to create the hashes with. If not
+                specified the securesystemslib default hash algorithm is used.
+
+        Raises:
+            ValueError: The hash algorithms list contains an unsupported
+                algorithm.
+        """
+        if isinstance(data, bytes):
+            length = len(data)
+        else:
+            data.seek(0, io.SEEK_END)
+            length = data.tell()
+
+        hashes = {}
+
+        if hash_algorithms is None:
+            hash_algorithms = [sslib_hash.DEFAULT_HASH_ALGORITHM]
+
+        for algorithm in hash_algorithms:
+            try:
+                if isinstance(data, bytes):
+                    digest_object = sslib_hash.digest(algorithm)
+                    digest_object.update(data)
+                else:
+                    digest_object = sslib_hash.digest_fileobject(
+                        data, algorithm
+                    )
+            except (
+                sslib_exceptions.UnsupportedAlgorithmError,
+                sslib_exceptions.FormatError,
+            ) as e:
+                raise ValueError(f"Unsupported algorithm '{algorithm}'") from e
+
+            hashes[algorithm] = digest_object.hexdigest()
+
+        return cls(version, length, hashes)
+
+    @classmethod
+    def from_file(
+        cls,
+        version: int,
+        local_path: str,
+        hash_algorithms: List[str],
+    ) -> "MetaFile":
+        """Creates ``MetaFile`` object from a file.
+
+        Args:
+            version: Version of the metadata file.
+            local_path: Local path to target file content.
+            hash_algorithms: Hash algorithms to calculate hashes with. If not
+                specified the securesystemslib default hash algorithm is used.
+        Raises:
+            FileNotFoundError: The file doesn't exist.
+            ValueError: The hash algorithms list contains an unsupported
+                algorithm.
+        """
+        with open(local_path, "rb") as file:
+            return cls.from_data(version, file, hash_algorithms)
+
 
 class Timestamp(Signed):
     """A container for the signed part of timestamp metadata.

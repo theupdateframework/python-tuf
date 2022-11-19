@@ -33,6 +33,7 @@ from tuf.api.metadata import (
     Delegations,
     Key,
     Metadata,
+    MetaFile,
     Root,
     Snapshot,
     SuccinctRoles,
@@ -724,6 +725,45 @@ class TestMetadata(unittest.TestCase):
         # Test with no algorithms specified
         targetfile_from_data = TargetFile.from_data(target_file_path, data)
         targetfile_from_data.verify_length_and_hashes(data)
+
+    def test_metafile_from_data(self) -> None:
+        data = b"Inline test content"
+
+        # Test with a valid hash algorithm
+        metafile = MetaFile.from_data(
+            1, data, ["sha256"]
+        )
+        metafile.verify_length_and_hashes(data)
+
+        # Test with an invalid hash algorithm
+        with self.assertRaises(ValueError):
+            metafile = MetaFile.from_data(
+                1, data, ["invalid_algo"]
+            )
+            metafile.verify_length_and_hashes(data)
+
+    def test_metafile_from_file(self) -> None:
+        # Test with an existing file and valid hash algorithm
+        file_path = os.path.join(self.repo_dir, Targets.type, "file1.txt")
+        metafile = MetaFile.from_file(
+            1, file_path, ["sha256"]
+        )
+        with open(file_path, "rb") as file:
+            metafile.verify_length_and_hashes(file)
+
+        # Test with a non-existing file
+        file_path = os.path.join(self.repo_dir, Targets.type, "file123.txt")
+        with self.assertRaises(FileNotFoundError):
+            MetaFile.from_file(
+                1, file_path, [sslib_hash.DEFAULT_HASH_ALGORITHM]
+            )
+
+        # Test with an unsupported algorithm
+        file_path = os.path.join(self.repo_dir, Targets.type, "file1.txt")
+        with self.assertRaises(ValueError):
+            MetaFile.from_file(
+                1, file_path, ["invalid"]
+            )
 
     def test_is_delegated_role(self) -> None:
         # test path matches
