@@ -152,6 +152,5 @@ disable_error_code = ["attr-defined"]
 module = [
   "requests.*",
   "securesystemslib.*",
-  "urllib3.*"
 ]
 ignore_missing_imports = "True"
