@@ -17,10 +17,10 @@ from tests import utils
 
 
 class TestRepoExamples(unittest.TestCase):
-    """Unit test class for 'repo_example' scripts.
+    """Unit test class for 'manual_repo' scripts.
 
     Provides a '_run_example_script' method to run (exec) a script located in
-    the 'repo_example' directory.
+    the 'manual_repo' directory.
 
     """
 
@@ -28,9 +28,9 @@ class TestRepoExamples(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        """Locate and cache 'repo_example' dir."""
+        """Locate the example dir."""
         base = Path(__file__).resolve().parents[1]
-        cls.repo_examples_dir = base / "examples" / "repo_example"
+        cls.repo_examples_dir = base / "examples" / "manual_repo"
 
     def setUp(self) -> None:
         """Create and change into test dir.
@@ -48,7 +48,7 @@ class TestRepoExamples(unittest.TestCase):
     def _run_script_and_assert_files(
         self, script_name: str, filenames_created: List[str]
     ) -> None:
-        """Run script in 'repo_example' dir and assert that it created the
+        """Run script in exmple dir and assert that it created the
         files corresponding to the passed filenames inside a 'tmp*' test dir at
         CWD."""
         script_path = str(self.repo_examples_dir / script_name)
