@@ -9,6 +9,7 @@ import logging
 import os
 import shutil
 from pathlib import Path
+import traceback
 
 from tuf.api.exceptions import DownloadError, RepositoryError
 from tuf.ngclient import Updater
@@ -39,7 +40,7 @@ def init() -> None:
         print(f"Found trusted root in {METADATA_DIR}")
 
 
-def download(target: str) -> bool:
+def download(target: str, error_level: int) -> bool:
     """
     Download the target file using ``ngclient`` Updater.
 
@@ -75,6 +76,8 @@ def download(target: str) -> bool:
 
     except (OSError, RepositoryError, DownloadError) as e:
         print(f"Failed to download target {target}: {e}")
+        if error_level != 0:
+            traceback.print_exc()
         return False
 
     return True
@@ -126,7 +129,7 @@ def main() -> None:
     init()
 
     if command_args.sub_command == "download":
-        download(command_args.target)
+        download(command_args.target, command_args.verbose)
 
     else:
         client_args.print_help()
