@@ -2,7 +2,11 @@ on:
   schedule:
     - cron: "0 13 * * *"
   workflow_dispatch:
+
 name: Specification version check
+
+permissions: {}
+
 jobs:
   # Get the version of the TUF specification the project states it supports
   get-supported-tuf-version:

@@ -28,6 +28,10 @@ High-level description of ``Updater`` functionality:
       * ``Updater.download_target()`` downloads a target file and ensures it is
         verified correct by the metadata.
 
+Note that applications using ``Updater`` should be 'single instance'
+applications: running multiple instances that use the same cache directories at
+the same time is not supported.
+
 A simple example of using the Updater to implement a Python TUF client that
 downloads target files is available in `examples/client_example
 <https://github.com/theupdateframework/python-tuf/tree/develop/examples/client_example>`_.

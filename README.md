@@ -5,6 +5,7 @@
 [![Docs](https://readthedocs.org/projects/theupdateframework/badge/)](https://theupdateframework.readthedocs.io/)
 [![CII](https://bestpractices.coreinfrastructure.org/projects/1351/badge)](https://bestpractices.coreinfrastructure.org/projects/1351)
 [![PyPI](https://img.shields.io/pypi/v/tuf)](https://pypi.org/project/tuf/)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/theupdateframework/python-tuf/badge)](https://api.securityscorecards.dev/projects/github.com/theupdateframework/python-tuf)
 
 ----------------------------
 [The Update Framework (TUF)](https://theupdateframework.io/) is a framework for
@@ -81,12 +82,6 @@ Security Issues and Bugs
 ------------------------
 
 See [SECURITY.md](docs/SECURITY.md)
-
-Limitations
------------
-
-The reference implementation may behave unexpectedly when concurrently
-downloading the same target files with the same TUF client.
 
 License
 -------

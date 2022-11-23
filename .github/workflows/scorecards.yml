@@ -1,0 +1,39 @@
+name: Scorecards analysis
+on:
+  branch_protection_rule:
+  schedule:
+    - cron: '21 6 * * 1'
+  push:
+    branches: [ develop ]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  analysis:
+    name: Scorecards analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write # for uploading to code-scanning dashboard
+      id-token: write # for signing results
+      actions: read
+      contents: read
+
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
+
+      - name: "Run analysis"
+        uses: ossf/scorecard-action@99c53751e09b9529366343771cc321ec74e9bd3d
+        with:
+          results_file: results.sarif
+          # sarif format required by upload-sarif action
+          results_format: sarif
+          # "repo_token" not set because personal access tokens are dangerous.
+          # This means Branch-Protection check will not have correct results.
+          publish_results: true
+
+      - name: "Upload to code-scanning dashboard"
+        uses: github/codeql-action/upload-sarif@8aff97f12c99086bdb92ff62ae06dbbcdf07941b
+        with:
+          sarif_file: results.sarif
