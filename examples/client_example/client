@@ -7,40 +7,49 @@
 import argparse
 import logging
 import os
-import shutil
+import sys
 import traceback
+from hashlib import sha256
 from pathlib import Path
+from urllib import request
 
 from tuf.api.exceptions import DownloadError, RepositoryError
 from tuf.ngclient import Updater
 
 # constants
-BASE_URL = "http://127.0.0.1:8000"
 DOWNLOAD_DIR = "./downloads"
-METADATA_DIR = f"{Path.home()}/.local/share/python-tuf-client-example"
 CLIENT_EXAMPLE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+def build_metadata_dir(base_url: str) -> str:
+    """build a unique and reproducible directory name for the repository url"""
+    name = sha256(base_url.encode()).hexdigest()[:8]
+    # TODO: Make this not windows hostile?
+    return f"{Path.home()}/.local/share/tuf-example/{name}"
 
-def init() -> None:
-    """Initialize local trusted metadata and create a directory for downloads"""
+
+def init_tofu(base_url: str) -> bool:
+    """Initialize local trusted metadata (Trust-On-First-Use) and create a
+    directory for downloads"""
+    metadata_dir = build_metadata_dir(base_url)
 
     if not os.path.isdir(DOWNLOAD_DIR):
         os.mkdir(DOWNLOAD_DIR)
 
-    if not os.path.isdir(METADATA_DIR):
-        os.makedirs(METADATA_DIR)
+    if not os.path.isdir(metadata_dir):
+        os.makedirs(metadata_dir)
 
-    if not os.path.isfile(f"{METADATA_DIR}/root.json"):
-        shutil.copy(
-            f"{CLIENT_EXAMPLE_DIR}/1.root.json", f"{METADATA_DIR}/root.json"
-        )
-        print(f"Added trusted root in {METADATA_DIR}")
+    root_url = f"{base_url}/metadata/1.root.json"
+    try:
+        request.urlretrieve(root_url, f"{metadata_dir}/root.json")
+    except OSError:
+        print(f"Failed to download initial root from {root_url}")
+        return False
 
-    else:
-        print(f"Found trusted root in {METADATA_DIR}")
+    print(f"Trust-on-First-Use: Initialized new root in {metadata_dir}")
+    return True
 
 
-def download(target: str) -> bool:
+def download(base_url: str, target: str) -> bool:
     """
     Download the target file using ``ngclient`` Updater.
 
@@ -51,11 +60,23 @@ def download(target: str) -> bool:
     Returns:
         A boolean indicating if process was successful
     """
+    metadata_dir = build_metadata_dir(base_url)
+
+    if not os.path.isfile(f"{metadata_dir}/root.json"):
+        print(
+            "Trusted local root not found. Use 'tofu' command to "
+            "Trust-On-First-Use or copy trusted root metadata to "
+            f"{metadata_dir}/root.json"
+        )
+        return False
+
+    print(f"Using trusted root in {metadata_dir}")
+
     try:
         updater = Updater(
-            metadata_dir=METADATA_DIR,
-            metadata_base_url=f"{BASE_URL}/metadata/",
-            target_base_url=f"{BASE_URL}/targets/",
+            metadata_dir=metadata_dir,
+            metadata_base_url=f"{base_url}/metadata/",
+            target_base_url=f"{base_url}/targets/",
             target_dir=DOWNLOAD_DIR,
         )
         updater.refresh()
@@ -97,8 +118,21 @@ def main() -> None:
         default=0,
     )
 
+    client_args.add_argument(
+        "-u",
+        "--url",
+        help="Base repository URL",
+        default="http://127.0.0.1:8001",
+    )
+
     # Sub commands
     sub_command = client_args.add_subparsers(dest="sub_command")
+
+    # Trust-On-First-Use
+    sub_command.add_parser(
+        "tofu",
+        help="Initialize client with Trust-On-First-Use",
+    )
 
     # Download
     download_parser = sub_command.add_parser(
@@ -126,14 +160,15 @@ def main() -> None:
     logging.basicConfig(level=loglevel)
 
     # initialize the TUF Client Example infrastructure
-    init()
-
-    if command_args.sub_command == "download":
-        download(command_args.target)
-
+    if command_args.sub_command == "tofu":
+        if not init_tofu(command_args.url):
+            return "Failed to initialize local repository"
+    elif command_args.sub_command == "download":
+        if not download(command_args.url, command_args.target):
+            return f"Failed to download {command_args.target}"
     else:
         client_args.print_help()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
