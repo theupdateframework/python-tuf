@@ -76,7 +76,7 @@ def download(target: str) -> bool:
 
     except (OSError, RepositoryError, DownloadError) as e:
         print(f"Failed to download target {target}: {e}")
-        if  logging.root.level != logging.ERROR:
+        if logging.root.level != logging.ERROR:
             traceback.print_exc()
         return False
 
