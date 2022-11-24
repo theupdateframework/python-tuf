@@ -8,8 +8,8 @@ import argparse
 import logging
 import os
 import shutil
-from pathlib import Path
 import traceback
+from pathlib import Path
 
 from tuf.api.exceptions import DownloadError, RepositoryError
 from tuf.ngclient import Updater
