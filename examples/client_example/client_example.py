@@ -40,7 +40,7 @@ def init() -> None:
         print(f"Found trusted root in {METADATA_DIR}")
 
 
-def download(target: str, error_level: int) -> bool:
+def download(target: str) -> bool:
     """
     Download the target file using ``ngclient`` Updater.
 
@@ -76,7 +76,7 @@ def download(target: str, error_level: int) -> bool:
 
     except (OSError, RepositoryError, DownloadError) as e:
         print(f"Failed to download target {target}: {e}")
-        if error_level != 0:
+        if  logging.root.level != logging.ERROR:
             traceback.print_exc()
         return False
 
@@ -129,7 +129,7 @@ def main() -> None:
     init()
 
     if command_args.sub_command == "download":
-        download(command_args.target, command_args.verbose)
+        download(command_args.target)
 
     else:
         client_args.print_help()
