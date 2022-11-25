@@ -8,6 +8,7 @@ import argparse
 import logging
 import os
 import shutil
+import traceback
 from pathlib import Path
 
 from tuf.api.exceptions import DownloadError, RepositoryError
@@ -75,6 +76,8 @@ def download(target: str) -> bool:
 
     except (OSError, RepositoryError, DownloadError) as e:
         print(f"Failed to download target {target}: {e}")
+        if logging.root.level < logging.ERROR:
+            traceback.print_exc()
         return False
 
     return True
