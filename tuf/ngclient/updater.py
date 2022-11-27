@@ -389,7 +389,14 @@ class Updater:
             logger.debug("Failed to load local %s: %s", role, e)
 
             assert self._trusted_set.snapshot is not None  # nosec
-            metainfo = self._trusted_set.snapshot.signed.meta[f"{role}.json"]
+
+            snapshot = self._trusted_set.snapshot.signed
+            metainfo = snapshot.meta.get(f"{role}.json")
+            if metainfo is None:
+                raise exceptions.RepositoryError(
+                    f"Role {role} was delegated but is not part of snapshot"
+                )
+
             length = metainfo.length or self.config.targets_max_length
             version = None
             if self._trusted_set.root.signed.consistent_snapshot:
