@@ -75,3 +75,6 @@ autodoc_default_options = {
     'inherited-members': 'Exception', # excl. members inherited from 'Exception'
     'exclude-members': 'to_dict, from_dict'
 }
+
+# Version
+version = tuf.__version__
