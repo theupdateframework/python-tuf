@@ -3,6 +3,7 @@
 
 """Repository Abstraction for metadata management"""
 
+from copy import deepcopy
 import logging
 from abc import ABC, abstractmethod
 from contextlib import contextmanager, suppress
@@ -114,7 +115,7 @@ class Repository(ABC):
             for keyname, new_meta in self.targets_infos.items():
                 if keyname not in snapshot.meta:
                     update_version = True
-                    snapshot.meta[keyname] = new_meta
+                    snapshot.meta[keyname] = deepcopy(new_meta)
                     continue
 
                 old_meta = snapshot.meta[keyname]
@@ -122,7 +123,7 @@ class Repository(ABC):
                     raise ValueError(f"{keyname} version rollback")
                 if new_meta.version > old_meta.version:
                     update_version = True
-                    snapshot.meta[keyname] = new_meta
+                    snapshot.meta[keyname] = deepcopy(new_meta)
                     removed[keyname] = old_meta
 
             if not update_version:
@@ -156,7 +157,7 @@ class Repository(ABC):
             if self.snapshot_info.version > timestamp.snapshot_meta.version:
                 update_version = True
                 removed = timestamp.snapshot_meta
-                timestamp.snapshot_meta = self.snapshot_info
+                timestamp.snapshot_meta = deepcopy(self.snapshot_info)
 
             if not update_version:
                 raise AbortEdit("Skip timestamp: No snapshot version changes")
