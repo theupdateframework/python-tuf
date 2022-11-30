@@ -71,6 +71,17 @@ class SimpleRepository(Repository):
             with self.edit(role, init=True):
                 pass
 
+    @property
+    def targets_infos(self) -> Dict[str, MetaFile]:
+        # TODO should track changes to snapshot meta and not recreate it here
+        targets: Targets = self.role_cache["targets"][-1].signed
+        return {"targets.json": MetaFile(targets.version)}
+
+    @property
+    def snapshot_info(self) -> MetaFile:
+        snapshot = self.role_cache["snapshot"][-1].signed
+        return MetaFile(snapshot.version)
+
     def open(self, role: str, init: bool = False) -> Metadata:
         """Return current Metadata for role from 'storage' (or create a new one)"""
 
@@ -115,7 +126,5 @@ class SimpleRepository(Repository):
         logger.debug("Targets v%d", targets.version)
 
         # update snapshot, timestamp
-        meta = {"targets.json": MetaFile(targets.version)}
-        new_version, _ = self.snapshot(meta)
-        if new_version is not None:
-            self.timestamp(MetaFile(new_version))
+        self.snapshot()
+        self.timestamp()

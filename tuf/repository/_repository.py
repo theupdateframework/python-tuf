@@ -47,6 +47,24 @@ class Repository(ABC):
         with ones from all available keys."""
         raise NotImplementedError
 
+    @property
+    @abstractmethod
+    def targets_infos(self) -> Dict[str, MetaFile]:
+        """Returns the current targets version information
+
+        Not that there is a difference between this and the published snapshot
+        meta: This dictionary reflects the targets metadata that currently
+        exists in the repository, but the dictionary published by snapshot()
+        will also include metadata that no longer exists in the repository.
+        """
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def snapshot_info(self) -> MetaFile:
+        """Returns the information matching current snapshot metadata"""
+        raise NotImplementedError
+
     @contextmanager
     def edit(
         self, role: str, init: bool = False
@@ -71,31 +89,31 @@ class Repository(ABC):
         md = self.open(role)
         self.close(role, md, sign_only=True)
 
-    def snapshot(
-        self, current_targets: Dict[str, MetaFile]
-    ) -> Tuple[Optional[int], Dict[str, MetaFile]]:
+    def snapshot(self, force: bool = False) -> Tuple[bool, Dict[str, MetaFile]]:
         """Update snapshot meta information
 
-        Updates the meta information in snapshot according to input.
+        Updates the snapshot meta information according to current targets
+        metadata state and the current current snapshot meta information.
 
         Arguments:
-            current_targets: The new currently served targets roles.
+            force: should new snapshot version be created even if meta
+                information would not change?
 
         Returns: Tuple of
-            - New snapshot version or None if snapshot was not created
-            - Meta information for targets metadata that were removed from repository
+            - True if snapshot was created, False if not
+            - Meta information for targets metadata was removed from snapshot
         """
 
         # Snapshot update is needed if
         # * any targets files are not yet in snapshot or
         # * any targets version is incorrect
-        updated_snapshot = False
+        update_version = force
         removed: Dict[str, MetaFile] = {}
 
         with self.edit("snapshot") as snapshot:
-            for keyname, new_meta in current_targets.items():
+            for keyname, new_meta in self.targets_infos.items():
                 if keyname not in snapshot.meta:
-                    updated_snapshot = True
+                    update_version = True
                     snapshot.meta[keyname] = new_meta
                     continue
 
@@ -103,37 +121,48 @@ class Repository(ABC):
                 if new_meta.version < old_meta.version:
                     raise ValueError(f"{keyname} version rollback")
                 if new_meta.version > old_meta.version:
-                    updated_snapshot = True
+                    update_version = True
                     snapshot.meta[keyname] = new_meta
                     removed[keyname] = old_meta
 
-            if not updated_snapshot:
+            if not update_version:
                 # prevent edit() from storing a new snapshot version
                 raise AbortEdit("Skip snapshot: No targets version changes")
 
-        if not updated_snapshot:
-            # This code is reacheable as edit() handles AbortEdit
-            logger.debug("Snapshot update not needed")  # type: ignore[unreachable]
+        if not update_version:
+            logger.debug("Snapshot update not needed")
         else:
             logger.debug(
                 "Snapshot v%d, %d targets", snapshot.version, len(snapshot.meta)
             )
 
-        version = snapshot.version if updated_snapshot else None
-        return version, removed
+        return update_version, removed
 
-    def timestamp(self, snapshot_meta: MetaFile) -> Optional[MetaFile]:
+    def timestamp(self, force: bool = False) -> Tuple[bool, Optional[MetaFile]]:
         """Update timestamp meta information
 
-        Updates timestamp with given snapshot information.
+        Updates timestamp according to current snapshot state
 
-        Returns the snapshot that was removed from repository (if any).
+        Returns: Tuple of
+            - True if timestamp was created, False if not
+            - Meta information for snapshot metadata that was removed from timestamp
         """
+        update_version = force
+        removed = None
         with self.edit("timestamp") as timestamp:
-            old_snapshot_meta = timestamp.snapshot_meta
-            timestamp.snapshot_meta = snapshot_meta
+            if self.snapshot_info.version < timestamp.snapshot_meta.version:
+                raise ValueError(f"snapshot version rollback")
 
-        logger.debug("Timestamp v%d", timestamp.version)
-        if old_snapshot_meta.version == snapshot_meta.version:
-            return None
-        return old_snapshot_meta
+            if self.snapshot_info.version > timestamp.snapshot_meta.version:
+                update_version = True
+                removed = timestamp.snapshot_meta
+                timestamp.snapshot_meta = self.snapshot_info
+
+            if not update_version:
+                raise AbortEdit("Skip timestamp: No snapshot version changes")
+
+        if not update_version:
+            logger.debug("Timestamp update not needed")
+        else:
+            logger.debug("Timestamp v%d", timestamp.version)
+        return update_version, removed
