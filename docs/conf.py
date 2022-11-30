@@ -12,56 +12,56 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath(os.path.join('..')))
+
+sys.path.insert(0, os.path.abspath(os.path.join("..")))
 
 import tuf
 
 # -- Project information -----------------------------------------------------
 
-project = 'TUF'
-copyright = '2021, New York University and the TUF contributors'
-author = 'New York University and the TUF contributors'
+project = "TUF"
+copyright = "2021, New York University and the TUF contributors"
+author = "New York University and the TUF contributors"
 
 
 # -- General configuration ---------------------------------------------------
 
-master_doc = 'index'
+master_doc = "index"
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.napoleon', 'sphinx.ext.autosummary',
-    'sphinx.ext.autosectionlabel'
+    "sphinx.ext.napoleon",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.autosectionlabel",
 ]
 
 autosectionlabel_prefix_document = True
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
-html_theme_options = {
-  'logo_only': True
-}
-html_logo = 'tuf-horizontal-white.png'
-html_favicon = 'tuf-icon-32.png'
+html_theme = "sphinx_rtd_theme"
+html_theme_options = {"logo_only": True}
+html_logo = "tuf-horizontal-white.png"
+html_favicon = "tuf-icon-32.png"
 
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-#html_static_path = ['_static']
+# html_static_path = ['_static']
 
 # -- Autodoc configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html
 
-autodoc_mock_imports = ['securesystemslib']
+autodoc_mock_imports = ["securesystemslib"]
 
 # Tone down the "tuf.api.metadata." repetition
 add_module_names = False
@@ -71,7 +71,10 @@ python_use_unqualified_type_names = True
 autodoc_typehints = "description"
 
 autodoc_default_options = {
-    'members': True,
-    'inherited-members': 'Exception', # excl. members inherited from 'Exception'
-    'exclude-members': 'to_dict, from_dict'
+    "members": True,
+    "inherited-members": "Exception",  # excl. members inherited from 'Exception'
+    "exclude-members": "to_dict, from_dict",
 }
+
+# Version
+version = tuf.__version__
