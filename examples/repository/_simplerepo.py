@@ -59,6 +59,9 @@ class SimpleRepository(Repository):
         self.signer_cache: Dict[str, List[Signer]] = defaultdict(list)
         # all target content
         self.target_cache: Dict[str, bytes] = {}
+        # version cache for snapshot and all targets, updated in close()
+        self._snapshot_info = MetaFile(1)
+        self._targets_infos = defaultdict(lambda: MetaFile(1))
 
         # setup a basic repository, generate signing key per top-level role
         with self.edit("root", init=True) as root:
@@ -73,14 +76,11 @@ class SimpleRepository(Repository):
 
     @property
     def targets_infos(self) -> Dict[str, MetaFile]:
-        # TODO should track changes to snapshot meta and not recreate it here
-        targets: Targets = self.role_cache["targets"][-1].signed
-        return {"targets.json": MetaFile(targets.version)}
+        return self._targets_infos
 
     @property
     def snapshot_info(self) -> MetaFile:
-        snapshot = self.role_cache["snapshot"][-1].signed
-        return MetaFile(snapshot.version)
+        return self._snapshot_info
 
     def open(self, role: str, init: bool = False) -> Metadata:
         """Return current Metadata for role from 'storage' (or create a new one)"""
@@ -110,7 +110,12 @@ class SimpleRepository(Repository):
             for signer in self.signer_cache[role]:
                 md.sign(signer, append=True)
 
+            # store new metadata version, update version caches
             self.role_cache[role].append(md)
+            if role == "snapshot":
+                self._snapshot_info.version = md.signed.version
+            elif role not in ["root", "timestamp"]:
+                self._targets_infos[f"{role}.json"].version = md.signed.version
 
     def add_target(self, path: str, content: str) -> None:
         """Add a target to repository"""

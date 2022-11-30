@@ -45,7 +45,8 @@ class Repository(ABC):
         If sign_only, then just append signatures of all available keys.
 
         If not sign_only, update expiry and version and replace signatures
-        with ones from all available keys."""
+        with ones from all available keys. Keep snapshot_info and targets_infos
+        updated."""
         raise NotImplementedError
 
     @property
