@@ -57,7 +57,7 @@ from securesystemslib.signer import Signature, Signer
 from securesystemslib.storage import FilesystemBackend, StorageBackendInterface
 from securesystemslib.util import persist_temp_file
 
-from tuf.api import exceptions
+from tuf.api.exceptions import LengthOrHashMismatchError, UnsignedMetadataError
 from tuf.api.serialization import (
     MetadataDeserializer,
     MetadataSerializer,
@@ -219,7 +219,7 @@ class Metadata(Generic[T]):
                 ``securesystemslib.storage.StorageBackendInterface``.
                 Default is ``FilesystemBackend`` (i.e. a local file).
         Raises:
-            exceptions.StorageError: The file cannot be read.
+            StorageError: The file cannot be read.
             tuf.api.serialization.DeserializationError:
                 The file cannot be deserialized.
 
@@ -329,7 +329,7 @@ class Metadata(Generic[T]):
         Raises:
             tuf.api.serialization.SerializationError:
                 The metadata object cannot be serialized.
-            exceptions.StorageError: The file cannot be written.
+            StorageError: The file cannot be written.
         """
 
         bytes_data = self.to_bytes(serializer)
@@ -360,7 +360,7 @@ class Metadata(Generic[T]):
         Raises:
             tuf.api.serialization.SerializationError:
                 ``signed`` cannot be serialized.
-            exceptions.UnsignedMetadataError: Signing errors.
+            UnsignedMetadataError: Signing errors.
 
         Returns:
             ``securesystemslib.signer.Signature`` object that was added into
@@ -379,9 +379,7 @@ class Metadata(Generic[T]):
         try:
             signature = signer.sign(bytes_data)
         except Exception as e:
-            raise exceptions.UnsignedMetadataError(
-                "Problem signing the metadata"
-            ) from e
+            raise UnsignedMetadataError("Problem signing the metadata") from e
 
         if not append:
             self.signatures.clear()
@@ -442,11 +440,11 @@ class Metadata(Generic[T]):
             try:
                 key.verify_signature(delegated_metadata, signed_serializer)
                 signing_keys.add(key.keyid)
-            except exceptions.UnsignedMetadataError:
+            except UnsignedMetadataError:
                 logger.info("Key %s failed to verify %s", keyid, delegated_role)
 
         if len(signing_keys) < role.threshold:
-            raise exceptions.UnsignedMetadataError(
+            raise UnsignedMetadataError(
                 f"{delegated_role} was signed by {len(signing_keys)}/"
                 f"{role.threshold} keys",
             )
@@ -750,8 +748,8 @@ class Key:
         try:
             signature = metadata.signatures[self.keyid]
         except KeyError:
-            raise exceptions.UnsignedMetadataError(
-                f"No signature for key {self.keyid} found in metadata"
+            raise UnsignedMetadataError(
+                f"No signature for key {self.keyid} found"
             ) from None
 
         if signed_serializer is None:
@@ -766,7 +764,7 @@ class Key:
                 signature.to_dict(),
                 signed_serializer.serialize(metadata.signed),
             ):
-                raise exceptions.UnsignedMetadataError(
+                raise UnsignedMetadataError(
                     f"Failed to verify {self.keyid} signature"
                 )
         except (
@@ -777,7 +775,7 @@ class Key:
         ) as e:
             # Log unexpected failure, but continue as if there was no signature
             logger.info("Key %s failed to verify sig: %s", self.keyid, str(e))
-            raise exceptions.UnsignedMetadataError(
+            raise UnsignedMetadataError(
                 f"Failed to verify {self.keyid} signature"
             ) from e
 
@@ -1013,13 +1011,13 @@ class BaseFile:
                 sslib_exceptions.UnsupportedAlgorithmError,
                 sslib_exceptions.FormatError,
             ) as e:
-                raise exceptions.LengthOrHashMismatchError(
+                raise LengthOrHashMismatchError(
                     f"Unsupported algorithm '{algo}'"
                 ) from e
 
             observed_hash = digest_object.hexdigest()
             if observed_hash != exp_hash:
-                raise exceptions.LengthOrHashMismatchError(
+                raise LengthOrHashMismatchError(
                     f"Observed hash {observed_hash} does not match "
                     f"expected hash {exp_hash}"
                 )
@@ -1037,7 +1035,7 @@ class BaseFile:
             observed_length = data.tell()
 
         if observed_length != expected_length:
-            raise exceptions.LengthOrHashMismatchError(
+            raise LengthOrHashMismatchError(
                 f"Observed length {observed_length} does not match "
                 f"expected length {expected_length}"
             )
