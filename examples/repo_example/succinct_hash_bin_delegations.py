@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Dict, Tuple
 
 from securesystemslib.keys import generate_ed25519_key
-from securesystemslib.signer import SSlibSigner
+from securesystemslib.signer import SSlibKey, SSlibSigner
 
 from tuf.api.metadata import (
     Delegations,
@@ -82,7 +82,7 @@ THRESHOLD = 1
 def create_key() -> Tuple[Key, SSlibSigner]:
     """Generates a new Key and Signer."""
     sslib_key = generate_ed25519_key()
-    return Key.from_securesystemslib_key(sslib_key), SSlibSigner(sslib_key)
+    return SSlibKey.from_securesystemslib_key(sslib_key), SSlibSigner(sslib_key)
 
 
 # Create one signing key for all bins, and one for the delegating targets role.

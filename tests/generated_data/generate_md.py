@@ -8,7 +8,7 @@ import sys
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from securesystemslib.signer import SSlibSigner
+from securesystemslib.signer import SSlibKey, SSlibSigner
 
 from tests import utils
 from tuf.api.metadata import Key, Metadata, Root, Snapshot, Targets, Timestamp
@@ -36,7 +36,7 @@ keyids: List[str] = [
 
 keys: Dict[str, Key] = {}
 for index in range(4):
-    keys[f"ed25519_{index}"] = Key.from_securesystemslib_key(
+    keys[f"ed25519_{index}"] = SSlibKey.from_securesystemslib_key(
         {
             "keytype": "ed25519",
             "scheme": "ed25519",

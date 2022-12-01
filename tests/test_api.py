@@ -23,7 +23,7 @@ from securesystemslib.interface import (
     import_ed25519_publickey_from_file,
 )
 from securesystemslib.keys import generate_ed25519_key
-from securesystemslib.signer import Signature, SSlibSigner
+from securesystemslib.signer import SSlibKey, SSlibSigner
 
 from tests import utils
 from tuf.api import exceptions
@@ -34,6 +34,7 @@ from tuf.api.metadata import (
     Key,
     Metadata,
     Root,
+    Signature,
     Snapshot,
     SuccinctRoles,
     TargetFile,
@@ -382,13 +383,8 @@ class TestMetadata(unittest.TestCase):
         # Test if from_securesystemslib_key removes the private key from keyval
         # of a securesystemslib key dictionary.
         sslib_key = generate_ed25519_key()
-        key = Key.from_securesystemslib_key(sslib_key)
+        key = SSlibKey.from_securesystemslib_key(sslib_key)
         self.assertFalse("private" in key.keyval.keys())
-
-        # Test raising ValueError with non-existent keytype
-        sslib_key["keytype"] = "bad keytype"
-        with self.assertRaises(ValueError):
-            Key.from_securesystemslib_key(sslib_key)
 
     def test_root_add_key_and_revoke_key(self) -> None:
         root_path = os.path.join(self.repo_dir, "metadata", "root.json")
@@ -399,7 +395,7 @@ class TestMetadata(unittest.TestCase):
             os.path.join(self.keystore_dir, "root_key2.pub")
         )
         keyid = root_key2["keyid"]
-        key_metadata = Key(
+        key_metadata = SSlibKey(
             keyid,
             root_key2["keytype"],
             root_key2["scheme"],
