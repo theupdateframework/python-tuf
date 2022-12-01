@@ -353,6 +353,15 @@ class TestMetadata(unittest.TestCase):
             root.verify_delegate(Snapshot.type, snapshot)
         snapshot.signed.expires = expires
 
+        # verify fails if sslib verify fails with VerificationError
+        # (in this case signature is malformed)
+        keyid = next(iter(root.signed.roles[Snapshot.type].keyids))
+        good_sig = snapshot.signatures[keyid].signature
+        snapshot.signatures[keyid].signature = "foo"
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            root.verify_delegate(Snapshot.type, snapshot)
+        snapshot.signatures[keyid].signature = good_sig
+
         # verify fails if roles keys do not sign the metadata
         with self.assertRaises(exceptions.UnsignedMetadataError):
             root.verify_delegate(Timestamp.type, snapshot)

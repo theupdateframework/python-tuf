@@ -386,29 +386,11 @@ class Metadata(Generic[T]):
 
         return signature
 
-    def verify_delegate(
-        self,
-        delegated_role: str,
-        delegated_metadata: "Metadata",
-        signed_serializer: Optional[SignedSerializer] = None,
-    ) -> None:
-        """Verify that ``delegated_metadata`` is signed with the required
-        threshold of keys for the delegated role ``delegated_role``.
+    def _get_role_and_keys(
+        self, delegated_role: str
+    ) -> Tuple["Role", Dict[str, Key]]:
+        """Return the keys and role for delegated_role"""
 
-        Args:
-            delegated_role: Name of the delegated role to verify
-            delegated_metadata: ``Metadata`` object for the delegated role
-            signed_serializer: Serializer used for delegate
-                serialization. Default is ``CanonicalJSONSerializer``.
-
-        Raises:
-            UnsignedMetadataError: ``delegated_role`` was not signed with
-                required threshold of keys for ``role_name``.
-            ValueError: no delegation was found for ``delegated_role``.
-            TypeError: called this function on non-delegating metadata class.
-        """
-
-        # Find the keys and role in delegator metadata
         role: Optional[Role] = None
         if isinstance(self.signed, Root):
             keys = self.signed.keys
@@ -431,17 +413,55 @@ class Metadata(Generic[T]):
         if role is None:
             raise ValueError(f"No delegation found for {delegated_role}")
 
+        return (role, keys)
+
+    def verify_delegate(
+        self,
+        delegated_role: str,
+        delegated_metadata: "Metadata",
+        signed_serializer: Optional[SignedSerializer] = None,
+    ) -> None:
+        """Verify that ``delegated_metadata`` is signed with the required
+        threshold of keys for the delegated role ``delegated_role``.
+
+        Args:
+            delegated_role: Name of the delegated role to verify
+            delegated_metadata: ``Metadata`` object for the delegated role
+            signed_serializer: Serializer used for delegate
+                serialization. Default is ``CanonicalJSONSerializer``.
+
+        Raises:
+            UnsignedMetadataError: ``delegated_role`` was not signed with
+                required threshold of keys for ``role_name``.
+            ValueError: no delegation was found for ``delegated_role``.
+            TypeError: called this function on non-delegating metadata class.
+        """
+
+        if signed_serializer is None:
+            # pylint: disable=import-outside-toplevel
+            from tuf.api.serialization.json import CanonicalJSONSerializer
+
+            signed_serializer = CanonicalJSONSerializer()
+
+        data = signed_serializer.serialize(delegated_metadata.signed)
+        role, keys = self._get_role_and_keys(delegated_role)
+
         # verify that delegated_metadata is signed by threshold of unique keys
         signing_keys = set()
         for keyid in role.keyids:
-            key = keys[keyid]
+            if keyid not in keys:
+                logger.info("No key for keyid %s", keyid)
+                continue
+            if keyid not in delegated_metadata.signatures:
+                logger.info("No signature for keyid %s", keyid)
+                continue
+
+            sig = delegated_metadata.signatures[keyid]
             try:
-                key.verify_signature(delegated_metadata, signed_serializer)
-                signing_keys.add(key.keyid)
-            except UnsignedMetadataError:
-                logger.debug(
-                    "Key %s failed to verify %s", keyid, delegated_role
-                )
+                keys[keyid].verify_signature(sig, data)
+                signing_keys.add(keyid)
+            except sslib_exceptions.UnverifiedSignatureError:
+                logger.info("Key %s failed to verify %s", keyid, delegated_role)
 
         if len(signing_keys) < role.threshold:
             raise UnsignedMetadataError(
