@@ -168,7 +168,7 @@ class TestSerialization(unittest.TestCase):
     @utils.run_sub_tests_with_dataset(invalid_keys)
     def test_invalid_key_serialization(self, test_case_data: str) -> None:
         case_dict = json.loads(test_case_data)
-        with self.assertRaises((TypeError, KeyError)):
+        with self.assertRaises((TypeError, KeyError, ValueError)):
             keyid = case_dict.pop("keyid")
             Key.from_dict(keyid, case_dict)
 

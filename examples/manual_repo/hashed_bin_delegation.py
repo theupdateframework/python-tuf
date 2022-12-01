@@ -23,12 +23,11 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Tuple
 
 from securesystemslib.keys import generate_ed25519_key
-from securesystemslib.signer import SSlibSigner
+from securesystemslib.signer import SSlibKey, SSlibSigner
 
 from tuf.api.metadata import (
     DelegatedRole,
     Delegations,
-    Key,
     Metadata,
     TargetFile,
     Targets,
@@ -146,7 +145,7 @@ for name in ["bin-n", "bins"]:
 # Create preliminary delegating targets role (bins) and add public key for
 # delegated targets (bin_n) to key store. Delegation details are update below.
 roles["bins"] = Metadata(Targets(expires=_in(365)))
-bin_n_key = Key.from_securesystemslib_key(keys["bin-n"])
+bin_n_key = SSlibKey.from_securesystemslib_key(keys["bin-n"])
 roles["bins"].signed.delegations = Delegations(
     keys={bin_n_key.keyid: bin_n_key},
     roles={},

@@ -12,17 +12,17 @@ import sys
 import unittest
 from typing import Any, ClassVar, Dict
 
-from securesystemslib.signer import Signature
+from securesystemslib.signer import SSlibKey
 
 from tests import utils
 from tuf.api.metadata import (
     TOP_LEVEL_ROLE_NAMES,
     DelegatedRole,
     Delegations,
-    Key,
     Metadata,
     MetaFile,
     Role,
+    Signature,
     SuccinctRoles,
     TargetFile,
 )
@@ -50,7 +50,7 @@ class TestMetadataComparisions(unittest.TestCase):
 
         cls.objects["Metadata"] = Metadata(cls.objects["Timestamp"], {})
         cls.objects["Signed"] = cls.objects["Timestamp"]
-        cls.objects["Key"] = Key(
+        cls.objects["Key"] = SSlibKey(
             "id", "rsa", "rsassa-pss-sha256", {"public": "foo"}
         )
         cls.objects["Role"] = Role(["keyid1", "keyid2"], 3)

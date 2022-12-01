@@ -27,13 +27,12 @@ from pathlib import Path
 from typing import Any, Dict
 
 from securesystemslib.keys import generate_ed25519_key
-from securesystemslib.signer import SSlibSigner
+from securesystemslib.signer import SSlibKey, SSlibSigner
 
 from tuf.api.metadata import (
     SPECIFICATION_VERSION,
     DelegatedRole,
     Delegations,
-    Key,
     Metadata,
     MetaFile,
     Root,
@@ -157,7 +156,7 @@ roles["root"] = Metadata(Root(expires=_in(365)))
 for name in ["targets", "snapshot", "timestamp", "root"]:
     keys[name] = generate_ed25519_key()
     roles["root"].signed.add_key(
-        Key.from_securesystemslib_key(keys[name]), name
+        SSlibKey.from_securesystemslib_key(keys[name]), name
     )
 
 # NOTE: We only need the public part to populate root, so it is possible to use
@@ -173,7 +172,7 @@ for name in ["targets", "snapshot", "timestamp", "root"]:
 # required signature threshold.
 another_root_key = generate_ed25519_key()
 roles["root"].signed.add_key(
-    Key.from_securesystemslib_key(another_root_key), "root"
+    SSlibKey.from_securesystemslib_key(another_root_key), "root"
 )
 roles["root"].signed.roles["root"].threshold = 2
 
@@ -271,7 +270,7 @@ roles[delegatee_name] = Metadata[Targets](
 # https://theupdateframework.github.io/specification/latest/#delegations
 roles["targets"].signed.delegations = Delegations(
     keys={
-        keys[delegatee_name]["keyid"]: Key.from_securesystemslib_key(
+        keys[delegatee_name]["keyid"]: SSlibKey.from_securesystemslib_key(
             keys[delegatee_name]
         )
     },
@@ -345,7 +344,7 @@ new_root_key = generate_ed25519_key()
 
 roles["root"].signed.revoke_key(keys["root"]["keyid"], "root")
 roles["root"].signed.add_key(
-    Key.from_securesystemslib_key(new_root_key), "root"
+    SSlibKey.from_securesystemslib_key(new_root_key), "root"
 )
 roles["root"].signed.version += 1
 
