@@ -414,7 +414,7 @@ class TestMetadata(unittest.TestCase):
 
         # Assert that add_key with old argument order will raise an error
         with self.assertRaises(ValueError):
-            root.signed.add_key(Root.type, key_metadata)  # type: ignore
+            root.signed.add_key(Root.type, key_metadata)
 
         # Add new root key
         root.signed.add_key(key_metadata, Root.type)
@@ -515,7 +515,7 @@ class TestMetadata(unittest.TestCase):
 
         # Assert that add_key with old argument order will raise an error
         with self.assertRaises(ValueError):
-            targets.add_key("role1", key)  # type: ignore
+            targets.add_key("role1", key)
 
         # Assert that delegated role "role1" does not contain the new key
         self.assertNotIn(key.keyid, targets.delegations.roles["role1"].keyids)
