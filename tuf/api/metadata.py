@@ -52,8 +52,7 @@ from typing import (
 
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import hash as sslib_hash
-from securesystemslib import keys as sslib_keys
-from securesystemslib.signer import Signature, Signer
+from securesystemslib.signer import Key, Signature, Signer
 from securesystemslib.storage import FilesystemBackend, StorageBackendInterface
 from securesystemslib.util import persist_temp_file
 
@@ -61,7 +60,6 @@ from tuf.api.exceptions import LengthOrHashMismatchError, UnsignedMetadataError
 from tuf.api.serialization import (
     MetadataDeserializer,
     MetadataSerializer,
-    SerializationError,
     SignedSerializer,
 )
 
@@ -608,176 +606,6 @@ class Signed(metaclass=abc.ABCMeta):
             reference_time = datetime.utcnow()
 
         return reference_time >= self.expires
-
-
-class Key:
-    """A container class representing the public portion of a Key.
-
-    Supported key content (type, scheme and keyval) is defined in
-    `` Securesystemslib``.
-
-    *All parameters named below are not just constructor arguments but also
-    instance attributes.*
-
-    Args:
-        keyid: Key identifier that is unique within the metadata it is used in.
-            Keyid is not verified to be the hash of a specific representation
-            of the key.
-        keytype: Key type, e.g. "rsa", "ed25519" or "ecdsa-sha2-nistp256".
-        scheme: Signature scheme. For example:
-            "rsassa-pss-sha256", "ed25519", and "ecdsa-sha2-nistp256".
-        keyval: Opaque key content
-        unrecognized_fields: Dictionary of all attributes that are not managed
-            by TUF Metadata API
-
-    Raises:
-        TypeError: Invalid type for an argument.
-    """
-
-    def __init__(
-        self,
-        keyid: str,
-        keytype: str,
-        scheme: str,
-        keyval: Dict[str, str],
-        unrecognized_fields: Optional[Dict[str, Any]] = None,
-    ):
-        if not all(
-            isinstance(at, str) for at in [keyid, keytype, scheme]
-        ) or not isinstance(keyval, dict):
-            raise TypeError("Unexpected Key attributes types!")
-        self.keyid = keyid
-        self.keytype = keytype
-        self.scheme = scheme
-        self.keyval = keyval
-        if unrecognized_fields is None:
-            unrecognized_fields = {}
-
-        self.unrecognized_fields = unrecognized_fields
-
-    def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, Key):
-            return False
-
-        return (
-            self.keyid == other.keyid
-            and self.keytype == other.keytype
-            and self.scheme == other.scheme
-            and self.keyval == other.keyval
-            and self.unrecognized_fields == other.unrecognized_fields
-        )
-
-    @classmethod
-    def from_dict(cls, keyid: str, key_dict: Dict[str, Any]) -> "Key":
-        """Creates ``Key`` object from its json/dict representation.
-
-        Raises:
-            KeyError, TypeError: Invalid arguments.
-        """
-        keytype = key_dict.pop("keytype")
-        scheme = key_dict.pop("scheme")
-        keyval = key_dict.pop("keyval")
-        # All fields left in the key_dict are unrecognized.
-        return cls(keyid, keytype, scheme, keyval, key_dict)
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Returns the dictionary representation of self."""
-        return {
-            "keytype": self.keytype,
-            "scheme": self.scheme,
-            "keyval": self.keyval,
-            **self.unrecognized_fields,
-        }
-
-    def to_securesystemslib_key(self) -> Dict[str, Any]:
-        """Returns a ``Securesystemslib`` compatible representation of self."""
-        return {
-            "keyid": self.keyid,
-            "keytype": self.keytype,
-            "scheme": self.scheme,
-            "keyval": self.keyval,
-        }
-
-    @classmethod
-    def from_securesystemslib_key(cls, key_dict: Dict[str, Any]) -> "Key":
-        """Creates a ``Key`` object from a securesystemlib key json/dict representation
-        removing the private key from keyval.
-
-        Args:
-            key_dict: Key in securesystemlib dict representation.
-
-        Raises:
-            ValueError: ``key_dict`` value is not following the securesystemslib
-                format.
-        """
-        try:
-            key_meta = sslib_keys.format_keyval_to_metadata(
-                key_dict["keytype"],
-                key_dict["scheme"],
-                key_dict["keyval"],
-            )
-        except sslib_exceptions.FormatError as e:
-            raise ValueError(
-                "key_dict value is not following the securesystemslib format"
-            ) from e
-
-        return cls(
-            key_dict["keyid"],
-            key_meta["keytype"],
-            key_meta["scheme"],
-            key_meta["keyval"],
-        )
-
-    def verify_signature(
-        self,
-        metadata: Metadata,
-        signed_serializer: Optional[SignedSerializer] = None,
-    ) -> None:
-        """Verifies that the ``metadata.signatures`` contains a signature made
-        with this key, correctly signing ``metadata.signed``.
-
-        Args:
-            metadata: Metadata to verify
-            signed_serializer: ``SignedSerializer`` to serialize
-                ``metadata.signed`` with. Default is ``CanonicalJSONSerializer``.
-
-        Raises:
-            UnsignedMetadataError: The signature could not be verified for a
-                variety of possible reasons: see error message.
-        """
-        try:
-            signature = metadata.signatures[self.keyid]
-        except KeyError:
-            raise UnsignedMetadataError(
-                f"No signature for key {self.keyid} found"
-            ) from None
-
-        if signed_serializer is None:
-            # pylint: disable=import-outside-toplevel
-            from tuf.api.serialization.json import CanonicalJSONSerializer
-
-            signed_serializer = CanonicalJSONSerializer()
-
-        try:
-            if not sslib_keys.verify_signature(
-                self.to_securesystemslib_key(),
-                signature.to_dict(),
-                signed_serializer.serialize(metadata.signed),
-            ):
-                raise UnsignedMetadataError(
-                    f"Failed to verify {self.keyid} signature"
-                )
-        except (
-            sslib_exceptions.CryptoError,
-            sslib_exceptions.FormatError,
-            sslib_exceptions.UnsupportedAlgorithmError,
-            SerializationError,
-        ) as e:
-            # Log unexpected failure, but continue as if there was no signature
-            logger.info("Key %s failed to verify sig: %s", self.keyid, str(e))
-            raise UnsignedMetadataError(
-                f"Failed to verify {self.keyid} signature"
-            ) from e
 
 
 class Role:
