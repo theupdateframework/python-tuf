@@ -5,8 +5,8 @@
 """Simple repository example application
 
 The application stores metadata and targets in memory, and serves them via http.
-* Keys are generated at startup
-* The application simulates a live reposittory by adding a new target every few seconds
+Nothing is persisted on disk or loaded from disk. The application simulates a
+live repository by adding new target files periodically.
 """
 
 import argparse
@@ -28,7 +28,7 @@ class ReqHandler(BaseHTTPRequestHandler):
         if self.path.startswith("/metadata/") and self.path.endswith(".json"):
             self.get_metadata(self.path[len("/metadata/"):-len(".json")])
         elif self.path.startswith("/targets/"):
-            self.get_target(self.path[len("/targets/"):])    
+            self.get_target(self.path[len("/targets/"):])
         else:
             self.send_error(404, "Only serving /metadata/*.json")
 
@@ -46,7 +46,7 @@ class ReqHandler(BaseHTTPRequestHandler):
             self.send_error(404, f"Role {role} version {ver} not found")
             return
 
-        # send the metadata json 
+        # send the metadata json
         data = repo.role_cache[role][ver-1].to_bytes()
         self.send_response(200)
         self.send_header('Content-length', len(data))
@@ -80,7 +80,7 @@ class RepositoryServer(HTTPServer):
 
 def main(argv: List[str]) -> None:
     """Example repository server"""
-    
+
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--verbose", action="count")
     parser.add_argument("-p", "--port", type=int, default=8001)
@@ -92,7 +92,7 @@ def main(argv: List[str]) -> None:
     server = RepositoryServer(args.port)
     last_change = 0
     counter = 0
-        
+
     logger.info(f"Now serving. Root v1 at http://127.0.0.1:{server.server_port}/metadata/1.root.json")
 
     while True:
