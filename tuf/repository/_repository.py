@@ -3,10 +3,10 @@
 
 """Repository Abstraction for metadata management"""
 
-from copy import deepcopy
 import logging
 from abc import ABC, abstractmethod
 from contextlib import contextmanager, suppress
+from copy import deepcopy
 from typing import Dict, Generator, Optional, Tuple
 
 from tuf.api.metadata import Metadata, MetaFile, Signed
@@ -132,7 +132,8 @@ class Repository(ABC):
                 raise AbortEdit("Skip snapshot: No targets version changes")
 
         if not update_version:
-            logger.debug("Snapshot update not needed")
+            # this is reachable as edit() handles AbortEdit
+            logger.debug("Snapshot update not needed")  # type: ignore[unreachable]
         else:
             logger.debug(
                 "Snapshot v%d, %d targets", snapshot.version, len(snapshot.meta)
@@ -153,7 +154,7 @@ class Repository(ABC):
         removed = None
         with self.edit("timestamp") as timestamp:
             if self.snapshot_info.version < timestamp.snapshot_meta.version:
-                raise ValueError(f"snapshot version rollback")
+                raise ValueError("snapshot version rollback")
 
             if self.snapshot_info.version > timestamp.snapshot_meta.version:
                 update_version = True
@@ -164,7 +165,8 @@ class Repository(ABC):
                 raise AbortEdit("Skip timestamp: No snapshot version changes")
 
         if not update_version:
-            logger.debug("Timestamp update not needed")
+            # this is reachable as edit() handles AbortEdit
+            logger.debug("Timestamp update not needed")  # type: ignore[unreachable]
         else:
             logger.debug("Timestamp v%d", timestamp.version)
         return update_version, removed

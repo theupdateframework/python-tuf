@@ -61,7 +61,9 @@ class SimpleRepository(Repository):
         self.target_cache: Dict[str, bytes] = {}
         # version cache for snapshot and all targets, updated in close()
         self._snapshot_info = MetaFile(1)
-        self._targets_infos = defaultdict(lambda: MetaFile(1))
+        self._targets_infos: Dict[str, MetaFile] = defaultdict(
+            lambda: MetaFile(1)
+        )
 
         # setup a basic repository, generate signing key per top-level role
         with self.edit("root", init=True) as root:
