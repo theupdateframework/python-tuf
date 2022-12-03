@@ -42,12 +42,12 @@ class SimpleRepository(Repository):
 
 
     Attributes:
-        role_cache: Contains every historical metadata version of every role in
-            this repositorys. Keys are rolenames and values are lists of
-            Metadata
-        signer_cache: Contains all signers available to the repository. Keys
-            are rolenames, values are lists of signers
-        target_cache:
+        role_cache: Every historical metadata version of every role in this
+            repositorys. Keys are role names and values are lists of Metadata
+        signer_cache: All signers available to the repository. Keys are role
+            names, values are lists of signers
+        target_cache: All target files served by the repository. Keys are
+            target paths and values are file contents as bytes.
     """
 
     expiry_period = timedelta(days=1)

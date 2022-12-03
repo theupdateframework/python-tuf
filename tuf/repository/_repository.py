@@ -21,6 +21,9 @@ class AbortEdit(Exception):
 class Repository(ABC):
     """Abstract class for metadata modifying implementations
 
+    NOTE: The repository module is not considered part of the python-tuf
+    stable API yet.
+
     This class is intended to be a base class used in any metadata editing
     application, whether it is a real repository server or a developer tool.
 
@@ -95,7 +98,7 @@ class Repository(ABC):
         """Update snapshot meta information
 
         Updates the snapshot meta information according to current targets
-        metadata state and the current current snapshot meta information.
+        metadata state and the current snapshot meta information.
 
         Arguments:
             force: should new snapshot version be created even if meta
@@ -103,7 +106,7 @@ class Repository(ABC):
 
         Returns: Tuple of
             - True if snapshot was created, False if not
-            - Meta information for targets metadata was removed from snapshot
+            - Meta information for targets metadata that was removed from snapshot
         """
 
         # Snapshot update is needed if
@@ -135,9 +138,7 @@ class Repository(ABC):
             # this is reachable as edit() handles AbortEdit
             logger.debug("Snapshot update not needed")  # type: ignore[unreachable]
         else:
-            logger.debug(
-                "Snapshot v%d, %d targets", snapshot.version, len(snapshot.meta)
-            )
+            logger.debug("Snapshot v%d", snapshot.version)
 
         return update_version, removed
 

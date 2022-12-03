@@ -32,7 +32,7 @@ In another terminal, run the client:
 
 Note that unlike normal repositories, the example repository only exists in
 memory and is re-generated from scratch at every startup: This means your
-client needs to run `tofu` everytime you restart the repository application.
+client needs to run `tofu` every time you restart the repository application.
 
 
 ### Example with a repository on the internet
