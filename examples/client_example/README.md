@@ -13,7 +13,7 @@ used TUF repository can be set with `--url` (default repository is "http://127.0
 which is also the default for the repository example).
 
 
-### Example with the repository example
+### Usage with the repository example
 
 In one terminal, run the repository example and leave it running:
 ```console
@@ -35,7 +35,7 @@ memory and is re-generated from scratch at every startup: This means your
 client needs to run `tofu` every time you restart the repository application.
 
 
-### Example with a repository on the internet
+### Usage with a repository on the internet
 
 ```console
 # On first use only, initialize the client with Trust-On-First-Use
