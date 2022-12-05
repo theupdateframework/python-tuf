@@ -59,7 +59,9 @@ class SimpleRepository(Repository):
         self.signer_cache: Dict[str, List[Signer]] = defaultdict(list)
         # all target content
         self.target_cache: Dict[str, bytes] = {}
-        # version cache for snapshot and all targets, updated in close()
+        # version cache for snapshot and all targets, updated in close().
+        # The 'defaultdict(lambda: ...)' trick allows close() to easily modify
+        # the version without always creating a new MetaFile
         self._snapshot_info = MetaFile(1)
         self._targets_infos: Dict[str, MetaFile] = defaultdict(
             lambda: MetaFile(1)

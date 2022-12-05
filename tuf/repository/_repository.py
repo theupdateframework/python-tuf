@@ -55,26 +55,31 @@ class Repository(ABC):
     @property
     @abstractmethod
     def targets_infos(self) -> Dict[str, MetaFile]:
-        """Returns the current targets version information
+        """Returns the MetaFiles for current targets metadatas
 
-        Not that there is a difference between this and the published snapshot
-        meta: This dictionary reflects the targets metadata that currently
-        exists in the repository, but the dictionary published by snapshot()
-        will also include metadata that no longer exists in the repository.
+        This property is used by snapshot() to update Snapshot.meta.
+
+        Note that there is a difference between this return value and
+        Snapshot.meta: This dictionary reflects the targets metadata that
+        currently exists in the repository but Snapshot.meta also includes
+        metadata that used to exist, but no longer exists, in the repository.
         """
         raise NotImplementedError
 
     @property
     @abstractmethod
     def snapshot_info(self) -> MetaFile:
-        """Returns the information matching current snapshot metadata"""
+        """Returns the MetaFile for current snapshot metadata
+
+        This property is used by timestamp() to update Timestamp.meta.
+        """
         raise NotImplementedError
 
     @contextmanager
     def edit(
         self, role: str, init: bool = False
     ) -> Generator[Signed, None, None]:
-        """Context manager for editing a roles metadata
+        """Context manager for editing a role's metadata
 
         Context manager takes care of loading the roles metadata (or creating
         new metadata if 'init'), updating expiry and version. The caller can do
@@ -106,7 +111,7 @@ class Repository(ABC):
 
         Returns: Tuple of
             - True if snapshot was created, False if not
-            - Meta information for targets metadata that was removed from snapshot
+            - MetaFiles for targets versions removed from snapshot meta
         """
 
         # Snapshot update is needed if
@@ -149,7 +154,7 @@ class Repository(ABC):
 
         Returns: Tuple of
             - True if timestamp was created, False if not
-            - Meta information for snapshot metadata that was removed from timestamp
+            - MetaFile for snapshot version removed from timestamp (if any)
         """
         update_version = force
         removed = None
