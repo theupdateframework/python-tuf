@@ -74,6 +74,8 @@ class Updater:
             downloads. Can be individually set in ``download_target()``
         fetcher: ``Optional``; ``FetcherInterface`` implementation used to
             download both metadata and targets. Default is ``RequestsFetcher``
+        config: ``Optional``; ``UpdaterConfig`` could be used to setup common
+            configuration options.
 
     Raises:
         OSError: Local root.json cannot be read
