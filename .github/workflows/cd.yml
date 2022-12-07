@@ -84,7 +84,7 @@ jobs:
       - name: Publish binary wheel and source tarball on PyPI
         # Only attempt pypi upload in upstream repository
         if: github.repository == 'theupdateframework/python-tuf'
-        uses: pypa/gh-action-pypi-publish@5d1679fa6b895587c6eb10c3fe82205b440a580e
+        uses: pypa/gh-action-pypi-publish@c7f29f7adef1a245bd91520e94867e5c6eedddcc
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
