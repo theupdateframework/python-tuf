@@ -1076,7 +1076,7 @@ class MetaFile(BaseFile):
 
     def __init__(
         self,
-        version: int,
+        version: int = 1,
         length: Optional[int] = None,
         hashes: Optional[Dict[str, str]] = None,
         unrecognized_fields: Optional[Dict[str, Any]] = None,
