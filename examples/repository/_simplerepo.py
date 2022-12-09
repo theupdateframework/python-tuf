@@ -4,6 +4,7 @@
 """Simple example of using the repository library to build a repository"""
 
 import copy
+import json
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -131,3 +132,33 @@ class SimpleRepository(Repository):
         # update snapshot, timestamp
         self.snapshot()
         self.timestamp()
+
+    def submit_delegation(self, role: str, data: bytes) -> bool:
+        try:
+            logger.debug(f"Handling new delegation for role {role}")
+            keyid, keydict = next(iter(json.loads(data).items()))
+            key = Key.from_dict(keyid, keydict)
+
+            # TODO add delegation and key
+            raise NotImplementedError
+
+        except Exception as e:
+            print(e)
+            return False
+
+        return True
+
+    def submit_role(self, role: str, data: bytes) -> bool:
+        try:
+            logger.debug(f"Handling new version for role {role}")
+            md = Metadata.from_bytes(data)
+
+            # TODO add new metadata version
+            raise NotImplementedError
+
+        except Exception as e:
+            print(e)
+            return False
+
+        return True
+

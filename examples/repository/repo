@@ -32,18 +32,21 @@ class ReqHandler(BaseHTTPRequestHandler):
         """Handle POST requests, aka the 'API'"""
 
         content_len = int(self.headers.get('content-length', 0))
+        data = self.rfile.read(content_len)
 
         if self.path.startswith("/api/delegation/"):
             role = self.path[len("/api/delegation/"):]
-            if role:
-                raise NotImplementedError
+            if not self.server.repo.submit_delegation(role, data):
+                return self.send_error(400, f"Failed to delegate to {role}")
         elif self.path.startswith("/api/role/"):
             role = self.path[len("/api/role/"):]
-            if role:
-                raise NotImplementedError
+            if not self.server.repo.submit_role(role, data):
+               return self.send_error(400, f"Failed to submit role {role}")
+        else:
+            return self.send_error(404)
 
-        self.send_error(404)
-
+        self.send_response(200)
+        self.end_headers()
 
     def do_GET(self):
         """Handle GET: metadata and target files"""
