@@ -11,9 +11,12 @@ from datetime import datetime, timedelta
 from typing import Dict, List
 
 from securesystemslib import keys
-from securesystemslib.signer import Signer, SSlibKey, SSlibSigner
+from securesystemslib.signer import Key, Signer, SSlibKey, SSlibSigner
 
+from tuf.api.exceptions import RepositoryError
 from tuf.api.metadata import (
+    DelegatedRole,
+    Delegations,
     Metadata,
     MetaFile,
     Root,
@@ -117,7 +120,7 @@ class SimpleRepository(Repository):
             self._targets_infos[f"{role}.json"].version = md.signed.version
 
     def add_target(self, path: str, content: str) -> None:
-        """Add a target to repository"""
+        """Add a target to top-level targets metadata"""
         data = bytes(content, "utf-8")
 
         # add content to cache for serving to clients
@@ -133,32 +136,72 @@ class SimpleRepository(Repository):
         self.snapshot()
         self.timestamp()
 
-    def submit_delegation(self, role: str, data: bytes) -> bool:
+    def submit_delegation(self, rolename: str, data: bytes) -> bool:
+        """Add a delegation to a (offline signed) delegated targets metadata"""
         try:
-            logger.debug(f"Handling new delegation for role {role}")
+            logger.debug("Processing new delegation to role %s", rolename)
             keyid, keydict = next(iter(json.loads(data).items()))
             key = Key.from_dict(keyid, keydict)
 
-            # TODO add delegation and key
-            raise NotImplementedError
+            # add delegation and key
+            role = DelegatedRole(rolename, [], 1, True, [f"{rolename}/*"])
+            with self.edit("targets") as targets:
+                if targets.delegations is None:
+                    targets.delegations = Delegations({}, {})
 
-        except Exception as e:
-            print(e)
+                targets.delegations.roles[rolename] = role
+                targets.add_key(key, rolename)
+
+        except (RepositoryError, json.JSONDecodeError) as e:
+            logger.info("Failed to add delegation for %s: %s", rolename, e)
             return False
+
+        logger.debug("Targets v%d", targets.version)
+
+        # update snapshot, timestamp
+        self.snapshot()
+        self.timestamp()
 
         return True
 
     def submit_role(self, role: str, data: bytes) -> bool:
+        """Add a new version of a delegated roles metadata"""
         try:
-            logger.debug(f"Handling new version for role {role}")
+            logger.debug("Processing new version for role %s", role)
+            if role in ["root", "snapshot", "timestamp", "targets"]:
+                raise ValueError("Only delegated targets are accepted")
+
             md = Metadata.from_bytes(data)
+            for targetpath in md.signed.targets:
+                if not targetpath.startswith(f"{role}/"):
+                    raise ValueError(f"targets allowed under {role}/ only")
 
-            # TODO add new metadata version
-            raise NotImplementedError
+            targets_md = self.role_cache["targets"][-1]
+            targets_md.verify_delegate(role, md)
+            if role in self.role_cache:
+                current_md = self.role_cache[role][-1]
+                current_ver = current_md.signed.version
+            else:
+                current_ver = 0
 
-        except Exception as e:
-            print(e)
+            if md.signed.version != current_ver + 1:
+                raise ValueError("Invalid version {md.signed.version}")
+
+        except (RepositoryError, ValueError) as e:
+            logger.info("Failed to add new version for %s: %s", role, e)
             return False
 
-        return True
+        # Checks passed: Add new delegated role version
+        self.role_cache[role].append(md)
+        self._targets_infos[f"{role}.json"].version = md.signed.version
+        logger.debug("%s v%d", role, md.signed.version)
 
+        # To keep it simple, target content is generated from targetpath
+        for targetpath in md.signed.targets:
+            self.target_cache[targetpath] = bytes(f"{targetpath}", "utf-8")
+
+        # update snapshot, timestamp
+        self.snapshot()
+        self.timestamp()
+
+        return True
