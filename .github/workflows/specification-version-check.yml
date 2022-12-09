@@ -20,7 +20,6 @@ jobs:
           python-version: "3.x"
       - id: get-version
         run: |
-          python3 -m pip install --upgrade pip
           python3 -m pip install -e .
           script="from tuf.api.metadata import SPECIFICATION_VERSION; \
                   print(f\"v{'.'.join(SPECIFICATION_VERSION)}\")"
