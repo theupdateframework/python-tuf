@@ -21,4 +21,4 @@ This TUF Repository Application Example has the following features:
 ```
 Your repository is now running and is accessible on localhost, See e.g.
 http://127.0.0.1:8001/metadata/1.root.json. The
-[client example](../client_example/README.md) uses this address by default.
+[client example](../client/README.md) uses this address by default.

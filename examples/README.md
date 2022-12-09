@@ -1,5 +1,6 @@
 # Usage examples
 
 * [repository](repository)
-* [client](client_example)
-* [repository built with low-level Metadata API](manual_repo)
+* [client](client)
+* [uploader tool](uploader)
+* [Low-level Metadata API examples](manual_repo)
