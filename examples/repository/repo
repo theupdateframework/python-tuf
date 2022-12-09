@@ -13,7 +13,7 @@ import argparse
 import logging
 import sys
 from datetime import datetime
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from time import time
 from typing import Dict, List
 
@@ -23,15 +23,36 @@ logger = logging.getLogger(__name__)
 
 
 class ReqHandler(BaseHTTPRequestHandler):
-    """HTTP handler to serve metadata and targets from a SimpleRepository"""
+    """HTTP handler for the repository example application
+
+    Serves metadata, targets and a small upload API using a SimpleRepository
+    """
+
+    def do_POST(self):
+        """Handle POST requests, aka the 'API'"""
+
+        content_len = int(self.headers.get('content-length', 0))
+
+        if self.path.startswith("/api/delegation/"):
+            role = self.path[len("/api/delegation/"):]
+            if role:
+                raise NotImplementedError
+        elif self.path.startswith("/api/role/"):
+            role = self.path[len("/api/role/"):]
+            if role:
+                raise NotImplementedError
+
+        self.send_error(404)
+
 
     def do_GET(self):
+        """Handle GET: metadata and target files"""
         if self.path.startswith("/metadata/") and self.path.endswith(".json"):
             self.get_metadata(self.path[len("/metadata/") : -len(".json")])
         elif self.path.startswith("/targets/"):
             self.get_target(self.path[len("/targets/") :])
         else:
-            self.send_error(404, "Only serving /metadata/*.json")
+            self.send_error(404)
 
     def get_metadata(self, ver_and_role: str):
         repo = self.server.repo
@@ -72,7 +93,7 @@ class ReqHandler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
 
-class RepositoryServer(HTTPServer):
+class RepositoryServer(ThreadingHTTPServer):
     def __init__(self, port: int):
         super().__init__(("127.0.0.1", port), ReqHandler)
         self.timeout = 1
