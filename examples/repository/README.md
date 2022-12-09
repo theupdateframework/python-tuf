@@ -9,6 +9,9 @@ This TUF Repository Application Example has the following features:
 - Serves metadata and targets on localhost (default port 8001)
 - Simulates a live repository by automatically adding a new target
   file every 10 seconds.
+- Exposes a small API for the uploader tool example. API POST endpoints are:
+    /api/role/<ROLE>
+    /api/delegation/<ROLE>
 
 
 ### Usage
