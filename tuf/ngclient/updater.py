@@ -33,8 +33,8 @@ applications: running multiple instances that use the same cache directories at
 the same time is not supported.
 
 A simple example of using the Updater to implement a Python TUF client that
-downloads target files is available in `examples/client_example
-<https://github.com/theupdateframework/python-tuf/tree/develop/examples/client_example>`_.
+downloads target files is available in `examples/client
+<https://github.com/theupdateframework/python-tuf/tree/develop/examples/client>`_.
 """
 
 import logging
