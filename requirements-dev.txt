@@ -1,8 +1,7 @@
 # Install tuf in editable mode and requirements for local testing with tox,
-# and also for running test suite or individual tests manually
-build
-tox
-twine
-wheel
+# and also for running test suite or individual tests manually.
+# The build and tox versions specified here are also used as constraints
+# during CI and CD Github workflows
+-r requirements-build.txt
 -r requirements-test.txt
 -e .

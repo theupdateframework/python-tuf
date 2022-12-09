@@ -46,8 +46,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install --upgrade tox coveralls
+          python3 -m pip install --constraint requirements-build.txt tox coveralls
 
       - name: Run tox (${{ env.TOXENV }})
         # See TOXENV environment variable for the testenv to be executed here
@@ -90,8 +89,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install --upgrade coveralls
+          python3 -m pip install coveralls
 
       - name: Finalize publishing on coveralls.io
         continue-on-error: true

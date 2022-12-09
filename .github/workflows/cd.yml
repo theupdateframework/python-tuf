@@ -28,7 +28,7 @@ jobs:
           python-version: '3.x'
 
       - name: Install build dependency
-        run: python3 -m pip install --upgrade pip build
+        run: python3 -m pip install --constraint requirements-build.txt build
 
       - name: Build binary wheel and source tarball
         run: python3 -m build --sdist --wheel --outdir dist/ .
