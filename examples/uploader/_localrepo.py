@@ -12,10 +12,10 @@ from typing import Dict
 
 import requests
 from securesystemslib import keys
-from securesystemslib.signer import SSlibSigner
+from securesystemslib.signer import SSlibKey, SSlibSigner
 
 from tuf.api.exceptions import RepositoryError
-from tuf.api.metadata import Key, Metadata, MetaFile, TargetFile, Targets
+from tuf.api.metadata import Metadata, MetaFile, TargetFile, Targets
 from tuf.api.serialization.json import JSONSerializer
 from tuf.ngclient import Updater
 from tuf.repository import Repository
@@ -115,7 +115,7 @@ class LocalRepository(Repository):
     def add_delegation(self, role: str) -> bool:
         """Use the (unauthenticated) delegation adding API endpoint"""
         keydict = keys.generate_ed25519_key()
-        pubkey = Key.from_securesystemslib_key(keydict)
+        pubkey = SSlibKey.from_securesystemslib_key(keydict)
 
         data = {pubkey.keyid: pubkey.to_dict()}
         url = f"{self.base_url}/api/delegation/{role}"
