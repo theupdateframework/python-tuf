@@ -68,14 +68,14 @@ class SimpleRepository(Repository):
         )
 
         # setup a basic repository, generate signing key per top-level role
-        with self.edit("root", init=True) as root:
+        with self.edit("root") as root:
             for role in ["root", "timestamp", "snapshot", "targets"]:
                 key = keys.generate_ed25519_key()
                 self.signer_cache[role].append(SSlibSigner(key))
                 root.add_key(Key.from_securesystemslib_key(key), role)
 
         for role in ["timestamp", "snapshot", "targets"]:
-            with self.edit(role, init=True):
+            with self.edit(role):
                 pass
 
     @property
@@ -86,10 +86,10 @@ class SimpleRepository(Repository):
     def snapshot_info(self) -> MetaFile:
         return self._snapshot_info
 
-    def open(self, role: str, init: bool = False) -> Metadata:
+    def open(self, role: str) -> Metadata:
         """Return current Metadata for role from 'storage' (or create a new one)"""
 
-        if init:
+        if role not in self.role_cache:
             signed_init = _signed_init.get(role, Targets)
             md = Metadata(signed_init())
 

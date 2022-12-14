@@ -35,10 +35,10 @@ class Repository(ABC):
     """
 
     @abstractmethod
-    def open(self, role: str, init: bool = False) -> Metadata:
+    def open(self, role: str) -> Metadata:
         """Load a roles metadata from storage or cache, return it
 
-        If 'init', then create metadata from scratch"""
+        If role has no metadata, create first version from scratch"""
         raise NotImplementedError
 
     @abstractmethod
@@ -76,20 +76,18 @@ class Repository(ABC):
         raise NotImplementedError
 
     @contextmanager
-    def edit(
-        self, role: str, init: bool = False
-    ) -> Generator[Signed, None, None]:
+    def edit(self, role: str) -> Generator[Signed, None, None]:
         """Context manager for editing a role's metadata
 
         Context manager takes care of loading the roles metadata (or creating
-        new metadata if 'init'), updating expiry and version. The caller can do
+        new metadata), updating expiry and version. The caller can do
         other changes to the Signed object and when the context manager exits,
         a new version of the roles metadata is stored.
 
         Context manager user can raise AbortEdit from inside the with-block to
         cancel the edit: in this case none of the changes are stored.
         """
-        md = self.open(role, init)
+        md = self.open(role)
         with suppress(AbortEdit):
             yield md.signed
             self.close(role, md)

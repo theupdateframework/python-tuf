@@ -21,14 +21,15 @@ from _simplerepo import SimpleRepository
 
 logger = logging.getLogger(__name__)
 
+
 class ReqHandler(BaseHTTPRequestHandler):
     """HTTP handler to serve metadata and targets from a SimpleRepository"""
 
     def do_GET(self):
         if self.path.startswith("/metadata/") and self.path.endswith(".json"):
-            self.get_metadata(self.path[len("/metadata/"):-len(".json")])
+            self.get_metadata(self.path[len("/metadata/") : -len(".json")])
         elif self.path.startswith("/targets/"):
-            self.get_target(self.path[len("/targets/"):])
+            self.get_target(self.path[len("/targets/") :])
         else:
             self.send_error(404, "Only serving /metadata/*.json")
 
@@ -47,9 +48,9 @@ class ReqHandler(BaseHTTPRequestHandler):
             return
 
         # send the metadata json
-        data = repo.role_cache[role][ver-1].to_bytes()
+        data = repo.role_cache[role][ver - 1].to_bytes()
         self.send_response(200)
-        self.send_header('Content-length', len(data))
+        self.send_header("Content-length", len(data))
         self.end_headers()
         self.wfile.write(data)
 
@@ -66,7 +67,7 @@ class ReqHandler(BaseHTTPRequestHandler):
         # send the target content
         data = repo.target_cache[target]
         self.send_response(200)
-        self.send_header('Content-length', len(data))
+        self.send_header("Content-length", len(data))
         self.end_headers()
         self.wfile.write(data)
 
@@ -93,7 +94,9 @@ def main(argv: List[str]) -> None:
     last_change = 0
     counter = 0
 
-    logger.info(f"Now serving. Root v1 at http://127.0.0.1:{server.server_port}/metadata/1.root.json")
+    logger.info(
+        f"Now serving. Root v1 at http://127.0.0.1:{server.server_port}/metadata/1.root.json"
+    )
 
     while True:
         # Simulate a live repository: Add a new target file every few seconds
