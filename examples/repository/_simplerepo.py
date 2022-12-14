@@ -100,26 +100,21 @@ class SimpleRepository(Repository):
         # return latest metadata from storage (but don't return a reference)
         return copy.deepcopy(self.role_cache[role][-1])
 
-    def close(self, role: str, md: Metadata, sign_only: bool = False) -> None:
+    def close(self, role: str, md: Metadata) -> None:
         """Store a version of metadata. Handle version bumps, expiry, signing"""
-        if sign_only:
-            for signer in self.signer_cache[role]:
-                md.sign(signer, append=True)
-            self.role_cache[role][-1] = md
-        else:
-            md.signed.version += 1
-            md.signed.expires = datetime.utcnow() + self.expiry_period
+        md.signed.version += 1
+        md.signed.expires = datetime.utcnow() + self.expiry_period
 
-            md.signatures.clear()
-            for signer in self.signer_cache[role]:
-                md.sign(signer, append=True)
+        md.signatures.clear()
+        for signer in self.signer_cache[role]:
+            md.sign(signer, append=True)
 
-            # store new metadata version, update version caches
-            self.role_cache[role].append(md)
-            if role == "snapshot":
-                self._snapshot_info.version = md.signed.version
-            elif role not in ["root", "timestamp"]:
-                self._targets_infos[f"{role}.json"].version = md.signed.version
+        # store new metadata version, update version caches
+        self.role_cache[role].append(md)
+        if role == "snapshot":
+            self._snapshot_info.version = md.signed.version
+        elif role not in ["root", "timestamp"]:
+            self._targets_infos[f"{role}.json"].version = md.signed.version
 
     def add_target(self, path: str, content: str) -> None:
         """Add a target to repository"""
