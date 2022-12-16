@@ -16,6 +16,7 @@ from typing import Optional
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
 from tuf.api.exceptions import RepositoryError
+from tuf.api.metadata import DelegatedRole, Delegations
 from tuf.ngclient import Updater
 
 
@@ -208,6 +209,19 @@ class TestFetchTarget(unittest.TestCase):
         self.assertEqual(path, updater.find_cached_target(info))
         with open(path, "rb") as f:
             self.assertEqual(f.read(), target.content)
+
+    def test_meta_missing_delegated_role(self) -> None:
+        """Test a delegation where the role is not part of the snapshot"""
+
+        # Add new delegation, update snapshot. Do not add the actual role
+        role = DelegatedRole("role1", [], 1, True, ["*"])
+        self.sim.targets.delegations = Delegations({}, roles={role.name: role})
+        self.sim.update_snapshot()
+
+        # assert that RepositoryError is raised when role1 is needed
+        updater = self._init_updater()
+        with self.assertRaises(RepositoryError):
+            updater.get_targetinfo("")
 
 
 if __name__ == "__main__":
