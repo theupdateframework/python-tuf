@@ -43,7 +43,7 @@ class SimpleRepository(Repository):
 
     Attributes:
         role_cache: Every historical metadata version of every role in this
-            repositorys. Keys are role names and values are lists of Metadata
+            repository. Keys are role names and values are lists of Metadata
         signer_cache: All signers available to the repository. Keys are role
             names, values are lists of signers
         target_cache: All target files served by the repository. Keys are

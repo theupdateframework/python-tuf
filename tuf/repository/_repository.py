@@ -28,7 +28,7 @@ class Repository(ABC):
     application, whether it is a real repository server or a developer tool.
 
     Implementations must implement open() and close(), and can then use the
-    edit() contextmanager to implement actual operations. Not that signing
+    edit() contextmanager to implement actual operations. Note that signing
     an already existing version of metadata (as could be done for threshold
     signing) does not fit into this model of open()+close() or edit().
 
@@ -47,11 +47,8 @@ class Repository(ABC):
     def close(self, role: str, md: Metadata) -> None:
         """Write roles metadata into storage
 
-        If sign_only, then just append signatures of all available keys.
-
-        If not sign_only, update expiry and version and replace signatures
-        with ones from all available keys. Keep snapshot_info and targets_infos
-        updated."""
+        Update expiry and version and replace signatures with ones from all
+        available keys. Keep snapshot_info and targets_infos updated."""
         raise NotImplementedError
 
     @property
