@@ -18,6 +18,7 @@ import abc
 from typing import TYPE_CHECKING
 
 from tuf.api.exceptions import RepositoryError
+from .json import CanonicalJSONSerializer
 
 if TYPE_CHECKING:
     # pylint: disable=cyclic-import
@@ -57,3 +58,14 @@ class SignedSerializer(metaclass=abc.ABCMeta):
     def serialize(self, signed_obj: "Signed") -> bytes:
         """Serialize Signed object to bytes."""
         raise NotImplementedError
+
+
+__all__ = [
+    CanonicalJSONSerializer.__name__,
+    DeserializationError.__name__,
+    MetadataDeserializer.__name__,
+    MetadataSerializer.__name__,
+    RepositoryError.__name__,
+    SerializationError.__name__,
+    SignedSerializer.__name__,
+]

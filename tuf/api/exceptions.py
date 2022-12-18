@@ -10,8 +10,7 @@ there is a good reason not to, and provide that reason in those cases.
 
 #### Repository errors ####
 
-# pylint: disable=unused-import
-from securesystemslib.exceptions import StorageError
+from securesystemslib.exceptions import StorageError as _SecureSystemsLibStorageError
 
 
 class RepositoryError(Exception):
@@ -39,6 +38,10 @@ class ExpiredMetadataError(RepositoryError):
 
 class LengthOrHashMismatchError(RepositoryError):
     """An error while checking the length and hash values of an object."""
+
+
+class StorageError(_SecureSystemsLibStorageError, RepositoryError):
+    """An error raised when a file cannot be read or written."""
 
 
 #### Download Errors ####
