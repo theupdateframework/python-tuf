@@ -1,7 +1,8 @@
 # Copyright New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""
+"""The low-level Metadata API.
+
 The low-level Metadata API in ``tuf.api.metadata`` module contains:
 
 * Safe de/serialization of metadata to and from files.
@@ -548,13 +549,13 @@ class Signed(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def to_dict(self) -> Dict[str, Any]:
-        """Serialization helper that returns dict representation of self"""
+        """Serialization helper that returns dict representation of self."""
         raise NotImplementedError
 
     @classmethod
     @abc.abstractmethod
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Signed":
-        """Deserialization helper, creates object from json/dict representation"""
+        """Deserialization helper, creates object from json/dict representation."""
         raise NotImplementedError
 
     @classmethod
@@ -999,7 +1000,7 @@ class BaseFile:
     def _verify_hashes(
         data: Union[bytes, IO[bytes]], expected_hashes: Dict[str, str]
     ) -> None:
-        """Verifies that the hash of ``data`` matches ``expected_hashes``"""
+        """Verifies that the hash of ``data`` matches ``expected_hashes``."""
         is_bytes = isinstance(data, bytes)
         for algo, exp_hash in expected_hashes.items():
             try:
@@ -1028,7 +1029,7 @@ class BaseFile:
     def _verify_length(
         data: Union[bytes, IO[bytes]], expected_length: int
     ) -> None:
-        """Verifies that the length of ``data`` matches ``expected_length``"""
+        """Verifies that the length of ``data`` matches ``expected_length``."""
         if isinstance(data, bytes):
             observed_length = len(data)
         else:
@@ -1537,8 +1538,7 @@ class SuccinctRoles(Role):
         }
 
     def get_role_for_target(self, target_filepath: str) -> str:
-        """Calculates the name of the delegated role responsible for
-        ``target_filepath``.
+        """Calculates the name of the delegated role responsible for ``target_filepath``.
 
         The target at path ``target_filepath`` is assigned to a bin by casting
         the left-most ``bit_length`` of bits of the file path hash digest to

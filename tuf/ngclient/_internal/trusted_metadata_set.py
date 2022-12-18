@@ -1,7 +1,7 @@
 # Copyright the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""Trusted collection of client-side TUF Metadata
+"""Trusted collection of client-side TUF Metadata.
 
 ``TrustedMetadataSet`` keeps track of the current valid set of metadata for the
 client, and handles almost every step of the "Detailed client workflow" (
@@ -71,7 +71,7 @@ logger = logging.getLogger(__name__)
 
 
 class TrustedMetadataSet(abc.Mapping):
-    """Internal class to keep track of trusted metadata in ``Updater``
+    """Internal class to keep track of trusted metadata in ``Updater``.
 
     ``TrustedMetadataSet`` ensures that the collection of metadata in it is valid
     and trusted through the whole client update workflow. It provides easy ways
@@ -79,7 +79,7 @@ class TrustedMetadataSet(abc.Mapping):
     """
 
     def __init__(self, root_data: bytes):
-        """Initialize ``TrustedMetadataSet`` by loading trusted root metadata
+        """Initialize ``TrustedMetadataSet`` by loading trusted root metadata.
 
         Args:
             root_data: Trusted root metadata as bytes. Note that this metadata
@@ -99,36 +99,36 @@ class TrustedMetadataSet(abc.Mapping):
         self._load_trusted_root(root_data)
 
     def __getitem__(self, role: str) -> Metadata:
-        """Returns current ``Metadata`` for ``role``"""
+        """Returns current ``Metadata`` for ``role``."""
         return self._trusted_set[role]
 
     def __len__(self) -> int:
-        """Returns number of ``Metadata`` objects in ``TrustedMetadataSet``"""
+        """Returns number of ``Metadata`` objects in ``TrustedMetadataSet``."""
         return len(self._trusted_set)
 
     def __iter__(self) -> Iterator[Metadata]:
-        """Returns iterator over ``Metadata`` objects in ``TrustedMetadataSet``"""
+        """Returns iterator over ``Metadata`` objects in ``TrustedMetadataSet``."""
         return iter(self._trusted_set.values())
 
     # Helper properties for top level metadata
     @property
     def root(self) -> Metadata[Root]:
-        """Current root ``Metadata``"""
+        """Current root ``Metadata``."""
         return self._trusted_set[Root.type]
 
     @property
     def timestamp(self) -> Optional[Metadata[Timestamp]]:
-        """Current timestamp ``Metadata`` or ``None``"""
+        """Current timestamp ``Metadata`` or ``None``."""
         return self._trusted_set.get(Timestamp.type)
 
     @property
     def snapshot(self) -> Optional[Metadata[Snapshot]]:
-        """Current snapshot ``Metadata`` or ``None``"""
+        """Current snapshot ``Metadata`` or ``None``."""
         return self._trusted_set.get(Snapshot.type)
 
     @property
     def targets(self) -> Optional[Metadata[Targets]]:
-        """Current targets ``Metadata`` or ``None``"""
+        """Current targets ``Metadata`` or ``None``."""
         return self._trusted_set.get(Targets.type)
 
     # Methods for updating metadata
@@ -251,7 +251,7 @@ class TrustedMetadataSet(abc.Mapping):
         return new_timestamp
 
     def _check_final_timestamp(self) -> None:
-        """Raise if timestamp is expired"""
+        """Raise if timestamp is expired."""
 
         assert self.timestamp is not None  # nosec
         if self.timestamp.signed.is_expired(self.reference_time):
@@ -346,7 +346,7 @@ class TrustedMetadataSet(abc.Mapping):
         return new_snapshot
 
     def _check_final_snapshot(self) -> None:
-        """Raise if snapshot is expired or meta version does not match"""
+        """Raise if snapshot is expired or meta version does not match."""
 
         assert self.snapshot is not None  # nosec
         assert self.timestamp is not None  # nosec

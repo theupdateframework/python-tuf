@@ -1,7 +1,7 @@
 # Copyright 2020, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""Client update workflow implementation
+"""Client update workflow implementation.
 
 The ``Updater`` class provides an implementation of the
 `TUF client workflow
@@ -177,7 +177,7 @@ class Updater:
         targetinfo: TargetFile,
         filepath: Optional[str] = None,
     ) -> Optional[str]:
-        """Checks whether a local file is an up to date target
+        """Checks whether a local file is an up to date target.
 
         Args:
             targetinfo: ``TargetFile`` from ``get_targetinfo()``.
@@ -266,7 +266,7 @@ class Updater:
     def _download_metadata(
         self, rolename: str, length: int, version: Optional[int] = None
     ) -> bytes:
-        """Download a metadata file and return it as bytes"""
+        """Download a metadata file and return it as bytes."""
         encoded_name = parse.quote(rolename, "")
         if version is None:
             url = f"{self._metadata_base_url}{encoded_name}.json"
@@ -330,7 +330,7 @@ class Updater:
                 break
 
     def _load_timestamp(self) -> None:
-        """Load local and remote timestamp metadata"""
+        """Load local and remote timestamp metadata."""
         try:
             data = self._load_local_metadata(Timestamp.type)
             self._trusted_set.update_timestamp(data)
@@ -352,7 +352,7 @@ class Updater:
         self._persist_metadata(Timestamp.type, data)
 
     def _load_snapshot(self) -> None:
-        """Load local (and if needed remote) snapshot metadata"""
+        """Load local (and if needed remote) snapshot metadata."""
         try:
             data = self._load_local_metadata(Snapshot.type)
             self._trusted_set.update_snapshot(data, trusted=True)
@@ -486,5 +486,5 @@ class Updater:
 
 
 def _ensure_trailing_slash(url: str) -> str:
-    """Return url guaranteed to end in a slash"""
+    """Return url guaranteed to end in a slash."""
     return url if url.endswith("/") else f"{url}/"
