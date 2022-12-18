@@ -487,8 +487,8 @@ class Signed(metaclass=abc.ABCMeta):
     def expires(self) -> datetime:
         """The metadata expiry date::
 
-        # Use 'datetime' module to e.g. expire in seven days from now
-        obj.expires = utcnow() + timedelta(days=7)
+        >>> # Use 'datetime' module to e.g. expire in seven days from now
+        >>> obj.expires = utcnow() + timedelta(days=7)
         """
         return self._expires
 
