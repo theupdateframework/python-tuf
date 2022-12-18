@@ -154,7 +154,7 @@ class Metadata(Generic[T]):
 
     @classmethod
     def from_dict(cls, metadata: Dict[str, Any]) -> "Metadata[T]":
-        """Creates ``Metadata`` object from its json/dict representation.
+        """Create ``Metadata`` object from its json/dict representation.
 
         Args:
             metadata: TUF metadata in dict representation.
@@ -208,7 +208,7 @@ class Metadata(Generic[T]):
         deserializer: Optional[MetadataDeserializer] = None,
         storage_backend: Optional[StorageBackendInterface] = None,
     ) -> "Metadata[T]":
-        """Loads TUF metadata from file storage.
+        """Load TUF metadata from file storage.
 
         Args:
             filename: Path to read the file from.
@@ -239,7 +239,7 @@ class Metadata(Generic[T]):
         data: bytes,
         deserializer: Optional[MetadataDeserializer] = None,
     ) -> "Metadata[T]":
-        """Loads TUF metadata from raw data.
+        """Load TUF metadata from raw data.
 
         Args:
             data: Metadata content.
@@ -294,7 +294,7 @@ class Metadata(Generic[T]):
         return serializer.serialize(self)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Returns the dict representation of self."""
+        """Return the dict representation of self."""
 
         signatures = [sig.to_dict() for sig in self.signatures.values()]
 
@@ -310,7 +310,7 @@ class Metadata(Generic[T]):
         serializer: Optional[MetadataSerializer] = None,
         storage_backend: Optional[StorageBackendInterface] = None,
     ) -> None:
-        """Writes TUF metadata to file storage.
+        """Write TUF metadata to file storage.
 
         Note that if a file is first deserialized into ``Metadata`` and then
         serialized with ``to_file()``, the two files are not required to be
@@ -345,7 +345,7 @@ class Metadata(Generic[T]):
         append: bool = False,
         signed_serializer: Optional[SignedSerializer] = None,
     ) -> Signature:
-        """Creates signature over ``signed`` and assigns it to ``signatures``.
+        """Create signature over ``signed`` and assigns it to ``signatures``.
 
         Args:
             signer: A ``securesystemslib.signer.Signer`` object that provides a private
@@ -396,7 +396,7 @@ class Metadata(Generic[T]):
         delegated_metadata: "Metadata",
         signed_serializer: Optional[SignedSerializer] = None,
     ) -> None:
-        """Verifies that ``delegated_metadata`` is signed with the required
+        """Verify that ``delegated_metadata`` is signed with the required
         threshold of keys for the delegated role ``delegated_role``.
 
         Args:
@@ -485,7 +485,7 @@ class Signed(metaclass=abc.ABCMeta):
 
     @property
     def expires(self) -> datetime:
-        """The metadata expiry date::
+        """Get the metadata expiry date.
 
         # Use 'datetime' module to e.g. expire in seven days from now
         obj.expires = utcnow() + timedelta(days=7)
@@ -548,7 +548,7 @@ class Signed(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def to_dict(self) -> Dict[str, Any]:
-        """Serialization helper that returns dict representation of self"""
+        """Serialize and return a dict representation of self"""
         raise NotImplementedError
 
     @classmethod
@@ -561,7 +561,7 @@ class Signed(metaclass=abc.ABCMeta):
     def _common_fields_from_dict(
         cls, signed_dict: Dict[str, Any]
     ) -> Tuple[int, str, datetime]:
-        """Returns common fields of ``Signed`` instances from the passed dict
+        """Return common fields of ``Signed`` instances from the passed dict
         representation, and returns an ordered list to be passed as leading
         positional arguments to a subclass constructor.
 
@@ -583,7 +583,7 @@ class Signed(metaclass=abc.ABCMeta):
         return version, spec_version, expires
 
     def _common_fields_to_dict(self) -> Dict[str, Any]:
-        """Returns dict representation of common fields of ``Signed`` instances.
+        """Return a dict representation of common fields of ``Signed`` instances.
 
         See ``{Root, Timestamp, Snapshot, Targets}.to_dict`` methods for usage.
 
@@ -597,7 +597,7 @@ class Signed(metaclass=abc.ABCMeta):
         }
 
     def is_expired(self, reference_time: Optional[datetime] = None) -> bool:
-        """Checks metadata expiration against a reference time.
+        """Check metadata expiration against a reference time.
 
         Args:
             reference_time: Time to check expiration date against. A naive
@@ -671,7 +671,7 @@ class Key:
 
     @classmethod
     def from_dict(cls, keyid: str, key_dict: Dict[str, Any]) -> "Key":
-        """Creates ``Key`` object from its json/dict representation.
+        """Create ``Key`` object from its json/dict representation.
 
         Raises:
             KeyError, TypeError: Invalid arguments.
@@ -683,7 +683,7 @@ class Key:
         return cls(keyid, keytype, scheme, keyval, key_dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Returns the dictionary representation of self."""
+        """Return the dictionary representation of self."""
         return {
             "keytype": self.keytype,
             "scheme": self.scheme,
@@ -692,7 +692,7 @@ class Key:
         }
 
     def to_securesystemslib_key(self) -> Dict[str, Any]:
-        """Returns a ``Securesystemslib`` compatible representation of self."""
+        """Return a ``Securesystemslib`` compatible representation of self."""
         return {
             "keyid": self.keyid,
             "keytype": self.keytype,
@@ -702,7 +702,7 @@ class Key:
 
     @classmethod
     def from_securesystemslib_key(cls, key_dict: Dict[str, Any]) -> "Key":
-        """Creates a ``Key`` object from a securesystemlib key json/dict representation
+        """Create a ``Key`` object from a securesystemlib key json/dict representation
         removing the private key from keyval.
 
         Args:
@@ -735,7 +735,7 @@ class Key:
         metadata: Metadata,
         signed_serializer: Optional[SignedSerializer] = None,
     ) -> None:
-        """Verifies that the ``metadata.signatures`` contains a signature made
+        """Verify that the ``metadata.signatures`` contains a signature made
         with this key, correctly signing ``metadata.signed``.
 
         Args:
@@ -830,7 +830,7 @@ class Role:
 
     @classmethod
     def from_dict(cls, role_dict: Dict[str, Any]) -> "Role":
-        """Creates ``Role`` object from its json/dict representation.
+        """Create ``Role`` object from its json/dict representation.
 
         Raises:
             ValueError, KeyError: Invalid arguments.
@@ -841,7 +841,7 @@ class Role:
         return cls(keyids, threshold, role_dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Returns the dictionary representation of self."""
+        """Return the dictionary representation of self."""
         return {
             "keyids": self.keyids,
             "threshold": self.threshold,
@@ -909,7 +909,7 @@ class Root(Signed):
 
     @classmethod
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Root":
-        """Creates ``Root`` object from its json/dict representation.
+        """Create ``Root`` object from its json/dict representation.
 
         Raises:
             ValueError, KeyError, TypeError: Invalid arguments.
@@ -928,7 +928,7 @@ class Root(Signed):
         return cls(*common_args, keys, roles, consistent_snapshot, signed_dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Returns the dict representation of self."""
+        """Return the dict representation of self."""
         root_dict = self._common_fields_to_dict()
         keys = {keyid: key.to_dict() for (keyid, key) in self.keys.items()}
         roles = {}
@@ -946,7 +946,7 @@ class Root(Signed):
         return root_dict
 
     def add_key(self, key: Key, role: str) -> None:
-        """Adds new signing key for delegated role ``role``.
+        """Add new signing key for delegated role ``role``.
 
         Args:
             key: Signing key to be added for ``role``.
@@ -999,7 +999,7 @@ class BaseFile:
     def _verify_hashes(
         data: Union[bytes, IO[bytes]], expected_hashes: Dict[str, str]
     ) -> None:
-        """Verifies that the hash of ``data`` matches ``expected_hashes``"""
+        """Verify that the hash of ``data`` matches ``expected_hashes``"""
         is_bytes = isinstance(data, bytes)
         for algo, exp_hash in expected_hashes.items():
             try:
@@ -1028,7 +1028,7 @@ class BaseFile:
     def _verify_length(
         data: Union[bytes, IO[bytes]], expected_length: int
     ) -> None:
-        """Verifies that the length of ``data`` matches ``expected_length``"""
+        """Verify that the length of ``data`` matches ``expected_length``"""
         if isinstance(data, bytes):
             observed_length = len(data)
         else:
@@ -1110,7 +1110,7 @@ class MetaFile(BaseFile):
 
     @classmethod
     def from_dict(cls, meta_dict: Dict[str, Any]) -> "MetaFile":
-        """Creates ``MetaFile`` object from its json/dict representation.
+        """Create ``MetaFile`` object from its json/dict representation.
 
         Raises:
             ValueError, KeyError: Invalid arguments.
@@ -1123,7 +1123,7 @@ class MetaFile(BaseFile):
         return cls(version, length, hashes, meta_dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Returns the dictionary representation of self."""
+        """Return the dictionary representation of self."""
         res_dict: Dict[str, Any] = {
             "version": self.version,
             **self.unrecognized_fields,
@@ -1138,7 +1138,7 @@ class MetaFile(BaseFile):
         return res_dict
 
     def verify_length_and_hashes(self, data: Union[bytes, IO[bytes]]) -> None:
-        """Verifies that the length and hashes of ``data`` match expected values.
+        """Verify that the length and hashes of ``data`` match expected values.
 
         Args:
             data: File object or its content in bytes.
@@ -1200,7 +1200,7 @@ class Timestamp(Signed):
 
     @classmethod
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Timestamp":
-        """Creates ``Timestamp`` object from its json/dict representation.
+        """Create ``Timestamp`` object from its json/dict representation.
 
         Raises:
             ValueError, KeyError: Invalid arguments.
@@ -1212,7 +1212,7 @@ class Timestamp(Signed):
         return cls(*common_args, snapshot_meta, signed_dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Returns the dict representation of self."""
+        """Return the dict representation of self."""
         res_dict = self._common_fields_to_dict()
         res_dict["meta"] = {"snapshot.json": self.snapshot_meta.to_dict()}
         return res_dict
@@ -1261,7 +1261,7 @@ class Snapshot(Signed):
 
     @classmethod
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Snapshot":
-        """Creates ``Snapshot`` object from its json/dict representation.
+        """Create ``Snapshot`` object from its json/dict representation.
 
         Raises:
             ValueError, KeyError: Invalid arguments.
@@ -1275,7 +1275,7 @@ class Snapshot(Signed):
         return cls(*common_args, meta, signed_dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Returns the dict representation of self."""
+        """Return the dict representation of self."""
         snapshot_dict = self._common_fields_to_dict()
         meta_dict = {}
         for meta_path, meta_info in self.meta.items():
@@ -1357,7 +1357,7 @@ class DelegatedRole(Role):
 
     @classmethod
     def from_dict(cls, role_dict: Dict[str, Any]) -> "DelegatedRole":
-        """Creates ``DelegatedRole`` object from its json/dict representation.
+        """Create ``DelegatedRole`` object from its json/dict representation.
 
         Raises:
             ValueError, KeyError, TypeError: Invalid arguments.
@@ -1380,7 +1380,7 @@ class DelegatedRole(Role):
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Returns the dict representation of self."""
+        """Return the dict representation of self."""
         base_role_dict = super().to_dict()
         res_dict = {
             "name": self.name,
@@ -1395,7 +1395,7 @@ class DelegatedRole(Role):
 
     @staticmethod
     def _is_target_in_pathpattern(targetpath: str, pathpattern: str) -> bool:
-        """Determines whether ``targetpath`` matches the ``pathpattern``."""
+        """Determine whether ``targetpath`` matches the ``pathpattern``."""
         # We need to make sure that targetpath and pathpattern are pointing to
         # the same directory as fnmatch doesn't threat "/" as a special symbol.
         target_parts = targetpath.split("/")
@@ -1412,7 +1412,7 @@ class DelegatedRole(Role):
         return True
 
     def is_delegated_path(self, target_filepath: str) -> bool:
-        """Determines whether the given ``target_filepath`` is in one of
+        """Determine whether the given ``target_filepath`` is in one of
         the paths that ``DelegatedRole`` is trusted to provide.
 
         The ``target_filepath`` and the ``DelegatedRole`` paths are expected to be
@@ -1515,7 +1515,7 @@ class SuccinctRoles(Role):
 
     @classmethod
     def from_dict(cls, role_dict: Dict[str, Any]) -> "SuccinctRoles":
-        """Creates ``SuccinctRoles`` object from its json/dict representation.
+        """Create ``SuccinctRoles`` object from its json/dict representation.
 
         Raises:
             ValueError, KeyError, AttributeError, TypeError: Invalid arguments.
@@ -1528,7 +1528,7 @@ class SuccinctRoles(Role):
         return cls(keyids, threshold, bit_length, name_prefix, role_dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Returns the dict representation of self."""
+        """Return the dict representation of self."""
         base_role_dict = super().to_dict()
         return {
             "bit_length": self.bit_length,
@@ -1537,7 +1537,7 @@ class SuccinctRoles(Role):
         }
 
     def get_role_for_target(self, target_filepath: str) -> str:
-        """Calculates the name of the delegated role responsible for
+        """Calculate the name of the delegated role responsible for
         ``target_filepath``.
 
         The target at path ``target_filepath`` is assigned to a bin by casting
@@ -1568,7 +1568,7 @@ class SuccinctRoles(Role):
             yield f"{self.name_prefix}-{suffix}"
 
     def is_delegated_role(self, role_name: str) -> bool:
-        """Determines whether the given ``role_name`` is in one of
+        """Determine whether the given ``role_name`` is in one of
         the delegated roles that ``SuccinctRoles`` represents.
 
         Args:
@@ -1667,7 +1667,7 @@ class Delegations:
 
     @classmethod
     def from_dict(cls, delegations_dict: Dict[str, Any]) -> "Delegations":
-        """Creates ``Delegations`` object from its json/dict representation.
+        """Create ``Delegations`` object from its json/dict representation.
 
         Raises:
             ValueError, KeyError, TypeError: Invalid arguments.
@@ -1696,7 +1696,7 @@ class Delegations:
         return cls(keys_res, roles_res, succinct_roles_info, delegations_dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Returns the dict representation of self."""
+        """Return the dict representation of self."""
         keys = {keyid: key.to_dict() for keyid, key in self.keys.items()}
         res_dict: Dict[str, Any] = {
             "keys": keys,
@@ -1787,7 +1787,7 @@ class TargetFile(BaseFile):
 
     @classmethod
     def from_dict(cls, target_dict: Dict[str, Any], path: str) -> "TargetFile":
-        """Creates ``TargetFile`` object from its json/dict representation.
+        """Create ``TargetFile`` object from its json/dict representation.
 
         Raises:
             ValueError, KeyError, TypeError: Invalid arguments.
@@ -1799,7 +1799,7 @@ class TargetFile(BaseFile):
         return cls(length, hashes, path, target_dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Returns the JSON-serializable dictionary representation of self."""
+        """Return the JSON-serializable dictionary representation of self."""
         return {
             "length": self.length,
             "hashes": self.hashes,
@@ -1813,7 +1813,7 @@ class TargetFile(BaseFile):
         local_path: str,
         hash_algorithms: Optional[List[str]] = None,
     ) -> "TargetFile":
-        """Creates ``TargetFile`` object from a file.
+        """Create ``TargetFile`` object from a file.
 
         Args:
             target_file_path: URL path to a target file, relative to a base
@@ -1836,7 +1836,7 @@ class TargetFile(BaseFile):
         data: Union[bytes, IO[bytes]],
         hash_algorithms: Optional[List[str]] = None,
     ) -> "TargetFile":
-        """Creates ``TargetFile`` object from bytes.
+        """Create ``TargetFile`` object from bytes.
 
         Args:
             target_file_path: URL path to a target file, relative to a base
@@ -1880,7 +1880,7 @@ class TargetFile(BaseFile):
         return cls(length, hashes, target_file_path)
 
     def verify_length_and_hashes(self, data: Union[bytes, IO[bytes]]) -> None:
-        """Verifies that length and hashes of ``data`` match expected values.
+        """Verify that length and hashes of ``data`` match expected values.
 
         Args:
             data: Target file object or its content in bytes.
@@ -1946,7 +1946,7 @@ class Targets(Signed):
 
     @classmethod
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Targets":
-        """Creates ``Targets`` object from its json/dict representation.
+        """Create ``Targets`` object from its json/dict representation.
 
         Raises:
             ValueError, KeyError, TypeError: Invalid arguments.
@@ -1968,7 +1968,7 @@ class Targets(Signed):
         return cls(*common_args, res_targets, delegations, signed_dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Returns the dict representation of self."""
+        """Return the dict representation of self."""
         targets_dict = self._common_fields_to_dict()
         targets = {}
         for target_path, target_file_obj in self.targets.items():
@@ -1979,7 +1979,7 @@ class Targets(Signed):
         return targets_dict
 
     def add_key(self, key: Key, role: Optional[str] = None) -> None:
-        """Adds new signing key for delegated role ``role``.
+        """Add new signing key for delegated role ``role``.
 
         If succinct_roles is used then the ``role`` argument is not required.
 

@@ -99,41 +99,41 @@ class TrustedMetadataSet(abc.Mapping):
         self._load_trusted_root(root_data)
 
     def __getitem__(self, role: str) -> Metadata:
-        """Returns current ``Metadata`` for ``role``"""
+        """Return current ``Metadata`` for ``role``"""
         return self._trusted_set[role]
 
     def __len__(self) -> int:
-        """Returns number of ``Metadata`` objects in ``TrustedMetadataSet``"""
+        """Return number of ``Metadata`` objects in ``TrustedMetadataSet``"""
         return len(self._trusted_set)
 
     def __iter__(self) -> Iterator[Metadata]:
-        """Returns iterator over ``Metadata`` objects in ``TrustedMetadataSet``"""
+        """Return iterator over ``Metadata`` objects in ``TrustedMetadataSet``"""
         return iter(self._trusted_set.values())
 
     # Helper properties for top level metadata
     @property
     def root(self) -> Metadata[Root]:
-        """Current root ``Metadata``"""
+        """Get current root ``Metadata``"""
         return self._trusted_set[Root.type]
 
     @property
     def timestamp(self) -> Optional[Metadata[Timestamp]]:
-        """Current timestamp ``Metadata`` or ``None``"""
+        """Get current timestamp ``Metadata`` or ``None``"""
         return self._trusted_set.get(Timestamp.type)
 
     @property
     def snapshot(self) -> Optional[Metadata[Snapshot]]:
-        """Current snapshot ``Metadata`` or ``None``"""
+        """Get current snapshot ``Metadata`` or ``None``"""
         return self._trusted_set.get(Snapshot.type)
 
     @property
     def targets(self) -> Optional[Metadata[Targets]]:
-        """Current targets ``Metadata`` or ``None``"""
+        """Get current targets ``Metadata`` or ``None``"""
         return self._trusted_set.get(Targets.type)
 
     # Methods for updating metadata
     def update_root(self, data: bytes) -> Metadata[Root]:
-        """Verifies and loads ``data`` as new root metadata.
+        """Verify and load ``data`` as new root metadata.
 
         Note that an expired intermediate root is considered valid: expiry is
         only checked for the final root in ``update_timestamp()``.
@@ -178,7 +178,7 @@ class TrustedMetadataSet(abc.Mapping):
         return new_root
 
     def update_timestamp(self, data: bytes) -> Metadata[Timestamp]:
-        """Verifies and loads ``data`` as new timestamp metadata.
+        """Verify and load ``data`` as new timestamp metadata.
 
         Note that an intermediate timestamp is allowed to be expired:
         ``TrustedMetadataSet`` will throw an ``ExpiredMetadataError`` in
@@ -260,7 +260,7 @@ class TrustedMetadataSet(abc.Mapping):
     def update_snapshot(
         self, data: bytes, trusted: Optional[bool] = False
     ) -> Metadata[Snapshot]:
-        """Verifies and loads ``data`` as new snapshot metadata.
+        """Verify and load ``data`` as new snapshot metadata.
 
         Note that an intermediate snapshot is allowed to be expired and version
         is allowed to not match timestamp meta version: ``TrustedMetadataSet``
@@ -360,7 +360,7 @@ class TrustedMetadataSet(abc.Mapping):
             )
 
     def update_targets(self, data: bytes) -> Metadata[Targets]:
-        """Verifies and loads ``data`` as new top-level targets metadata.
+        """Verify and load ``data`` as new top-level targets metadata.
 
         Args:
             data: Unverified new targets metadata as bytes
@@ -377,7 +377,7 @@ class TrustedMetadataSet(abc.Mapping):
     def update_delegated_targets(
         self, data: bytes, role_name: str, delegator_name: str
     ) -> Metadata[Targets]:
-        """Verifies and loads ``data`` as new metadata for target ``role_name``.
+        """Verify and load ``data`` as new metadata for target ``role_name``.
 
         Args:
             data: Unverified new metadata as bytes
@@ -438,7 +438,7 @@ class TrustedMetadataSet(abc.Mapping):
         return new_delegate
 
     def _load_trusted_root(self, data: bytes) -> None:
-        """Verifies and loads ``data`` as trusted root metadata.
+        """Verify and load ``data`` as trusted root metadata.
 
         Note that an expired initial root is considered valid: expiry is
         only checked for the final root in ``update_timestamp()``.
