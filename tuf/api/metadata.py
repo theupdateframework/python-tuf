@@ -443,7 +443,9 @@ class Metadata(Generic[T]):
                 key.verify_signature(delegated_metadata, signed_serializer)
                 signing_keys.add(key.keyid)
             except exceptions.UnsignedMetadataError:
-                logger.warning("Key %s failed to verify %s", keyid, delegated_role)
+                logger.warning(
+                    "Key %s failed to verify %s", keyid, delegated_role
+                )
 
         if len(signing_keys) < role.threshold:
             raise exceptions.UnsignedMetadataError(
@@ -776,7 +778,9 @@ class Key:
             SerializationError,
         ) as e:
             # Log unexpected failure, but continue as if there was no signature
-            logger.warning("Key %s failed to verify sig: %s", self.keyid, str(e))
+            logger.warning(
+                "Key %s failed to verify sig: %s", self.keyid, str(e)
+            )
             raise exceptions.UnsignedMetadataError(
                 f"Failed to verify {self.keyid} signature"
             ) from e
