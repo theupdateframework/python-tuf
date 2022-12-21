@@ -778,9 +778,7 @@ class Key:
             SerializationError,
         ) as e:
             # Log unexpected failure, but continue as if there was no signature
-            logger.warning(
-                "Key %s failed to verify sig: %s", self.keyid, str(e)
-            )
+            logger.debug("Key %s failed to verify sig: %s", self.keyid, str(e))
             raise exceptions.UnsignedMetadataError(
                 f"Failed to verify {self.keyid} signature"
             ) from e
