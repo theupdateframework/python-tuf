@@ -7,7 +7,7 @@ format for transportation, and to serialize the 'signed' part of TUF role
 metadata to the OLPC Canonical JSON format for signature generation and
 verification.
 """
-from typing import Optional
+from typing import Optional, Type
 
 from securesystemslib.formats import encode_canonical
 from securesystemslib.serialization import (
@@ -19,7 +19,16 @@ from securesystemslib.serialization import JSONSerializer as BaseJSONSerializer
 # ... to allow de/serializing Metadata and Signed objects here, while also
 # creating default de/serializers there (see metadata local scope imports).
 # NOTE: A less desirable alternative would be to add more abstraction layers.
-from tuf.api.metadata import Metadata, Signed
+from tuf.api.metadata import (
+    BaseMetadata,
+    Envelope,
+    Metadata,
+    Root,
+    Signed,
+    Snapshot,
+    Targets,
+    Timestamp,
+)
 from tuf.api.serialization import (
     DeserializationError,
     SerializationError,
@@ -28,23 +37,31 @@ from tuf.api.serialization import (
 
 
 class JSONDeserializer(BaseJSONDeserializer):
-    """Provides JSON to Metadata deserialize method."""
+    """Provides JSON to ``BaseMetadata`` deserialize method."""
 
-    def deserialize(self, raw_data: bytes) -> Metadata:
-        """Deserialize utf-8 encoded JSON bytes into Metadata object."""
+    def deserialize(self, raw_data: bytes) -> BaseMetadata:
+        """Deserialize utf-8 encoded JSON bytes into ``BaseMetadata`` instance.
+
+        Creates ``Metadata`` or ``Envelope`` instance based on presence of
+        ``payload`` or ``signed`` field."""
 
         try:
             json_dict = super().deserialize(raw_data)
-            metadata_obj = Metadata.from_dict(json_dict)
+
+            if "payload" in json_dict:
+                return Envelope.from_dict(json_dict)
+
+            if "signed" in json_dict:
+                return Metadata.from_dict(json_dict)
+
+            raise ValueError("unrecognized metadata")
 
         except Exception as e:
             raise DeserializationError("Failed to deserialize JSON") from e
 
-        return metadata_obj
-
 
 class JSONSerializer(BaseJSONSerializer):
-    """Provides Metadata to JSON serialize method.
+    """Provides ``BaseMetadata`` to JSON serialize method.
 
     Args:
         compact: A boolean indicating if the JSON bytes generated in
@@ -59,8 +76,8 @@ class JSONSerializer(BaseJSONSerializer):
         super().__init__(compact)
         self.validate = validate
 
-    def serialize(self, obj: Metadata) -> bytes:
-        """Serialize Metadata object into utf-8 encoded JSON bytes."""
+    def serialize(self, obj: BaseMetadata) -> bytes:
+        """Serialize ``BaseMetadata`` object into utf-8 encoded JSON bytes."""
 
         try:
             json_bytes = BaseJSONSerializer.serialize(self, obj)
@@ -79,6 +96,36 @@ class JSONSerializer(BaseJSONSerializer):
             raise SerializationError("Failed to serialize JSON") from e
 
         return json_bytes
+
+
+class SignedJSONDeserializer(BaseJSONDeserializer):
+    """Provides JSON to ``Signed`` deserialize method."""
+
+    def deserialize(self, raw_data: bytes) -> Signed:
+        """Deserialize utf-8 encoded JSON bytes into ``Signed`` instance.
+
+        Creates ``Targets``, ``Snapshot``, ``Timestamp`` or ``Root`` instance
+        based on value in ``_type`` field."""
+        try:
+            json_dict = super().deserialize(raw_data)
+
+            _type = json_dict["_type"]
+
+            if _type == Targets.type:
+                _cls: Type[Signed] = Targets
+            elif _type == Snapshot.type:
+                _cls = Snapshot
+            elif _type == Timestamp.type:
+                _cls = Timestamp
+            elif _type == Root.type:
+                _cls = Root
+            else:
+                raise ValueError(f'unrecognized metadata type "{_type}"')
+
+        except Exception as e:
+            raise SerializationError("Failed to serialize JSON") from e
+
+        return _cls.from_dict(json_dict)
 
 
 class CanonicalJSONSerializer(SignedSerializer):

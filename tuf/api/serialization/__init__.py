@@ -32,6 +32,7 @@ if TYPE_CHECKING:
 MetadataSerializer: TypeAlias = BaseSerializer
 MetadataDeserializer: TypeAlias = BaseDeserializer
 SignedSerializer: TypeAlias = BaseSerializer
+SignedDeserializer: TypeAlias = BaseDeserializer
 
 
 class SerializationError(RepositoryError):

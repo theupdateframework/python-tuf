@@ -51,14 +51,16 @@ from typing import (
 
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import hash as sslib_hash
+from securesystemslib.metadata import Envelope as BaseEnvelope
 from securesystemslib.serialization import JSONSerializable
 from securesystemslib.signer import Key, Signature, Signer
 
 from tuf.api.exceptions import LengthOrHashMismatchError, UnsignedMetadataError
 from tuf.api.serialization import (
-    MetadataDeserializer,
-    MetadataSerializer,
+    BaseDeserializer,
+    BaseSerializer,
     SerializationMixin,
+    SignedDeserializer,
     SignedSerializer,
 )
 
@@ -80,7 +82,138 @@ TOP_LEVEL_ROLE_NAMES = {_ROOT, _TIMESTAMP, _SNAPSHOT, _TARGETS}
 T = TypeVar("T", "Root", "Timestamp", "Snapshot", "Targets")
 
 
-class Metadata(Generic[T], JSONSerializable, SerializationMixin):
+class BaseMetadata(SerializationMixin, JSONSerializable, metaclass=abc.ABCMeta):
+    """A common metadata interface for Envelope (DSSE) and Metadata objects."""
+
+    @staticmethod
+    def _default_deserializer() -> BaseDeserializer:
+        """Default deserializer for Serialization Mixin."""
+        # pylint: disable=import-outside-toplevel
+        from tuf.api.serialization.json import JSONDeserializer
+
+        return JSONDeserializer()
+
+    @staticmethod
+    def _default_serializer() -> BaseSerializer:
+        """Default serializer for Serialization Mixin."""
+        # pylint: disable=import-outside-toplevel
+        from tuf.api.serialization.json import JSONSerializer
+
+        return JSONSerializer(compact=True)
+
+    @staticmethod
+    def _get_role_and_keys(
+        signed: "Signed", delegated_role: str
+    ) -> Tuple["Role", Dict[str, Key]]:
+        """Return the keys and role for delegated_role"""
+
+        role: Optional[Role] = None
+        if isinstance(signed, Root):
+            keys = signed.keys
+            role = signed.roles.get(delegated_role)
+        elif isinstance(signed, Targets):
+            if signed.delegations is None:
+                raise ValueError(f"No delegation found for {delegated_role}")
+
+            keys = signed.delegations.keys
+            if signed.delegations.roles is not None:
+                role = signed.delegations.roles.get(delegated_role)
+            elif signed.delegations.succinct_roles is not None:
+                if signed.delegations.succinct_roles.is_delegated_role(
+                    delegated_role
+                ):
+                    role = signed.delegations.succinct_roles
+        else:
+            raise TypeError("Call is valid only on delegator metadata")
+
+        if role is None:
+            raise ValueError(f"No delegation found for {delegated_role}")
+
+        return (role, keys)
+
+    @abc.abstractmethod
+    def get_signed(self) -> "Signed":
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def sign(
+        self,
+        signer: Signer,
+    ) -> Signature:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def verify_delegate(
+        self,
+        delegated_role: str,
+        delegated_metadata: "BaseMetadata",
+    ) -> None:
+        raise NotImplementedError
+
+
+class Envelope(Generic[T], BaseMetadata, BaseEnvelope):
+    """DSSE Envelope for tuf payloads."""
+
+    DEFAULT_PAYLOAD_TYPE = "application/vnd.tuf"
+
+    @classmethod
+    def from_signed(
+        cls, signed: "Signed", serializer: SignedSerializer = None
+    ) -> "Envelope":
+        """Creates DSSE envelope with signed bytes as payload."""
+
+        if serializer is None:
+            # Use local scope import to avoid circular import errors
+            # pylint: disable=import-outside-toplevel
+            from tuf.api.serialization.json import JSONSerializer
+
+            serializer = JSONSerializer(compact=True)
+
+        return cls(
+            payload=serializer.serialize(signed),
+            payload_type=cls.DEFAULT_PAYLOAD_TYPE,
+            signatures=[],
+        )
+
+    def get_signed(self, deserializer: SignedDeserializer = None) -> "Signed":
+        if deserializer is None:
+            # Use local scope import to avoid circular import errors
+            # pylint: disable=import-outside-toplevel
+            from tuf.api.serialization.json import SignedJSONDeserializer
+
+            deserializer = SignedJSONDeserializer()
+
+        return BaseEnvelope.get_payload(self, deserializer)
+
+    def sign(
+        self,
+        signer: Signer,
+        append: bool = False,
+    ) -> Signature:
+
+        if not append:
+            self.signatures.clear()
+
+        return BaseEnvelope.sign(self, signer)
+
+    def verify_delegate(
+        self,
+        delegated_role: str,
+        delegated_metadata: "BaseMetadata",
+    ) -> None:
+        signed = self.get_signed(None)
+        role, keys = self._get_role_and_keys(signed, delegated_role)
+
+        try:
+            _ = BaseEnvelope.verify(
+                delegated_metadata, keys.values(), role.threshold
+            )
+
+        except sslib_exceptions.UnverifiedSignatureError as e:
+            raise UnsignedMetadataError from e
+
+
+class Metadata(Generic[T], BaseMetadata):
     """A container for signed TUF metadata.
 
     Provides methods to convert to and from dictionary, read and write to and
@@ -149,6 +282,9 @@ class Metadata(Generic[T], JSONSerializable, SerializationMixin):
             and self.unrecognized_fields == other.unrecognized_fields
         )
 
+    def get_signed(self) -> "Signed":
+        return self.signed
+
     @classmethod
     def from_dict(cls, metadata: Dict[str, Any]) -> "Metadata[T]":
         """Creates ``Metadata`` object from its json/dict representation.
@@ -197,22 +333,6 @@ class Metadata(Generic[T], JSONSerializable, SerializationMixin):
             # All fields left in the metadata dict are unrecognized.
             unrecognized_fields=metadata,
         )
-
-    @staticmethod
-    def _default_deserializer() -> MetadataDeserializer:
-        """Default Deserializer to be used for deserialization."""
-        # pylint: disable=import-outside-toplevel
-        from tuf.api.serialization.json import JSONDeserializer
-
-        return JSONDeserializer()
-
-    @staticmethod
-    def _default_serializer() -> MetadataSerializer:
-        """Default Serializer to be used for serialization."""
-        # pylint: disable=import-outside-toplevel
-        from tuf.api.serialization.json import JSONSerializer
-
-        return JSONSerializer(compact=True)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
@@ -275,35 +395,6 @@ class Metadata(Generic[T], JSONSerializable, SerializationMixin):
 
         return signature
 
-    def _get_role_and_keys(
-        self, delegated_role: str
-    ) -> Tuple["Role", Dict[str, Key]]:
-        """Return the keys and role for delegated_role"""
-
-        role: Optional[Role] = None
-        if isinstance(self.signed, Root):
-            keys = self.signed.keys
-            role = self.signed.roles.get(delegated_role)
-        elif isinstance(self.signed, Targets):
-            if self.signed.delegations is None:
-                raise ValueError(f"No delegation found for {delegated_role}")
-
-            keys = self.signed.delegations.keys
-            if self.signed.delegations.roles is not None:
-                role = self.signed.delegations.roles.get(delegated_role)
-            elif self.signed.delegations.succinct_roles is not None:
-                if self.signed.delegations.succinct_roles.is_delegated_role(
-                    delegated_role
-                ):
-                    role = self.signed.delegations.succinct_roles
-        else:
-            raise TypeError("Call is valid only on delegator metadata")
-
-        if role is None:
-            raise ValueError(f"No delegation found for {delegated_role}")
-
-        return (role, keys)
-
     def verify_delegate(
         self,
         delegated_role: str,
@@ -333,7 +424,7 @@ class Metadata(Generic[T], JSONSerializable, SerializationMixin):
             signed_serializer = CanonicalJSONSerializer()
 
         data = signed_serializer.serialize(delegated_metadata.signed)
-        role, keys = self._get_role_and_keys(delegated_role)
+        role, keys = self._get_role_and_keys(self.signed, delegated_role)
 
         # verify that delegated_metadata is signed by threshold of unique keys
         signing_keys = set()
@@ -341,6 +432,7 @@ class Metadata(Generic[T], JSONSerializable, SerializationMixin):
             if keyid not in keys:
                 logger.info("No key for keyid %s", keyid)
                 continue
+
             if keyid not in delegated_metadata.signatures:
                 logger.info("No signature for keyid %s", keyid)
                 continue
