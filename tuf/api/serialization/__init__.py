@@ -15,13 +15,23 @@ API objects.
 """
 
 import abc
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeAlias
+
+from securesystemslib.serialization import (
+    BaseDeserializer,
+    BaseSerializer,
+    SerializationMixin,
+)
 
 from tuf.api.exceptions import RepositoryError
 
 if TYPE_CHECKING:
     # pylint: disable=cyclic-import
     from tuf.api.metadata import Metadata, Signed
+
+MetadataSerializer: TypeAlias = BaseSerializer
+MetadataDeserializer: TypeAlias = BaseDeserializer
+SignedSerializer: TypeAlias = BaseSerializer
 
 
 class SerializationError(RepositoryError):
@@ -30,30 +40,3 @@ class SerializationError(RepositoryError):
 
 class DeserializationError(RepositoryError):
     """Error during deserialization."""
-
-
-class MetadataDeserializer(metaclass=abc.ABCMeta):
-    """Abstract base class for deserialization of Metadata objects."""
-
-    @abc.abstractmethod
-    def deserialize(self, raw_data: bytes) -> "Metadata":
-        """Deserialize bytes to Metadata object."""
-        raise NotImplementedError
-
-
-class MetadataSerializer(metaclass=abc.ABCMeta):
-    """Abstract base class for serialization of Metadata objects."""
-
-    @abc.abstractmethod
-    def serialize(self, metadata_obj: "Metadata") -> bytes:
-        """Serialize Metadata object to bytes."""
-        raise NotImplementedError
-
-
-class SignedSerializer(metaclass=abc.ABCMeta):
-    """Abstract base class for serialization of Signed objects."""
-
-    @abc.abstractmethod
-    def serialize(self, signed_obj: "Signed") -> bytes:
-        """Serialize Signed object to bytes."""
-        raise NotImplementedError
