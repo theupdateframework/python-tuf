@@ -652,7 +652,7 @@ class TestMetadata(unittest.TestCase):
 
             # Test wrong algorithm format (sslib.FormatError)
             snapshot_metafile.hashes = {
-                256: "8f88e2ba48b412c3843e9bb26e1b6f8fc9e98aceb0fbaa97ba37b4c98717d7ab"  # type: ignore[dict-item]
+                256: "8f88e2ba48b412c3843e9bb26e1b6f8fc9e98aceb0fbaa97ba37b4c98717d7ab"
             }
             with self.assertRaises(exceptions.LengthOrHashMismatchError):
                 snapshot_metafile.verify_length_and_hashes(data)
