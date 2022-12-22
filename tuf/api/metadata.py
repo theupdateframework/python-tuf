@@ -32,7 +32,6 @@ import abc
 import fnmatch
 import io
 import logging
-import tempfile
 from datetime import datetime
 from typing import (
     IO,
@@ -55,13 +54,12 @@ from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import hash as sslib_hash
 from securesystemslib.serialization import JSONSerializable
 from securesystemslib.signer import Key, Signature, Signer
-from securesystemslib.storage import FilesystemBackend, StorageBackendInterface
-from securesystemslib.util import persist_temp_file
 
 from tuf.api.exceptions import LengthOrHashMismatchError, UnsignedMetadataError
 from tuf.api.serialization import (
     MetadataDeserializer,
     MetadataSerializer,
+    SerializationMixin,
     SignedSerializer,
 )
 
@@ -83,7 +81,7 @@ TOP_LEVEL_ROLE_NAMES = {_ROOT, _TIMESTAMP, _SNAPSHOT, _TARGETS}
 T = TypeVar("T", "Root", "Timestamp", "Snapshot", "Targets")
 
 
-class Metadata(Generic[T], JSONSerializable):
+class Metadata(Generic[T], JSONSerializable, SerializationMixin):
     """A container for signed TUF metadata.
 
     Provides methods to convert to and from dictionary, read and write to and
@@ -201,97 +199,21 @@ class Metadata(Generic[T], JSONSerializable):
             unrecognized_fields=metadata,
         )
 
-    @classmethod
-    def from_file(
-        cls,
-        filename: str,
-        deserializer: Optional[MetadataDeserializer] = None,
-        storage_backend: Optional[StorageBackendInterface] = None,
-    ) -> "Metadata[T]":
-        """Load TUF metadata from file storage.
+    @staticmethod
+    def _default_deserializer() -> MetadataDeserializer:
+        """Default deserializer for ``Metadata.from_{bytes, file}``."""
+        # pylint: disable=import-outside-toplevel
+        from tuf.api.serialization.json import JSONDeserializer
 
-        Args:
-            filename: Path to read the file from.
-            deserializer: ``MetadataDeserializer`` subclass instance that
-                implements the desired wireline format deserialization. Per
-                default a ``JSONDeserializer`` is used.
-            storage_backend: Object that implements
-                ``securesystemslib.storage.StorageBackendInterface``.
-                Default is ``FilesystemBackend`` (i.e. a local file).
-        Raises:
-            StorageError: The file cannot be read.
-            tuf.api.serialization.DeserializationError:
-                The file cannot be deserialized.
+        return JSONDeserializer()
 
-        Returns:
-            TUF ``Metadata`` object.
-        """
+    @staticmethod
+    def _default_serializer() -> MetadataSerializer:
+        """Default serializer for ``Metadata.to_{bytes, file}``."""
+        # pylint: disable=import-outside-toplevel
+        from tuf.api.serialization.json import JSONSerializer
 
-        if storage_backend is None:
-            storage_backend = FilesystemBackend()
-
-        with storage_backend.get(filename) as file_obj:
-            return cls.from_bytes(file_obj.read(), deserializer)
-
-    @classmethod
-    def from_bytes(
-        cls,
-        data: bytes,
-        deserializer: Optional[MetadataDeserializer] = None,
-    ) -> "Metadata[T]":
-        """Load TUF metadata from raw data.
-
-        Args:
-            data: Metadata content.
-            deserializer: ``MetadataDeserializer`` implementation to use.
-                Default is ``JSONDeserializer``.
-
-        Raises:
-            tuf.api.serialization.DeserializationError:
-                The file cannot be deserialized.
-
-        Returns:
-            TUF ``Metadata`` object.
-        """
-
-        if deserializer is None:
-            # Use local scope import to avoid circular import errors
-            # pylint: disable=import-outside-toplevel
-            from tuf.api.serialization.json import JSONDeserializer
-
-            deserializer = JSONDeserializer()
-
-        return deserializer.deserialize(data)
-
-    def to_bytes(
-        self, serializer: Optional[MetadataSerializer] = None
-    ) -> bytes:
-        """Return the serialized TUF file format as bytes.
-
-        Note that if bytes are first deserialized into ``Metadata`` and then
-        serialized with ``to_bytes()``, the two are not required to be
-        identical even though the signatures are guaranteed to stay valid. If
-        byte-for-byte equivalence is required (which is the case when content
-        hashes are used in other metadata), the original content should be used
-        instead of re-serializing.
-
-        Args:
-            serializer: ``MetadataSerializer`` instance that implements the
-                desired serialization format. Default is ``JSONSerializer``.
-
-        Raises:
-            tuf.api.serialization.SerializationError:
-                The metadata object cannot be serialized.
-        """
-
-        if serializer is None:
-            # Use local scope import to avoid circular import errors
-            # pylint: disable=import-outside-toplevel
-            from tuf.api.serialization.json import JSONSerializer
-
-            serializer = JSONSerializer(compact=True)
-
-        return serializer.serialize(self)
+        return JSONSerializer(compact=True)
 
     def to_dict(self) -> Dict[str, Any]:
         """Return the dict representation of self."""
@@ -303,40 +225,6 @@ class Metadata(Generic[T], JSONSerializable):
             "signed": self.signed.to_dict(),
             **self.unrecognized_fields,
         }
-
-    def to_file(
-        self,
-        filename: str,
-        serializer: Optional[MetadataSerializer] = None,
-        storage_backend: Optional[StorageBackendInterface] = None,
-    ) -> None:
-        """Write TUF metadata to file storage.
-
-        Note that if a file is first deserialized into ``Metadata`` and then
-        serialized with ``to_file()``, the two files are not required to be
-        identical even though the signatures are guaranteed to stay valid. If
-        byte-for-byte equivalence is required (which is the case when file
-        hashes are used in other metadata), the original file should be used
-        instead of re-serializing.
-
-        Args:
-            filename: Path to write the file to.
-            serializer: ``MetadataSerializer`` instance that implements the
-                desired serialization format. Default is ``JSONSerializer``.
-            storage_backend: ``StorageBackendInterface`` implementation. Default
-                is ``FilesystemBackend`` (i.e. a local file).
-
-        Raises:
-            tuf.api.serialization.SerializationError:
-                The metadata object cannot be serialized.
-            StorageError: The file cannot be written.
-        """
-
-        bytes_data = self.to_bytes(serializer)
-
-        with tempfile.TemporaryFile() as temp_file:
-            temp_file.write(bytes_data)
-            persist_temp_file(temp_file, filename, storage_backend)
 
     # Signatures.
     def sign(
