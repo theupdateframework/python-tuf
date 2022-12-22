@@ -30,8 +30,10 @@ from tests import utils
 from tuf.api import exceptions
 from tuf.api.metadata import (
     TOP_LEVEL_ROLE_NAMES,
+    BaseMetadata,
     DelegatedRole,
     Delegations,
+    Envelope,
     Key,
     Metadata,
     Root,
@@ -46,6 +48,47 @@ from tuf.api.serialization import DeserializationError, SerializationError
 from tuf.api.serialization.json import CanonicalJSONSerializer, JSONSerializer
 
 logger = logging.getLogger(__name__)
+
+
+class TestEnvelope(unittest.TestCase):
+    """Smoke test for Envelope (DSSE) and common metadata abstraction."""
+
+    def test_envelope(self) -> None:
+        # Generate key and root metadata, and sign and serialize as dsse
+        sslib_key = generate_ed25519_key()
+        root = Root()
+        envelope = Envelope.from_signed(root)
+        signer = SSlibSigner(sslib_key)
+        envelope.sign(signer)
+        data = envelope.to_bytes()
+
+        # Deserialize dsse and verify signature successfully
+        envelope2 = Envelope.from_bytes(data)
+        self.assertEqual(envelope2, envelope)
+        key = SSlibKey.from_securesystemslib_key(sslib_key)
+        envelope2.verify([key], 1)
+
+        # Create new envelope with bad signature, and fail
+        envelope3 = Envelope.from_signed(Targets())
+        envelope3.signatures = envelope2.signatures
+        with self.assertRaises(sslib_exceptions.VerificationError):
+            envelope3.verify([key], 1)
+
+        # Add root key to root so that we can verify with 'verify_delegate'
+        root.add_key(key, Root.type)
+
+        # Sign and serialize traditional metadata and dsse w/ common interface
+        metadata = []
+        for object_ in [Metadata(root), Envelope.from_signed(root)]:
+            object_.sign(signer)
+            metadata.append((type(object_), object_.to_bytes()))
+
+        # Deserialize and verify both metadata types w/ common interface
+        for type_, bytes_ in metadata:
+            object_ = BaseMetadata.from_bytes(bytes_)
+            object_.verify_delegate(Root.type, object_)
+            # Assert we get the correct instance
+            self.assertTrue(isinstance(object_, type_))
 
 
 # pylint: disable=too-many-public-methods
