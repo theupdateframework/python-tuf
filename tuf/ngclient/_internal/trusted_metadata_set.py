@@ -117,19 +117,19 @@ class TrustedMetadataSet(abc.Mapping):
         return self._trusted_set[Root.type]
 
     @property
-    def timestamp(self) -> Optional[Metadata[Timestamp]]:
-        """Get current timestamp ``Metadata`` or ``None``"""
-        return self._trusted_set.get(Timestamp.type)
+    def timestamp(self) -> Metadata[Timestamp]:
+        """Get current timestamp ``Metadata``"""
+        return self._trusted_set[Timestamp.type]
 
     @property
-    def snapshot(self) -> Optional[Metadata[Snapshot]]:
-        """Get current snapshot ``Metadata`` or ``None``"""
-        return self._trusted_set.get(Snapshot.type)
+    def snapshot(self) -> Metadata[Snapshot]:
+        """Get current snapshot ``Metadata``"""
+        return self._trusted_set[Snapshot.type]
 
     @property
-    def targets(self) -> Optional[Metadata[Targets]]:
-        """Get current targets ``Metadata`` or ``None``"""
-        return self._trusted_set.get(Targets.type)
+    def targets(self) -> Metadata[Targets]:
+        """Get current top-level targets ``Metadata``"""
+        return self._trusted_set[Targets.type]
 
     # Methods for updating metadata
     def update_root(self, data: bytes) -> Metadata[Root]:
@@ -149,7 +149,7 @@ class TrustedMetadataSet(abc.Mapping):
         Returns:
             Deserialized and verified root ``Metadata`` object
         """
-        if self.timestamp is not None:
+        if Timestamp.type in self._trusted_set:
             raise RuntimeError("Cannot update root after timestamp")
         logger.debug("Updating root")
 
@@ -199,7 +199,7 @@ class TrustedMetadataSet(abc.Mapping):
         Returns:
             Deserialized and verified timestamp ``Metadata`` object
         """
-        if self.snapshot is not None:
+        if Snapshot.type in self._trusted_set:
             raise RuntimeError("Cannot update timestamp after snapshot")
 
         # client workflow 5.3.10: Make sure final root is not expired.
@@ -219,7 +219,7 @@ class TrustedMetadataSet(abc.Mapping):
 
         # If an existing trusted timestamp is updated,
         # check for a rollback attack
-        if self.timestamp is not None:
+        if Timestamp.type in self._trusted_set:
             # Prevent rolling back timestamp version
             if new_timestamp.signed.version < self.timestamp.signed.version:
                 raise exceptions.BadVersionNumberError(
@@ -253,7 +253,6 @@ class TrustedMetadataSet(abc.Mapping):
     def _check_final_timestamp(self) -> None:
         """Raise if timestamp is expired"""
 
-        assert self.timestamp is not None  # nosec
         if self.timestamp.signed.is_expired(self.reference_time):
             raise exceptions.ExpiredMetadataError("timestamp.json is expired")
 
@@ -288,9 +287,9 @@ class TrustedMetadataSet(abc.Mapping):
             Deserialized and verified snapshot ``Metadata`` object
         """
 
-        if self.timestamp is None:
+        if Timestamp.type not in self._trusted_set:
             raise RuntimeError("Cannot update snapshot before timestamp")
-        if self.targets is not None:
+        if Targets.type in self._trusted_set:
             raise RuntimeError("Cannot update snapshot after targets")
         logger.debug("Updating snapshot")
 
@@ -317,7 +316,7 @@ class TrustedMetadataSet(abc.Mapping):
         # used in rollback protection: it is checked when targets is updated
 
         # If an existing trusted snapshot is updated, check for rollback attack
-        if self.snapshot is not None:
+        if Snapshot.type in self._trusted_set:
             for filename, fileinfo in self.snapshot.signed.meta.items():
                 new_fileinfo = new_snapshot.signed.meta.get(filename)
 
@@ -348,8 +347,6 @@ class TrustedMetadataSet(abc.Mapping):
     def _check_final_snapshot(self) -> None:
         """Raise if snapshot is expired or meta version does not match"""
 
-        assert self.snapshot is not None  # nosec
-        assert self.timestamp is not None  # nosec
         if self.snapshot.signed.is_expired(self.reference_time):
             raise exceptions.ExpiredMetadataError("snapshot.json is expired")
         snapshot_meta = self.timestamp.signed.snapshot_meta
@@ -392,7 +389,7 @@ class TrustedMetadataSet(abc.Mapping):
         Returns:
             Deserialized and verified targets ``Metadata`` object
         """
-        if self.snapshot is None:
+        if Snapshot.type not in self._trusted_set:
             raise RuntimeError("Cannot load targets before snapshot")
 
         # Targets cannot be loaded if final snapshot is expired or its version

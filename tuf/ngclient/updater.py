@@ -168,7 +168,7 @@ class Updater:
             ``TargetFile`` instance or ``None``.
         """
 
-        if self._trusted_set.targets is None:
+        if Targets.type not in self._trusted_set:
             self.refresh()
         return self._preorder_depth_first_walk(target_path)
 
@@ -361,7 +361,6 @@ class Updater:
             # Local snapshot does not exist or is invalid: update from remote
             logger.debug("Local snapshot not valid as final: %s", e)
 
-            assert self._trusted_set.timestamp is not None  # nosec
             snapshot_meta = self._trusted_set.timestamp.signed.snapshot_meta
             length = snapshot_meta.length or self.config.snapshot_max_length
             version = None
@@ -389,8 +388,6 @@ class Updater:
         except (OSError, exceptions.RepositoryError) as e:
             # Local 'role' does not exist or is invalid: update from remote
             logger.debug("Failed to load local %s: %s", role, e)
-
-            assert self._trusted_set.snapshot is not None  # nosec
 
             snapshot = self._trusted_set.snapshot.signed
             metainfo = snapshot.meta.get(f"{role}.json")
