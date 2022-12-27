@@ -260,7 +260,7 @@ class Updater:
             with open(filepath, "wb") as destination_file:
                 shutil.copyfileobj(target_file, destination_file)
 
-        logger.info("Downloaded target %s", targetinfo.path)
+        logger.debug("Downloaded target %s", targetinfo.path)
         return filepath
 
     def _download_metadata(

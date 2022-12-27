@@ -173,7 +173,7 @@ class TrustedMetadataSet(abc.Mapping):
         new_root.verify_delegate(Root.type, new_root)
 
         self._trusted_set[Root.type] = new_root
-        logger.info("Updated root v%d", new_root.signed.version)
+        logger.debug("Updated root v%d", new_root.signed.version)
 
         return new_root
 
@@ -243,7 +243,7 @@ class TrustedMetadataSet(abc.Mapping):
         # protection of new timestamp: expiry is checked in update_snapshot()
 
         self._trusted_set[Timestamp.type] = new_timestamp
-        logger.info("Updated timestamp v%d", new_timestamp.signed.version)
+        logger.debug("Updated timestamp v%d", new_timestamp.signed.version)
 
         # timestamp is loaded: raise if it is not valid _final_ timestamp
         self._check_final_timestamp()
@@ -338,7 +338,7 @@ class TrustedMetadataSet(abc.Mapping):
         # protection of new snapshot: it is checked when targets is updated
 
         self._trusted_set[Snapshot.type] = new_snapshot
-        logger.info("Updated snapshot v%d", new_snapshot.signed.version)
+        logger.debug("Updated snapshot v%d", new_snapshot.signed.version)
 
         # snapshot is loaded, but we raise if it's not valid _final_ snapshot
         self._check_final_snapshot()
@@ -433,7 +433,7 @@ class TrustedMetadataSet(abc.Mapping):
             raise exceptions.ExpiredMetadataError(f"New {role_name} is expired")
 
         self._trusted_set[role_name] = new_delegate
-        logger.info("Updated %s v%d", role_name, version)
+        logger.debug("Updated %s v%d", role_name, version)
 
         return new_delegate
 
@@ -453,4 +453,4 @@ class TrustedMetadataSet(abc.Mapping):
         new_root.verify_delegate(Root.type, new_root)
 
         self._trusted_set[Root.type] = new_root
-        logger.info("Loaded trusted root v%d", new_root.signed.version)
+        logger.debug("Loaded trusted root v%d", new_root.signed.version)
