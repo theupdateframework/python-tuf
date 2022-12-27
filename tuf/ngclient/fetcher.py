@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 # Classes
-class FetcherInterface(abc.ABC):
+class FetcherInterface(metaclass=abc.ABCMeta):
     """Defines an interface for abstract network download.
 
     By providing a concrete implementation of the abstract interface,
@@ -27,8 +27,6 @@ class FetcherInterface(abc.ABC):
     Implementations of FetcherInterface only need to implement ``_fetch()``.
     The public API of the class is already implemented.
     """
-
-    metaclass = abc.ABCMeta
 
     @abc.abstractmethod
     def _fetch(self, url: str) -> Iterator[bytes]:
