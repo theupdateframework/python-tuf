@@ -24,7 +24,6 @@ from tuf.api.exceptions import (
     UnsignedMetadataError,
 )
 from tuf.api.metadata import (
-    SPECIFICATION_VERSION,
     TOP_LEVEL_ROLE_NAMES,
     DelegatedRole,
     Metadata,
@@ -645,8 +644,7 @@ class TestRefresh(unittest.TestCase):
         # the delegations tree
 
         # Add new delegated targets, update the snapshot
-        spec_version = ".".join(SPECIFICATION_VERSION)
-        targets = Targets(1, spec_version, self.sim.safe_expiry, {}, None)
+        targets = Targets(expires=self.sim.safe_expiry)
         role = DelegatedRole("role1", [], 1, False, ["*"], None)
         self.sim.add_delegation("targets", role, targets)
         self.sim.update_snapshot()
@@ -700,8 +698,7 @@ class TestRefresh(unittest.TestCase):
     def test_load_metadata_from_cache(self, wrapped_open: MagicMock) -> None:
 
         # Add new delegated targets
-        spec_version = ".".join(SPECIFICATION_VERSION)
-        targets = Targets(1, spec_version, self.sim.safe_expiry, {}, None)
+        targets = Targets(expires=self.sim.safe_expiry)
         role = DelegatedRole("role1", [], 1, False, ["*"], None)
         self.sim.add_delegation("targets", role, targets)
         self.sim.update_snapshot()

@@ -14,7 +14,6 @@ from typing import Any, Dict, Iterable, List, Optional
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
 from tuf.api.metadata import (
-    SPECIFICATION_VERSION,
     TOP_LEVEL_ROLE_NAMES,
     DelegatedRole,
     TargetFile,
@@ -170,12 +169,9 @@ class TestConsistentSnapshot(unittest.TestCase):
 
             self.setup_subtest(consistent_snapshot)
             # Add new delegated targets
-            spec_version = ".".join(SPECIFICATION_VERSION)
             for role in rolenames:
                 delegated_role = DelegatedRole(role, [], 1, False, ["*"], None)
-                targets = Targets(
-                    1, spec_version, self.sim.safe_expiry, {}, None
-                )
+                targets = Targets(expires=self.sim.safe_expiry)
                 self.sim.add_delegation("targets", delegated_role, targets)
             self.sim.update_snapshot()
             updater = self._init_updater()

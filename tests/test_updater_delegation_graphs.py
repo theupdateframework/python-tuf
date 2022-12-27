@@ -16,12 +16,7 @@ from typing import Iterable, List, Optional
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
 from tuf.api.exceptions import UnsignedMetadataError
-from tuf.api.metadata import (
-    SPECIFICATION_VERSION,
-    TOP_LEVEL_ROLE_NAMES,
-    DelegatedRole,
-    Targets,
-)
+from tuf.api.metadata import TOP_LEVEL_ROLE_NAMES, DelegatedRole, Targets
 from tuf.ngclient import Updater
 
 
@@ -97,14 +92,11 @@ class TestDelegations(unittest.TestCase):
         populate it with delegations and target files"""
 
         self.sim = RepositorySimulator()
-        spec_version = ".".join(SPECIFICATION_VERSION)
         for d in test_case.delegations:
             if d.rolename in self.sim.md_delegates:
                 targets = self.sim.md_delegates[d.rolename].signed
             else:
-                targets = Targets(
-                    1, spec_version, self.sim.safe_expiry, {}, None
-                )
+                targets = Targets(expires=self.sim.safe_expiry)
             # unpack 'd' but skip "delegator"
             role = DelegatedRole(*astuple(d)[1:])
             self.sim.add_delegation(d.delegator, role, targets)
