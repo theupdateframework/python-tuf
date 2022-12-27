@@ -738,6 +738,111 @@ class TestRefresh(unittest.TestCase):
         self.assertListEqual(self.sim.fetch_tracker.metadata, expected_calls)
 
     @patch.object(datetime, "datetime", wraps=datetime.datetime)
+    def test_refresh_with_lazy_refresh(self, mock_time: Mock) -> None:
+        # make v1 metadata expire a little earlier
+        self.sim.timestamp.expires = self.sim.safe_expiry - datetime.timedelta(
+            days=7
+        )
+        self.sim.targets.expires = self.sim.safe_expiry - datetime.timedelta(
+            days=5
+        )
+
+        # Make a successful update of valid metadata which stores it in cache
+        updater = self._init_updater()
+        updater.config.lazy_refresh = True
+        updater.refresh()
+
+        # Clean up fetch tracker data
+        self.sim.fetch_tracker.metadata.clear()
+
+        ### Refresh succeeds and is lazy
+
+        # create timestamp v2 in repository
+        self.sim.timestamp.version += 1
+        self.sim.timestamp.expires = self.sim.safe_expiry
+
+        # Perform a second update. lazy_refresh means no metadata fetches are
+        # expected this time
+        updater = self._init_updater()
+        updater.config.lazy_refresh = True
+        updater.refresh()
+        self.assertListEqual(self.sim.fetch_tracker.metadata, [])
+
+        ### Refresh succeeds but is not lazy
+
+        # Mock time so local timestamp has expired but new timestamp has not.
+        # lazy refresh fails, so we end up with normal refresh
+        mock_time.utcnow.return_value = (
+            self.sim.safe_expiry - datetime.timedelta(days=6)
+        )
+        with patch("datetime.datetime", mock_time):
+            updater = self._init_updater()
+            updater.config.lazy_refresh = True
+            updater.refresh()
+
+        expected_calls = [("root", 2), ("timestamp", None)]
+        self.assertListEqual(self.sim.fetch_tracker.metadata, expected_calls)
+
+        # Clean up fetch tracker data
+        self.sim.fetch_tracker.metadata.clear()
+
+        ### Refresh fails and is not lazy
+
+        # Mock time so local targets has expired. lazy refresh fails, so we
+        # end up with normal refresh which also fails
+        mock_time.utcnow.return_value = (
+            self.sim.safe_expiry - datetime.timedelta(days=4)
+        )
+        with patch("datetime.datetime", mock_time):
+            updater = self._init_updater()
+            updater.config.lazy_refresh = True
+            with self.assertRaises(ExpiredMetadataError):
+                updater.refresh()
+
+        expected_calls = [
+            ("root", 2),
+            ("timestamp", None),
+            ("targets", 1),
+        ]
+        self.assertListEqual(self.sim.fetch_tracker.metadata, expected_calls)
+
+        # Clean up fetch tracker data
+        self.sim.fetch_tracker.metadata.clear()
+
+        ### Refresh succeeds but is not lazy
+
+        # create targets v2 in repository
+        self.sim.targets.version += 1
+        self.sim.targets.expires = self.sim.safe_expiry
+        self.sim.update_snapshot()
+
+        # Mock time so that lazy refresh fails but the normal refresh succeeds
+        with patch("datetime.datetime", mock_time):
+            updater = self._init_updater()
+            updater.config.lazy_refresh = True
+            updater.refresh()
+
+        expected_calls = [
+            ("root", 2),
+            ("timestamp", None),
+            ("snapshot", 2),
+            ("targets", 2),
+        ]
+        self.assertListEqual(self.sim.fetch_tracker.metadata, expected_calls)
+
+        # Clean up fetch tracker data
+        self.sim.fetch_tracker.metadata.clear()
+
+        ### Refresh succeeds and is lazy
+
+        with patch("datetime.datetime", mock_time):
+            updater = self._init_updater()
+            updater.config.lazy_refresh = True
+            updater.refresh()
+
+        self.assertListEqual(self.sim.fetch_tracker.metadata, [])
+
+    @patch.object(datetime, "datetime", wraps=datetime.datetime)
     def test_expired_metadata(self, mock_time: Mock) -> None:
         """Verifies that expired local timestamp/snapshot can be used for
         updating from remote.

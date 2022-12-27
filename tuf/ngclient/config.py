@@ -23,7 +23,15 @@ class UpdaterConfig:
             are used, target download URLs are formed by prefixing the filename
             with a hash digest of file content by default. This can be
             overridden by setting ``prefix_targets_with_hash`` to ``False``.
-
+        lazy_refresh: Do not fetch metadata from remote if the local metadata
+            is still valid. Setting lazy_refresh to True means refresh() no
+            longer implements the full client workflow that is described in the
+            specification, and should only be used with repositories that
+            suggest using it:
+             * The client may stay unaware of metadata updates for the
+               expiry periods (typically timestamp expiry period).
+             * Repository maintenance has some additional requirements as the
+               clients may operate with older metadata.
     """
 
     max_root_rotations: int = 32
@@ -33,3 +41,4 @@ class UpdaterConfig:
     snapshot_max_length: int = 2000000  # bytes
     targets_max_length: int = 5000000  # bytes
     prefix_targets_with_hash: bool = True
+    lazy_refresh = False

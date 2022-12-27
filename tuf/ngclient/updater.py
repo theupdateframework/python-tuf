@@ -53,7 +53,8 @@ from tuf.api.metadata import (
     Targets,
     Timestamp,
 )
-from tuf.ngclient._internal import requests_fetcher, trusted_metadata_set
+from tuf.ngclient._internal import requests_fetcher
+from tuf.ngclient._internal.trusted_metadata_set import TrustedMetadataSet
 from tuf.ngclient.config import UpdaterConfig
 from tuf.ngclient.fetcher import FetcherInterface
 
@@ -101,7 +102,7 @@ class Updater:
 
         # Read trusted local root metadata
         data = self._load_local_metadata(Root.type)
-        self._trusted_set = trusted_metadata_set.TrustedMetadataSet(data)
+        self._trusted_set = TrustedMetadataSet(data)
         self._fetcher = fetcher or requests_fetcher.RequestsFetcher()
         self.config = config or UpdaterConfig()
 
@@ -128,6 +129,23 @@ class Updater:
             RepositoryError: Metadata failed to verify in some way
             DownloadError: Download of a metadata file failed in some way
         """
+
+        if self.config.lazy_refresh:
+            try:
+                # Try loading only local data
+                data = self._load_local_metadata(Timestamp.type)
+                self._trusted_set.update_timestamp(data)
+                data = self._load_local_metadata(Snapshot.type)
+                self._trusted_set.update_snapshot(data, trusted=True)
+                data = self._load_local_metadata(Targets.type)
+                self._trusted_set.update_delegated_targets(
+                    data, Targets.type, Root.type
+                )
+                return
+            except (OSError, exceptions.RepositoryError):
+                # Failed: reset _trusted_set, continue with vanilla refresh
+                data = self._load_local_metadata(Root.type)
+                self._trusted_set = TrustedMetadataSet(data)
 
         self._load_root()
         self._load_timestamp()
