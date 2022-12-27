@@ -30,7 +30,7 @@ class FetcherInterface(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def _fetch(self, url: str) -> Iterator[bytes]:
-        """Fetches the contents of HTTP/HTTPS ``url`` from a remote server.
+        """Fetch the contents of HTTP/HTTPS ``url`` from a remote server.
 
         Implementations must raise ``DownloadHTTPError`` if they receive
         an HTTP error code.
@@ -51,7 +51,7 @@ class FetcherInterface(metaclass=abc.ABCMeta):
         raise NotImplementedError  # pragma: no cover
 
     def fetch(self, url: str) -> Iterator[bytes]:
-        """Fetches the contents of HTTP/HTTPS ``url`` from a remote server.
+        """Fetch the contents of HTTP/HTTPS ``url`` from a remote server.
 
         Args:
             url: URL string that represents a file location.

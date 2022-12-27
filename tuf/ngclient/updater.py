@@ -106,7 +106,7 @@ class Updater:
         self.config = config or UpdaterConfig()
 
     def refresh(self) -> None:
-        """Refreshes top-level metadata.
+        """Refresh top-level metadata.
 
         Downloads, verifies, and loads metadata for the top-level roles in the
         specified order (root -> timestamp -> snapshot -> targets) implementing
@@ -143,7 +143,7 @@ class Updater:
         return os.path.join(self.target_dir, filename)
 
     def get_targetinfo(self, target_path: str) -> Optional[TargetFile]:
-        """Returns ``TargetFile`` instance with information for ``target_path``.
+        """Return ``TargetFile`` instance with information for ``target_path``.
 
         The return value can be used as an argument to
         ``download_target()`` and ``find_cached_target()``.
@@ -177,7 +177,7 @@ class Updater:
         targetinfo: TargetFile,
         filepath: Optional[str] = None,
     ) -> Optional[str]:
-        """Checks whether a local file is an up to date target
+        """Check whether a local file is an up to date target
 
         Args:
             targetinfo: ``TargetFile`` from ``get_targetinfo()``.
@@ -208,7 +208,7 @@ class Updater:
         filepath: Optional[str] = None,
         target_base_url: Optional[str] = None,
     ) -> str:
-        """Downloads the target file specified by ``targetinfo``.
+        """Download the target file specified by ``targetinfo``.
 
         Args:
             targetinfo: ``TargetFile`` from ``get_targetinfo()``.
@@ -260,7 +260,7 @@ class Updater:
             with open(filepath, "wb") as destination_file:
                 shutil.copyfileobj(target_file, destination_file)
 
-        logger.info("Downloaded target %s", targetinfo.path)
+        logger.debug("Downloaded target %s", targetinfo.path)
         return filepath
 
     def _download_metadata(

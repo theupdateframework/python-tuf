@@ -7,3 +7,9 @@
 from tuf.ngclient.config import UpdaterConfig
 from tuf.ngclient.fetcher import FetcherInterface
 from tuf.ngclient.updater import Updater
+
+__all__ = [
+    FetcherInterface.__name__,
+    Updater.__name__,
+    UpdaterConfig.__name__,
+]

@@ -99,41 +99,41 @@ class TrustedMetadataSet(abc.Mapping):
         self._load_trusted_root(root_data)
 
     def __getitem__(self, role: str) -> Metadata:
-        """Returns current ``Metadata`` for ``role``"""
+        """Return current ``Metadata`` for ``role``"""
         return self._trusted_set[role]
 
     def __len__(self) -> int:
-        """Returns number of ``Metadata`` objects in ``TrustedMetadataSet``"""
+        """Return number of ``Metadata`` objects in ``TrustedMetadataSet``"""
         return len(self._trusted_set)
 
     def __iter__(self) -> Iterator[Metadata]:
-        """Returns iterator over ``Metadata`` objects in ``TrustedMetadataSet``"""
+        """Return iterator over ``Metadata`` objects in ``TrustedMetadataSet``"""
         return iter(self._trusted_set.values())
 
     # Helper properties for top level metadata
     @property
     def root(self) -> Metadata[Root]:
-        """Current root ``Metadata``"""
+        """Get current root ``Metadata``"""
         return self._trusted_set[Root.type]
 
     @property
     def timestamp(self) -> Optional[Metadata[Timestamp]]:
-        """Current timestamp ``Metadata`` or ``None``"""
+        """Get current timestamp ``Metadata`` or ``None``"""
         return self._trusted_set.get(Timestamp.type)
 
     @property
     def snapshot(self) -> Optional[Metadata[Snapshot]]:
-        """Current snapshot ``Metadata`` or ``None``"""
+        """Get current snapshot ``Metadata`` or ``None``"""
         return self._trusted_set.get(Snapshot.type)
 
     @property
     def targets(self) -> Optional[Metadata[Targets]]:
-        """Current targets ``Metadata`` or ``None``"""
+        """Get current targets ``Metadata`` or ``None``"""
         return self._trusted_set.get(Targets.type)
 
     # Methods for updating metadata
     def update_root(self, data: bytes) -> Metadata[Root]:
-        """Verifies and loads ``data`` as new root metadata.
+        """Verify and load ``data`` as new root metadata.
 
         Note that an expired intermediate root is considered valid: expiry is
         only checked for the final root in ``update_timestamp()``.
@@ -173,12 +173,12 @@ class TrustedMetadataSet(abc.Mapping):
         new_root.verify_delegate(Root.type, new_root)
 
         self._trusted_set[Root.type] = new_root
-        logger.info("Updated root v%d", new_root.signed.version)
+        logger.debug("Updated root v%d", new_root.signed.version)
 
         return new_root
 
     def update_timestamp(self, data: bytes) -> Metadata[Timestamp]:
-        """Verifies and loads ``data`` as new timestamp metadata.
+        """Verify and load ``data`` as new timestamp metadata.
 
         Note that an intermediate timestamp is allowed to be expired:
         ``TrustedMetadataSet`` will throw an ``ExpiredMetadataError`` in
@@ -243,7 +243,7 @@ class TrustedMetadataSet(abc.Mapping):
         # protection of new timestamp: expiry is checked in update_snapshot()
 
         self._trusted_set[Timestamp.type] = new_timestamp
-        logger.info("Updated timestamp v%d", new_timestamp.signed.version)
+        logger.debug("Updated timestamp v%d", new_timestamp.signed.version)
 
         # timestamp is loaded: raise if it is not valid _final_ timestamp
         self._check_final_timestamp()
@@ -260,7 +260,7 @@ class TrustedMetadataSet(abc.Mapping):
     def update_snapshot(
         self, data: bytes, trusted: Optional[bool] = False
     ) -> Metadata[Snapshot]:
-        """Verifies and loads ``data`` as new snapshot metadata.
+        """Verify and load ``data`` as new snapshot metadata.
 
         Note that an intermediate snapshot is allowed to be expired and version
         is allowed to not match timestamp meta version: ``TrustedMetadataSet``
@@ -338,7 +338,7 @@ class TrustedMetadataSet(abc.Mapping):
         # protection of new snapshot: it is checked when targets is updated
 
         self._trusted_set[Snapshot.type] = new_snapshot
-        logger.info("Updated snapshot v%d", new_snapshot.signed.version)
+        logger.debug("Updated snapshot v%d", new_snapshot.signed.version)
 
         # snapshot is loaded, but we raise if it's not valid _final_ snapshot
         self._check_final_snapshot()
@@ -360,7 +360,7 @@ class TrustedMetadataSet(abc.Mapping):
             )
 
     def update_targets(self, data: bytes) -> Metadata[Targets]:
-        """Verifies and loads ``data`` as new top-level targets metadata.
+        """Verify and load ``data`` as new top-level targets metadata.
 
         Args:
             data: Unverified new targets metadata as bytes
@@ -377,7 +377,7 @@ class TrustedMetadataSet(abc.Mapping):
     def update_delegated_targets(
         self, data: bytes, role_name: str, delegator_name: str
     ) -> Metadata[Targets]:
-        """Verifies and loads ``data`` as new metadata for target ``role_name``.
+        """Verify and load ``data`` as new metadata for target ``role_name``.
 
         Args:
             data: Unverified new metadata as bytes
@@ -433,12 +433,12 @@ class TrustedMetadataSet(abc.Mapping):
             raise exceptions.ExpiredMetadataError(f"New {role_name} is expired")
 
         self._trusted_set[role_name] = new_delegate
-        logger.info("Updated %s v%d", role_name, version)
+        logger.debug("Updated %s v%d", role_name, version)
 
         return new_delegate
 
     def _load_trusted_root(self, data: bytes) -> None:
-        """Verifies and loads ``data`` as trusted root metadata.
+        """Verify and load ``data`` as trusted root metadata.
 
         Note that an expired initial root is considered valid: expiry is
         only checked for the final root in ``update_timestamp()``.
@@ -453,4 +453,4 @@ class TrustedMetadataSet(abc.Mapping):
         new_root.verify_delegate(Root.type, new_root)
 
         self._trusted_set[Root.type] = new_root
-        logger.info("Loaded trusted root v%d", new_root.signed.version)
+        logger.debug("Loaded trusted root v%d", new_root.signed.version)

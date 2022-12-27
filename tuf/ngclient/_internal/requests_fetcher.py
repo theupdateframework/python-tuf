@@ -50,7 +50,7 @@ class RequestsFetcher(FetcherInterface):
         self.chunk_size: int = 400000  # bytes
 
     def _fetch(self, url: str) -> Iterator[bytes]:
-        """Fetches the contents of HTTP/HTTPS url from a remote server
+        """Fetch the contents of HTTP/HTTPS url from a remote server
 
         Args:
             url: URL string that represents a file location.
@@ -108,7 +108,7 @@ class RequestsFetcher(FetcherInterface):
             response.close()
 
     def _get_session(self, url: str) -> requests.Session:
-        """Returns a different customized requests.Session per schema+hostname
+        """Return a different customized requests.Session per schema+hostname
         combination.
 
         Raises:
