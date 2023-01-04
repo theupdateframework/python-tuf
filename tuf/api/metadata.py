@@ -69,6 +69,7 @@ _ROOT = "root"
 _SNAPSHOT = "snapshot"
 _TARGETS = "targets"
 _TIMESTAMP = "timestamp"
+_ROTATE = "rotate"
 
 # pylint: disable=too-many-lines
 
@@ -991,6 +992,97 @@ class Root(Signed):
                 return
 
         del self.keys[keyid]
+
+
+class Rotate(metaclass=abc.ABCMeta):
+    """A class for the rotate file defined in TAP 8
+
+    Parameters listed below are also instance attributes.
+
+    Args:
+        previous: the name of the previous rotate file. Default is empty strong
+        role: the role this file is assosiated with.
+        keys: Dictionary of keyids to Keys for the new keys associated with the role. Default is null key
+        threshold: threshold of required keys. Default is 1
+
+    Raises:
+        ValueError: Invalid arguments.
+    """
+
+    type = _ROTATE
+
+    def __init__(
+        self,
+        previous: Optional[str] = None,
+        role: Optional[str] = None,
+        keys: Optional[Dict[str, Key]] = None,
+        threshold: Optional[int] = None,
+        unrecognized_fields: Optional[Dict[str, Any]] = None,
+    ):
+        if unrecognized_fields is None:
+            unrecognized_fields = {}
+
+        self.unrecognized_fields = unrecognized_fields
+
+        self.previous = previous if previous is not None else ""
+
+        if role is None:
+            raise ValueError("rotate file must have an associated role")
+        self.role = role
+
+        # TODO: define null key, make that the default here
+        self.keys = keys if keys is not None else {}
+
+        self.threshold = threshold if threshold is not None else 1
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Rotate):
+            return False
+
+        return (
+            self.previous == other.previous
+            and self.role == other.role
+            and self.keys == other.keys
+            and self.threshold == other.theshold
+            and self.unrecognized_fields == other.unrecognized_fields
+        )
+
+    @classmethod
+    def from_dict(cls, signed_dict: Dict[str, Any]) -> "Rotate":
+        """Create ``Rotate`` object from its json/dict representation.
+
+        Raises:
+            ValueError, KeyError, TypeError: Invalid arguments.
+        """
+        _type = signed_dict.pop("_type")
+        if _type != cls.type:
+            raise ValueError(f"Expected type {cls.type}, got {_type}")
+
+        previous = signed_dict.pop("previous", None)
+        role = signed_dict.pop("role", None)
+        keys = signed_dict.pop("keys", None)
+
+        for keyid, key_dict in keys.items():
+            keys[keyid] = Key.from_dict(keyid, key_dict)
+
+        threshold = signed_dict.pop("threshold", None)
+
+        # All fields left in the signed_dict are unrecognized.
+        return cls(previous, role, keys, threshold, signed_dict)
+
+    @classmethod
+    def to_dict(self) -> Dict[str, Any]:
+        """Return the dict representation of self."""
+        return {
+            "_type": self._type,
+            "previous": self.previous,
+            "role": self.role,
+            "keys": {
+                keyid: key.to_dict() for (keyid, key) in self.keys.items()
+            },
+            "threshold": self.threshold,
+            **self.unrecognized_fields,
+        }
 
 
 class BaseFile:
