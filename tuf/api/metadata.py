@@ -386,35 +386,6 @@ class Metadata(Generic[T]):
 
         return signature
 
-    def _get_role_and_keys(
-        self, delegated_role: str
-    ) -> Tuple["Role", Dict[str, Key]]:
-        """Return the keys and role for delegated_role"""
-
-        role: Optional[Role] = None
-        if isinstance(self.signed, Root):
-            keys = self.signed.keys
-            role = self.signed.roles.get(delegated_role)
-        elif isinstance(self.signed, Targets):
-            if self.signed.delegations is None:
-                raise ValueError(f"No delegation found for {delegated_role}")
-
-            keys = self.signed.delegations.keys
-            if self.signed.delegations.roles is not None:
-                role = self.signed.delegations.roles.get(delegated_role)
-            elif self.signed.delegations.succinct_roles is not None:
-                if self.signed.delegations.succinct_roles.is_delegated_role(
-                    delegated_role
-                ):
-                    role = self.signed.delegations.succinct_roles
-        else:
-            raise TypeError("Call is valid only on delegator metadata")
-
-        if role is None:
-            raise ValueError(f"No delegation found for {delegated_role}")
-
-        return (role, keys)
-
     def verify_delegate(
         self,
         delegated_role: str,
@@ -437,6 +408,9 @@ class Metadata(Generic[T]):
             TypeError: called this function on non-delegating metadata class.
         """
 
+        if self.signed.type not in ["root", "targets"]:
+            raise TypeError("Call is valid only on delegator metadata")
+
         if signed_serializer is None:
             # pylint: disable=import-outside-toplevel
             from tuf.api.serialization.json import CanonicalJSONSerializer
@@ -444,21 +418,24 @@ class Metadata(Generic[T]):
             signed_serializer = CanonicalJSONSerializer()
 
         data = signed_serializer.serialize(delegated_metadata.signed)
-        role, keys = self._get_role_and_keys(delegated_role)
+        role = self.signed.get_delegated_role(delegated_role)
 
         # verify that delegated_metadata is signed by threshold of unique keys
         signing_keys = set()
         for keyid in role.keyids:
-            if keyid not in keys:
+            try:
+                key = self.signed.get_key(keyid)
+            except ValueError:
                 logger.info("No key for keyid %s", keyid)
                 continue
+
             if keyid not in delegated_metadata.signatures:
                 logger.info("No signature for keyid %s", keyid)
                 continue
 
             sig = delegated_metadata.signatures[keyid]
             try:
-                keys[keyid].verify_signature(sig, data)
+                key.verify_signature(sig, data)
                 signing_keys.add(keyid)
             except sslib_exceptions.UnverifiedSignatureError:
                 logger.info("Key %s failed to verify %s", keyid, delegated_role)
@@ -835,6 +812,24 @@ class Root(Signed):
                 return
 
         del self.keys[keyid]
+
+    def get_delegated_role(self, delegated_role: str) -> Role:
+        """Return the role object for the given delegated role.
+
+        Raises ValueError if delegated_role is not actually delegated."""
+        if delegated_role not in self.roles:
+            raise ValueError(f"Delegated role {delegated_role} not found")
+
+        return self.roles[delegated_role]
+
+    def get_key(self, keyid: str) -> Key:
+        """Return the key object for the given keyid.
+
+        Raises ValueError if key is not found."""
+        if keyid not in self.keys:
+            raise ValueError(f"Key {keyid} not found")
+
+        return self.keys[keyid]
 
 
 class BaseFile:
@@ -1896,3 +1891,31 @@ class Targets(Signed):
             self.delegations.succinct_roles.keyids.remove(keyid)
 
         del self.delegations.keys[keyid]
+
+    def get_delegated_role(self, delegated_role: str) -> Role:
+        """Return the role object for the given delegated role.
+
+        Raises ValueError if delegated_role is not actually delegated."""
+        if self.delegations is None:
+            raise ValueError("No delegations found")
+
+        if self.delegations.roles is not None:
+            role: Optional[Role] = self.delegations.roles.get(delegated_role)
+        else:
+            role = self.delegations.succinct_roles
+
+        if not role:
+            raise ValueError(f"Delegated role {delegated_role} not found")
+
+        return role
+
+    def get_key(self, keyid: str) -> Key:
+        """Return the key object for the given keyid.
+
+        Raises ValueError if keyid is not found."""
+        if self.delegations is None:
+            raise ValueError("No delegations found")
+        if keyid not in self.delegations.keys:
+            raise ValueError(f"Key {keyid} not found")
+
+        return self.delegations.keys[keyid]
