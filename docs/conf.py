@@ -61,8 +61,6 @@ html_favicon = "tuf-icon-32.png"
 # -- Autodoc configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html
 
-autodoc_mock_imports = ["securesystemslib"]
-
 # Tone down the "tuf.api.metadata." repetition
 add_module_names = False
 python_use_unqualified_type_names = True
