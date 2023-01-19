@@ -1043,7 +1043,7 @@ class Rotate(metaclass=abc.ABCMeta):
             self.previous == other.previous
             and self.role == other.role
             and self.keys == other.keys
-            and self.threshold == other.theshold
+            and self.threshold == other.threshold
             and self.unrecognized_fields == other.unrecognized_fields
         )
 
