@@ -410,7 +410,7 @@ class TrustedMetadataSet(abc.Mapping):
         Returns:
             Deserialized and verified targets ``Metadata`` object
         """
-        return self.update_delegated_targets(data, Targets.type, Root.type)
+        return self.update_delegated_targets(data, Targets.type, Root.type, rotate_files)
 
     def update_delegated_targets(
         self,

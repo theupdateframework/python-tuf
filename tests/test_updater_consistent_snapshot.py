@@ -106,8 +106,11 @@ class TestConsistentSnapshot(unittest.TestCase):
             "calls": [
                 ("root", 3),
                 ("timestamp", None),
+                ("rotate/timestamp.rotate.0", None),
                 ("snapshot", None),
+                ("rotate/snapshot.rotate.0", None),
                 ("targets", None),
+                ("rotate/targets.rotate.0", None),
             ],
         },
         "consistent_snaphot enabled": {
@@ -115,8 +118,11 @@ class TestConsistentSnapshot(unittest.TestCase):
             "calls": [
                 ("root", 3),
                 ("timestamp", None),
+                ("rotate/timestamp.rotate.0", None),
                 ("snapshot", 1),
+                ("rotate/snapshot.rotate.0", None),
                 ("targets", 1),
+                ("rotate/targets.rotate.0", None),
             ],
         },
     }
@@ -166,7 +172,10 @@ class TestConsistentSnapshot(unittest.TestCase):
             consistent_snapshot: bool = test_case_data["consistent_snapshot"]
             exp_version: Optional[int] = test_case_data["expected_version"]
             rolenames = ["role1", "..", "."]
-            exp_calls = [(role, exp_version) for role in rolenames]
+            exp_calls = []
+            for role in rolenames:
+                exp_calls.append((role, exp_version))
+                exp_calls.append((f"rotate/{role}.rotate.0", None))
 
             self.setup_subtest(consistent_snapshot)
             # Add new delegated targets

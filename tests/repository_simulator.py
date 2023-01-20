@@ -208,7 +208,9 @@ class RepositorySimulator(FetcherInterface):
             version_str, _, role = ver_and_name.partition(".")
             # root is always version-prefixed while timestamp is always NOT
             if role == Root.type or (
-                self.root.consistent_snapshot and ver_and_name != Timestamp.type
+                self.root.consistent_snapshot
+                and ver_and_name != Timestamp.type
+                and not version_str.startswith("rotate")
             ):
                 version: Optional[int] = int(version_str)
             else:
