@@ -62,10 +62,17 @@ Example of loading root, timestamp and snapshot:
 import datetime
 import logging
 from collections import abc
-from typing import Dict, Iterator, Optional
+from typing import Dict, Iterator, Optional, List
 
 from tuf.api import exceptions
-from tuf.api.metadata import Metadata, Root, Snapshot, Targets, Timestamp
+from tuf.api.metadata import (
+    Metadata,
+    Root,
+    Snapshot,
+    Targets,
+    Timestamp,
+    Rotate,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +138,28 @@ class TrustedMetadataSet(abc.Mapping):
         """Get current targets ``Metadata`` or ``None``"""
         return self._trusted_set.get(Targets.type)
 
+    def verify_helper(
+        self,
+        delegator: Metadata,
+        rotate_files: Optional[List[Rotate]],
+        delegated_role: str,
+        delegated_metadata: Metadata,
+    ):
+        if rotate_files == None or len(rotate_files) == 0:
+            delegator.verify_delegate(delegated_role, delegated_metadata)
+        else:
+            parent = delegator
+            for r in rotate_files:
+                try:
+                    parent.verify_delegate(Rotate.type, r)
+                except:
+                    # invalid rotate file, skip all remaining rotate files
+                    break
+                if r.signed.role != Timestamp.type:
+                    raise exceptions.RepositoryError("invalid rotate file")
+                parent = r
+            r.verify_delegate(delegated_role, delegated_metadata)
+
     # Methods for updating metadata
     def update_root(self, data: bytes) -> Metadata[Root]:
         """Verify and load ``data`` as new root metadata.
@@ -177,7 +206,9 @@ class TrustedMetadataSet(abc.Mapping):
 
         return new_root
 
-    def update_timestamp(self, data: bytes) -> Metadata[Timestamp]:
+    def update_timestamp(
+        self, data: bytes, rotate_files: Optional[list[Rotate]]
+    ) -> Metadata[Timestamp]:
         """Verify and load ``data`` as new timestamp metadata.
 
         Note that an intermediate timestamp is allowed to be expired:
@@ -215,7 +246,9 @@ class TrustedMetadataSet(abc.Mapping):
                 f"Expected 'timestamp', got '{new_timestamp.signed.type}'"
             )
 
-        self.root.verify_delegate(Timestamp.type, new_timestamp)
+        self.verify_helper(
+            self.root, rotate_files, Timestamp.type, new_timestamp
+        )
 
         # If an existing trusted timestamp is updated,
         # check for a rollback attack
@@ -258,7 +291,10 @@ class TrustedMetadataSet(abc.Mapping):
             raise exceptions.ExpiredMetadataError("timestamp.json is expired")
 
     def update_snapshot(
-        self, data: bytes, trusted: Optional[bool] = False
+        self,
+        data: bytes,
+        rotate_files: Optional[List[Rotate]],
+        trusted: Optional[bool] = False,
     ) -> Metadata[Snapshot]:
         """Verify and load ``data`` as new snapshot metadata.
 
@@ -311,7 +347,7 @@ class TrustedMetadataSet(abc.Mapping):
                 f"Expected 'snapshot', got '{new_snapshot.signed.type}'"
             )
 
-        self.root.verify_delegate(Snapshot.type, new_snapshot)
+        self.verify_helper(self.root, rotate_files, Snapshot.type, new_snapshot)
 
         # version not checked against meta version to allow old snapshot to be
         # used in rollback protection: it is checked when targets is updated
@@ -359,7 +395,9 @@ class TrustedMetadataSet(abc.Mapping):
                 f"got {self.snapshot.signed.version}"
             )
 
-    def update_targets(self, data: bytes) -> Metadata[Targets]:
+    def update_targets(
+        self, data: bytes, rotate_files: Optional[list[Rotate]]
+    ) -> Metadata[Targets]:
         """Verify and load ``data`` as new top-level targets metadata.
 
         Args:
@@ -375,7 +413,11 @@ class TrustedMetadataSet(abc.Mapping):
         return self.update_delegated_targets(data, Targets.type, Root.type)
 
     def update_delegated_targets(
-        self, data: bytes, role_name: str, delegator_name: str
+        self,
+        data: bytes,
+        role_name: str,
+        delegator_name: str,
+        rotate_files: Optional[list[Rotate]],
     ) -> Metadata[Targets]:
         """Verify and load ``data`` as new metadata for target ``role_name``.
 
@@ -414,6 +456,10 @@ class TrustedMetadataSet(abc.Mapping):
 
         meta.verify_length_and_hashes(data)
 
+        if rotate_files is None:
+            rotate_files = []
+        self.snapshot.signed.verify_rotate_files(role_name, rotate_files)
+
         new_delegate = Metadata[Targets].from_bytes(data)
 
         if new_delegate.signed.type != Targets.type:
@@ -421,7 +467,7 @@ class TrustedMetadataSet(abc.Mapping):
                 f"Expected 'targets', got '{new_delegate.signed.type}'"
             )
 
-        delegator.verify_delegate(role_name, new_delegate)
+        self.verify_helper(delegator, rotate_files, role_name, new_delegate)
 
         version = new_delegate.signed.version
         if version != meta.version:

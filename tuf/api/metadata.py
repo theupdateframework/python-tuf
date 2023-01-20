@@ -418,6 +418,9 @@ class Metadata(Generic[T]):
         if isinstance(self.signed, Root):
             keys = self.signed.keys
             role = self.signed.roles.get(delegated_role)
+        elif isinstance(self.signed, Rotate):
+            keys = self.signed.keys
+            role = Role(keys.keys(), self.signed.threshold)
         elif isinstance(self.signed, Targets):
             if self.signed.delegations is None:
                 raise ValueError(f"No delegation found for {delegated_role}")
@@ -1379,6 +1382,19 @@ class Snapshot(Signed):
 
         snapshot_dict["meta"] = meta_dict
         return snapshot_dict
+
+    def verify_rotate_files(self, role: str, rotate_files: list[Rotate]):
+        in_snapshot = []
+        for key in self.meta:
+            if key.startswith(role + ".rotate."):
+                in_snapshot.append(key)
+
+        if len(in_snapshot) > len(rotate_files):
+            raise exceptions.DownloadError("missing rotate file")
+        elif len(in_snapshot) < len(rotate_files):
+            raise exceptions.DownloadError("extra rotate file found")
+
+        # TODO check that we have the right set of rotate files
 
 
 class DelegatedRole(Role):

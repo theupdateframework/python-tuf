@@ -98,6 +98,7 @@ class Updater:
             self._target_base_url = None
         else:
             self._target_base_url = _ensure_trailing_slash(target_base_url)
+        self._rotate_dir = "rotate/"
 
         # Read trusted local root metadata
         data = self._load_local_metadata(Root.type)
@@ -263,6 +264,20 @@ class Updater:
         logger.debug("Downloaded target %s", targetinfo.path)
         return filepath
 
+    def _download_rotate_files(self, rolename: str, length) -> list[bytes]:
+        encoded_name = parse.quote(rolename, "")
+        rotate_files = []
+        for version in range(100):
+            url = f"{self._metadata_base_url}{self._rotate_dir}{encoded_name}.rotate.{version}.json"
+            try:
+                r = self._fetcher.download_bytes(url, length)
+            except exceptions.DownloadHTTPError:
+                # file not found
+                break
+            rotate_files.append(r)
+
+        return rotate_files
+
     def _download_metadata(
         self, rolename: str, length: int, version: Optional[int] = None
     ) -> bytes:
@@ -333,7 +348,10 @@ class Updater:
         """Load local and remote timestamp metadata"""
         try:
             data = self._load_local_metadata(Timestamp.type)
-            self._trusted_set.update_timestamp(data)
+            rotate_files = self._download_rotate_files(
+                Timestamp.type, self.config.rotate_max_length
+            )
+            self._trusted_set.update_timestamp(data, rotate_files)
         except (OSError, exceptions.RepositoryError) as e:
             # Local timestamp does not exist or is invalid
             logger.debug("Local timestamp not valid as final: %s", e)
@@ -342,8 +360,11 @@ class Updater:
         data = self._download_metadata(
             Timestamp.type, self.config.timestamp_max_length
         )
+        rotate_files = self._download_rotate_files(
+            Timestamp.type, self.config.rotate_max_length
+        )
         try:
-            self._trusted_set.update_timestamp(data)
+            self._trusted_set.update_timestamp(data, rotate_files)
         except exceptions.EqualVersionNumberError:
             # If the new timestamp version is the same as current, discard the
             # new timestamp. This is normal and it shouldn't raise any error.
@@ -355,7 +376,10 @@ class Updater:
         """Load local (and if needed remote) snapshot metadata"""
         try:
             data = self._load_local_metadata(Snapshot.type)
-            self._trusted_set.update_snapshot(data, trusted=True)
+            rotate_files = self._download_rotate_files(
+                Snapshot.type, self.config.rotate_max_length
+            )
+            self._trusted_set.update_snapshot(data, rotate_files, trusted=True)
             logger.debug("Local snapshot is valid: not downloading new one")
         except (OSError, exceptions.RepositoryError) as e:
             # Local snapshot does not exist or is invalid: update from remote
@@ -369,7 +393,10 @@ class Updater:
                 version = snapshot_meta.version
 
             data = self._download_metadata(Snapshot.type, length, version)
-            self._trusted_set.update_snapshot(data)
+            rotate_files = self._download_rotate_files(
+                Snapshot.type, self.config.rotate_max_length
+            )
+            self._trusted_set.update_snapshot(data, rotate_files)
             self._persist_metadata(Snapshot.type, data)
 
     def _load_targets(self, role: str, parent_role: str) -> Metadata[Targets]:
@@ -381,8 +408,11 @@ class Updater:
 
         try:
             data = self._load_local_metadata(role)
+            rotate_files = self._download_rotate_files(
+                role, self.config.rotate_max_length
+            )
             delegated_targets = self._trusted_set.update_delegated_targets(
-                data, role, parent_role
+                data, role, parent_role, rotate_files
             )
             logger.debug("Local %s is valid: not downloading new one", role)
             return delegated_targets
@@ -405,8 +435,11 @@ class Updater:
                 version = metainfo.version
 
             data = self._download_metadata(role, length, version)
+            rotate_files = self._download_rotate_files(
+                role, self.config.rotate_max_length
+            )
             delegated_targets = self._trusted_set.update_delegated_targets(
-                data, role, parent_role
+                data, role, parent_role, rotate_files
             )
             self._persist_metadata(role, data)
 
