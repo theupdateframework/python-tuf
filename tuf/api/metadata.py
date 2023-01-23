@@ -181,6 +181,8 @@ class Metadata(Generic[T]):
             inner_cls = Timestamp
         elif _type == _ROOT:
             inner_cls = Root
+        elif _type == _ROTATE:
+            inner_cls = Rotate
         else:
             raise ValueError(f'unrecognized metadata type "{_type}"')
 
@@ -1038,6 +1040,10 @@ class Rotate(metaclass=abc.ABCMeta):
 
         self.threshold = threshold if threshold is not None else 1
 
+    @property
+    def _type(self) -> str:
+        return self.type
+
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Rotate):
             return False
@@ -1073,7 +1079,6 @@ class Rotate(metaclass=abc.ABCMeta):
         # All fields left in the signed_dict are unrecognized.
         return cls(previous, role, keys, threshold, signed_dict)
 
-    @classmethod
     def to_dict(self) -> Dict[str, Any]:
         """Return the dict representation of self."""
         return {
@@ -1383,7 +1388,7 @@ class Snapshot(Signed):
         snapshot_dict["meta"] = meta_dict
         return snapshot_dict
 
-    def verify_rotate_files(self, role: str, rotate_files: list[Rotate]):
+    def verify_rotate_files(self, role: str, rotate_files: List[Rotate]):
         in_snapshot = []
         for key in self.meta:
             if key.startswith(role + ".rotate."):

@@ -151,11 +151,11 @@ class TrustedMetadataSet(abc.Mapping):
             parent = delegator
             for r in rotate_files:
                 try:
-                    parent.verify_delegate(Rotate.type, r)
+                    parent.verify_delegate(delegated_role, r)
                 except:
                     # invalid rotate file, skip all remaining rotate files
                     break
-                if r.signed.role != Timestamp.type:
+                if r.signed.role != delegated_role:
                     raise exceptions.RepositoryError("invalid rotate file")
                 parent = r
             r.verify_delegate(delegated_role, delegated_metadata)
