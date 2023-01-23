@@ -23,9 +23,9 @@ from tuf.api.metadata import (
     Metadata,
     MetaFile,
     Role,
+    Rotate,
     SuccinctRoles,
     TargetFile,
-    Rotate,
 )
 
 

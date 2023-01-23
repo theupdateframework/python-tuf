@@ -62,16 +62,16 @@ Example of loading root, timestamp and snapshot:
 import datetime
 import logging
 from collections import abc
-from typing import Dict, Iterator, Optional, List
+from typing import Dict, Iterator, List, Optional
 
 from tuf.api import exceptions
 from tuf.api.metadata import (
     Metadata,
     Root,
+    Rotate,
     Snapshot,
     Targets,
     Timestamp,
-    Rotate,
 )
 
 logger = logging.getLogger(__name__)

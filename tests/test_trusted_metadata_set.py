@@ -18,10 +18,10 @@ from tuf.api.metadata import (
     Metadata,
     MetaFile,
     Root,
+    Rotate,
     Snapshot,
     Targets,
     Timestamp,
-    Rotate,
 )
 from tuf.api.serialization.json import JSONSerializer
 from tuf.ngclient._internal.trusted_metadata_set import TrustedMetadataSet
