@@ -77,6 +77,29 @@ from tuf.api.metadata import (
 logger = logging.getLogger(__name__)
 
 
+def verify_helper(
+    delegator: Metadata,
+    rotate_files: Optional[List[Rotate]],
+    delegated_role: str,
+    delegated_metadata: Metadata,
+):
+    """Helper function to call verify_delegate on all rotate files."""
+    if rotate_files is None or len(rotate_files) == 0:
+        delegator.verify_delegate(delegated_role, delegated_metadata)
+    else:
+        parent = delegator
+        for r in rotate_files:
+            try:
+                parent.verify_delegate(delegated_role, r)
+            except exceptions.UnsignedMetadataError:
+                # invalid rotate file, skip all remaining rotate files
+                break
+            if r.signed.role != delegated_role:
+                raise exceptions.RepositoryError("invalid rotate file")
+            parent = r
+        parent.verify_delegate(delegated_role, delegated_metadata)
+
+
 class TrustedMetadataSet(abc.Mapping):
     """Internal class to keep track of trusted metadata in ``Updater``
 
@@ -137,28 +160,6 @@ class TrustedMetadataSet(abc.Mapping):
     def targets(self) -> Optional[Metadata[Targets]]:
         """Get current targets ``Metadata`` or ``None``"""
         return self._trusted_set.get(Targets.type)
-
-    def verify_helper(
-        self,
-        delegator: Metadata,
-        rotate_files: Optional[List[Rotate]],
-        delegated_role: str,
-        delegated_metadata: Metadata,
-    ):
-        if rotate_files == None or len(rotate_files) == 0:
-            delegator.verify_delegate(delegated_role, delegated_metadata)
-        else:
-            parent = delegator
-            for r in rotate_files:
-                try:
-                    parent.verify_delegate(delegated_role, r)
-                except:
-                    # invalid rotate file, skip all remaining rotate files
-                    break
-                if r.signed.role != delegated_role:
-                    raise exceptions.RepositoryError("invalid rotate file")
-                parent = r
-            parent.verify_delegate(delegated_role, delegated_metadata)
 
     # Methods for updating metadata
     def update_root(self, data: bytes) -> Metadata[Root]:
@@ -246,9 +247,7 @@ class TrustedMetadataSet(abc.Mapping):
                 f"Expected 'timestamp', got '{new_timestamp.signed.type}'"
             )
 
-        self.verify_helper(
-            self.root, rotate_files, Timestamp.type, new_timestamp
-        )
+        verify_helper(self.root, rotate_files, Timestamp.type, new_timestamp)
 
         # If an existing trusted timestamp is updated,
         # check for a rollback attack
@@ -347,7 +346,7 @@ class TrustedMetadataSet(abc.Mapping):
                 f"Expected 'snapshot', got '{new_snapshot.signed.type}'"
             )
 
-        self.verify_helper(self.root, rotate_files, Snapshot.type, new_snapshot)
+        verify_helper(self.root, rotate_files, Snapshot.type, new_snapshot)
 
         # version not checked against meta version to allow old snapshot to be
         # used in rollback protection: it is checked when targets is updated
@@ -469,7 +468,7 @@ class TrustedMetadataSet(abc.Mapping):
                 f"Expected 'targets', got '{new_delegate.signed.type}'"
             )
 
-        self.verify_helper(delegator, rotate_files, role_name, new_delegate)
+        verify_helper(delegator, rotate_files, role_name, new_delegate)
 
         version = new_delegate.signed.version
         if version != meta.version:

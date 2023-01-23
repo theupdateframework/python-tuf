@@ -82,6 +82,7 @@ class Updater:
         RepositoryError: Local root.json is invalid
     """
 
+    # pylint: disable=too-many-instance-attributes
     def __init__(
         self,
         metadata_dir: str,
@@ -265,6 +266,7 @@ class Updater:
         return filepath
 
     def _download_rotate_files(self, rolename: str, length) -> List[bytes]:
+        """Download all rotate files for a role"""
         encoded_name = parse.quote(rolename, "")
         rotate_files = []
         for version in range(100):

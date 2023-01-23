@@ -24,7 +24,10 @@ from tuf.api.metadata import (
     Timestamp,
 )
 from tuf.api.serialization.json import JSONSerializer
-from tuf.ngclient._internal.trusted_metadata_set import TrustedMetadataSet
+from tuf.ngclient._internal.trusted_metadata_set import (
+    TrustedMetadataSet,
+    verify_helper,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -138,7 +141,6 @@ class TestTrustedMetadataSet(unittest.TestCase):
         self.assertTrue(count, 6)
 
     def test_update_tap8(self) -> None:
-        timestamp = Metadata.from_bytes(self.metadata[Timestamp.type])
         root = Metadata.from_bytes(self.metadata[Root.type])
 
         new_keyids = root.signed.roles["snapshot"].keyids
@@ -177,9 +179,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
         rotate_file = Metadata(inner_rotate)
         rotate_file.sign(self.keystore["snapshot"])
         with self.assertRaises(exceptions.RepositoryError):
-            self.trusted_set.verify_helper(
-                root, [rotate_file], Snapshot.type, snapshot
-            )
+            verify_helper(root, [rotate_file], Snapshot.type, snapshot)
 
         # invalid rotate file (signed with the wrong keys)
         # first a correct rotate file to change the keys
@@ -187,9 +187,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
         rotate_file = Metadata(inner_rotate)
         rotate_file.sign(self.keystore["snapshot"])
         with self.assertRaises(exceptions.UnsignedMetadataError):
-            self.trusted_set.verify_helper(
-                root, [rotate_file], Snapshot.type, snapshot
-            )
+            verify_helper(root, [rotate_file], Snapshot.type, snapshot)
 
         # now an invalid rotate file
         old_keyids = root.signed.roles["snapshot"].keyids
@@ -200,11 +198,9 @@ class TestTrustedMetadataSet(unittest.TestCase):
         rotate_file2 = Metadata(inner_rotate2)
         rotate_file2.sign(self.keystore["snapshot"])
 
-        print(old_keyids)
-        print(new_keyids)
         # this will fail as the second rotation was invalid, snapshot is being checked with timestamp keys
         with self.assertRaises(exceptions.UnsignedMetadataError):
-            self.trusted_set.verify_helper(
+            verify_helper(
                 root, [rotate_file, rotate_file2], Snapshot.type, snapshot
             )
 

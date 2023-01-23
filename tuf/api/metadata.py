@@ -1396,7 +1396,7 @@ class Snapshot(Signed):
 
         if len(in_snapshot) > len(rotate_files):
             raise exceptions.DownloadError("missing rotate file")
-        elif len(in_snapshot) < len(rotate_files):
+        if len(in_snapshot) < len(rotate_files):
             raise exceptions.DownloadError("extra rotate file found")
 
         # TODO check that we have the right set of rotate files
