@@ -41,7 +41,7 @@ import logging
 import os
 import shutil
 import tempfile
-from typing import Optional, Set
+from typing import List, Optional, Set
 from urllib import parse
 
 from tuf.api import exceptions
@@ -264,7 +264,7 @@ class Updater:
         logger.debug("Downloaded target %s", targetinfo.path)
         return filepath
 
-    def _download_rotate_files(self, rolename: str, length) -> list[bytes]:
+    def _download_rotate_files(self, rolename: str, length) -> List[bytes]:
         encoded_name = parse.quote(rolename, "")
         rotate_files = []
         for version in range(100):
