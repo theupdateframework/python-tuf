@@ -158,7 +158,7 @@ class TrustedMetadataSet(abc.Mapping):
                 if r.signed.role != delegated_role:
                     raise exceptions.RepositoryError("invalid rotate file")
                 parent = r
-            r.verify_delegate(delegated_role, delegated_metadata)
+            parent.verify_delegate(delegated_role, delegated_metadata)
 
     # Methods for updating metadata
     def update_root(self, data: bytes) -> Metadata[Root]:
@@ -410,7 +410,9 @@ class TrustedMetadataSet(abc.Mapping):
         Returns:
             Deserialized and verified targets ``Metadata`` object
         """
-        return self.update_delegated_targets(data, Targets.type, Root.type, rotate_files)
+        return self.update_delegated_targets(
+            data, Targets.type, Root.type, rotate_files
+        )
 
     def update_delegated_targets(
         self,
