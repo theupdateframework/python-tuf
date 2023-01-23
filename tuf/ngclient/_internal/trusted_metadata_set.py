@@ -207,7 +207,7 @@ class TrustedMetadataSet(abc.Mapping):
         return new_root
 
     def update_timestamp(
-        self, data: bytes, rotate_files: Optional[list[Rotate]]
+        self, data: bytes, rotate_files: Optional[List[Rotate]]
     ) -> Metadata[Timestamp]:
         """Verify and load ``data`` as new timestamp metadata.
 
@@ -396,7 +396,7 @@ class TrustedMetadataSet(abc.Mapping):
             )
 
     def update_targets(
-        self, data: bytes, rotate_files: Optional[list[Rotate]]
+        self, data: bytes, rotate_files: Optional[List[Rotate]]
     ) -> Metadata[Targets]:
         """Verify and load ``data`` as new top-level targets metadata.
 
@@ -419,7 +419,7 @@ class TrustedMetadataSet(abc.Mapping):
         data: bytes,
         role_name: str,
         delegator_name: str,
-        rotate_files: Optional[list[Rotate]],
+        rotate_files: Optional[List[Rotate]],
     ) -> Metadata[Targets]:
         """Verify and load ``data`` as new metadata for target ``role_name``.
 
