@@ -213,6 +213,21 @@ class TestTrustedMetadataSet(unittest.TestCase):
                 snapshot,
             )
 
+    def test_rotate_to_null(self) -> None:
+        root = Metadata.from_bytes(self.metadata[Root.type])
+        timestamp = Metadata.from_bytes(self.metadata[Timestamp.type])
+
+        # Rotate to null
+        inner_rotate = Rotate("", "timestamp", {}, 1)
+        rotate_file = Metadata(inner_rotate)
+        rotate_file.sign(self.keystore["timestamp"])
+        encoded_rotate_file = rotate_file.to_bytes()
+
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            verify_helper(
+                root, [encoded_rotate_file], Timestamp.type, timestamp
+            )
+
     def test_update_metadata_output(self) -> None:
         timestamp = self.trusted_set.update_timestamp(
             self.metadata["timestamp"], []

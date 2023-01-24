@@ -71,6 +71,8 @@ _TARGETS = "targets"
 _TIMESTAMP = "timestamp"
 _ROTATE = "rotate"
 
+ROTATE_NULL: Dict[str, Any] = {}
+
 # pylint: disable=too-many-lines
 
 logger = logging.getLogger(__name__)
@@ -998,6 +1000,7 @@ class Root(Signed):
 
         del self.keys[keyid]
 
+
 # pylint: disable=super-init-not-called
 class Rotate(Signed):
     """A class for the rotate file defined in TAP 8
@@ -1035,8 +1038,7 @@ class Rotate(Signed):
             raise ValueError("rotate file must have an associated role")
         self.role = role
 
-        # TODO: define null key, make that the default here
-        self.keys = keys if keys is not None else {}
+        self.keys = keys if keys is not None else ROTATE_NULL
 
         self.threshold = threshold if threshold is not None else 1
 
@@ -1055,6 +1057,9 @@ class Rotate(Signed):
             and self.threshold == other.threshold
             and self.unrecognized_fields == other.unrecognized_fields
         )
+
+    def is_null(self) -> bool:
+        return self.keys == ROTATE_NULL
 
     @classmethod
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Rotate":

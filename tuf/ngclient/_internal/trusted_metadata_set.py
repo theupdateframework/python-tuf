@@ -90,6 +90,8 @@ def verify_helper(
         parent = delegator
         for r in rotate_files:
             rotate = Metadata[Rotate].from_bytes(r)
+            if rotate.signed.is_null():
+                raise exceptions.UnsignedMetadataError("Rotation to null")
             try:
                 parent.verify_delegate(delegated_role, rotate)
             except exceptions.UnsignedMetadataError:
