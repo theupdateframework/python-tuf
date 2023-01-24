@@ -11,7 +11,7 @@ import sys
 import tempfile
 import unittest
 from dataclasses import astuple, dataclass, field
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, Tuple
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
@@ -264,7 +264,7 @@ class TestDelegationsGraphs(TestDelegations):
 
         try:
             exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order]
-            exp_calls = []
+            exp_calls: List[Tuple[str, Optional[int]]] = []
             for role in test_data.visited_order:
                 exp_calls.append((role, 1))
                 exp_calls.append((f"rotate/{role}.rotate.0", None))
@@ -315,7 +315,7 @@ class TestDelegationsGraphs(TestDelegations):
             self.setup_subtest()
             # The invalid role metadata must not be persisted
             exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order[:-1]]
-            exp_calls = []
+            exp_calls: List[Tuple[str, Optional[int]]] = []
             for role in test_data.visited_order:
                 exp_calls.append((role, 1))
                 exp_calls.append((f"rotate/{role}.rotate.0", None))
@@ -365,7 +365,7 @@ class TestDelegationsGraphs(TestDelegations):
             self.assertTrue(fname in local_metadata)
 
         # assert that requested URLs are quoted without extension
-        exp_calls = []
+        exp_calls: List[Tuple[str, Optional[int]]] = []
         for quoted in roles_to_filenames.values():
             exp_calls.append((quoted[:-5], 1))
             exp_calls.append((f"rotate/{quoted[:-5]}.rotate.0", None))
@@ -407,7 +407,7 @@ class TestDelegationsGraphs(TestDelegations):
 
         try:
             exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order]
-            exp_calls = []
+            exp_calls: List[Tuple[str, Optional[int]]] = []
             for role in test_data.visited_order:
                 exp_calls.append((role, 1))
                 exp_calls.append((f"rotate/{role}.rotate.0", None))
@@ -580,7 +580,7 @@ class TestTargetFileSearch(TestDelegations):
         try:
             self.setup_subtest()
             exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order]
-            exp_calls = []
+            exp_calls: List[Tuple[str, Optional[int]]] = []
             for role in test_data.visited_order:
                 exp_calls.append((role, 1))
                 exp_calls.append((f"rotate/{role}.rotate.0", None))

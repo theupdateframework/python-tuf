@@ -150,9 +150,10 @@ class TestTrustedMetadataSet(unittest.TestCase):
         inner_rotate = Rotate("", "timestamp", new_keys, 1)
         rotate_file = Metadata(inner_rotate)
         rotate_file.sign(self.keystore["timestamp"])
+        encoded_rotate_file = rotate_file.to_bytes()
         with self.assertRaises(exceptions.UnsignedMetadataError):
             self.trusted_set.update_timestamp(
-                self.metadata[Timestamp.type], [rotate_file]
+                self.metadata[Timestamp.type], [encoded_rotate_file]
             )
 
         old_keyids = root.signed.roles["timestamp"].keyids
@@ -162,8 +163,10 @@ class TestTrustedMetadataSet(unittest.TestCase):
         inner_rotate2 = Rotate("", "timestamp", old_keys, 1)
         rotate_file2 = Metadata(inner_rotate2)
         rotate_file2.sign(self.keystore["snapshot"])
+        encoded_rotate_file2 = rotate_file2.to_bytes()
         self.trusted_set.update_timestamp(
-            self.metadata[Timestamp.type], [rotate_file, rotate_file2]
+            self.metadata[Timestamp.type],
+            [encoded_rotate_file, encoded_rotate_file2],
         )
 
     def test_verify_helper(self) -> None:
@@ -178,16 +181,18 @@ class TestTrustedMetadataSet(unittest.TestCase):
         inner_rotate = Rotate("", "timestamp", new_keys, 1)
         rotate_file = Metadata(inner_rotate)
         rotate_file.sign(self.keystore["snapshot"])
+        encoded_rotate_file = rotate_file.to_bytes()
         with self.assertRaises(exceptions.RepositoryError):
-            verify_helper(root, [rotate_file], Snapshot.type, snapshot)
+            verify_helper(root, [encoded_rotate_file], Snapshot.type, snapshot)
 
         # invalid rotate file (signed with the wrong keys)
         # first a correct rotate file to change the keys
         inner_rotate = Rotate("", "snapshot", new_keys, 1)
         rotate_file = Metadata(inner_rotate)
         rotate_file.sign(self.keystore["snapshot"])
+        encoded_rotate_file = rotate_file.to_bytes()
         with self.assertRaises(exceptions.UnsignedMetadataError):
-            verify_helper(root, [rotate_file], Snapshot.type, snapshot)
+            verify_helper(root, [encoded_rotate_file], Snapshot.type, snapshot)
 
         # now an invalid rotate file
         old_keyids = root.signed.roles["snapshot"].keyids
@@ -197,11 +202,15 @@ class TestTrustedMetadataSet(unittest.TestCase):
         inner_rotate2 = Rotate("", "snapshot", old_keys, 1)
         rotate_file2 = Metadata(inner_rotate2)
         rotate_file2.sign(self.keystore["snapshot"])
+        encoded_rotate_file2 = rotate_file2.to_bytes()
 
         # this will fail as the second rotation was invalid, snapshot is being checked with timestamp keys
         with self.assertRaises(exceptions.UnsignedMetadataError):
             verify_helper(
-                root, [rotate_file, rotate_file2], Snapshot.type, snapshot
+                root,
+                [encoded_rotate_file, encoded_rotate_file2],
+                Snapshot.type,
+                snapshot,
             )
 
     def test_update_metadata_output(self) -> None:

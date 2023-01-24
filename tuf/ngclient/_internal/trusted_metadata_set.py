@@ -79,24 +79,25 @@ logger = logging.getLogger(__name__)
 
 def verify_helper(
     delegator: Metadata,
-    rotate_files: Optional[List[Rotate]],
+    rotate_files: Optional[List[bytes]],
     delegated_role: str,
     delegated_metadata: Metadata,
-):
+) -> None:
     """Helper function to call verify_delegate on all rotate files."""
     if rotate_files is None or len(rotate_files) == 0:
         delegator.verify_delegate(delegated_role, delegated_metadata)
     else:
         parent = delegator
         for r in rotate_files:
+            rotate = Metadata[Rotate].from_bytes(r)
             try:
-                parent.verify_delegate(delegated_role, r)
+                parent.verify_delegate(delegated_role, rotate)
             except exceptions.UnsignedMetadataError:
                 # invalid rotate file, skip all remaining rotate files
                 break
-            if r.signed.role != delegated_role:
+            if rotate.signed.role != delegated_role:
                 raise exceptions.RepositoryError("invalid rotate file")
-            parent = r
+            parent = rotate
         parent.verify_delegate(delegated_role, delegated_metadata)
 
 
@@ -208,7 +209,7 @@ class TrustedMetadataSet(abc.Mapping):
         return new_root
 
     def update_timestamp(
-        self, data: bytes, rotate_files: Optional[List[Rotate]]
+        self, data: bytes, rotate_files: Optional[List[bytes]]
     ) -> Metadata[Timestamp]:
         """Verify and load ``data`` as new timestamp metadata.
 
@@ -292,7 +293,7 @@ class TrustedMetadataSet(abc.Mapping):
     def update_snapshot(
         self,
         data: bytes,
-        rotate_files: Optional[List[Rotate]],
+        rotate_files: Optional[List[bytes]],
         trusted: Optional[bool] = False,
     ) -> Metadata[Snapshot]:
         """Verify and load ``data`` as new snapshot metadata.
@@ -395,7 +396,7 @@ class TrustedMetadataSet(abc.Mapping):
             )
 
     def update_targets(
-        self, data: bytes, rotate_files: Optional[List[Rotate]]
+        self, data: bytes, rotate_files: Optional[List[bytes]]
     ) -> Metadata[Targets]:
         """Verify and load ``data`` as new top-level targets metadata.
 
@@ -418,7 +419,7 @@ class TrustedMetadataSet(abc.Mapping):
         data: bytes,
         role_name: str,
         delegator_name: str,
-        rotate_files: Optional[List[Rotate]],
+        rotate_files: Optional[List[bytes]],
     ) -> Metadata[Targets]:
         """Verify and load ``data`` as new metadata for target ``role_name``.
 

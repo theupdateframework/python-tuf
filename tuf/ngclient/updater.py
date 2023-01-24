@@ -265,7 +265,7 @@ class Updater:
         logger.debug("Downloaded target %s", targetinfo.path)
         return filepath
 
-    def _download_rotate_files(self, rolename: str, length) -> List[bytes]:
+    def _download_rotate_files(self, rolename: str, length: int) -> List[bytes]:
         """Download all rotate files for a role"""
         encoded_name = parse.quote(rolename, "")
         rotate_files = []

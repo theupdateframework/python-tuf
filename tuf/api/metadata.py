@@ -81,7 +81,7 @@ SPECIFICATION_VERSION = ["1", "0", "31"]
 TOP_LEVEL_ROLE_NAMES = {_ROOT, _TIMESTAMP, _SNAPSHOT, _TARGETS}
 
 # T is a Generic type constraint for Metadata.signed
-T = TypeVar("T", "Root", "Timestamp", "Snapshot", "Targets")
+T = TypeVar("T", "Root", "Timestamp", "Snapshot", "Targets", "Rotate")
 
 
 class Metadata(Generic[T]):
@@ -422,7 +422,7 @@ class Metadata(Generic[T]):
             role = self.signed.roles.get(delegated_role)
         elif isinstance(self.signed, Rotate):
             keys = self.signed.keys
-            role = Role(keys.keys(), self.signed.threshold)
+            role = Role(list(keys.keys()), self.signed.threshold)
         elif isinstance(self.signed, Targets):
             if self.signed.delegations is None:
                 raise ValueError(f"No delegation found for {delegated_role}")
@@ -998,8 +998,8 @@ class Root(Signed):
 
         del self.keys[keyid]
 
-
-class Rotate(metaclass=abc.ABCMeta):
+# pylint: disable=super-init-not-called
+class Rotate(Signed):
     """A class for the rotate file defined in TAP 8
 
     Parameters listed below are also instance attributes.
@@ -1388,7 +1388,7 @@ class Snapshot(Signed):
         snapshot_dict["meta"] = meta_dict
         return snapshot_dict
 
-    def verify_rotate_files(self, role: str, rotate_files: List[Rotate]):
+    def verify_rotate_files(self, role: str, rotate_files: List[bytes]) -> None:
         in_snapshot = []
         for key in self.meta:
             if key.startswith(role + ".rotate."):
