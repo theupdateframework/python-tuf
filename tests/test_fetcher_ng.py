@@ -20,7 +20,7 @@ import requests
 
 from tests import utils
 from tuf.api import exceptions
-from tuf.ngclient._internal.requests_fetcher import RequestsFetcher
+from tuf.ngclient import RequestsFetcher
 
 logger = logging.getLogger(__name__)
 
