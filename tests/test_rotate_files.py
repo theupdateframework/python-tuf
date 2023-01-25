@@ -5,20 +5,24 @@
 
 """ Test ngclient handling of rotate files"""
 
-import unittest
-import tempfile
-from typing import Optional, ClassVar, List
 import os
+import sys
+import tempfile
+import unittest
+from typing import ClassVar, List, Optional
 
 from securesystemslib.signer import SSlibSigner
 
+from tests import utils
 from tests.repository_simulator import RepositorySimulator
-from tuf.ngclient import Updater
 from tuf.api import exceptions
 from tuf.api.metadata import Key
+from tuf.ngclient import Updater
+
 
 class TestRotateFiles(unittest.TestCase):
-    """ Test ngclient handling of rotate files"""
+    """Test ngclient handling of rotate files"""
+
     # set dump_dir to trigger repository state dumps
     dump_dir: Optional[str] = None
     temp_dir: ClassVar[tempfile.TemporaryDirectory]
@@ -27,6 +31,7 @@ class TestRotateFiles(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        # pylint: disable-next=consider-using-with
         cls.temp_dir = tempfile.TemporaryDirectory()
 
         # pre-create keys and signers
@@ -72,12 +77,13 @@ class TestRotateFiles(unittest.TestCase):
         )
         return updater
 
-
     def test_read_rotate_file(self) -> None:
         root = self.sim.root
         new_keyids = root.roles["snapshot"].keyids
         new_keys = {k: v for (k, v) in root.keys.items() if k in new_keyids}
-        self.sim.add_rotate_file("timestamp", new_keys, 1, self.sim.signers["timestamp"])
+        self.sim.add_rotate_file(
+            "timestamp", new_keys, 1, self.sim.signers["timestamp"]
+        )
         self.sim.update_snapshot()
 
         updater = self._init_updater()
@@ -85,11 +91,11 @@ class TestRotateFiles(unittest.TestCase):
             updater.refresh()
 
         old_keyids = root.roles["timestamp"].keyids
-        old_keys = {k:v for (k, v) in root.keys.items() if k in old_keyids}
-        self.sim.add_rotate_file("timestamp", old_keys, 1, self.sim.signers["snapshot"])
+        old_keys = {k: v for (k, v) in root.keys.items() if k in old_keyids}
+        self.sim.add_rotate_file(
+            "timestamp", old_keys, 1, self.sim.signers["snapshot"]
+        )
         updater.refresh()
-
-
 
 
 if __name__ == "__main__":
