@@ -66,6 +66,7 @@ from tuf.api.metadata import (
     Metadata,
     MetaFile,
     Root,
+    Rotate,
     Snapshot,
     SuccinctRoles,
     TargetFile,
@@ -180,6 +181,7 @@ class RepositorySimulator(FetcherInterface):
         self.md_snapshot = Metadata(Snapshot(expires=self.safe_expiry))
         self.md_timestamp = Metadata(Timestamp(expires=self.safe_expiry))
         self.md_root = Metadata(Root(expires=self.safe_expiry))
+        self.md_rotate = {}
 
         for role in TOP_LEVEL_ROLE_NAMES:
             key, signer = self.create_key()
@@ -196,6 +198,20 @@ class RepositorySimulator(FetcherInterface):
 
         self.signed_roots.append(self.md_root.to_bytes(JSONSerializer()))
         logger.debug("Published root v%d", self.root.version)
+
+    def add_rotate_file(self, rolename, new_keys, new_threshold, signers) -> None:
+        inner_rotate = Rotate("", rolename, new_keys, new_threshold)
+        rotate_file = Metadata(inner_rotate)
+        if rolename in self.md_rotate.keys():
+            self.md_rotate[rolename].append(rotate_file)
+        else:
+            self.md_rotate[rolename] = [rotate_file]
+
+        rotate_version = len(self.md_rotate[rolename])
+        rotate_rolename = f"rotate/{rolename}.rotate.{rotate_version - 1}"
+
+        self.signers[rotate_rolename] = signers
+
 
     def _fetch(self, url: str) -> Iterator[bytes]:
         """Fetches data from the given url and returns an Iterator (or yields
@@ -279,6 +295,14 @@ class RepositorySimulator(FetcherInterface):
             md = self.md_snapshot
         elif role == Targets.type:
             md = self.md_targets
+        elif role.startswith("rotate/"):
+            rotate_parts = role.split(".")
+            rotate_role = rotate_parts[0][len("rotate/"):]
+            rotate_version = rotate_parts[2]
+            try:
+                md = self.md_rotate[rotate_role][int(rotate_version)]
+            except (KeyError, IndexError) as e:
+                raise DownloadHTTPError(f"Unknown role {role}", 404)
         else:
             md = self.md_delegates.get(role)
 
@@ -289,12 +313,13 @@ class RepositorySimulator(FetcherInterface):
         for signer in self.signers[role].values():
             md.sign(signer, append=True)
 
-        logger.debug(
-            "fetched %s v%d with %d sigs",
-            role,
-            md.signed.version,
-            len(self.signers[role]),
-        )
+        if md.signed.type != "rotate":
+            logger.debug(
+                "fetched %s v%d with %d sigs",
+                role,
+                md.signed.version,
+                len(self.signers[role]),
+            )
         return md.to_bytes(JSONSerializer())
 
     def _compute_hashes_and_length(
