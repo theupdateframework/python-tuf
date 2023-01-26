@@ -96,9 +96,11 @@ class RequestsFetcher(FetcherInterface):
         return self._chunks(response)
 
     def _chunks(self, response: "requests.Response") -> Iterator[bytes]:
-        """A generator function to be returned by fetch. This way the
-        caller of fetch can differentiate between connection and actual data
-        download."""
+        """A generator function to be returned by fetch.
+
+        This way the caller of fetch can differentiate between connection
+        and actual data download.
+        """
 
         try:
             for data in response.iter_content(self.chunk_size):

@@ -40,7 +40,8 @@ class Repository(ABC):
     def open(self, role: str) -> Metadata:
         """Load a roles metadata from storage or cache, return it
 
-        If role has no metadata, create first version from scratch"""
+        If role has no metadata, create first version from scratch.
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -48,7 +49,8 @@ class Repository(ABC):
         """Write roles metadata into storage
 
         Update expiry and version and replace signatures with ones from all
-        available keys. Keep snapshot_info and targets_infos updated."""
+        available keys. Keep snapshot_info and targets_infos updated.
+        """
         raise NotImplementedError
 
     @property

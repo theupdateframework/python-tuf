@@ -16,13 +16,14 @@ from securesystemslib.exceptions import StorageError
 
 class RepositoryError(Exception):
     """An error with a repository's state, such as a missing file.
+
     It covers all exceptions that come from the repository side when
-    looking from the perspective of users of metadata API or ngclient."""
+    looking from the perspective of users of metadata API or ngclient.
+    """
 
 
 class UnsignedMetadataError(RepositoryError):
-    """An error about metadata object with insufficient threshold of
-    signatures."""
+    """An error about metadata object with insufficient threshold of signatures."""
 
 
 class BadVersionNumberError(RepositoryError):
