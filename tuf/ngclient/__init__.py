@@ -5,6 +5,8 @@
 """
 
 
+from tuf.api.metadata import TargetFile
+
 # requests_fetcher is public but comes from _internal for now (because
 # sigstore-python 1.0 still uses the module from there). requests_fetcher
 # can be moved out of _internal once sigstore-python 1.0 is not relevant.
@@ -16,6 +18,7 @@ from tuf.ngclient.updater import Updater
 __all__ = [
     FetcherInterface.__name__,
     RequestsFetcher.__name__,
+    TargetFile.__name__,
     Updater.__name__,
     UpdaterConfig.__name__,
 ]
