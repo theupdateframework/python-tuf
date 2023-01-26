@@ -1,7 +1,9 @@
 # Copyright New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""``tuf.api.serialization`` module provides abstract base classes and concrete
+"""Serialize and deserialize TUF metadata.
+
+``tuf.api.serialization`` module provides abstract base classes and concrete
 implementations to serialize and deserialize TUF metadata.
 
 Any custom de/serialization implementations should inherit from the abstract

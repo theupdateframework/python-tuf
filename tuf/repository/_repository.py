@@ -1,7 +1,7 @@
 # Copyright 2021-2022 python-tuf contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""Repository Abstraction for metadata management"""
+"""Repository Abstraction for metadata management."""
 
 import logging
 from abc import ABC, abstractmethod
@@ -15,11 +15,11 @@ logger = logging.getLogger(__name__)
 
 
 class AbortEdit(Exception):
-    """Raise to exit the edit() contextmanager without saving changes"""
+    """Raise to exit the edit() contextmanager without saving changes."""
 
 
 class Repository(ABC):
-    """Abstract class for metadata modifying implementations
+    """Abstract class for metadata modifying implementations.
 
     NOTE: The repository module is not considered part of the python-tuf
     stable API yet.
@@ -38,23 +38,25 @@ class Repository(ABC):
 
     @abstractmethod
     def open(self, role: str) -> Metadata:
-        """Load a roles metadata from storage or cache, return it
+        """Load a roles metadata from storage or cache, return it.
 
-        If role has no metadata, create first version from scratch"""
+        If role has no metadata, create first version from scratch.
+        """
         raise NotImplementedError
 
     @abstractmethod
     def close(self, role: str, md: Metadata) -> None:
-        """Write roles metadata into storage
+        """Write roles metadata into storage.
 
         Update expiry and version and replace signatures with ones from all
-        available keys. Keep snapshot_info and targets_infos updated."""
+        available keys. Keep snapshot_info and targets_infos updated.
+        """
         raise NotImplementedError
 
     @property
     @abstractmethod
     def targets_infos(self) -> Dict[str, MetaFile]:
-        """Returns the MetaFiles for current targets metadatas
+        """Returns the MetaFiles for current targets metadatas.
 
         This property is used by snapshot() to update Snapshot.meta.
 
@@ -68,7 +70,7 @@ class Repository(ABC):
     @property
     @abstractmethod
     def snapshot_info(self) -> MetaFile:
-        """Returns the MetaFile for current snapshot metadata
+        """Returns the MetaFile for current snapshot metadata.
 
         This property is used by timestamp() to update Timestamp.meta.
         """
@@ -76,7 +78,7 @@ class Repository(ABC):
 
     @contextmanager
     def edit(self, role: str) -> Generator[Signed, None, None]:
-        """Context manager for editing a role's metadata
+        """Context manager for editing a role's metadata.
 
         Context manager takes care of loading the roles metadata (or creating
         new metadata), updating expiry and version. The caller can do
@@ -92,7 +94,7 @@ class Repository(ABC):
             self.close(role, md)
 
     def snapshot(self, force: bool = False) -> Tuple[bool, Dict[str, MetaFile]]:
-        """Update snapshot meta information
+        """Update snapshot meta information.
 
         Updates the snapshot meta information according to current targets
         metadata state and the current snapshot meta information.
@@ -140,7 +142,7 @@ class Repository(ABC):
         return update_version, removed
 
     def timestamp(self, force: bool = False) -> Tuple[bool, Optional[MetaFile]]:
-        """Update timestamp meta information
+        """Update timestamp meta information.
 
         Updates timestamp according to current snapshot state
 
