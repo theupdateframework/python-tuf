@@ -1,6 +1,9 @@
 Fetcher
 ============
 
-.. automodule:: tuf.ngclient.fetcher
+.. autoclass:: tuf.ngclient.FetcherInterface
    :undoc-members:
    :private-members: _fetch
+
+.. autoclass:: tuf.ngclient.RequestsFetcher
+   :no-inherited-members:

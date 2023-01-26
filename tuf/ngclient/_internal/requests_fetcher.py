@@ -5,6 +5,10 @@
   HTTP library.
 """
 
+# requests_fetcher is public but comes from _internal for now (because
+# sigstore-python 1.0 still uses the module from there). requests_fetcher
+# can be moved out of _internal once sigstore-python 1.0 is not relevant.
+
 import logging
 from typing import Dict, Iterator, Tuple
 from urllib import parse
@@ -24,8 +28,10 @@ class RequestsFetcher(FetcherInterface):
     """An implementation of ``FetcherInterface`` based on the requests library.
 
     Attributes:
-        _sessions: Dictionary of ``Requests.Session`` objects storing a separate
-            session per scheme+hostname combination.
+        socket_timeout: Timeout in seconds, used for both initial connection
+            delay and the maximum delay between bytes received. Default is
+            4 seconds.
+        chunk_size: Chunk size in bytes used when downloading.
     """
 
     def __init__(self) -> None:
