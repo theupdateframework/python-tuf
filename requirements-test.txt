@@ -10,3 +10,4 @@ isort==5.11.4
 pylint==2.16.1
 mypy==0.991
 bandit==1.7.4
+pydocstyle==6.3.0
