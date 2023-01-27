@@ -147,7 +147,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
         new_keys = {
             k: v for (k, v) in root.signed.keys.items() if k in new_keyids
         }
-        inner_rotate = Rotate("", "timestamp", new_keys, 1)
+        inner_rotate = Rotate(0, "timestamp", new_keys, 1)
         rotate_file = Metadata(inner_rotate)
         rotate_file.sign(self.keystore["timestamp"])
         encoded_rotate_file = rotate_file.to_bytes()
@@ -160,7 +160,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
         old_keys = {
             k: v for (k, v) in root.signed.keys.items() if k in old_keyids
         }
-        inner_rotate2 = Rotate("", "timestamp", old_keys, 1)
+        inner_rotate2 = Rotate(1, "timestamp", old_keys, 1)
         rotate_file2 = Metadata(inner_rotate2)
         rotate_file2.sign(self.keystore["snapshot"])
         encoded_rotate_file2 = rotate_file2.to_bytes()
@@ -178,7 +178,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
         new_keys = {
             k: v for (k, v) in root.signed.keys.items() if k in new_keyids
         }
-        inner_rotate = Rotate("", "timestamp", new_keys, 1)
+        inner_rotate = Rotate(0, "timestamp", new_keys, 1)
         rotate_file = Metadata(inner_rotate)
         rotate_file.sign(self.keystore["snapshot"])
         encoded_rotate_file = rotate_file.to_bytes()
@@ -187,7 +187,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
         # invalid rotate file (signed with the wrong keys)
         # first a correct rotate file to change the keys
-        inner_rotate = Rotate("", "snapshot", new_keys, 1)
+        inner_rotate = Rotate(0, "snapshot", new_keys, 1)
         rotate_file = Metadata(inner_rotate)
         rotate_file.sign(self.keystore["snapshot"])
         encoded_rotate_file = rotate_file.to_bytes()
@@ -199,7 +199,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
         old_keys = {
             k: v for (k, v) in root.signed.keys.items() if k in old_keyids
         }
-        inner_rotate2 = Rotate("", "snapshot", old_keys, 1)
+        inner_rotate2 = Rotate(1, "snapshot", old_keys, 1)
         rotate_file2 = Metadata(inner_rotate2)
         rotate_file2.sign(self.keystore["snapshot"])
         encoded_rotate_file2 = rotate_file2.to_bytes()
@@ -218,7 +218,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
         timestamp = Metadata.from_bytes(self.metadata[Timestamp.type])
 
         # Rotate to null
-        inner_rotate = Rotate("", "timestamp", {}, 1)
+        inner_rotate = Rotate(0, "timestamp", {}, 1)
         rotate_file = Metadata(inner_rotate)
         rotate_file.sign(self.keystore["timestamp"])
         encoded_rotate_file = rotate_file.to_bytes()

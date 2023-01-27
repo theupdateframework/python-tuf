@@ -207,15 +207,22 @@ class RepositorySimulator(FetcherInterface):
         signers: Dict[str, SSlibSigner],
     ) -> None:
         """Add rotate file"""
-        inner_rotate = Rotate("", rolename, new_keys, new_threshold)
-        rotate_file = Metadata(inner_rotate)
         if rolename in self.md_rotate:
+            rotate_version = len(self.md_rotate[rolename])
+            inner_rotate = Rotate(
+                rotate_version, rolename, new_keys, new_threshold
+            )
+            rotate_file = Metadata(inner_rotate)
             self.md_rotate[rolename].append(rotate_file)
         else:
+            rotate_version = 0
+            inner_rotate = Rotate(
+                rotate_version, rolename, new_keys, new_threshold
+            )
+            rotate_file = Metadata(inner_rotate)
             self.md_rotate[rolename] = [rotate_file]
 
-        rotate_version = len(self.md_rotate[rolename])
-        rotate_rolename = f"rotate/{rolename}.rotate.{rotate_version - 1}"
+        rotate_rolename = f"rotate/{rolename}.rotate.{rotate_version}"
 
         self.signers[rotate_rolename] = signers
 
@@ -319,13 +326,12 @@ class RepositorySimulator(FetcherInterface):
         for signer in self.signers[role].values():
             md.sign(signer, append=True)
 
-        if md.signed.type != "rotate":
-            logger.debug(
-                "fetched %s v%d with %d sigs",
-                role,
-                md.signed.version,
-                len(self.signers[role]),
-            )
+        logger.debug(
+            "fetched %s v%d with %d sigs",
+            role,
+            md.signed.version,
+            len(self.signers[role]),
+        )
         return md.to_bytes(JSONSerializer())
 
     def _compute_hashes_and_length(

@@ -1021,7 +1021,7 @@ class Rotate(Signed):
 
     def __init__(
         self,
-        previous: Optional[str] = None,
+        version: Optional[int] = None,
         role: Optional[str] = None,
         keys: Optional[Dict[str, Key]] = None,
         threshold: Optional[int] = None,
@@ -1032,7 +1032,11 @@ class Rotate(Signed):
 
         self.unrecognized_fields = unrecognized_fields
 
-        self.previous = previous if previous is not None else ""
+        if version is None:
+            version = 1
+        elif version < 0:
+            raise ValueError(f"version must be >= 0, got {version}")
+        self.version = version
 
         if role is None:
             raise ValueError("rotate file must have an associated role")
@@ -1051,7 +1055,7 @@ class Rotate(Signed):
             return False
 
         return (
-            self.previous == other.previous
+            self.version == other.version
             and self.role == other.role
             and self.keys == other.keys
             and self.threshold == other.threshold
@@ -1072,7 +1076,7 @@ class Rotate(Signed):
         if _type != cls.type:
             raise ValueError(f"Expected type {cls.type}, got {_type}")
 
-        previous = signed_dict.pop("previous", None)
+        version = signed_dict.pop("version", None)
         role = signed_dict.pop("role", None)
         keys = signed_dict.pop("keys", None)
 
@@ -1082,13 +1086,13 @@ class Rotate(Signed):
         threshold = signed_dict.pop("threshold", None)
 
         # All fields left in the signed_dict are unrecognized.
-        return cls(previous, role, keys, threshold, signed_dict)
+        return cls(version, role, keys, threshold, signed_dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Return the dict representation of self."""
         return {
             "_type": self._type,
-            "previous": self.previous,
+            "version": self.version,
             "role": self.role,
             "keys": {
                 keyid: key.to_dict() for (keyid, key) in self.keys.items()
@@ -1394,6 +1398,7 @@ class Snapshot(Signed):
         return snapshot_dict
 
     def verify_rotate_files(self, role: str, rotate_files: List[bytes]) -> None:
+        """Verify that rotate files are included in snapshot"""
         in_snapshot = []
         for key in self.meta:
             if key.startswith(role + ".rotate."):
@@ -1404,7 +1409,12 @@ class Snapshot(Signed):
         if len(in_snapshot) < len(rotate_files):
             raise exceptions.DownloadError("extra rotate file found")
 
-        # TODO check that we have the right set of rotate files
+        # check that we have the right set of rotate files
+        for s in range(len(in_snapshot)):
+            if f".rotate.{s}" not in in_snapshot:
+                raise exceptions.DownloadError(
+                    "rotate files in snapshot have non-continuous versions"
+                )
 
 
 class DelegatedRole(Role):

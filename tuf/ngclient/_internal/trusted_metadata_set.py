@@ -88,8 +88,14 @@ def verify_helper(
         delegator.verify_delegate(delegated_role, delegated_metadata)
     else:
         parent = delegator
+        rotate_version = 0
         for r in rotate_files:
             rotate = Metadata[Rotate].from_bytes(r)
+            if rotate.signed.version != rotate_version:
+                raise exceptions.DownloadError(
+                    "Rotate file version does not match filename"
+                )
+            rotate_version = rotate_version + 1
             if rotate.signed.is_null():
                 raise exceptions.UnsignedMetadataError("Rotation to null")
             try:
