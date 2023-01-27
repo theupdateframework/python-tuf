@@ -185,6 +185,14 @@ class TestTrustedMetadataSet(unittest.TestCase):
         with self.assertRaises(exceptions.RepositoryError):
             verify_helper(root, [encoded_rotate_file], Snapshot.type, snapshot)
 
+        # version doesn't match
+        inner_rotate = Rotate(1, "snapshot", new_keys, 1)
+        rotate_file = Metadata(inner_rotate)
+        rotate_file.sign(self.keystore["snapshot"])
+        encoded_rotate_file = rotate_file.to_bytes()
+        with self.assertRaises(exceptions.DownloadError):
+            verify_helper(root, [encoded_rotate_file], Snapshot.type, snapshot)
+
         # invalid rotate file (signed with the wrong keys)
         # first a correct rotate file to change the keys
         inner_rotate = Rotate(0, "snapshot", new_keys, 1)

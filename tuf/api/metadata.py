@@ -1033,7 +1033,7 @@ class Rotate(Signed):
         self.unrecognized_fields = unrecognized_fields
 
         if version is None:
-            version = 1
+            version = 0
         elif version < 0:
             raise ValueError(f"version must be >= 0, got {version}")
         self.version = version
