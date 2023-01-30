@@ -412,7 +412,8 @@ class Updater:
     def _preorder_depth_first_walk(
         self, target_filepath: str
     ) -> Optional[TargetFile]:
-        """
+        """Interrogates the tree of target delegations.
+
         Interrogates the tree of target delegations in order of appearance
         (which implicitly order trustworthiness), and returns the matching
         target found in the most trusted role.

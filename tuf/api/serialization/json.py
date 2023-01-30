@@ -1,7 +1,9 @@
 # Copyright New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""``tuf.api.serialization.json`` module provides concrete implementations to
+"""Serialization to JSON.
+
+``tuf.api.serialization.json`` module provides concrete implementations to
 serialize and deserialize TUF role metadata to and from the JSON wireline
 format for transportation, and to serialize the 'signed' part of TUF role
 metadata to the OLPC Canonical JSON format for signature generation and
@@ -91,9 +93,7 @@ class CanonicalJSONSerializer(SignedSerializer):
     """Provides Signed to OLPC Canonical JSON serialize method."""
 
     def serialize(self, signed_obj: Signed) -> bytes:
-        """Serialize Signed object into utf-8 encoded OLPC Canonical JSON
-        bytes.
-        """
+        """Serialize Signed object into utf-8 encoded OLPC Canonical JSON bytes."""
         try:
             signed_dict = signed_obj.to_dict()
             canonical_bytes = encode_canonical(signed_dict).encode("utf-8")

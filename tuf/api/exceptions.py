@@ -1,8 +1,8 @@
 # Copyright New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""
-Define TUF exceptions used inside the new modern implementation.
+"""Define TUF exceptions used inside the new modern implementation.
+
 The names chosen for TUF Exception classes should end in 'Error' except where
 there is a good reason not to, and provide that reason in those cases.
 """
@@ -21,8 +21,7 @@ class RepositoryError(Exception):
 
 
 class UnsignedMetadataError(RepositoryError):
-    """An error about metadata object with insufficient threshold of
-    signatures."""
+    """An error about metadata object with insufficient threshold of signatures."""
 
 
 class BadVersionNumberError(RepositoryError):

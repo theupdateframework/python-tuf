@@ -397,7 +397,9 @@ class Metadata(Generic[T]):
         delegated_metadata: "Metadata",
         signed_serializer: Optional[SignedSerializer] = None,
     ) -> None:
-        """Verify that ``delegated_metadata`` is signed with the required
+        """Verify that ``delegated_metadata`` is signed with the required threshold.
+
+        Verify that ``delegated_metadata`` is signed with the required
         threshold of keys for the delegated role ``delegated_role``.
 
         Args:
@@ -564,8 +566,9 @@ class Signed(metaclass=abc.ABCMeta):
     def _common_fields_from_dict(
         cls, signed_dict: Dict[str, Any]
     ) -> Tuple[int, str, datetime]:
-        """Return common fields of ``Signed`` instances from the passed dict
-        representation, and returns an ordered list to be passed as leading
+        """Return common fields of ``Signed`` instances from the passed dict representation.
+
+        Returns an ordered list to be passed as leading
         positional arguments to a subclass constructor.
 
         See ``{Root, Timestamp, Snapshot, Targets}.from_dict`` methods for usage.
@@ -705,7 +708,9 @@ class Key:
 
     @classmethod
     def from_securesystemslib_key(cls, key_dict: Dict[str, Any]) -> "Key":
-        """Create a ``Key`` object from a securesystemlib key json/dict representation
+        """Create a ``Key`` object.
+
+        Create a ``Key`` object from a securesystemlib key json/dict representation
         removing the private key from keyval.
 
         Args:
@@ -738,8 +743,9 @@ class Key:
         metadata: Metadata,
         signed_serializer: Optional[SignedSerializer] = None,
     ) -> None:
-        """Verify that the ``metadata.signatures`` contains a signature made
-        with this key, correctly signing ``metadata.signed``.
+        """Verify that the ``metadata.signatures`` contains a signature made with this key.
+
+        The key could correctly sign ``metadata.signed``.
 
         Args:
             metadata: Metadata to verify
@@ -1417,8 +1423,7 @@ class DelegatedRole(Role):
         return True
 
     def is_delegated_path(self, target_filepath: str) -> bool:
-        """Determine whether the given ``target_filepath`` is in one of
-        the paths that ``DelegatedRole`` is trusted to provide.
+        """Check whether ``target_filepath`` is in one of the paths that ``DelegatedRole`` is trusted to provide.
 
         The ``target_filepath`` and the ``DelegatedRole`` paths are expected to be
         in their canonical forms, so e.g. "a/b" instead of "a//b" . Only "/" is
@@ -1572,8 +1577,7 @@ class SuccinctRoles(Role):
             yield f"{self.name_prefix}-{suffix}"
 
     def is_delegated_role(self, role_name: str) -> bool:
-        """Determine whether the given ``role_name`` is in one of
-        the delegated roles that ``SuccinctRoles`` represents.
+        """Determine whether the given ``role_name`` is in one of the delegated roles represented by ``SuccinctRoles``.
 
         Args:
             role_name: The name of the role to check against.
@@ -1717,8 +1721,7 @@ class Delegations:
     def get_roles_for_target(
         self, target_filepath: str
     ) -> Iterator[Tuple[str, bool]]:
-        """Given ``target_filepath`` get names and terminating status of all
-        delegated roles who are responsible for it.
+        """Given ``target_filepath`` get names and terminating status of all delegated roles who are responsible for it.
 
         Args:
             target_filepath: URL path to a target file, relative to a base
@@ -1774,8 +1777,10 @@ class TargetFile(BaseFile):
 
     @property
     def custom(self) -> Any:
-        """Can be used to provide implementation specific data related to the
-        target. python-tuf does not use or validate this data."""
+        """Can be used to provide implementation specific data related to the target.
+
+        python-tuf does not use or validate this data.
+        """
         return self.unrecognized_fields.get("custom")
 
     def __eq__(self, other: Any) -> bool:
@@ -2015,8 +2020,7 @@ class Targets(Signed):
         self.delegations.keys[key.keyid] = key
 
     def revoke_key(self, keyid: str, role: Optional[str] = None) -> None:
-        """Revokes key from delegated role ``role`` and updates the delegations
-        key store.
+        """Revokes key from delegated role ``role`` and updates the delegations key store.
 
         If succinct_roles is used then the ``role`` argument is not required.
 
