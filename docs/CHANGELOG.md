@@ -1,4 +1,28 @@
 # Changelog
+## v2.1.0
+### Added
+* repo: experimental repository module and example (#2193)
+* ngclient: expose default requests fetcher (#2277)
+* workflow: OpenSSF scorecard (#2190)
+* build: Python 3.11 support (#2157)
+* docs: security policy (#2098, #2178)
+* blog: signer API (#2276)
+* blog: security audit (#2155, #2156)
+
+### Changed
+* Metadata API: bump specification version 1.0.31 (#2119)
+* Metadata API: allow zero length metadata files (#2137)
+* Metadata API: add default value for MetaFile version (#2211)
+* Metadata API, ngclient: decrease logger verbosity (#2243)
+* ngclient: define API explicitly (#2233)
+* ngclient: improve example client output (#2194)
+* ngclient: support URLs without host part (#2075)
+* ngclient: update metaclass syntax (#2215)
+* ngclient: fail gracefully on missing role (#2197)
+* ngclient: improve type annotations in TrustedMetadataSet (#2250)
+* doc: misc improvements (2097, #2130, #2183, #2185, #2201, #2208, #2230, #2278)
+* build: misc improvements (#2090, #2091, #2122, #2187, #2188, #2217, #2252)
+* workflow: misc improvements (#2001, #2092, #2147, #2159, #2173)
 
 ## v2.0.0
 
