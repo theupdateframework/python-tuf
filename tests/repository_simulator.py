@@ -66,6 +66,7 @@ from tuf.api.metadata import (
     Metadata,
     MetaFile,
     Root,
+    Rotate,
     Snapshot,
     SuccinctRoles,
     TargetFile,
@@ -180,6 +181,7 @@ class RepositorySimulator(FetcherInterface):
         self.md_snapshot = Metadata(Snapshot(expires=self.safe_expiry))
         self.md_timestamp = Metadata(Timestamp(expires=self.safe_expiry))
         self.md_root = Metadata(Root(expires=self.safe_expiry))
+        self.md_rotate: Dict[str, List[Metadata]] = {}
 
         for role in TOP_LEVEL_ROLE_NAMES:
             key, signer = self.create_key()
@@ -197,6 +199,33 @@ class RepositorySimulator(FetcherInterface):
         self.signed_roots.append(self.md_root.to_bytes(JSONSerializer()))
         logger.debug("Published root v%d", self.root.version)
 
+    def add_rotate_file(
+        self,
+        rolename: str,
+        new_keys: Dict[str, Key],
+        new_threshold: int,
+        signers: Dict[str, SSlibSigner],
+    ) -> None:
+        """Add rotate file"""
+        if rolename in self.md_rotate:
+            rotate_version = len(self.md_rotate[rolename])
+            inner_rotate = Rotate(
+                rotate_version, rolename, new_keys, new_threshold
+            )
+            rotate_file = Metadata(inner_rotate)
+            self.md_rotate[rolename].append(rotate_file)
+        else:
+            rotate_version = 0
+            inner_rotate = Rotate(
+                rotate_version, rolename, new_keys, new_threshold
+            )
+            rotate_file = Metadata(inner_rotate)
+            self.md_rotate[rolename] = [rotate_file]
+
+        rotate_rolename = f"rotate/{rolename}.rotate.{rotate_version}"
+
+        self.signers[rotate_rolename] = signers
+
     def _fetch(self, url: str) -> Iterator[bytes]:
         """Fetches data from the given url and returns an Iterator (or yields
         bytes).
@@ -208,7 +237,9 @@ class RepositorySimulator(FetcherInterface):
             version_str, _, role = ver_and_name.partition(".")
             # root is always version-prefixed while timestamp is always NOT
             if role == Root.type or (
-                self.root.consistent_snapshot and ver_and_name != Timestamp.type
+                self.root.consistent_snapshot
+                and ver_and_name != Timestamp.type
+                and not version_str.startswith("rotate")
             ):
                 version: Optional[int] = int(version_str)
             else:
@@ -277,6 +308,14 @@ class RepositorySimulator(FetcherInterface):
             md = self.md_snapshot
         elif role == Targets.type:
             md = self.md_targets
+        elif role.startswith("rotate/"):
+            rotate_parts = role.split(".")
+            rotate_role = rotate_parts[0][len("rotate/") :]
+            rotate_version = rotate_parts[2]
+            try:
+                md = self.md_rotate[rotate_role][int(rotate_version)]
+            except (KeyError, IndexError) as e:
+                raise DownloadHTTPError(f"Unknown role {role}", 404) from e
         else:
             md = self.md_delegates.get(role)
 

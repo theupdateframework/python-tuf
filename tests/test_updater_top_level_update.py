@@ -737,7 +737,15 @@ class TestRefresh(unittest.TestCase):
             ]
         )
 
-        expected_calls = [("root", 2), ("timestamp", None)]
+        expected_calls = [
+            ("root", 2),
+            ("rotate/timestamp.rotate.0", None),
+            ("timestamp", None),
+            ("rotate/timestamp.rotate.0", None),
+            ("rotate/snapshot.rotate.0", None),
+            ("rotate/targets.rotate.0", None),
+            ("rotate/role1.rotate.0", None),
+        ]
         self.assertListEqual(self.sim.fetch_tracker.metadata, expected_calls)
 
     @patch.object(datetime, "datetime", wraps=datetime.datetime)

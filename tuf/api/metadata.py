@@ -70,6 +70,9 @@ _ROOT = "root"
 _SNAPSHOT = "snapshot"
 _TARGETS = "targets"
 _TIMESTAMP = "timestamp"
+_ROTATE = "rotate"
+
+ROTATE_NULL: Dict[str, Any] = {}
 
 # pylint: disable=too-many-lines
 
@@ -81,7 +84,7 @@ SPECIFICATION_VERSION = ["1", "0", "31"]
 TOP_LEVEL_ROLE_NAMES = {_ROOT, _TIMESTAMP, _SNAPSHOT, _TARGETS}
 
 # T is a Generic type constraint for Metadata.signed
-T = TypeVar("T", "Root", "Timestamp", "Snapshot", "Targets")
+T = TypeVar("T", "Root", "Timestamp", "Snapshot", "Targets", "Rotate")
 
 
 class Metadata(Generic[T]):
@@ -181,6 +184,8 @@ class Metadata(Generic[T]):
             inner_cls = Timestamp
         elif _type == _ROOT:
             inner_cls = Root
+        elif _type == _ROTATE:
+            inner_cls = Rotate
         else:
             raise ValueError(f'unrecognized metadata type "{_type}"')
 
@@ -418,6 +423,9 @@ class Metadata(Generic[T]):
         if isinstance(self.signed, Root):
             keys = self.signed.keys
             role = self.signed.roles.get(delegated_role)
+        elif isinstance(self.signed, Rotate):
+            keys = self.signed.keys
+            role = Role(list(keys.keys()), self.signed.threshold)
         elif isinstance(self.signed, Targets):
             if self.signed.delegations is None:
                 raise ValueError(f"No delegation found for {delegated_role}")
@@ -994,6 +1002,107 @@ class Root(Signed):
         del self.keys[keyid]
 
 
+# pylint: disable=super-init-not-called
+class Rotate(Signed):
+    """A class for the rotate file defined in TAP 8
+
+    Parameters listed below are also instance attributes.
+
+    Args:
+        previous: the name of the previous rotate file. Default is empty strong
+        role: the role this file is assosiated with.
+        keys: Dictionary of keyids to Keys for the new keys associated with the role. Default is null key
+        threshold: threshold of required keys. Default is 1
+
+    Raises:
+        ValueError: Invalid arguments.
+    """
+
+    type = _ROTATE
+
+    def __init__(
+        self,
+        version: Optional[int] = None,
+        role: Optional[str] = None,
+        keys: Optional[Dict[str, Key]] = None,
+        threshold: Optional[int] = None,
+        unrecognized_fields: Optional[Dict[str, Any]] = None,
+    ):
+        if unrecognized_fields is None:
+            unrecognized_fields = {}
+
+        self.unrecognized_fields = unrecognized_fields
+
+        if version is None:
+            version = 0
+        elif version < 0:
+            raise ValueError(f"version must be >= 0, got {version}")
+        self.version = version
+
+        if role is None:
+            raise ValueError("rotate file must have an associated role")
+        self.role = role
+
+        self.keys = keys if keys is not None else ROTATE_NULL
+
+        self.threshold = threshold if threshold is not None else 1
+
+    @property
+    def _type(self) -> str:
+        return self.type
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Rotate):
+            return False
+
+        return (
+            self.version == other.version
+            and self.role == other.role
+            and self.keys == other.keys
+            and self.threshold == other.threshold
+            and self.unrecognized_fields == other.unrecognized_fields
+        )
+
+    def is_null(self) -> bool:
+        return self.keys == ROTATE_NULL
+
+    @classmethod
+    def from_dict(cls, signed_dict: Dict[str, Any]) -> "Rotate":
+        """Create ``Rotate`` object from its json/dict representation.
+
+        Raises:
+            ValueError, KeyError, TypeError: Invalid arguments.
+        """
+        _type = signed_dict.pop("_type")
+        if _type != cls.type:
+            raise ValueError(f"Expected type {cls.type}, got {_type}")
+
+        version = signed_dict.pop("version", None)
+        role = signed_dict.pop("role", None)
+        keys = signed_dict.pop("keys", None)
+
+        for keyid, key_dict in keys.items():
+            keys[keyid] = Key.from_dict(keyid, key_dict)
+
+        threshold = signed_dict.pop("threshold", None)
+
+        # All fields left in the signed_dict are unrecognized.
+        return cls(version, role, keys, threshold, signed_dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Return the dict representation of self."""
+        return {
+            "_type": self._type,
+            "version": self.version,
+            "role": self.role,
+            "keys": {
+                keyid: key.to_dict() for (keyid, key) in self.keys.items()
+            },
+            "threshold": self.threshold,
+            **self.unrecognized_fields,
+        }
+
+
 class BaseFile:
     """A base class of ``MetaFile`` and ``TargetFile``.
 
@@ -1288,6 +1397,25 @@ class Snapshot(Signed):
 
         snapshot_dict["meta"] = meta_dict
         return snapshot_dict
+
+    def verify_rotate_files(self, role: str, rotate_files: List[bytes]) -> None:
+        """Verify that rotate files are included in snapshot"""
+        in_snapshot = []
+        for key in self.meta:
+            if key.startswith(role + ".rotate."):
+                in_snapshot.append(key)
+
+        if len(in_snapshot) > len(rotate_files):
+            raise exceptions.DownloadError("missing rotate file")
+        if len(in_snapshot) < len(rotate_files):
+            raise exceptions.DownloadError("extra rotate file found")
+
+        # check that we have the right set of rotate files
+        for s in range(len(in_snapshot)):
+            if f".rotate.{s}" not in in_snapshot:
+                raise exceptions.DownloadError(
+                    "rotate files in snapshot have non-continuous versions"
+                )
 
 
 class DelegatedRole(Role):

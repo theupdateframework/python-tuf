@@ -34,6 +34,7 @@ from tuf.api.metadata import (
     Key,
     Metadata,
     Root,
+    Rotate,
     Snapshot,
     SuccinctRoles,
     TargetFile,
@@ -779,6 +780,22 @@ class TestMetadata(unittest.TestCase):
             # number with a length less than expected_suffix_length.
             expected_bin_suffix = f"{bin_numer:0{expected_suffix_length}x}"
             self.assertEqual(role_name, f"bin-{expected_bin_suffix}")
+
+    def test_rotate_generate(self) -> None:
+        # create a valid rotate file
+        rotate = Rotate(0, "timestamp", {}, 1)
+
+        # version automatically set to 0
+        rotate = Rotate(None, "timestamp", {}, 1)
+        self.assertEqual(rotate.version, 0)
+
+        # version must not be negative
+        with self.assertRaises(ValueError):
+            rotate = Rotate(-1, "timestamp", {}, 1)
+
+        # rotate file needs a role
+        with self.assertRaises(ValueError):
+            rotate = Rotate(0, None, {}, 1)
 
 
 # Run unit test.

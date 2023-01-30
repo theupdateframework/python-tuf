@@ -18,12 +18,16 @@ from tuf.api.metadata import (
     Metadata,
     MetaFile,
     Root,
+    Rotate,
     Snapshot,
     Targets,
     Timestamp,
 )
 from tuf.api.serialization.json import JSONSerializer
-from tuf.ngclient._internal.trusted_metadata_set import TrustedMetadataSet
+from tuf.ngclient._internal.trusted_metadata_set import (
+    TrustedMetadataSet,
+    verify_helper,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -112,19 +116,19 @@ class TestTrustedMetadataSet(unittest.TestCase):
         """
 
         timestamp_bytes = timestamp_bytes or self.metadata[Timestamp.type]
-        self.trusted_set.update_timestamp(timestamp_bytes)
+        self.trusted_set.update_timestamp(timestamp_bytes, [])
         snapshot_bytes = snapshot_bytes or self.metadata[Snapshot.type]
-        self.trusted_set.update_snapshot(snapshot_bytes)
+        self.trusted_set.update_snapshot(snapshot_bytes, [])
 
     def test_update(self) -> None:
-        self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
-        self.trusted_set.update_snapshot(self.metadata[Snapshot.type])
-        self.trusted_set.update_targets(self.metadata[Targets.type])
+        self.trusted_set.update_timestamp(self.metadata[Timestamp.type], [])
+        self.trusted_set.update_snapshot(self.metadata[Snapshot.type], [])
+        self.trusted_set.update_targets(self.metadata[Targets.type], [])
         self.trusted_set.update_delegated_targets(
-            self.metadata["role1"], "role1", Targets.type
+            self.metadata["role1"], "role1", Targets.type, []
         )
         self.trusted_set.update_delegated_targets(
-            self.metadata["role2"], "role2", "role1"
+            self.metadata["role2"], "role2", "role1", []
         )
         # the 4 top level metadata objects + 2 additional delegated targets
         self.assertTrue(len(self.trusted_set), 6)
@@ -136,17 +140,115 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
         self.assertTrue(count, 6)
 
+    def test_update_tap8(self) -> None:
+        root = Metadata.from_bytes(self.metadata[Root.type])
+
+        new_keyids = root.signed.roles["snapshot"].keyids
+        new_keys = {
+            k: v for (k, v) in root.signed.keys.items() if k in new_keyids
+        }
+        inner_rotate = Rotate(0, "timestamp", new_keys, 1)
+        rotate_file = Metadata(inner_rotate)
+        rotate_file.sign(self.keystore["timestamp"])
+        encoded_rotate_file = rotate_file.to_bytes()
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            self.trusted_set.update_timestamp(
+                self.metadata[Timestamp.type], [encoded_rotate_file]
+            )
+
+        old_keyids = root.signed.roles["timestamp"].keyids
+        old_keys = {
+            k: v for (k, v) in root.signed.keys.items() if k in old_keyids
+        }
+        inner_rotate2 = Rotate(1, "timestamp", old_keys, 1)
+        rotate_file2 = Metadata(inner_rotate2)
+        rotate_file2.sign(self.keystore["snapshot"])
+        encoded_rotate_file2 = rotate_file2.to_bytes()
+        self.trusted_set.update_timestamp(
+            self.metadata[Timestamp.type],
+            [encoded_rotate_file, encoded_rotate_file2],
+        )
+
+    def test_verify_helper(self) -> None:
+        snapshot = Metadata.from_bytes(self.metadata[Snapshot.type])
+        root = Metadata.from_bytes(self.metadata[Root.type])
+
+        # role doesn't match
+        new_keyids = root.signed.roles["timestamp"].keyids
+        new_keys = {
+            k: v for (k, v) in root.signed.keys.items() if k in new_keyids
+        }
+        inner_rotate = Rotate(0, "timestamp", new_keys, 1)
+        rotate_file = Metadata(inner_rotate)
+        rotate_file.sign(self.keystore["snapshot"])
+        encoded_rotate_file = rotate_file.to_bytes()
+        with self.assertRaises(exceptions.RepositoryError):
+            verify_helper(root, [encoded_rotate_file], Snapshot.type, snapshot)
+
+        # version doesn't match
+        inner_rotate = Rotate(1, "snapshot", new_keys, 1)
+        rotate_file = Metadata(inner_rotate)
+        rotate_file.sign(self.keystore["snapshot"])
+        encoded_rotate_file = rotate_file.to_bytes()
+        with self.assertRaises(exceptions.DownloadError):
+            verify_helper(root, [encoded_rotate_file], Snapshot.type, snapshot)
+
+        # invalid rotate file (signed with the wrong keys)
+        # first a correct rotate file to change the keys
+        inner_rotate = Rotate(0, "snapshot", new_keys, 1)
+        rotate_file = Metadata(inner_rotate)
+        rotate_file.sign(self.keystore["snapshot"])
+        encoded_rotate_file = rotate_file.to_bytes()
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            verify_helper(root, [encoded_rotate_file], Snapshot.type, snapshot)
+
+        # now an invalid rotate file
+        old_keyids = root.signed.roles["snapshot"].keyids
+        old_keys = {
+            k: v for (k, v) in root.signed.keys.items() if k in old_keyids
+        }
+        inner_rotate2 = Rotate(1, "snapshot", old_keys, 1)
+        rotate_file2 = Metadata(inner_rotate2)
+        rotate_file2.sign(self.keystore["snapshot"])
+        encoded_rotate_file2 = rotate_file2.to_bytes()
+
+        # this will fail as the second rotation was invalid, snapshot is being checked with timestamp keys
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            verify_helper(
+                root,
+                [encoded_rotate_file, encoded_rotate_file2],
+                Snapshot.type,
+                snapshot,
+            )
+
+    def test_rotate_to_null(self) -> None:
+        root = Metadata.from_bytes(self.metadata[Root.type])
+        timestamp = Metadata.from_bytes(self.metadata[Timestamp.type])
+
+        # Rotate to null
+        inner_rotate = Rotate(0, "timestamp", {}, 1)
+        rotate_file = Metadata(inner_rotate)
+        rotate_file.sign(self.keystore["timestamp"])
+        encoded_rotate_file = rotate_file.to_bytes()
+
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            verify_helper(
+                root, [encoded_rotate_file], Timestamp.type, timestamp
+            )
+
     def test_update_metadata_output(self) -> None:
         timestamp = self.trusted_set.update_timestamp(
-            self.metadata["timestamp"]
+            self.metadata["timestamp"], []
         )
-        snapshot = self.trusted_set.update_snapshot(self.metadata["snapshot"])
-        targets = self.trusted_set.update_targets(self.metadata["targets"])
+        snapshot = self.trusted_set.update_snapshot(
+            self.metadata["snapshot"], []
+        )
+        targets = self.trusted_set.update_targets(self.metadata["targets"], [])
         delegeted_targets_1 = self.trusted_set.update_delegated_targets(
-            self.metadata["role1"], "role1", "targets"
+            self.metadata["role1"], "role1", "targets", []
         )
         delegeted_targets_2 = self.trusted_set.update_delegated_targets(
-            self.metadata["role2"], "role2", "role1"
+            self.metadata["role2"], "role2", "role1", []
         )
         self.assertIsInstance(timestamp.signed, Timestamp)
         self.assertIsInstance(snapshot.signed, Snapshot)
@@ -157,9 +259,9 @@ class TestTrustedMetadataSet(unittest.TestCase):
     def test_out_of_order_ops(self) -> None:
         # Update snapshot before timestamp
         with self.assertRaises(RuntimeError):
-            self.trusted_set.update_snapshot(self.metadata[Snapshot.type])
+            self.trusted_set.update_snapshot(self.metadata[Snapshot.type], [])
 
-        self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
+        self.trusted_set.update_timestamp(self.metadata[Timestamp.type], [])
 
         # Update root after timestamp
         with self.assertRaises(RuntimeError):
@@ -167,28 +269,28 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
         # Update targets before snapshot
         with self.assertRaises(RuntimeError):
-            self.trusted_set.update_targets(self.metadata[Targets.type])
+            self.trusted_set.update_targets(self.metadata[Targets.type], [])
 
-        self.trusted_set.update_snapshot(self.metadata[Snapshot.type])
+        self.trusted_set.update_snapshot(self.metadata[Snapshot.type], [])
 
         # update timestamp after snapshot
         with self.assertRaises(RuntimeError):
-            self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
+            self.trusted_set.update_timestamp(self.metadata[Timestamp.type], [])
 
         # Update delegated targets before targets
         with self.assertRaises(RuntimeError):
             self.trusted_set.update_delegated_targets(
-                self.metadata["role1"], "role1", Targets.type
+                self.metadata["role1"], "role1", Targets.type, []
             )
 
-        self.trusted_set.update_targets(self.metadata[Targets.type])
+        self.trusted_set.update_targets(self.metadata[Targets.type], [])
 
         # Update snapshot after sucessful targets update
         with self.assertRaises(RuntimeError):
-            self.trusted_set.update_snapshot(self.metadata[Snapshot.type])
+            self.trusted_set.update_snapshot(self.metadata[Snapshot.type], [])
 
         self.trusted_set.update_delegated_targets(
-            self.metadata["role1"], "role1", Targets.type
+            self.metadata["role1"], "role1", Targets.type, []
         )
 
     def test_root_with_invalid_json(self) -> None:
@@ -218,18 +320,18 @@ class TestTrustedMetadataSet(unittest.TestCase):
             md = Metadata.from_bytes(metadata)
             # metadata is not json
             with self.assertRaises(exceptions.RepositoryError):
-                update_func(b"")
+                update_func(b"", [])
 
             # metadata is invalid
             md.signed.version += 1
             with self.assertRaises(exceptions.UnsignedMetadataError):
-                update_func(md.to_bytes())
+                update_func(md.to_bytes(), [])
 
             # metadata is of wrong type
             with self.assertRaises(exceptions.RepositoryError):
-                update_func(self.metadata[Root.type])
+                update_func(self.metadata[Root.type], [])
 
-            update_func(metadata)
+            update_func(metadata, [])
 
     def test_update_root_new_root(self) -> None:
         # test that root can be updated with a new valid version
@@ -262,7 +364,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
         tmp_trusted_set = TrustedMetadataSet(root)
         # update timestamp to trigger final root expiry check
         with self.assertRaises(exceptions.ExpiredMetadataError):
-            tmp_trusted_set.update_timestamp(self.metadata[Timestamp.type])
+            tmp_trusted_set.update_timestamp(self.metadata[Timestamp.type], [])
 
     def test_update_timestamp_new_timestamp_ver_below_trusted_ver(self) -> None:
         # new_timestamp.version < trusted_timestamp.version
@@ -270,19 +372,21 @@ class TestTrustedMetadataSet(unittest.TestCase):
             timestamp.version = 3
 
         timestamp = self.modify_metadata(Timestamp.type, version_modifier)
-        self.trusted_set.update_timestamp(timestamp)
+        self.trusted_set.update_timestamp(timestamp, [])
         with self.assertRaises(exceptions.BadVersionNumberError):
-            self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
+            self.trusted_set.update_timestamp(self.metadata[Timestamp.type], [])
 
     def test_update_timestamp_with_same_timestamp(self) -> None:
         # Test that timestamp is NOT updated if:
         # new_timestamp.version == trusted_timestamp.version
-        self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
+        self.trusted_set.update_timestamp(self.metadata[Timestamp.type], [])
         initial_timestamp = self.trusted_set.timestamp
 
         # Update timestamp with the same version.
         with self.assertRaises(exceptions.EqualVersionNumberError):
-            self.trusted_set.update_timestamp((self.metadata[Timestamp.type]))
+            self.trusted_set.update_timestamp(
+                (self.metadata[Timestamp.type]), []
+            )
 
         # Every object has a unique id() if they are equal, this means timestamp
         # was not updated.
@@ -296,11 +400,11 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
         # set current known snapshot.json version to 2
         timestamp = self.modify_metadata(Timestamp.type, bump_snapshot_version)
-        self.trusted_set.update_timestamp(timestamp)
+        self.trusted_set.update_timestamp(timestamp, [])
 
         # newtimestamp.meta.version < trusted_timestamp.meta.version
         with self.assertRaises(exceptions.BadVersionNumberError):
-            self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
+            self.trusted_set.update_timestamp(self.metadata[Timestamp.type], [])
 
     def test_update_timestamp_expired(self) -> None:
         # new_timestamp has expired
@@ -312,11 +416,11 @@ class TestTrustedMetadataSet(unittest.TestCase):
             Timestamp.type, timestamp_expired_modifier
         )
         with self.assertRaises(exceptions.ExpiredMetadataError):
-            self.trusted_set.update_timestamp(timestamp)
+            self.trusted_set.update_timestamp(timestamp, [])
 
         # snapshot update does start but fails because timestamp is expired
         with self.assertRaises(exceptions.ExpiredMetadataError):
-            self.trusted_set.update_snapshot(self.metadata[Snapshot.type])
+            self.trusted_set.update_snapshot(self.metadata[Snapshot.type], [])
 
     def test_update_snapshot_length_or_hash_mismatch(self) -> None:
         def modify_snapshot_length(timestamp: Timestamp) -> None:
@@ -324,17 +428,17 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
         # set known snapshot.json length to 1
         timestamp = self.modify_metadata(Timestamp.type, modify_snapshot_length)
-        self.trusted_set.update_timestamp(timestamp)
+        self.trusted_set.update_timestamp(timestamp, [])
 
         with self.assertRaises(exceptions.RepositoryError):
-            self.trusted_set.update_snapshot(self.metadata[Snapshot.type])
+            self.trusted_set.update_snapshot(self.metadata[Snapshot.type], [])
 
     def test_update_snapshot_fail_threshold_verification(self) -> None:
-        self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
+        self.trusted_set.update_timestamp(self.metadata[Timestamp.type], [])
         snapshot = Metadata.from_bytes(self.metadata[Snapshot.type])
         snapshot.signatures.clear()
         with self.assertRaises(exceptions.UnsignedMetadataError):
-            self.trusted_set.update_snapshot(snapshot.to_bytes())
+            self.trusted_set.update_snapshot(snapshot.to_bytes(), [])
 
     def test_update_snapshot_version_diverge_timestamp_snapshot_version(
         self,
@@ -345,15 +449,15 @@ class TestTrustedMetadataSet(unittest.TestCase):
         timestamp = self.modify_metadata(
             Timestamp.type, timestamp_version_modifier
         )
-        self.trusted_set.update_timestamp(timestamp)
+        self.trusted_set.update_timestamp(timestamp, [])
 
         # if intermediate snapshot version is incorrect, load it but also raise
         with self.assertRaises(exceptions.BadVersionNumberError):
-            self.trusted_set.update_snapshot(self.metadata[Snapshot.type])
+            self.trusted_set.update_snapshot(self.metadata[Snapshot.type], [])
 
         # targets update starts but fails if snapshot version does not match
         with self.assertRaises(exceptions.BadVersionNumberError):
-            self.trusted_set.update_targets(self.metadata[Targets.type])
+            self.trusted_set.update_targets(self.metadata[Targets.type], [])
 
     def test_update_snapshot_file_removed_from_meta(self) -> None:
         self._update_all_besides_targets(self.metadata[Timestamp.type])
@@ -364,22 +468,22 @@ class TestTrustedMetadataSet(unittest.TestCase):
         # Test removing a meta_file in new_snapshot compared to the old snapshot
         snapshot = self.modify_metadata(Snapshot.type, remove_file_from_meta)
         with self.assertRaises(exceptions.RepositoryError):
-            self.trusted_set.update_snapshot(snapshot)
+            self.trusted_set.update_snapshot(snapshot, [])
 
     def test_update_snapshot_meta_version_decreases(self) -> None:
-        self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
+        self.trusted_set.update_timestamp(self.metadata[Timestamp.type], [])
 
         def version_meta_modifier(snapshot: Snapshot) -> None:
             snapshot.meta["targets.json"].version += 1
 
         snapshot = self.modify_metadata(Snapshot.type, version_meta_modifier)
-        self.trusted_set.update_snapshot(snapshot)
+        self.trusted_set.update_snapshot(snapshot, [])
 
         with self.assertRaises(exceptions.BadVersionNumberError):
-            self.trusted_set.update_snapshot(self.metadata[Snapshot.type])
+            self.trusted_set.update_snapshot(self.metadata[Snapshot.type], [])
 
     def test_update_snapshot_expired_new_snapshot(self) -> None:
-        self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
+        self.trusted_set.update_timestamp(self.metadata[Timestamp.type], [])
 
         def snapshot_expired_modifier(snapshot: Snapshot) -> None:
             snapshot.expires = datetime(1970, 1, 1)
@@ -389,11 +493,11 @@ class TestTrustedMetadataSet(unittest.TestCase):
             Snapshot.type, snapshot_expired_modifier
         )
         with self.assertRaises(exceptions.ExpiredMetadataError):
-            self.trusted_set.update_snapshot(snapshot)
+            self.trusted_set.update_snapshot(snapshot, [])
 
         # targets update does start but fails because snapshot is expired
         with self.assertRaises(exceptions.ExpiredMetadataError):
-            self.trusted_set.update_targets(self.metadata[Targets.type])
+            self.trusted_set.update_targets(self.metadata[Targets.type], [])
 
     def test_update_snapshot_successful_rollback_checks(self) -> None:
         def meta_version_bump(timestamp: Timestamp) -> None:
@@ -405,19 +509,19 @@ class TestTrustedMetadataSet(unittest.TestCase):
             snapshot.version += 1
 
         # load a "local" timestamp, then update to newer one:
-        self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
+        self.trusted_set.update_timestamp(self.metadata[Timestamp.type], [])
         new_timestamp = self.modify_metadata(Timestamp.type, meta_version_bump)
-        self.trusted_set.update_timestamp(new_timestamp)
+        self.trusted_set.update_timestamp(new_timestamp, [])
 
         # load a "local" snapshot with mismatching version (loading happens but
         # BadVersionNumberError is raised), then update to newer one:
         with self.assertRaises(exceptions.BadVersionNumberError):
-            self.trusted_set.update_snapshot(self.metadata[Snapshot.type])
+            self.trusted_set.update_snapshot(self.metadata[Snapshot.type], [])
         new_snapshot = self.modify_metadata(Snapshot.type, version_bump)
-        self.trusted_set.update_snapshot(new_snapshot)
+        self.trusted_set.update_snapshot(new_snapshot, [])
 
         # update targets to trigger final snapshot meta version check
-        self.trusted_set.update_targets(self.metadata[Targets.type])
+        self.trusted_set.update_targets(self.metadata[Targets.type], [])
 
     def test_update_targets_no_meta_in_snapshot(self) -> None:
         def no_meta_modifier(snapshot: Snapshot) -> None:
@@ -429,7 +533,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
         )
         # remove meta information with information about targets from snapshot
         with self.assertRaises(exceptions.RepositoryError):
-            self.trusted_set.update_targets(self.metadata[Targets.type])
+            self.trusted_set.update_targets(self.metadata[Targets.type], [])
 
     def test_update_targets_hash_diverge_from_snapshot_meta_hash(self) -> None:
         def meta_length_modifier(snapshot: Snapshot) -> None:
@@ -442,7 +546,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
         )
         # observed_hash != stored hash in snapshot meta for targets
         with self.assertRaises(exceptions.RepositoryError):
-            self.trusted_set.update_targets(self.metadata[Targets.type])
+            self.trusted_set.update_targets(self.metadata[Targets.type], [])
 
     def test_update_targets_version_diverge_snapshot_meta_version(self) -> None:
         def meta_modifier(snapshot: Snapshot) -> None:
@@ -455,7 +559,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
         )
         # new_delegate.signed.version != meta.version stored in snapshot
         with self.assertRaises(exceptions.BadVersionNumberError):
-            self.trusted_set.update_targets(self.metadata[Targets.type])
+            self.trusted_set.update_targets(self.metadata[Targets.type], [])
 
     def test_update_targets_expired_new_target(self) -> None:
         self._update_all_besides_targets()
@@ -465,7 +569,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
         targets = self.modify_metadata(Targets.type, target_expired_modifier)
         with self.assertRaises(exceptions.ExpiredMetadataError):
-            self.trusted_set.update_targets(targets)
+            self.trusted_set.update_targets(targets, [])
 
     # TODO test updating over initial metadata (new keys, newer timestamp, etc)
 

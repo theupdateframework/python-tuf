@@ -23,6 +23,7 @@ from tuf.api.metadata import (
     Metadata,
     MetaFile,
     Role,
+    Rotate,
     SuccinctRoles,
     TargetFile,
 )
@@ -63,6 +64,9 @@ class TestMetadataComparisions(unittest.TestCase):
         cls.objects["TargetFile"] = TargetFile(
             1, {"sha256": "abc"}, "file1.txt"
         )
+        cls.objects["Rotate"] = Rotate(
+            0, "timestamp", {"keyid": cls.objects["Key"]}, 1
+        )
 
     # Keys are class names.
     # Values are dictionaries containing attribute names and their new values.
@@ -85,6 +89,7 @@ class TestMetadataComparisions(unittest.TestCase):
         "Delegations": {"keys": {}, "roles": {}},
         "TargetFile": {"length": 0, "hashes": {}, "path": ""},
         "Targets": {"targets": {}, "delegations": []},
+        "Rotate": {"version": 1, "role": "", "keys": {}, "threshold": 0},
     }
 
     @utils.run_sub_tests_with_dataset(classes_attributes_modifications)
