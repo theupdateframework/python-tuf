@@ -53,16 +53,14 @@ from typing import (
 
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import hash as sslib_hash
-from securesystemslib import keys as sslib_keys
-from securesystemslib.signer import Signature, Signer
+from securesystemslib.signer import Key, Signature, Signer
 from securesystemslib.storage import FilesystemBackend, StorageBackendInterface
 from securesystemslib.util import persist_temp_file
 
-from tuf.api import exceptions
+from tuf.api.exceptions import LengthOrHashMismatchError, UnsignedMetadataError
 from tuf.api.serialization import (
     MetadataDeserializer,
     MetadataSerializer,
-    SerializationError,
     SignedSerializer,
 )
 
@@ -220,7 +218,7 @@ class Metadata(Generic[T]):
                 ``securesystemslib.storage.StorageBackendInterface``.
                 Default is ``FilesystemBackend`` (i.e. a local file).
         Raises:
-            exceptions.StorageError: The file cannot be read.
+            StorageError: The file cannot be read.
             tuf.api.serialization.DeserializationError:
                 The file cannot be deserialized.
 
@@ -330,7 +328,7 @@ class Metadata(Generic[T]):
         Raises:
             tuf.api.serialization.SerializationError:
                 The metadata object cannot be serialized.
-            exceptions.StorageError: The file cannot be written.
+            StorageError: The file cannot be written.
         """
 
         bytes_data = self.to_bytes(serializer)
@@ -361,7 +359,7 @@ class Metadata(Generic[T]):
         Raises:
             tuf.api.serialization.SerializationError:
                 ``signed`` cannot be serialized.
-            exceptions.UnsignedMetadataError: Signing errors.
+            UnsignedMetadataError: Signing errors.
 
         Returns:
             ``securesystemslib.signer.Signature`` object that was added into
@@ -380,9 +378,7 @@ class Metadata(Generic[T]):
         try:
             signature = signer.sign(bytes_data)
         except Exception as e:
-            raise exceptions.UnsignedMetadataError(
-                "Problem signing the metadata"
-            ) from e
+            raise UnsignedMetadataError("Problem signing the metadata") from e
 
         if not append:
             self.signatures.clear()
@@ -413,43 +409,40 @@ class Metadata(Generic[T]):
             TypeError: called this function on non-delegating metadata class.
         """
 
-        # Find the keys and role in delegator metadata
-        role: Optional[Role] = None
-        if isinstance(self.signed, Root):
-            keys = self.signed.keys
-            role = self.signed.roles.get(delegated_role)
-        elif isinstance(self.signed, Targets):
-            if self.signed.delegations is None:
-                raise ValueError(f"No delegation found for {delegated_role}")
-
-            keys = self.signed.delegations.keys
-            if self.signed.delegations.roles is not None:
-                role = self.signed.delegations.roles.get(delegated_role)
-            elif self.signed.delegations.succinct_roles is not None:
-                if self.signed.delegations.succinct_roles.is_delegated_role(
-                    delegated_role
-                ):
-                    role = self.signed.delegations.succinct_roles
-        else:
+        if self.signed.type not in ["root", "targets"]:
             raise TypeError("Call is valid only on delegator metadata")
 
-        if role is None:
-            raise ValueError(f"No delegation found for {delegated_role}")
+        if signed_serializer is None:
+            # pylint: disable=import-outside-toplevel
+            from tuf.api.serialization.json import CanonicalJSONSerializer
+
+            signed_serializer = CanonicalJSONSerializer()
+
+        data = signed_serializer.serialize(delegated_metadata.signed)
+        role = self.signed.get_delegated_role(delegated_role)
 
         # verify that delegated_metadata is signed by threshold of unique keys
         signing_keys = set()
         for keyid in role.keyids:
-            key = keys[keyid]
             try:
-                key.verify_signature(delegated_metadata, signed_serializer)
-                signing_keys.add(key.keyid)
-            except exceptions.UnsignedMetadataError:
-                logger.debug(
-                    "Key %s failed to verify %s", keyid, delegated_role
-                )
+                key = self.signed.get_key(keyid)
+            except ValueError:
+                logger.info("No key for keyid %s", keyid)
+                continue
+
+            if keyid not in delegated_metadata.signatures:
+                logger.info("No signature for keyid %s", keyid)
+                continue
+
+            sig = delegated_metadata.signatures[keyid]
+            try:
+                key.verify_signature(sig, data)
+                signing_keys.add(keyid)
+            except sslib_exceptions.UnverifiedSignatureError:
+                logger.info("Key %s failed to verify %s", keyid, delegated_role)
 
         if len(signing_keys) < role.threshold:
-            raise exceptions.UnsignedMetadataError(
+            raise UnsignedMetadataError(
                 f"{delegated_role} was signed by {len(signing_keys)}/"
                 f"{role.threshold} keys",
             )
@@ -613,178 +606,6 @@ class Signed(metaclass=abc.ABCMeta):
             reference_time = datetime.utcnow()
 
         return reference_time >= self.expires
-
-
-class Key:
-    """A container class representing the public portion of a Key.
-
-    Supported key content (type, scheme and keyval) is defined in
-    `` Securesystemslib``.
-
-    *All parameters named below are not just constructor arguments but also
-    instance attributes.*
-
-    Args:
-        keyid: Key identifier that is unique within the metadata it is used in.
-            Keyid is not verified to be the hash of a specific representation
-            of the key.
-        keytype: Key type, e.g. "rsa", "ed25519" or "ecdsa-sha2-nistp256".
-        scheme: Signature scheme. For example:
-            "rsassa-pss-sha256", "ed25519", and "ecdsa-sha2-nistp256".
-        keyval: Opaque key content
-        unrecognized_fields: Dictionary of all attributes that are not managed
-            by TUF Metadata API
-
-    Raises:
-        TypeError: Invalid type for an argument.
-    """
-
-    def __init__(
-        self,
-        keyid: str,
-        keytype: str,
-        scheme: str,
-        keyval: Dict[str, str],
-        unrecognized_fields: Optional[Dict[str, Any]] = None,
-    ):
-        if not all(
-            isinstance(at, str) for at in [keyid, keytype, scheme]
-        ) or not isinstance(keyval, dict):
-            raise TypeError("Unexpected Key attributes types!")
-        self.keyid = keyid
-        self.keytype = keytype
-        self.scheme = scheme
-        self.keyval = keyval
-        if unrecognized_fields is None:
-            unrecognized_fields = {}
-
-        self.unrecognized_fields = unrecognized_fields
-
-    def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, Key):
-            return False
-
-        return (
-            self.keyid == other.keyid
-            and self.keytype == other.keytype
-            and self.scheme == other.scheme
-            and self.keyval == other.keyval
-            and self.unrecognized_fields == other.unrecognized_fields
-        )
-
-    @classmethod
-    def from_dict(cls, keyid: str, key_dict: Dict[str, Any]) -> "Key":
-        """Create ``Key`` object from its json/dict representation.
-
-        Raises:
-            KeyError, TypeError: Invalid arguments.
-        """
-        keytype = key_dict.pop("keytype")
-        scheme = key_dict.pop("scheme")
-        keyval = key_dict.pop("keyval")
-        # All fields left in the key_dict are unrecognized.
-        return cls(keyid, keytype, scheme, keyval, key_dict)
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Return the dictionary representation of self."""
-        return {
-            "keytype": self.keytype,
-            "scheme": self.scheme,
-            "keyval": self.keyval,
-            **self.unrecognized_fields,
-        }
-
-    def to_securesystemslib_key(self) -> Dict[str, Any]:
-        """Return a ``Securesystemslib`` compatible representation of self."""
-        return {
-            "keyid": self.keyid,
-            "keytype": self.keytype,
-            "scheme": self.scheme,
-            "keyval": self.keyval,
-        }
-
-    @classmethod
-    def from_securesystemslib_key(cls, key_dict: Dict[str, Any]) -> "Key":
-        """Create a ``Key`` object from a securesystemlib key json/dict representation
-        removing the private key from keyval.
-
-        Args:
-            key_dict: Key in securesystemlib dict representation.
-
-        Raises:
-            ValueError: ``key_dict`` value is not following the securesystemslib
-                format.
-        """
-        try:
-            key_meta = sslib_keys.format_keyval_to_metadata(
-                key_dict["keytype"],
-                key_dict["scheme"],
-                key_dict["keyval"],
-            )
-        except sslib_exceptions.FormatError as e:
-            raise ValueError(
-                "key_dict value is not following the securesystemslib format"
-            ) from e
-
-        return cls(
-            key_dict["keyid"],
-            key_meta["keytype"],
-            key_meta["scheme"],
-            key_meta["keyval"],
-        )
-
-    def verify_signature(
-        self,
-        metadata: Metadata,
-        signed_serializer: Optional[SignedSerializer] = None,
-    ) -> None:
-        """Verify that the ``metadata.signatures`` contains a signature made
-        with this key, correctly signing ``metadata.signed``.
-
-        Args:
-            metadata: Metadata to verify
-            signed_serializer: ``SignedSerializer`` to serialize
-                ``metadata.signed`` with. Default is ``CanonicalJSONSerializer``.
-
-        Raises:
-            UnsignedMetadataError: The signature could not be verified for a
-                variety of possible reasons: see error message.
-        """
-        try:
-            signature = metadata.signatures[self.keyid]
-        except KeyError:
-            raise exceptions.UnsignedMetadataError(
-                f"No signature for key {self.keyid} found in metadata"
-            ) from None
-
-        if signed_serializer is None:
-            # pylint: disable=import-outside-toplevel
-            from tuf.api.serialization.json import CanonicalJSONSerializer
-
-            signed_serializer = CanonicalJSONSerializer()
-
-        try:
-            if not sslib_keys.verify_signature(
-                self.to_securesystemslib_key(),
-                signature.to_dict(),
-                signed_serializer.serialize(metadata.signed),
-            ):
-                raise exceptions.UnsignedMetadataError(
-                    f"Failed to verify {self.keyid} signature"
-                )
-        except (
-            sslib_exceptions.CryptoError,
-            sslib_exceptions.FormatError,
-            sslib_exceptions.UnsupportedAlgorithmError,
-            SerializationError,
-        ) as e:
-            # Log unexpected failure, but continue as if there was no signature
-            logger.warning(
-                "Key %s failed to verify sig: %s", self.keyid, str(e)
-            )
-            raise exceptions.UnsignedMetadataError(
-                f"Failed to verify {self.keyid} signature"
-            ) from e
 
 
 class Role:
@@ -993,6 +814,24 @@ class Root(Signed):
 
         del self.keys[keyid]
 
+    def get_delegated_role(self, delegated_role: str) -> Role:
+        """Return the role object for the given delegated role.
+
+        Raises ValueError if delegated_role is not actually delegated."""
+        if delegated_role not in self.roles:
+            raise ValueError(f"Delegated role {delegated_role} not found")
+
+        return self.roles[delegated_role]
+
+    def get_key(self, keyid: str) -> Key:
+        """Return the key object for the given keyid.
+
+        Raises ValueError if key is not found."""
+        if keyid not in self.keys:
+            raise ValueError(f"Key {keyid} not found")
+
+        return self.keys[keyid]
+
 
 class BaseFile:
     """A base class of ``MetaFile`` and ``TargetFile``.
@@ -1018,13 +857,13 @@ class BaseFile:
                 sslib_exceptions.UnsupportedAlgorithmError,
                 sslib_exceptions.FormatError,
             ) as e:
-                raise exceptions.LengthOrHashMismatchError(
+                raise LengthOrHashMismatchError(
                     f"Unsupported algorithm '{algo}'"
                 ) from e
 
             observed_hash = digest_object.hexdigest()
             if observed_hash != exp_hash:
-                raise exceptions.LengthOrHashMismatchError(
+                raise LengthOrHashMismatchError(
                     f"Observed hash {observed_hash} does not match "
                     f"expected hash {exp_hash}"
                 )
@@ -1042,7 +881,7 @@ class BaseFile:
             observed_length = data.tell()
 
         if observed_length != expected_length:
-            raise exceptions.LengthOrHashMismatchError(
+            raise LengthOrHashMismatchError(
                 f"Observed length {observed_length} does not match "
                 f"expected length {expected_length}"
             )
@@ -2052,3 +1891,31 @@ class Targets(Signed):
             self.delegations.succinct_roles.keyids.remove(keyid)
 
         del self.delegations.keys[keyid]
+
+    def get_delegated_role(self, delegated_role: str) -> Role:
+        """Return the role object for the given delegated role.
+
+        Raises ValueError if delegated_role is not actually delegated."""
+        if self.delegations is None:
+            raise ValueError("No delegations found")
+
+        if self.delegations.roles is not None:
+            role: Optional[Role] = self.delegations.roles.get(delegated_role)
+        else:
+            role = self.delegations.succinct_roles
+
+        if not role:
+            raise ValueError(f"Delegated role {delegated_role} not found")
+
+        return role
+
+    def get_key(self, keyid: str) -> Key:
+        """Return the key object for the given keyid.
+
+        Raises ValueError if keyid is not found."""
+        if self.delegations is None:
+            raise ValueError("No delegations found")
+        if keyid not in self.delegations.keys:
+            raise ValueError(f"Key {keyid} not found")
+
+        return self.delegations.keys[keyid]

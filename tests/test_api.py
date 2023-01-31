@@ -17,13 +17,14 @@ from copy import copy
 from datetime import datetime, timedelta
 from typing import Any, ClassVar, Dict
 
+from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import hash as sslib_hash
 from securesystemslib.interface import (
     import_ed25519_privatekey_from_file,
     import_ed25519_publickey_from_file,
 )
 from securesystemslib.keys import generate_ed25519_key
-from securesystemslib.signer import Signature, SSlibSigner
+from securesystemslib.signer import SSlibKey, SSlibSigner
 
 from tests import utils
 from tuf.api import exceptions
@@ -34,6 +35,7 @@ from tuf.api.metadata import (
     Key,
     Metadata,
     Root,
+    Signature,
     Snapshot,
     SuccinctRoles,
     TargetFile,
@@ -187,8 +189,8 @@ class TestMetadata(unittest.TestCase):
             self.assertEqual(metadata_obj_2.to_bytes(), obj_bytes)
 
     def test_sign_verify(self) -> None:
-        root_path = os.path.join(self.repo_dir, "metadata", "root.json")
-        root = Metadata[Root].from_file(root_path).signed
+        path = os.path.join(self.repo_dir, "metadata")
+        root = Metadata[Root].from_file(os.path.join(path, "root.json")).signed
 
         # Locate the public keys we need from root
         targets_keyid = next(iter(root.roles[Targets.type].keyids))
@@ -199,41 +201,37 @@ class TestMetadata(unittest.TestCase):
         timestamp_key = root.keys[timestamp_keyid]
 
         # Load sample metadata (targets) and assert ...
-        path = os.path.join(self.repo_dir, "metadata", "targets.json")
-        md_obj = Metadata.from_file(path)
+        md_obj = Metadata.from_file(os.path.join(path, "targets.json"))
+        sig = md_obj.signatures[targets_keyid]
+        data = CanonicalJSONSerializer().serialize(md_obj.signed)
 
         # ... it has a single existing signature,
         self.assertEqual(len(md_obj.signatures), 1)
         # ... which is valid for the correct key.
-        targets_key.verify_signature(md_obj)
-        with self.assertRaises(exceptions.UnsignedMetadataError):
-            snapshot_key.verify_signature(md_obj)
-
-        # Test verifying with explicitly set serializer
-        targets_key.verify_signature(md_obj, CanonicalJSONSerializer())
-        with self.assertRaises(exceptions.UnsignedMetadataError):
-            targets_key.verify_signature(md_obj, JSONSerializer())  # type: ignore[arg-type]
+        targets_key.verify_signature(sig, data)
+        with self.assertRaises(sslib_exceptions.VerificationError):
+            snapshot_key.verify_signature(sig, data)
 
         sslib_signer = SSlibSigner(self.keystore[Snapshot.type])
         # Append a new signature with the unrelated key and assert that ...
-        sig = md_obj.sign(sslib_signer, append=True)
+        snapshot_sig = md_obj.sign(sslib_signer, append=True)
         # ... there are now two signatures, and
         self.assertEqual(len(md_obj.signatures), 2)
         # ... both are valid for the corresponding keys.
-        targets_key.verify_signature(md_obj)
-        snapshot_key.verify_signature(md_obj)
+        targets_key.verify_signature(sig, data)
+        snapshot_key.verify_signature(snapshot_sig, data)
         # ... the returned (appended) signature is for snapshot key
-        self.assertEqual(sig.keyid, snapshot_keyid)
+        self.assertEqual(snapshot_sig.keyid, snapshot_keyid)
 
         sslib_signer = SSlibSigner(self.keystore[Timestamp.type])
         # Create and assign (don't append) a new signature and assert that ...
-        md_obj.sign(sslib_signer, append=False)
+        ts_sig = md_obj.sign(sslib_signer, append=False)
         # ... there now is only one signature,
         self.assertEqual(len(md_obj.signatures), 1)
         # ... valid for that key.
-        timestamp_key.verify_signature(md_obj)
-        with self.assertRaises(exceptions.UnsignedMetadataError):
-            targets_key.verify_signature(md_obj)
+        timestamp_key.verify_signature(ts_sig, data)
+        with self.assertRaises(sslib_exceptions.VerificationError):
+            targets_key.verify_signature(ts_sig, data)
 
     def test_sign_failures(self) -> None:
         # Test throwing UnsignedMetadataError because of signing problems
@@ -248,7 +246,7 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(exceptions.UnsignedMetadataError):
             md.sign(sslib_signer)
 
-    def test_verify_failures(self) -> None:
+    def test_key_verify_failures(self) -> None:
         root_path = os.path.join(self.repo_dir, "metadata", "root.json")
         root = Metadata[Root].from_file(root_path).signed
 
@@ -259,36 +257,36 @@ class TestMetadata(unittest.TestCase):
         # Load sample metadata (timestamp)
         path = os.path.join(self.repo_dir, "metadata", "timestamp.json")
         md_obj = Metadata.from_file(path)
+        sig = md_obj.signatures[timestamp_keyid]
+        data = CanonicalJSONSerializer().serialize(md_obj.signed)
 
         # Test failure on unknown scheme (securesystemslib
         # UnsupportedAlgorithmError)
         scheme = timestamp_key.scheme
         timestamp_key.scheme = "foo"
-        with self.assertRaises(exceptions.UnsignedMetadataError):
-            timestamp_key.verify_signature(md_obj)
+        with self.assertRaises(sslib_exceptions.VerificationError):
+            timestamp_key.verify_signature(sig, data)
         timestamp_key.scheme = scheme
 
         # Test failure on broken public key data (securesystemslib
         # CryptoError)
         public = timestamp_key.keyval["public"]
         timestamp_key.keyval["public"] = "ffff"
-        with self.assertRaises(exceptions.UnsignedMetadataError):
-            timestamp_key.verify_signature(md_obj)
+        with self.assertRaises(sslib_exceptions.VerificationError):
+            timestamp_key.verify_signature(sig, data)
         timestamp_key.keyval["public"] = public
 
         # Test failure with invalid signature (securesystemslib
         # FormatError)
-        sig = md_obj.signatures[timestamp_keyid]
-        correct_sig = sig.signature
-        sig.signature = "foo"
-        with self.assertRaises(exceptions.UnsignedMetadataError):
-            timestamp_key.verify_signature(md_obj)
+        incorrect_sig = copy(sig)
+        incorrect_sig.signature = "foo"
+        with self.assertRaises(sslib_exceptions.VerificationError):
+            timestamp_key.verify_signature(incorrect_sig, data)
 
         # Test failure with valid but incorrect signature
-        sig.signature = "ff" * 64
-        with self.assertRaises(exceptions.UnsignedMetadataError):
-            timestamp_key.verify_signature(md_obj)
-        sig.signature = correct_sig
+        incorrect_sig.signature = "ff" * 64
+        with self.assertRaises(sslib_exceptions.UnverifiedSignatureError):
+            timestamp_key.verify_signature(incorrect_sig, data)
 
     def test_metadata_signed_is_expired(self) -> None:
         # Use of Snapshot is arbitrary, we're just testing the base class
@@ -355,6 +353,15 @@ class TestMetadata(unittest.TestCase):
             root.verify_delegate(Snapshot.type, snapshot)
         snapshot.signed.expires = expires
 
+        # verify fails if sslib verify fails with VerificationError
+        # (in this case signature is malformed)
+        keyid = next(iter(root.signed.roles[Snapshot.type].keyids))
+        good_sig = snapshot.signatures[keyid].signature
+        snapshot.signatures[keyid].signature = "foo"
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            root.verify_delegate(Snapshot.type, snapshot)
+        snapshot.signatures[keyid].signature = good_sig
+
         # verify fails if roles keys do not sign the metadata
         with self.assertRaises(exceptions.UnsignedMetadataError):
             root.verify_delegate(Timestamp.type, snapshot)
@@ -382,13 +389,8 @@ class TestMetadata(unittest.TestCase):
         # Test if from_securesystemslib_key removes the private key from keyval
         # of a securesystemslib key dictionary.
         sslib_key = generate_ed25519_key()
-        key = Key.from_securesystemslib_key(sslib_key)
+        key = SSlibKey.from_securesystemslib_key(sslib_key)
         self.assertFalse("private" in key.keyval.keys())
-
-        # Test raising ValueError with non-existent keytype
-        sslib_key["keytype"] = "bad keytype"
-        with self.assertRaises(ValueError):
-            Key.from_securesystemslib_key(sslib_key)
 
     def test_root_add_key_and_revoke_key(self) -> None:
         root_path = os.path.join(self.repo_dir, "metadata", "root.json")
@@ -399,7 +401,7 @@ class TestMetadata(unittest.TestCase):
             os.path.join(self.keystore_dir, "root_key2.pub")
         )
         keyid = root_key2["keyid"]
-        key_metadata = Key(
+        key_metadata = SSlibKey(
             keyid,
             root_key2["keytype"],
             root_key2["scheme"],
@@ -412,7 +414,7 @@ class TestMetadata(unittest.TestCase):
 
         # Assert that add_key with old argument order will raise an error
         with self.assertRaises(ValueError):
-            root.signed.add_key(Root.type, key_metadata)  # type: ignore
+            root.signed.add_key(Root.type, key_metadata)
 
         # Add new root key
         root.signed.add_key(key_metadata, Root.type)
@@ -513,7 +515,7 @@ class TestMetadata(unittest.TestCase):
 
         # Assert that add_key with old argument order will raise an error
         with self.assertRaises(ValueError):
-            targets.add_key("role1", key)  # type: ignore
+            targets.add_key("role1", key)
 
         # Assert that delegated role "role1" does not contain the new key
         self.assertNotIn(key.keyid, targets.delegations.roles["role1"].keyids)

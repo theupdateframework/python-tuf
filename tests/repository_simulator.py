@@ -54,7 +54,7 @@ from urllib import parse
 
 import securesystemslib.hash as sslib_hash
 from securesystemslib.keys import generate_ed25519_key
-from securesystemslib.signer import SSlibSigner
+from securesystemslib.signer import SSlibKey, SSlibSigner
 
 from tuf.api.exceptions import DownloadHTTPError
 from tuf.api.metadata import (
@@ -156,8 +156,8 @@ class RepositorySimulator(FetcherInterface):
 
     @staticmethod
     def create_key() -> Tuple[Key, SSlibSigner]:
-        sslib_key = generate_ed25519_key()
-        return Key.from_securesystemslib_key(sslib_key), SSlibSigner(sslib_key)
+        key = generate_ed25519_key()
+        return SSlibKey.from_securesystemslib_key(key), SSlibSigner(key)
 
     def add_signer(self, role: str, signer: SSlibSigner) -> None:
         if role not in self.signers:

@@ -10,10 +10,9 @@ from datetime import datetime, timedelta
 from typing import Dict, List
 
 from securesystemslib import keys
-from securesystemslib.signer import Signer, SSlibSigner
+from securesystemslib.signer import Signer, SSlibKey, SSlibSigner
 
 from tuf.api.metadata import (
-    Key,
     Metadata,
     MetaFile,
     Root,
@@ -72,7 +71,7 @@ class SimpleRepository(Repository):
             for role in ["root", "timestamp", "snapshot", "targets"]:
                 key = keys.generate_ed25519_key()
                 self.signer_cache[role].append(SSlibSigner(key))
-                root.add_key(Key.from_securesystemslib_key(key), role)
+                root.add_key(SSlibKey.from_securesystemslib_key(key), role)
 
         for role in ["timestamp", "snapshot", "targets"]:
             with self.edit(role):
