@@ -46,6 +46,7 @@ TEST_HOST_ADDRESS = "127.0.0.1"
 # DataSet is only here so type hints can be used.
 DataSet = Dict[str, Any]
 
+
 # Test runner decorator: Runs the test as a set of N SubTests,
 # (where N is number of items in dataset), feeding the actual test
 # function one test case at a time
@@ -187,7 +188,6 @@ class TestServerProcess:
         popen_cwd: str = ".",
         extra_cmd_args: Optional[List[str]] = None,
     ):
-
         self.server = server
         self.__logger = log
         # Stores popped messages from the queue.

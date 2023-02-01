@@ -78,6 +78,7 @@ NUMBER_OF_PREFIXES = 16**PREFIX_LEN  # ... 256 prefixes, i.e. 00, 01, ..., ff.
 BIN_SIZE = NUMBER_OF_PREFIXES // NUMBER_OF_BINS  # ... 8, where each bin is
 # responsible for a range of 8 prefixes, i.e. 00-07, 08-0f, ..., f8-ff.
 
+
 # Helpers
 # -------
 def _bin_name(low: int, high: int) -> str:
