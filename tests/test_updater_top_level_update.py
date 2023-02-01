@@ -698,7 +698,6 @@ class TestRefresh(unittest.TestCase):
 
     @patch.object(builtins, "open", wraps=builtins.open)
     def test_load_metadata_from_cache(self, wrapped_open: MagicMock) -> None:
-
         # Add new delegated targets
         spec_version = ".".join(SPECIFICATION_VERSION)
         targets = Targets(1, spec_version, self.sim.safe_expiry, {}, None)

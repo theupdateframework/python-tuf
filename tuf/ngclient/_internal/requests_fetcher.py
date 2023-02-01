@@ -22,6 +22,7 @@ from tuf.ngclient.fetcher import FetcherInterface
 # Globals
 logger = logging.getLogger(__name__)
 
+
 # Classes
 class RequestsFetcher(FetcherInterface):
     """An implementation of ``FetcherInterface`` based on the requests library.

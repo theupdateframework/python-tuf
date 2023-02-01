@@ -100,7 +100,6 @@ class TestMetadata(unittest.TestCase):
             (Timestamp.type, Timestamp),
             (Targets.type, Targets),
         ]:
-
             # Load JSON-formatted metdata of each supported type from file
             # and from out-of-band read JSON string
             path = os.path.join(self.repo_dir, "metadata", metadata + ".json")
@@ -613,7 +612,6 @@ class TestMetadata(unittest.TestCase):
             targets.revoke_key(key.keyid)
 
     def test_length_and_hash_validation(self) -> None:
-
         # Test metadata files' hash and length verification.
         # Use timestamp to get a MetaFile object and snapshot
         # for untrusted metadata file to verify.

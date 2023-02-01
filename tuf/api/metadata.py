@@ -927,7 +927,6 @@ class MetaFile(BaseFile):
         hashes: Optional[Dict[str, str]] = None,
         unrecognized_fields: Optional[Dict[str, Any]] = None,
     ):
-
         if version <= 0:
             raise ValueError(f"Metafile version must be > 0, got {version}")
         if length is not None:
@@ -1601,7 +1600,6 @@ class TargetFile(BaseFile):
         path: str,
         unrecognized_fields: Optional[Dict[str, Any]] = None,
     ):
-
         self._validate_length(length)
         self._validate_hashes(hashes)
 
