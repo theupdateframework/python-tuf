@@ -27,6 +27,7 @@ from tuf.ngclient._internal.trusted_metadata_set import TrustedMetadataSet
 
 logger = logging.getLogger(__name__)
 
+
 # pylint: disable=too-many-public-methods
 class TestTrustedMetadataSet(unittest.TestCase):
     """Tests for all public API of the TrustedMetadataSet class."""
@@ -459,6 +460,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
     def test_update_targets_expired_new_target(self) -> None:
         self._update_all_besides_targets()
+
         # new_delegated_target has expired
         def target_expired_modifier(target: Targets) -> None:
             target.expires = datetime(1970, 1, 1)
