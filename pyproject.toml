@@ -63,7 +63,7 @@ include = [
   "/examples",
   "/tests",
   "/tuf",
-  "/requirements*.txt",
+  "/requirements",
   "/tox.ini",
   "/setup.py",
 ]
