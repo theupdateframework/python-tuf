@@ -51,7 +51,7 @@ from GitHub, change into the project root directory, and install with pip
 
 ::
 
-   python3 -m pip install -r requirements-dev.txt
+   python3 -m pip install -r requirements/requirements-dev.txt
 
 
 Verify release signatures

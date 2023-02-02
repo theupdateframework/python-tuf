@@ -72,11 +72,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
-          cache-dependency-path: 'requirements*.txt'
+          cache-dependency-path: 'requirements/requirements*.txt'
 
       - name: Install dependencies
         run: |
-          python3 -m pip install --constraint requirements-build.txt tox coveralls
+          python3 -m pip install --constraint requirements/requirements-build.txt tox coveralls
 
       - name: Run tox (${{ env.TOXENV }})
         # See TOXENV environment variable for the testenv to be executed here
