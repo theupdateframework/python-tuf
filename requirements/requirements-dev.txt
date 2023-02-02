@@ -4,4 +4,5 @@
 # during CI and CD Github workflows
 -r requirements-build.txt
 -r requirements-test.txt
+-r requirements-lint.txt
 -e .
