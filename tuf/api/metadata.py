@@ -1613,8 +1613,10 @@ class TargetFile(BaseFile):
 
     @property
     def custom(self) -> Any:
-        """Can be used to provide implementation specific data related to the
-        target. python-tuf does not use or validate this data."""
+        """Get implementation specific data related to the target.
+
+        python-tuf does not use or validate this data.
+        """
         return self.unrecognized_fields.get("custom")
 
     def __eq__(self, other: Any) -> bool:
