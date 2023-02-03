@@ -53,6 +53,7 @@ from typing import (
 
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import hash as sslib_hash
+from securesystemslib.serialization import JSONSerializable
 from securesystemslib.signer import Key, Signature, Signer
 from securesystemslib.storage import FilesystemBackend, StorageBackendInterface
 from securesystemslib.util import persist_temp_file
@@ -82,7 +83,7 @@ TOP_LEVEL_ROLE_NAMES = {_ROOT, _TIMESTAMP, _SNAPSHOT, _TARGETS}
 T = TypeVar("T", "Root", "Timestamp", "Snapshot", "Targets")
 
 
-class Metadata(Generic[T]):
+class Metadata(Generic[T], JSONSerializable):
     """A container for signed TUF metadata.
 
     Provides methods to convert to and from dictionary, read and write to and
