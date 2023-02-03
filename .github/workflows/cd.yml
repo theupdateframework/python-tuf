@@ -49,7 +49,7 @@ jobs:
     permissions:
       contents: write # to modify GitHub releases
     outputs:
-      release_id: ${{ steps.gh-release.outputs.id }}
+      release_id: ${{ steps.gh-release.outputs.result }}
     steps:
       - name: Fetch build artifacts
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
@@ -58,14 +58,32 @@ jobs:
           path: dist
 
       - id: gh-release
-        name: Publish GitHub release candidate
-        uses: softprops/action-gh-release@1e07f4398721186383de40550babbdf2b84acfc5
+        name: Publish GitHub release draft
+        uses: actions/github-script@98814c53be79b1d30f795b907e553d8679345975
         with:
-          name: ${{ github.ref_name }}-rc
-          tag_name: ${{ github.ref }}
-          body: "Release waiting for review..."
-          files: dist/*
+          script: |
+            fs = require('fs')
+            res = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: '${{ github.ref_name }}',
+              tag_name: '${{ github.ref }}',
+              draft: true,
+              body: 'See [CHANGELOG.md](https://github.com/' +
+                     context.repo.owner + '/' + context.repo.repo +
+                    '/blob/${{ github.ref_name }}/docs/CHANGELOG.md) for details.'
+            });
 
+            fs.readdirSync('dist/').forEach(file => {
+              github.rest.repos.uploadReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: res.data.id,
+                name: file,
+                data: fs.readFileSync('dist/' + file),
+              });
+            });
+            return res.data.id
 
   release:
     name: Release
@@ -93,12 +111,9 @@ jobs:
         uses: actions/github-script@98814c53be79b1d30f795b907e553d8679345975
         with:
           script: |
-            await github.rest.repos.updateRelease({
+            github.rest.repos.updateRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
               release_id: '${{ needs.candidate_release.outputs.release_id }}',
-              name: '${{ github.ref_name }}',
-              body: 'See [CHANGELOG.md](https://github.com/' +
-                     context.repo.owner + '/' + context.repo.repo +
-                    '/blob/${{ github.ref_name }}/docs/CHANGELOG.md) for details.'
+              draft: false,
             })
