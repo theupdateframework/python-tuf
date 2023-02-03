@@ -44,7 +44,7 @@ classifiers = [
 ]
 dependencies = [
   "requests>=2.19.1",
-  "securesystemslib>=0.26.0",
+  "securesystemslib @ git+https://github.com/PradyumnaKrishna/securesystemslib@4c6be46"
 ]
 dynamic = ["version"]
 
@@ -56,6 +56,9 @@ Source = "https://github.com/theupdateframework/python-tuf"
 
 [tool.hatch.version]
 path = "tuf/__init__.py"
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.targets.sdist]
 include = [
