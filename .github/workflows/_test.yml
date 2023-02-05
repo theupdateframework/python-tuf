@@ -7,22 +7,25 @@ permissions: {}
 jobs:
   tests:
     name: Tests
+    continue-on-error: ${{ matrix.failure-allowed }}
     strategy:
-      fail-fast: false
       # Run regular TUF tests on each OS/Python combination, plus special tests
       # (sslib master) and linters on Linux/Python3.x only.
       matrix:
+        toxenv: [lint, py]
         python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
         os: [ubuntu-latest, macos-latest, windows-latest]
-        toxenv: [py]
+        failure-allowed: [true]
+        exclude:
+          - os: [macos-latest, windows-latest]
+            toxenv: lint
         include:
           - python-version: 3.x
             os: ubuntu-latest
             toxenv: with-sslib-master
             experimental: true
-          - python-version: 3.x
-            os: ubuntu-latest
-            toxenv: lint
+          - toxenv: lint
+            failure-allowed: false
 
     env:
       # Set TOXENV env var to tell tox which testenv (see tox.ini) to use
