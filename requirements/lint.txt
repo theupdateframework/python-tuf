@@ -1,7 +1,7 @@
 # Requirements needed in tox lint environment
 
 # pinned tuf runtime dependencies
--r requirements-pinned.txt
+-r pinned.txt
 
 # Lint tools
 # (We are not so interested in the specific versions of the tools: the versions
