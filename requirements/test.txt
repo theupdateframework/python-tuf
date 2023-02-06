@@ -1,0 +1,7 @@
+# Requirements needed in tox test environments
+
+# pinned tuf runtime dependencies (should auto-update and -trigger ci/cd)
+-r pinned.txt
+
+# coverage measurement
+coverage==7.1.0
