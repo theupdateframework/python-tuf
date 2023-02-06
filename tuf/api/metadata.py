@@ -817,7 +817,8 @@ class Root(Signed):
     def get_delegated_role(self, delegated_role: str) -> Role:
         """Return the role object for the given delegated role.
 
-        Raises ValueError if delegated_role is not actually delegated."""
+        Raises ValueError if delegated_role is not actually delegated.
+        """
         if delegated_role not in self.roles:
             raise ValueError(f"Delegated role {delegated_role} not found")
 
@@ -826,7 +827,8 @@ class Root(Signed):
     def get_key(self, keyid: str) -> Key:
         """Return the key object for the given keyid.
 
-        Raises ValueError if key is not found."""
+        Raises ValueError if key is not found.
+        """
         if keyid not in self.keys:
             raise ValueError(f"Key {keyid} not found")
 
@@ -1897,7 +1899,8 @@ class Targets(Signed):
     def get_delegated_role(self, delegated_role: str) -> Role:
         """Return the role object for the given delegated role.
 
-        Raises ValueError if delegated_role is not actually delegated."""
+        Raises ValueError if delegated_role is not actually delegated.
+        """
         if self.delegations is None:
             raise ValueError("No delegations found")
 
@@ -1914,7 +1917,8 @@ class Targets(Signed):
     def get_key(self, keyid: str) -> Key:
         """Return the key object for the given keyid.
 
-        Raises ValueError if keyid is not found."""
+        Raises ValueError if keyid is not found.
+        """
         if self.delegations is None:
             raise ValueError("No delegations found")
         if keyid not in self.delegations.keys:
