@@ -7,7 +7,7 @@ permissions: {}
 jobs:
   tests:
     name: Tests
-    continue-on-error: ${{ matrix.failure-allowed }}
+    continue-on-error: ${{ matrix.failure-allowed || matrix.experimental }}
     strategy:
       # Run regular TUF tests on each OS/Python combination, plus special tests
       # (sslib master) and linters on Linux/Python3.x only.
