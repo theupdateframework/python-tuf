@@ -27,7 +27,9 @@ jobs:
             toxenv: with-sslib-master
             experimental: true
             failure-allowed: true
-          - toxenv: lint
+          - python-version: 3.x
+            os: ubuntu-latest
+            toxenv: lint
             failure-allowed: false
 
     env:
