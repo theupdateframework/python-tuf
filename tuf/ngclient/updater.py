@@ -428,7 +428,6 @@ class Updater:
             len(visited_role_names) <= self.config.max_delegations
             and len(delegations_to_visit) > 0
         ):
-
             # Pop the role name from the top of the stack.
             role_name, parent_role = delegations_to_visit.pop(-1)
 
@@ -458,7 +457,6 @@ class Updater:
                     child_name,
                     terminating,
                 ) in targets.delegations.get_roles_for_target(target_filepath):
-
                     logger.debug("Adding child role %s", child_name)
                     child_roles_to_visit.append((child_name, role_name))
                     if terminating:

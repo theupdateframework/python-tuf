@@ -247,7 +247,6 @@ class TestUpdaterKeyRotations(unittest.TestCase):
         self.setup_subtest()
         roles = ["timestamp", "snapshot", "targets"]
         for role in roles:
-
             # clear role keys, signers
             self.sim.root.roles[role].keyids.clear()
             self.sim.signers[role].clear()
