@@ -32,15 +32,13 @@ In another terminal, run uploader:
 # Initialize with Trust-On-First-Use
 ./uploader tofu
 
-# Then claim a delegation for yourself (this also creates and stores a new signing key):
+# Then claim a delegation for yourself (this also creates a new signing key):
 ./uploader add-delegation myrole
 
-# Then add a new downloadable target file to your delegated role[^1]:
+# Then add a new downloadable target file to your delegated role (to keep the
+# example simple, the target file content is always the targetpath):
 ./uploader add-target myrole myrole/mytargetfile
 ```
 
 At this point "myrole/mytargetfile" is downloadable from the repository
 with the [client example](../client/).
-
-[^1]: To keep the example simple, the content of every target file is the targetpath
-as a string: This is why the upload of actual content is not implemented.
