@@ -13,25 +13,61 @@ import argparse
 import logging
 import sys
 from datetime import datetime
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from time import time
 from typing import Dict, List
 
 from _simplerepo import SimpleRepository
 
+from tuf.api.serialization.json import JSONSerializer
+
 logger = logging.getLogger(__name__)
 
 
 class ReqHandler(BaseHTTPRequestHandler):
-    """HTTP handler to serve metadata and targets from a SimpleRepository"""
+    """HTTP handler for the repository example application
+
+    Serves metadata, targets and a small upload API using a SimpleRepository
+    """
+
+    def do_POST(self):
+        """Handle POST requests, aka the 'uploader API'"""
+
+        content_len = int(self.headers.get("content-length", 0))
+        data = self.rfile.read(content_len)
+
+        if self.path.startswith("/api/delegation/"):
+            role = self.path[len("/api/delegation/") :]
+            if not self.server.repo.submit_delegation(role, data):
+                return self.send_error(400, f"Failed to delegate to {role}")
+        elif self.path.startswith("/api/role/"):
+            role = self.path[len("/api/role/") :]
+            if not self.server.repo.submit_role(role, data):
+                return self.send_error(400, f"Failed to submit role {role}")
+        else:
+            return self.send_error(404)
+
+        self.send_response(200)
+        self.end_headers()
 
     def do_GET(self):
+        """Handle GET: metadata and target files"""
+        data = None
+
         if self.path.startswith("/metadata/") and self.path.endswith(".json"):
-            self.get_metadata(self.path[len("/metadata/") : -len(".json")])
+            data = self.get_metadata(
+                self.path[len("/metadata/") : -len(".json")]
+            )
         elif self.path.startswith("/targets/"):
-            self.get_target(self.path[len("/targets/") :])
+            data = self.get_target(self.path[len("/targets/") :])
+
+        if data is None:
+            self.send_error(404)
         else:
-            self.send_error(404, "Only serving /metadata/*.json")
+            self.send_response(200)
+            self.send_header("Content-length", len(data))
+            self.end_headers()
+            self.wfile.write(data)
 
     def get_metadata(self, ver_and_role: str):
         repo = self.server.repo
@@ -44,35 +80,28 @@ class ReqHandler(BaseHTTPRequestHandler):
             ver = int(ver_str)
 
         if role not in repo.role_cache or ver > len(repo.role_cache[role]):
-            self.send_error(404, f"Role {role} version {ver} not found")
-            return
+            return None
 
-        # send the metadata json
-        data = repo.role_cache[role][ver - 1].to_bytes()
-        self.send_response(200)
-        self.send_header("Content-length", len(data))
-        self.end_headers()
-        self.wfile.write(data)
+        # return metadata
+        return repo.role_cache[role][ver - 1].to_bytes(JSONSerializer())
 
     def get_target(self, targetpath: str):
-        repo: SimpleRepository = self.server.repo
-        _hash, _, target = targetpath.partition(".")
+        repo = self.server.repo
+
+        # unimplement the dumb hashing scheme
+        # TODO: maybe use hashed paths as the target_cache key
+        dir, sep, hashname = targetpath.rpartition("/")
+        _, _, name = hashname.partition(".")
+        target = f"{dir}{sep}{name}"
 
         if target not in repo.target_cache:
-            self.send_error(404, f"target {targetpath} not found")
-            return
-
-        # TODO: check that hash actually matches -- or use hash.targetpath as target_cache keys?
+            return None
 
         # send the target content
-        data = repo.target_cache[target]
-        self.send_response(200)
-        self.send_header("Content-length", len(data))
-        self.end_headers()
-        self.wfile.write(data)
+        return repo.target_cache[target]
 
 
-class RepositoryServer(HTTPServer):
+class RepositoryServer(ThreadingHTTPServer):
     def __init__(self, port: int):
         super().__init__(("127.0.0.1", port), ReqHandler)
         self.timeout = 1

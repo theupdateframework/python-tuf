@@ -9,7 +9,11 @@ This TUF Repository Application Example has the following features:
 - Serves metadata and targets on localhost (default port 8001)
 - Simulates a live repository by automatically adding a new target
   file every 10 seconds.
-
+- Exposes a small API for the [uploader tool example](../uploader/). API POST endpoints are:
+  - `/api/role/<ROLE>`: For uploading new delegated targets metadata. Payload
+    is new version of ROLEs metadata
+  - `/api/delegation/<ROLE>`: For modifying or creating a delegation for ROLE.
+    Payload is a dict with one keyid:Key pair
 
 ### Usage
 
@@ -18,4 +22,4 @@ This TUF Repository Application Example has the following features:
 ```
 Your repository is now running and is accessible on localhost, See e.g.
 http://127.0.0.1:8001/metadata/1.root.json. The
-[client example](../client_example/README.md) uses this address by default.
+[client example](../client/README.md) uses this address by default.

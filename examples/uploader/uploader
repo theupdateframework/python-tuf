@@ -1,0 +1,140 @@
+#!/usr/bin/env python
+# Copyright 2021-2022 python-tuf contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+"""Simple uploader tool example
+
+Uploader is a maintainer application that communicates with the repository
+example. Uploader controls offline signing keys and produces signed metadata
+that it sends to the repository application so that the metadata can be added
+to the repository.
+"""
+
+import argparse
+import logging
+import os
+import sys
+from hashlib import sha256
+from pathlib import Path
+from typing import List, Optional
+from urllib import request
+
+from _localrepo import LocalRepository
+
+logger = logging.getLogger(__name__)
+
+
+def build_metadata_dir(base_url: str) -> str:
+    """build a unique and reproducible metadata dirname for the repo url"""
+    name = sha256(base_url.encode()).hexdigest()[:8]
+    # TODO: Make this not windows hostile?
+    return f"{Path.home()}/.local/share/tuf-upload-example/{name}"
+
+
+def build_key_dir(base_url: str) -> str:
+    """build a unique and reproducible private key dir for the repository url"""
+    name = sha256(base_url.encode()).hexdigest()[:8]
+    # TODO: Make this not windows hostile?
+    return f"{Path.home()}/.config/tuf-upload-example/{name}"
+
+
+def init_tofu(base_url: str) -> bool:
+    """Initialize local trusted metadata (Trust-On-First-Use)"""
+    metadata_dir = build_metadata_dir(base_url)
+
+    if not os.path.isdir(metadata_dir):
+        os.makedirs(metadata_dir)
+
+    root_url = f"{base_url}/metadata/1.root.json"
+    try:
+        request.urlretrieve(root_url, f"{metadata_dir}/root.json")
+    except OSError:
+        print(f"Failed to download initial root from {root_url}")
+        return False
+
+    print(f"Trust-on-First-Use: Initialized new root in {metadata_dir}")
+    return True
+
+
+def init(base_url: str) -> Optional[LocalRepository]:
+    """Initialize a LocalRepository: local root.json must already exist"""
+    metadata_dir = build_metadata_dir(base_url)
+    keydir = build_key_dir(base_url)
+
+    if not os.path.isfile(f"{metadata_dir}/root.json"):
+        print(
+            "Trusted local root not found. Use 'tofu' command to "
+            "Trust-On-First-Use or copy trusted root metadata to "
+            f"{metadata_dir}/root.json"
+        )
+        return None
+
+    print(f"Using trusted root in {metadata_dir}")
+    return LocalRepository(metadata_dir, keydir, base_url)
+
+
+def main(argv: List[str]) -> None:
+    """Example uploader tool"""
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-v", "--verbose", action="count", default=0)
+    parser.add_argument(
+        "-u",
+        "--url",
+        help="Base repository URL",
+        default="http://127.0.0.1:8001",
+    )
+
+    subparsers = parser.add_subparsers(dest="sub_command")
+
+    tofu_cmd = subparsers.add_parser(
+        "tofu",
+        help="Initialize client with Trust-On-First-Use",
+    )
+
+    add_delegation_cmd = subparsers.add_parser(
+        "add-delegation",
+        help="Create a delegation and signing key",
+    )
+    add_delegation_cmd.add_argument("rolename")
+
+    add_target_cmd = subparsers.add_parser(
+        "add-target",
+        help="Add a target to a delegated role",
+    )
+    add_target_cmd.add_argument("rolename")
+    add_target_cmd.add_argument("targetpath")
+
+    args = parser.parse_args()
+
+    if args.verbose == 0:
+        loglevel = logging.ERROR
+    elif args.verbose == 1:
+        loglevel = logging.WARNING
+    elif args.verbose == 2:
+        loglevel = logging.INFO
+    else:
+        loglevel = logging.DEBUG
+    logging.basicConfig(level=loglevel)
+
+    if args.sub_command == "tofu":
+        if not init_tofu(args.url):
+            return "Failed to initialize local repository"
+    elif args.sub_command == "add-delegation":
+        repo = init(args.url)
+        if not repo:
+            return "Failed to initialize"
+        if not repo.add_delegation(args.rolename):
+            return "Failed to add delegation"
+    elif args.sub_command == "add-target":
+        repo = init(args.url)
+        if not repo:
+            return "Failed to initialize"
+        if not repo.add_target(args.rolename, args.targetpath):
+            return "Failed to add target"
+    else:
+        parser.print_help()
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
