@@ -124,7 +124,6 @@ class LocalRepository(Repository):
             print(f"delegation failed with {r}")
             return False
 
-        # TODO: Once the Signer API is ready, use the priv key uri, store the file encrypted etc
         # Store the private key using rolename as filename
         with open(f"{self.key_dir}/{role}", "wt", encoding="utf-8") as f:
             f.write(json.dumps(keydict))

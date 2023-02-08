@@ -125,7 +125,7 @@ def main(argv: List[str]) -> None:
         if not repo:
             return "Failed to initialize"
         if not repo.add_delegation(args.rolename):
-            return "failed to add delegation"
+            return "Failed to add delegation"
     elif args.sub_command == "add-target":
         repo = init(args.url)
         if not repo:
