@@ -32,9 +32,6 @@ def init_tofu(base_url: str) -> bool:
     directory for downloads"""
     metadata_dir = build_metadata_dir(base_url)
 
-    if not os.path.isdir(DOWNLOAD_DIR):
-        os.mkdir(DOWNLOAD_DIR)
-
     if not os.path.isdir(metadata_dir):
         os.makedirs(metadata_dir)
 
@@ -71,6 +68,9 @@ def download(base_url: str, target: str) -> bool:
         return False
 
     print(f"Using trusted root in {metadata_dir}")
+
+    if not os.path.isdir(DOWNLOAD_DIR):
+        os.mkdir(DOWNLOAD_DIR)
 
     try:
         updater = Updater(
