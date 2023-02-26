@@ -54,11 +54,11 @@ class Repository(ABC):
         raise NotImplementedError
 
     @property
-    @abstractmethod
     def targets_infos(self) -> Dict[str, MetaFile]:
         """Returns the MetaFiles for current targets metadatas
 
-        This property is used by snapshot() to update Snapshot.meta.
+        This property is used by snapshot() to update Snapshot.meta: Repository
+        implementations should override this property to enable snapshot().
 
         Note that there is a difference between this return value and
         Snapshot.meta: This dictionary reflects the targets metadata that
@@ -68,11 +68,12 @@ class Repository(ABC):
         raise NotImplementedError
 
     @property
-    @abstractmethod
     def snapshot_info(self) -> MetaFile:
         """Returns the MetaFile for current snapshot metadata
 
-        This property is used by timestamp() to update Timestamp.meta.
+        This property is used by timestamp() to update Timestamp.meta:
+        Repository implementations should override this property to enable
+        timestamp().
         """
         raise NotImplementedError
 
