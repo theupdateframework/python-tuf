@@ -5,8 +5,39 @@ on:
 permissions: {}
 
 jobs:
+  lint-test:
+    name: Lint Test
+    strategy:
+      matrix:
+        python-version: [3.x]
+
+    env:
+      TOXENV: lint
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout TUF
+        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@d27e3f3d7c64b4bbf8e4abfb9b63b83e846e0435
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: 'requirements*.txt'
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --constraint requirements-build.txt tox coveralls
+
+      - name: Run tox (${{ env.TOXENV }})
+        # See TOXENV environment variable for the testenv to be executed here
+        run: tox
+
   tests:
     name: Tests
+    needs: lint-test
     continue-on-error: ${{ matrix.failure-allowed }}
     strategy:
       # Run regular TUF tests on each OS/Python combination, plus special tests
@@ -22,10 +53,6 @@ jobs:
             toxenv: with-sslib-master
             experimental: true
             failure-allowed: true
-          - toxenv: lint
-            python-version: 3.x
-            os: ubuntu-latest
-            failure-allowed: false
 
     env:
       # Set TOXENV env var to tell tox which testenv (see tox.ini) to use
@@ -59,8 +86,6 @@ jobs:
         # A failure to publish coverage results on coveralls should not
         # be a reason for a job failure.
         continue-on-error: true
-        # TODO: Maybe make 'lint' a separate job instead of case handling here
-        if: ${{ env.TOXENV != 'lint' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COVERALLS_FLAG_NAME: ${{ runner.os }} / Python ${{ matrix.python-version }} / ${{ env.TOXENV }}
@@ -78,7 +103,7 @@ jobs:
     # Always run when all 'tests' jobs have finished even if they failed
     # TODO: Replace always() with a 'at least one job succeeded' expression
     if: always()
-    needs: tests
+    needs: [lint-test, tests]
     runs-on: ubuntu-latest
     steps:
       - name: Add requirements file to make setup-python happy
