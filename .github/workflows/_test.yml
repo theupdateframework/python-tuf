@@ -7,32 +7,23 @@ permissions: {}
 jobs:
   lint-test:
     name: Lint Test
-    strategy:
-      matrix:
-        python-version: [3.x]
-
-    env:
-      TOXENV: lint
-
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout TUF
         uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python 3.x
         uses: actions/setup-python@d27e3f3d7c64b4bbf8e4abfb9b63b83e846e0435
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.x
           cache: 'pip'
-          cache-dependency-path: 'requirements*.txt'
+          cache-dependency-path: 'requirements/*.txt'
 
       - name: Install dependencies
         run: |
-          python3 -m pip install --constraint requirements-build.txt tox coveralls
+          python3 -m pip install --constraint requirements/build.txt tox coveralls
 
-      - name: Run tox (${{ env.TOXENV }})
-        # See TOXENV environment variable for the testenv to be executed here
+      - name: Run tox (lint)
         run: tox
 
   tests:
@@ -103,7 +94,7 @@ jobs:
     # Always run when all 'tests' jobs have finished even if they failed
     # TODO: Replace always() with a 'at least one job succeeded' expression
     if: always()
-    needs: [lint-test, tests]
+    needs: [tests]
     runs-on: ubuntu-latest
     steps:
       - name: Add requirements file to make setup-python happy
