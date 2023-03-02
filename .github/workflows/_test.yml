@@ -5,24 +5,45 @@ on:
 permissions: {}
 
 jobs:
+  lint-test:
+    name: Lint Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout TUF
+        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+
+      - name: Set up Python 3.x
+        uses: actions/setup-python@d27e3f3d7c64b4bbf8e4abfb9b63b83e846e0435
+        with:
+          python-version: 3.x
+          cache: 'pip'
+          cache-dependency-path: 'requirements/*.txt'
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --constraint requirements/build.txt tox coveralls
+
+      - name: Run tox (lint)
+        run: tox
+
   tests:
     name: Tests
+    needs: lint-test
+    continue-on-error: ${{ matrix.failure-allowed }}
     strategy:
-      fail-fast: false
-      # Run regular TUF tests on each OS/Python combination, plus special tests
-      # (sslib main) and linters on Linux/Python3.x only.
+      # Run regular TUF tests on each OS/Python combination, plus
+      # sslib-master on Linux/Python3.x only.
       matrix:
+        toxenv: [py]
         python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
         os: [ubuntu-latest, macos-latest, windows-latest]
-        toxenv: [py]
+        failure-allowed: [true]
         include:
           - python-version: 3.x
             os: ubuntu-latest
             toxenv: with-sslib-main
             experimental: true
-          - python-version: 3.x
-            os: ubuntu-latest
-            toxenv: lint
+            failure-allowed: true
 
     env:
       # Set TOXENV env var to tell tox which testenv (see tox.ini) to use
@@ -56,8 +77,6 @@ jobs:
         # A failure to publish coverage results on coveralls should not
         # be a reason for a job failure.
         continue-on-error: true
-        # TODO: Maybe make 'lint' a separate job instead of case handling here
-        if: ${{ env.TOXENV != 'lint' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COVERALLS_FLAG_NAME: ${{ runner.os }} / Python ${{ matrix.python-version }} / ${{ env.TOXENV }}
