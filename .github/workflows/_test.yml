@@ -41,7 +41,7 @@ jobs:
         include:
           - python-version: 3.x
             os: ubuntu-latest
-            toxenv: with-sslib-master
+            toxenv: with-sslib-main
             experimental: true
             failure-allowed: true
 
