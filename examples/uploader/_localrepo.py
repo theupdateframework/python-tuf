@@ -102,7 +102,7 @@ class LocalRepository(Repository):
         data = bytes(targetpath, "utf-8")
         targetfile = TargetFile.from_data(targetpath, data)
         try:
-            with self.edit(role) as delegated:
+            with self.edit_targets(role) as delegated:
                 delegated.targets[targetpath] = targetfile
 
         except Exception as e:  # pylint: disable=broad-except

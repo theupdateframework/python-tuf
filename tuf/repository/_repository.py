@@ -9,7 +9,15 @@ from contextlib import contextmanager, suppress
 from copy import deepcopy
 from typing import Dict, Generator, Optional, Tuple
 
-from tuf.api.metadata import Metadata, MetaFile, Signed
+from tuf.api.metadata import (
+    Metadata,
+    MetaFile,
+    Root,
+    Signed,
+    Snapshot,
+    Targets,
+    Timestamp,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +101,38 @@ class Repository(ABC):
         with suppress(AbortEdit):
             yield md.signed
             self.close(role, md)
+
+    @contextmanager
+    def edit_root(self) -> Generator[Root, None, None]:
+        """Context manager for editing root metadata. See edit()"""
+        with self.edit(Root.type) as root:
+            if not isinstance(root, Root):
+                raise RuntimeError("Unexpected Root type")
+            yield root
+
+    @contextmanager
+    def edit_timestamp(self) -> Generator[Timestamp, None, None]:
+        """Context manager for editing timestamp metadata. See edit()"""
+        with self.edit(Timestamp.type) as timestamp:
+            if not isinstance(timestamp, Timestamp):
+                raise RuntimeError("Unexpected Timestamp type")
+            yield timestamp
+
+    @contextmanager
+    def edit_snapshot(self) -> Generator[Snapshot, None, None]:
+        """Context manager for editing snapshot metadata. See edit()"""
+        with self.edit(Snapshot.type) as snapshot:
+            if not isinstance(snapshot, Snapshot):
+                raise RuntimeError("Unexpected Snapshot type")
+            yield snapshot
+
+    @contextmanager
+    def edit_targets(self, rolename: str) -> Generator[Targets, None, None]:
+        """Context manager for editing targets metadata. See edit()"""
+        with self.edit(rolename) as targets:
+            if not isinstance(targets, Targets):
+                raise RuntimeError(f"Unexpected Targets ({rolename}) type")
+            yield targets
 
     def snapshot(self, force: bool = False) -> Tuple[bool, Dict[str, MetaFile]]:
         """Update snapshot meta information

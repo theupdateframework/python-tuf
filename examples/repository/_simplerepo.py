@@ -71,7 +71,7 @@ class SimpleRepository(Repository):
         )
 
         # setup a basic repository, generate signing key per top-level role
-        with self.edit("root") as root:
+        with self.edit_root() as root:
             for role in ["root", "timestamp", "snapshot", "targets"]:
                 key = keys.generate_ed25519_key()
                 self.signer_cache[role].append(SSlibSigner(key))
@@ -127,7 +127,7 @@ class SimpleRepository(Repository):
         self.target_cache[path] = data
 
         # add a target in the targets metadata
-        with self.edit("targets") as targets:
+        with self.edit_targets("targets") as targets:
             targets.targets[path] = TargetFile.from_data(path, data)
 
         logger.debug("Targets v%d", targets.version)
