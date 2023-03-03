@@ -44,7 +44,6 @@ jobs:
             os: ubuntu-latest
             toxenv: with-sslib-main
             experimental: true
-            failure-allowed: true
 
     env:
       # Set TOXENV env var to tell tox which testenv (see tox.ini) to use
