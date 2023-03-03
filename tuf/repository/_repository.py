@@ -127,7 +127,9 @@ class Repository(ABC):
             yield snapshot
 
     @contextmanager
-    def edit_targets(self, rolename: str) -> Generator[Targets, None, None]:
+    def edit_targets(
+        self, rolename: str = Targets.type
+    ) -> Generator[Targets, None, None]:
         """Context manager for editing targets metadata. See edit()"""
         with self.edit(rolename) as targets:
             if not isinstance(targets, Targets):
@@ -155,7 +157,7 @@ class Repository(ABC):
             raise RuntimeError("Unexpected snapshot type")
         return snapshot
 
-    def targets(self, rolename: str) -> Targets:
+    def targets(self, rolename: str = Targets.type) -> Targets:
         """Read current targets metadata"""
         targets = self.open(rolename).signed
         if not isinstance(targets, Targets):

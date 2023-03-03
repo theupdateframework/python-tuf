@@ -127,7 +127,7 @@ class SimpleRepository(Repository):
         self.target_cache[path] = data
 
         # add a target in the targets metadata
-        with self.edit_targets("targets") as targets:
+        with self.edit_targets() as targets:
             targets.targets[path] = TargetFile.from_data(path, data)
 
         logger.debug("Targets v%d", targets.version)
@@ -145,7 +145,7 @@ class SimpleRepository(Repository):
 
             # add delegation and key
             role = DelegatedRole(rolename, [], 1, True, [f"{rolename}/*"])
-            with self.edit("targets") as targets:
+            with self.edit_targets() as targets:
                 if targets.delegations is None:
                     targets.delegations = Delegations({}, {})
 
