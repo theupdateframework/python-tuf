@@ -133,8 +133,8 @@ class SimpleRepository(Repository):
         logger.debug("Targets v%d", targets.version)
 
         # update snapshot, timestamp
-        self.snapshot()
-        self.timestamp()
+        self.do_snapshot()
+        self.do_timestamp()
 
     def submit_delegation(self, rolename: str, data: bytes) -> bool:
         """Add a delegation to a (offline signed) delegated targets metadata"""
@@ -159,8 +159,8 @@ class SimpleRepository(Repository):
         logger.debug("Targets v%d", targets.version)
 
         # update snapshot, timestamp
-        self.snapshot()
-        self.timestamp()
+        self.do_snapshot()
+        self.do_timestamp()
 
         return True
 
@@ -201,7 +201,7 @@ class SimpleRepository(Repository):
             self.target_cache[targetpath] = bytes(f"{targetpath}", "utf-8")
 
         # update snapshot, timestamp
-        self.snapshot()
-        self.timestamp()
+        self.do_snapshot()
+        self.do_timestamp()
 
         return True

@@ -134,7 +134,9 @@ class Repository(ABC):
                 raise RuntimeError(f"Unexpected Targets ({rolename}) type")
             yield targets
 
-    def snapshot(self, force: bool = False) -> Tuple[bool, Dict[str, MetaFile]]:
+    def do_snapshot(
+        self, force: bool = False
+    ) -> Tuple[bool, Dict[str, MetaFile]]:
         """Update snapshot meta information
 
         Updates the snapshot meta information according to current targets
@@ -182,7 +184,9 @@ class Repository(ABC):
 
         return update_version, removed
 
-    def timestamp(self, force: bool = False) -> Tuple[bool, Optional[MetaFile]]:
+    def do_timestamp(
+        self, force: bool = False
+    ) -> Tuple[bool, Optional[MetaFile]]:
         """Update timestamp meta information
 
         Updates timestamp according to current snapshot state
