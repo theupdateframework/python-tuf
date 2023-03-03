@@ -8,6 +8,11 @@ jobs:
   lint-test:
     name: Lint Test
     runs-on: ubuntu-latest
+
+    env:
+      # Set TOXENV env var to tell tox which testenv (see tox.ini) to use
+      TOXENV: lint
+
     steps:
       - name: Checkout TUF
         uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
@@ -23,7 +28,7 @@ jobs:
         run: |
           python3 -m pip install --constraint requirements/build.txt tox coveralls
 
-      - name: Run tox (lint)
+      - name: Run tox (${{ env.TOXENV }})
         run: tox
 
   tests:
