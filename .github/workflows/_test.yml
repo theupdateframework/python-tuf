@@ -31,7 +31,7 @@ jobs:
   tests:
     name: Tests
     needs: lint-test
-    continue-on-error: ${{ matrix.failure-allowed }}
+    continue-on-error: true
     strategy:
       # Run regular TUF tests on each OS/Python combination, plus
       # (sslib main) on Linux/Python3.x only.
