@@ -37,7 +37,7 @@ jobs:
     continue-on-error: ${{ matrix.failure-allowed }}
     strategy:
       # Run regular TUF tests on each OS/Python combination, plus
-      # sslib-master on Linux/Python3.x only.
+      # (sslib main) on Linux/Python3.x only.
       matrix:
         toxenv: [py]
         python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
