@@ -9,9 +9,6 @@ jobs:
     name: Lint Test
     runs-on: ubuntu-latest
 
-    env:
-      # Set TOXENV env var to tell tox which testenv (see tox.ini) to use
-      TOXENV: lint
 
     steps:
       - name: Checkout TUF
