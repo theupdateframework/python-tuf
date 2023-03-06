@@ -65,8 +65,9 @@ class Repository(ABC):
     def targets_infos(self) -> Dict[str, MetaFile]:
         """Returns the MetaFiles for current targets metadatas
 
-        This property is used by snapshot() to update Snapshot.meta: Repository
-        implementations should override this property to enable snapshot().
+        This property is used by do_snapshot() to update Snapshot.meta:
+        Repository implementations should override this property to enable
+        do_snapshot().
 
         Note that there is a difference between this return value and
         Snapshot.meta: This dictionary reflects the targets metadata that
@@ -79,9 +80,9 @@ class Repository(ABC):
     def snapshot_info(self) -> MetaFile:
         """Returns the MetaFile for current snapshot metadata
 
-        This property is used by timestamp() to update Timestamp.meta:
+        This property is used by do_timestamp() to update Timestamp.meta:
         Repository implementations should override this property to enable
-        timestamp().
+        do_timestamp().
         """
         raise NotImplementedError
 
@@ -187,7 +188,7 @@ class Repository(ABC):
         update_version = force
         removed: Dict[str, MetaFile] = {}
 
-        with self.edit("snapshot") as snapshot:
+        with self.edit_snapshot() as snapshot:
             for keyname, new_meta in self.targets_infos.items():
                 if keyname not in snapshot.meta:
                     update_version = True
@@ -203,11 +204,11 @@ class Repository(ABC):
                     removed[keyname] = old_meta
 
             if not update_version:
-                # prevent edit() from storing a new snapshot version
+                # prevent edit_snapshot() from storing a new version
                 raise AbortEdit("Skip snapshot: No targets version changes")
 
         if not update_version:
-            # this is reachable as edit() handles AbortEdit
+            # this is reachable as edit_snapshot() handles AbortEdit
             logger.debug("Snapshot update not needed")  # type: ignore[unreachable]
         else:
             logger.debug("Snapshot v%d", snapshot.version)
@@ -227,7 +228,7 @@ class Repository(ABC):
         """
         update_version = force
         removed = None
-        with self.edit("timestamp") as timestamp:
+        with self.edit_timestamp() as timestamp:
             if self.snapshot_info.version < timestamp.snapshot_meta.version:
                 raise ValueError("snapshot version rollback")
 
@@ -240,7 +241,7 @@ class Repository(ABC):
                 raise AbortEdit("Skip timestamp: No snapshot version changes")
 
         if not update_version:
-            # this is reachable as edit() handles AbortEdit
+            # this is reachable as edit_timestamp() handles AbortEdit
             logger.debug("Timestamp update not needed")  # type: ignore[unreachable]
         else:
             logger.debug("Timestamp v%d", timestamp.version)
