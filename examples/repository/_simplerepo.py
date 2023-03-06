@@ -148,7 +148,8 @@ class SimpleRepository(Repository):
             with self.edit_targets() as targets:
                 if targets.delegations is None:
                     targets.delegations = Delegations({}, {})
-
+                if targets.delegations.roles is None:
+                    targets.delegations.roles = {}
                 targets.delegations.roles[rolename] = role
                 targets.add_key(key, rolename)
 
