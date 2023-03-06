@@ -15,16 +15,14 @@ supply chain attacks and provides resilience to compromise. This repository is a
 version 1.0 of the [TUF
 specification](https://theupdateframework.github.io/specification/latest/).
 
-Python-TUF provides two APIs:
+Python-TUF provides the following APIs:
   * [`tuf.api.metadata`](https://theupdateframework.readthedocs.io/en/latest/api/tuf.api.html),
     a "low-level" API, designed to provide easy and safe access to TUF
     metadata and to handle (de)serialization from/to files.
   * [`tuf.ngclient`](https://theupdateframework.readthedocs.io/en/latest/api/tuf.ngclient.html),
     a client implementation built on top of the metadata API.
-
-High-level support for implementing
-[repository operations](https://theupdateframework.github.io/specification/latest/#repository-operations)
-is planned but not yet provided: see [ADR 10](https://github.com/theupdateframework/python-tuf/blob/develop/docs/adr/0010-repository-library-design.md).
+  * `tuf.repository`, a repository library also built on top of the metadata
+    API. This module is currently not considered part of python-tuf stable API.
 
 The reference implementation strives to be a readable guide and demonstration
 for those working on implementing TUF in their own languages, environments, or
