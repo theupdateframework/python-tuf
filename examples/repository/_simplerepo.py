@@ -71,7 +71,7 @@ class SimpleRepository(Repository):
         )
 
         # setup a basic repository, generate signing key per top-level role
-        with self.edit("root") as root:
+        with self.edit_root() as root:
             for role in ["root", "timestamp", "snapshot", "targets"]:
                 key = keys.generate_ed25519_key()
                 self.signer_cache[role].append(SSlibSigner(key))
@@ -127,14 +127,14 @@ class SimpleRepository(Repository):
         self.target_cache[path] = data
 
         # add a target in the targets metadata
-        with self.edit("targets") as targets:
+        with self.edit_targets() as targets:
             targets.targets[path] = TargetFile.from_data(path, data)
 
         logger.debug("Targets v%d", targets.version)
 
         # update snapshot, timestamp
-        self.snapshot()
-        self.timestamp()
+        self.do_snapshot()
+        self.do_timestamp()
 
     def submit_delegation(self, rolename: str, data: bytes) -> bool:
         """Add a delegation to a (offline signed) delegated targets metadata"""
@@ -145,10 +145,11 @@ class SimpleRepository(Repository):
 
             # add delegation and key
             role = DelegatedRole(rolename, [], 1, True, [f"{rolename}/*"])
-            with self.edit("targets") as targets:
+            with self.edit_targets() as targets:
                 if targets.delegations is None:
                     targets.delegations = Delegations({}, {})
-
+                if targets.delegations.roles is None:
+                    targets.delegations.roles = {}
                 targets.delegations.roles[rolename] = role
                 targets.add_key(key, rolename)
 
@@ -159,8 +160,8 @@ class SimpleRepository(Repository):
         logger.debug("Targets v%d", targets.version)
 
         # update snapshot, timestamp
-        self.snapshot()
-        self.timestamp()
+        self.do_snapshot()
+        self.do_timestamp()
 
         return True
 
@@ -176,15 +177,10 @@ class SimpleRepository(Repository):
                 if not targetpath.startswith(f"{role}/"):
                     raise ValueError(f"targets allowed under {role}/ only")
 
-            targets_md = self.role_cache["targets"][-1]
+            targets_md = self.open("targets")
             targets_md.verify_delegate(role, md)
-            if role in self.role_cache:
-                current_md = self.role_cache[role][-1]
-                current_ver = current_md.signed.version
-            else:
-                current_ver = 0
 
-            if md.signed.version != current_ver + 1:
+            if md.signed.version != self.targets(role).version + 1:
                 raise ValueError("Invalid version {md.signed.version}")
 
         except (RepositoryError, ValueError) as e:
@@ -201,7 +197,7 @@ class SimpleRepository(Repository):
             self.target_cache[targetpath] = bytes(f"{targetpath}", "utf-8")
 
         # update snapshot, timestamp
-        self.snapshot()
-        self.timestamp()
+        self.do_snapshot()
+        self.do_timestamp()
 
         return True

@@ -9,7 +9,15 @@ from contextlib import contextmanager, suppress
 from copy import deepcopy
 from typing import Dict, Generator, Optional, Tuple
 
-from tuf.api.metadata import Metadata, MetaFile, Signed
+from tuf.api.metadata import (
+    Metadata,
+    MetaFile,
+    Root,
+    Signed,
+    Snapshot,
+    Targets,
+    Timestamp,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -57,8 +65,9 @@ class Repository(ABC):
     def targets_infos(self) -> Dict[str, MetaFile]:
         """Returns the MetaFiles for current targets metadatas
 
-        This property is used by snapshot() to update Snapshot.meta: Repository
-        implementations should override this property to enable snapshot().
+        This property is used by do_snapshot() to update Snapshot.meta:
+        Repository implementations should override this property to enable
+        do_snapshot().
 
         Note that there is a difference between this return value and
         Snapshot.meta: This dictionary reflects the targets metadata that
@@ -71,9 +80,9 @@ class Repository(ABC):
     def snapshot_info(self) -> MetaFile:
         """Returns the MetaFile for current snapshot metadata
 
-        This property is used by timestamp() to update Timestamp.meta:
+        This property is used by do_timestamp() to update Timestamp.meta:
         Repository implementations should override this property to enable
-        timestamp().
+        do_timestamp().
         """
         raise NotImplementedError
 
@@ -94,7 +103,71 @@ class Repository(ABC):
             yield md.signed
             self.close(role, md)
 
-    def snapshot(self, force: bool = False) -> Tuple[bool, Dict[str, MetaFile]]:
+    @contextmanager
+    def edit_root(self) -> Generator[Root, None, None]:
+        """Context manager for editing root metadata. See edit()"""
+        with self.edit(Root.type) as root:
+            if not isinstance(root, Root):
+                raise RuntimeError("Unexpected root type")
+            yield root
+
+    @contextmanager
+    def edit_timestamp(self) -> Generator[Timestamp, None, None]:
+        """Context manager for editing timestamp metadata. See edit()"""
+        with self.edit(Timestamp.type) as timestamp:
+            if not isinstance(timestamp, Timestamp):
+                raise RuntimeError("Unexpected timestamp type")
+            yield timestamp
+
+    @contextmanager
+    def edit_snapshot(self) -> Generator[Snapshot, None, None]:
+        """Context manager for editing snapshot metadata. See edit()"""
+        with self.edit(Snapshot.type) as snapshot:
+            if not isinstance(snapshot, Snapshot):
+                raise RuntimeError("Unexpected snapshot type")
+            yield snapshot
+
+    @contextmanager
+    def edit_targets(
+        self, rolename: str = Targets.type
+    ) -> Generator[Targets, None, None]:
+        """Context manager for editing targets metadata. See edit()"""
+        with self.edit(rolename) as targets:
+            if not isinstance(targets, Targets):
+                raise RuntimeError(f"Unexpected targets ({rolename}) type")
+            yield targets
+
+    def root(self) -> Root:
+        """Read current root metadata"""
+        root = self.open(Root.type).signed
+        if not isinstance(root, Root):
+            raise RuntimeError("Unexpected root type")
+        return root
+
+    def timestamp(self) -> Timestamp:
+        """Read current timestamp metadata"""
+        timestamp = self.open(Timestamp.type).signed
+        if not isinstance(timestamp, Timestamp):
+            raise RuntimeError("Unexpected timestamp type")
+        return timestamp
+
+    def snapshot(self) -> Snapshot:
+        """Read current snapshot metadata"""
+        snapshot = self.open(Snapshot.type).signed
+        if not isinstance(snapshot, Snapshot):
+            raise RuntimeError("Unexpected snapshot type")
+        return snapshot
+
+    def targets(self, rolename: str = Targets.type) -> Targets:
+        """Read current targets metadata"""
+        targets = self.open(rolename).signed
+        if not isinstance(targets, Targets):
+            raise RuntimeError("Unexpected targets type")
+        return targets
+
+    def do_snapshot(
+        self, force: bool = False
+    ) -> Tuple[bool, Dict[str, MetaFile]]:
         """Update snapshot meta information
 
         Updates the snapshot meta information according to current targets
@@ -115,7 +188,7 @@ class Repository(ABC):
         update_version = force
         removed: Dict[str, MetaFile] = {}
 
-        with self.edit("snapshot") as snapshot:
+        with self.edit_snapshot() as snapshot:
             for keyname, new_meta in self.targets_infos.items():
                 if keyname not in snapshot.meta:
                     update_version = True
@@ -131,18 +204,20 @@ class Repository(ABC):
                     removed[keyname] = old_meta
 
             if not update_version:
-                # prevent edit() from storing a new snapshot version
+                # prevent edit_snapshot() from storing a new version
                 raise AbortEdit("Skip snapshot: No targets version changes")
 
         if not update_version:
-            # this is reachable as edit() handles AbortEdit
+            # this is reachable as edit_snapshot() handles AbortEdit
             logger.debug("Snapshot update not needed")  # type: ignore[unreachable]
         else:
             logger.debug("Snapshot v%d", snapshot.version)
 
         return update_version, removed
 
-    def timestamp(self, force: bool = False) -> Tuple[bool, Optional[MetaFile]]:
+    def do_timestamp(
+        self, force: bool = False
+    ) -> Tuple[bool, Optional[MetaFile]]:
         """Update timestamp meta information
 
         Updates timestamp according to current snapshot state
@@ -153,7 +228,7 @@ class Repository(ABC):
         """
         update_version = force
         removed = None
-        with self.edit("timestamp") as timestamp:
+        with self.edit_timestamp() as timestamp:
             if self.snapshot_info.version < timestamp.snapshot_meta.version:
                 raise ValueError("snapshot version rollback")
 
@@ -166,7 +241,7 @@ class Repository(ABC):
                 raise AbortEdit("Skip timestamp: No snapshot version changes")
 
         if not update_version:
-            # this is reachable as edit() handles AbortEdit
+            # this is reachable as edit_timestamp() handles AbortEdit
             logger.debug("Timestamp update not needed")  # type: ignore[unreachable]
         else:
             logger.debug("Timestamp v%d", timestamp.version)
