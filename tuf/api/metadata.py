@@ -33,7 +33,6 @@ import fnmatch
 import io
 import logging
 import tempfile
-import pathlib
 from datetime import datetime
 from typing import (
     IO,
@@ -1740,28 +1739,13 @@ class TargetFile(BaseFile):
 
     def get_prefixed_paths(self) -> List[str]:
         """
-        Returns hash-prefixed paths for the given target file path. Empty result in the case of an invalid path.
-
-        Expects self.path to be a URL path fragment, not a filesystem path.
+        Return hash-prefixed URL path fragments for the target file path.
         """
         paths = []
-        try:
-            if not self.path:
-                raise ValueError
-            elif "/" not in self.path:
-                parent, name = None, self.path
-            else:
-                parent, name = self.path.rsplit("/", 1)
-                if name == "": 
-                    raise ValueError
-        except ValueError:
-            return paths
+        parent, sep, name = self.path.rpartition("/")
+        for hash_value in self.hashes.values():
+            paths.append(f"{parent}{sep}{hash_value}.{name}")
 
-        for hash in self.hashes.values():
-            path = f"{hash}.{name}"
-            if parent is not None:
-                path = f"{parent}/{path}"
-            paths.append(path)
         return paths
 
 
