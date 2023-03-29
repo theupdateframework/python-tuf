@@ -725,6 +725,34 @@ class TestMetadata(unittest.TestCase):
         targetfile_from_data = TargetFile.from_data(target_file_path, data)
         targetfile_from_data.verify_length_and_hashes(data)
 
+    def test_targetfile_get_prefixed_paths(self) -> None:
+        target = TargetFile(100, {"sha256": "abc", "md5": "def"}, "a/b/f.ext")
+        self.assertEqual(
+            target.get_prefixed_paths(), ["a/b/abc.f.ext", "a/b/def.f.ext"]
+        )
+
+        target = TargetFile(100, {"sha256": "abc", "md5": "def"}, "")
+        self.assertEqual(target.get_prefixed_paths(), ["abc.", "def."])
+
+        target = TargetFile(100, {"sha256": "abc", "md5": "def"}, "a/b/")
+        self.assertEqual(target.get_prefixed_paths(), ["a/b/abc.", "a/b/def."])
+
+        target = TargetFile(100, {"sha256": "abc", "md5": "def"}, "f.ext")
+        self.assertEqual(
+            target.get_prefixed_paths(), ["abc.f.ext", "def.f.ext"]
+        )
+
+        target = TargetFile(100, {"sha256": "abc", "md5": "def"}, "a/b/.ext")
+        self.assertEqual(
+            target.get_prefixed_paths(), ["a/b/abc..ext", "a/b/def..ext"]
+        )
+
+        target = TargetFile(100, {"sha256": "abc"}, "/root/file.ext")
+        self.assertEqual(target.get_prefixed_paths(), ["/root/abc.file.ext"])
+
+        target = TargetFile(100, {"sha256": "abc"}, "/")
+        self.assertEqual(target.get_prefixed_paths(), ["/abc."])
+
     def test_is_delegated_role(self) -> None:
         # test path matches
         # see more extensive tests in test_is_target_in_pathpattern()

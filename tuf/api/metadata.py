@@ -1737,6 +1737,17 @@ class TargetFile(BaseFile):
         self._verify_length(data, self.length)
         self._verify_hashes(data, self.hashes)
 
+    def get_prefixed_paths(self) -> List[str]:
+        """
+        Return hash-prefixed URL path fragments for the target file path.
+        """
+        paths = []
+        parent, sep, name = self.path.rpartition("/")
+        for hash_value in self.hashes.values():
+            paths.append(f"{parent}{sep}{hash_value}.{name}")
+
+        return paths
+
 
 class Targets(Signed):
     """A container for the signed part of targets metadata.
