@@ -78,13 +78,14 @@ class TrustedMetadataSet(abc.Mapping):
     to update the metadata with the caller making decisions on what is updated.
     """
 
-    def __init__(self, root_data: bytes):
+    def __init__(self, root_data: bytes, is_offline: bool = False):
         """Initialize ``TrustedMetadataSet`` by loading trusted root metadata.
 
         Args:
             root_data: Trusted root metadata as bytes. Note that this metadata
                 will only be verified by itself: it is the source of trust for
                 all metadata in the ``TrustedMetadataSet``
+            is_offline: Defines whether the client wants to be offline or not.
 
         Raises:
             RepositoryError: Metadata failed to load or verify. The actual
@@ -92,6 +93,7 @@ class TrustedMetadataSet(abc.Mapping):
         """
         self._trusted_set: Dict[str, Metadata] = {}
         self.reference_time = datetime.datetime.utcnow()
+        self.offline = is_offline
 
         # Load and validate the local root metadata. Valid initial trusted root
         # metadata is required
@@ -203,7 +205,10 @@ class TrustedMetadataSet(abc.Mapping):
             raise RuntimeError("Cannot update timestamp after snapshot")
 
         # client workflow 5.3.10: Make sure final root is not expired.
-        if self.root.signed.is_expired(self.reference_time):
+        if (
+            self.root.signed.is_expired(self.reference_time)
+            and not self.offline
+        ):
             raise exceptions.ExpiredMetadataError("Final root.json is expired")
         # No need to check for 5.3.11 (fast forward attack recovery):
         # timestamp/snapshot can not yet be loaded at this point
@@ -246,7 +251,7 @@ class TrustedMetadataSet(abc.Mapping):
         logger.debug("Updated timestamp v%d", new_timestamp.signed.version)
 
         # timestamp is loaded: raise if it is not valid _final_ timestamp
-        self._check_final_timestamp()
+        self._check_final_timestamp() if not self.offline else None
 
         return new_timestamp
 
@@ -257,7 +262,9 @@ class TrustedMetadataSet(abc.Mapping):
             raise exceptions.ExpiredMetadataError("timestamp.json is expired")
 
     def update_snapshot(
-        self, data: bytes, trusted: Optional[bool] = False
+        self,
+        data: bytes,
+        trusted: Optional[bool] = False,
     ) -> Metadata[Snapshot]:
         """Verify and load ``data`` as new snapshot metadata.
 
@@ -294,7 +301,7 @@ class TrustedMetadataSet(abc.Mapping):
         logger.debug("Updating snapshot")
 
         # Snapshot cannot be loaded if final timestamp is expired
-        self._check_final_timestamp()
+        self._check_final_timestamp() if not self.offline else None
 
         snapshot_meta = self.timestamp.signed.snapshot_meta
 
@@ -347,7 +354,10 @@ class TrustedMetadataSet(abc.Mapping):
     def _check_final_snapshot(self) -> None:
         """Raise if snapshot is expired or meta version does not match."""
 
-        if self.snapshot.signed.is_expired(self.reference_time):
+        if (
+            self.snapshot.signed.is_expired(self.reference_time)
+            and not self.offline
+        ):
             raise exceptions.ExpiredMetadataError("snapshot.json is expired")
         snapshot_meta = self.timestamp.signed.snapshot_meta
         if self.snapshot.signed.version != snapshot_meta.version:
@@ -426,7 +436,10 @@ class TrustedMetadataSet(abc.Mapping):
                 f"Expected {role_name} v{meta.version}, got v{version}."
             )
 
-        if new_delegate.signed.is_expired(self.reference_time):
+        if (
+            new_delegate.signed.is_expired(self.reference_time)
+            and not self.offline
+        ):
             raise exceptions.ExpiredMetadataError(f"New {role_name} is expired")
 
         self._trusted_set[role_name] = new_delegate

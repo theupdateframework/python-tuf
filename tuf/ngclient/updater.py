@@ -101,9 +101,11 @@ class Updater:
 
         # Read trusted local root metadata
         data = self._load_local_metadata(Root.type)
-        self._trusted_set = trusted_metadata_set.TrustedMetadataSet(data)
         self._fetcher = fetcher or requests_fetcher.RequestsFetcher()
         self.config = config or UpdaterConfig()
+        self._trusted_set = trusted_metadata_set.TrustedMetadataSet(
+            data, self.config.offline
+        )
 
     def refresh(self) -> None:
         """Refresh top-level metadata.
@@ -129,6 +131,17 @@ class Updater:
             DownloadError: Download of a metadata file failed in some way
         """
 
+        if self.config.offline:
+            # Try loading only local data
+            data = self._load_local_metadata(Timestamp.type)
+            self._trusted_set.update_timestamp(data)
+            data = self._load_local_metadata(Snapshot.type)
+            self._trusted_set.update_snapshot(data, trusted=True)
+            data = self._load_local_metadata(Targets.type)
+            self._trusted_set.update_delegated_targets(
+                data, Targets.type, Root.type
+            )
+            return
         self._load_root()
         self._load_timestamp()
         self._load_snapshot()

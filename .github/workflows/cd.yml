@@ -18,12 +18,12 @@ jobs:
     needs: test
     steps:
       - name: Checkout release tag
-        uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
 
       - name: Set up Python
-        uses: actions/setup-python@d27e3f3d7c64b4bbf8e4abfb9b63b83e846e0435
+        uses: actions/setup-python@57ded4d7d5e986d7296eab16560982c6dd7c923b
         with:
           python-version: '3.x'
 
@@ -59,7 +59,7 @@ jobs:
 
       - id: gh-release
         name: Publish GitHub release draft
-        uses: actions/github-script@98814c53be79b1d30f795b907e553d8679345975
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410
         with:
           script: |
             fs = require('fs')
@@ -102,13 +102,13 @@ jobs:
       - name: Publish binary wheel and source tarball on PyPI
         # Only attempt pypi upload in upstream repository
         if: github.repository == 'theupdateframework/python-tuf'
-        uses: pypa/gh-action-pypi-publish@48b317d84d5f59668bb13be49d1697e36b3ad009
+        uses: pypa/gh-action-pypi-publish@0bf742be3ebe032c25dd15117957dc15d0cfc38d
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
 
       - name: Finalize GitHub release
-        uses: actions/github-script@98814c53be79b1d30f795b907e553d8679345975
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410
         with:
           script: |
             github.rest.repos.updateRelease({

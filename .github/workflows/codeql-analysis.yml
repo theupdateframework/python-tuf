@@ -22,12 +22,12 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3
+      uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@04df1262e6247151b5ac09cd2c303ac36ad3f62b
+      uses: github/codeql-action/init@f3feb00acb00f31a6f60280e6ace9ca31d91c76a
       with:
         languages: 'python'
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@04df1262e6247151b5ac09cd2c303ac36ad3f62b
+      uses: github/codeql-action/analyze@f3feb00acb00f31a6f60280e6ace9ca31d91c76a

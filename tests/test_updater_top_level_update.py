@@ -740,6 +740,79 @@ class TestRefresh(unittest.TestCase):
         self.assertListEqual(self.sim.fetch_tracker.metadata, expected_calls)
 
     @patch.object(datetime, "datetime", wraps=datetime.datetime)
+    def test_refresh_with_offline(self, mock_time: Mock) -> None:
+        # make v1 metadata expire a little earlier
+        self.sim.timestamp.expires = self.sim.safe_expiry - datetime.timedelta(
+            days=7
+        )
+        self.sim.targets.expires = self.sim.safe_expiry - datetime.timedelta(
+            days=5
+        )
+        # offline is not set and there is no metadata
+        self.sim.fetch_tracker.metadata.clear()
+        with patch("datetime.datetime", mock_time):
+            updater = self._init_updater()
+            updater.config.offline = False
+            try:
+                updater.refresh()
+            except ExpiredMetadataError:
+                self.assertTrue(True)
+
+        # Make sure local metadata is available
+        updater = self._init_updater()
+        updater.refresh()
+        updater.config.offline = False
+
+        # Clean up fetch tracker data
+        self.sim.fetch_tracker.metadata.clear()
+        # Create timestamp v2 in repository
+        self.sim.timestamp.version += 1
+        self.sim.timestamp.expires = self.sim.safe_expiry
+
+        # Offline flag is set and local metadata is valid (should continue)
+        updater = self._init_updater()
+        updater.config.offline = True
+        updater.refresh()
+        self.assertListEqual(self.sim.fetch_tracker.metadata, [])
+        # Clean up fetch tracker data
+        self.sim.fetch_tracker.metadata.clear()
+        # create targets v2 in repository
+        self.sim.targets.version += 1
+        self.sim.targets.expires = self.sim.safe_expiry
+        self.sim.update_snapshot()
+
+        # Offline flag is set and local metadata is expired. New timestamp
+        # is available but should raise MetaDataError.
+        mock_time.utcnow.return_value = (
+            self.sim.safe_expiry - datetime.timedelta(days=6)
+        )
+
+        with patch("datetime.datetime", mock_time):
+            updater = self._init_updater()
+            updater.config.offline = True
+            try:
+                updater.refresh()
+            except ExpiredMetadataError:
+                self.assertFalse(False)
+
+        # Clean up fetch tracker data
+        self.sim.fetch_tracker.metadata.clear()
+
+        # Offline flag is not set (vanilla refresh)
+        with patch("datetime.datetime", mock_time):
+            updater = self._init_updater()
+            updater.config.offline = False
+            updater.refresh()
+
+        expected_calls = [
+            ("root", 2),
+            ("timestamp", None),
+            ("snapshot", 2),
+            ("targets", 2),
+        ]
+        self.assertListEqual(self.sim.fetch_tracker.metadata, expected_calls)
+
+    @patch.object(datetime, "datetime", wraps=datetime.datetime)
     def test_expired_metadata(self, mock_time: Mock) -> None:
         """Verifies that expired local timestamp/snapshot can be used for
         updating from remote.
