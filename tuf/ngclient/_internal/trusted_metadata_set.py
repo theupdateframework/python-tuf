@@ -161,7 +161,7 @@ class TrustedMetadataSet(abc.Mapping):
             )
 
         # Verify that new root is signed by trusted root
-        self.root.verify_delegate(Root.type, new_root)
+        self.root.signed.verify_delegate(Root.type, new_root)
 
         if new_root.signed.version != self.root.signed.version + 1:
             raise exceptions.BadVersionNumberError(
@@ -170,7 +170,7 @@ class TrustedMetadataSet(abc.Mapping):
             )
 
         # Verify that new root is signed by itself
-        new_root.verify_delegate(Root.type, new_root)
+        new_root.signed.verify_delegate(Root.type, new_root)
 
         self._trusted_set[Root.type] = new_root
         logger.debug("Updated root v%d", new_root.signed.version)
@@ -215,7 +215,7 @@ class TrustedMetadataSet(abc.Mapping):
                 f"Expected 'timestamp', got '{new_timestamp.signed.type}'"
             )
 
-        self.root.verify_delegate(Timestamp.type, new_timestamp)
+        self.root.signed.verify_delegate(Timestamp.type, new_timestamp)
 
         # If an existing trusted timestamp is updated,
         # check for a rollback attack
@@ -310,7 +310,7 @@ class TrustedMetadataSet(abc.Mapping):
                 f"Expected 'snapshot', got '{new_snapshot.signed.type}'"
             )
 
-        self.root.verify_delegate(Snapshot.type, new_snapshot)
+        self.root.signed.verify_delegate(Snapshot.type, new_snapshot)
 
         # version not checked against meta version to allow old snapshot to be
         # used in rollback protection: it is checked when targets is updated
@@ -418,7 +418,7 @@ class TrustedMetadataSet(abc.Mapping):
                 f"Expected 'targets', got '{new_delegate.signed.type}'"
             )
 
-        delegator.verify_delegate(role_name, new_delegate)
+        delegator.signed.verify_delegate(role_name, new_delegate)
 
         version = new_delegate.signed.version
         if version != meta.version:
@@ -447,7 +447,7 @@ class TrustedMetadataSet(abc.Mapping):
                 f"Expected 'root', got '{new_root.signed.type}'"
             )
 
-        new_root.verify_delegate(Root.type, new_root)
+        new_root.signed.verify_delegate(Root.type, new_root)
 
         self._trusted_set[Root.type] = new_root
         logger.debug("Loaded trusted root v%d", new_root.signed.version)

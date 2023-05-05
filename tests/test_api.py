@@ -345,44 +345,83 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(ValueError):
             role2.verify_delegate("role1", role1)
 
+    # pylint: disable=too-many-locals,too-many-statements
+    def test_signed_verify_delegate(self) -> None:
+        root_path = os.path.join(self.repo_dir, "metadata", "root.json")
+        root_md = Metadata[Root].from_file(root_path)
+        root = root_md.signed
+        snapshot_path = os.path.join(self.repo_dir, "metadata", "snapshot.json")
+        snapshot_md = Metadata[Snapshot].from_file(snapshot_path)
+        snapshot = snapshot_md.signed
+        targets_path = os.path.join(self.repo_dir, "metadata", "targets.json")
+        targets_md = Metadata[Targets].from_file(targets_path)
+        targets = targets_md.signed
+        role1_path = os.path.join(self.repo_dir, "metadata", "role1.json")
+        role1_md = Metadata[Targets].from_file(role1_path)
+        role1 = role1_md.signed
+        role2_path = os.path.join(self.repo_dir, "metadata", "role2.json")
+        role2_md = Metadata[Targets].from_file(role2_path)
+        role2 = role2_md.signed
+
+        # test the expected delegation tree
+        root.verify_delegate(Root.type, root_md)
+        root.verify_delegate(Snapshot.type, snapshot_md)
+        root.verify_delegate(Targets.type, targets_md)
+        targets.verify_delegate("role1", role1_md)
+        role1.verify_delegate("role2", role2_md)
+
+        # only root and targets can verify delegates
+        with self.assertRaises(AttributeError):
+            snapshot.verify_delegate(Snapshot.type, snapshot_md)
+        # verify fails for roles that are not delegated by delegator
+        with self.assertRaises(ValueError):
+            root.verify_delegate("role1", role1_md)
+        with self.assertRaises(ValueError):
+            targets.verify_delegate(Targets.type, targets_md)
+        # verify fails when delegator has no delegations
+        with self.assertRaises(ValueError):
+            role2.verify_delegate("role1", role1_md)
+
         # verify fails when delegate content is modified
-        expires = snapshot.signed.expires
-        snapshot.signed.expires = expires + timedelta(days=1)
+        expires = snapshot.expires
+        snapshot.expires = expires + timedelta(days=1)
         with self.assertRaises(exceptions.UnsignedMetadataError):
-            root.verify_delegate(Snapshot.type, snapshot)
-        snapshot.signed.expires = expires
+            root.verify_delegate(Snapshot.type, snapshot_md)
+        snapshot.expires = expires
 
         # verify fails if sslib verify fails with VerificationError
         # (in this case signature is malformed)
-        keyid = next(iter(root.signed.roles[Snapshot.type].keyids))
-        good_sig = snapshot.signatures[keyid].signature
-        snapshot.signatures[keyid].signature = "foo"
+        keyid = next(iter(root.roles[Snapshot.type].keyids))
+        good_sig = snapshot_md.signatures[keyid].signature
+        snapshot_md.signatures[keyid].signature = "foo"
         with self.assertRaises(exceptions.UnsignedMetadataError):
-            root.verify_delegate(Snapshot.type, snapshot)
-        snapshot.signatures[keyid].signature = good_sig
+            root.verify_delegate(Snapshot.type, snapshot_md)
+        snapshot_md.signatures[keyid].signature = good_sig
 
         # verify fails if roles keys do not sign the metadata
         with self.assertRaises(exceptions.UnsignedMetadataError):
-            root.verify_delegate(Timestamp.type, snapshot)
+            root.verify_delegate(Timestamp.type, snapshot_md)
 
         # Add a key to snapshot role, make sure the new sig fails to verify
-        ts_keyid = next(iter(root.signed.roles[Timestamp.type].keyids))
-        root.signed.add_key(root.signed.keys[ts_keyid], Snapshot.type)
-        snapshot.signatures[ts_keyid] = Signature(ts_keyid, "ff" * 64)
+        ts_keyid = next(iter(root.roles[Timestamp.type].keyids))
+        root.add_key(root.keys[ts_keyid], Snapshot.type)
+        snapshot_md.signatures[ts_keyid] = Signature(ts_keyid, "ff" * 64)
 
         # verify succeeds if threshold is reached even if some signatures
         # fail to verify
-        root.verify_delegate(Snapshot.type, snapshot)
+        root.verify_delegate(Snapshot.type, snapshot_md)
 
         # verify fails if threshold of signatures is not reached
-        root.signed.roles[Snapshot.type].threshold = 2
+        root.roles[Snapshot.type].threshold = 2
         with self.assertRaises(exceptions.UnsignedMetadataError):
-            root.verify_delegate(Snapshot.type, snapshot)
+            root.verify_delegate(Snapshot.type, snapshot_md)
 
         # verify succeeds when we correct the new signature and reach the
         # threshold of 2 keys
-        snapshot.sign(SSlibSigner(self.keystore[Timestamp.type]), append=True)
-        root.verify_delegate(Snapshot.type, snapshot)
+        snapshot_md.sign(
+            SSlibSigner(self.keystore[Timestamp.type]), append=True
+        )
+        root.verify_delegate(Snapshot.type, snapshot_md)
 
     def test_key_class(self) -> None:
         # Test if from_securesystemslib_key removes the private key from keyval

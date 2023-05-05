@@ -177,8 +177,7 @@ class SimpleRepository(Repository):
                 if not targetpath.startswith(f"{role}/"):
                     raise ValueError(f"targets allowed under {role}/ only")
 
-            targets_md = self.open("targets")
-            targets_md.verify_delegate(role, md)
+            self.targets().verify_delegate(role, md)
 
             if md.signed.version != self.targets(role).version + 1:
                 raise ValueError("Invalid version {md.signed.version}")
