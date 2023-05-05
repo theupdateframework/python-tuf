@@ -395,56 +395,16 @@ class Metadata(Generic[T]):
         """Verify that ``delegated_metadata`` is signed with the required
         threshold of keys for the delegated role ``delegated_role``.
 
-        Args:
-            delegated_role: Name of the delegated role to verify
-            delegated_metadata: ``Metadata`` object for the delegated role
-            signed_serializer: Serializer used for delegate
-                serialization. Default is ``CanonicalJSONSerializer``.
-
-        Raises:
-            UnsignedMetadataError: ``delegated_role`` was not signed with
-                required threshold of keys for ``role_name``.
-            ValueError: no delegation was found for ``delegated_role``.
-            TypeError: called this function on non-delegating metadata class.
+        .. deprecated:: 2.2.0
+           Please use ``Root.verify_delegate()`` or ``Targets.verify_delegate()``.
         """
 
         if self.signed.type not in ["root", "targets"]:
             raise TypeError("Call is valid only on delegator metadata")
 
-        if signed_serializer is None:
-            # pylint: disable=import-outside-toplevel
-            from tuf.api.serialization.json import CanonicalJSONSerializer
-
-            signed_serializer = CanonicalJSONSerializer()
-
-        data = signed_serializer.serialize(delegated_metadata.signed)
-        role = self.signed.get_delegated_role(delegated_role)
-
-        # verify that delegated_metadata is signed by threshold of unique keys
-        signing_keys = set()
-        for keyid in role.keyids:
-            try:
-                key = self.signed.get_key(keyid)
-            except ValueError:
-                logger.info("No key for keyid %s", keyid)
-                continue
-
-            if keyid not in delegated_metadata.signatures:
-                logger.info("No signature for keyid %s", keyid)
-                continue
-
-            sig = delegated_metadata.signatures[keyid]
-            try:
-                key.verify_signature(sig, data)
-                signing_keys.add(keyid)
-            except sslib_exceptions.UnverifiedSignatureError:
-                logger.info("Key %s failed to verify %s", keyid, delegated_role)
-
-        if len(signing_keys) < role.threshold:
-            raise UnsignedMetadataError(
-                f"{delegated_role} was signed by {len(signing_keys)}/"
-                f"{role.threshold} keys",
-            )
+        self.signed.verify_delegate(
+            delegated_role, delegated_metadata, signed_serializer
+        )
 
 
 class Signed(metaclass=abc.ABCMeta):
@@ -674,7 +634,83 @@ class Role:
         }
 
 
-class Root(Signed):
+class _Delegator(metaclass=abc.ABCMeta):
+    """Class that implements verify_delegate() for Root and Targets"""
+
+    @abc.abstractmethod
+    def get_delegated_role(self, delegated_role: str) -> Role:
+        """Return the role object for the given delegated role.
+
+        Raises ValueError if delegated_role is not actually delegated.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_key(self, keyid: str) -> Key:
+        """Return the key object for the given keyid.
+
+        Raises ValueError if key is not found.
+        """
+        raise NotImplementedError
+
+    def verify_delegate(
+        self,
+        delegated_role: str,
+        delegated_metadata: "Metadata",
+        signed_serializer: Optional[SignedSerializer] = None,
+    ) -> None:
+        """Verify that ``delegated_metadata`` is signed with the required
+        threshold of keys for the delegated role ``delegated_role``.
+
+        Args:
+            delegated_role: Name of the delegated role to verify
+            delegated_metadata: ``Metadata`` object for the delegated role
+            signed_serializer: Serializer used for delegate
+                serialization. Default is ``CanonicalJSONSerializer``.
+
+        Raises:
+            UnsignedMetadataError: ``delegated_role`` was not signed with
+                required threshold of keys for ``role_name``.
+            ValueError: no delegation was found for ``delegated_role``.
+        """
+
+        if signed_serializer is None:
+            # pylint: disable=import-outside-toplevel
+            from tuf.api.serialization.json import CanonicalJSONSerializer
+
+            signed_serializer = CanonicalJSONSerializer()
+
+        data = signed_serializer.serialize(delegated_metadata.signed)
+        role = self.get_delegated_role(delegated_role)
+
+        # verify that delegated_metadata is signed by threshold of unique keys
+        signing_keys = set()
+        for keyid in role.keyids:
+            try:
+                key = self.get_key(keyid)
+            except ValueError:
+                logger.info("No key for keyid %s", keyid)
+                continue
+
+            if keyid not in delegated_metadata.signatures:
+                logger.info("No signature for keyid %s", keyid)
+                continue
+
+            sig = delegated_metadata.signatures[keyid]
+            try:
+                key.verify_signature(sig, data)
+                signing_keys.add(keyid)
+            except sslib_exceptions.UnverifiedSignatureError:
+                logger.info("Key %s failed to verify %s", keyid, delegated_role)
+
+        if len(signing_keys) < role.threshold:
+            raise UnsignedMetadataError(
+                f"{delegated_role} was signed by {len(signing_keys)}/"
+                f"{role.threshold} keys",
+            )
+
+
+class Root(Signed, _Delegator):
     """A container for the signed part of root metadata.
 
     Parameters listed below are also instance attributes.
@@ -1748,7 +1784,7 @@ class TargetFile(BaseFile):
         return paths
 
 
-class Targets(Signed):
+class Targets(Signed, _Delegator):
     """A container for the signed part of targets metadata.
 
     Targets contains verifying information about target files and also
@@ -1925,7 +1961,7 @@ class Targets(Signed):
     def get_key(self, keyid: str) -> Key:
         """Return the key object for the given keyid.
 
-        Raises ValueError if keyid is not found.
+        Raises ValueError if key is not found.
         """
         if self.delegations is None:
             raise ValueError("No delegations found")
