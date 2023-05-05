@@ -634,7 +634,7 @@ class Role:
         }
 
 
-class _Delegator(metaclass=abc.ABCMeta):
+class _DelegatorMixin(metaclass=abc.ABCMeta):
     """Class that implements verify_delegate() for Root and Targets"""
 
     @abc.abstractmethod
@@ -710,7 +710,7 @@ class _Delegator(metaclass=abc.ABCMeta):
             )
 
 
-class Root(Signed, _Delegator):
+class Root(Signed, _DelegatorMixin):
     """A container for the signed part of root metadata.
 
     Parameters listed below are also instance attributes.
@@ -1784,7 +1784,7 @@ class TargetFile(BaseFile):
         return paths
 
 
-class Targets(Signed, _Delegator):
+class Targets(Signed, _DelegatorMixin):
     """A container for the signed part of targets metadata.
 
     Targets contains verifying information about target files and also
