@@ -5,4 +5,4 @@
 """
 
 # This value is used in the requests user agent.
-__version__ = "2.1.0"
+__version__ = "3.0.0"
