@@ -1,4 +1,37 @@
 # Changelog
+
+## v3.0.0
+
+The notable change in this release is #2165: The tuf.api.metadata.Key
+class implementation was moved to Securesystemslib with minor API
+changes. These changes require no action in tuf.ngclient users but may
+require small changes in tuf.api.metadata using repository
+implementations that create keys.
+
+As a result of these changes, both signing and verification are now
+fully extensible, see Securesystemslib signer API for details.
+
+tuf.repository remains an unstable module in 3.0.0.
+
+### Added
+* Build: Use pydocstyle to lint docstrings (#2283, #2281)
+* Examples: Add Repository uploader/signer tool example (#2241)
+* Metadata API: Add TargetFile.get_prefixed_paths() (#2166)
+* ngclient: Export TargetFile (#2279)
+* repository: Add strictly typed accessors and context managers (#2311)
+* Release: Use PyPI Trusted Publishing
+  https://docs.pypi.org/trusted-publishers/ (#2371)
+
+### Changed
+* Build: Various minor build and release infrastructure improvements,
+  dependency updates
+* Metadata API: Key class is still part of the API but now comes from
+  Securesystemslib (#2165):
+  * `Key.verify_signature()` method signature has changed
+  * `Key.from_securesystemslib_key()` was removed: Use
+    Securesystemslibs `SSlibKey.from_securesystemslib_key()` instead
+
+
 ## v2.1.0
 ### Added
 * repo: experimental repository module and example (#2193)
