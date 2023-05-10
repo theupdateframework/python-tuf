@@ -3,18 +3,18 @@
 
 **Prerequisites (one-time setup)**
 
-
-1. Go to [PyPI management page](https://pypi.org/manage/account/#api-tokens) and create
-   an [API token](https://pypi.org/help/#apitoken) with its scope limited to the tuf project.
+1. Enable "Trusted Publishing" in PyPI project settings
+   * Publisher: GitHub
+   * Owner: theupdateframework
+   * Project: python-tuf
+   * Workflow: cd.yml
+   * Environment: release
 1. Go to [GitHub
    settings](https://github.com/theupdateframework/python-tuf/settings/environments),
    create an
    [environment](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment#creating-an-environment)
    called `release` and configure [review
    protection](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment#required-reviewers).
-1. In the environment create a
-   [secret](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment#environment-secrets)
-   called `PYPI_API_TOKEN` and paste the token created above.
 
 ## Release
 
