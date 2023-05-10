@@ -656,7 +656,7 @@ class _DelegatorMixin(metaclass=abc.ABCMeta):
     def verify_delegate(
         self,
         delegated_role: str,
-        delegated_metadata: "Metadata",
+        delegated_metadata: Metadata,
         signed_serializer: Optional[SignedSerializer] = None,
     ) -> None:
         """Verify that ``delegated_metadata`` is signed with the required
