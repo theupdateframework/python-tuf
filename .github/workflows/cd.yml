@@ -66,12 +66,9 @@ jobs:
             res = await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              name: '${{ github.ref_name }}',
+              name: '${{ github.ref_name }}-rc',
               tag_name: '${{ github.ref }}',
-              draft: true,
-              body: 'See [CHANGELOG.md](https://github.com/' +
-                     context.repo.owner + '/' + context.repo.repo +
-                    '/blob/${{ github.ref_name }}/docs/CHANGELOG.md) for details.'
+              body: 'Release waiting for review...',
             });
 
             fs.readdirSync('dist/').forEach(file => {
@@ -113,5 +110,8 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               release_id: '${{ needs.candidate_release.outputs.release_id }}',
-              draft: false,
+              name: '${{ github.ref_name }}',
+              body: 'See [CHANGELOG.md](https://github.com/' +
+                     context.repo.owner + '/' + context.repo.repo +
+                    '/blob/${{ github.ref_name }}/docs/CHANGELOG.md) for details.'
             })
