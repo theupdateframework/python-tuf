@@ -395,7 +395,7 @@ class Metadata(Generic[T]):
         """Verify that ``delegated_metadata`` is signed with the required
         threshold of keys for ``delegated_role``.
 
-        .. deprecated:: 2.2.0
+        .. deprecated:: 3.1.0
            Please use ``Root.verify_delegate()`` or ``Targets.verify_delegate()``.
         """
 
