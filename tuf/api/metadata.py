@@ -393,7 +393,7 @@ class Metadata(Generic[T]):
         signed_serializer: Optional[SignedSerializer] = None,
     ) -> None:
         """Verify that ``delegated_metadata`` is signed with the required
-        threshold of keys for the delegated role ``delegated_role``.
+        threshold of keys for ``delegated_role``.
 
         .. deprecated:: 2.2.0
            Please use ``Root.verify_delegate()`` or ``Targets.verify_delegate()``.
@@ -660,7 +660,7 @@ class _DelegatorMixin(metaclass=abc.ABCMeta):
         signed_serializer: Optional[SignedSerializer] = None,
     ) -> None:
         """Verify that ``delegated_metadata`` is signed with the required
-        threshold of keys for the delegated role ``delegated_role``.
+        threshold of keys for ``delegated_role``.
 
         Args:
             delegated_role: Name of the delegated role to verify
@@ -859,11 +859,7 @@ class Root(Signed, _DelegatorMixin):
 
         return self.roles[delegated_role]
 
-    def get_key(self, keyid: str) -> Key:
-        """Return the key object for the given keyid.
-
-        Raises ValueError if key is not found.
-        """
+    def get_key(self, keyid: str) -> Key:  # noqa: D102
         if keyid not in self.keys:
             raise ValueError(f"Key {keyid} not found")
 
@@ -1958,11 +1954,7 @@ class Targets(Signed, _DelegatorMixin):
 
         return role
 
-    def get_key(self, keyid: str) -> Key:
-        """Return the key object for the given keyid.
-
-        Raises ValueError if key is not found.
-        """
+    def get_key(self, keyid: str) -> Key:  # noqa: D102
         if self.delegations is None:
             raise ValueError("No delegations found")
         if keyid not in self.delegations.keys:
