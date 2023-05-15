@@ -345,8 +345,8 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(ValueError):
             role2.verify_delegate("role1", role1)
 
-    # pylint: disable=too-many-locals,too-many-statements
     def test_signed_verify_delegate(self) -> None:
+        # pylint: disable=too-many-locals,too-many-statements
         root_path = os.path.join(self.repo_dir, "metadata", "root.json")
         root_md = Metadata[Root].from_file(root_path)
         root = root_md.signed
