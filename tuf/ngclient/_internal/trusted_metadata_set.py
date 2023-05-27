@@ -251,7 +251,8 @@ class TrustedMetadataSet(abc.Mapping):
         logger.debug("Updated timestamp v%d", new_timestamp.signed.version)
 
         # timestamp is loaded: raise if it is not valid _final_ timestamp
-        self._check_final_timestamp() if not self.offline else None
+        if not self.offline:
+            self._check_final_timestamp()
 
         return new_timestamp
 
@@ -301,7 +302,8 @@ class TrustedMetadataSet(abc.Mapping):
         logger.debug("Updating snapshot")
 
         # Snapshot cannot be loaded if final timestamp is expired
-        self._check_final_timestamp() if not self.offline else None
+        if not self.offline:
+            self._check_final_timestamp()
 
         snapshot_meta = self.timestamp.signed.snapshot_meta
 

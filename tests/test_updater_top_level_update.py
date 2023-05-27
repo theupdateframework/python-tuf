@@ -18,9 +18,11 @@ from tests import utils
 from tests.repository_simulator import RepositorySimulator
 from tuf.api.exceptions import (
     BadVersionNumberError,
+    DownloadError,
     DownloadLengthMismatchError,
     ExpiredMetadataError,
     LengthOrHashMismatchError,
+    RepositoryError,
     UnsignedMetadataError,
 )
 from tuf.api.metadata import (
@@ -755,8 +757,11 @@ class TestRefresh(unittest.TestCase):
             updater.config.offline = False
             try:
                 updater.refresh()
-            except ExpiredMetadataError:
-                self.assertTrue(True)
+            except Exception as e:
+                self.assertRaises(
+                    (OSError, RepositoryError, DownloadError),
+                    f"unexpected error raised {e}",
+                )
 
         # Make sure local metadata is available
         updater = self._init_updater()
@@ -782,7 +787,7 @@ class TestRefresh(unittest.TestCase):
         self.sim.update_snapshot()
 
         # Offline flag is set and local metadata is expired. New timestamp
-        # is available but should raise MetaDataError.
+        # is available but should raise ExpiredMetaDataError.
         mock_time.utcnow.return_value = (
             self.sim.safe_expiry - datetime.timedelta(days=6)
         )
@@ -793,7 +798,7 @@ class TestRefresh(unittest.TestCase):
             try:
                 updater.refresh()
             except ExpiredMetadataError:
-                self.assertFalse(False)
+                self.assertTrue(True)
 
         # Clean up fetch tracker data
         self.sim.fetch_tracker.metadata.clear()

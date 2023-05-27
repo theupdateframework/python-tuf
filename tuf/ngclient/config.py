@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 
 @dataclass
+# pylint: disable=too-many-instance-attributes
 class UpdaterConfig:
     """Used to store ``Updater`` configuration.
 
