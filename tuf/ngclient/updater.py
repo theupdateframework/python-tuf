@@ -399,6 +399,9 @@ class Updater:
             logger.debug("Local %s is valid: not downloading new one", role)
             return delegated_targets
         except (OSError, exceptions.RepositoryError) as e:
+            # fails if local data is unavalible and in offline mode
+            if self.config.offline:
+                raise exception.DownloadError("Local metadata is missing; cannot download new metadata in offline mode")
             # Local 'role' does not exist or is invalid: update from remote
             logger.debug("Failed to load local %s: %s", role, e)
 
