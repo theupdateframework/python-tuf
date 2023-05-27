@@ -237,11 +237,15 @@ class Updater:
             DownloadError: Download of the target file failed in some way
             RepositoryError: Downloaded target failed to be verified in some way
             OSError: Failed to write target to file
+            RuntimeError: Download of target file cannot occur because in offline mode
 
         Returns:
             Local path to downloaded file
         """
 
+        if self.config.offline:
+            raise RuntimeError("Cannot download when offline")
+       
         if filepath is None:
             filepath = self._generate_target_file_path(targetinfo)
 
