@@ -5,6 +5,13 @@
 # Required
 version: 2
 
+# Without a build section we hit https://github.com/urllib3/urllib3/issues/2168
+# (the default image has openssl < 1.1.1)
+build:
+  os: "ubuntu-22.04"
+  tools:
+    python: "3.11"
+
 # Build documentation with Sphinx
 sphinx:
   builder: html

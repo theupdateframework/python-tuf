@@ -66,12 +66,9 @@ jobs:
             res = await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              name: '${{ github.ref_name }}',
+              name: '${{ github.ref_name }}-rc',
               tag_name: '${{ github.ref }}',
-              draft: true,
-              body: 'See [CHANGELOG.md](https://github.com/' +
-                     context.repo.owner + '/' + context.repo.repo +
-                    '/blob/${{ github.ref_name }}/docs/CHANGELOG.md) for details.'
+              body: 'Release waiting for review...',
             });
 
             fs.readdirSync('dist/').forEach(file => {
@@ -92,6 +89,7 @@ jobs:
     environment: release
     permissions:
       contents: write # to modify GitHub releases
+      id-token: write # to authenticate as Trusted Publisher to pypi.org
     steps:
       - name: Fetch build artifacts
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
@@ -102,10 +100,7 @@ jobs:
       - name: Publish binary wheel and source tarball on PyPI
         # Only attempt pypi upload in upstream repository
         if: github.repository == 'theupdateframework/python-tuf'
-        uses: pypa/gh-action-pypi-publish@0bf742be3ebe032c25dd15117957dc15d0cfc38d
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
+        uses: pypa/gh-action-pypi-publish@a56da0b891b3dc519c7ee3284aff1fad93cc8598
 
       - name: Finalize GitHub release
         uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410
@@ -115,5 +110,8 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               release_id: '${{ needs.candidate_release.outputs.release_id }}',
-              draft: false,
+              name: '${{ github.ref_name }}',
+              body: 'See [CHANGELOG.md](https://github.com/' +
+                     context.repo.owner + '/' + context.repo.repo +
+                    '/blob/${{ github.ref_name }}/docs/CHANGELOG.md) for details.'
             })
