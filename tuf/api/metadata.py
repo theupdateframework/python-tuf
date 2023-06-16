@@ -42,7 +42,6 @@ from typing import (
     Generic,
     Iterator,
     List,
-    Mapping,
     Optional,
     Tuple,
     Type,
@@ -708,7 +707,7 @@ class Root(Signed):
         spec_version: Optional[str] = None,
         expires: Optional[datetime] = None,
         keys: Optional[Dict[str, Key]] = None,
-        roles: Optional[Mapping[str, Role]] = None,
+        roles: Optional[Dict[str, Role]] = None,
         consistent_snapshot: Optional[bool] = True,
         unrecognized_fields: Optional[Dict[str, Any]] = None,
     ):
