@@ -56,6 +56,7 @@ from tuf.api.metadata import (
 from tuf.ngclient._internal import requests_fetcher, trusted_metadata_set
 from tuf.ngclient.config import UpdaterConfig
 from tuf.ngclient.fetcher import FetcherInterface
+from tuf.adapter import adapter
 
 logger = logging.getLogger(__name__)
 
@@ -192,6 +193,10 @@ class Updater:
             ``None`` if file is not found or it is not up to date.
         """
 
+        if targetinfo.adapter is not None:
+            filepath = filepath or self.target_dir
+            return targetinfo.adapter.find_target_in_local_cache(filepath)
+
         if filepath is None:
             filepath = self._generate_target_file_path(targetinfo)
 
@@ -228,6 +233,10 @@ class Updater:
         Returns:
             Local path to downloaded file
         """
+
+        if targetinfo.adapter is not None:
+            target_dir = filepath or self.target_dir
+            return targetinfo.adapter.fetch_target(target_dir)
 
         if filepath is None:
             filepath = self._generate_target_file_path(targetinfo)
@@ -444,6 +453,14 @@ class Updater:
 
             if target is not None:
                 logger.debug("Found target in current role %s", role_name)
+                scheme, identifer = _get_scheme_and_identifer(target_filepath)
+                if scheme is not None or identifer is not None:
+                    cls = adapter.get_adapter_class(scheme)
+                    if cls is None:
+                        logger.debug("Invalid scheme name. No implementation of scheme %s exists", scheme)
+                        return target
+                    target.adapter = cls(identifer)
+
                 return target
 
             # After preorder check, add current role to set of visited roles.
@@ -483,3 +500,12 @@ class Updater:
 def _ensure_trailing_slash(url: str) -> str:
     """Return url guaranteed to end in a slash."""
     return url if url.endswith("/") else f"{url}/"
+
+def _get_scheme_and_identifer(uri):
+    try:
+        parsed_uri = parse.urlparse(uri)
+        scheme = parsed_uri.scheme
+        identifer = parsed_uri.path
+        return scheme, identifer
+    except ValueError:
+        return None, None

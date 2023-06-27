@@ -62,6 +62,7 @@ from tuf.api.serialization import (
     MetadataSerializer,
     SignedSerializer,
 )
+from tuf.adapter import adapter
 
 _ROOT = "root"
 _SNAPSHOT = "snapshot"
@@ -1609,6 +1610,7 @@ class TargetFile(BaseFile):
             unrecognized_fields = {}
 
         self.unrecognized_fields = unrecognized_fields
+        self.adapter: Optional[adapter.Adapter] = None
 
     @property
     def custom(self) -> Any:
