@@ -131,7 +131,7 @@ class Updater:
             DownloadError: Download of a metadata file failed in some way
         """
 
-        if self.config.offline:
+        if self._trusted_set.offline:
             # Try loading only local data
             data = self._load_local_metadata(Timestamp.type)
             self._trusted_set.update_timestamp(data)
@@ -243,7 +243,7 @@ class Updater:
             Local path to downloaded file
         """
 
-        if self.config.offline:
+        if self._trusted_set.offline:
             raise RuntimeError("Cannot download when offline")
        
         if filepath is None:
@@ -403,8 +403,8 @@ class Updater:
             logger.debug("Local %s is valid: not downloading new one", role)
             return delegated_targets
         except (OSError, exceptions.RepositoryError) as e:
-            # fails if local data is unavalible and in offline mode
-            if self.config.offline:
+            # fail if local data is unavailable and in offline mode
+            if self._trusted_set.offline:
                 raise exceptions.DownloadError("Local metadata is missing; cannot download new metadata in offline mode")
             # Local 'role' does not exist or is invalid: update from remote
             logger.debug("Failed to load local %s: %s", role, e)
