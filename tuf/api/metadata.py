@@ -408,8 +408,14 @@ class Metadata(Generic[T]):
         if self.signed.type not in ["root", "targets"]:
             raise TypeError("Call is valid only on delegator metadata")
 
+        if signed_serializer is None:
+            payload = delegated_metadata.signed_bytes
+
+        else:
+            payload = signed_serializer.serialize(delegated_metadata.signed)
+
         self.signed.verify_delegate(
-            delegated_role, delegated_metadata, signed_serializer
+            delegated_role, payload, delegated_metadata.signatures
         )
 
 
@@ -662,31 +668,25 @@ class _DelegatorMixin(metaclass=abc.ABCMeta):
     def verify_delegate(
         self,
         delegated_role: str,
-        delegated_metadata: Metadata,
-        signed_serializer: Optional[SignedSerializer] = None,
+        payload: bytes,
+        signatures: Dict[str, Signature],
     ) -> None:
-        """Verify that ``delegated_metadata`` is signed with the required
-        threshold of keys for ``delegated_role``.
+        """Verify signature threshold for delegated role.
+
+        Verify that there are enough valid ``signatures`` over ``payload``, to
+        meet the threshold of keys for ``delegated_role``, as defined by the
+        delegator (``self``).
 
         Args:
             delegated_role: Name of the delegated role to verify
-            delegated_metadata: ``Metadata`` object for the delegated role
-            signed_serializer: Serializer used for delegate
-                serialization. Default is ``CanonicalJSONSerializer``.
+            payload: Signed payload bytes for the delegated role
+            signatures: Signatures over payload bytes
 
         Raises:
             UnsignedMetadataError: ``delegated_role`` was not signed with
                 required threshold of keys for ``role_name``.
             ValueError: no delegation was found for ``delegated_role``.
         """
-
-        if signed_serializer is None:
-            # pylint: disable=import-outside-toplevel
-            from tuf.api.serialization.json import CanonicalJSONSerializer
-
-            signed_serializer = CanonicalJSONSerializer()
-
-        data = signed_serializer.serialize(delegated_metadata.signed)
         role = self.get_delegated_role(delegated_role)
 
         # verify that delegated_metadata is signed by threshold of unique keys
@@ -698,13 +698,13 @@ class _DelegatorMixin(metaclass=abc.ABCMeta):
                 logger.info("No key for keyid %s", keyid)
                 continue
 
-            if keyid not in delegated_metadata.signatures:
+            if keyid not in signatures:
                 logger.info("No signature for keyid %s", keyid)
                 continue
 
-            sig = delegated_metadata.signatures[keyid]
+            sig = signatures[keyid]
             try:
-                key.verify_signature(sig, data)
+                key.verify_signature(sig, payload)
                 signing_keys.add(keyid)
             except sslib_exceptions.UnverifiedSignatureError:
                 logger.info("Key %s failed to verify %s", keyid, delegated_role)
