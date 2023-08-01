@@ -150,6 +150,16 @@ class Metadata(Generic[T]):
             and self.unrecognized_fields == other.unrecognized_fields
         )
 
+    @property
+    def signed_bytes(self) -> bytes:
+        """Default canonical json byte representation of ``self.signed``."""
+
+        # Use local scope import to avoid circular import errors
+        # pylint: disable=import-outside-toplevel
+        from tuf.api.serialization.json import CanonicalJSONSerializer
+
+        return CanonicalJSONSerializer().serialize(self.signed)
+
     @classmethod
     def from_dict(cls, metadata: Dict[str, Any]) -> "Metadata[T]":
         """Create ``Metadata`` object from its json/dict representation.
@@ -366,13 +376,9 @@ class Metadata(Generic[T]):
         """
 
         if signed_serializer is None:
-            # Use local scope import to avoid circular import errors
-            # pylint: disable=import-outside-toplevel
-            from tuf.api.serialization.json import CanonicalJSONSerializer
-
-            signed_serializer = CanonicalJSONSerializer()
-
-        bytes_data = signed_serializer.serialize(self.signed)
+            bytes_data = self.signed_bytes
+        else:
+            bytes_data = signed_serializer.serialize(self.signed)
 
         try:
             signature = signer.sign(bytes_data)

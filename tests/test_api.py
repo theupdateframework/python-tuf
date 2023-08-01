@@ -43,7 +43,7 @@ from tuf.api.metadata import (
     Timestamp,
 )
 from tuf.api.serialization import DeserializationError, SerializationError
-from tuf.api.serialization.json import CanonicalJSONSerializer, JSONSerializer
+from tuf.api.serialization.json import JSONSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -202,7 +202,7 @@ class TestMetadata(unittest.TestCase):
         # Load sample metadata (targets) and assert ...
         md_obj = Metadata.from_file(os.path.join(path, "targets.json"))
         sig = md_obj.signatures[targets_keyid]
-        data = CanonicalJSONSerializer().serialize(md_obj.signed)
+        data = md_obj.signed_bytes
 
         # ... it has a single existing signature,
         self.assertEqual(len(md_obj.signatures), 1)
@@ -257,7 +257,7 @@ class TestMetadata(unittest.TestCase):
         path = os.path.join(self.repo_dir, "metadata", "timestamp.json")
         md_obj = Metadata.from_file(path)
         sig = md_obj.signatures[timestamp_keyid]
-        data = CanonicalJSONSerializer().serialize(md_obj.signed)
+        data = md_obj.signed_bytes
 
         # Test failure on unknown scheme (securesystemslib
         # UnsupportedAlgorithmError)
