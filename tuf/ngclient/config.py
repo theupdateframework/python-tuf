@@ -23,7 +23,8 @@ class UpdaterConfig:
             are used, target download URLs are formed by prefixing the filename
             with a hash digest of file content by default. This can be
             overridden by setting ``prefix_targets_with_hash`` to ``False``.
-
+        use_dsse: If true, expect metadata in a DSSE Envelope. Use
+            traditional Metadata (canonical json) otherwise.
     """
 
     max_root_rotations: int = 32
@@ -33,3 +34,4 @@ class UpdaterConfig:
     snapshot_max_length: int = 2000000  # bytes
     targets_max_length: int = 5000000  # bytes
     prefix_targets_with_hash: bool = True
+    use_dsse: bool = False

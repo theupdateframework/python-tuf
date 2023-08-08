@@ -198,17 +198,17 @@ class TestTrustedMetadataSet(unittest.TestCase):
         for test_func in [TrustedMetadataSet, self.trusted_set.update_root]:
             # root is not json
             with self.assertRaises(exceptions.RepositoryError):
-                test_func(b"")
+                test_func(b"")  # type: ignore[operator]
 
             # root is invalid
             root = Metadata.from_bytes(self.metadata[Root.type])
             root.signed.version += 1
             with self.assertRaises(exceptions.UnsignedMetadataError):
-                test_func(root.to_bytes())
+                test_func(root.to_bytes())  # type: ignore[operator]
 
             # metadata is of wrong type
             with self.assertRaises(exceptions.RepositoryError):
-                test_func(self.metadata[Snapshot.type])
+                test_func(self.metadata[Snapshot.type])  # type: ignore[operator]
 
     def test_top_level_md_with_invalid_json(self) -> None:
         top_level_md: List[Tuple[bytes, Callable[[bytes], Signed]]] = [
