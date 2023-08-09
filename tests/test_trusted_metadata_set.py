@@ -19,6 +19,7 @@ from tuf.api.metadata import (
     Metadata,
     MetaFile,
     Root,
+    Signed,
     Snapshot,
     Targets,
     Timestamp,
@@ -132,7 +133,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
         count = 0
         for md in self.trusted_set:
-            self.assertIsInstance(md, Metadata)
+            self.assertIsInstance(md, Signed)
             count += 1
 
         self.assertTrue(count, 6)
@@ -149,11 +150,11 @@ class TestTrustedMetadataSet(unittest.TestCase):
         delegeted_targets_2 = self.trusted_set.update_delegated_targets(
             self.metadata["role2"], "role2", "role1"
         )
-        self.assertIsInstance(timestamp.signed, Timestamp)
-        self.assertIsInstance(snapshot.signed, Snapshot)
-        self.assertIsInstance(targets.signed, Targets)
-        self.assertIsInstance(delegeted_targets_1.signed, Targets)
-        self.assertIsInstance(delegeted_targets_2.signed, Targets)
+        self.assertIsInstance(timestamp, Timestamp)
+        self.assertIsInstance(snapshot, Snapshot)
+        self.assertIsInstance(targets, Targets)
+        self.assertIsInstance(delegeted_targets_1, Targets)
+        self.assertIsInstance(delegeted_targets_2, Targets)
 
     def test_out_of_order_ops(self) -> None:
         # Update snapshot before timestamp
@@ -210,7 +211,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
                 test_func(self.metadata[Snapshot.type])
 
     def test_top_level_md_with_invalid_json(self) -> None:
-        top_level_md: List[Tuple[bytes, Callable[[bytes], Metadata]]] = [
+        top_level_md: List[Tuple[bytes, Callable[[bytes], Signed]]] = [
             (self.metadata[Timestamp.type], self.trusted_set.update_timestamp),
             (self.metadata[Snapshot.type], self.trusted_set.update_snapshot),
             (self.metadata[Targets.type], self.trusted_set.update_targets),
