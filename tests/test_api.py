@@ -34,6 +34,7 @@ from tuf.api.metadata import (
     Delegations,
     Key,
     Metadata,
+    MetaFile,
     Root,
     Signature,
     Snapshot,
@@ -724,6 +725,29 @@ class TestMetadata(unittest.TestCase):
         # Test with no algorithms specified
         targetfile_from_data = TargetFile.from_data(target_file_path, data)
         targetfile_from_data.verify_length_and_hashes(data)
+
+    def test_metafile_from_data(self) -> None:
+        data = b"Inline test content"
+
+        # Test with a valid hash algorithm
+        metafile = MetaFile.from_data(1, data, ["sha256"])
+        metafile.verify_length_and_hashes(data)
+
+        # Test with an invalid hash algorithm
+        with self.assertRaises(ValueError):
+            metafile = MetaFile.from_data(1, data, ["invalid_algorithm"])
+            metafile.verify_length_and_hashes(data)
+
+        self.assertEqual(
+            metafile,
+            MetaFile(
+                1,
+                19,
+                {
+                    "sha256": "fcee2e6d56ab08eab279016f7db7e4e1d172ccea78e15f4cf8bd939991a418fa"
+                },
+            ),
+        )
 
     def test_targetfile_get_prefixed_paths(self) -> None:
         target = TargetFile(100, {"sha256": "abc", "md5": "def"}, "a/b/f.ext")
