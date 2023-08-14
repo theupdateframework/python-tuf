@@ -900,6 +900,41 @@ class BaseFile:
         if length < 0:
             raise ValueError(f"Length must be >= 0, got {length}")
 
+    @staticmethod
+    def _get_length_and_hashes(
+        data: Union[bytes, IO[bytes]], hash_algorithms: Optional[List[str]]
+    ) -> Tuple[int, Dict[str, str]]:
+        """Calculate length and hashes of ``data``."""
+        if isinstance(data, bytes):
+            length = len(data)
+        else:
+            data.seek(0, io.SEEK_END)
+            length = data.tell()
+
+        hashes = {}
+
+        if hash_algorithms is None:
+            hash_algorithms = [sslib_hash.DEFAULT_HASH_ALGORITHM]
+
+        for algorithm in hash_algorithms:
+            try:
+                if isinstance(data, bytes):
+                    digest_object = sslib_hash.digest(algorithm)
+                    digest_object.update(data)
+                else:
+                    digest_object = sslib_hash.digest_fileobject(
+                        data, algorithm
+                    )
+            except (
+                sslib_exceptions.UnsupportedAlgorithmError,
+                sslib_exceptions.FormatError,
+            ) as e:
+                raise ValueError(f"Unsupported algorithm '{algorithm}'") from e
+
+            hashes[algorithm] = digest_object.hexdigest()
+
+        return (length, hashes)
+
 
 class MetaFile(BaseFile):
     """A container with information about a particular metadata file.
@@ -965,6 +1000,28 @@ class MetaFile(BaseFile):
 
         # All fields left in the meta_dict are unrecognized.
         return cls(version, length, hashes, meta_dict)
+
+    @classmethod
+    def from_data(
+        cls,
+        version: int,
+        data: Union[bytes, IO[bytes]],
+        hash_algorithms: List[str],
+    ) -> "MetaFile":
+        """Creates MetaFile object from bytes.
+        This constructor should only be used if hashes are wanted.
+        By default, MetaFile(ver) should be used.
+        Args:
+            version: Version of the metadata file.
+            data: Metadata bytes that the metafile represents.
+            hash_algorithms: Hash algorithms to create the hashes with. If not
+            specified, the securesystemslib default hash algorithm is used.
+        Raises:
+            ValueError: The hash algorithms list contains an unsupported
+            algorithm.
+        """
+        length, hashes = cls._get_length_and_hashes(data, hash_algorithms)
+        return cls(version, length, hashes)
 
     def to_dict(self) -> Dict[str, Any]:
         """Return the dictionary representation of self."""
@@ -1693,34 +1750,7 @@ class TargetFile(BaseFile):
             ValueError: The hash algorithms list contains an unsupported
                 algorithm.
         """
-        if isinstance(data, bytes):
-            length = len(data)
-        else:
-            data.seek(0, io.SEEK_END)
-            length = data.tell()
-
-        hashes = {}
-
-        if hash_algorithms is None:
-            hash_algorithms = [sslib_hash.DEFAULT_HASH_ALGORITHM]
-
-        for algorithm in hash_algorithms:
-            try:
-                if isinstance(data, bytes):
-                    digest_object = sslib_hash.digest(algorithm)
-                    digest_object.update(data)
-                else:
-                    digest_object = sslib_hash.digest_fileobject(
-                        data, algorithm
-                    )
-            except (
-                sslib_exceptions.UnsupportedAlgorithmError,
-                sslib_exceptions.FormatError,
-            ) as e:
-                raise ValueError(f"Unsupported algorithm '{algorithm}'") from e
-
-            hashes[algorithm] = digest_object.hexdigest()
-
+        length, hashes = cls._get_length_and_hashes(data, hash_algorithms)
         return cls(length, hashes, target_file_path)
 
     def verify_length_and_hashes(self, data: Union[bytes, IO[bytes]]) -> None:
