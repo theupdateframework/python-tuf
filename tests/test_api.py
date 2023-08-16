@@ -15,7 +15,7 @@ import tempfile
 import unittest
 from copy import copy
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, Dict
+from typing import Any, ClassVar, Dict, Optional
 
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import hash as sslib_hash
@@ -24,7 +24,12 @@ from securesystemslib.interface import (
     import_ed25519_publickey_from_file,
 )
 from securesystemslib.keys import generate_ed25519_key
-from securesystemslib.signer import SSlibKey, SSlibSigner
+from securesystemslib.signer import (
+    SecretsHandler,
+    Signer,
+    SSlibKey,
+    SSlibSigner,
+)
 
 from tests import utils
 from tuf.api import exceptions
@@ -234,16 +239,27 @@ class TestMetadata(unittest.TestCase):
 
     def test_sign_failures(self) -> None:
         # Test throwing UnsignedMetadataError because of signing problems
-        # related to bad information in the signer.
         md = Metadata.from_file(
             os.path.join(self.repo_dir, "metadata", "snapshot.json")
         )
-        key_dict = copy(self.keystore[Snapshot.type])
-        key_dict["keytype"] = "rsa"
-        key_dict["scheme"] = "bad_scheme"
-        sslib_signer = SSlibSigner(key_dict)
+
+        class FailingSigner(Signer):  # pylint: disable=missing-class-docstring
+            @classmethod
+            def from_priv_key_uri(
+                cls,
+                priv_key_uri: str,
+                public_key: Key,
+                secrets_handler: Optional[SecretsHandler] = None,
+            ) -> "Signer":
+                pass
+
+            def sign(self, payload: bytes) -> Signature:
+                raise RuntimeError("signing failed")
+
+        failing_signer = FailingSigner()
+
         with self.assertRaises(exceptions.UnsignedMetadataError):
-            md.sign(sslib_signer)
+            md.sign(failing_signer)
 
     def test_key_verify_failures(self) -> None:
         root_path = os.path.join(self.repo_dir, "metadata", "root.json")
