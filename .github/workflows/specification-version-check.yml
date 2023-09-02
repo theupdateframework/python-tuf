@@ -14,8 +14,8 @@ jobs:
     outputs:
       version: ${{ steps.get-version.outputs.version }}
     steps:
-      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
-      - uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v2.3.4
+      - uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1 # v2.3.4
         with:
           python-version: "3.x"
       - id: get-version
@@ -31,6 +31,6 @@ jobs:
       contents: read
       issues: write
     needs: get-supported-tuf-version
-    uses: theupdateframework/specification/.github/workflows/check-latest-spec-version.yml@master
+    uses: theupdateframework/specification/.github/workflows/check-latest-spec-version.yml@master # v2.3.4
     with:
       tuf-version: ${{needs.get-supported-tuf-version.outputs.version}}
