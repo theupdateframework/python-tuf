@@ -8,7 +8,7 @@ name = "tuf"
 description = "A secure updater framework for Python"
 readme = "README.md"
 license = { text = "MIT OR Apache-2.0" }
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 authors = [
   { email = "theupdateframework@googlegroups.com" },
 ]
@@ -33,7 +33,6 @@ classifiers = [
   "Operating System :: POSIX :: Linux",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.7",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
