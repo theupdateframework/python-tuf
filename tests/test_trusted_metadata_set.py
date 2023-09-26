@@ -192,22 +192,35 @@ class TestTrustedMetadataSet(unittest.TestCase):
             self.metadata["role1"], "role1", Targets.type
         )
 
+    def test_initial_root_with_invalid_json(self) -> None:
+        # root is not json
+        with self.assertRaises(exceptions.RepositoryError):
+            TrustedMetadataSet(b"")
+
+        # root is invalid
+        root = Metadata.from_bytes(self.metadata[Root.type])
+        root.signed.version += 1
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            TrustedMetadataSet(root.to_bytes())
+
+        # metadata is of wrong type
+        with self.assertRaises(exceptions.RepositoryError):
+            TrustedMetadataSet(self.metadata[Snapshot.type])
+
     def test_root_with_invalid_json(self) -> None:
-        # Test loading initial root and root update
-        for test_func in [TrustedMetadataSet, self.trusted_set.update_root]:
-            # root is not json
-            with self.assertRaises(exceptions.RepositoryError):
-                test_func(b"")
+        # root is not json
+        with self.assertRaises(exceptions.RepositoryError):
+            self.trusted_set.update_root(b"")
 
-            # root is invalid
-            root = Metadata.from_bytes(self.metadata[Root.type])
-            root.signed.version += 1
-            with self.assertRaises(exceptions.UnsignedMetadataError):
-                test_func(root.to_bytes())
+        # root is invalid
+        root = Metadata.from_bytes(self.metadata[Root.type])
+        root.signed.version += 1
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            self.trusted_set.update_root(root.to_bytes())
 
-            # metadata is of wrong type
-            with self.assertRaises(exceptions.RepositoryError):
-                test_func(self.metadata[Snapshot.type])
+        # metadata is of wrong type
+        with self.assertRaises(exceptions.RepositoryError):
+            self.trusted_set.update_root(self.metadata[Snapshot.type])
 
     def test_top_level_md_with_invalid_json(self) -> None:
         top_level_md: List[Tuple[bytes, Callable[[bytes], Metadata]]] = [
