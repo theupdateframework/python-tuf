@@ -126,7 +126,8 @@ class Updater:
         repository state.
 
         Raises:
-            OSError: New metadata could not be written to disk
+            OSError: New metadata could not be written to disk. In offline mode,
+                cached metadata could not be found.
             RepositoryError: Metadata failed to verify in some way
             DownloadError: Download of a metadata file failed in some way
         """
@@ -173,7 +174,8 @@ class Updater:
                 that uniquely identifies the target within the repository.
 
         Raises:
-            OSError: New metadata could not be written to disk
+            OSError: New metadata could not be written to disk. In offline mode,
+                cached metadata could not be found.
             RepositoryError: Metadata failed to verify in some way
             DownloadError: Download of a metadata file failed in some way
 
@@ -402,11 +404,6 @@ class Updater:
             logger.debug("Local %s is valid: not downloading new one", role)
             return delegated_targets
         except (OSError, exceptions.RepositoryError) as e:
-            # fail if local data is unavailable and in offline mode
-            if self.config.offline:
-                raise exceptions.DownloadError(
-                    "Local metadata is missing; cannot download metadata in offline mode"
-                )
             # Local 'role' does not exist or is invalid: update from remote
             logger.debug("Failed to load local %s: %s", role, e)
 
@@ -457,9 +454,16 @@ class Updater:
                 logger.debug("Skipping visited current role %s", role_name)
                 continue
 
-            # The metadata for 'role_name' must be downloaded/updated before
-            # its targets, delegations, and child roles can be inspected.
-            targets = self._load_targets(role_name, parent_role).signed
+            if self.config.offline:
+                # Load local delegated role
+                data = self._load_local_metadata(role_name)
+                targets = self._trusted_set.update_delegated_targets(
+                    data, role_name, parent_role
+                ).signed
+            else:
+                # The metadata for 'role_name' must be downloaded/updated before
+                # its targets, delegations, and child roles can be inspected.
+                targets = self._load_targets(role_name, parent_role).signed
 
             target = targets.targets.get(target_filepath)
 
