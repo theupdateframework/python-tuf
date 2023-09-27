@@ -27,6 +27,12 @@ from tuf.ngclient._internal.trusted_metadata_set import TrustedMetadataSet
 
 logger = logging.getLogger(__name__)
 
+# test matrix for all tests that should behave similarly regardless of respect_expiry
+respect_expiry_matrix: utils.DataSet = {
+    "respect_expiry=True": True,
+    "respect_expiry=False": False,
+}
+
 
 # pylint: disable=too-many-public-methods
 class TestTrustedMetadataSet(unittest.TestCase):
@@ -93,7 +99,12 @@ class TestTrustedMetadataSet(unittest.TestCase):
         )
 
     def setUp(self) -> None:
-        self.trusted_set = TrustedMetadataSet(self.metadata[Root.type])
+        self.trusted_set: TrustedMetadataSet
+
+    def _init(self, respect_expiry: bool) -> None:
+        self.trusted_set = TrustedMetadataSet(
+            self.metadata[Root.type], respect_expiry
+        )
 
     def _update_all_besides_targets(
         self,
@@ -117,7 +128,9 @@ class TestTrustedMetadataSet(unittest.TestCase):
         snapshot_bytes = snapshot_bytes or self.metadata[Snapshot.type]
         self.trusted_set.update_snapshot(snapshot_bytes)
 
-    def test_update(self) -> None:
+    @utils.run_sub_tests_with_dataset(respect_expiry_matrix)
+    def test_update(self, respect_expiry: bool) -> None:
+        self._init(respect_expiry)
         self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
         self.trusted_set.update_snapshot(self.metadata[Snapshot.type])
         self.trusted_set.update_targets(self.metadata[Targets.type])
@@ -137,7 +150,9 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
         self.assertTrue(count, 6)
 
-    def test_update_metadata_output(self) -> None:
+    @utils.run_sub_tests_with_dataset(respect_expiry_matrix)
+    def test_update_metadata_output(self, respect_expiry: bool) -> None:
+        self._init(respect_expiry)
         timestamp = self.trusted_set.update_timestamp(
             self.metadata["timestamp"]
         )
@@ -155,7 +170,9 @@ class TestTrustedMetadataSet(unittest.TestCase):
         self.assertIsInstance(delegeted_targets_1.signed, Targets)
         self.assertIsInstance(delegeted_targets_2.signed, Targets)
 
-    def test_out_of_order_ops(self) -> None:
+    @utils.run_sub_tests_with_dataset(respect_expiry_matrix)
+    def test_out_of_order_ops(self, respect_expiry: bool) -> None:
+        self._init(respect_expiry)
         # Update snapshot before timestamp
         with self.assertRaises(RuntimeError):
             self.trusted_set.update_snapshot(self.metadata[Snapshot.type])
@@ -192,22 +209,25 @@ class TestTrustedMetadataSet(unittest.TestCase):
             self.metadata["role1"], "role1", Targets.type
         )
 
-    def test_initial_root_with_invalid_json(self) -> None:
+    @utils.run_sub_tests_with_dataset(respect_expiry_matrix)
+    def test_initial_root_with_invalid_json(self, respect_expiry: bool) -> None:
         # root is not json
         with self.assertRaises(exceptions.RepositoryError):
-            TrustedMetadataSet(b"")
+            TrustedMetadataSet(b"", respect_expiry)
 
         # root is invalid
         root = Metadata.from_bytes(self.metadata[Root.type])
         root.signed.version += 1
         with self.assertRaises(exceptions.UnsignedMetadataError):
-            TrustedMetadataSet(root.to_bytes())
+            TrustedMetadataSet(root.to_bytes(), respect_expiry)
 
         # metadata is of wrong type
         with self.assertRaises(exceptions.RepositoryError):
-            TrustedMetadataSet(self.metadata[Snapshot.type])
+            TrustedMetadataSet(self.metadata[Snapshot.type], respect_expiry)
 
-    def test_root_with_invalid_json(self) -> None:
+    @utils.run_sub_tests_with_dataset(respect_expiry_matrix)
+    def test_root_with_invalid_json(self, respect_expiry: bool) -> None:
+        self._init(respect_expiry)
         # root is not json
         with self.assertRaises(exceptions.RepositoryError):
             self.trusted_set.update_root(b"")
@@ -222,7 +242,9 @@ class TestTrustedMetadataSet(unittest.TestCase):
         with self.assertRaises(exceptions.RepositoryError):
             self.trusted_set.update_root(self.metadata[Snapshot.type])
 
-    def test_top_level_md_with_invalid_json(self) -> None:
+    @utils.run_sub_tests_with_dataset(respect_expiry_matrix)
+    def test_top_level_md_with_invalid_json(self, respect_expiry: bool) -> None:
+        self._init(respect_expiry)
         top_level_md: List[Tuple[bytes, Callable[[bytes], Metadata]]] = [
             (self.metadata[Timestamp.type], self.trusted_set.update_timestamp),
             (self.metadata[Snapshot.type], self.trusted_set.update_snapshot),
@@ -245,7 +267,10 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
             update_func(metadata)
 
-    def test_update_root_new_root(self) -> None:
+    @utils.run_sub_tests_with_dataset(respect_expiry_matrix)
+    def test_update_root_new_root(self, respect_expiry: bool) -> None:
+        self._init(respect_expiry)
+
         # test that root can be updated with a new valid version
         def root_new_version_modifier(root: Root) -> None:
             root.version += 1
@@ -253,7 +278,12 @@ class TestTrustedMetadataSet(unittest.TestCase):
         root = self.modify_metadata(Root.type, root_new_version_modifier)
         self.trusted_set.update_root(root)
 
-    def test_update_root_new_root_fail_threshold_verification(self) -> None:
+    @utils.run_sub_tests_with_dataset(respect_expiry_matrix)
+    def test_update_root_new_root_fail_threshold_verification(
+        self, respect_expiry: bool
+    ) -> None:
+        self._init(respect_expiry)
+
         # Increase threshold in new root, do not add enough keys
         def root_threshold_bump(root: Root) -> None:
             root.version += 1
@@ -263,7 +293,11 @@ class TestTrustedMetadataSet(unittest.TestCase):
         with self.assertRaises(exceptions.UnsignedMetadataError):
             self.trusted_set.update_root(root)
 
-    def test_update_root_new_root_ver_same_as_trusted_root_ver(self) -> None:
+    @utils.run_sub_tests_with_dataset(respect_expiry_matrix)
+    def test_update_root_new_root_ver_same_as_trusted_root_ver(
+        self, respect_expiry: bool
+    ) -> None:
+        self._init(respect_expiry)
         with self.assertRaises(exceptions.BadVersionNumberError):
             self.trusted_set.update_root(self.metadata[Root.type])
 
@@ -273,12 +307,22 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
         # intermediate root can be expired
         root = self.modify_metadata(Root.type, root_expired_modifier)
-        tmp_trusted_set = TrustedMetadataSet(root)
+        tmp_trusted_set = TrustedMetadataSet(root, True)
         # update timestamp to trigger final root expiry check
         with self.assertRaises(exceptions.ExpiredMetadataError):
             tmp_trusted_set.update_timestamp(self.metadata[Timestamp.type])
 
-    def test_update_timestamp_new_timestamp_ver_below_trusted_ver(self) -> None:
+        # If we decide to not respect expiry, it all works:
+        root = self.modify_metadata(Root.type, root_expired_modifier)
+        tmp_trusted_set = TrustedMetadataSet(root, False)
+        tmp_trusted_set.update_timestamp(self.metadata[Timestamp.type])
+
+    @utils.run_sub_tests_with_dataset(respect_expiry_matrix)
+    def test_update_timestamp_new_timestamp_ver_below_trusted_ver(
+        self, respect_expiry: bool
+    ) -> None:
+        self._init(respect_expiry)
+
         # new_timestamp.version < trusted_timestamp.version
         def version_modifier(timestamp: Timestamp) -> None:
             timestamp.version = 3
@@ -288,7 +332,11 @@ class TestTrustedMetadataSet(unittest.TestCase):
         with self.assertRaises(exceptions.BadVersionNumberError):
             self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
 
-    def test_update_timestamp_with_same_timestamp(self) -> None:
+    @utils.run_sub_tests_with_dataset(respect_expiry_matrix)
+    def test_update_timestamp_with_same_timestamp(
+        self, respect_expiry: bool
+    ) -> None:
+        self._init(respect_expiry)
         # Test that timestamp is NOT updated if:
         # new_timestamp.version == trusted_timestamp.version
         self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
@@ -302,7 +350,12 @@ class TestTrustedMetadataSet(unittest.TestCase):
         # was not updated.
         self.assertEqual(id(initial_timestamp), id(self.trusted_set.timestamp))
 
-    def test_update_timestamp_snapshot_ver_below_current(self) -> None:
+    @utils.run_sub_tests_with_dataset(respect_expiry_matrix)
+    def test_update_timestamp_snapshot_ver_below_current(
+        self, respect_expiry: bool
+    ) -> None:
+        self._init(respect_expiry)
+
         def bump_snapshot_version(timestamp: Timestamp) -> None:
             timestamp.snapshot_meta.version = 2
             # The timestamp version must be increased to initiate a update.
@@ -317,9 +370,12 @@ class TestTrustedMetadataSet(unittest.TestCase):
             self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
 
     def test_update_timestamp_expired(self) -> None:
+        self._init(respect_expiry=True)
+
         # new_timestamp has expired
         def timestamp_expired_modifier(timestamp: Timestamp) -> None:
             timestamp.expires = datetime(1970, 1, 1)
+            timestamp.version = 2
 
         # expired intermediate timestamp is loaded but raises
         timestamp = self.modify_metadata(
@@ -332,7 +388,17 @@ class TestTrustedMetadataSet(unittest.TestCase):
         with self.assertRaises(exceptions.ExpiredMetadataError):
             self.trusted_set.update_snapshot(self.metadata[Snapshot.type])
 
-    def test_update_snapshot_length_or_hash_mismatch(self) -> None:
+        # If we decide to not respect expiry, it all works:
+        self._init(respect_expiry=False)
+        self.trusted_set.update_timestamp(timestamp)
+        self.trusted_set.update_snapshot(self.metadata[Snapshot.type])
+
+    @utils.run_sub_tests_with_dataset(respect_expiry_matrix)
+    def test_update_snapshot_length_or_hash_mismatch(
+        self, respect_expiry: bool
+    ) -> None:
+        self._init(respect_expiry)
+
         def modify_snapshot_length(timestamp: Timestamp) -> None:
             timestamp.snapshot_meta.length = 1
 
@@ -343,16 +409,23 @@ class TestTrustedMetadataSet(unittest.TestCase):
         with self.assertRaises(exceptions.RepositoryError):
             self.trusted_set.update_snapshot(self.metadata[Snapshot.type])
 
-    def test_update_snapshot_fail_threshold_verification(self) -> None:
+    @utils.run_sub_tests_with_dataset(respect_expiry_matrix)
+    def test_update_snapshot_fail_threshold_verification(
+        self, respect_expiry: bool
+    ) -> None:
+        self._init(respect_expiry)
         self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
         snapshot = Metadata.from_bytes(self.metadata[Snapshot.type])
         snapshot.signatures.clear()
         with self.assertRaises(exceptions.UnsignedMetadataError):
             self.trusted_set.update_snapshot(snapshot.to_bytes())
 
+    @utils.run_sub_tests_with_dataset(respect_expiry_matrix)
     def test_update_snapshot_version_diverge_timestamp_snapshot_version(
-        self,
+        self, respect_expiry: bool
     ) -> None:
+        self._init(respect_expiry)
+
         def timestamp_version_modifier(timestamp: Timestamp) -> None:
             timestamp.snapshot_meta.version = 2
 
@@ -369,7 +442,11 @@ class TestTrustedMetadataSet(unittest.TestCase):
         with self.assertRaises(exceptions.BadVersionNumberError):
             self.trusted_set.update_targets(self.metadata[Targets.type])
 
-    def test_update_snapshot_file_removed_from_meta(self) -> None:
+    @utils.run_sub_tests_with_dataset(respect_expiry_matrix)
+    def test_update_snapshot_file_removed_from_meta(
+        self, respect_expiry: bool
+    ) -> None:
+        self._init(respect_expiry)
         self._update_all_besides_targets(self.metadata[Timestamp.type])
 
         def remove_file_from_meta(snapshot: Snapshot) -> None:
@@ -380,7 +457,11 @@ class TestTrustedMetadataSet(unittest.TestCase):
         with self.assertRaises(exceptions.RepositoryError):
             self.trusted_set.update_snapshot(snapshot)
 
-    def test_update_snapshot_meta_version_decreases(self) -> None:
+    @utils.run_sub_tests_with_dataset(respect_expiry_matrix)
+    def test_update_snapshot_meta_version_decreases(
+        self, respect_expiry: bool
+    ) -> None:
+        self._init(respect_expiry)
         self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
 
         def version_meta_modifier(snapshot: Snapshot) -> None:
@@ -393,6 +474,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
             self.trusted_set.update_snapshot(self.metadata[Snapshot.type])
 
     def test_update_snapshot_expired_new_snapshot(self) -> None:
+        self._init(respect_expiry=True)
         self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
 
         def snapshot_expired_modifier(snapshot: Snapshot) -> None:
@@ -409,7 +491,18 @@ class TestTrustedMetadataSet(unittest.TestCase):
         with self.assertRaises(exceptions.ExpiredMetadataError):
             self.trusted_set.update_targets(self.metadata[Targets.type])
 
-    def test_update_snapshot_successful_rollback_checks(self) -> None:
+        # If we decide to not respect expiry, it all works:
+        self._init(respect_expiry=False)
+        self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
+        self.trusted_set.update_snapshot(snapshot)
+        self.trusted_set.update_targets(self.metadata[Targets.type])
+
+    @utils.run_sub_tests_with_dataset(respect_expiry_matrix)
+    def test_update_snapshot_successful_rollback_checks(
+        self, respect_expiry: bool
+    ) -> None:
+        self._init(respect_expiry)
+
         def meta_version_bump(timestamp: Timestamp) -> None:
             timestamp.snapshot_meta.version += 1
             # The timestamp version must be increased to initiate a update.
@@ -433,7 +526,12 @@ class TestTrustedMetadataSet(unittest.TestCase):
         # update targets to trigger final snapshot meta version check
         self.trusted_set.update_targets(self.metadata[Targets.type])
 
-    def test_update_targets_no_meta_in_snapshot(self) -> None:
+    @utils.run_sub_tests_with_dataset(respect_expiry_matrix)
+    def test_update_targets_no_meta_in_snapshot(
+        self, respect_expiry: bool
+    ) -> None:
+        self._init(respect_expiry)
+
         def no_meta_modifier(snapshot: Snapshot) -> None:
             snapshot.meta = {}
 
@@ -445,7 +543,12 @@ class TestTrustedMetadataSet(unittest.TestCase):
         with self.assertRaises(exceptions.RepositoryError):
             self.trusted_set.update_targets(self.metadata[Targets.type])
 
-    def test_update_targets_hash_diverge_from_snapshot_meta_hash(self) -> None:
+    @utils.run_sub_tests_with_dataset(respect_expiry_matrix)
+    def test_update_targets_hash_diverge_from_snapshot_meta_hash(
+        self, respect_expiry: bool
+    ) -> None:
+        self._init(respect_expiry)
+
         def meta_length_modifier(snapshot: Snapshot) -> None:
             for metafile_path in snapshot.meta:
                 snapshot.meta[metafile_path] = MetaFile(version=1, length=1)
@@ -458,7 +561,12 @@ class TestTrustedMetadataSet(unittest.TestCase):
         with self.assertRaises(exceptions.RepositoryError):
             self.trusted_set.update_targets(self.metadata[Targets.type])
 
-    def test_update_targets_version_diverge_snapshot_meta_version(self) -> None:
+    @utils.run_sub_tests_with_dataset(respect_expiry_matrix)
+    def test_update_targets_version_diverge_snapshot_meta_version(
+        self, respect_expiry: bool
+    ) -> None:
+        self._init(respect_expiry)
+
         def meta_modifier(snapshot: Snapshot) -> None:
             for metafile_path in snapshot.meta:
                 snapshot.meta[metafile_path] = MetaFile(version=2)
@@ -472,6 +580,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
             self.trusted_set.update_targets(self.metadata[Targets.type])
 
     def test_update_targets_expired_new_target(self) -> None:
+        self._init(respect_expiry=True)
         self._update_all_besides_targets()
 
         # new_delegated_target has expired
@@ -481,6 +590,11 @@ class TestTrustedMetadataSet(unittest.TestCase):
         targets = self.modify_metadata(Targets.type, target_expired_modifier)
         with self.assertRaises(exceptions.ExpiredMetadataError):
             self.trusted_set.update_targets(targets)
+
+        # If we decide to not respect expiry, it all works:
+        self._init(respect_expiry=False)
+        self._update_all_besides_targets()
+        self.trusted_set.update_targets(targets)
 
     # TODO test updating over initial metadata (new keys, newer timestamp, etc)
 
