@@ -126,22 +126,26 @@ class Updater:
         repository state.
 
         Raises:
-            OSError: New metadata could not be written to disk. In offline mode,
-                cached metadata could not be found.
+            OSError: New metadata could not be written to disk.
             RepositoryError: Metadata failed to verify in some way
             DownloadError: Download of a metadata file failed in some way
         """
 
         if self.config.offline:
-            # Try loading only local data
-            data = self._load_local_metadata(Timestamp.type)
-            self._trusted_set.update_timestamp(data)
-            data = self._load_local_metadata(Snapshot.type)
-            self._trusted_set.update_snapshot(data, trusted=True)
-            data = self._load_local_metadata(Targets.type)
-            self._trusted_set.update_delegated_targets(
-                data, Targets.type, Root.type
-            )
+            # load only local data
+            try:
+                data = self._load_local_metadata(Timestamp.type)
+                self._trusted_set.update_timestamp(data)
+                data = self._load_local_metadata(Snapshot.type)
+                self._trusted_set.update_snapshot(data, trusted=True)
+                data = self._load_local_metadata(Targets.type)
+                self._trusted_set.update_delegated_targets(
+                    data, Targets.type, Root.type
+                )
+            except (OSError, exceptions.RepositoryError) as e:
+                raise exceptions.DownloadError(
+                    "Cannot download metadata in offline mode"
+                ) from e
         else:
             self._load_root()
             self._load_timestamp()
@@ -174,8 +178,7 @@ class Updater:
                 that uniquely identifies the target within the repository.
 
         Raises:
-            OSError: New metadata could not be written to disk. In offline mode,
-                cached metadata could not be found.
+            OSError: New metadata could not be written to disk.
             RepositoryError: Metadata failed to verify in some way
             DownloadError: Download of a metadata file failed in some way
 
@@ -455,11 +458,16 @@ class Updater:
                 continue
 
             if self.config.offline:
-                # Load local delegated role
-                data = self._load_local_metadata(role_name)
-                targets = self._trusted_set.update_delegated_targets(
-                    data, role_name, parent_role
-                ).signed
+                try:
+                    # Load local delegated role
+                    data = self._load_local_metadata(role_name)
+                    targets = self._trusted_set.update_delegated_targets(
+                        data, role_name, parent_role
+                    ).signed
+                except (OSError, exceptions.RepositoryError) as e:
+                    raise exceptions.DownloadError(
+                        f"Cannot download required metadata {role_name} in offline mode"
+                    ) from e
             else:
                 # The metadata for 'role_name' must be downloaded/updated before
                 # its targets, delegations, and child roles can be inspected.
