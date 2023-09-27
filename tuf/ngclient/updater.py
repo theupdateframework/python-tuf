@@ -131,26 +131,10 @@ class Updater:
             DownloadError: Download of a metadata file failed in some way
         """
 
-        if self.config.offline:
-            # load only local data
-            try:
-                data = self._load_local_metadata(Timestamp.type)
-                self._trusted_set.update_timestamp(data)
-                data = self._load_local_metadata(Snapshot.type)
-                self._trusted_set.update_snapshot(data, trusted=True)
-                data = self._load_local_metadata(Targets.type)
-                self._trusted_set.update_delegated_targets(
-                    data, Targets.type, Root.type
-                )
-            except (OSError, exceptions.RepositoryError) as e:
-                raise exceptions.DownloadError(
-                    "Cannot download metadata in offline mode"
-                ) from e
-        else:
-            self._load_root()
-            self._load_timestamp()
-            self._load_snapshot()
-            self._load_targets(Targets.type, Root.type)
+        self._load_root()
+        self._load_timestamp()
+        self._load_snapshot()
+        self._load_targets(Targets.type, Root.type)
 
     def _generate_target_file_path(self, targetinfo: TargetFile) -> str:
         if self.target_dir is None:
@@ -329,6 +313,8 @@ class Updater:
         Sequentially load and persist on local disk every newer root metadata
         version available on the remote.
         """
+        if self.config.offline:
+            return
 
         # Update the root role
         lower_bound = self._trusted_set.root.signed.version + 1
@@ -358,6 +344,13 @@ class Updater:
         except (OSError, exceptions.RepositoryError) as e:
             # Local timestamp does not exist or is invalid
             logger.debug("Local timestamp not valid as final: %s", e)
+            if self.config.offline:
+                raise exceptions.DownloadError(
+                    "Cannot download metadata in offline mode"
+                ) from e
+
+        if self.config.offline:
+            return
 
         # Load from remote (whether local load succeeded or not)
         data = self._download_metadata(
@@ -381,6 +374,11 @@ class Updater:
         except (OSError, exceptions.RepositoryError) as e:
             # Local snapshot does not exist or is invalid: update from remote
             logger.debug("Local snapshot not valid as final: %s", e)
+
+            if self.config.offline:
+                raise exceptions.DownloadError(
+                    "Cannot download metadata in offline mode"
+                ) from e
 
             snapshot_meta = self._trusted_set.timestamp.signed.snapshot_meta
             length = snapshot_meta.length or self.config.snapshot_max_length
@@ -409,6 +407,11 @@ class Updater:
         except (OSError, exceptions.RepositoryError) as e:
             # Local 'role' does not exist or is invalid: update from remote
             logger.debug("Failed to load local %s: %s", role, e)
+
+            if self.config.offline:
+                raise exceptions.DownloadError(
+                    f"Cannot download metadata for '{role}' in offline mode"
+                ) from e
 
             snapshot = self._trusted_set.snapshot.signed
             metainfo = snapshot.meta.get(f"{role}.json")
@@ -457,21 +460,9 @@ class Updater:
                 logger.debug("Skipping visited current role %s", role_name)
                 continue
 
-            if self.config.offline:
-                try:
-                    # Load local delegated role
-                    data = self._load_local_metadata(role_name)
-                    targets = self._trusted_set.update_delegated_targets(
-                        data, role_name, parent_role
-                    ).signed
-                except (OSError, exceptions.RepositoryError) as e:
-                    raise exceptions.DownloadError(
-                        f"Cannot download required metadata {role_name} in offline mode"
-                    ) from e
-            else:
-                # The metadata for 'role_name' must be downloaded/updated before
-                # its targets, delegations, and child roles can be inspected.
-                targets = self._load_targets(role_name, parent_role).signed
+            # The metadata for 'role_name' must be downloaded/updated before
+            # its targets, delegations, and child roles can be inspected.
+            targets = self._load_targets(role_name, parent_role).signed
 
             target = targets.targets.get(target_filepath)
 
