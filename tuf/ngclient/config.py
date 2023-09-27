@@ -24,7 +24,13 @@ class UpdaterConfig:
             are used, target download URLs are formed by prefixing the filename
             with a hash digest of file content by default. This can be
             overridden by setting ``prefix_targets_with_hash`` to ``False``.
-
+        offline: When offline, Updater works normally except for two differences: First,
+            expired metadata is considered valid. Second, Updater will not
+            download metadata or targets (if a download would be needed, a DownloadError
+            is raised instead). This is useful for a client that has all required
+            metadata and targets cached locally and is willing to sacrifice timeliness of
+            metadata for offline functionality. Offline mode is not strictly compatible
+            with the TUF client workflow.
     """
 
     max_root_rotations: int = 32
