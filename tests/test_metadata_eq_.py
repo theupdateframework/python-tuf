@@ -112,10 +112,9 @@ class TestMetadataComparisions(unittest.TestCase):
         md: Metadata = self.objects["Metadata"]
         md.signatures = {"a": Signature("a", "a"), "b": Signature("b", "b")}
         md_2 = copy.deepcopy(md)
-        # Reverse signatures order in md_2.
-        # In python3.7 we need to cast to a list and then reverse.
+
+        # Reverse dict to assert unequal order
         md_2.signatures = dict(reversed(list(md_2.signatures.items())))
-        # Assert that both objects are not the same because of signatures order.
         self.assertNotEqual(md, md_2)
 
         # but if we fix the signatures order they will be equal
@@ -168,11 +167,11 @@ class TestMetadataComparisions(unittest.TestCase):
 
         # Create a second delegations obj with reversed roles order
         delegations_2 = copy.deepcopy(delegations)
-        # In python3.7 we need to cast to a list and then reverse.
-        assert isinstance(delegations.roles, dict)
-        delegations_2.roles = dict(reversed(list(delegations.roles.items())))
 
-        # Both objects are not the equal because of delegated roles order.
+        assert isinstance(delegations.roles, dict)
+
+        # Reverse dict to assert unequal order
+        delegations_2.roles = dict(reversed(list(delegations.roles.items())))
         self.assertNotEqual(delegations, delegations_2)
 
         # but if we fix the delegated roles order they will be equal

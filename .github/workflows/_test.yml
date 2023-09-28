@@ -37,7 +37,7 @@ jobs:
       # (sslib main) on Linux/Python3.x only.
       matrix:
         toxenv: [py]
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
         os: [ubuntu-latest, macos-latest, windows-latest]
         include:
           - python-version: 3.x
@@ -47,9 +47,6 @@ jobs:
 
     env:
       # Set TOXENV env var to tell tox which testenv (see tox.ini) to use
-      # NOTE: The Python 2.7 runner has two Python versions on the path (see
-      # setup-python below), so we tell tox explicitly to use the 'py27'
-      # testenv. For all other runners the toxenv configured above suffices.
       TOXENV: ${{ matrix.toxenv }}
 
     runs-on: ${{ matrix.os }}
