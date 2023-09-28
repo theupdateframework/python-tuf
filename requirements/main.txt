@@ -6,40 +6,5 @@
 # 'pinned.txt' is updated on GitHub with Dependabot, which
 # triggers CI/CD builds to automatically test against updated dependencies.
 #
-#
-# NOTE: 'pip-compile' only adds dependencies relevant for the Python version,
-# in which it is executed. Moreover, it does not add environment markers of
-# transitive dependencies.
-# The official recommendation for cross-environment usage of pip-compile tends
-# towards separate requirements files for each environment (see
-# jazzband/pip-tools#651), this seem like an overkill for tuf, where we only
-# have a few conditional dependencies, i.e. dependencies that are required on
-# Python < 3 only.
-#
-#
-# Below instructions can be used to re-generate 'pinned.txt', e.g.
-# if:
-# - requirements are added or removed from this file
-# - Python version support is changed
-# - CI/CD build breaks due to updates (e.g. transitive dependency conflicts)
-#
-# 1. Use this script to create a pinned requirements file for each Python
-#    version
-# ```
-# for v in 3.8 3.9 3.10 3.11; do
-#   mkvirtualenv tuf-env-${v} -p python${v};
-#   python3 -m pip install pip-tools;
-#   pip-compile --no-header -o requirements-${v}.txt main.txt;
-#   deactivate;
-#   rmvirtualenv tuf-env-${v};
-# done;
-#
-# ```
-# 2. Use this command to merge per-version files
-#    `sort -o pinned.txt -u requirements-?.?.txt`
-# 2. Manually add environment markers to pinned.txt
-# 3. Use this command to remove per-version files
-#    `rm requirements-?.?.txt`
-#
 securesystemslib[crypto, pynacl]
 requests

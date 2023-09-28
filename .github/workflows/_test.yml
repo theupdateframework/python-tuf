@@ -47,9 +47,6 @@ jobs:
 
     env:
       # Set TOXENV env var to tell tox which testenv (see tox.ini) to use
-      # NOTE: The Python 2.7 runner has two Python versions on the path (see
-      # setup-python below), so we tell tox explicitly to use the 'py27'
-      # testenv. For all other runners the toxenv configured above suffices.
       TOXENV: ${{ matrix.toxenv }}
 
     runs-on: ${{ matrix.os }}
