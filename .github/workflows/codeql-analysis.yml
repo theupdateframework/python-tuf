@@ -16,18 +16,19 @@ jobs:
     name: Analyze
     runs-on: ubuntu-latest
     permissions:
+      # NOTE: If you add security critical permissions, start pinning used actions
       actions: read
       contents: read
-      security-events: write
+      security-events: write # for uploading to code-scanning dashboard
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@6a28655e3dcb49cb0840ea372fd6d17733edd8a4 # v2.21.8
+      uses: github/codeql-action/init@v2 # unpinned since this is not security critical
       with:
         languages: 'python'
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@6a28655e3dcb49cb0840ea372fd6d17733edd8a4 # v2.21.8
+      uses: github/codeql-action/analyze@v2 # unpinned since this is not security critical
