@@ -8,7 +8,7 @@
 # are pinned to prevent unexpected linting failures when tools update)
 black==23.9.1
 isort==5.12.0
-pylint==2.17.6
+pylint==2.17.7
 mypy==1.5.1
 bandit==1.7.5
 pydocstyle==6.3.0
