@@ -33,6 +33,7 @@ import fnmatch
 import io
 import logging
 import tempfile
+from dataclasses import dataclass
 from datetime import datetime
 from typing import (
     IO,
@@ -43,6 +44,7 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Set,
     Tuple,
     Type,
     TypeVar,
@@ -646,6 +648,37 @@ class Role:
         }
 
 
+@dataclass
+class VerificationResult:
+    """Signature verification result for delegated role metadata.
+
+    Attributes:
+        verified: True, if threshold of signatures is met.
+        signed: Set of delegated keyids, which validly signed.
+        unsigned: Set of delegated keyids, which did not validly sign.
+
+    """
+
+    verified: bool
+    signed: Set[str]
+    unsigned: Set[str]
+
+    def __bool__(self) -> bool:
+        return self.verified
+
+    def union(self, other: "VerificationResult") -> "VerificationResult":
+        """Combine two verification results.
+
+        Can be used to verify, if root metadata is signed by the threshold of
+        keys of previous root and the threshold of keys of itself.
+        """
+        return VerificationResult(
+            self.verified and other.verified,
+            self.signed | other.signed,
+            self.unsigned | other.unsigned,
+        )
+
+
 class _DelegatorMixin(metaclass=abc.ABCMeta):
     """Class that implements verify_delegate() for Root and Targets"""
 
@@ -664,6 +697,55 @@ class _DelegatorMixin(metaclass=abc.ABCMeta):
         Raises ValueError if key is not found.
         """
         raise NotImplementedError
+
+    def get_verification_result(
+        self,
+        delegated_role: str,
+        payload: bytes,
+        signatures: Dict[str, Signature],
+    ) -> VerificationResult:
+        """Return signature threshold verification result for delegated role.
+
+        NOTE: Unlike `verify_delegate()` this method does not raise, if the
+        role metadata is not fully verified.
+
+        Args:
+            delegated_role: Name of the delegated role to verify
+            payload: Signed payload bytes for the delegated role
+            signatures: Signatures over payload bytes
+
+        Raises:
+            ValueError: no delegation was found for ``delegated_role``.
+        """
+        role = self.get_delegated_role(delegated_role)
+
+        signed = set()
+        unsigned = set()
+
+        for keyid in role.keyids:
+            try:
+                key = self.get_key(keyid)
+            except ValueError:
+                unsigned.add(keyid)
+                logger.info("No key for keyid %s", keyid)
+                continue
+
+            if keyid not in signatures:
+                unsigned.add(keyid)
+                logger.info("No signature for keyid %s", keyid)
+                continue
+
+            sig = signatures[keyid]
+            try:
+                key.verify_signature(sig, payload)
+                signed.add(keyid)
+            except sslib_exceptions.UnverifiedSignatureError:
+                unsigned.add(keyid)
+                logger.info("Key %s failed to verify %s", keyid, delegated_role)
+
+        return VerificationResult(
+            len(signed) >= role.threshold, signed, unsigned
+        )
 
     def verify_delegate(
         self,
@@ -687,32 +769,14 @@ class _DelegatorMixin(metaclass=abc.ABCMeta):
                 required threshold of keys for ``role_name``.
             ValueError: no delegation was found for ``delegated_role``.
         """
-        role = self.get_delegated_role(delegated_role)
-
-        # verify that delegated_metadata is signed by threshold of unique keys
-        signing_keys = set()
-        for keyid in role.keyids:
-            try:
-                key = self.get_key(keyid)
-            except ValueError:
-                logger.info("No key for keyid %s", keyid)
-                continue
-
-            if keyid not in signatures:
-                logger.info("No signature for keyid %s", keyid)
-                continue
-
-            sig = signatures[keyid]
-            try:
-                key.verify_signature(sig, payload)
-                signing_keys.add(keyid)
-            except sslib_exceptions.UnverifiedSignatureError:
-                logger.info("Key %s failed to verify %s", keyid, delegated_role)
-
-        if len(signing_keys) < role.threshold:
+        result = self.get_verification_result(
+            delegated_role, payload, signatures
+        )
+        if not result:
+            role = self.get_delegated_role(delegated_role)
             raise UnsignedMetadataError(
-                f"{delegated_role} was signed by {len(signing_keys)}/"
-                f"{role.threshold} keys",
+                f"{delegated_role} was signed by {len(result.signed)}/"
+                f"{role.threshold} keys"
             )
 
 
