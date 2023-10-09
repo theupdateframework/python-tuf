@@ -14,8 +14,9 @@ jobs:
     name: Scorecards analysis
     runs-on: ubuntu-latest
     permissions:
+      # NOTE: If you add security critical permissions, start pinning used actions
       security-events: write # for uploading to code-scanning dashboard
-      id-token: write # for signing results
+      id-token: write # for publishing results in scorecard public dataset
       actions: read
       contents: read
 
@@ -24,7 +25,7 @@ jobs:
         uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
 
       - name: "Run analysis"
-        uses: ossf/scorecard-action@08b4669551908b1024bb425080c797723083c031 # v2.2.0
+        uses: ossf/scorecard-action@v2 # unpinned since this is not security critical
         with:
           results_file: results.sarif
           # sarif format required by upload-sarif action
@@ -34,6 +35,6 @@ jobs:
           publish_results: true
 
       - name: "Upload to code-scanning dashboard"
-        uses: github/codeql-action/upload-sarif@6a28655e3dcb49cb0840ea372fd6d17733edd8a4 # v2.21.8
+        uses: github/codeql-action/upload-sarif@v2  # unpinned since this is not security critical
         with:
           sarif_file: results.sarif
