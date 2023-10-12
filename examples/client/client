@@ -15,6 +15,7 @@ from urllib import request
 
 from tuf.api.exceptions import DownloadError, RepositoryError
 from tuf.ngclient import Updater, UpdaterConfig
+from tuf.ngclient.config import EnvelopeType
 
 # constants
 DOWNLOAD_DIR = "./downloads"
@@ -74,7 +75,7 @@ def download(base_url: str, target: str, use_dsse: bool) -> bool:
         os.mkdir(DOWNLOAD_DIR)
 
     config = UpdaterConfig()
-    config.use_dsse = use_dsse
+    config.envelope_type = EnvelopeType.SIMPLE
 
     try:
         updater = Updater(

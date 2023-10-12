@@ -34,7 +34,7 @@ Example of loading root, timestamp and snapshot:
 
 >>> # Load local root (RepositoryErrors here stop the update)
 >>> with open(root_path, "rb") as f:
->>>     trusted_set = TrustedMetadataSet(f.read())
+>>>     trusted_set = TrustedMetadataSet(f.read(), EnvelopeType.METADATA)
 >>>
 >>> # update root from remote until no more are available
 >>> with download(Root.type, trusted_set.root.version + 1) as f:
@@ -68,7 +68,12 @@ from typing import Dict, Iterator, Optional, Union, cast
 
 from tuf.api import exceptions
 from tuf.api.metadata import Root, Signed, Snapshot, Targets, Timestamp
-from tuf.ngclient._internal.wrapping import MetadataUnwrapper, Unwrapper
+from tuf.ngclient._internal.wrapping import (
+    EnvelopeUnwrapper,
+    MetadataUnwrapper,
+    Unwrapper,
+)
+from tuf.ngclient.config import EnvelopeType
 
 logger = logging.getLogger(__name__)
 
@@ -82,22 +87,26 @@ class TrustedMetadataSet(abc.Mapping):
     what is updated.
     """
 
-    def __init__(self, root_data: bytes, unwrapper: Optional[Unwrapper] = None):
+    def __init__(self, root_data: bytes, envelope_type: EnvelopeType):
         """Initialize ``TrustedMetadataSet`` by loading trusted root metadata.
 
         Args:
             root_data: Trusted root metadata as bytes. Note that this metadata
                 will only be verified by itself: it is the source of trust for
                 all metadata in the ``TrustedMetadataSet``
-            unwrapper: Used to unwrap and verify metadata. Default is
-                MetadataUnwrapper.
+            envelope_type: Configures deserialization and verification mode of
+                TUF metadata.
 
         Raises:
             RepositoryError: Metadata failed to load or verify. The actual
                 error type and content will contain more details.
         """
-        if unwrapper is None:
+        unwrapper: Unwrapper
+        if envelope_type is EnvelopeType.SIMPLE:
+            unwrapper = EnvelopeUnwrapper()
+        else:
             unwrapper = MetadataUnwrapper()
+
         self._unwrapper = unwrapper
 
         self._trusted_set: Dict[str, Signed] = {}

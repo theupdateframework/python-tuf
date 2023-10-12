@@ -26,6 +26,7 @@ from tuf.api.metadata import (
 )
 from tuf.api.serialization.json import JSONSerializer
 from tuf.ngclient._internal.trusted_metadata_set import TrustedMetadataSet
+from tuf.ngclient.config import EnvelopeType
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +95,9 @@ class TestTrustedMetadataSet(unittest.TestCase):
         )
 
     def setUp(self) -> None:
-        self.trusted_set = TrustedMetadataSet(self.metadata[Root.type])
+        self.trusted_set = TrustedMetadataSet(
+            self.metadata[Root.type], EnvelopeType.METADATA
+        )
 
     def _update_all_besides_targets(
         self,
@@ -193,22 +196,37 @@ class TestTrustedMetadataSet(unittest.TestCase):
             self.metadata["role1"], "role1", Targets.type
         )
 
-    def test_root_with_invalid_json(self) -> None:
-        # Test loading initial root and root update
-        for test_func in [TrustedMetadataSet, self.trusted_set.update_root]:
-            # root is not json
-            with self.assertRaises(exceptions.RepositoryError):
-                test_func(b"")  # type: ignore[operator]
+    def test_bad_initial_root(self) -> None:
+        # root is not json
+        with self.assertRaises(exceptions.RepositoryError):
+            TrustedMetadataSet(b"", EnvelopeType.METADATA)
 
-            # root is invalid
-            root = Metadata.from_bytes(self.metadata[Root.type])
-            root.signed.version += 1
-            with self.assertRaises(exceptions.UnsignedMetadataError):
-                test_func(root.to_bytes())  # type: ignore[operator]
+        # root is invalid
+        root = Metadata.from_bytes(self.metadata[Root.type])
+        root.signed.version += 1
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            TrustedMetadataSet(root.to_bytes(), EnvelopeType.METADATA)
 
-            # metadata is of wrong type
-            with self.assertRaises(exceptions.RepositoryError):
-                test_func(self.metadata[Snapshot.type])  # type: ignore[operator]
+        # metadata is of wrong type
+        with self.assertRaises(exceptions.RepositoryError):
+            TrustedMetadataSet(
+                self.metadata[Snapshot.type], EnvelopeType.METADATA
+            )
+
+    def test_bad_root_update(self) -> None:
+        # root is not json
+        with self.assertRaises(exceptions.RepositoryError):
+            self.trusted_set.update_root(b"")
+
+        # root is invalid
+        root = Metadata.from_bytes(self.metadata[Root.type])
+        root.signed.version += 1
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            self.trusted_set.update_root(root.to_bytes())
+
+        # metadata is of wrong type
+        with self.assertRaises(exceptions.RepositoryError):
+            self.trusted_set.update_root(self.metadata[Snapshot.type])
 
     def test_top_level_md_with_invalid_json(self) -> None:
         top_level_md: List[Tuple[bytes, Callable[[bytes], Signed]]] = [
@@ -261,7 +279,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
         # intermediate root can be expired
         root = self.modify_metadata(Root.type, root_expired_modifier)
-        tmp_trusted_set = TrustedMetadataSet(root)
+        tmp_trusted_set = TrustedMetadataSet(root, EnvelopeType.METADATA)
         # update timestamp to trigger final root expiry check
         with self.assertRaises(exceptions.ExpiredMetadataError):
             tmp_trusted_set.update_timestamp(self.metadata[Timestamp.type])

@@ -5,6 +5,20 @@
 """
 
 from dataclasses import dataclass
+from enum import Flag, unique
+
+
+@unique
+class EnvelopeType(Flag):
+    """Configures deserialization and verification mode of TUF metadata.
+
+    Args:
+        METADATA: Traditional canonical JSON -based TUF Metadata.
+        SIMPLE: Dead Simple Signing Envelope. (experimental)
+    """
+
+    METADATA = 1
+    SIMPLE = 2
 
 
 @dataclass
@@ -23,8 +37,9 @@ class UpdaterConfig:
             are used, target download URLs are formed by prefixing the filename
             with a hash digest of file content by default. This can be
             overridden by setting ``prefix_targets_with_hash`` to ``False``.
-        use_dsse: If true, expect metadata in a DSSE Envelope. Use
-            traditional Metadata (canonical json) otherwise.
+        envelope_type: Configures deserialization and verification mode of TUF
+            metadata. Per default, it is treated as traditional canonical JSON
+            -based TUF Metadata.
     """
 
     max_root_rotations: int = 32
@@ -34,4 +49,4 @@ class UpdaterConfig:
     snapshot_max_length: int = 2000000  # bytes
     targets_max_length: int = 5000000  # bytes
     prefix_targets_with_hash: bool = True
-    use_dsse: bool = False
+    envelope_type: EnvelopeType = EnvelopeType.METADATA
