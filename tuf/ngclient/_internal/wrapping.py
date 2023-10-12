@@ -11,7 +11,7 @@ from securesystemslib.signer import Signature
 
 from tuf.api import exceptions
 from tuf.api._payload import Root, T, Targets
-from tuf.api.dsse import Envelope
+from tuf.api.dsse import SimpleEnvelope
 from tuf.api.metadata import Metadata
 
 Delegator = Union[Root, Targets]
@@ -99,11 +99,11 @@ class EnvelopeUnwrapper(Unwrapper):
     """
 
     @staticmethod
-    def _validate_envelope_payload_type(envelope: Envelope) -> None:
+    def _validate_envelope_payload_type(envelope: SimpleEnvelope) -> None:
         # pylint: disable=protected-access
-        if envelope.payload_type != Envelope._DEFAULT_PAYLOAD_TYPE:
+        if envelope.payload_type != SimpleEnvelope._DEFAULT_PAYLOAD_TYPE:
             raise exceptions.RepositoryError(
-                f"Expected '{Envelope._DEFAULT_PAYLOAD_TYPE}', "
+                f"Expected '{SimpleEnvelope._DEFAULT_PAYLOAD_TYPE}', "
                 f"got '{envelope.payload_type}'"
             )
 
@@ -114,19 +114,17 @@ class EnvelopeUnwrapper(Unwrapper):
         delegator: Optional[Delegator] = None,
         role_name: Optional[str] = None,
     ) -> Tuple[T, bytes, Dict[str, Signature]]:  # noqa: D102
-        envelope = Envelope[T].from_bytes(wrapper)
-
-        # TODO: Envelope stores signatures as list, but `verify_delegate`
-        # expects a dict. Should we change the envelope model?
-        signatures = {sig.keyid: sig for sig in envelope.signatures}
+        envelope = SimpleEnvelope[T].from_bytes(wrapper)
 
         self._validate_envelope_payload_type(envelope)
         if delegator:
             if role_name is None:
                 role_name = role_cls.type
-            delegator.verify_delegate(role_name, envelope.pae(), signatures)
+            delegator.verify_delegate(
+                role_name, envelope.pae(), envelope.signatures_dict
+            )
 
         signed = envelope.get_signed()
         self._validate_signed_type(signed, role_cls)
 
-        return signed, envelope.pae(), signatures
+        return signed, envelope.pae(), envelope.signatures_dict
