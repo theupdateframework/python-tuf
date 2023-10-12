@@ -64,18 +64,26 @@ Example of loading root, timestamp and snapshot:
 import datetime
 import logging
 from collections import abc
-from typing import Dict, Iterator, Optional, Union, cast
+from typing import Dict, Iterator, Optional, Tuple, Type, Union, cast
+
+from securesystemslib.signer import Signature
 
 from tuf.api import exceptions
-from tuf.api.metadata import Root, Signed, Snapshot, Targets, Timestamp
-from tuf.ngclient._internal.wrapping import (
-    EnvelopeUnwrapper,
-    MetadataUnwrapper,
-    Unwrapper,
+from tuf.api.dsse import SimpleEnvelope
+from tuf.api.metadata import (
+    Metadata,
+    Root,
+    Signed,
+    Snapshot,
+    T,
+    Targets,
+    Timestamp,
 )
 from tuf.ngclient.config import EnvelopeType
 
 logger = logging.getLogger(__name__)
+
+Delegator = Union[Root, Targets]
 
 
 class TrustedMetadataSet(abc.Mapping):
@@ -101,16 +109,13 @@ class TrustedMetadataSet(abc.Mapping):
             RepositoryError: Metadata failed to load or verify. The actual
                 error type and content will contain more details.
         """
-        unwrapper: Unwrapper
-        if envelope_type is EnvelopeType.SIMPLE:
-            unwrapper = EnvelopeUnwrapper()
-        else:
-            unwrapper = MetadataUnwrapper()
-
-        self._unwrapper = unwrapper
-
         self._trusted_set: Dict[str, Signed] = {}
         self.reference_time = datetime.datetime.utcnow()
+
+        if envelope_type is EnvelopeType.SIMPLE:
+            self._load_data = _load_from_simple_envelope
+        else:
+            self._load_data = _load_from_metadata
 
         # Load and validate the local root metadata. Valid initial trusted root
         # metadata is required
@@ -174,7 +179,7 @@ class TrustedMetadataSet(abc.Mapping):
             raise RuntimeError("Cannot update root after timestamp")
         logger.debug("Updating root")
 
-        new_root, new_root_bytes, new_root_signatures = self._unwrapper.unwrap(
+        new_root, new_root_bytes, new_root_signatures = self._load_data(
             Root, data, self.root
         )
         if new_root.version != self.root.version + 1:
@@ -222,7 +227,7 @@ class TrustedMetadataSet(abc.Mapping):
         # No need to check for 5.3.11 (fast forward attack recovery):
         # timestamp/snapshot can not yet be loaded at this point
 
-        new_timestamp, _, _ = self._unwrapper.unwrap(Timestamp, data, self.root)
+        new_timestamp, _, _ = self._load_data(Timestamp, data, self.root)
 
         # If an existing trusted timestamp is updated,
         # check for a rollback attack
@@ -310,7 +315,7 @@ class TrustedMetadataSet(abc.Mapping):
         if not trusted:
             snapshot_meta.verify_length_and_hashes(data)
 
-        new_snapshot, _, _ = self._unwrapper.unwrap(Snapshot, data, self.root)
+        new_snapshot, _, _ = self._load_data(Snapshot, data, self.root)
 
         # version not checked against meta version to allow old snapshot to be
         # used in rollback protection: it is checked when targets is updated
@@ -411,7 +416,7 @@ class TrustedMetadataSet(abc.Mapping):
 
         meta.verify_length_and_hashes(data)
 
-        new_delegate, _, _ = self._unwrapper.unwrap(
+        new_delegate, _, _ = self._load_data(
             Targets, data, delegator, role_name
         )
 
@@ -435,10 +440,73 @@ class TrustedMetadataSet(abc.Mapping):
         Note that an expired initial root is considered valid: expiry is
         only checked for the final root in ``update_timestamp()``.
         """
-        new_root, new_root_bytes, new_root_signatures = self._unwrapper.unwrap(
+        new_root, new_root_bytes, new_root_signatures = self._load_data(
             Root, data
         )
         new_root.verify_delegate(Root.type, new_root_bytes, new_root_signatures)
 
         self._trusted_set[Root.type] = new_root
         logger.debug("Loaded trusted root v%d", new_root.version)
+
+
+def _load_from_metadata(
+    role: Type[T],
+    data: bytes,
+    delegator: Optional[Delegator] = None,
+    role_name: Optional[str] = None,
+) -> Tuple[T, bytes, Dict[str, Signature]]:  # noqa: D102
+    """Load traditional metadata bytes, and extract and verify payload.
+
+    If no delegator is passed, verification is skipped. Returns a tuple of
+    deserialized payload, signed payload bytes, and signatures.
+    """
+    md = Metadata[T].from_bytes(data)
+
+    if md.signed.type != role.type:
+        raise exceptions.RepositoryError(
+            f"Expected '{role.type}', got '{md.signed.type}'"
+        )
+
+    if delegator:
+        if role_name is None:
+            role_name = role.type
+
+        delegator.verify_delegate(role_name, md.signed_bytes, md.signatures)
+
+    return md.signed, md.signed_bytes, md.signatures
+
+
+def _load_from_simple_envelope(
+    role: Type[T],
+    data: bytes,
+    delegator: Optional[Delegator] = None,
+    role_name: Optional[str] = None,
+) -> Tuple[T, bytes, Dict[str, Signature]]:  # noqa: D102
+    """Load simple envelope bytes, and extract and verify payload.
+
+    If no delegator is passed, verification is skipped. Returns a tuple of
+    deserialized payload, signed payload bytes, and signatures.
+    """
+
+    envelope = SimpleEnvelope[T].from_bytes(data)
+
+    if envelope.payload_type != SimpleEnvelope._DEFAULT_PAYLOAD_TYPE:
+        raise exceptions.RepositoryError(
+            f"Expected '{SimpleEnvelope._DEFAULT_PAYLOAD_TYPE}', "
+            f"got '{envelope.payload_type}'"
+        )
+
+    if delegator:
+        if role_name is None:
+            role_name = role.type
+        delegator.verify_delegate(
+            role_name, envelope.pae(), envelope.signatures_dict
+        )
+
+    signed = envelope.get_signed()
+    if signed.type != role.type:
+        raise exceptions.RepositoryError(
+            f"Expected '{role.type}', got '{signed.type}'"
+        )
+
+    return signed, envelope.pae(), envelope.signatures_dict
