@@ -1,5 +1,23 @@
 # Changelog
 
+## v3.1.0
+
+### Added
+* Metadata API: move verify_delegate() to Root/Targets (#2378)
+  - *verify_delegate() on Metadata is now deprecated*
+* Metadata API: add get_verification_result() as verbose alternative for
+  verify_delegate() (#2481)
+* Metadata API: add MetaFile.from_data() convenience factory (#2273)
+
+### Changed
+* Metadata API: change Root.roles type hint to Dict (#2411)
+* Various minor improvements in tests (#2447, #2491), docs
+  (#2390, #2392, #2474) and build (#2389, #2453, #2479, #2488)
+
+### Removed
+* build: Python 3.7 support (#2460)
+
+
 ## v3.0.0
 
 The notable change in this release is #2165: The tuf.api.metadata.Key
