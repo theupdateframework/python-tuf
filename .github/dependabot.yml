@@ -4,13 +4,36 @@ updates:
 - package-ecosystem: "pip"
   directory: "/"
   schedule:
-    interval: "daily"
-    time: "10:00"
+    interval: "weekly"
   open-pull-requests-limit: 10
+  groups:
+    build-and-release-dependencies:
+      # Python dependencies known to be critical to our build/release security
+      patterns:
+        - "build"
+    test-and-lint-dependencies:
+      # Python dependencies that are only pinned to ensure test reproducibility
+      patterns:
+        - "bandit"
+        - "black"
+        - "isort"
+        - "mypy"
+        - "pydocstyle"
+        - "pylint"
+        - "tox"
+    dependencies:
+      # Python (developer) runtime dependencies. Also any new dependencies not
+      # caught by earlier groups
+      patterns:
+        - "*"
+
 
 - package-ecosystem: "github-actions"
   directory: "/"
   schedule:
-    interval: "daily"
-    time: "10:00"
+    interval: "weekly"
   open-pull-requests-limit: 10
+  groups:
+    action-dependencies:
+      patterns:
+        - "*"
