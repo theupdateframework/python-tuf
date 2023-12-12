@@ -10,5 +10,5 @@ black==23.11.0
 isort==5.13.0
 pylint==3.0.2
 mypy==1.7.0
-bandit==1.7.5
+bandit==1.7.6
 pydocstyle==6.3.0
