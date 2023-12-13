@@ -11,6 +11,7 @@ updates:
       # Python dependencies known to be critical to our build/release security
       patterns:
         - "build"
+        - "hatchling"
     test-and-lint-dependencies:
       # Python dependencies that are only pinned to ensure test reproducibility
       patterns:
