@@ -26,9 +26,9 @@ jobs:
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2 # unpinned since this is not security critical
+      uses: github/codeql-action/init@v3 # unpinned since this is not security critical
       with:
         languages: 'python'
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2 # unpinned since this is not security critical
+      uses: github/codeql-action/analyze@v3 # unpinned since this is not security critical
