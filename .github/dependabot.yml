@@ -17,6 +17,7 @@ updates:
       patterns:
         - "bandit"
         - "black"
+        - "coverage"
         - "isort"
         - "mypy"
         - "pydocstyle"
