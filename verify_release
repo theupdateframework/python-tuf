@@ -45,8 +45,14 @@ def build(build_dir: str) -> str:
         git_cmd = ["git", "clone", "--quiet", orig_dir, src_dir]
         subprocess.run(git_cmd, stdout=subprocess.DEVNULL, check=True)
 
+        # patch env to constrain build backend version as we do in cd.yml
+        env = os.environ.copy()
+        env["PIP_CONSTRAINT"] = "requirements/build.txt"
+
         build_cmd = ["python3", "-m", "build", "--outdir", build_dir, src_dir]
-        subprocess.run(build_cmd, stdout=subprocess.DEVNULL, check=True)
+        subprocess.run(
+            build_cmd, stdout=subprocess.DEVNULL, check=True, env=env
+        )
 
     build_version = None
     for filename in os.listdir(build_dir):
