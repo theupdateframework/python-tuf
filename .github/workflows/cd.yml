@@ -34,7 +34,7 @@ jobs:
         run: PIP_CONSTRAINT=requirements/build.txt python3 -m build --sdist --wheel --outdir dist/ .
 
       - name: Store build artifacts
-        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        uses: actions/upload-artifact@1eb3cb2b3e0f29609092a73eb033bb759a334595 # v4.1.0
         # NOTE: The GitHub release page contains the release artifacts too, but using
         # GitHub upload/download actions seems robuster: there is no need to compute
         # download URLs and tampering with artifacts between jobs is more limited.
@@ -52,7 +52,7 @@ jobs:
       release_id: ${{ steps.gh-release.outputs.result }}
     steps:
       - name: Fetch build artifacts
-        uses: actions/download-artifact@f44cd7b40bfd40b6aa1cc1b9b5b7bf03d3c67110 # v4.1.0
+        uses: actions/download-artifact@6b208ae046db98c579e8a3aa621ab581ff575935 # v4.1.1
         with:
           name: build-artifacts
           path: dist
@@ -92,7 +92,7 @@ jobs:
       id-token: write # to authenticate as Trusted Publisher to pypi.org
     steps:
       - name: Fetch build artifacts
-        uses: actions/download-artifact@f44cd7b40bfd40b6aa1cc1b9b5b7bf03d3c67110 # v4.1.0
+        uses: actions/download-artifact@6b208ae046db98c579e8a3aa621ab581ff575935 # v4.1.1
         with:
           name: build-artifacts
           path: dist
