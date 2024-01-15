@@ -33,7 +33,9 @@ class RequestsFetcher(FetcherInterface):
         chunk_size: Chunk size in bytes used when downloading.
     """
 
-    def __init__(self, socket_timeout: int = 30, chunk_size: int = 400000) -> None:
+    def __init__(
+        self, socket_timeout: int = 30, chunk_size: int = 400000
+    ) -> None:
         # http://docs.python-requests.org/en/master/user/advanced/#session-objects:
         #
         # "The Session object allows you to persist certain parameters across
