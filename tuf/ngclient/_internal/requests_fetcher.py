@@ -52,7 +52,7 @@ class RequestsFetcher(FetcherInterface):
         self._sessions: Dict[Tuple[str, str], requests.Session] = {}
 
         # Default settings
-        self.socket_timeout: int = 4  # seconds
+        self.socket_timeout: int = 30  # seconds
         self.chunk_size: int = 400000  # bytes
 
     def _fetch(self, url: str) -> Iterator[bytes]:
