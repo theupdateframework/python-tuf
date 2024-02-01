@@ -652,7 +652,6 @@ class VerificationResult:
     """Signature verification result for delegated role metadata.
 
     Attributes:
-        verified: True, if threshold of signatures is met.
         threshold: Number of required signatures.
         signed: dict of keyid:Key containing the keys that have signed.
         unsigned: dict of keyid:Key containing the keys that have not signed.
@@ -667,7 +666,47 @@ class VerificationResult:
 
     @property
     def verified(self) -> bool:
+        """True if threshold of signatures is met."""
         return len(self.signed) >= self.threshold
+
+
+@dataclass
+class RootVerificationResult:
+    """Signature verification result for root metadata.
+
+    Root must be verified by itself and the previous root version. This
+    dataclass represents that combination. For the edge case of first version
+    of root, the same VerificationResult can be used twice.
+
+    Note that `signed` and `unsigned` correctness requires the underlying
+    VerificationResult keys to not conflict (no reusing the same keyid for
+    different keys).
+
+    Attributes:
+        first: First underlying VerificationResult
+        second: Second underlying VerificationResult
+    """
+
+    first: VerificationResult
+    second: VerificationResult
+
+    def __bool__(self) -> bool:
+        return self.verified
+
+    @property
+    def verified(self) -> bool:
+        """True if threshold of signatures is met in both underlying VerificationResults."""
+        return self.first.verified and self.second.verified
+
+    @property
+    def signed(self) -> Dict[str, Key]:
+        """Dictionary of all signing keys that have signed, from both VerificationResults"""
+        return self.first.signed | self.second.signed
+
+    @property
+    def unsigned(self) -> Dict[str, Key]:
+        """Dictionary of all signing keys that have not signed, from both VerificationResults"""
+        return self.first.unsigned | self.second.unsigned
 
 
 class _DelegatorMixin(metaclass=abc.ABCMeta):
@@ -922,6 +961,34 @@ class Root(Signed, _DelegatorMixin):
             raise ValueError(f"Key {keyid} not found")
 
         return self.keys[keyid]
+
+    def get_root_verification_result(
+        self,
+        other: "Root",
+        payload: bytes,
+        signatures: Dict[str, Signature],
+    ) -> RootVerificationResult:
+        """Return signature threshold verification result for two root roles.
+
+        Verify root metadata with two roles (the root role from `self` and
+        `other`). If you have only one role (in the case of root v1) you can
+        provide the same Root as both `self` and `other`.
+
+        NOTE: Unlike `verify_delegate()` this method does not raise, if the
+        root metadata is not fully verified.
+
+        Args:
+            other: The other `Root` to verify payload with
+            payload: Signed payload bytes for root
+            signatures: Signatures over payload bytes
+
+        Raises:
+            ValueError: no delegation was found for ``delegated_role``.
+        """
+        return RootVerificationResult(
+            self.get_verification_result(Root.type, payload, signatures),
+            other.get_verification_result(Root.type, payload, signatures),
+        )
 
 
 class BaseFile:
