@@ -536,7 +536,7 @@ class TestSerialization(unittest.TestCase):
 
     invalid_targetfiles: utils.DataSet = {
         "no hashes": '{"length": 1}',
-        "no length": '{"hashes": {"sha256": "abc"}}'
+        "no length": '{"hashes": {"sha256": "abc"}}',
         # The remaining cases are the same as for invalid_hashes and
         # invalid_length datasets.
     }

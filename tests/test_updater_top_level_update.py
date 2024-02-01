@@ -555,9 +555,9 @@ class TestRefresh(unittest.TestCase):
         # Modify targets contents without updating
         # snapshot's targets hashes
         self.sim.targets.version += 1
-        self.sim.snapshot.meta[
-            "targets.json"
-        ].version = self.sim.targets.version
+        self.sim.snapshot.meta["targets.json"].version = (
+            self.sim.targets.version
+        )
         self.sim.snapshot.version += 1
         self.sim.update_timestamp()
 
