@@ -1,4 +1,5 @@
 """Unit tests for 'tuf/ngclient/_internal/trusted_metadata_set.py'."""
+
 import logging
 import os
 import sys

@@ -20,6 +20,7 @@ Contents:
 NOTE: Metadata files will be written to a 'tmp*'-directory in CWD.
 
 """
+
 import os
 import tempfile
 from datetime import datetime, timedelta

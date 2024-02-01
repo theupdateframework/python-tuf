@@ -15,6 +15,7 @@ See 'basic_repo.py' for a more comprehensive TUF metadata API example.
 NOTE: Metadata files will be written to a 'tmp*'-directory in CWD.
 
 """
+
 import hashlib
 import os
 import tempfile
