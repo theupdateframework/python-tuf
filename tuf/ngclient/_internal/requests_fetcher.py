@@ -29,12 +29,13 @@ class RequestsFetcher(FetcherInterface):
 
     Attributes:
         socket_timeout: Timeout in seconds, used for both initial connection
-            delay and the maximum delay between bytes received. Default is
-            4 seconds.
+            delay and the maximum delay between bytes received.
         chunk_size: Chunk size in bytes used when downloading.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self, socket_timeout: int = 30, chunk_size: int = 400000
+    ) -> None:
         # http://docs.python-requests.org/en/master/user/advanced/#session-objects:
         #
         # "The Session object allows you to persist certain parameters across
@@ -52,8 +53,8 @@ class RequestsFetcher(FetcherInterface):
         self._sessions: Dict[Tuple[str, str], requests.Session] = {}
 
         # Default settings
-        self.socket_timeout: int = 4  # seconds
-        self.chunk_size: int = 400000  # bytes
+        self.socket_timeout: int = socket_timeout  # seconds
+        self.chunk_size: int = chunk_size  # bytes
 
     def _fetch(self, url: str) -> Iterator[bytes]:
         """Fetch the contents of HTTP/HTTPS url from a remote server.
