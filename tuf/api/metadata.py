@@ -44,7 +44,6 @@ from typing import (
     Iterator,
     List,
     Optional,
-    Set,
     Tuple,
     Type,
     TypeVar,
@@ -654,29 +653,21 @@ class VerificationResult:
 
     Attributes:
         verified: True, if threshold of signatures is met.
-        signed: Set of delegated keyids, which validly signed.
-        unsigned: Set of delegated keyids, which did not validly sign.
-
+        threshold: Number of required signatures.
+        signed: dict of keyid:Key containing the keys that have signed.
+        unsigned: dict of keyid:Key containing the keys that have not signed.
     """
 
-    verified: bool
-    signed: Set[str]
-    unsigned: Set[str]
+    threshold: int
+    signed: Dict[str, Key]
+    unsigned: Dict[str, Key]
 
     def __bool__(self) -> bool:
         return self.verified
 
-    def union(self, other: "VerificationResult") -> "VerificationResult":
-        """Combine two verification results.
-
-        Can be used to verify, if root metadata is signed by the threshold of
-        keys of previous root and the threshold of keys of itself.
-        """
-        return VerificationResult(
-            self.verified and other.verified,
-            self.signed | other.signed,
-            self.unsigned | other.unsigned,
-        )
+    @property
+    def verified(self) -> bool:
+        return len(self.signed) >= self.threshold
 
 
 class _DelegatorMixin(metaclass=abc.ABCMeta):
@@ -719,33 +710,30 @@ class _DelegatorMixin(metaclass=abc.ABCMeta):
         """
         role = self.get_delegated_role(delegated_role)
 
-        signed = set()
-        unsigned = set()
+        signed = {}
+        unsigned = {}
 
         for keyid in role.keyids:
             try:
                 key = self.get_key(keyid)
             except ValueError:
-                unsigned.add(keyid)
                 logger.info("No key for keyid %s", keyid)
                 continue
 
             if keyid not in signatures:
-                unsigned.add(keyid)
+                unsigned[keyid] = key
                 logger.info("No signature for keyid %s", keyid)
                 continue
 
             sig = signatures[keyid]
             try:
                 key.verify_signature(sig, payload)
-                signed.add(keyid)
+                signed[keyid] = key
             except sslib_exceptions.UnverifiedSignatureError:
-                unsigned.add(keyid)
+                unsigned[keyid] = key
                 logger.info("Key %s failed to verify %s", keyid, delegated_role)
 
-        return VerificationResult(
-            len(signed) >= role.threshold, signed, unsigned
-        )
+        return VerificationResult(role.threshold, signed, unsigned)
 
     def verify_delegate(
         self,
