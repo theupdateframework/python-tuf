@@ -701,12 +701,14 @@ class RootVerificationResult:
     @property
     def signed(self) -> Dict[str, Key]:
         """Dictionary of all signing keys that have signed, from both VerificationResults"""
-        return self.first.signed | self.second.signed
+        # return a union of all signed (in python<3.9 this requires dict unpacking)
+        return {**self.first.signed, **self.second.signed}
 
     @property
     def unsigned(self) -> Dict[str, Key]:
         """Dictionary of all signing keys that have not signed, from both VerificationResults"""
-        return self.first.unsigned | self.second.unsigned
+        # return a union of all unsigned (in python<3.9 this requires dict unpacking)
+        return {**self.first.unsigned, **self.second.unsigned}
 
 
 class _DelegatorMixin(metaclass=abc.ABCMeta):
