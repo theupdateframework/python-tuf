@@ -802,10 +802,9 @@ class _DelegatorMixin(metaclass=abc.ABCMeta):
             delegated_role, payload, signatures
         )
         if not result:
-            role = self.get_delegated_role(delegated_role)
             raise UnsignedMetadataError(
                 f"{delegated_role} was signed by {len(result.signed)}/"
-                f"{role.threshold} keys"
+                f"{result.threshold} keys"
             )
 
 
