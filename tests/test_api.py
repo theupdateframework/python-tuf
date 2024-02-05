@@ -54,7 +54,7 @@ from tuf.api.serialization.json import JSONSerializer
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=too-many-public-methods
+# pylint: disable=too-many-public-methods,too-many-statements
 class TestMetadata(unittest.TestCase):
     """Tests for public API of all classes in 'tuf/api/metadata.py'."""
 
@@ -551,30 +551,43 @@ class TestMetadata(unittest.TestCase):
 
         priv_key4 = self.keystore[Snapshot.type]
 
-        # other_root is only used as the other verifying role
-        other_root: Metadata[Root] = deepcopy(root)
-
-        # Test: Verify with two roles that are the same
+        # Test: Verify with no previous root version
         result = root.signed.get_root_verification_result(
-            other_root.signed, root.signed_bytes, root.signatures
+            None, root.signed_bytes, root.signatures
         )
         self.assertTrue(result)
         self.assertEqual(result.signed, {key1_id: key1})
         self.assertEqual(result.unsigned, {})
 
-        # Test: Add a signer to other root (threshold still 1)
-        other_root.signed.add_key(key2, Root.type)
+        # Test: Verify with other root that is not version N-1
+        prev_root: Metadata[Root] = deepcopy(root)
+        with self.assertRaises(ValueError):
+            result = root.signed.get_root_verification_result(
+                prev_root.signed, root.signed_bytes, root.signatures
+            )
+
+        # Test: Verify with previous root
+        prev_root.signed.version -= 1
         result = root.signed.get_root_verification_result(
-            other_root.signed, root.signed_bytes, root.signatures
+            prev_root.signed, root.signed_bytes, root.signatures
+        )
+        self.assertTrue(result)
+        self.assertEqual(result.signed, {key1_id: key1})
+        self.assertEqual(result.unsigned, {})
+
+        # Test: Add a signer to previous root (threshold still 1)
+        prev_root.signed.add_key(key2, Root.type)
+        result = root.signed.get_root_verification_result(
+            prev_root.signed, root.signed_bytes, root.signatures
         )
         self.assertTrue(result)
         self.assertEqual(result.signed, {key1_id: key1})
         self.assertEqual(result.unsigned, {key2_id: key2})
 
-        # Test: Increase threshold in other root
-        other_root.signed.roles[Root.type].threshold += 1
+        # Test: Increase threshold in previous root
+        prev_root.signed.roles[Root.type].threshold += 1
         result = root.signed.get_root_verification_result(
-            other_root.signed, root.signed_bytes, root.signatures
+            prev_root.signed, root.signed_bytes, root.signatures
         )
         self.assertFalse(result)
         self.assertEqual(result.signed, {key1_id: key1})
@@ -583,7 +596,7 @@ class TestMetadata(unittest.TestCase):
         # Test: Sign root with both keys
         root.sign(SSlibSigner(priv_key2), append=True)
         result = root.signed.get_root_verification_result(
-            other_root.signed, root.signed_bytes, root.signatures
+            prev_root.signed, root.signed_bytes, root.signatures
         )
         self.assertTrue(result)
         self.assertEqual(result.signed, {key1_id: key1, key2_id: key2})
@@ -592,25 +605,25 @@ class TestMetadata(unittest.TestCase):
         # Test: Sign root with an unrelated key
         root.sign(SSlibSigner(priv_key4), append=True)
         result = root.signed.get_root_verification_result(
-            other_root.signed, root.signed_bytes, root.signatures
+            prev_root.signed, root.signed_bytes, root.signatures
         )
         self.assertTrue(result)
         self.assertEqual(result.signed, {key1_id: key1, key2_id: key2})
         self.assertEqual(result.unsigned, {})
 
-        # Test: Remove key1 from other root
-        other_root.signed.revoke_key(key1_id, Root.type)
+        # Test: Remove key1 from previous root
+        prev_root.signed.revoke_key(key1_id, Root.type)
         result = root.signed.get_root_verification_result(
-            other_root.signed, root.signed_bytes, root.signatures
+            prev_root.signed, root.signed_bytes, root.signatures
         )
         self.assertFalse(result)
         self.assertEqual(result.signed, {key1_id: key1, key2_id: key2})
         self.assertEqual(result.unsigned, {})
 
-        # Test: Lower threshold in other root
-        other_root.signed.roles[Root.type].threshold -= 1
+        # Test: Lower threshold in previous root
+        prev_root.signed.roles[Root.type].threshold -= 1
         result = root.signed.get_root_verification_result(
-            other_root.signed, root.signed_bytes, root.signatures
+            prev_root.signed, root.signed_bytes, root.signatures
         )
         self.assertTrue(result)
         self.assertEqual(result.signed, {key1_id: key1, key2_id: key2})
