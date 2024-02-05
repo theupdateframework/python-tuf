@@ -669,6 +669,11 @@ class VerificationResult:
         """True if threshold of signatures is met."""
         return len(self.signed) >= self.threshold
 
+    @property
+    def missing(self) -> int:
+        """Number of additional signatures required to reach threshold."""
+        return max(0, self.threshold - len(self.signed))
+
 
 @dataclass
 class RootVerificationResult:
@@ -995,11 +1000,12 @@ class Root(Signed, _DelegatorMixin):
         elif self.version != previous.version + 1:
             versions = f"v{previous.version} and v{self.version}"
             raise ValueError(
-                f"Expected sequential root versions, got {versions}.")
+                f"Expected sequential root versions, got {versions}."
+            )
 
         return RootVerificationResult(
-            self.get_verification_result(Root.type, payload, signatures),
             previous.get_verification_result(Root.type, payload, signatures),
+            self.get_verification_result(Root.type, payload, signatures),
         )
 
 
