@@ -99,11 +99,9 @@ class SimpleRepository(Repository):
         if role == Root.type:
             assert isinstance(md.signed, Root)
             root = self.root()
-            if root.version == 0:
-                # special case first root
-                root = md.signed
+            previous = root if root.version > 0 else None
             return md.signed.get_root_verification_result(
-                root, md.signed_bytes, md.signatures
+                previous, md.signed_bytes, md.signatures
             )
         if role in [Timestamp.type, Snapshot.type, Targets.type]:
             delegator: Signed = self.root()

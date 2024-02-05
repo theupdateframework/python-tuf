@@ -965,30 +965,36 @@ class Root(Signed, _DelegatorMixin):
 
     def get_root_verification_result(
         self,
-        other: "Root",
+        previous: Optional["Root"],
         payload: bytes,
         signatures: Dict[str, Signature],
     ) -> RootVerificationResult:
         """Return signature threshold verification result for two root roles.
 
-        Verify root metadata with two roles (the root role from `self` and
-        `other`). If you have only one role (in the case of root v1) you can
-        provide the same Root as both `self` and `other`.
+        Verify root metadata with two roles (`self` and optionally `previous`).
+
+        If the repository has no root role versions yet, `previous` can be left
+        None. In all other cases, `previous` must be the previous version of
+        the Root.
 
         NOTE: Unlike `verify_delegate()` this method does not raise, if the
         root metadata is not fully verified.
 
         Args:
-            other: The other `Root` to verify payload with
+            previous: The previous `Root` to verify payload with, or None
             payload: Signed payload bytes for root
             signatures: Signatures over payload bytes
 
         Raises:
             ValueError: no delegation was found for ``delegated_role``.
         """
+
+        if previous is None:
+            previous = self
+
         return RootVerificationResult(
             self.get_verification_result(Root.type, payload, signatures),
-            other.get_verification_result(Root.type, payload, signatures),
+            previous.get_verification_result(Root.type, payload, signatures),
         )
 
 
