@@ -653,8 +653,8 @@ class VerificationResult:
 
     Attributes:
         threshold: Number of required signatures.
-        signed: dict of keyid:Key containing the keys that have signed.
-        unsigned: dict of keyid:Key containing the keys that have not signed.
+        signed: dict of keyid to Key, containing keys that have signed.
+        unsigned: dict of keyid to Key, containing keys that have not signed.
     """
 
     threshold: int
@@ -675,8 +675,8 @@ class RootVerificationResult:
     """Signature verification result for root metadata.
 
     Root must be verified by itself and the previous root version. This
-    dataclass represents that combination. For the edge case of first version
-    of root, the same VerificationResult can be used twice.
+    dataclass represents both results. For the edge case of first version
+    of root, these underlying results are identical.
 
     Note that `signed` and `unsigned` correctness requires the underlying
     VerificationResult keys to not conflict (no reusing the same keyid for
