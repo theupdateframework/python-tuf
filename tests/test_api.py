@@ -41,12 +41,14 @@ from tuf.api.metadata import (
     Metadata,
     MetaFile,
     Root,
+    RootVerificationResult,
     Signature,
     Snapshot,
     SuccinctRoles,
     TargetFile,
     Targets,
     Timestamp,
+    VerificationResult,
 )
 from tuf.api.serialization import DeserializationError, SerializationError
 from tuf.api.serialization.json import JSONSerializer
@@ -469,6 +471,47 @@ class TestMetadata(unittest.TestCase):
         root.verify_delegate(
             Snapshot.type, snapshot_md.signed_bytes, snapshot_md.signatures
         )
+
+    def test_verification_result(self) -> None:
+        vr = VerificationResult(3, {"a": None}, {"b": None})
+        self.assertEqual(vr.missing, 2)
+        self.assertFalse(vr.verified)
+        self.assertFalse(vr)
+
+        # Add a signature
+        vr.signed["c"] = None
+        self.assertEqual(vr.missing, 1)
+        self.assertFalse(vr.verified)
+        self.assertFalse(vr)
+
+        # Add last missing signature
+        vr.signed["d"] = None
+        self.assertEqual(vr.missing, 0)
+        self.assertTrue(vr.verified)
+        self.assertTrue(vr)
+
+        # Add one more signature
+        vr.signed["e"] = None
+        self.assertEqual(vr.missing, 0)
+        self.assertTrue(vr.verified)
+        self.assertTrue(vr)
+
+    def test_root_verification_result(self) -> None:
+        vr1 = VerificationResult(3, {"a": None}, {"b": None})
+        vr2 = VerificationResult(1, {"c": None}, {"b": None})
+
+        vr = RootVerificationResult(vr1, vr2)
+        self.assertEqual(vr.signed, {"a": None, "c": None})
+        self.assertEqual(vr.unsigned, {"b": None})
+        self.assertFalse(vr.verified)
+        self.assertFalse(vr)
+
+        vr1.signed["c"] = None
+        vr1.signed["f"] = None
+        self.assertEqual(vr.signed, {"a": None, "c": None, "f": None})
+        self.assertEqual(vr.unsigned, {"b": None})
+        self.assertTrue(vr.verified)
+        self.assertTrue(vr)
 
     def test_signed_get_verification_result(self) -> None:
         # Setup: Load test metadata and keys
