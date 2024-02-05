@@ -13,7 +13,7 @@ import shutil
 import sys
 import tempfile
 import unittest
-from copy import copy
+from copy import copy, deepcopy
 from datetime import datetime, timedelta
 from typing import Any, ClassVar, Dict, Optional
 
@@ -41,6 +41,7 @@ from tuf.api.metadata import (
     Metadata,
     MetaFile,
     Root,
+    RootVerificationResult,
     Signature,
     Snapshot,
     SuccinctRoles,
@@ -55,7 +56,7 @@ from tuf.api.serialization.json import JSONSerializer
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=too-many-public-methods
+# pylint: disable=too-many-public-methods,too-many-statements
 class TestMetadata(unittest.TestCase):
     """Tests for public API of all classes in 'tuf/api/metadata.py'."""
 
@@ -471,95 +472,205 @@ class TestMetadata(unittest.TestCase):
             Snapshot.type, snapshot_md.signed_bytes, snapshot_md.signatures
         )
 
+    def test_verification_result(self) -> None:
+        vr = VerificationResult(3, {"a": None}, {"b": None})
+        self.assertEqual(vr.missing, 2)
+        self.assertFalse(vr.verified)
+        self.assertFalse(vr)
+
+        # Add a signature
+        vr.signed["c"] = None
+        self.assertEqual(vr.missing, 1)
+        self.assertFalse(vr.verified)
+        self.assertFalse(vr)
+
+        # Add last missing signature
+        vr.signed["d"] = None
+        self.assertEqual(vr.missing, 0)
+        self.assertTrue(vr.verified)
+        self.assertTrue(vr)
+
+        # Add one more signature
+        vr.signed["e"] = None
+        self.assertEqual(vr.missing, 0)
+        self.assertTrue(vr.verified)
+        self.assertTrue(vr)
+
+    def test_root_verification_result(self) -> None:
+        vr1 = VerificationResult(3, {"a": None}, {"b": None})
+        vr2 = VerificationResult(1, {"c": None}, {"b": None})
+
+        vr = RootVerificationResult(vr1, vr2)
+        self.assertEqual(vr.signed, {"a": None, "c": None})
+        self.assertEqual(vr.unsigned, {"b": None})
+        self.assertFalse(vr.verified)
+        self.assertFalse(vr)
+
+        vr1.signed["c"] = None
+        vr1.signed["f"] = None
+        self.assertEqual(vr.signed, {"a": None, "c": None, "f": None})
+        self.assertEqual(vr.unsigned, {"b": None})
+        self.assertTrue(vr.verified)
+        self.assertTrue(vr)
+
     def test_signed_get_verification_result(self) -> None:
         # Setup: Load test metadata and keys
         root_path = os.path.join(self.repo_dir, "metadata", "root.json")
         root = Metadata[Root].from_file(root_path)
-        initial_root_keyids = root.signed.roles[Root.type].keyids
-        self.assertEqual(len(initial_root_keyids), 1)
-        key1_id = initial_root_keyids[0]
-        key2 = self.keystore[Timestamp.type]
-        key2_id = key2["keyid"]
+
+        key1_id = root.signed.roles[Root.type].keyids[0]
+        key1 = root.signed.get_key(key1_id)
+
+        key2_id = root.signed.roles[Timestamp.type].keyids[0]
+        key2 = root.signed.get_key(key2_id)
+        priv_key2 = self.keystore[Timestamp.type]
+
         key3_id = "123456789abcdefg"
-        key4 = self.keystore[Snapshot.type]
-        key4_id = key4["keyid"]
+        priv_key4 = self.keystore[Snapshot.type]
+        key4_id = priv_key4["keyid"]
 
         # Test: 1 authorized key, 1 valid signature
         result = root.signed.get_verification_result(
             Root.type, root.signed_bytes, root.signatures
         )
-        self.assertTrue(result.verified)
-        self.assertEqual(result.signed, {key1_id})
-        self.assertEqual(result.unsigned, set())
+        self.assertTrue(result)
+        self.assertEqual(result.signed, {key1_id: key1})
+        self.assertEqual(result.unsigned, {})
 
         # Test: 2 authorized keys, 1 invalid signature
         # Adding a key, i.e. metadata change, invalidates existing signature
-        root.signed.add_key(
-            SSlibKey.from_securesystemslib_key(key2),
-            Root.type,
-        )
+        root.signed.add_key(key2, Root.type)
         result = root.signed.get_verification_result(
             Root.type, root.signed_bytes, root.signatures
         )
-        self.assertFalse(result.verified)
-        self.assertEqual(result.signed, set())
-        self.assertEqual(result.unsigned, {key1_id, key2_id})
+        self.assertFalse(result)
+        self.assertEqual(result.signed, {})
+        self.assertEqual(result.unsigned, {key1_id: key1, key2_id: key2})
 
         # Test: 3 authorized keys, 1 invalid signature, 1 key missing key data
-        # Adding a keyid w/o key, fails verification the same as no signature
-        # or an invalid signature for that key
+        # Adding a keyid w/o key, fails verification but this key is not listed
+        # in unsigned
         root.signed.roles[Root.type].keyids.append(key3_id)
         result = root.signed.get_verification_result(
             Root.type, root.signed_bytes, root.signatures
         )
-        self.assertFalse(result.verified)
-        self.assertEqual(result.signed, set())
-        self.assertEqual(result.unsigned, {key1_id, key2_id, key3_id})
+        self.assertFalse(result)
+        self.assertEqual(result.signed, {})
+        self.assertEqual(result.unsigned, {key1_id: key1, key2_id: key2})
 
         # Test: 3 authorized keys, 1 valid signature, 1 invalid signature, 1
         # key missing key data
-        root.sign(SSlibSigner(key2), append=True)
+        root.sign(SSlibSigner(priv_key2), append=True)
         result = root.signed.get_verification_result(
             Root.type, root.signed_bytes, root.signatures
         )
-        self.assertTrue(result.verified)
-        self.assertEqual(result.signed, {key2_id})
-        self.assertEqual(result.unsigned, {key1_id, key3_id})
+        self.assertTrue(result)
+        self.assertEqual(result.signed, {key2_id: key2})
+        self.assertEqual(result.unsigned, {key1_id: key1})
 
         # Test: 3 authorized keys, 1 valid signature, 1 invalid signature, 1
         # key missing key data, 1 ignored unrelated signature
-        root.sign(SSlibSigner(key4), append=True)
+        root.sign(SSlibSigner(priv_key4), append=True)
         self.assertEqual(
             set(root.signatures.keys()), {key1_id, key2_id, key4_id}
         )
-        self.assertTrue(result.verified)
-        self.assertEqual(result.signed, {key2_id})
-        self.assertEqual(result.unsigned, {key1_id, key3_id})
+        self.assertTrue(result)
+        self.assertEqual(result.signed, {key2_id: key2})
+        self.assertEqual(result.unsigned, {key1_id: key1})
 
         # See test_signed_verify_delegate for more related tests ...
 
-    def test_signed_verification_result_union(self) -> None:
-        # Test all possible "unions" (AND) of "verified" field
-        data = [
-            (True, True, True),
-            (True, False, False),
-            (False, True, False),
-            (False, False, False),
-        ]
+    def test_root_get_root_verification_result(self) -> None:
+        # Setup: Load test metadata and keys
+        root_path = os.path.join(self.repo_dir, "metadata", "root.json")
+        root = Metadata[Root].from_file(root_path)
 
-        for a_part, b_part, ab_part in data:
-            self.assertEqual(
-                VerificationResult(a_part, set(), set()).union(
-                    VerificationResult(b_part, set(), set())
-                ),
-                VerificationResult(ab_part, set(), set()),
+        key1_id = root.signed.roles[Root.type].keyids[0]
+        key1 = root.signed.get_key(key1_id)
+
+        key2_id = root.signed.roles[Timestamp.type].keyids[0]
+        key2 = root.signed.get_key(key2_id)
+        priv_key2 = self.keystore[Timestamp.type]
+
+        priv_key4 = self.keystore[Snapshot.type]
+
+        # Test: Verify with no previous root version
+        result = root.signed.get_root_verification_result(
+            None, root.signed_bytes, root.signatures
+        )
+        self.assertTrue(result)
+        self.assertEqual(result.signed, {key1_id: key1})
+        self.assertEqual(result.unsigned, {})
+
+        # Test: Verify with other root that is not version N-1
+        prev_root: Metadata[Root] = deepcopy(root)
+        with self.assertRaises(ValueError):
+            result = root.signed.get_root_verification_result(
+                prev_root.signed, root.signed_bytes, root.signatures
             )
 
-        # Test exemplary union (|) of "signed" and "unsigned" fields
-        a = VerificationResult(True, {"1"}, {"2"})
-        b = VerificationResult(True, {"3"}, {"4"})
-        ab = VerificationResult(True, {"1", "3"}, {"2", "4"})
-        self.assertEqual(a.union(b), ab)
+        # Test: Verify with previous root
+        prev_root.signed.version -= 1
+        result = root.signed.get_root_verification_result(
+            prev_root.signed, root.signed_bytes, root.signatures
+        )
+        self.assertTrue(result)
+        self.assertEqual(result.signed, {key1_id: key1})
+        self.assertEqual(result.unsigned, {})
+
+        # Test: Add a signer to previous root (threshold still 1)
+        prev_root.signed.add_key(key2, Root.type)
+        result = root.signed.get_root_verification_result(
+            prev_root.signed, root.signed_bytes, root.signatures
+        )
+        self.assertTrue(result)
+        self.assertEqual(result.signed, {key1_id: key1})
+        self.assertEqual(result.unsigned, {key2_id: key2})
+
+        # Test: Increase threshold in previous root
+        prev_root.signed.roles[Root.type].threshold += 1
+        result = root.signed.get_root_verification_result(
+            prev_root.signed, root.signed_bytes, root.signatures
+        )
+        self.assertFalse(result)
+        self.assertEqual(result.signed, {key1_id: key1})
+        self.assertEqual(result.unsigned, {key2_id: key2})
+
+        # Test: Sign root with both keys
+        root.sign(SSlibSigner(priv_key2), append=True)
+        result = root.signed.get_root_verification_result(
+            prev_root.signed, root.signed_bytes, root.signatures
+        )
+        self.assertTrue(result)
+        self.assertEqual(result.signed, {key1_id: key1, key2_id: key2})
+        self.assertEqual(result.unsigned, {})
+
+        # Test: Sign root with an unrelated key
+        root.sign(SSlibSigner(priv_key4), append=True)
+        result = root.signed.get_root_verification_result(
+            prev_root.signed, root.signed_bytes, root.signatures
+        )
+        self.assertTrue(result)
+        self.assertEqual(result.signed, {key1_id: key1, key2_id: key2})
+        self.assertEqual(result.unsigned, {})
+
+        # Test: Remove key1 from previous root
+        prev_root.signed.revoke_key(key1_id, Root.type)
+        result = root.signed.get_root_verification_result(
+            prev_root.signed, root.signed_bytes, root.signatures
+        )
+        self.assertFalse(result)
+        self.assertEqual(result.signed, {key1_id: key1, key2_id: key2})
+        self.assertEqual(result.unsigned, {})
+
+        # Test: Lower threshold in previous root
+        prev_root.signed.roles[Root.type].threshold -= 1
+        result = root.signed.get_root_verification_result(
+            prev_root.signed, root.signed_bytes, root.signatures
+        )
+        self.assertTrue(result)
+        self.assertEqual(result.signed, {key1_id: key1, key2_id: key2})
+        self.assertEqual(result.unsigned, {})
 
     def test_key_class(self) -> None:
         # Test if from_securesystemslib_key removes the private key from keyval

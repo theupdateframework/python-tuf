@@ -44,7 +44,6 @@ from typing import (
     Iterator,
     List,
     Optional,
-    Set,
     Tuple,
     Type,
     TypeVar,
@@ -653,30 +652,68 @@ class VerificationResult:
     """Signature verification result for delegated role metadata.
 
     Attributes:
-        verified: True, if threshold of signatures is met.
-        signed: Set of delegated keyids, which validly signed.
-        unsigned: Set of delegated keyids, which did not validly sign.
-
+        threshold: Number of required signatures.
+        signed: dict of keyid to Key, containing keys that have signed.
+        unsigned: dict of keyid to Key, containing keys that have not signed.
     """
 
-    verified: bool
-    signed: Set[str]
-    unsigned: Set[str]
+    threshold: int
+    signed: Dict[str, Key]
+    unsigned: Dict[str, Key]
 
     def __bool__(self) -> bool:
         return self.verified
 
-    def union(self, other: "VerificationResult") -> "VerificationResult":
-        """Combine two verification results.
+    @property
+    def verified(self) -> bool:
+        """True if threshold of signatures is met."""
+        return len(self.signed) >= self.threshold
 
-        Can be used to verify, if root metadata is signed by the threshold of
-        keys of previous root and the threshold of keys of itself.
-        """
-        return VerificationResult(
-            self.verified and other.verified,
-            self.signed | other.signed,
-            self.unsigned | other.unsigned,
-        )
+    @property
+    def missing(self) -> int:
+        """Number of additional signatures required to reach threshold."""
+        return max(0, self.threshold - len(self.signed))
+
+
+@dataclass
+class RootVerificationResult:
+    """Signature verification result for root metadata.
+
+    Root must be verified by itself and the previous root version. This
+    dataclass represents both results. For the edge case of first version
+    of root, these underlying results are identical.
+
+    Note that `signed` and `unsigned` correctness requires the underlying
+    VerificationResult keys to not conflict (no reusing the same keyid for
+    different keys).
+
+    Attributes:
+        first: First underlying VerificationResult
+        second: Second underlying VerificationResult
+    """
+
+    first: VerificationResult
+    second: VerificationResult
+
+    def __bool__(self) -> bool:
+        return self.verified
+
+    @property
+    def verified(self) -> bool:
+        """True if threshold of signatures is met in both underlying VerificationResults."""
+        return self.first.verified and self.second.verified
+
+    @property
+    def signed(self) -> Dict[str, Key]:
+        """Dictionary of all signing keys that have signed, from both VerificationResults"""
+        # return a union of all signed (in python<3.9 this requires dict unpacking)
+        return {**self.first.signed, **self.second.signed}
+
+    @property
+    def unsigned(self) -> Dict[str, Key]:
+        """Dictionary of all signing keys that have not signed, from both VerificationResults"""
+        # return a union of all unsigned (in python<3.9 this requires dict unpacking)
+        return {**self.first.unsigned, **self.second.unsigned}
 
 
 class _DelegatorMixin(metaclass=abc.ABCMeta):
@@ -719,33 +756,30 @@ class _DelegatorMixin(metaclass=abc.ABCMeta):
         """
         role = self.get_delegated_role(delegated_role)
 
-        signed = set()
-        unsigned = set()
+        signed = {}
+        unsigned = {}
 
         for keyid in role.keyids:
             try:
                 key = self.get_key(keyid)
             except ValueError:
-                unsigned.add(keyid)
                 logger.info("No key for keyid %s", keyid)
                 continue
 
             if keyid not in signatures:
-                unsigned.add(keyid)
+                unsigned[keyid] = key
                 logger.info("No signature for keyid %s", keyid)
                 continue
 
             sig = signatures[keyid]
             try:
                 key.verify_signature(sig, payload)
-                signed.add(keyid)
+                signed[keyid] = key
             except sslib_exceptions.UnverifiedSignatureError:
-                unsigned.add(keyid)
+                unsigned[keyid] = key
                 logger.info("Key %s failed to verify %s", keyid, delegated_role)
 
-        return VerificationResult(
-            len(signed) >= role.threshold, signed, unsigned
-        )
+        return VerificationResult(role.threshold, signed, unsigned)
 
     def verify_delegate(
         self,
@@ -773,10 +807,9 @@ class _DelegatorMixin(metaclass=abc.ABCMeta):
             delegated_role, payload, signatures
         )
         if not result:
-            role = self.get_delegated_role(delegated_role)
             raise UnsignedMetadataError(
                 f"{delegated_role} was signed by {len(result.signed)}/"
-                f"{role.threshold} keys"
+                f"{result.threshold} keys"
             )
 
 
@@ -934,6 +967,46 @@ class Root(Signed, _DelegatorMixin):
             raise ValueError(f"Key {keyid} not found")
 
         return self.keys[keyid]
+
+    def get_root_verification_result(
+        self,
+        previous: Optional["Root"],
+        payload: bytes,
+        signatures: Dict[str, Signature],
+    ) -> RootVerificationResult:
+        """Return signature threshold verification result for two root roles.
+
+        Verify root metadata with two roles (`self` and optionally `previous`).
+
+        If the repository has no root role versions yet, `previous` can be left
+        None. In all other cases, `previous` must be the previous version of
+        the Root.
+
+        NOTE: Unlike `verify_delegate()` this method does not raise, if the
+        root metadata is not fully verified.
+
+        Args:
+            previous: The previous `Root` to verify payload with, or None
+            payload: Signed payload bytes for root
+            signatures: Signatures over payload bytes
+
+        Raises:
+            ValueError: no delegation was found for ``root`` or given Root
+                versions are not sequential.
+        """
+
+        if previous is None:
+            previous = self
+        elif self.version != previous.version + 1:
+            versions = f"v{previous.version} and v{self.version}"
+            raise ValueError(
+                f"Expected sequential root versions, got {versions}."
+            )
+
+        return RootVerificationResult(
+            previous.get_verification_result(Root.type, payload, signatures),
+            self.get_verification_result(Root.type, payload, signatures),
+        )
 
 
 class BaseFile:
