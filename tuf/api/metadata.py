@@ -986,11 +986,16 @@ class Root(Signed, _DelegatorMixin):
             signatures: Signatures over payload bytes
 
         Raises:
-            ValueError: no delegation was found for ``delegated_role``.
+            ValueError: no delegation was found for ``root`` or given Root
+                versions are not sequential.
         """
 
         if previous is None:
             previous = self
+        elif self.version != previous.version + 1:
+            versions = f"v{previous.version} and v{self.version}"
+            raise ValueError(
+                f"Expected sequential root versions, got {versions}.")
 
         return RootVerificationResult(
             self.get_verification_result(Root.type, payload, signatures),
