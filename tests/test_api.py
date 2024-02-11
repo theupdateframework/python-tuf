@@ -1119,6 +1119,33 @@ class TestMetadata(unittest.TestCase):
             expected_bin_suffix = f"{bin_numer:0{expected_suffix_length}x}"
             self.assertEqual(role_name, f"bin-{expected_bin_suffix}")
 
+    def test_delegations_get_delegated_role(self) -> None:
+        delegations = Delegations({}, {})
+        targets = Targets(delegations=delegations)
+
+        with self.assertRaises(ValueError):
+            targets.get_delegated_role("abc")
+
+        # test "normal" delegated role (path or path_hash_prefix)
+        role = DelegatedRole("delegated", [], 1, False, [])
+        delegations.roles = {"delegated": role}
+        with self.assertRaises(ValueError):
+            targets.get_delegated_role("not-delegated")
+        self.assertEqual(targets.get_delegated_role("delegated"), role)
+        delegations.roles = None
+
+        # test succinct delegation
+        bit_len = 3
+        role2 = SuccinctRoles([], 1, bit_len, "prefix")
+        delegations.succinct_roles = role2
+        for name in ["prefix-", "prefix--1", f"prefix-{2**bit_len:0x}"]:
+            with self.assertRaises(ValueError, msg=f"role name '{name}'"):
+                targets.get_delegated_role(name)
+        for i in range(0, 2**bit_len):
+            self.assertEqual(
+                targets.get_delegated_role(f"prefix-{i:0x}"), role2
+            )
+
 
 # Run unit test.
 if __name__ == "__main__":
