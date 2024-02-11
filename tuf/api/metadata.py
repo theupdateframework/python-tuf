@@ -2117,10 +2117,13 @@ class Targets(Signed, _DelegatorMixin):
         if self.delegations is None:
             raise ValueError("No delegations found")
 
+        role: Optional[Role] = None
         if self.delegations.roles is not None:
-            role: Optional[Role] = self.delegations.roles.get(delegated_role)
-        else:
-            role = self.delegations.succinct_roles
+            role = self.delegations.roles.get(delegated_role)
+        elif self.delegations.succinct_roles is not None:
+            succinct = self.delegations.succinct_roles
+            if succinct.is_delegated_role(delegated_role):
+                role = succinct
 
         if not role:
             raise ValueError(f"Delegated role {delegated_role} not found")
