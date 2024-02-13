@@ -37,15 +37,21 @@ downloads target files is available in `examples/client
 <https://github.com/theupdateframework/python-tuf/tree/develop/examples/client>`_.
 """
 
+import base64
+import errno
+import json
 import logging
 import os
 import shutil
 import tempfile
-from typing import Optional, Set
+from typing import List, Optional, Set, Tuple
 from urllib import parse
+
+from securesystemslib import hash as sslib_hash
 
 from tuf.api import exceptions
 from tuf.api.metadata import (
+    SPECIFICATION_VERSION,
     Metadata,
     Root,
     Snapshot,
@@ -58,6 +64,9 @@ from tuf.ngclient.config import UpdaterConfig
 from tuf.ngclient.fetcher import FetcherInterface
 
 logger = logging.getLogger(__name__)
+# only include the major version
+SUPPORTED_VERSIONS = [SPECIFICATION_VERSION[0]]
+SUPPORTED_FEATURES = [""]
 
 
 class Updater:
@@ -82,6 +91,7 @@ class Updater:
         RepositoryError: Local root.json is invalid
     """
 
+    # pylint: disable=too-many-instance-attributes
     def __init__(
         self,
         metadata_dir: str,
@@ -91,6 +101,8 @@ class Updater:
         fetcher: Optional[FetcherInterface] = None,
         config: Optional[UpdaterConfig] = None,
     ):
+        self._spec_version: str = "1"  # spec_version is the last used version by the client to get metadata
+        self._spec_version_dir = ""
         self._dir = metadata_dir
         self._metadata_base_url = _ensure_trailing_slash(metadata_base_url)
         self.target_dir = target_dir
@@ -104,6 +116,8 @@ class Updater:
         self._trusted_set = trusted_metadata_set.TrustedMetadataSet(data)
         self._fetcher = fetcher or requests_fetcher.RequestsFetcher()
         self.config = config or UpdaterConfig()
+        self._supported_versions = SUPPORTED_VERSIONS
+        self._supported_features = SUPPORTED_FEATURES
 
     def refresh(self) -> None:
         """Refresh top-level metadata.
@@ -128,11 +142,82 @@ class Updater:
             RepositoryError: Metadata failed to verify in some way
             DownloadError: Download of a metadata file failed in some way
         """
+        self._set_spec_version()
 
         self._load_root()
         self._load_timestamp()
         self._load_snapshot()
         self._load_targets(Targets.type, Root.type)
+
+    def _set_spec_version(self) -> None:
+        """Load previous spec version from disk"""
+        # get previous spec version
+        try:
+            version_bytes = self._load_local_metadata("spec_version")
+            self._spec_version = json.loads(version_bytes.decode("utf-8"))[
+                "version"
+            ]
+
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                raise
+            self._spec_version = "1"
+            # persist the version number
+            self._persist_metadata(
+                "spec_version",
+                json.dumps({"version": "1"}).encode("utf-8"),
+            )
+
+    def _find_matching_spec_version(
+        self, repository_versions_dicts: List[dict]
+    ) -> Tuple[str, str, str, str]:
+        """Find the set of spec versions that match between the client and repository.
+        Returns the largest matching version and information about
+        the new root and its path
+        """
+
+        repository_versions = [i["version"] for i in repository_versions_dicts]
+        repository_features = [
+            i["features"] if "features" in i else ""
+            for i in repository_versions_dicts
+        ]
+
+        # Updating self.spec_version
+        spec_version, features = self._get_spec_version(
+            repository_versions,
+            repository_features,
+            self._spec_version,
+            self._supported_versions,
+        )
+
+        for i in repository_versions_dicts:
+            if i["version"] == int(spec_version) and (
+                "features" not in i or i["features"] == features
+            ):
+                new_path = self._spec_version_dir
+                if "path" in i:
+                    new_path = i["path"]
+                if "root-filename" in i and "root-digest" in i:
+                    return (
+                        spec_version,
+                        i["root-filename"],
+                        i["root-digest"],
+                        new_path,
+                    )
+                # root info will be empty if the version does not change
+                return spec_version, "", "", new_path
+
+        # we shouldn't get here...
+        raise ValueError("current repository version not found")
+
+    def _get_repository_versions(self) -> List[dict]:
+        """Returns a list of all the repository versions and paths."""
+
+        # If supported-versions is not found, then default to version 1
+        supported = self._trusted_set.root.signed.supported_versions
+        if supported is not None and len(supported) > 0:
+            return supported
+        return [{"version": 1}]
 
     def _generate_target_file_path(self, targetinfo: TargetFile) -> str:
         if self.target_dir is None:
@@ -263,15 +348,23 @@ class Updater:
         logger.debug("Downloaded target %s", targetinfo.path)
         return filepath
 
+    def _download_new_spec_root(self, rolename: str, length: int) -> bytes:
+        spec_folder = f"{self._spec_version_dir}"
+        url = f"{self._metadata_base_url}{spec_folder}{rolename}"
+        return self._fetcher.download_bytes(url, length)
+
     def _download_metadata(
         self, rolename: str, length: int, version: Optional[int] = None
     ) -> bytes:
         """Download a metadata file and return it as bytes."""
         encoded_name = parse.quote(rolename, "")
-        if version is None:
-            url = f"{self._metadata_base_url}{encoded_name}.json"
+
+        spec_folder = f"{self._spec_version_dir}"
+
+        if version is None:  # THIS IS SNAPSHOT VERSION !!
+            url = f"{self._metadata_base_url}{spec_folder}{encoded_name}.json"
         else:
-            url = f"{self._metadata_base_url}{version}.{encoded_name}.json"
+            url = f"{self._metadata_base_url}{spec_folder}{version}.{encoded_name}.json"
         return self._fetcher.download_bytes(url, length)
 
     def _load_local_metadata(self, rolename: str) -> bytes:
@@ -309,6 +402,43 @@ class Updater:
         version available on the remote.
         """
 
+        # find the current highest compatible spec version and get the
+        # list of versions to look for root metadata
+        (
+            supported_version,
+            new_root_filename,
+            new_root_bytes,
+            new_spec_version_path,
+        ) = self._find_matching_spec_version(self._get_repository_versions())
+
+        # if compatible version higher than current, jump to that root
+        # call _load_root in new version
+        if new_spec_version_path != self._spec_version_dir:
+            save_dir = self._spec_version_dir
+            self._spec_version_dir = new_spec_version_path
+            actual_bytes = self._download_new_spec_root(
+                new_root_filename, self.config.root_max_length
+            )
+            hasher = sslib_hash.digest(algorithm="sha256")
+            hasher.update(actual_bytes)
+            if base64.b64decode(new_root_bytes) == hasher.digest():
+                # set trustedroot
+                self._trusted_set.update_root_spec_rotation(actual_bytes)
+
+                # try update again, checking for new supported versions first
+                self._spec_version = supported_version
+
+                # persist the version number
+                self._persist_metadata(
+                    "spec_version",
+                    json.dumps({"version": self._spec_version}).encode("utf-8"),
+                )
+
+                self._load_root()
+                return
+            # error loading new version, stay with this version
+            self._spec_version_dir = save_dir
+
         # Update the root role
         lower_bound = self._trusted_set.root.signed.version + 1
         upper_bound = lower_bound + self.config.max_root_rotations
@@ -322,6 +452,18 @@ class Updater:
                 )
                 self._trusted_set.update_root(data)
                 self._persist_metadata(Root.type, data)
+                # check if supported_versions was updated in this root
+                repository_versions = self._get_repository_versions()
+                (
+                    _,
+                    _,
+                    _,
+                    new_spec_version_path,
+                ) = self._find_matching_spec_version(repository_versions)
+                # if path changed, recurse to try loading new spec version
+                if self._spec_version_dir != new_spec_version_path:
+                    self._load_root()
+                    return
 
             except exceptions.DownloadHTTPError as exception:
                 if exception.status_code not in {403, 404}:
@@ -478,6 +620,74 @@ class Updater:
 
         # If this point is reached then target is not found, return None
         return None
+
+    def _get_spec_version(
+        self,
+        repository_versions: List[str],
+        repository_features: List[str],
+        spec_version: str,
+        supported_versions: List[str],
+    ) -> Tuple[str, str]:
+        """Returns the specification version and features to be used, following the rules of TAP-14
+           and displays a warning if chosen spec_version is lower than the highest repository version.
+
+        Raises:
+            ValueError: supported_versions, repository_version or spec_version contains an
+            invalid entry (not parseable as ``int()``)
+            RepositoryError: Latest repository version lower than the last used version from
+            this repository
+            RepositoryError: No matching version found between supported_versions and repository_versions
+        """
+        repository_versions_int = [int(i) for i in repository_versions]
+        supported_versions_int = [int(i) for i in supported_versions]
+        spec_version_int = int(spec_version)
+
+        # The client determines the latest version available on the repository by looking
+        # for the directory with the largest version number.
+        latest_repo_version = max(repository_versions_int)
+
+        # If the latest version on the repository is lower than the previous specification
+        # version the client used from this repository, the client should report an error
+        # and terminate the update.
+        if latest_repo_version < spec_version_int:
+            raise exceptions.RepositoryError(
+                f"The latest repository version ({latest_repo_version}) is lower than the last used spec version ({spec_version})."
+            )
+
+        # If the latest version on the repository is equal to that of the client, it will use this directory to download metadata.
+
+        # If the latest version pre-dates the client specification version, it may call functions from a previous client version
+        # to download the metadata. The client may support as many or as few versions as desired for the application. If the
+        # previous version is not available, the client shall report that an update can not be performed due to an old
+        # specification version on the repository.
+
+        # If the latest version on the repository is higher than the client spec version, the client should report
+        # to the user that it is not using the most up to date version, and then perform the update with the directory
+        # that corresponds with the latest client specification version, if available. If no such directory exists,
+        # the client terminates the update.
+        try:
+            spec_version_int = max(
+                set(repository_versions_int) & set(supported_versions_int)
+            )
+        except ValueError as e:
+            raise exceptions.RepositoryError(
+                f"No matching specification version found. Found {repository_versions} in"
+                f"repository and {supported_versions} in client."
+            ) from e
+
+        if latest_repo_version > spec_version_int:
+            logger.warning(
+                "Not using the latest specification version available on the repository"
+            )
+
+        features = ""
+        for i, v in enumerate(repository_versions_int):
+            if v == spec_version_int:
+                # current version, check for valid features
+                if repository_features[i] in self._supported_features:
+                    features = repository_features[i]
+
+        return str(spec_version_int), features
 
 
 def _ensure_trailing_slash(url: str) -> str:

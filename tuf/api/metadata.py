@@ -830,6 +830,8 @@ class Root(Signed, _DelegatorMixin):
             a dictionary of top level roles without keys and threshold of 1.
         consistent_snapshot: ``True`` if repository supports consistent snapshots.
             Default is True.
+        supported_versions: List of supported versions and their associated
+            directory
         unrecognized_fields: Dictionary of all attributes that are not managed
             by TUF Metadata API
 
@@ -848,11 +850,13 @@ class Root(Signed, _DelegatorMixin):
         keys: Optional[Dict[str, Key]] = None,
         roles: Optional[Dict[str, Role]] = None,
         consistent_snapshot: Optional[bool] = True,
+        supported_versions: Optional[List[Dict]] = None,
         unrecognized_fields: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(version, spec_version, expires, unrecognized_fields)
         self.consistent_snapshot = consistent_snapshot
         self.keys = keys if keys is not None else {}
+        self.supported_versions = supported_versions
 
         if roles is None:
             roles = {r: Role([], 1) for r in TOP_LEVEL_ROLE_NAMES}
@@ -869,6 +873,7 @@ class Root(Signed, _DelegatorMixin):
             and self.keys == other.keys
             and self.roles == other.roles
             and self.consistent_snapshot == other.consistent_snapshot
+            and self.supported_versions == other.supported_versions
         )
 
     @classmethod
@@ -879,6 +884,7 @@ class Root(Signed, _DelegatorMixin):
             ValueError, KeyError, TypeError: Invalid arguments.
         """
         common_args = cls._common_fields_from_dict(signed_dict)
+        supported_versions = signed_dict.pop("supported_versions", None)
         consistent_snapshot = signed_dict.pop("consistent_snapshot", None)
         keys = signed_dict.pop("keys")
         roles = signed_dict.pop("roles")
@@ -889,7 +895,14 @@ class Root(Signed, _DelegatorMixin):
             roles[role_name] = Role.from_dict(role_dict)
 
         # All fields left in the signed_dict are unrecognized.
-        return cls(*common_args, keys, roles, consistent_snapshot, signed_dict)
+        return cls(
+            *common_args,
+            keys,
+            roles,
+            consistent_snapshot,
+            supported_versions,
+            signed_dict,
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         """Return the dict representation of self."""
@@ -900,6 +913,9 @@ class Root(Signed, _DelegatorMixin):
             roles[role_name] = role.to_dict()
         if self.consistent_snapshot is not None:
             root_dict["consistent_snapshot"] = self.consistent_snapshot
+        if self.supported_versions is not None:
+            supported_versions = self.supported_versions
+            root_dict["supported_versions"] = supported_versions
 
         root_dict.update(
             {
