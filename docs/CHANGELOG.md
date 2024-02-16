@@ -1,5 +1,15 @@
 # Changelog
 
+## v3.1.1
+
+This is a security fix release to address advisory
+GHSA-77hh-43cm-v8j6. The issue does **not** affect tuf.ngclient
+users, but could affect tuf.api.metadata users.
+
+### Changed
+* Added additional input validation to
+  `tuf.api.metadata.Targets.get_delegated_role()`
+
 ## v3.1.0
 
 ### Added
