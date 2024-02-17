@@ -75,17 +75,13 @@ include = [
 # from `tests` so the root directory must be added to Python's path for editable installations
 dev-mode-dirs = ["."]
 
-# Black section
-# Read more here: https://black.readthedocs.io/en/stable/usage_and_configuration/the_basics.html#configuration-via-a-file
-[tool.black]
+# Ruff section
+# Read more here: https://docs.astral.sh/ruff/linter/#rule-selection
+[tool.ruff]
 line-length=80
 
-# Isort section
-# Read more here: https://pycqa.github.io/isort/docs/configuration/config_files.html
-[tool.isort]
-profile="black"
-line_length=80
-known_first_party = ["tuf"]
+[tool.ruff.lint]
+ignore = ["D400","D415","D213","D205","D202","D107","D407","D413","D212","D104","D406","D105","D411","D401","D200","D203"]
 
 # Pylint section
 
@@ -156,7 +152,3 @@ module = [
   "securesystemslib.*",
 ]
 ignore_missing_imports = "True"
-
-[tool.pydocstyle]
-inherit = false
-ignore = "D400,D415,D213,D205,D202,D107,D407,D413,D212,D104,D406,D105,D411,D401,D200,D203"
