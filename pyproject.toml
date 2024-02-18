@@ -83,6 +83,10 @@ line-length=80
 [tool.ruff.lint]
 ignore = ["D400","D415","D213","D205","D202","D107","D407","D413","D212","D104","D406","D105","D411","D401","D200","D203"]
 
+[tool.ruff.lint.per-file-ignores] 
+"tuf/repository/__init__.py" = ["F401"]
+"tuf/api/exceptions.py" = ["F401"]
+
 # Pylint section
 
 # Minimal pylint configuration file for Secure Systems Lab Python Style Guide:
