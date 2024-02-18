@@ -57,7 +57,7 @@ def run_sub_tests_with_dataset(
     cases in dataset"""
 
     def real_decorator(
-        function: Callable[[unittest.TestCase, Any], None]
+        function: Callable[[unittest.TestCase, Any], None],
     ) -> Callable[[unittest.TestCase], None]:
         def wrapper(test_cls: unittest.TestCase) -> None:
             for case, data in dataset.items():
