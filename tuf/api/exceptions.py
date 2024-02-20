@@ -11,8 +11,7 @@ there is a good reason not to, and provide that reason in those cases.
 #### Repository errors ####
 
 # pylint: disable=unused-import
-# ruff: disable unused-inport
-from securesystemslib.exceptions import StorageError
+from securesystemslib.exceptions import StorageError  # noqa: F401
 
 
 class RepositoryError(Exception):

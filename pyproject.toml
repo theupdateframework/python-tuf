@@ -83,19 +83,16 @@ line-length=80
 [tool.ruff.lint]
 select = [
     "D",  # pydocstyle
-    "I",  # isort
+    "E",  # pycodestyle
     "F",  # pyflakes
+    "I",  # isort
     "N",  # pep8-naming
-    "E"   # pycodestyle 
 ] 
 ignore = ["D400","D415","D213","D205","D202","D107","D407","D413","D212","D104","D406","D105","D411","D401","D200","D203"]
+
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D", "E"]
 "examples/*/*" = ["D"] 
-"tuf/repository/__init__.py" = ["F401"]
-"tuf/api/exceptions.py" = ["F401"]
-"tuf/repository/_repository.py" = ["N818"]
-"verify_release" = ["F401", "D103", "E501"]
 
 # Pylint section
 
