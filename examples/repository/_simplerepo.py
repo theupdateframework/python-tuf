@@ -112,7 +112,9 @@ class SimpleRepository(Repository):
         )
 
     def open(self, role: str) -> Metadata:
-        """Return current Metadata for role from 'storage' (or create a new one)"""
+        """Return current Metadata for role from 'storage'
+        (or create a new one)
+        """
 
         if role not in self.role_cache:
             signed_init = _signed_init.get(role, Targets)

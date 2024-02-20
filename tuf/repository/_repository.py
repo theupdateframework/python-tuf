@@ -22,6 +22,7 @@ from tuf.api.metadata import (
 logger = logging.getLogger(__name__)
 
 
+# ruff: ignore N818 `Exception name should have Error suffix`
 class AbortEdit(Exception):
     """Raise to exit the edit() contextmanager without saving changes"""
 

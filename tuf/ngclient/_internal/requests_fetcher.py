@@ -1,7 +1,8 @@
 # Copyright 2021, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""Provides an implementation of ``FetcherInterface`` using the Requests HTTP library.
+"""Provides an implementation of ``FetcherInterface`` using the Requests HTTP
+library.
 """
 
 # requests_fetcher is public but comes from _internal for now (because
@@ -117,7 +118,8 @@ class RequestsFetcher(FetcherInterface):
             response.close()
 
     def _get_session(self, url: str) -> requests.Session:
-        """Return a different customized requests.Session per schema+hostname combination.
+        """Return a different customized requests.Session per schema+hostname
+        combination.
 
         Raises:
             exceptions.DownloadError: When there is a problem parsing the url.

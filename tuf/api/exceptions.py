@@ -11,6 +11,7 @@ there is a good reason not to, and provide that reason in those cases.
 #### Repository errors ####
 
 # pylint: disable=unused-import
+# ruff: disable unused-inport
 from securesystemslib.exceptions import StorageError
 
 
@@ -23,7 +24,9 @@ class RepositoryError(Exception):
 
 
 class UnsignedMetadataError(RepositoryError):
-    """An error about metadata object with insufficient threshold of signatures."""
+    """An error about metadata object with insufficient threshold of
+    signatures.
+    """
 
 
 class BadVersionNumberError(RepositoryError):

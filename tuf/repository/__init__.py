@@ -10,4 +10,5 @@ well as developer and signing tools.
 The repository module is not considered part of the stable python-tuf API yet.
 """
 
+# ruff: disable unused-inport
 from tuf.repository._repository import AbortEdit, Repository
