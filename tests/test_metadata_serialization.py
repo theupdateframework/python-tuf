@@ -34,7 +34,6 @@ from tuf.api.serialization import DeserializationError
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=too-many-public-methods
 class TestSerialization(unittest.TestCase):
     """Test serialization for all classes in 'tuf/api/metadata.py'."""
 

@@ -56,7 +56,6 @@ from tuf.api.serialization.json import JSONSerializer
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=too-many-public-methods,too-many-statements
 class TestMetadata(unittest.TestCase):
     """Tests for public API of all classes in 'tuf/api/metadata.py'."""
 
@@ -246,7 +245,7 @@ class TestMetadata(unittest.TestCase):
             os.path.join(self.repo_dir, "metadata", "snapshot.json")
         )
 
-        class FailingSigner(Signer):  # pylint: disable=missing-class-docstring
+        class FailingSigner(Signer):
             @classmethod
             def from_priv_key_uri(
                 cls,
@@ -365,7 +364,6 @@ class TestMetadata(unittest.TestCase):
             role2.verify_delegate("role1", role1)
 
     def test_signed_verify_delegate(self) -> None:
-        # pylint: disable=too-many-locals,too-many-statements
         root_path = os.path.join(self.repo_dir, "metadata", "root.json")
         root_md = Metadata[Root].from_file(root_path)
         root = root_md.signed
@@ -742,7 +740,6 @@ class TestMetadata(unittest.TestCase):
             root.signed.revoke_key(keyid, "nosuchrole")
 
     def test_is_target_in_pathpattern(self) -> None:
-        # pylint: disable=protected-access
         supported_use_cases = [
             ("foo.tgz", "foo.tgz"),
             ("foo.tgz", "*"),

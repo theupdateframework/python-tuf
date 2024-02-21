@@ -36,7 +36,6 @@ logger = logging.getLogger(__name__)
 class TestUpdater(unittest.TestCase):
     """Test the Updater class from 'tuf/ngclient/updater.py'."""
 
-    # pylint: disable=too-many-instance-attributes
     server_process_handler: ClassVar[utils.TestServerProcess]
 
     @classmethod
@@ -282,7 +281,6 @@ class TestUpdater(unittest.TestCase):
             targetinfo.hashes = {"sha256": "abcd"}
             self.updater.download_target(targetinfo)
 
-    # pylint: disable=protected-access
     def test_updating_root(self) -> None:
         # Bump root version, resign and refresh
         self._modify_repository_root(lambda root: None, bump_version=True)

@@ -89,7 +89,7 @@ class TestMetadataComparisions(unittest.TestCase):
 
     @utils.run_sub_tests_with_dataset(classes_attributes_modifications)
     def test_classes_eq_(self, test_case_data: Dict[str, Any]) -> None:
-        obj = self.objects[self.case_name]  # pylint: disable=no-member
+        obj = self.objects[self.case_name]
 
         # Assert that obj is not equal to an object from another type
         self.assertNotEqual(obj, "")

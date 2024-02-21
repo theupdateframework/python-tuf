@@ -29,7 +29,6 @@ from tuf.ngclient._internal.trusted_metadata_set import TrustedMetadataSet
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=too-many-public-methods
 class TestTrustedMetadataSet(unittest.TestCase):
     """Tests for all public API of the TrustedMetadataSet class."""
 

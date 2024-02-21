@@ -20,7 +20,6 @@ from typing import TYPE_CHECKING
 from tuf.api.exceptions import RepositoryError
 
 if TYPE_CHECKING:
-    # pylint: disable=cyclic-import
     from tuf.api.metadata import Metadata, Signed
 
 

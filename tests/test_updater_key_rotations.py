@@ -41,7 +41,6 @@ class TestUpdaterKeyRotations(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        # pylint: disable-next=consider-using-with
         cls.temp_dir = tempfile.TemporaryDirectory()
 
         # Pre-create a bunch of keys and signers
@@ -58,14 +57,12 @@ class TestUpdaterKeyRotations(unittest.TestCase):
 
     def setup_subtest(self) -> None:
         # Setup repository for subtest: make sure no roots have been published
-        # pylint: disable=attribute-defined-outside-init
         self.sim = RepositorySimulator()
         self.sim.signed_roots.clear()
         self.sim.root.version = 0
 
         if self.dump_dir is not None:
             # create subtest dumpdir
-            # pylint: disable=no-member
             name = f"{self.id().split('.')[-1]}-{self.case_name}"
             self.sim.dump_dir = os.path.join(self.dump_dir, name)
             os.mkdir(self.sim.dump_dir)
@@ -76,7 +73,6 @@ class TestUpdaterKeyRotations(unittest.TestCase):
             self.sim.write()
 
         # bootstrap with initial root
-        # pylint: disable=attribute-defined-outside-init
         self.metadata_dir = tempfile.mkdtemp(dir=self.temp_dir.name)
         with open(os.path.join(self.metadata_dir, "root.json"), "bw") as f:
             f.write(self.sim.signed_roots[0])

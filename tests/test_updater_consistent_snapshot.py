@@ -32,7 +32,6 @@ class TestConsistentSnapshot(unittest.TestCase):
     dump_dir: Optional[str] = None
 
     def setUp(self) -> None:
-        # pylint: disable=consider-using-with
         self.subtest_count = 0
         self.temp_dir = tempfile.TemporaryDirectory()
         self.metadata_dir = os.path.join(self.temp_dir.name, "metadata")

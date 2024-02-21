@@ -230,7 +230,6 @@ class TestServerProcess:
 
         # Reusing one subprocess in multiple tests, but split up the logs
         # for each.
-        # pylint: disable=consider-using-with
         self.__server_process = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
@@ -362,5 +361,4 @@ class TestServerProcess:
 
     def is_process_running(self) -> bool:
         assert isinstance(self.__server_process, subprocess.Popen)
-        # pylint: disable=simplifiable-if-expression
         return True if self.__server_process.poll() is None else False

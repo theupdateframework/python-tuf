@@ -20,7 +20,6 @@ class TestUpdater(unittest.TestCase):
     """Test ngclient Updater input validation."""
 
     def setUp(self) -> None:
-        # pylint: disable-next=consider-using-with
         self.temp_dir = tempfile.TemporaryDirectory()
         self.metadata_dir = os.path.join(self.temp_dir.name, "metadata")
         self.targets_dir = os.path.join(self.temp_dir.name, "targets")

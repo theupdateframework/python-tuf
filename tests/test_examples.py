@@ -53,7 +53,6 @@ class TestRepoExamples(unittest.TestCase):
         CWD."""
         script_path = str(self.repo_examples_dir / script_name)
         with open(script_path, "rb") as f:
-            # pylint: disable=exec-used
             exec(
                 compile(f.read(), script_path, "exec"),
                 {"__file__": script_path},

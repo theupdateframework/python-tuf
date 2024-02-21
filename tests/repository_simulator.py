@@ -99,7 +99,6 @@ class RepositoryTarget:
 class RepositorySimulator(FetcherInterface):
     """Simulates a repository that can be used for testing."""
 
-    # pylint: disable=too-many-instance-attributes
     def __init__(self) -> None:
         self.md_delegates: Dict[str, Metadata[Targets]] = {}
 

@@ -70,7 +70,6 @@ _SNAPSHOT = "snapshot"
 _TARGETS = "targets"
 _TIMESTAMP = "timestamp"
 
-# pylint: disable=too-many-lines
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +156,6 @@ class Metadata(Generic[T]):
         """Default canonical json byte representation of ``self.signed``."""
 
         # Use local scope import to avoid circular import errors
-        # pylint: disable=import-outside-toplevel
         from tuf.api.serialization.json import CanonicalJSONSerializer
 
         return CanonicalJSONSerializer().serialize(self.signed)
@@ -267,7 +265,6 @@ class Metadata(Generic[T]):
 
         if deserializer is None:
             # Use local scope import to avoid circular import errors
-            # pylint: disable=import-outside-toplevel
             from tuf.api.serialization.json import JSONDeserializer
 
             deserializer = JSONDeserializer()
@@ -297,7 +294,6 @@ class Metadata(Generic[T]):
 
         if serializer is None:
             # Use local scope import to avoid circular import errors
-            # pylint: disable=import-outside-toplevel
             from tuf.api.serialization.json import JSONSerializer
 
             serializer = JSONSerializer(compact=True)
@@ -855,7 +851,6 @@ class Root(Signed, _DelegatorMixin):
 
     type = _ROOT
 
-    # pylint: disable=too-many-arguments
     def __init__(
         self,
         version: Optional[int] = None,
@@ -2001,7 +1996,6 @@ class Targets(Signed, _DelegatorMixin):
 
     type = _TARGETS
 
-    # pylint: disable=too-many-arguments
     def __init__(
         self,
         version: Optional[int] = None,
