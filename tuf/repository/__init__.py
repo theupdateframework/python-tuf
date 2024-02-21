@@ -10,4 +10,4 @@ well as developer and signing tools.
 The repository module is not considered part of the stable python-tuf API yet.
 """
 
-from tuf.repository._repository import AbortEdit, Repository
+from tuf.repository._repository import AbortEdit, Repository  # noqa: F401

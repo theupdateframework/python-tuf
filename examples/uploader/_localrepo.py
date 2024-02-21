@@ -62,7 +62,6 @@ class LocalRepository(Repository):
 
         # if there is a metadata version fetched from remote, use that
         # HACK: access Updater internals
-        # pylint: disable=protected-access
         if role in self.updater._trusted_set:
             return copy.deepcopy(self.updater._trusted_set[role])
 
@@ -105,7 +104,7 @@ class LocalRepository(Repository):
             with self.edit_targets(role) as delegated:
                 delegated.targets[targetpath] = targetfile
 
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:
             print(f"Failed to submit new {role} with added target: {e}")
             return False
 

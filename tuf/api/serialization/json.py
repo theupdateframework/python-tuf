@@ -13,7 +13,6 @@ from typing import Optional
 
 from securesystemslib.formats import encode_canonical
 
-# pylint: disable=cyclic-import
 # ... to allow de/serializing Metadata and Signed objects here, while also
 # creating default de/serializers there (see metadata local scope imports).
 # NOTE: A less desirable alternative would be to add more abstraction layers.

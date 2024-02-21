@@ -19,7 +19,7 @@ from tempfile import TemporaryDirectory
 from typing import Optional
 
 try:
-    import build as _  # type: ignore
+    import build as _  # type: ignore # noqa: F401
     import requests
 except ImportError:
     print("Error: verify_release requires modules 'requests' and 'build':")
@@ -168,19 +168,21 @@ def sign_release_artifacts(
 
 
 def finished(s: str) -> None:
+    """Displays a finished message."""
     # clear line
     sys.stdout.write("\033[K")
     print(f"* {s}")
 
 
 def progress(s: str) -> None:
+    """Displays a progress message."""
     # clear line
     sys.stdout.write("\033[K")
     # carriage return but no newline: next print will overwrite this one
     print(f"  {s}...", end="\r", flush=True)
 
 
-def main() -> int:
+def main() -> int:  # noqa: D103
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--skip-pypi",
@@ -194,8 +196,9 @@ def main() -> int:
         const=True,
         metavar="<key id>",
         dest="sign",
-        help="Sign release artifacts with 'gpg'. If no <key id> is passed, the default "
-        "signing key is used. Resulting '*.asc' files are written to CWD.",
+        help="Sign release artifacts with 'gpg'. If no <key id> is passed,"
+        " the default signing key is used. Resulting '*.asc' files are written"
+        " to CWD.",
     )
     args = parser.parse_args()
 
@@ -237,7 +240,8 @@ def main() -> int:
         else:
             finished("GitHub artifacts match the built release")
 
-        # NOTE: 'gpg' might prompt for password or ask if it should override files...
+        # NOTE: 'gpg' might prompt for password or ask if it should
+        # override files...
         if args.sign:
             progress("Signing built release with gpg")
             if success:

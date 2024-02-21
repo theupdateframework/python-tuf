@@ -10,8 +10,7 @@ there is a good reason not to, and provide that reason in those cases.
 
 #### Repository errors ####
 
-# pylint: disable=unused-import
-from securesystemslib.exceptions import StorageError
+from securesystemslib.exceptions import StorageError  # noqa: F401
 
 
 class RepositoryError(Exception):
@@ -23,7 +22,9 @@ class RepositoryError(Exception):
 
 
 class UnsignedMetadataError(RepositoryError):
-    """An error about metadata object with insufficient threshold of signatures."""
+    """An error about metadata object with insufficient threshold of
+    signatures.
+    """
 
 
 class BadVersionNumberError(RepositoryError):

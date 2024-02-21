@@ -36,7 +36,6 @@ def can_connect(port: int) -> bool:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect(("localhost", port))
         return True
-    # pylint: disable=broad-except
     except Exception:
         return False
     finally:

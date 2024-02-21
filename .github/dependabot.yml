@@ -16,12 +16,9 @@ updates:
       # Python dependencies that are only pinned to ensure test reproducibility
       patterns:
         - "bandit"
-        - "black"
         - "coverage"
-        - "isort"
         - "mypy"
-        - "pydocstyle"
-        - "pylint"
+        - "ruff"
         - "tox"
     dependencies:
       # Python (developer) runtime dependencies. Also any new dependencies not

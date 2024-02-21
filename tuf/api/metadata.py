@@ -19,9 +19,10 @@ attributes generally follow the JSON format used in the specification.
 
 The above principle means that a ``Metadata`` object represents a single
 metadata file, and has a ``signed`` attribute that is an instance of one of the
-four top level signed classes (``Root``, ``Timestamp``, ``Snapshot`` and ``Targets``).
-To make Python type annotations useful ``Metadata`` can be type constrained: e.g. the
-signed attribute of ``Metadata[Root]`` is known to be ``Root``.
+four top level signed classes (``Root``, ``Timestamp``, ``Snapshot`` and 
+``Targets``). To make Python type annotations useful ``Metadata`` can be 
+type constrained: e.g. the signed attribute of ``Metadata[Root]`` 
+is known to be ``Root``.
 
 Currently Metadata API supports JSON as the file format.
 
@@ -69,7 +70,6 @@ _SNAPSHOT = "snapshot"
 _TARGETS = "targets"
 _TIMESTAMP = "timestamp"
 
-# pylint: disable=too-many-lines
 
 logger = logging.getLogger(__name__)
 
@@ -101,8 +101,8 @@ class Metadata(Generic[T]):
 
     Using a type constraint is not required but not doing so means T is not a
     specific type so static typing cannot happen. Note that the type constraint
-    ``[Root]`` is not validated at runtime (as pure annotations are not available
-    then).
+    ``[Root]`` is not validated at runtime (as pure annotations are not
+    available then).
 
     New Metadata instances can be created from scratch with::
 
@@ -156,7 +156,6 @@ class Metadata(Generic[T]):
         """Default canonical json byte representation of ``self.signed``."""
 
         # Use local scope import to avoid circular import errors
-        # pylint: disable=import-outside-toplevel
         from tuf.api.serialization.json import CanonicalJSONSerializer
 
         return CanonicalJSONSerializer().serialize(self.signed)
@@ -227,6 +226,7 @@ class Metadata(Generic[T]):
             storage_backend: Object that implements
                 ``securesystemslib.storage.StorageBackendInterface``.
                 Default is ``FilesystemBackend`` (i.e. a local file).
+
         Raises:
             StorageError: The file cannot be read.
             tuf.api.serialization.DeserializationError:
@@ -265,7 +265,6 @@ class Metadata(Generic[T]):
 
         if deserializer is None:
             # Use local scope import to avoid circular import errors
-            # pylint: disable=import-outside-toplevel
             from tuf.api.serialization.json import JSONDeserializer
 
             deserializer = JSONDeserializer()
@@ -295,7 +294,6 @@ class Metadata(Generic[T]):
 
         if serializer is None:
             # Use local scope import to avoid circular import errors
-            # pylint: disable=import-outside-toplevel
             from tuf.api.serialization.json import JSONSerializer
 
             serializer = JSONSerializer(compact=True)
@@ -357,9 +355,10 @@ class Metadata(Generic[T]):
         """Create signature over ``signed`` and assigns it to ``signatures``.
 
         Args:
-            signer: A ``securesystemslib.signer.Signer`` object that provides a private
-                key and signing implementation to generate the signature. A standard
-                implementation is available in ``securesystemslib.signer.SSlibSigner``.
+            signer: A ``securesystemslib.signer.Signer`` object that provides a
+            private key and signing implementation to generate the signature. A
+            standard implementation is available in
+            ``securesystemslib.signer.SSlibSigner``.
             append: ``True`` if the signature should be appended to
                 the list of signatures or replace any existing signatures. The
                 default behavior is to replace signatures.
@@ -403,7 +402,8 @@ class Metadata(Generic[T]):
         threshold of keys for ``delegated_role``.
 
         .. deprecated:: 3.1.0
-           Please use ``Root.verify_delegate()`` or ``Targets.verify_delegate()``.
+           Please use ``Root.verify_delegate()`` or
+           ``Targets.verify_delegate()``.
         """
 
         if self.signed.type not in ["root", "targets"]:
@@ -522,7 +522,9 @@ class Signed(metaclass=abc.ABCMeta):
     @classmethod
     @abc.abstractmethod
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Signed":
-        """Deserialization helper, creates object from json/dict representation."""
+        """Deserialization helper, creates object from json/dict
+        representation.
+        """
         raise NotImplementedError
 
     @classmethod
@@ -533,7 +535,8 @@ class Signed(metaclass=abc.ABCMeta):
         representation, and returns an ordered list to be passed as leading
         positional arguments to a subclass constructor.
 
-        See ``{Root, Timestamp, Snapshot, Targets}.from_dict`` methods for usage.
+        See ``{Root, Timestamp, Snapshot, Targets}.from_dict``
+        methods for usage.
 
         """
         _type = signed_dict.pop("_type")
@@ -551,7 +554,8 @@ class Signed(metaclass=abc.ABCMeta):
         return version, spec_version, expires
 
     def _common_fields_to_dict(self) -> Dict[str, Any]:
-        """Return a dict representation of common fields of ``Signed`` instances.
+        """Return a dict representation of common fields of
+        ``Signed`` instances.
 
         See ``{Root, Timestamp, Snapshot, Targets}.to_dict`` methods for usage.
 
@@ -700,19 +704,27 @@ class RootVerificationResult:
 
     @property
     def verified(self) -> bool:
-        """True if threshold of signatures is met in both underlying VerificationResults."""
+        """True if threshold of signatures is met in both underlying
+        VerificationResults.
+        """
         return self.first.verified and self.second.verified
 
     @property
     def signed(self) -> Dict[str, Key]:
-        """Dictionary of all signing keys that have signed, from both VerificationResults"""
-        # return a union of all signed (in python<3.9 this requires dict unpacking)
+        """Dictionary of all signing keys that have signed, from both
+        VerificationResults.
+        return a union of all signed (in python<3.9 this requires
+        dict unpacking)
+        """
         return {**self.first.signed, **self.second.signed}
 
     @property
     def unsigned(self) -> Dict[str, Key]:
-        """Dictionary of all signing keys that have not signed, from both VerificationResults"""
-        # return a union of all unsigned (in python<3.9 this requires dict unpacking)
+        """Dictionary of all signing keys that have not signed, from both
+        VerificationResults.
+        return a union of all unsigned (in python<3.9 this requires
+        dict unpacking)
+        """
         return {**self.first.unsigned, **self.second.unsigned}
 
 
@@ -828,8 +840,8 @@ class Root(Signed, _DelegatorMixin):
         roles: Dictionary of role names to Roles. Defines which keys are
             required to sign the metadata for a specific role. Default is
             a dictionary of top level roles without keys and threshold of 1.
-        consistent_snapshot: ``True`` if repository supports consistent snapshots.
-            Default is True.
+        consistent_snapshot: ``True`` if repository supports consistent
+        snapshots. Default is True.
         unrecognized_fields: Dictionary of all attributes that are not managed
             by TUF Metadata API
 
@@ -839,7 +851,6 @@ class Root(Signed, _DelegatorMixin):
 
     type = _ROOT
 
-    # pylint: disable=too-many-arguments
     def __init__(
         self,
         version: Optional[int] = None,
@@ -1191,6 +1202,7 @@ class MetaFile(BaseFile):
             data: Metadata bytes that the metafile represents.
             hash_algorithms: Hash algorithms to create the hashes with. If not
             specified, the securesystemslib default hash algorithm is used.
+
         Raises:
             ValueError: The hash algorithms list contains an unsupported
             algorithm.
@@ -1234,7 +1246,8 @@ class Timestamp(Signed):
     """A container for the signed part of timestamp metadata.
 
     TUF file format uses a dictionary to contain the snapshot information:
-    this is not the case with ``Timestamp.snapshot_meta`` which is a ``MetaFile``.
+    this is not the case with ``Timestamp.snapshot_meta`` which is a
+    ``MetaFile``.
 
     *All parameters named below are not just constructor arguments but also
     instance attributes.*
@@ -1366,12 +1379,13 @@ class DelegatedRole(Role):
 
     A delegation can happen in two ways:
 
-        - ``paths`` is set: delegates targets matching any path pattern in ``paths``
-        - ``path_hash_prefixes`` is set: delegates targets whose target path hash
-          starts with any of the prefixes in ``path_hash_prefixes``
+        - ``paths`` is set: delegates targets matching any path pattern in
+          ``paths``
+        - ``path_hash_prefixes`` is set: delegates targets whose target path
+          hash starts with any of the prefixes in ``path_hash_prefixes``
 
-        ``paths`` and ``path_hash_prefixes`` are mutually exclusive: both cannot be
-        set, at least one of them must be set.
+        ``paths`` and ``path_hash_prefixes`` are mutually exclusive:
+        both cannot be set, at least one of them must be set.
 
     *All parameters named below are not just constructor arguments but also
     instance attributes.*
@@ -1491,10 +1505,10 @@ class DelegatedRole(Role):
         """Determine whether the given ``target_filepath`` is in one of
         the paths that ``DelegatedRole`` is trusted to provide.
 
-        The ``target_filepath`` and the ``DelegatedRole`` paths are expected to be
-        in their canonical forms, so e.g. "a/b" instead of "a//b" . Only "/" is
-        supported as target path separator. Leading separators are not handled
-        as special cases (see `TUF specification on targetpath
+        The ``target_filepath`` and the ``DelegatedRole`` paths are expected to
+        be in their canonical forms, so e.g. "a/b" instead of "a//b" . Only "/"
+        is supported as target path separator. Leading separators are not
+        handled as special cases (see `TUF specification on targetpath
         <https://theupdateframework.github.io/specification/latest/#targetpath>`_).
 
         Args:
@@ -1613,7 +1627,8 @@ class SuccinctRoles(Role):
         }
 
     def get_role_for_target(self, target_filepath: str) -> str:
-        """Calculate the name of the delegated role responsible for ``target_filepath``.
+        """Calculate the name of the delegated role responsible for
+        ``target_filepath``.
 
         The target at path ``target_filepath`` is assigned to a bin by casting
         the left-most ``bit_length`` of bits of the file path hash digest to
@@ -1897,6 +1912,7 @@ class TargetFile(BaseFile):
             local_path: Local path to target file content.
             hash_algorithms: Hash algorithms to calculate hashes with. If not
                 specified the securesystemslib default hash algorithm is used.
+
         Raises:
             FileNotFoundError: The file doesn't exist.
             ValueError: The hash algorithms list contains an unsupported
@@ -1980,7 +1996,6 @@ class Targets(Signed, _DelegatorMixin):
 
     type = _TARGETS
 
-    # pylint: disable=too-many-arguments
     def __init__(
         self,
         version: Optional[int] = None,

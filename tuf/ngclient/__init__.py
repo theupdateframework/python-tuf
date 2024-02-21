@@ -15,7 +15,7 @@ from tuf.ngclient.config import UpdaterConfig
 from tuf.ngclient.fetcher import FetcherInterface
 from tuf.ngclient.updater import Updater
 
-__all__ = [
+__all__ = [  # noqa: PLE0604
     FetcherInterface.__name__,
     RequestsFetcher.__name__,
     TargetFile.__name__,

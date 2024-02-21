@@ -73,9 +73,10 @@ logger = logging.getLogger(__name__)
 class TrustedMetadataSet(abc.Mapping):
     """Internal class to keep track of trusted metadata in ``Updater``.
 
-    ``TrustedMetadataSet`` ensures that the collection of metadata in it is valid
-    and trusted through the whole client update workflow. It provides easy ways
-    to update the metadata with the caller making decisions on what is updated.
+    ``TrustedMetadataSet`` ensures that the collection of metadata in it is
+    valid and trusted through the whole client update workflow. It provides
+    easy ways to update the metadata with the caller making decisions on
+    what is updated.
     """
 
     def __init__(self, root_data: bytes):
@@ -107,7 +108,9 @@ class TrustedMetadataSet(abc.Mapping):
         return len(self._trusted_set)
 
     def __iter__(self) -> Iterator[Metadata]:
-        """Return iterator over ``Metadata`` objects in ``TrustedMetadataSet``."""
+        """Return iterator over ``Metadata`` objects in
+        ``TrustedMetadataSet``.
+        """
         return iter(self._trusted_set.values())
 
     # Helper properties for top level metadata
