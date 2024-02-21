@@ -14,13 +14,11 @@ from pathlib import Path
 from urllib import request
 
 from tuf.api.exceptions import DownloadError, RepositoryError
-from tuf.ngclient import Updater, UpdaterConfig
-from tuf.ngclient.config import EnvelopeType
+from tuf.ngclient import Updater
 
 # constants
 DOWNLOAD_DIR = "./downloads"
 CLIENT_EXAMPLE_DIR = os.path.dirname(os.path.abspath(__file__))
-
 
 def build_metadata_dir(base_url: str) -> str:
     """build a unique and reproducible directory name for the repository url"""
@@ -48,7 +46,7 @@ def init_tofu(base_url: str) -> bool:
     return True
 
 
-def download(base_url: str, target: str, use_dsse: bool) -> bool:
+def download(base_url: str, target: str) -> bool:
     """
     Download the target file using ``ngclient`` Updater.
 
@@ -74,16 +72,12 @@ def download(base_url: str, target: str, use_dsse: bool) -> bool:
     if not os.path.isdir(DOWNLOAD_DIR):
         os.mkdir(DOWNLOAD_DIR)
 
-    config = UpdaterConfig()
-    config.envelope_type = EnvelopeType.SIMPLE
-
     try:
         updater = Updater(
             metadata_dir=metadata_dir,
             metadata_base_url=f"{base_url}/metadata/",
             target_base_url=f"{base_url}/targets/",
             target_dir=DOWNLOAD_DIR,
-            config=config,
         )
         updater.refresh()
 
@@ -152,13 +146,6 @@ def main() -> None:
         help="Target file",
     )
 
-    download_parser.add_argument(
-        "--use-dsse",
-        help="Parse TUF metadata as DSSE",
-        default=False,
-        action="store_true",
-    )
-
     command_args = client_args.parse_args()
 
     if command_args.verbose == 0:
@@ -177,9 +164,7 @@ def main() -> None:
         if not init_tofu(command_args.url):
             return "Failed to initialize local repository"
     elif command_args.sub_command == "download":
-        if not download(
-            command_args.url, command_args.target, command_args.use_dsse
-        ):
+        if not download(command_args.url, command_args.target):
             return f"Failed to download {command_args.target}"
     else:
         client_args.print_help()
