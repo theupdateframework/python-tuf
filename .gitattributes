@@ -1,2 +1,3 @@
 # Test data should not be modified on checkout, regardless of host settings
 *.json binary
+*.py diff=python
