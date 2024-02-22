@@ -41,20 +41,13 @@ import logging
 import os
 import shutil
 import tempfile
-from typing import Optional, Set
+from typing import Optional, Set, cast
 from urllib import parse
 
 from tuf.api import exceptions
-from tuf.api.metadata import (
-    Metadata,
-    Root,
-    Snapshot,
-    TargetFile,
-    Targets,
-    Timestamp,
-)
+from tuf.api.metadata import Root, Snapshot, TargetFile, Targets, Timestamp
 from tuf.ngclient._internal import requests_fetcher, trusted_metadata_set
-from tuf.ngclient.config import UpdaterConfig
+from tuf.ngclient.config import EnvelopeType, UpdaterConfig
 from tuf.ngclient.fetcher import FetcherInterface
 
 logger = logging.getLogger(__name__)
@@ -101,9 +94,19 @@ class Updater:
 
         # Read trusted local root metadata
         data = self._load_local_metadata(Root.type)
-        self._trusted_set = trusted_metadata_set.TrustedMetadataSet(data)
         self._fetcher = fetcher or requests_fetcher.RequestsFetcher()
         self.config = config or UpdaterConfig()
+
+        supported_envelopes = [EnvelopeType.METADATA, EnvelopeType.SIMPLE]
+        if self.config.envelope_type not in supported_envelopes:
+            raise ValueError(
+                f"config: envelope_type must be one of {supported_envelopes}, "
+                f"got '{self.config.envelope_type}'"
+            )
+
+        self._trusted_set = trusted_metadata_set.TrustedMetadataSet(
+            data, self.config.envelope_type
+        )
 
     def refresh(self) -> None:
         """Refresh top-level metadata.
@@ -244,7 +247,7 @@ class Updater:
             target_base_url = _ensure_trailing_slash(target_base_url)
 
         target_filepath = targetinfo.path
-        consistent_snapshot = self._trusted_set.root.signed.consistent_snapshot
+        consistent_snapshot = self._trusted_set.root.consistent_snapshot
         if consistent_snapshot and self.config.prefix_targets_with_hash:
             hashes = list(targetinfo.hashes.values())
             dirname, sep, basename = target_filepath.rpartition("/")
@@ -310,7 +313,7 @@ class Updater:
         """
 
         # Update the root role
-        lower_bound = self._trusted_set.root.signed.version + 1
+        lower_bound = self._trusted_set.root.version + 1
         upper_bound = lower_bound + self.config.max_root_rotations
 
         for next_version in range(lower_bound, upper_bound):
@@ -361,22 +364,22 @@ class Updater:
             # Local snapshot does not exist or is invalid: update from remote
             logger.debug("Local snapshot not valid as final: %s", e)
 
-            snapshot_meta = self._trusted_set.timestamp.signed.snapshot_meta
+            snapshot_meta = self._trusted_set.timestamp.snapshot_meta
             length = snapshot_meta.length or self.config.snapshot_max_length
             version = None
-            if self._trusted_set.root.signed.consistent_snapshot:
+            if self._trusted_set.root.consistent_snapshot:
                 version = snapshot_meta.version
 
             data = self._download_metadata(Snapshot.type, length, version)
             self._trusted_set.update_snapshot(data)
             self._persist_metadata(Snapshot.type, data)
 
-    def _load_targets(self, role: str, parent_role: str) -> Metadata[Targets]:
+    def _load_targets(self, role: str, parent_role: str) -> Targets:
         """Load local (and if needed remote) metadata for ``role``."""
 
         # Avoid loading 'role' more than once during "get_targetinfo"
         if role in self._trusted_set:
-            return self._trusted_set[role]
+            return cast(Targets, self._trusted_set[role])
 
         try:
             data = self._load_local_metadata(role)
@@ -389,7 +392,7 @@ class Updater:
             # Local 'role' does not exist or is invalid: update from remote
             logger.debug("Failed to load local %s: %s", role, e)
 
-            snapshot = self._trusted_set.snapshot.signed
+            snapshot = self._trusted_set.snapshot
             metainfo = snapshot.meta.get(f"{role}.json")
             if metainfo is None:
                 raise exceptions.RepositoryError(
@@ -398,7 +401,7 @@ class Updater:
 
             length = metainfo.length or self.config.targets_max_length
             version = None
-            if self._trusted_set.root.signed.consistent_snapshot:
+            if self._trusted_set.root.consistent_snapshot:
                 version = metainfo.version
 
             data = self._download_metadata(role, length, version)
@@ -438,7 +441,7 @@ class Updater:
 
             # The metadata for 'role_name' must be downloaded/updated before
             # its targets, delegations, and child roles can be inspected.
-            targets = self._load_targets(role_name, parent_role).signed
+            targets = self._load_targets(role_name, parent_role)
 
             target = targets.targets.get(target_filepath)
 

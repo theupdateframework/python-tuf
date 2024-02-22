@@ -15,16 +15,22 @@ from securesystemslib.signer import SSlibSigner
 
 from tests import utils
 from tuf.api import exceptions
+from tuf.api.dsse import SimpleEnvelope
 from tuf.api.metadata import (
     Metadata,
     MetaFile,
     Root,
+    Signed,
     Snapshot,
     Targets,
     Timestamp,
 )
 from tuf.api.serialization.json import JSONSerializer
-from tuf.ngclient._internal.trusted_metadata_set import TrustedMetadataSet
+from tuf.ngclient._internal.trusted_metadata_set import (
+    TrustedMetadataSet,
+    _load_from_simple_envelope,
+)
+from tuf.ngclient.config import EnvelopeType
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +99,9 @@ class TestTrustedMetadataSet(unittest.TestCase):
         )
 
     def setUp(self) -> None:
-        self.trusted_set = TrustedMetadataSet(self.metadata[Root.type])
+        self.trusted_set = TrustedMetadataSet(
+            self.metadata[Root.type], EnvelopeType.METADATA
+        )
 
     def _update_all_besides_targets(
         self,
@@ -132,7 +140,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
         count = 0
         for md in self.trusted_set:
-            self.assertIsInstance(md, Metadata)
+            self.assertIsInstance(md, Signed)
             count += 1
 
         self.assertTrue(count, 6)
@@ -149,11 +157,11 @@ class TestTrustedMetadataSet(unittest.TestCase):
         delegeted_targets_2 = self.trusted_set.update_delegated_targets(
             self.metadata["role2"], "role2", "role1"
         )
-        self.assertIsInstance(timestamp.signed, Timestamp)
-        self.assertIsInstance(snapshot.signed, Snapshot)
-        self.assertIsInstance(targets.signed, Targets)
-        self.assertIsInstance(delegeted_targets_1.signed, Targets)
-        self.assertIsInstance(delegeted_targets_2.signed, Targets)
+        self.assertIsInstance(timestamp, Timestamp)
+        self.assertIsInstance(snapshot, Snapshot)
+        self.assertIsInstance(targets, Targets)
+        self.assertIsInstance(delegeted_targets_1, Targets)
+        self.assertIsInstance(delegeted_targets_2, Targets)
 
     def test_out_of_order_ops(self) -> None:
         # Update snapshot before timestamp
@@ -192,25 +200,40 @@ class TestTrustedMetadataSet(unittest.TestCase):
             self.metadata["role1"], "role1", Targets.type
         )
 
-    def test_root_with_invalid_json(self) -> None:
-        # Test loading initial root and root update
-        for test_func in [TrustedMetadataSet, self.trusted_set.update_root]:
-            # root is not json
-            with self.assertRaises(exceptions.RepositoryError):
-                test_func(b"")
+    def test_bad_initial_root(self) -> None:
+        # root is not json
+        with self.assertRaises(exceptions.RepositoryError):
+            TrustedMetadataSet(b"", EnvelopeType.METADATA)
 
-            # root is invalid
-            root = Metadata.from_bytes(self.metadata[Root.type])
-            root.signed.version += 1
-            with self.assertRaises(exceptions.UnsignedMetadataError):
-                test_func(root.to_bytes())
+        # root is invalid
+        root = Metadata.from_bytes(self.metadata[Root.type])
+        root.signed.version += 1
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            TrustedMetadataSet(root.to_bytes(), EnvelopeType.METADATA)
 
-            # metadata is of wrong type
-            with self.assertRaises(exceptions.RepositoryError):
-                test_func(self.metadata[Snapshot.type])
+        # metadata is of wrong type
+        with self.assertRaises(exceptions.RepositoryError):
+            TrustedMetadataSet(
+                self.metadata[Snapshot.type], EnvelopeType.METADATA
+            )
+
+    def test_bad_root_update(self) -> None:
+        # root is not json
+        with self.assertRaises(exceptions.RepositoryError):
+            self.trusted_set.update_root(b"")
+
+        # root is invalid
+        root = Metadata.from_bytes(self.metadata[Root.type])
+        root.signed.version += 1
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            self.trusted_set.update_root(root.to_bytes())
+
+        # metadata is of wrong type
+        with self.assertRaises(exceptions.RepositoryError):
+            self.trusted_set.update_root(self.metadata[Snapshot.type])
 
     def test_top_level_md_with_invalid_json(self) -> None:
-        top_level_md: List[Tuple[bytes, Callable[[bytes], Metadata]]] = [
+        top_level_md: List[Tuple[bytes, Callable[[bytes], Signed]]] = [
             (self.metadata[Timestamp.type], self.trusted_set.update_timestamp),
             (self.metadata[Snapshot.type], self.trusted_set.update_snapshot),
             (self.metadata[Targets.type], self.trusted_set.update_targets),
@@ -260,7 +283,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
         # intermediate root can be expired
         root = self.modify_metadata(Root.type, root_expired_modifier)
-        tmp_trusted_set = TrustedMetadataSet(root)
+        tmp_trusted_set = TrustedMetadataSet(root, EnvelopeType.METADATA)
         # update timestamp to trigger final root expiry check
         with self.assertRaises(exceptions.ExpiredMetadataError):
             tmp_trusted_set.update_timestamp(self.metadata[Timestamp.type])
@@ -470,6 +493,52 @@ class TestTrustedMetadataSet(unittest.TestCase):
             self.trusted_set.update_targets(targets)
 
     # TODO test updating over initial metadata (new keys, newer timestamp, etc)
+
+    def test_load_from_simple_envelope(self) -> None:
+        """Basic unit test for ``_load_from_simple_envelope`` helper.
+
+        TODO: Test via trusted metadata set tests like for traditional metadata
+        """
+        metadata = Metadata.from_bytes(self.metadata[Root.type])
+        root = metadata.signed
+        envelope = SimpleEnvelope.from_signed(root)
+
+        # Unwrap unsigned envelope without verification
+        envelope_bytes = envelope.to_bytes()
+        payload_obj, signed_bytes, signatures = _load_from_simple_envelope(
+            Root, envelope_bytes
+        )
+
+        self.assertEqual(payload_obj, root)
+        self.assertEqual(signed_bytes, envelope.pae())
+        self.assertDictEqual(signatures, {})
+
+        # Unwrap correctly signed envelope (use default role name)
+        sig = envelope.sign(self.keystore[Root.type])
+        envelope_bytes = envelope.to_bytes()
+        _, _, signatures = _load_from_simple_envelope(
+            Root, envelope_bytes, root
+        )
+        self.assertDictEqual(signatures, {sig.keyid: sig})
+
+        # Load correctly signed envelope (with explicit role name)
+        _, _, signatures = _load_from_simple_envelope(
+            Root, envelope.to_bytes(), root, Root.type
+        )
+        self.assertDictEqual(signatures, {sig.keyid: sig})
+
+        # Fail load envelope with unexpected 'payload_type'
+        envelope_bad_type = SimpleEnvelope.from_signed(root)
+        envelope_bad_type.payload_type = "foo"
+        envelope_bad_type_bytes = envelope_bad_type.to_bytes()
+        with self.assertRaises(exceptions.RepositoryError):
+            _load_from_simple_envelope(Root, envelope_bad_type_bytes)
+
+        # Fail load envelope with unexpected payload type
+        envelope_bad_signed = SimpleEnvelope.from_signed(root)
+        envelope_bad_signed_bytes = envelope_bad_signed.to_bytes()
+        with self.assertRaises(exceptions.RepositoryError):
+            _load_from_simple_envelope(Targets, envelope_bad_signed_bytes)
 
 
 if __name__ == "__main__":

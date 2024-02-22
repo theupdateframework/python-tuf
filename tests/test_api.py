@@ -15,6 +15,7 @@ import tempfile
 import unittest
 from copy import copy, deepcopy
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, ClassVar, Dict, Optional
 
 from securesystemslib import exceptions as sslib_exceptions
@@ -33,6 +34,7 @@ from securesystemslib.signer import (
 
 from tests import utils
 from tuf.api import exceptions
+from tuf.api.dsse import SimpleEnvelope
 from tuf.api.metadata import (
     TOP_LEVEL_ROLE_NAMES,
     DelegatedRole,
@@ -1141,6 +1143,95 @@ class TestMetadata(unittest.TestCase):
         for i in range(0, 2**bit_len):
             self.assertEqual(
                 targets.get_delegated_role(f"prefix-{i:0x}"), role2
+            )
+
+
+class TestSimpleEnvelope(unittest.TestCase):
+    """Tests for public API in 'tuf/api/dsse.py'."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        repo_data_dir = Path(utils.TESTS_DIR) / "repository_data"
+        cls.metadata_dir = repo_data_dir / "repository" / "metadata"
+        cls.signer_store = {}
+        for role in [Snapshot, Targets, Timestamp]:
+            key_path = repo_data_dir / "keystore" / f"{role.type}_key"
+            key = import_ed25519_privatekey_from_file(
+                str(key_path),
+                password="password",
+            )
+            cls.signer_store[role.type] = SSlibSigner(key)
+
+    def test_serialization(self) -> None:
+        """Basic de/serialization test.
+
+        1. Load test metadata for each role
+        2. Wrap metadata payloads in envelope serializing the payload
+        3. Serialize envelope
+        4. De-serialize envelope
+        5. De-serialize payload
+
+        """
+        for role in [Root, Timestamp, Snapshot, Targets]:
+            metadata_path = self.metadata_dir / f"{role.type}.json"
+            metadata = Metadata.from_file(str(metadata_path))
+            self.assertIsInstance(metadata.signed, role)
+
+            envelope = SimpleEnvelope.from_signed(metadata.signed)
+            envelope_bytes = envelope.to_bytes()
+
+            envelope2 = SimpleEnvelope.from_bytes(envelope_bytes)
+            payload = envelope2.get_signed()
+            self.assertEqual(metadata.signed, payload)
+
+    def test_fail_envelope_serialization(self) -> None:
+        envelope = SimpleEnvelope(b"foo", "bar", ["baz"])
+        with self.assertRaises(SerializationError):
+            envelope.to_bytes()
+
+    def test_fail_envelope_deserialization(self) -> None:
+        with self.assertRaises(DeserializationError):
+            SimpleEnvelope.from_bytes(b"[")
+
+    def test_fail_payload_serialization(self) -> None:
+        with self.assertRaises(SerializationError):
+            SimpleEnvelope.from_signed("foo")  # type: ignore
+
+    def test_fail_payload_deserialization(self) -> None:
+        payloads = [b"[", b'{"_type": "foo"}']
+        for payload in payloads:
+            envelope = SimpleEnvelope(payload, "bar", [])
+            with self.assertRaises(DeserializationError):
+                envelope.get_signed()
+
+    def test_verify_delegate(self) -> None:
+        """Basic verification test.
+
+        1. Load test metadata for each role
+        2. Wrap non-root payloads in envelope serializing the payload
+        3. Sign with correct delegated key
+        4. Verify delegate with root
+
+        """
+        root_path = self.metadata_dir / "root.json"
+        root = Metadata[Root].from_file(str(root_path)).signed
+
+        for role in [Timestamp, Snapshot, Targets]:
+            metadata_path = self.metadata_dir / f"{role.type}.json"
+            metadata = Metadata.from_file(str(metadata_path))
+            self.assertIsInstance(metadata.signed, role)
+
+            signer = self.signer_store[role.type]
+            self.assertIn(
+                signer.key_dict["keyid"], root.roles[role.type].keyids
+            )
+
+            envelope = SimpleEnvelope.from_signed(metadata.signed)
+            envelope.sign(signer)
+            self.assertTrue(len(envelope.signatures) == 1)
+
+            root.verify_delegate(
+                role.type, envelope.pae(), envelope.signatures_dict
             )
 
 

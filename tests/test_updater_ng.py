@@ -285,7 +285,7 @@ class TestUpdater(unittest.TestCase):
         # Bump root version, resign and refresh
         self._modify_repository_root(lambda root: None, bump_version=True)
         self.updater.refresh()
-        self.assertEqual(self.updater._trusted_set.root.signed.version, 2)
+        self.assertEqual(self.updater._trusted_set.root.version, 2)
 
     def test_missing_targetinfo(self) -> None:
         self.updater.refresh()
