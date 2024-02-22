@@ -26,6 +26,8 @@ jobs:
           python3 -m pip install --constraint requirements/build.txt tox coveralls
 
       - name: Run tox
+        env:
+          RUFF_OUTPUT_FORMAT: github
         run: tox -e lint
 
   tests:
