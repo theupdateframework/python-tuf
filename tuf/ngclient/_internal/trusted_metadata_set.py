@@ -401,7 +401,7 @@ class TrustedMetadataSet(abc.Mapping):
         # does not match meta version in timestamp
         self._check_final_snapshot()
 
-        delegator: Optional[Union[Root, Targets]] = self.get(delegator_name)
+        delegator: Optional[Delegator] = self.get(delegator_name)
         if delegator is None:
             raise RuntimeError("Cannot load targets before delegator")
 
