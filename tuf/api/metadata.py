@@ -50,6 +50,7 @@ from tuf.api._payload import (  # noqa: F401
     DelegatedRole,
     Delegations,
     Key,
+    LengthOrHashMismatchError,
     MetaFile,
     Role,
     Root,
