@@ -88,16 +88,22 @@ select = [
     "I",  # isort
     "N",  # pep8-naming
     "PL", # pylint
+    "S",  # flake8-bandit
 ] 
 ignore = ["D400","D415","D213","D205","D202","D107","D407","D413","D212","D104","D406","D105","D411","D401","D200","D203", "PLR0913", "PLR2004"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = [
-    "D",   # pydocstyle: no docstrings required for tests
-    "E501" # line-too-long: embedded test data in "fmt: off" blocks is ok
+    "D",    # pydocstyle: no docstrings required for tests
+    "E501", # line-too-long: embedded test data in "fmt: off" blocks is ok
+    "S",    # bandit: Not running bandit on tests
 ]
 "examples/*/*" = [
-    "D",   # pydocstyle: no docstrings required for examples
+    "D", # pydocstyle: no docstrings required for examples
+    "S"  # bandit: Not running bandit on examples
+]
+"verify_release" = [
+    "S603", # bandit: this flags all uses of subprocess.run as vulnerable
 ]
 
 # mypy section
