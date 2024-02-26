@@ -43,7 +43,7 @@ class TestRefresh(unittest.TestCase):
     # set dump_dir to trigger repository state dumps
     dump_dir: Optional[str] = None
 
-    past_datetime = datetime.datetime.utcnow().replace(
+    past_datetime = datetime.datetime.now(datetime.timezone.utc).replace(
         microsecond=0
     ) - datetime.timedelta(days=5)
 
@@ -320,7 +320,7 @@ class TestRefresh(unittest.TestCase):
          - Second updater refresh performed on day 18:
            assert that rollback check uses expired timestamp v1"""
 
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
         self.sim.timestamp.expires = now + datetime.timedelta(days=7)
 
         self.sim.timestamp.version = 2
@@ -332,8 +332,8 @@ class TestRefresh(unittest.TestCase):
 
         self.sim.timestamp.version = 1
 
-        mock_time.utcnow.return_value = (
-            datetime.datetime.utcnow() + datetime.timedelta(days=18)
+        mock_time.now.return_value = (
+            datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=18)
         )
         with patch("datetime.datetime", mock_time):
             # Check that a rollback protection is performed even if
@@ -356,7 +356,7 @@ class TestRefresh(unittest.TestCase):
          - Second updater refresh performed on day 18:
            assert that rollback protection is done with expired timestamp v1"""
 
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
         self.sim.timestamp.expires = now + datetime.timedelta(days=7)
 
         # Bump the snapshot version number to 3
@@ -371,8 +371,8 @@ class TestRefresh(unittest.TestCase):
         self.sim.update_snapshot()
         self.sim.timestamp.expires = now + datetime.timedelta(days=21)
 
-        mock_time.utcnow.return_value = (
-            datetime.datetime.utcnow() + datetime.timedelta(days=18)
+        mock_time.now.return_value = (
+            datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=18)
         )
         with patch("datetime.datetime", mock_time):
             # Assert that rollback protection is done even if
@@ -750,7 +750,7 @@ class TestRefresh(unittest.TestCase):
          - Second updater refresh performed on day 18,
            it is successful and timestamp/snaphot final versions are v2"""
 
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
         self.sim.timestamp.expires = now + datetime.timedelta(days=7)
 
         # Make a successful update of valid metadata which stores it in cache
@@ -762,8 +762,8 @@ class TestRefresh(unittest.TestCase):
 
         # Mocking time so that local timestam has expired
         # but the new timestamp has not
-        mock_time.utcnow.return_value = (
-            datetime.datetime.utcnow() + datetime.timedelta(days=18)
+        mock_time.now.return_value = (
+            datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=18)
         )
         with patch("datetime.datetime", mock_time):
             self._run_refresh()

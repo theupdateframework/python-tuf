@@ -10,7 +10,7 @@ import fnmatch
 import io
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import (
     IO,
     Any,
@@ -82,7 +82,7 @@ class Signed(metaclass=abc.ABCMeta):
         """Get the metadata expiry date.
 
         # Use 'datetime' module to e.g. expire in seven days from now
-        obj.expires = utcnow() + timedelta(days=7)
+        obj.expires = now(timezone.utc) + timedelta(days=7)
         """
         return self._expires
 
@@ -115,7 +115,7 @@ class Signed(metaclass=abc.ABCMeta):
 
         self.spec_version = spec_version
 
-        self.expires = expires or datetime.utcnow()
+        self.expires = expires or datetime.now(timezone.utc)
 
         if version is None:
             version = 1
@@ -205,7 +205,7 @@ class Signed(metaclass=abc.ABCMeta):
             ``True`` if expiration time is less than the reference time.
         """
         if reference_time is None:
-            reference_time = datetime.utcnow()
+            reference_time = datetime.now(timezone.utc)
 
         return reference_time >= self.expires
 

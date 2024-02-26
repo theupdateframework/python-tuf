@@ -124,7 +124,7 @@ class RepositorySimulator(FetcherInterface):
 
         self.fetch_tracker = FetchTracker()
 
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
         self.safe_expiry = now.replace(microsecond=0) + datetime.timedelta(
             days=30
         )

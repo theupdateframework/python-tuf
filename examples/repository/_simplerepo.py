@@ -7,7 +7,7 @@ import copy
 import json
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Union
 
 from securesystemslib import keys
@@ -130,7 +130,7 @@ class SimpleRepository(Repository):
     def close(self, role: str, md: Metadata) -> None:
         """Store a version of metadata. Handle version bumps, expiry, signing"""
         md.signed.version += 1
-        md.signed.expires = datetime.utcnow() + self.expiry_period
+        md.signed.expires = datetime.now(timezone.utc) + self.expiry_period
 
         md.signatures.clear()
         for signer in self.signer_cache[role]:

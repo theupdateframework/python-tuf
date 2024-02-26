@@ -20,7 +20,7 @@ NOTE: Metadata files will be written to a 'tmp*'-directory in CWD.
 import math
 import os
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, Tuple
 
@@ -99,7 +99,7 @@ _, targets_signer = create_key()
 # NOTE: See "Targets" and "Targets delegation" paragraphs in 'basic_repo.py'
 # example for more details about the Targets object.
 
-expiration_date = datetime.utcnow().replace(microsecond=0) + timedelta(days=7)
+expiration_date = datetime.now(timezone.utc).replace(microsecond=0) + timedelta(days=7)
 targets = Metadata(Targets(expires=expiration_date))
 
 succinct_roles = SuccinctRoles(

@@ -7,7 +7,7 @@ import copy
 import json
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict
 
 import requests
@@ -77,7 +77,7 @@ class LocalRepository(Repository):
     def close(self, role: str, md: Metadata) -> None:
         """Store a version of metadata. Handle version bumps, expiry, signing"""
         md.signed.version += 1
-        md.signed.expires = datetime.utcnow() + self.expiry_period
+        md.signed.expires = datetime.now(timezone.utc) + self.expiry_period
 
         with open(f"{self.key_dir}/{role}", "rt", encoding="utf-8") as f:
             signer = SSlibSigner(json.loads(f.read()))

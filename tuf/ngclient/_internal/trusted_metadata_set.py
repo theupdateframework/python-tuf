@@ -110,7 +110,7 @@ class TrustedMetadataSet(abc.Mapping):
                 error type and content will contain more details.
         """
         self._trusted_set: Dict[str, Signed] = {}
-        self.reference_time = datetime.datetime.utcnow()
+        self.reference_time = datetime.datetime.now(datetime.timezone.utc)
 
         if envelope_type is EnvelopeType.SIMPLE:
             self._load_data = _load_from_simple_envelope
