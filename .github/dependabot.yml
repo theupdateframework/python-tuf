@@ -15,7 +15,6 @@ updates:
     test-and-lint-dependencies:
       # Python dependencies that are only pinned to ensure test reproducibility
       patterns:
-        - "bandit"
         - "coverage"
         - "mypy"
         - "ruff"

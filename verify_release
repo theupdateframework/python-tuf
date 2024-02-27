@@ -54,21 +54,21 @@ def build(build_dir: str) -> str:
             build_cmd, stdout=subprocess.DEVNULL, check=True, env=env
         )
 
-    build_version = None
     for filename in os.listdir(build_dir):
         prefix, postfix = f"{PYPI_PROJECT}-", ".tar.gz"
         if filename.startswith(prefix) and filename.endswith(postfix):
-            build_version = filename[len(prefix) : -len(postfix)]
+            return filename[len(prefix) : -len(postfix)]
 
-    assert build_version
-    return build_version
+    raise RuntimeError("Build version not found")
 
 
 def get_git_version() -> str:
     """Return version string from git describe"""
     cmd = ["git", "describe"]
     process = subprocess.run(cmd, text=True, capture_output=True, check=True)
-    assert process.stdout.startswith("v") and process.stdout.endswith("\n")
+    if not process.stdout.startswith("v") or not process.stdout.endswith("\n"):
+        raise RuntimeError(f"Unexpected git version {process.stdout}")
+
     return process.stdout[1:-1]
 
 
@@ -93,7 +93,7 @@ def get_pypi_pip_version() -> str:
             prefix, postfix = f"{PYPI_PROJECT}-", ".tar.gz"
             if filename.startswith(prefix) and filename.endswith(postfix):
                 return filename[len(prefix) : -len(postfix)]
-        assert False
+        raise RuntimeError("PyPI version not found")
 
 
 def verify_github_release(version: str, compare_dir: str) -> bool:
@@ -164,7 +164,9 @@ def sign_release_artifacts(
         subprocess.run(
             cmd + ["--output", signature_path, artifact_path], check=True
         )
-        assert os.path.exists(signature_path)
+
+        if not os.path.exists(signature_path):
+            raise RuntimeError("Signing failed, signature not found")
 
 
 def finished(s: str) -> None:
@@ -209,7 +211,10 @@ def main() -> int:  # noqa: D103
         finished(f"Built release {build_version}")
 
         git_version = get_git_version()
-        assert git_version.startswith(build_version)
+        if not git_version.startswith(build_version):
+            raise RuntimeError(
+                f"Git version is {git_version}, expected {build_version}"
+            )
         if git_version != build_version:
             finished(f"WARNING: Git describes version as {git_version}")
 

@@ -8,4 +8,3 @@
 # are pinned to prevent unexpected linting failures when tools update)
 ruff==0.2.2
 mypy==1.8.0
-bandit==1.7.7
