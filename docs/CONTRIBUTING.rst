@@ -13,6 +13,14 @@ and must be `unit tested <#unit-tests>`_.
 
      Also see `development installation instructions <https://theupdateframework.readthedocs.io/en/latest/INSTALLATION.html#install-for-development>`_.
 
+DCO
+===
+
+Contributors must indicate acceptance of the `Developer Certificate of
+Origin <https://developercertificate.org/>`_ by appending a ``Signed-off-by:
+Your Name <example@domain.com>`` to each git commit message (see `git commit
+--signoff <https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---signoff>`_).
+
 Testing
 =======
 
@@ -63,26 +71,9 @@ via PyPI).
 Auto-formatting
 ---------------
 
-CI/CD will check that new TUF code is formatted with `black
-<https://black.readthedocs.io/>`__ and `isort <https://pycqa.github.io/isort>`__.
-Auto-formatting can be done on the command line:
+The linter in CI/CD will check that new TUF code is formatted with
+`ruff<https://docs.astral.sh/ruff/>`__. Auto-formatting can be done on the
+command line:
 ::
 
-    $ black <filename>
-    $ isort <filename>
-
-or via source code editor plugin
-[`black <https://black.readthedocs.io/en/stable/editor_integration.html>`__,
-`isort <https://github.com/pycqa/isort/wiki/isort-Plugins>`__] or
-`pre-commit <https://pre-commit.com/>`__-powered git hooks
-[`black <https://black.readthedocs.io/en/stable/version_control_integration.html>`__,
-`isort <https://pycqa.github.io/isort/docs/configuration/pre-commit/>`__].
-
-
-DCO
-===
-
-Contributors must also indicate acceptance of the `Developer Certificate of
-Origin <https://developercertificate.org/>`_ by appending a ``Signed-off-by:
-Your Name <example@domain.com>`` to each git commit message (see `git commit
---signoff <https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---signoff>`_).
+    $ ruff format .
