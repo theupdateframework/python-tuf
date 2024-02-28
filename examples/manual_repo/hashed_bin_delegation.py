@@ -38,8 +38,9 @@ from tuf.api.serialization.json import JSONSerializer
 
 def _in(days: float) -> datetime:
     """Adds 'days' to now and returns datetime object w/o microseconds."""
-    return (datetime.now(timezone.utc).replace(microsecond=0) +
-            timedelta(days=days))
+    return datetime.now(timezone.utc).replace(microsecond=0) + timedelta(
+        days=days
+    )
 
 
 roles: Dict[str, Metadata[Targets]] = {}
