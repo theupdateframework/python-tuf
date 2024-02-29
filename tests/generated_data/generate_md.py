@@ -5,7 +5,7 @@
 
 import os
 import sys
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from securesystemslib.signer import SSlibKey, SSlibSigner
@@ -48,7 +48,7 @@ for index in range(4):
         }
     )
 
-EXPIRY = datetime(2050, 1, 1, tzinfo=UTC)
+EXPIRY = datetime(2050, 1, 1, tzinfo=timezone.utc)
 OUT_DIR = "generated_data/ed25519_metadata"
 if not os.path.exists(OUT_DIR):
     os.mkdir(OUT_DIR)
