@@ -60,8 +60,8 @@ class Signed(metaclass=abc.ABCMeta):
         version: Metadata version number. If None, then 1 is assigned.
         spec_version: Supported TUF specification version. If None, then the
             version currently supported by the library is assigned.
-        expires: Metadata expiry date. If None, then current date and time is
-            assigned.
+        expires: Metadata expiry date in UTC timezone. If None, then current
+            date and time is assigned.
         unrecognized_fields: Dictionary of all attributes that are not managed
             by TUF Metadata API
 
@@ -79,16 +79,22 @@ class Signed(metaclass=abc.ABCMeta):
 
     @property
     def expires(self) -> datetime:
-        """Get the metadata expiry date.
-
-        # Use 'datetime' module to e.g. expire in seven days from now
-        obj.expires = now(timezone.utc) + timedelta(days=7)
-        """
+        """Get the metadata expiry date."""
         return self._expires
 
     @expires.setter
     def expires(self, value: datetime) -> None:
+        """Set the metadata expiry date.
+
+        # Use 'datetime' module to e.g. expire in seven days from now
+        obj.expires = now(timezone.utc) + timedelta(days=7)
+        """
         self._expires = value.replace(microsecond=0)
+        if self._expires.tzinfo is None:
+            # Naive datetime: just make it UTC
+            self._expires = self._expires.replace(tzinfo=timezone.utc)
+        elif self._expires.tzinfo != timezone.utc:
+            raise ValueError(f"Expected tz UTC, not {self._expires.tzinfo}")
 
     # NOTE: Signed is a stupid name, because this might not be signed yet, but
     # we keep it to match spec terminology (I often refer to this as "payload",
