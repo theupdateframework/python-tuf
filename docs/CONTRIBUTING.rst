@@ -72,7 +72,7 @@ Auto-formatting
 ---------------
 
 The linter in CI/CD will check that new TUF code is formatted with
-`ruff<https://docs.astral.sh/ruff/>`__. Auto-formatting can be done on the
+`ruff <https://docs.astral.sh/ruff/>`_. Auto-formatting can be done on the
 command line:
 ::
 
