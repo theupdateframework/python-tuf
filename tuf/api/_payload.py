@@ -176,6 +176,7 @@ class Signed(metaclass=abc.ABCMeta):
         # what the constructor expects and what we store. The inverse operation
         # is implemented in '_common_fields_to_dict'.
         expires = datetime.strptime(expires_str, "%Y-%m-%dT%H:%M:%SZ")
+        expires = expires.replace(tzinfo=timezone.utc)
 
         return version, spec_version, expires
 
@@ -190,7 +191,7 @@ class Signed(metaclass=abc.ABCMeta):
             "_type": self._type,
             "version": self.version,
             "spec_version": self.spec_version,
-            "expires": self.expires.isoformat() + "Z",
+            "expires": self.expires.strftime("%Y-%m-%dT%H:%M:%SZ"),
             **self.unrecognized_fields,
         }
 
