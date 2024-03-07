@@ -1,8 +1,7 @@
 # Copyright 2021, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""Provides an interface for network IO abstraction.
-"""
+"""Provides an interface for network IO abstraction."""
 
 # Imports
 import abc

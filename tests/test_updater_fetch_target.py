@@ -6,6 +6,7 @@
 """Test 'Fetch target' from 'Detailed client workflow' as well as
 target files storing/loading from cache.
 """
+
 import os
 import sys
 import tempfile

@@ -1,6 +1,5 @@
-"""Low-level TUF DSSE API. (experimental!)
+"""Low-level TUF DSSE API. (experimental!)"""
 
-"""
 import json
 from typing import Dict, Generic, Type, cast
 

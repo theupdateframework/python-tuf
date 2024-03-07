@@ -19,9 +19,9 @@ attributes generally follow the JSON format used in the specification.
 
 The above principle means that a ``Metadata`` object represents a single
 metadata file, and has a ``signed`` attribute that is an instance of one of the
-four top level signed classes (``Root``, ``Timestamp``, ``Snapshot`` and 
-``Targets``). To make Python type annotations useful ``Metadata`` can be 
-type constrained: e.g. the signed attribute of ``Metadata[Root]`` 
+four top level signed classes (``Root``, ``Timestamp``, ``Snapshot`` and
+``Targets``). To make Python type annotations useful ``Metadata`` can be
+type constrained: e.g. the signed attribute of ``Metadata[Root]``
 is known to be ``Root``.
 
 Currently Metadata API supports JSON as the file format.
@@ -29,6 +29,7 @@ Currently Metadata API supports JSON as the file format.
 A basic example of repository implementation using the Metadata is available in
 `examples/repo_example <https://github.com/theupdateframework/python-tuf/tree/develop/examples/repo_example>`_.
 """
+
 import logging
 import tempfile
 from typing import Any, Dict, Generic, Optional, Type, cast

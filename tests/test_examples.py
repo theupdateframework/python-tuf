@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 # Copyright 2020, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
-""" Unit tests for 'examples' scripts.
+"""Unit tests for 'examples' scripts."""
 
-"""
 import glob
 import os
 import shutil

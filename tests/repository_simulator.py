@@ -3,7 +3,7 @@
 # Copyright 2021, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-""""Test utility to simulate a repository
+"""Test utility to simulate a repository
 
 RepositorySimulator provides methods to modify repository metadata so that it's
 easy to "publish" new repository versions with modified metadata, while serving
