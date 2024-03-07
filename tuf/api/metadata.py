@@ -98,7 +98,7 @@ class Metadata(Generic[T]):
 
     New Metadata instances can be created from scratch with::
 
-        one_day = datetime.utcnow() + timedelta(days=1)
+        one_day = datetime.now(timezone.utc) + timedelta(days=1)
         timestamp = Metadata(Timestamp(expires=one_day))
 
     Apart from ``expires`` all of the arguments to the inner constructors have

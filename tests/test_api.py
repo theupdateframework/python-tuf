@@ -14,7 +14,7 @@ import sys
 import tempfile
 import unittest
 from copy import copy, deepcopy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, ClassVar, Dict, Optional
 
@@ -313,7 +313,8 @@ class TestMetadata(unittest.TestCase):
         snapshot_path = os.path.join(self.repo_dir, "metadata", "snapshot.json")
         md = Metadata.from_file(snapshot_path)
 
-        self.assertEqual(md.signed.expires, datetime(2030, 1, 1, 0, 0))
+        expected_expiry = datetime(2030, 1, 1, 0, 0, tzinfo=timezone.utc)
+        self.assertEqual(md.signed.expires, expected_expiry)
 
         # Test is_expired with reference_time provided
         is_expired = md.signed.is_expired(md.signed.expires)
@@ -326,10 +327,10 @@ class TestMetadata(unittest.TestCase):
         # Test is_expired without reference_time,
         # manipulating md.signed.expires
         expires = md.signed.expires
-        md.signed.expires = datetime.utcnow()
+        md.signed.expires = datetime.now(timezone.utc)
         is_expired = md.signed.is_expired()
         self.assertTrue(is_expired)
-        md.signed.expires = datetime.utcnow() + timedelta(days=1)
+        md.signed.expires = datetime.now(timezone.utc) + timedelta(days=1)
         is_expired = md.signed.is_expired()
         self.assertFalse(is_expired)
         md.signed.expires = expires

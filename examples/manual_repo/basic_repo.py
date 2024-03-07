@@ -23,7 +23,7 @@ NOTE: Metadata files will be written to a 'tmp*'-directory in CWD.
 
 import os
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict
 
@@ -47,7 +47,9 @@ from tuf.api.serialization.json import JSONSerializer
 
 def _in(days: float) -> datetime:
     """Adds 'days' to now and returns datetime object w/o microseconds."""
-    return datetime.utcnow().replace(microsecond=0) + timedelta(days=days)
+    return datetime.now(timezone.utc).replace(microsecond=0) + timedelta(
+        days=days
+    )
 
 
 # Create top-level metadata
