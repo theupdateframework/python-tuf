@@ -76,4 +76,4 @@ The linter in CI/CD will check that new TUF code is formatted with
 command line:
 ::
 
-    $ ruff format .
+    $ tox -e fix
