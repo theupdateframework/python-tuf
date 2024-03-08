@@ -82,13 +82,15 @@ line-length=80
 
 [tool.ruff.lint]
 select = [
-    "D",  # pydocstyle
-    "E",  # pycodestyle
-    "F",  # pyflakes
-    "I",  # isort
-    "N",  # pep8-naming
-    "PL", # pylint
-    "S",  # flake8-bandit
+    "B",   # flake8-bugbear
+    "D",   # pydocstyle
+    "DTZ", # flake8-datetimez
+    "E",   # pycodestyle
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "PL",  # pylint
+    "S",   # flake8-bandit
 ] 
 ignore = ["D400","D415","D213","D205","D202","D107","D407","D413","D212","D104","D406","D105","D411","D401","D200","D203", "PLR0913", "PLR2004"]
 
