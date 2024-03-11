@@ -94,7 +94,7 @@ class RequestsFetcher(FetcherInterface):
         except requests.HTTPError as e:
             response.close()
             status = e.response.status_code
-            raise exceptions.DownloadHTTPError(str(e), status)
+            raise exceptions.DownloadHTTPError(str(e), status) from e
 
         return self._chunks(response)
 

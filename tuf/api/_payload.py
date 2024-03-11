@@ -181,8 +181,9 @@ class Signed(metaclass=abc.ABCMeta):
         # Convert 'expires' TUF metadata string to a datetime object, which is
         # what the constructor expects and what we store. The inverse operation
         # is implemented in '_common_fields_to_dict'.
-        expires = datetime.strptime(expires_str, "%Y-%m-%dT%H:%M:%SZ")
-        expires = expires.replace(tzinfo=timezone.utc)
+        expires = datetime.strptime(expires_str, "%Y-%m-%dT%H:%M:%SZ").replace(
+            tzinfo=timezone.utc
+        )
 
         return version, spec_version, expires
 

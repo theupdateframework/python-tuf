@@ -397,7 +397,7 @@ class Updater:
             if metainfo is None:
                 raise exceptions.RepositoryError(
                     f"Role {role} was delegated but is not part of snapshot"
-                )
+                ) from None
 
             length = metainfo.length or self.config.targets_max_length
             version = None
