@@ -2,9 +2,8 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 
-"""Helper classes for low-level Metadata API.
+"""Helper classes for low-level Metadata API."""
 
-"""
 import abc
 import fnmatch
 import io

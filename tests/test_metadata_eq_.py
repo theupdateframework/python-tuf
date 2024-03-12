@@ -5,7 +5,6 @@
 
 """Test __eq__ implementations of classes inside tuf/api/metadata.py."""
 
-
 import copy
 import os
 import sys

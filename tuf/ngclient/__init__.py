@@ -1,9 +1,7 @@
 # Copyright New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""TUF client public API.
-"""
-
+"""TUF client public API."""
 
 from tuf.api.metadata import TargetFile
 

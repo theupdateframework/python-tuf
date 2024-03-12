@@ -17,6 +17,7 @@ https://github.com/theupdateframework/taps/blob/master/tap15.md
 
 NOTE: Metadata files will be written to a 'tmp*'-directory in CWD.
 """
+
 import math
 import os
 import tempfile

@@ -3,8 +3,7 @@
 # Copyright 2021, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-"""Test Updater class
-"""
+"""Test Updater class"""
 
 import logging
 import os
