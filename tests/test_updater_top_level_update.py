@@ -336,11 +336,11 @@ class TestRefresh(unittest.TestCase):
         mock_time.now.return_value = datetime.datetime.now(
             timezone.utc
         ) + datetime.timedelta(days=18)
-        with patch("datetime.datetime", mock_time):
-            # Check that a rollback protection is performed even if
-            # local timestamp has expired
-            with self.assertRaises(BadVersionNumberError):
-                self._run_refresh()
+        patcher = patch("datetime.datetime", mock_time)
+        # Check that a rollback protection is performed even if
+        # local timestamp has expired
+        with patcher, self.assertRaises(BadVersionNumberError):
+            self._run_refresh()
 
         self._assert_version_equals(Timestamp.type, 2)
 
@@ -375,11 +375,11 @@ class TestRefresh(unittest.TestCase):
         mock_time.now.return_value = datetime.datetime.now(
             timezone.utc
         ) + datetime.timedelta(days=18)
-        with patch("datetime.datetime", mock_time):
-            # Assert that rollback protection is done even if
-            # local timestamp has expired
-            with self.assertRaises(BadVersionNumberError):
-                self._run_refresh()
+        patcher = patch("datetime.datetime", mock_time)
+        # Assert that rollback protection is done even if
+        # local timestamp has expired
+        with patcher, self.assertRaises(BadVersionNumberError):
+            self._run_refresh()
 
         self._assert_version_equals(Timestamp.type, 3)
 

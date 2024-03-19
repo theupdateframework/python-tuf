@@ -676,7 +676,7 @@ class TestMetadata(unittest.TestCase):
         # of a securesystemslib key dictionary.
         sslib_key = generate_ed25519_key()
         key = SSlibKey.from_securesystemslib_key(sslib_key)
-        self.assertFalse("private" in key.keyval.keys())
+        self.assertFalse("private" in key.keyval)
 
     def test_root_add_key_and_revoke_key(self) -> None:
         root_path = os.path.join(self.repo_dir, "metadata", "root.json")

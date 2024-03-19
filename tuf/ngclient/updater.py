@@ -37,6 +37,7 @@ downloads target files is available in `examples/client
 <https://github.com/theupdateframework/python-tuf/tree/develop/examples/client>`_.
 """
 
+import contextlib
 import logging
 import os
 import shutil
@@ -299,10 +300,8 @@ class Updater:
             # remove tempfile if we managed to create one,
             # then let the exception happen
             if temp_file_name is not None:
-                try:
+                with contextlib.suppress(FileNotFoundError):
                     os.remove(temp_file_name)
-                except FileNotFoundError:
-                    pass
             raise e
 
     def _load_root(self) -> None:

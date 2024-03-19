@@ -3,6 +3,7 @@
 
 """A Repository implementation for maintainer and developer tools"""
 
+import contextlib
 import copy
 import json
 import logging
@@ -94,12 +95,10 @@ class LocalRepository(Repository):
 
         # HACK: make sure we have the roles metadata in updater._trusted_set
         # (or that we're publishing the first version)
-        try:
+        # HACK: Assume RepositoryError is because we're just publishing version
+        # 1 (so the roles metadata does not exist on server yet)
+        with contextlib.suppress(RepositoryError):
             self.updater.get_targetinfo(targetpath)
-        except RepositoryError:
-            # HACK Assume this is because we're just publishing version 1
-            # (so the roles metadata does not exist on server yet)
-            pass
 
         data = bytes(targetpath, "utf-8")
         targetfile = TargetFile.from_data(targetpath, data)

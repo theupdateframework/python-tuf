@@ -60,14 +60,13 @@ class TestFetchTarget(unittest.TestCase):
         if self.sim.dump_dir is not None:
             self.sim.write()
 
-        updater = Updater(
+        return Updater(
             self.metadata_dir,
             "https://example.com/metadata/",
             self.targets_dir,
             "https://example.com/targets/",
             self.sim,
         )
-        return updater
 
     targets: utils.DataSet = {
         "standard case": TestTarget(
