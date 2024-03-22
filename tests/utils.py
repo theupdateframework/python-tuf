@@ -361,4 +361,4 @@ class TestServerProcess:
 
     def is_process_running(self) -> bool:
         assert isinstance(self.__server_process, subprocess.Popen)
-        return True if self.__server_process.poll() is None else False
+        return self.__server_process.poll() is None
