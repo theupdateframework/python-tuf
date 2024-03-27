@@ -306,7 +306,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
         # Update timestamp with the same version.
         with self.assertRaises(exceptions.EqualVersionNumberError):
-            self.trusted_set.update_timestamp((self.metadata[Timestamp.type]))
+            self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
 
         # Every object has a unique id() if they are equal, this means timestamp
         # was not updated.

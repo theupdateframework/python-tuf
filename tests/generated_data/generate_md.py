@@ -69,7 +69,7 @@ def verify_generation(md: Metadata, path: str) -> None:
         if static_md_bytes != md_bytes:
             raise ValueError(
                 f"Generated data != local data at {path}. Generate a new "
-                + "metadata with 'python generated_data/generate_md.py'"
+                "metadata with 'python generated_data/generate_md.py'"
             )
 
 
