@@ -113,7 +113,7 @@ def wait_for_server(
             succeeded = True
         except socket.timeout:
             pass
-        except IOError as e:
+        except OSError as e:
             # ECONNREFUSED is expected while the server is not started
             if e.errno not in [errno.ECONNREFUSED]:
                 logger.warning(

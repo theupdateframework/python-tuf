@@ -106,8 +106,7 @@ class RequestsFetcher(FetcherInterface):
         """
 
         try:
-            for data in response.iter_content(self.chunk_size):
-                yield data
+            yield from response.iter_content(self.chunk_size)
         except (
             requests.exceptions.ConnectionError,
             requests.exceptions.Timeout,
