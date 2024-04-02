@@ -80,7 +80,7 @@ class LocalRepository(Repository):
         md.signed.version += 1
         md.signed.expires = datetime.now(timezone.utc) + self.expiry_period
 
-        with open(f"{self.key_dir}/{role}", "rt", encoding="utf-8") as f:
+        with open(f"{self.key_dir}/{role}", encoding="utf-8") as f:
             signer = SSlibSigner(json.loads(f.read()))
 
         md.sign(signer, append=False)
@@ -126,7 +126,7 @@ class LocalRepository(Repository):
             return False
 
         # Store the private key using rolename as filename
-        with open(f"{self.key_dir}/{role}", "wt", encoding="utf-8") as f:
+        with open(f"{self.key_dir}/{role}", "w", encoding="utf-8") as f:
             f.write(json.dumps(keydict))
 
         print(f"Uploaded new delegation, stored key in {self.key_dir}/{role}")
