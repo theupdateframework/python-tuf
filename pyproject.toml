@@ -95,6 +95,7 @@ select = [
     "N",   # pep8-naming
     "PL",  # pylint
     "PIE", # flake8-pie
+    "PYI", # flake8-pyi
     "RET", # flake8-return
     "RUF", # ruff-specific rules
     "S",   # flake8-bandit
