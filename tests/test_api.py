@@ -1233,9 +1233,7 @@ class TestSimpleEnvelope(unittest.TestCase):
             envelope.sign(signer)
             self.assertTrue(len(envelope.signatures) == 1)
 
-            root.verify_delegate(
-                role.type, envelope.pae(), envelope.signatures_dict
-            )
+            root.verify_delegate(role.type, envelope.pae(), envelope.signatures)
 
 
 # Run unit test.
