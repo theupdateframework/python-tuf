@@ -104,6 +104,7 @@ select = [
     "RUF", # ruff-specific rules
     "S",   # flake8-bandit
     "SIM", # flake8-simplify
+    "SLF", # flake8-self
     "UP",  # pyupgrade
     "W",   # pycodestyle-warning
 ] 
@@ -117,8 +118,9 @@ ignore = [
 "tests/*" = [
     "D",      # pydocstyle: no docstrings required for tests
     "E501",   # line-too-long: embedded test data in "fmt: off" blocks is ok
-    "S",      # bandit: Not running bandit on tests
     "RUF012", # ruff: mutable-class-default
+    "S",      # bandit: Not running bandit on tests
+    "SLF001"  # private member access is ok in tests
 ]
 "examples/*/*" = [
     "D", # pydocstyle: no docstrings required for examples

@@ -62,11 +62,12 @@ class LocalRepository(Repository):
 
         # if there is a metadata version fetched from remote, use that
         # HACK: access Updater internals
-        if role in self.updater._trusted_set:
+        trusted_set = self.updater._trusted_set  # noqa: SLF001
+        if role in trusted_set:
             # NOTE: The original signature wrapper (Metadata) was verified and
             # discarded upon inclusion in the trusted set. It is safe to use
             # a fresh wrapper. `close` will override existing signatures anyway.
-            return Metadata(copy.deepcopy(self.updater._trusted_set[role]))
+            return Metadata(copy.deepcopy(trusted_set[role]))
 
         # otherwise we're creating metadata from scratch
         md = Metadata(Targets())
