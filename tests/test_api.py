@@ -255,7 +255,7 @@ class TestMetadata(unittest.TestCase):
             def public_key(self) -> Key:
                 raise RuntimeError("Not a real signer")
 
-            def sign(self, payload: bytes) -> Signature:
+            def sign(self, _payload: bytes) -> Signature:
                 raise RuntimeError("signing failed")
 
         failing_signer = FailingSigner()
