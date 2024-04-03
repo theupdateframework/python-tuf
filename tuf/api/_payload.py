@@ -1286,7 +1286,7 @@ class SuccinctRoles(Role):
 
     def get_roles(self) -> Iterator[str]:
         """Yield the names of all different delegated roles one by one."""
-        for i in range(0, self.number_of_bins):
+        for i in range(self.number_of_bins):
             suffix = f"{i:0{self.suffix_len}x}"
             yield f"{self.name_prefix}-{suffix}"
 

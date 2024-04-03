@@ -160,7 +160,7 @@ class RepositorySimulator(FetcherInterface):
         """remove all keys for role, then add threshold of new keys"""
         self.root.roles[role].keyids.clear()
         self.signers[role].clear()
-        for _ in range(0, self.root.roles[role].threshold):
+        for _ in range(self.root.roles[role].threshold):
             signer = CryptoSigner.generate_ed25519()
             self.root.add_key(signer.public_key, role)
             self.add_signer(role, signer)

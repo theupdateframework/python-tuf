@@ -1118,7 +1118,7 @@ class TestMetadata(unittest.TestCase):
         for name in ["prefix-", "prefix--1", f"prefix-{2**bit_len:0x}"]:
             with self.assertRaises(ValueError, msg=f"role name '{name}'"):
                 targets.get_delegated_role(name)
-        for i in range(0, 2**bit_len):
+        for i in range(2**bit_len):
             self.assertEqual(
                 targets.get_delegated_role(f"prefix-{i:0x}"), role2
             )
