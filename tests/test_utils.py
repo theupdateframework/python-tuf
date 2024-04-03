@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright 2020, TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
