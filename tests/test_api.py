@@ -1175,7 +1175,7 @@ class TestSimpleEnvelope(unittest.TestCase):
 
     def test_fail_payload_serialization(self) -> None:
         with self.assertRaises(SerializationError):
-            SimpleEnvelope.from_signed("foo")  # type: ignore
+            SimpleEnvelope.from_signed("foo")  # type: ignore[type-var]
 
     def test_fail_payload_deserialization(self) -> None:
         payloads = [b"[", b'{"_type": "foo"}']

@@ -132,7 +132,7 @@ class TestMetadataComparisions(unittest.TestCase):
         self.assertEqual(md, md_2)
 
         # Metadata objects with different signatures types are not equal.
-        md_2.signatures = ""  # type: ignore
+        md_2.signatures = ""  # type: ignore[assignment]
         self.assertNotEqual(md, md_2)
 
     def test_delegations_eq_roles_reversed_order(self) -> None:
