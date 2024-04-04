@@ -1491,7 +1491,7 @@ class TargetFile(BaseFile):
         self.unrecognized_fields = unrecognized_fields
 
     @property
-    def custom(self) -> Any:
+    def custom(self) -> Any:  # noqa: ANN401
         """Get implementation specific data related to the target.
 
         python-tuf does not use or validate this data.
