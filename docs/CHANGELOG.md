@@ -1,5 +1,37 @@
 # Changelog
 
+## v4.0.0
+
+This release is a small API change for Metadata API users (see below).
+ngclient API is compatible but optional DSSE support has been added.
+
+### Added
+* Added optional DSSE support to Metadata API and ngclient (#2436)
+
+### Changed
+* Metadata API: Improved verification functionality for repository users (#2551):
+  * This is an API change for Metadata API users (
+    `Root.get_verification_result()` and `Targets.get_verification_result()`
+    specifically)
+  * `Root.get_root_verification_result()` has been added to handle the special
+    case of root verification
+* Started using UTC datetimes instead of naive datetimes internally (#2573)
+* Constrain securesystemslib dependency to <0.32.0 in preparation for future
+  securesystemslib API changes
+* Various build, test and lint improvements
+
+
+## v3.1.1
+
+This is a security fix release to address advisory
+GHSA-77hh-43cm-v8j6. The issue does **not** affect tuf.ngclient
+users, but could affect tuf.api.metadata users.
+
+### Changed
+* Added additional input validation to
+  `tuf.api.metadata.Targets.get_delegated_role()`
+
+
 ## v3.1.0
 
 ### Added
