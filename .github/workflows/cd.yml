@@ -30,17 +30,18 @@ jobs:
       - name: Install build dependency
         run: python3 -m pip install --constraint requirements/build.txt build
 
-      - name: Build binary wheel and source tarball
-        run: PIP_CONSTRAINT=requirements/build.txt python3 -m build --sdist --wheel --outdir dist/ .
+      - name: Build binary wheel, source tarball and changelog
+        run: |
+          PIP_CONSTRAINT=requirements/build.txt python3 -m build --sdist --wheel --outdir dist/ .
+          awk "/## $GITHUB_REF_NAME/{flag=1; next} /## v/{flag=0} flag" docs/CHANGELOG.md > changelog
 
       - name: Store build artifacts
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
-        # NOTE: The GitHub release page contains the release artifacts too, but using
-        # GitHub upload/download actions seems robuster: there is no need to compute
-        # download URLs and tampering with artifacts between jobs is more limited.
         with:
           name: build-artifacts
-          path: dist
+          path: |
+            dist
+            changelog
 
   candidate_release:
     name: Release candidate on Github for review
@@ -55,7 +56,6 @@ jobs:
         uses: actions/download-artifact@9c19ed7fe5d278cd354c7dfd5d3b88589c7e2395 # v4.1.6
         with:
           name: build-artifacts
-          path: dist
 
       - id: gh-release
         name: Publish GitHub release draft
@@ -68,7 +68,7 @@ jobs:
               repo: context.repo.repo,
               name: '${{ github.ref_name }}-rc',
               tag_name: '${{ github.ref }}',
-              body: 'Release waiting for review...',
+              body: fs.readFileSync('changelog', 'utf8'),
             });
 
             fs.readdirSync('dist/').forEach(file => {
@@ -95,7 +95,6 @@ jobs:
         uses: actions/download-artifact@9c19ed7fe5d278cd354c7dfd5d3b88589c7e2395 # v4.1.6
         with:
           name: build-artifacts
-          path: dist
 
       - name: Publish binary wheel and source tarball on PyPI
         # Only attempt pypi upload in upstream repository
@@ -111,7 +110,4 @@ jobs:
               repo: context.repo.repo,
               release_id: '${{ needs.candidate_release.outputs.release_id }}',
               name: '${{ github.ref_name }}',
-              body: 'See [CHANGELOG.md](https://github.com/' +
-                     context.repo.owner + '/' + context.repo.repo +
-                    '/blob/${{ github.ref_name }}/docs/CHANGELOG.md) for details.'
             })
