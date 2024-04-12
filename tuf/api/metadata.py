@@ -36,7 +36,6 @@ from typing import Any, Dict, Generic, Optional, Type, cast
 
 from securesystemslib.signer import Signature, Signer
 from securesystemslib.storage import FilesystemBackend, StorageBackendInterface
-from securesystemslib.util import persist_temp_file
 
 # Expose payload classes via ``tuf.api.metadata`` to maintain the API,
 # even if they are unused in the local scope.
@@ -332,11 +331,14 @@ class Metadata(Generic[T]):
             StorageError: The file cannot be written.
         """
 
+        if storage_backend is None:
+            storage_backend = FilesystemBackend()
+
         bytes_data = self.to_bytes(serializer)
 
         with tempfile.TemporaryFile() as temp_file:
             temp_file.write(bytes_data)
-            persist_temp_file(temp_file, filename, storage_backend)
+            storage_backend.put(temp_file, filename)
 
     # Signatures.
     def sign(
