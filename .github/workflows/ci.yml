@@ -13,3 +13,5 @@ permissions: {}
 jobs:
   test:
     uses: ./.github/workflows/_test.yml
+  test-with-sslib-main:
+    uses: ./.github/workflows/_test_sslib_main.yml
