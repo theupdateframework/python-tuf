@@ -377,7 +377,7 @@ class Metadata(Generic[T]):
 
         try:
             signature = signer.sign(bytes_data)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             raise UnsignedMetadataError(f"Failed to sign: {e}") from e
 
         if not append:

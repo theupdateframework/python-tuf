@@ -226,7 +226,7 @@ class TestServerProcess:
         """Starts the process running the server."""
 
         # The "-u" option forces stdin, stdout and stderr to be unbuffered.
-        command = [sys.executable, "-u", self.server] + extra_cmd_args
+        command = [sys.executable, "-u", self.server, *extra_cmd_args]
 
         # Reusing one subprocess in multiple tests, but split up the logs
         # for each.
@@ -344,7 +344,7 @@ class TestServerProcess:
 
         if len(self.__logged_messages) > 0:
             title = "Test server (" + self.server + ") output:\n"
-            message = [title] + self.__logged_messages
+            message = [title, *self.__logged_messages]
             self.__logger.info("| ".join(message))
             self.__logged_messages = []
 
