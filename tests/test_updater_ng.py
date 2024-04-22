@@ -18,7 +18,6 @@ from securesystemslib.interface import import_rsa_privatekey_from_file
 from securesystemslib.signer import SSlibSigner
 
 from tests import utils
-from tuf import ngclient
 from tuf.api import exceptions
 from tuf.api.metadata import (
     Metadata,
@@ -28,6 +27,7 @@ from tuf.api.metadata import (
     Targets,
     Timestamp,
 )
+from tuf.ngclient import Updater, UpdaterConfig
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +107,7 @@ class TestUpdater(unittest.TestCase):
         self.dl_dir = tempfile.mkdtemp(dir=self.tmp_test_dir)
         # Creating a repository instance.  The test cases will use this client
         # updater to refresh metadata, fetch target files, etc.
-        self.updater = ngclient.Updater(
+        self.updater = Updater(
             metadata_dir=self.client_directory,
             metadata_base_url=self.metadata_url,
             target_dir=self.dl_dir,
@@ -242,16 +242,14 @@ class TestUpdater(unittest.TestCase):
 
     def test_both_target_urls_not_set(self) -> None:
         # target_base_url = None and Updater._target_base_url = None
-        updater = ngclient.Updater(
-            self.client_directory, self.metadata_url, self.dl_dir
-        )
+        updater = Updater(self.client_directory, self.metadata_url, self.dl_dir)
         info = TargetFile(1, {"sha256": ""}, "targetpath")
         with self.assertRaises(ValueError):
             updater.download_target(info)
 
     def test_no_target_dir_no_filepath(self) -> None:
         # filepath = None and Updater.target_dir = None
-        updater = ngclient.Updater(self.client_directory, self.metadata_url)
+        updater = Updater(self.client_directory, self.metadata_url)
         info = TargetFile(1, {"sha256": ""}, "targetpath")
         with self.assertRaises(ValueError):
             updater.find_cached_target(info)
@@ -322,6 +320,27 @@ class TestUpdater(unittest.TestCase):
         # "404 Client Error: File not found for url"
         with self.assertRaises(exceptions.DownloadHTTPError):
             self.updater.download_target(info)
+
+    def test_user_agent(self) -> None:
+        # test default
+        self.updater.refresh()
+        session = next(iter(self.updater._fetcher._sessions.values()))
+        ua = session.headers["User-Agent"]
+        self.assertEqual(ua[:4], "tuf/")
+
+        # test custom UA
+        updater = Updater(
+            self.client_directory,
+            self.metadata_url,
+            self.dl_dir,
+            self.targets_url,
+            config=UpdaterConfig(app_user_agent="MyApp/1.2.3"),
+        )
+        updater.refresh()
+        session = next(iter(updater._fetcher._sessions.values()))
+        ua = session.headers["User-Agent"]
+
+        self.assertEqual(ua[:16], "MyApp/1.2.3 tuf/")
 
 
 if __name__ == "__main__":
