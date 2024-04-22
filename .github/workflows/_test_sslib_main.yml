@@ -1,0 +1,30 @@
+on:
+  workflow_call:
+  # Permissions inherited from caller workflow
+
+permissions: {}
+
+jobs:
+  sslib-main:
+    name: Test securesystemslib main branch (not a merge blocker)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout TUF
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
+
+      - name: Set up Python
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
+        with:
+          python-version: '3.x'
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements/*.txt
+            pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --constraint requirements/build.txt tox
+
+      - name: Run tox
+        run: tox -e with-sslib-main
