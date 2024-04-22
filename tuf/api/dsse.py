@@ -83,7 +83,7 @@ class SimpleEnvelope(Generic[T], BaseSimpleEnvelope):
             envelope_dict = json.loads(data.decode())
             envelope = SimpleEnvelope.from_dict(envelope_dict)
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             raise DeserializationError from e
 
         return envelope
@@ -103,7 +103,7 @@ class SimpleEnvelope(Generic[T], BaseSimpleEnvelope):
             envelope_dict = self.to_dict()
             json_bytes = json.dumps(envelope_dict).encode()
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             raise SerializationError from e
 
         return json_bytes
@@ -123,7 +123,7 @@ class SimpleEnvelope(Generic[T], BaseSimpleEnvelope):
             signed_dict = signed.to_dict()
             json_bytes = json.dumps(signed_dict).encode()
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             raise SerializationError from e
 
         return cls(json_bytes, cls._DEFAULT_PAYLOAD_TYPE, [])
@@ -152,7 +152,7 @@ class SimpleEnvelope(Generic[T], BaseSimpleEnvelope):
             else:
                 raise ValueError(f'unrecognized role type "{_type}"')
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             raise DeserializationError from e
 
         return cast(T, inner_cls.from_dict(payload_dict))

@@ -36,7 +36,7 @@ def can_connect(port: int) -> bool:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect(("localhost", port))
         return True
-    except Exception:
+    except Exception:  # noqa: BLE001
         return False
     finally:
         # The process will always enter in finally even after return.

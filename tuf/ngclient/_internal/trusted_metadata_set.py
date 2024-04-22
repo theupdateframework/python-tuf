@@ -454,7 +454,7 @@ def _load_from_metadata(
     data: bytes,
     delegator: Optional[Delegator] = None,
     role_name: Optional[str] = None,
-) -> Tuple[T, bytes, Dict[str, Signature]]:  # noqa: D102
+) -> Tuple[T, bytes, Dict[str, Signature]]:
     """Load traditional metadata bytes, and extract and verify payload.
 
     If no delegator is passed, verification is skipped. Returns a tuple of
@@ -481,7 +481,7 @@ def _load_from_simple_envelope(
     data: bytes,
     delegator: Optional[Delegator] = None,
     role_name: Optional[str] = None,
-) -> Tuple[T, bytes, Dict[str, Signature]]:  # noqa: D102
+) -> Tuple[T, bytes, Dict[str, Signature]]:
     """Load simple envelope bytes, and extract and verify payload.
 
     If no delegator is passed, verification is skipped. Returns a tuple of

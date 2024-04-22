@@ -606,7 +606,7 @@ class Root(Signed, _DelegatorMixin):
 
         return self.roles[delegated_role]
 
-    def get_key(self, keyid: str) -> Key:  # noqa: D102
+    def get_key(self, keyid: str) -> Key:
         if keyid not in self.keys:
             raise ValueError(f"Key {keyid} not found")
 
@@ -1778,7 +1778,7 @@ class Targets(Signed, _DelegatorMixin):
 
         return role
 
-    def get_key(self, keyid: str) -> Key:  # noqa: D102
+    def get_key(self, keyid: str) -> Key:
         if self.delegations is None:
             raise ValueError("No delegations found")
         if keyid not in self.delegations.keys:

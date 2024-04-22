@@ -87,7 +87,7 @@ def get_pypi_pip_version() -> str:
     # newest tarball and figure out the version from the filename
     with TemporaryDirectory() as pypi_dir:
         cmd = ["pip", "download", "--no-deps", "--dest", pypi_dir]
-        source_download = cmd + ["--no-binary", PYPI_PROJECT, PYPI_PROJECT]
+        source_download = [*cmd, "--no-binary", PYPI_PROJECT, PYPI_PROJECT]
         subprocess.run(source_download, stdout=subprocess.DEVNULL, check=True)
         for filename in os.listdir(pypi_dir):
             prefix, postfix = f"{PYPI_PROJECT}-", ".tar.gz"
@@ -130,8 +130,8 @@ def verify_pypi_release(version: str, compare_dir: str) -> bool:
     with TemporaryDirectory() as pypi_dir:
         cmd = ["pip", "download", "--no-deps", "--dest", pypi_dir]
         target = f"{PYPI_PROJECT}=={version}"
-        binary_download = cmd + [target]
-        source_download = cmd + ["--no-binary", PYPI_PROJECT, target]
+        binary_download = [*cmd, target]
+        source_download = [*cmd, "--no-binary", PYPI_PROJECT, target]
 
         subprocess.run(binary_download, stdout=subprocess.DEVNULL, check=True)
         subprocess.run(source_download, stdout=subprocess.DEVNULL, check=True)
@@ -162,7 +162,7 @@ def sign_release_artifacts(
         artifact_path = os.path.join(build_dir, filename)
         signature_path = f"{filename}.asc"
         subprocess.run(
-            cmd + ["--output", signature_path, artifact_path], check=True
+            [*cmd, "--output", signature_path, artifact_path], check=True
         )
 
         if not os.path.exists(signature_path):

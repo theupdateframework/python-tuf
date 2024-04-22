@@ -106,7 +106,7 @@ class LocalRepository(Repository):
             with self.edit_targets(role) as delegated:
                 delegated.targets[targetpath] = targetfile
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             print(f"Failed to submit new {role} with added target: {e}")
             return False
 

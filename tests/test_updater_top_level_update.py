@@ -447,7 +447,7 @@ class TestRefresh(unittest.TestCase):
         self._assert_version_equals(Timestamp.type, 1)
 
     def test_new_snapshot_hash_mismatch(self) -> None:
-        # Check against timestamp role’s snapshot hash
+        # Check against timestamp role's snapshot hash
 
         # Update timestamp with snapshot's hashes
         self.sim.compute_metafile_hashes_length = True
@@ -477,7 +477,7 @@ class TestRefresh(unittest.TestCase):
         self._assert_files_exist([Root.type, Timestamp.type])
 
     def test_new_snapshot_version_mismatch(self) -> None:
-        # Check against timestamp role’s snapshot version
+        # Check against timestamp role's snapshot version
 
         # Increase snapshot version without updating timestamp
         self.sim.snapshot.version += 1
@@ -544,7 +544,7 @@ class TestRefresh(unittest.TestCase):
         self._assert_files_exist([Root.type, Timestamp.type])
 
     def test_new_targets_hash_mismatch(self) -> None:
-        # Check against snapshot role’s targets hashes
+        # Check against snapshot role's targets hashes
 
         # Update snapshot with target's hashes
         self.sim.compute_metafile_hashes_length = True
@@ -575,7 +575,7 @@ class TestRefresh(unittest.TestCase):
         self._assert_files_exist([Root.type, Timestamp.type, Snapshot.type])
 
     def test_new_targets_version_mismatch(self) -> None:
-        # Check against snapshot role’s targets version
+        # Check against snapshot role's targets version
 
         # Increase targets version without updating snapshot
         self.sim.targets.version += 1

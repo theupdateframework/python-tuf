@@ -46,7 +46,7 @@ class TestFetcher(unittest.TestCase):
 
         cls.url_prefix = (
             f"http://{utils.TEST_HOST_ADDRESS}:"
-            f"{str(cls.server_process_handler.port)}"
+            f"{cls.server_process_handler.port!s}"
         )
         target_filename = os.path.basename(cls.target_file.name)
         cls.url = f"{cls.url_prefix}/{target_filename}"

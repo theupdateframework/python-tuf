@@ -84,6 +84,7 @@ line-length=80
 select = [
     "A",   # flake8-builtins
     "B",   # flake8-bugbear
+    "BLE", # flake8-blind-except
     "C4",  # flake8-comprehensions
     "D",   # pydocstyle
     "DTZ", # flake8-datetimez
@@ -94,6 +95,7 @@ select = [
     "N",   # pep8-naming
     "PL",  # pylint
     "RET", # flake8-return
+    "RUF", # ruff-specific rules
     "S",   # flake8-bandit
     "SIM", # flake8-simplify
     "UP",  # pyupgrade
@@ -107,9 +109,10 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = [
-    "D",    # pydocstyle: no docstrings required for tests
-    "E501", # line-too-long: embedded test data in "fmt: off" blocks is ok
-    "S",    # bandit: Not running bandit on tests
+    "D",      # pydocstyle: no docstrings required for tests
+    "E501",   # line-too-long: embedded test data in "fmt: off" blocks is ok
+    "S",      # bandit: Not running bandit on tests
+    "RUF012", # ruff: mutable-class-default
 ]
 "examples/*/*" = [
     "D", # pydocstyle: no docstrings required for examples
