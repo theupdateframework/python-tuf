@@ -10,7 +10,7 @@ library.
 # can be moved out of _internal once sigstore-python 1.0 is not relevant.
 
 import logging
-from typing import Dict, Iterator, Tuple
+from typing import Dict, Iterator, Optional, Tuple
 from urllib import parse
 
 # Imports
@@ -35,7 +35,10 @@ class RequestsFetcher(FetcherInterface):
     """
 
     def __init__(
-        self, socket_timeout: int = 30, chunk_size: int = 400000
+        self,
+        socket_timeout: int = 30,
+        chunk_size: int = 400000,
+        app_user_agent: Optional[str] = None,
     ) -> None:
         # http://docs.python-requests.org/en/master/user/advanced/#session-objects:
         #
@@ -56,6 +59,7 @@ class RequestsFetcher(FetcherInterface):
         # Default settings
         self.socket_timeout: int = socket_timeout  # seconds
         self.chunk_size: int = chunk_size  # bytes
+        self.app_user_agent = app_user_agent
 
     def _fetch(self, url: str) -> Iterator[bytes]:
         """Fetch the contents of HTTP/HTTPS url from a remote server.
@@ -138,6 +142,8 @@ class RequestsFetcher(FetcherInterface):
             self._sessions[session_index] = session
 
             ua = f"tuf/{tuf.__version__} {session.headers['User-Agent']}"
+            if self.app_user_agent is not None:
+                ua = f"{self.app_user_agent} {ua}"
             session.headers["User-Agent"] = ua
 
             logger.debug("Made new session %s", session_index)

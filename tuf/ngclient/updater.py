@@ -93,10 +93,14 @@ class Updater:
         else:
             self._target_base_url = _ensure_trailing_slash(target_base_url)
 
-        # Read trusted local root metadata
-        data = self._load_local_metadata(Root.type)
-        self._fetcher = fetcher or requests_fetcher.RequestsFetcher()
         self.config = config or UpdaterConfig()
+
+        if fetcher is not None:
+            self._fetcher = fetcher
+        else:
+            self._fetcher = requests_fetcher.RequestsFetcher(
+                app_user_agent=self.config.app_user_agent
+            )
 
         supported_envelopes = [EnvelopeType.METADATA, EnvelopeType.SIMPLE]
         if self.config.envelope_type not in supported_envelopes:
@@ -104,6 +108,9 @@ class Updater:
                 f"config: envelope_type must be one of {supported_envelopes}, "
                 f"got '{self.config.envelope_type}'"
             )
+
+        # Read trusted local root metadata
+        data = self._load_local_metadata(Root.type)
 
         self._trusted_set = trusted_metadata_set.TrustedMetadataSet(
             data, self.config.envelope_type

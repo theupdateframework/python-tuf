@@ -5,6 +5,7 @@
 
 from dataclasses import dataclass
 from enum import Flag, unique
+from typing import Optional
 
 
 @unique
@@ -39,6 +40,8 @@ class UpdaterConfig:
         envelope_type: Configures deserialization and verification mode of TUF
             metadata. Per default, it is treated as traditional canonical JSON
             -based TUF Metadata.
+        app_user_agent: Application user agent, e.g. "MyApp/1.0.0". This will be
+            prefixed to ngclient user agent when the default fetcher is used.
     """
 
     max_root_rotations: int = 32
@@ -49,3 +52,4 @@ class UpdaterConfig:
     targets_max_length: int = 5000000  # bytes
     prefix_targets_with_hash: bool = True
     envelope_type: EnvelopeType = EnvelopeType.METADATA
+    app_user_agent: Optional[str] = None
