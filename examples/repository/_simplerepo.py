@@ -10,8 +10,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Union
 
-from securesystemslib import keys
-from securesystemslib.signer import Key, Signer, SSlibKey, SSlibSigner
+from securesystemslib.signer import CryptoSigner, Key, Signer
 
 from tuf.api.exceptions import RepositoryError
 from tuf.api.metadata import (
@@ -76,9 +75,9 @@ class SimpleRepository(Repository):
         # setup a basic repository, generate signing key per top-level role
         with self.edit_root() as root:
             for role in ["root", "timestamp", "snapshot", "targets"]:
-                key = keys.generate_ed25519_key()
-                self.signer_cache[role].append(SSlibSigner(key))
-                root.add_key(SSlibKey.from_securesystemslib_key(key), role)
+                signer = CryptoSigner.generate_ecdsa()
+                self.signer_cache[role].append(signer)
+                root.add_key(signer.public_key, role)
 
         for role in ["timestamp", "snapshot", "targets"]:
             with self.edit(role):

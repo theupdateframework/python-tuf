@@ -500,7 +500,7 @@ def _load_from_simple_envelope(
         if role_name is None:
             role_name = role.type
         delegator.verify_delegate(
-            role_name, envelope.pae(), envelope.signatures_dict
+            role_name, envelope.pae(), envelope.signatures
         )
 
     signed = envelope.get_signed()
@@ -509,4 +509,4 @@ def _load_from_simple_envelope(
             f"Expected '{role.type}', got '{signed.type}'"
         )
 
-    return signed, envelope.pae(), envelope.signatures_dict
+    return signed, envelope.pae(), envelope.signatures

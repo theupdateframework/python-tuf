@@ -14,8 +14,7 @@ import unittest
 from typing import Callable, ClassVar, List
 from unittest.mock import MagicMock, patch
 
-from securesystemslib.interface import import_rsa_privatekey_from_file
-from securesystemslib.signer import SSlibSigner
+from securesystemslib.signer import Signer
 
 from tests import utils
 from tuf.api import exceptions
@@ -127,15 +126,17 @@ class TestUpdater(unittest.TestCase):
         role_path = os.path.join(
             self.repository_directory, "metadata", "root.json"
         )
-        root = Metadata.from_file(role_path)
+        root = Metadata[Root].from_file(role_path)
         modification_func(root)
         if bump_version:
             root.signed.version += 1
         root_key_path = os.path.join(self.keystore_directory, "root_key")
-        root_key_dict = import_rsa_privatekey_from_file(
-            root_key_path, password="password"
-        )
-        signer = SSlibSigner(root_key_dict)
+
+        uri = f"file2:{root_key_path}"
+        role = root.signed.get_delegated_role(Root.type)
+        key = root.signed.get_key(role.keyids[0])
+        signer = Signer.from_priv_key_uri(uri, key)
+
         root.sign(signer)
         root.to_file(
             os.path.join(self.repository_directory, "metadata", "root.json")

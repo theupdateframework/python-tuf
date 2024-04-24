@@ -25,10 +25,9 @@ import os
 import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict
+from typing import Dict
 
-from securesystemslib.keys import generate_ed25519_key
-from securesystemslib.signer import SSlibKey, SSlibSigner
+from securesystemslib.signer import CryptoSigner, Signer
 
 from tuf.api.metadata import (
     SPECIFICATION_VERSION,
@@ -89,7 +88,7 @@ SPEC_VERSION = ".".join(SPECIFICATION_VERSION)
 # Define containers for role objects and cryptographic keys created below. This
 # allows us to sign and write metadata in a batch more easily.
 roles: Dict[str, Metadata] = {}
-keys: Dict[str, Dict[str, Any]] = {}
+signers: Dict[str, Signer] = {}
 
 
 # Targets (integrity)
@@ -157,10 +156,8 @@ roles["root"] = Metadata(Root(expires=_in(365)))
 # See https://github.com/secure-systems-lab/securesystemslib for more details
 # about key handling, and don't forget to password-encrypt your private keys!
 for name in ["targets", "snapshot", "timestamp", "root"]:
-    keys[name] = generate_ed25519_key()
-    roles["root"].signed.add_key(
-        SSlibKey.from_securesystemslib_key(keys[name]), name
-    )
+    signers[name] = CryptoSigner.generate_ecdsa()
+    roles["root"].signed.add_key(signers[name].public_key, name)
 
 # NOTE: We only need the public part to populate root, so it is possible to use
 # out-of-band mechanisms to generate key pairs and only expose the public part
@@ -173,10 +170,8 @@ for name in ["targets", "snapshot", "timestamp", "root"]:
 # threshold of multiple keys to sign root metadata. For this example we
 # generate another root key (you can pretend it's out-of-band) and increase the
 # required signature threshold.
-another_root_key = generate_ed25519_key()
-roles["root"].signed.add_key(
-    SSlibKey.from_securesystemslib_key(another_root_key), "root"
-)
+another_root_signer = CryptoSigner.generate_ecdsa()
+roles["root"].signed.add_key(another_root_signer.public_key, "root")
 roles["root"].signed.roles["root"].threshold = 2
 
 
@@ -185,9 +180,7 @@ roles["root"].signed.roles["root"].threshold = 2
 # In this example we have access to all top-level signing keys, so we can use
 # them to create and add a signature for each role metadata.
 for name in ["targets", "snapshot", "timestamp", "root"]:
-    key = keys[roles[name].signed.type]
-    signer = SSlibSigner(key)
-    roles[name].sign(signer)
+    roles[name].sign(signers[name])
 
 
 # Persist metadata (consistent snapshot)
@@ -227,9 +220,9 @@ roles["timestamp"].to_file(
 # file, sign it, and write it back to the same file, and this can be repeated
 # until the threshold is satisfied.
 root_path = os.path.join(TMP_DIR, "1.root.json")
-roles["root"].from_file(root_path)
-roles["root"].sign(SSlibSigner(another_root_key), append=True)
-roles["root"].to_file(root_path, serializer=PRETTY)
+root = Metadata.from_file(root_path)
+root.sign(another_root_signer, append=True)
+root.to_file(root_path, serializer=PRETTY)
 
 
 # Targets delegation
@@ -243,7 +236,7 @@ roles["root"].to_file(root_path, serializer=PRETTY)
 # In this example the top-level targets role trusts a new "python-scripts"
 # targets role to provide integrity for any target file that ends with ".py".
 delegatee_name = "python-scripts"
-keys[delegatee_name] = generate_ed25519_key()
+signers[delegatee_name] = CryptoSigner.generate_ecdsa()
 
 # Delegatee
 # ---------
@@ -271,16 +264,13 @@ roles[delegatee_name] = Metadata[Targets](
 # delegatee is responsible for, e.g. a list of path patterns. For details about
 # all configuration parameters see
 # https://theupdateframework.github.io/specification/latest/#delegations
+delegatee_key = signers[delegatee_name].public_key
 roles["targets"].signed.delegations = Delegations(
-    keys={
-        keys[delegatee_name]["keyid"]: SSlibKey.from_securesystemslib_key(
-            keys[delegatee_name]
-        )
-    },
+    keys={delegatee_key.keyid: delegatee_key},
     roles={
         delegatee_name: DelegatedRole(
             name=delegatee_name,
-            keyids=[keys[delegatee_name]["keyid"]],
+            keyids=[delegatee_key.keyid],
             threshold=1,
             terminating=True,
             paths=["*.py"],
@@ -319,8 +309,7 @@ roles["timestamp"].signed.version += 1
 
 # Sign and write metadata for all changed roles, i.e. all but root
 for role_name in ["targets", "python-scripts", "snapshot", "timestamp"]:
-    signer = SSlibSigner(keys[role_name])
-    roles[role_name].sign(signer)
+    roles[role_name].sign(signers[role_name])
 
     # Prefix all but timestamp with version number (see consistent snapshot)
     filename = f"{role_name}.json"
@@ -343,17 +332,15 @@ for role_name in ["targets", "python-scripts", "snapshot", "timestamp"]:
 # In this example we will replace a root key, and sign a new version of root
 # with the threshold of old and new keys. Since one of the previous root keys
 # remains in place, it can be used to count towards the old and new threshold.
-new_root_key = generate_ed25519_key()
+new_root_signer = CryptoSigner.generate_ecdsa()
 
-roles["root"].signed.revoke_key(keys["root"]["keyid"], "root")
-roles["root"].signed.add_key(
-    SSlibKey.from_securesystemslib_key(new_root_key), "root"
-)
+roles["root"].signed.revoke_key(signers["root"].public_key.keyid, "root")
+roles["root"].signed.add_key(new_root_signer.public_key, "root")
 roles["root"].signed.version += 1
 
 roles["root"].signatures.clear()
-for key in [keys["root"], another_root_key, new_root_key]:
-    roles["root"].sign(SSlibSigner(key), append=True)
+for signer in [signers["root"], another_root_signer, new_root_signer]:
+    roles["root"].sign(signer, append=True)
 
 roles["root"].to_file(
     os.path.join(TMP_DIR, f"{roles['root'].signed.version}.root.json"),

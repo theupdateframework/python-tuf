@@ -12,7 +12,7 @@ import unittest
 from dataclasses import dataclass
 from typing import ClassVar, Dict, List, Optional, Type
 
-from securesystemslib.signer import SSlibSigner
+from securesystemslib.signer import CryptoSigner, Signer
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
@@ -37,18 +37,16 @@ class TestUpdaterKeyRotations(unittest.TestCase):
     dump_dir: Optional[str] = None
     temp_dir: ClassVar[tempfile.TemporaryDirectory]
     keys: ClassVar[List[Key]]
-    signers: ClassVar[List[SSlibSigner]]
+    signers: ClassVar[List[Signer]]
 
     @classmethod
     def setUpClass(cls) -> None:
         cls.temp_dir = tempfile.TemporaryDirectory()
 
         # Pre-create a bunch of keys and signers
-        cls.keys = []
         cls.signers = []
         for _ in range(10):
-            key, signer = RepositorySimulator.create_key()
-            cls.keys.append(key)
+            signer = CryptoSigner.generate_ed25519()
             cls.signers.append(signer)
 
     @classmethod
@@ -180,7 +178,7 @@ class TestUpdaterKeyRotations(unittest.TestCase):
 
             self.sim.root.roles[Root.type].threshold = rootver.threshold
             for i in rootver.keys:
-                self.sim.root.add_key(self.keys[i], Root.type)
+                self.sim.root.add_key(self.signers[i].public_key, Root.type)
             for i in rootver.sigs:
                 self.sim.add_signer(Root.type, self.signers[i])
             self.sim.root.version += 1
@@ -249,7 +247,7 @@ class TestUpdaterKeyRotations(unittest.TestCase):
 
             self.sim.root.roles[role].threshold = md_version.threshold
             for i in md_version.keys:
-                self.sim.root.add_key(self.keys[i], role)
+                self.sim.root.add_key(self.signers[i].public_key, role)
 
             for i in md_version.sigs:
                 self.sim.add_signer(role, self.signers[i])

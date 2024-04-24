@@ -12,8 +12,12 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict
 
 import requests
-from securesystemslib import keys
-from securesystemslib.signer import SSlibKey, SSlibSigner
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    NoEncryption,
+    PrivateFormat,
+)
+from securesystemslib.signer import CryptoSigner, Signer
 
 from tuf.api.exceptions import RepositoryError
 from tuf.api.metadata import Metadata, MetaFile, TargetFile, Targets
@@ -75,18 +79,22 @@ class LocalRepository(Repository):
         md.signed.version = 0
         return md
 
-    def close(self, role: str, md: Metadata) -> None:
+    def close(self, role_name: str, md: Metadata) -> None:
         """Store a version of metadata. Handle version bumps, expiry, signing"""
+        targets = self.targets()
+        role = targets.get_delegated_role(role_name)
+        public_key = targets.get_key(role.keyids[0])
+        uri = f"file2:{self.key_dir}/{role_name}"
+
+        signer = Signer.from_priv_key_uri(uri, public_key)
+
         md.signed.version += 1
         md.signed.expires = datetime.now(timezone.utc) + self.expiry_period
-
-        with open(f"{self.key_dir}/{role}", encoding="utf-8") as f:
-            signer = SSlibSigner(json.loads(f.read()))
 
         md.sign(signer, append=False)
 
         # Upload using "api/role"
-        uri = f"{self.base_url}/api/role/{role}"
+        uri = f"{self.base_url}/api/role/{role_name}"
         r = requests.post(uri, data=md.to_bytes(JSONSerializer()), timeout=5)
         r.raise_for_status()
 
@@ -115,10 +123,9 @@ class LocalRepository(Repository):
 
     def add_delegation(self, role: str) -> bool:
         """Use the (unauthenticated) delegation adding API endpoint"""
-        keydict = keys.generate_ed25519_key()
-        pubkey = SSlibKey.from_securesystemslib_key(keydict)
+        signer = CryptoSigner.generate_ecdsa()
 
-        data = {pubkey.keyid: pubkey.to_dict()}
+        data = {signer.public_key.keyid: signer.public_key.to_dict()}
         url = f"{self.base_url}/api/delegation/{role}"
         r = requests.post(url, data=json.dumps(data), timeout=5)
         if r.status_code != 200:
@@ -126,8 +133,14 @@ class LocalRepository(Repository):
             return False
 
         # Store the private key using rolename as filename
-        with open(f"{self.key_dir}/{role}", "w", encoding="utf-8") as f:
-            f.write(json.dumps(keydict))
+        with open(f"{self.key_dir}/{role}", "wb") as f:
+            # TODO this is dumb and  needs to be securesystemslibs job...
+            priv_key = signer._private_key.private_bytes(
+                encoding=Encoding.PEM,
+                format=PrivateFormat.PKCS8,
+                encryption_algorithm=NoEncryption(),
+            )
+            f.write(priv_key)
 
         print(f"Uploaded new delegation, stored key in {self.key_dir}/{role}")
         return True
