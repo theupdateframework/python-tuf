@@ -12,11 +12,6 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict
 
 import requests
-from cryptography.hazmat.primitives.serialization import (
-    Encoding,
-    NoEncryption,
-    PrivateFormat,
-)
 from securesystemslib.signer import CryptoSigner, Signer
 
 from tuf.api.exceptions import RepositoryError
@@ -134,13 +129,7 @@ class LocalRepository(Repository):
 
         # Store the private key using rolename as filename
         with open(f"{self.key_dir}/{role}", "wb") as f:
-            # TODO this is dumb and  needs to be securesystemslibs job...
-            priv_key = signer._private_key.private_bytes(
-                encoding=Encoding.PEM,
-                format=PrivateFormat.PKCS8,
-                encryption_algorithm=NoEncryption(),
-            )
-            f.write(priv_key)
+            f.write(signer.private_bytes)
 
         print(f"Uploaded new delegation, stored key in {self.key_dir}/{role}")
         return True

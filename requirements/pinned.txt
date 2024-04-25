@@ -6,5 +6,5 @@ idna==3.7                 # via requests
 pycparser==2.22           # via cffi
 pynacl==1.5.0             # via securesystemslib
 requests==2.31.0
-securesystemslib[crypto,pynacl] @ git+https://github.com/secure-systems-lab/securesystemslib@34a42954b5064610ec98406bb55719fd19874089
+securesystemslib[crypto,pynacl] @ git+https://github.com/secure-systems-lab/securesystemslib@530411d927c789dd4b6e4c19ce367a78bcea446c
 urllib3==2.2.1           # via requests
