@@ -35,7 +35,7 @@ class JSONDeserializer(MetadataDeserializer):
             json_dict = json.loads(raw_data.decode("utf-8"))
             metadata_obj = Metadata.from_dict(json_dict)
 
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             raise DeserializationError("Failed to deserialize JSON") from e
 
         return metadata_obj
@@ -77,10 +77,10 @@ class JSONSerializer(MetadataSerializer):
                         raise ValueError(
                             "Metadata changes if you serialize and deserialize."
                         )
-                except Exception as e:  # noqa: BLE001
+                except Exception as e:
                     raise ValueError("Metadata cannot be validated!") from e
 
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             raise SerializationError("Failed to serialize JSON") from e
 
         return json_bytes
@@ -97,7 +97,7 @@ class CanonicalJSONSerializer(SignedSerializer):
             signed_dict = signed_obj.to_dict()
             canonical_bytes = encode_canonical(signed_dict).encode("utf-8")
 
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             raise SerializationError from e
 
         return canonical_bytes
