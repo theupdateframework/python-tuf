@@ -46,7 +46,7 @@ classifiers = [
 ]
 dependencies = [
   "requests>=2.19.1",
-  "securesystemslib>=0.26.0,<0.32.0",
+  "securesystemslib~=1.0",
 ]
 dynamic = ["version"]
 
