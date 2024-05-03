@@ -53,8 +53,7 @@ from typing import Dict, Iterator, List, Optional, Tuple
 from urllib import parse
 
 import securesystemslib.hash as sslib_hash
-from securesystemslib.keys import generate_ed25519_key
-from securesystemslib.signer import SSlibKey, SSlibSigner
+from securesystemslib.signer import CryptoSigner, Signer
 
 from tuf.api.exceptions import DownloadHTTPError
 from tuf.api.metadata import (
@@ -62,7 +61,6 @@ from tuf.api.metadata import (
     TOP_LEVEL_ROLE_NAMES,
     DelegatedRole,
     Delegations,
-    Key,
     Metadata,
     MetaFile,
     Root,
@@ -108,7 +106,7 @@ class RepositorySimulator(FetcherInterface):
 
         # signers are used on-demand at fetch time to sign metadata
         # keys are roles, values are dicts of {keyid: signer}
-        self.signers: Dict[str, Dict[str, SSlibSigner]] = {}
+        self.signers: Dict[str, Dict[str, Signer]] = {}
 
         # target downloads are served from this dict
         self.target_files: Dict[str, RepositoryTarget] = {}
@@ -153,23 +151,18 @@ class RepositorySimulator(FetcherInterface):
         for role, md in self.md_delegates.items():
             yield role, md.signed
 
-    @staticmethod
-    def create_key() -> Tuple[Key, SSlibSigner]:
-        key = generate_ed25519_key()
-        return SSlibKey.from_securesystemslib_key(key), SSlibSigner(key)
-
-    def add_signer(self, role: str, signer: SSlibSigner) -> None:
+    def add_signer(self, role: str, signer: Signer) -> None:
         if role not in self.signers:
             self.signers[role] = {}
-        self.signers[role][signer.key_dict["keyid"]] = signer
+        self.signers[role][signer.public_key.keyid] = signer
 
     def rotate_keys(self, role: str) -> None:
         """remove all keys for role, then add threshold of new keys"""
         self.root.roles[role].keyids.clear()
         self.signers[role].clear()
         for _ in range(0, self.root.roles[role].threshold):
-            key, signer = self.create_key()
-            self.root.add_key(key, role)
+            signer = CryptoSigner.generate_ed25519()
+            self.root.add_key(signer.public_key, role)
             self.add_signer(role, signer)
 
     def _initialize(self) -> None:
@@ -181,8 +174,8 @@ class RepositorySimulator(FetcherInterface):
         self.md_root = Metadata(Root(expires=self.safe_expiry))
 
         for role in TOP_LEVEL_ROLE_NAMES:
-            key, signer = self.create_key()
-            self.md_root.signed.add_key(key, role)
+            signer = CryptoSigner.generate_ed25519()
+            self.md_root.signed.add_key(signer.public_key, role)
             self.add_signer(role, signer)
 
         self.publish_root()
@@ -370,8 +363,8 @@ class RepositorySimulator(FetcherInterface):
         delegator.delegations.roles[role.name] = role
 
         # By default add one new key for the role
-        key, signer = self.create_key()
-        delegator.add_key(key, role.name)
+        signer = CryptoSigner.generate_ed25519()
+        delegator.add_key(signer.public_key, role.name)
         self.add_signer(role.name, signer)
 
         # Add metadata for the role
@@ -396,7 +389,7 @@ class RepositorySimulator(FetcherInterface):
                 "Can't add a succinct_roles when delegated roles are used"
             )
 
-        key, signer = self.create_key()
+        signer = CryptoSigner.generate_ed25519()
         succinct_roles = SuccinctRoles([], 1, bit_length, name_prefix)
         delegator.delegations = Delegations({}, None, succinct_roles)
 
@@ -408,7 +401,7 @@ class RepositorySimulator(FetcherInterface):
 
             self.add_signer(delegated_name, signer)
 
-        delegator.add_key(key)
+        delegator.add_key(signer.public_key)
 
     def write(self) -> None:
         """Dump current repository metadata to self.dump_dir

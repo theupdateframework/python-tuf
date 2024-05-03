@@ -6,12 +6,13 @@
 import os
 import sys
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import List, Optional
 
-from securesystemslib.signer import SSlibKey, SSlibSigner
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from securesystemslib.signer import CryptoSigner, Signer, SSlibKey
 
 from tests import utils
-from tuf.api.metadata import Key, Metadata, Root, Snapshot, Targets, Timestamp
+from tuf.api.metadata import Metadata, Root, Snapshot, Targets, Timestamp
 from tuf.api.serialization.json import JSONSerializer
 
 # Hardcode keys and expiry time to achieve reproducibility.
@@ -21,11 +22,19 @@ public_values: List[str] = [
     "82380623abb9666d4bf274b1a02577469445a972e5650d270101faa5107b19c8",
     "0e6738fc1ac6fb4de680b4be99ecbcd99b030f3963f291277eef67bb9bd123e9",
 ]
-private_values: List[str] = [
-    "510e5e04d7a364af850533856eacdf65d30cc0f8803ecd5fdc0acc56ca2aa91c",
-    "e6645b00312c8a257782e3e61e85bafda4317ad072c52251ef933d480c387abd",
-    "cd13dd2180334b24c19b32aaf27f7e375a614d7ba0777220d5c2290bb2f9b868",
-    "7e2e751145d1b22f6e40d4ba2aa47158207acfd3c003f1cbd5a08141dfc22a15",
+private_values: List[bytes] = [
+    bytes.fromhex(
+        "510e5e04d7a364af850533856eacdf65d30cc0f8803ecd5fdc0acc56ca2aa91c"
+    ),
+    bytes.fromhex(
+        "e6645b00312c8a257782e3e61e85bafda4317ad072c52251ef933d480c387abd"
+    ),
+    bytes.fromhex(
+        "cd13dd2180334b24c19b32aaf27f7e375a614d7ba0777220d5c2290bb2f9b868"
+    ),
+    bytes.fromhex(
+        "7e2e751145d1b22f6e40d4ba2aa47158207acfd3c003f1cbd5a08141dfc22a15"
+    ),
 ]
 keyids: List[str] = [
     "5822582e7072996c1eef1cec24b61115d364987faa486659fe3d3dce8dae2aba",
@@ -34,19 +43,16 @@ keyids: List[str] = [
     "2be5c21e3614f9f178fb49c4a34d0c18ffac30abd14ced917c60a52c8d8094b7",
 ]
 
-keys: Dict[str, Key] = {}
-for index in range(4):
-    keys[f"ed25519_{index}"] = SSlibKey.from_securesystemslib_key(
-        {
-            "keytype": "ed25519",
-            "scheme": "ed25519",
-            "keyid": keyids[index],
-            "keyval": {
-                "public": public_values[index],
-                "private": private_values[index],
-            },
-        }
+signers: List[Signer] = []
+for index in range(len(keyids)):
+    key = SSlibKey(
+        keyids[index],
+        "ed25519",
+        "ed25519",
+        {"public": public_values[index]},
     )
+    private_key = Ed25519PrivateKey.from_private_bytes(private_values[index])
+    signers.append(CryptoSigner(private_key, key))
 
 EXPIRY = datetime(2050, 1, 1, tzinfo=timezone.utc)
 OUT_DIR = "generated_data/ed25519_metadata"
@@ -88,25 +94,14 @@ def generate_all_files(
     md_snapshot = Metadata(Snapshot(expires=EXPIRY))
     md_targets = Metadata(Targets(expires=EXPIRY))
 
-    md_root.signed.add_key(keys["ed25519_0"], "root")
-    md_root.signed.add_key(keys["ed25519_1"], "timestamp")
-    md_root.signed.add_key(keys["ed25519_2"], "snapshot")
-    md_root.signed.add_key(keys["ed25519_3"], "targets")
+    md_root.signed.add_key(signers[0].public_key, "root")
+    md_root.signed.add_key(signers[1].public_key, "timestamp")
+    md_root.signed.add_key(signers[2].public_key, "snapshot")
+    md_root.signed.add_key(signers[3].public_key, "targets")
 
     for i, md in enumerate([md_root, md_timestamp, md_snapshot, md_targets]):
         assert isinstance(md, Metadata)
-        signer = SSlibSigner(
-            {
-                "keytype": "ed25519",
-                "scheme": "ed25519",
-                "keyid": keyids[i],
-                "keyval": {
-                    "public": public_values[i],
-                    "private": private_values[i],
-                },
-            }
-        )
-        md.sign(signer)
+        md.sign(signers[i])
         path = os.path.join(OUT_DIR, f"{md.signed.type}_with_ed25519.json")
         if verify:
             verify_generation(md, path)

@@ -7,11 +7,7 @@ import unittest
 from datetime import datetime, timezone
 from typing import Callable, ClassVar, Dict, List, Optional, Tuple
 
-from securesystemslib.interface import (
-    import_ed25519_privatekey_from_file,
-    import_rsa_privatekey_from_file,
-)
-from securesystemslib.signer import SSlibSigner
+from securesystemslib.signer import Signer
 
 from tests import utils
 from tuf.api import exceptions
@@ -38,7 +34,7 @@ logger = logging.getLogger(__name__)
 class TestTrustedMetadataSet(unittest.TestCase):
     """Tests for all public API of the TrustedMetadataSet class."""
 
-    keystore: ClassVar[Dict[str, SSlibSigner]]
+    keystore: ClassVar[Dict[str, Signer]]
     metadata: ClassVar[Dict[str, bytes]]
     repo_dir: ClassVar[str]
 
@@ -79,16 +75,19 @@ class TestTrustedMetadataSet(unittest.TestCase):
         keystore_dir = os.path.join(
             utils.TESTS_DIR, "repository_data", "keystore"
         )
+        root = Metadata[Root].from_bytes(cls.metadata[Root.type]).signed
+
         cls.keystore = {}
-        root_key_dict = import_rsa_privatekey_from_file(
-            os.path.join(keystore_dir, Root.type + "_key"), password="password"
-        )
-        cls.keystore[Root.type] = SSlibSigner(root_key_dict)
-        for role in ["delegation", Snapshot.type, Targets.type, Timestamp.type]:
-            key_dict = import_ed25519_privatekey_from_file(
-                os.path.join(keystore_dir, role + "_key"), password="password"
-            )
-            cls.keystore[role] = SSlibSigner(key_dict)
+        for role in [
+            Root.type,
+            Snapshot.type,
+            Targets.type,
+            Timestamp.type,
+        ]:
+            uri = f"file2:{os.path.join(keystore_dir, role + '_key')}"
+            role_obj = root.get_delegated_role(role)
+            key = root.get_key(role_obj.keyids[0])
+            cls.keystore[role] = Signer.from_priv_key_uri(uri, key)
 
         def hashes_length_modifier(timestamp: Timestamp) -> None:
             timestamp.snapshot_meta.hashes = None

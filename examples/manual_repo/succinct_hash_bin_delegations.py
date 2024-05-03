@@ -23,10 +23,9 @@ import os
 import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict
 
-from securesystemslib.keys import generate_ed25519_key
-from securesystemslib.signer import SSlibKey, SSlibSigner
+from securesystemslib.signer import CryptoSigner
 
 from tuf.api.metadata import (
     Delegations,
@@ -80,15 +79,10 @@ NAME_PREFIX = "delegated_bin"
 THRESHOLD = 1
 
 
-def create_key() -> Tuple[Key, SSlibSigner]:
-    """Generates a new Key and Signer."""
-    sslib_key = generate_ed25519_key()
-    return SSlibKey.from_securesystemslib_key(sslib_key), SSlibSigner(sslib_key)
-
-
 # Create one signing key for all bins, and one for the delegating targets role.
-bins_key, bins_signer = create_key()
-_, targets_signer = create_key()
+bins_signer = CryptoSigner.generate_ecdsa()
+bins_key = bins_signer.public_key
+targets_signer = CryptoSigner.generate_ecdsa()
 
 # Delegating targets role
 # -----------------------

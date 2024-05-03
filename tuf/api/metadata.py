@@ -351,9 +351,7 @@ class Metadata(Generic[T]):
 
         Args:
             signer: A ``securesystemslib.signer.Signer`` object that provides a
-            private key and signing implementation to generate the signature. A
-            standard implementation is available in
-            ``securesystemslib.signer.SSlibSigner``.
+                signing implementation to generate the signature.
             append: ``True`` if the signature should be appended to
                 the list of signatures or replace any existing signatures. The
                 default behavior is to replace signatures.

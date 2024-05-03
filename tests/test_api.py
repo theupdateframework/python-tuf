@@ -14,20 +14,15 @@ import unittest
 from copy import copy, deepcopy
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, ClassVar, Dict, Optional
+from typing import ClassVar, Dict, Optional
 
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import hash as sslib_hash
-from securesystemslib.interface import (
-    import_ed25519_privatekey_from_file,
-    import_ed25519_publickey_from_file,
-)
-from securesystemslib.keys import generate_ed25519_key
 from securesystemslib.signer import (
+    CryptoSigner,
+    Key,
     SecretsHandler,
     Signer,
-    SSlibKey,
-    SSlibSigner,
 )
 
 from tests import utils
@@ -37,7 +32,6 @@ from tuf.api.metadata import (
     TOP_LEVEL_ROLE_NAMES,
     DelegatedRole,
     Delegations,
-    Key,
     Metadata,
     MetaFile,
     Root,
@@ -62,7 +56,7 @@ class TestMetadata(unittest.TestCase):
     temporary_directory: ClassVar[str]
     repo_dir: ClassVar[str]
     keystore_dir: ClassVar[str]
-    keystore: ClassVar[Dict[str, Dict[str, Any]]]
+    signers: ClassVar[Dict[str, Signer]]
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -86,13 +80,17 @@ class TestMetadata(unittest.TestCase):
             os.path.join(test_repo_data, "keystore"), cls.keystore_dir
         )
 
-        # Load keys into memory
-        cls.keystore = {}
-        for role in ["delegation", Snapshot.type, Targets.type, Timestamp.type]:
-            cls.keystore[role] = import_ed25519_privatekey_from_file(
-                os.path.join(cls.keystore_dir, role + "_key"),
-                password="password",
-            )
+        path = os.path.join(cls.repo_dir, "metadata", "root.json")
+        root = Metadata[Root].from_file(path).signed
+
+        # Load signers
+
+        cls.signers = {}
+        for role in [Snapshot.type, Targets.type, Timestamp.type]:
+            uri = f"file2:{os.path.join(cls.keystore_dir, role + '_key')}"
+            role_obj = root.get_delegated_role(role)
+            key = root.get_key(role_obj.keyids[0])
+            cls.signers[role] = CryptoSigner.from_priv_key_uri(uri, key)
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -218,9 +216,8 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(sslib_exceptions.VerificationError):
             snapshot_key.verify_signature(sig, data)
 
-        sslib_signer = SSlibSigner(self.keystore[Snapshot.type])
         # Append a new signature with the unrelated key and assert that ...
-        snapshot_sig = md_obj.sign(sslib_signer, append=True)
+        snapshot_sig = md_obj.sign(self.signers[Snapshot.type], append=True)
         # ... there are now two signatures, and
         self.assertEqual(len(md_obj.signatures), 2)
         # ... both are valid for the corresponding keys.
@@ -229,9 +226,8 @@ class TestMetadata(unittest.TestCase):
         # ... the returned (appended) signature is for snapshot key
         self.assertEqual(snapshot_sig.keyid, snapshot_keyid)
 
-        sslib_signer = SSlibSigner(self.keystore[Timestamp.type])
         # Create and assign (don't append) a new signature and assert that ...
-        ts_sig = md_obj.sign(sslib_signer, append=False)
+        ts_sig = md_obj.sign(self.signers[Timestamp.type], append=False)
         # ... there now is only one signature,
         self.assertEqual(len(md_obj.signatures), 1)
         # ... valid for that key.
@@ -468,9 +464,7 @@ class TestMetadata(unittest.TestCase):
 
         # verify succeeds when we correct the new signature and reach the
         # threshold of 2 keys
-        snapshot_md.sign(
-            SSlibSigner(self.keystore[Timestamp.type]), append=True
-        )
+        snapshot_md.sign(self.signers[Timestamp.type], append=True)
         root.verify_delegate(
             Snapshot.type, snapshot_md.signed_bytes, snapshot_md.signatures
         )
@@ -526,11 +520,10 @@ class TestMetadata(unittest.TestCase):
 
         key2_id = root.signed.roles[Timestamp.type].keyids[0]
         key2 = root.signed.get_key(key2_id)
-        priv_key2 = self.keystore[Timestamp.type]
 
         key3_id = "123456789abcdefg"
-        priv_key4 = self.keystore[Snapshot.type]
-        key4_id = priv_key4["keyid"]
+
+        key4_id = self.signers[Snapshot.type].public_key.keyid
 
         # Test: 1 authorized key, 1 valid signature
         result = root.signed.get_verification_result(
@@ -563,7 +556,7 @@ class TestMetadata(unittest.TestCase):
 
         # Test: 3 authorized keys, 1 valid signature, 1 invalid signature, 1
         # key missing key data
-        root.sign(SSlibSigner(priv_key2), append=True)
+        root.sign(self.signers[Timestamp.type], append=True)
         result = root.signed.get_verification_result(
             Root.type, root.signed_bytes, root.signatures
         )
@@ -573,7 +566,7 @@ class TestMetadata(unittest.TestCase):
 
         # Test: 3 authorized keys, 1 valid signature, 1 invalid signature, 1
         # key missing key data, 1 ignored unrelated signature
-        root.sign(SSlibSigner(priv_key4), append=True)
+        root.sign(self.signers[Snapshot.type], append=True)
         self.assertEqual(
             set(root.signatures.keys()), {key1_id, key2_id, key4_id}
         )
@@ -593,9 +586,6 @@ class TestMetadata(unittest.TestCase):
 
         key2_id = root.signed.roles[Timestamp.type].keyids[0]
         key2 = root.signed.get_key(key2_id)
-        priv_key2 = self.keystore[Timestamp.type]
-
-        priv_key4 = self.keystore[Snapshot.type]
 
         # Test: Verify with no previous root version
         result = root.signed.get_root_verification_result(
@@ -640,7 +630,7 @@ class TestMetadata(unittest.TestCase):
         self.assertEqual(result.unsigned, {key2_id: key2})
 
         # Test: Sign root with both keys
-        root.sign(SSlibSigner(priv_key2), append=True)
+        root.sign(self.signers[Timestamp.type], append=True)
         result = root.signed.get_root_verification_result(
             prev_root.signed, root.signed_bytes, root.signatures
         )
@@ -649,7 +639,7 @@ class TestMetadata(unittest.TestCase):
         self.assertEqual(result.unsigned, {})
 
         # Test: Sign root with an unrelated key
-        root.sign(SSlibSigner(priv_key4), append=True)
+        root.sign(self.signers[Snapshot.type], append=True)
         result = root.signed.get_root_verification_result(
             prev_root.signed, root.signed_bytes, root.signatures
         )
@@ -675,43 +665,28 @@ class TestMetadata(unittest.TestCase):
         self.assertEqual(result.signed, {key1_id: key1, key2_id: key2})
         self.assertEqual(result.unsigned, {})
 
-    def test_key_class(self) -> None:
-        # Test if from_securesystemslib_key removes the private key from keyval
-        # of a securesystemslib key dictionary.
-        sslib_key = generate_ed25519_key()
-        key = SSlibKey.from_securesystemslib_key(sslib_key)
-        self.assertFalse("private" in key.keyval)
-
     def test_root_add_key_and_revoke_key(self) -> None:
         root_path = os.path.join(self.repo_dir, "metadata", "root.json")
         root = Metadata[Root].from_file(root_path)
 
         # Create a new key
-        root_key2 = import_ed25519_publickey_from_file(
-            os.path.join(self.keystore_dir, "root_key2.pub")
-        )
-        keyid = root_key2["keyid"]
-        key_metadata = SSlibKey(
-            keyid,
-            root_key2["keytype"],
-            root_key2["scheme"],
-            root_key2["keyval"],
-        )
+        signer = CryptoSigner.generate_ecdsa()
+        key = signer.public_key
 
         # Assert that root does not contain the new key
-        self.assertNotIn(keyid, root.signed.roles[Root.type].keyids)
-        self.assertNotIn(keyid, root.signed.keys)
+        self.assertNotIn(key.keyid, root.signed.roles[Root.type].keyids)
+        self.assertNotIn(key.keyid, root.signed.keys)
 
         # Assert that add_key with old argument order will raise an error
         with self.assertRaises(ValueError):
-            root.signed.add_key(Root.type, key_metadata)
+            root.signed.add_key(Root.type, key)
 
         # Add new root key
-        root.signed.add_key(key_metadata, Root.type)
+        root.signed.add_key(key, Root.type)
 
         # Assert that key is added
-        self.assertIn(keyid, root.signed.roles[Root.type].keyids)
-        self.assertIn(keyid, root.signed.keys)
+        self.assertIn(key.keyid, root.signed.roles[Root.type].keyids)
+        self.assertIn(key.keyid, root.signed.keys)
 
         # Confirm that the newly added key does not break
         # the object serialization
@@ -719,30 +694,30 @@ class TestMetadata(unittest.TestCase):
 
         # Try adding the same key again and assert its ignored.
         pre_add_keyid = root.signed.roles[Root.type].keyids.copy()
-        root.signed.add_key(key_metadata, Root.type)
+        root.signed.add_key(key, Root.type)
         self.assertEqual(pre_add_keyid, root.signed.roles[Root.type].keyids)
 
         # Add the same key to targets role as well
-        root.signed.add_key(key_metadata, Targets.type)
+        root.signed.add_key(key, Targets.type)
 
         # Add the same key to a nonexistent role.
         with self.assertRaises(ValueError):
-            root.signed.add_key(key_metadata, "nosuchrole")
+            root.signed.add_key(key, "nosuchrole")
 
         # Remove the key from root role (targets role still uses it)
-        root.signed.revoke_key(keyid, Root.type)
-        self.assertNotIn(keyid, root.signed.roles[Root.type].keyids)
-        self.assertIn(keyid, root.signed.keys)
+        root.signed.revoke_key(key.keyid, Root.type)
+        self.assertNotIn(key.keyid, root.signed.roles[Root.type].keyids)
+        self.assertIn(key.keyid, root.signed.keys)
 
         # Remove the key from targets as well
-        root.signed.revoke_key(keyid, Targets.type)
-        self.assertNotIn(keyid, root.signed.roles[Targets.type].keyids)
-        self.assertNotIn(keyid, root.signed.keys)
+        root.signed.revoke_key(key.keyid, Targets.type)
+        self.assertNotIn(key.keyid, root.signed.roles[Targets.type].keyids)
+        self.assertNotIn(key.keyid, root.signed.keys)
 
         with self.assertRaises(ValueError):
             root.signed.revoke_key("nosuchkey", Root.type)
         with self.assertRaises(ValueError):
-            root.signed.revoke_key(keyid, "nosuchrole")
+            root.signed.revoke_key(key.keyid, "nosuchrole")
 
     def test_is_target_in_pathpattern(self) -> None:
         supported_use_cases = [
@@ -1156,14 +1131,16 @@ class TestSimpleEnvelope(unittest.TestCase):
     def setUpClass(cls) -> None:
         repo_data_dir = Path(utils.TESTS_DIR) / "repository_data"
         cls.metadata_dir = repo_data_dir / "repository" / "metadata"
-        cls.signer_store = {}
+        cls.keystore_dir = repo_data_dir / "keystore"
+        cls.signers = {}
+        root_path = os.path.join(cls.metadata_dir, "root.json")
+        root: Root = Metadata.from_file(root_path).signed
+
         for role in [Snapshot, Targets, Timestamp]:
-            key_path = repo_data_dir / "keystore" / f"{role.type}_key"
-            key = import_ed25519_privatekey_from_file(
-                str(key_path),
-                password="password",
-            )
-            cls.signer_store[role.type] = SSlibSigner(key)
+            uri = f"file2:{os.path.join(cls.keystore_dir, role.type + '_key')}"
+            role_obj = root.get_delegated_role(role.type)
+            key = root.get_key(role_obj.keyids[0])
+            cls.signers[role.type] = CryptoSigner.from_priv_key_uri(uri, key)
 
     def test_serialization(self) -> None:
         """Basic de/serialization test.
@@ -1224,18 +1201,14 @@ class TestSimpleEnvelope(unittest.TestCase):
             metadata = Metadata.from_file(str(metadata_path))
             self.assertIsInstance(metadata.signed, role)
 
-            signer = self.signer_store[role.type]
-            self.assertIn(
-                signer.key_dict["keyid"], root.roles[role.type].keyids
-            )
+            signer = self.signers[role.type]
+            self.assertIn(signer.public_key.keyid, root.roles[role.type].keyids)
 
             envelope = SimpleEnvelope.from_signed(metadata.signed)
             envelope.sign(signer)
             self.assertTrue(len(envelope.signatures) == 1)
 
-            root.verify_delegate(
-                role.type, envelope.pae(), envelope.signatures_dict
-            )
+            root.verify_delegate(role.type, envelope.pae(), envelope.signatures)
 
 
 # Run unit test.

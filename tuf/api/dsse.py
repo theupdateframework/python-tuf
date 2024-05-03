@@ -1,7 +1,7 @@
 """Low-level TUF DSSE API. (experimental!)"""
 
 import json
-from typing import Dict, Generic, Type, cast
+from typing import Generic, Type, cast
 
 from securesystemslib.dsse import Envelope as BaseSimpleEnvelope
 
@@ -42,24 +42,17 @@ class SimpleEnvelope(Generic[T], BaseSimpleEnvelope):
         delegator.verify_delegate(
             role_name,
             envelope.pae(),  # Note, how we don't pass ``envelope.payload``!
-            envelope.signatures_dict,
+            envelope.signatures,
             )
 
     Attributes:
         payload: Serialized payload bytes.
         payload_type: Payload string identifier.
-        signatures: List of ``Signature`` objects.
-        signatures_dict: Ordered dictionary of keyids to ``Signature`` objects.
+        signatures: Ordered dictionary of keyids to ``Signature`` objects.
 
     """
 
     _DEFAULT_PAYLOAD_TYPE = "application/vnd.tuf+json"
-
-    @property
-    def signatures_dict(self) -> Dict:
-        """Convenience alias for ``self.signatures`` mapped to keyids."""
-        # TODO: Propose changing ``signatures`` list to dict upstream
-        return {sig.keyid: sig for sig in self.signatures}
 
     @classmethod
     def from_bytes(cls, data: bytes) -> "SimpleEnvelope[T]":
@@ -126,7 +119,7 @@ class SimpleEnvelope(Generic[T], BaseSimpleEnvelope):
         except Exception as e:  # noqa: BLE001
             raise SerializationError from e
 
-        return cls(json_bytes, cls._DEFAULT_PAYLOAD_TYPE, [])
+        return cls(json_bytes, cls._DEFAULT_PAYLOAD_TYPE, {})
 
     def get_signed(self) -> T:
         """Extract and deserialize payload JSON bytes from envelope.

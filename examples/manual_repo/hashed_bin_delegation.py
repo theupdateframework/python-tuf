@@ -21,10 +21,9 @@ import os
 import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Tuple
+from typing import Dict, Iterator, List, Tuple
 
-from securesystemslib.keys import generate_ed25519_key
-from securesystemslib.signer import SSlibKey, SSlibSigner
+from securesystemslib.signer import CryptoSigner, Signer
 
 from tuf.api.metadata import (
     DelegatedRole,
@@ -44,7 +43,7 @@ def _in(days: float) -> datetime:
 
 
 roles: Dict[str, Metadata[Targets]] = {}
-keys: Dict[str, Dict[str, Any]] = {}
+signers: Dict[str, Signer] = {}
 
 # Hash bin delegation
 # ===================
@@ -138,7 +137,7 @@ def find_hash_bin(path: str) -> str:
 # NOTE: See "Targets delegation" and "Signature thresholds" paragraphs in
 # 'basic_repo.py' for more details
 for name in ["bin-n", "bins"]:
-    keys[name] = generate_ed25519_key()
+    signers[name] = CryptoSigner.generate_ecdsa()
 
 
 # Targets roles
@@ -149,7 +148,7 @@ for name in ["bin-n", "bins"]:
 # Create preliminary delegating targets role (bins) and add public key for
 # delegated targets (bin_n) to key store. Delegation details are update below.
 roles["bins"] = Metadata(Targets(expires=_in(365)))
-bin_n_key = SSlibKey.from_securesystemslib_key(keys["bin-n"])
+bin_n_key = signers["bin-n"].public_key
 roles["bins"].signed.delegations = Delegations(
     keys={bin_n_key.keyid: bin_n_key},
     roles={},
@@ -169,7 +168,7 @@ for bin_n_name, bin_n_hash_prefixes in generate_hash_bins():
     # delegated targets role (bin_n).
     roles["bins"].signed.delegations.roles[bin_n_name] = DelegatedRole(
         name=bin_n_name,
-        keyids=[keys["bin-n"]["keyid"]],
+        keyids=[signers["bin-n"].public_key.keyid],
         threshold=1,
         terminating=False,
         path_hash_prefixes=bin_n_hash_prefixes,
@@ -210,8 +209,7 @@ PRETTY = JSONSerializer(compact=False)
 TMP_DIR = tempfile.mkdtemp(dir=os.getcwd())
 
 for role_name, role in roles.items():
-    key = keys["bins"] if role_name == "bins" else keys["bin-n"]
-    signer = SSlibSigner(key)
+    signer = signers["bins"] if role_name == "bins" else signers["bin-n"]
     role.sign(signer)
 
     filename = f"1.{role_name}.json"
