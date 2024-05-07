@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright 2021, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
@@ -281,7 +279,7 @@ class TestUpdater(unittest.TestCase):
 
     def test_updating_root(self) -> None:
         # Bump root version, resign and refresh
-        self._modify_repository_root(lambda root: None, bump_version=True)
+        self._modify_repository_root(lambda _: None, bump_version=True)
         self.updater.refresh()
         self.assertEqual(self.updater._trusted_set.root.version, 2)
 

@@ -131,7 +131,7 @@ class Metadata(Generic[T]):
 
         self.unrecognized_fields = unrecognized_fields
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Metadata):
             return False
 

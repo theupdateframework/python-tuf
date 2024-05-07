@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright 2020, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 """Unit tests for api/metadata.py"""
@@ -255,7 +253,7 @@ class TestMetadata(unittest.TestCase):
             def public_key(self) -> Key:
                 raise RuntimeError("Not a real signer")
 
-            def sign(self, payload: bytes) -> Signature:
+            def sign(self, _payload: bytes) -> Signature:
                 raise RuntimeError("signing failed")
 
         failing_signer = FailingSigner()
@@ -1118,7 +1116,7 @@ class TestMetadata(unittest.TestCase):
         for name in ["prefix-", "prefix--1", f"prefix-{2**bit_len:0x}"]:
             with self.assertRaises(ValueError, msg=f"role name '{name}'"):
                 targets.get_delegated_role(name)
-        for i in range(0, 2**bit_len):
+        for i in range(2**bit_len):
             self.assertEqual(
                 targets.get_delegated_role(f"prefix-{i:0x}"), role2
             )
@@ -1175,7 +1173,7 @@ class TestSimpleEnvelope(unittest.TestCase):
 
     def test_fail_payload_serialization(self) -> None:
         with self.assertRaises(SerializationError):
-            SimpleEnvelope.from_signed("foo")  # type: ignore
+            SimpleEnvelope.from_signed("foo")  # type: ignore[type-var]
 
     def test_fail_payload_deserialization(self) -> None:
         payloads = [b"[", b'{"_type": "foo"}']

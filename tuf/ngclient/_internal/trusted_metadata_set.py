@@ -240,7 +240,7 @@ class TrustedMetadataSet(abc.Mapping):
                 )
             # Keep using old timestamp if versions are equal.
             if new_timestamp.version == self.timestamp.version:
-                raise exceptions.EqualVersionNumberError()
+                raise exceptions.EqualVersionNumberError
 
             # Prevent rolling back snapshot version
             snapshot_meta = self.timestamp.snapshot_meta
@@ -490,9 +490,9 @@ def _load_from_simple_envelope(
 
     envelope = SimpleEnvelope[T].from_bytes(data)
 
-    if envelope.payload_type != SimpleEnvelope._DEFAULT_PAYLOAD_TYPE:
+    if envelope.payload_type != SimpleEnvelope._DEFAULT_PAYLOAD_TYPE:  # noqa: SLF001
         raise exceptions.RepositoryError(
-            f"Expected '{SimpleEnvelope._DEFAULT_PAYLOAD_TYPE}', "
+            f"Expected '{SimpleEnvelope._DEFAULT_PAYLOAD_TYPE}', "  # noqa: SLF001
             f"got '{envelope.payload_type}'"
         )
 

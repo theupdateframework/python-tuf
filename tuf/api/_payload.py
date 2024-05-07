@@ -133,7 +133,7 @@ class Signed(metaclass=abc.ABCMeta):
 
         self.unrecognized_fields = unrecognized_fields
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Signed):
             return False
 
@@ -253,7 +253,7 @@ class Role:
 
         self.unrecognized_fields = unrecognized_fields
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Role):
             return False
 
@@ -504,7 +504,7 @@ class Root(Signed, _DelegatorMixin):
             raise ValueError("Role names must be the top-level metadata roles")
         self.roles = roles
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Root):
             return False
 
@@ -795,7 +795,7 @@ class MetaFile(BaseFile):
 
         self.unrecognized_fields = unrecognized_fields
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, MetaFile):
             return False
 
@@ -912,7 +912,7 @@ class Timestamp(Signed):
         super().__init__(version, spec_version, expires, unrecognized_fields)
         self.snapshot_meta = snapshot_meta or MetaFile(1)
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Timestamp):
             return False
 
@@ -975,7 +975,7 @@ class Snapshot(Signed):
         super().__init__(version, spec_version, expires, unrecognized_fields)
         self.meta = meta if meta is not None else {"targets.json": MetaFile(1)}
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Snapshot):
             return False
 
@@ -1066,7 +1066,7 @@ class DelegatedRole(Role):
         self.paths = paths
         self.path_hash_prefixes = path_hash_prefixes
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, DelegatedRole):
             return False
 
@@ -1226,7 +1226,7 @@ class SuccinctRoles(Role):
         # of the last bin contains the number "number_of_bins -1" as a suffix.
         self.suffix_len = len(f"{self.number_of_bins-1:x}")
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, SuccinctRoles):
             return False
 
@@ -1286,7 +1286,7 @@ class SuccinctRoles(Role):
 
     def get_roles(self) -> Iterator[str]:
         """Yield the names of all different delegated roles one by one."""
-        for i in range(0, self.number_of_bins):
+        for i in range(self.number_of_bins):
             suffix = f"{i:0{self.suffix_len}x}"
             yield f"{self.name_prefix}-{suffix}"
 
@@ -1368,7 +1368,7 @@ class Delegations:
 
         self.unrecognized_fields = unrecognized_fields
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Delegations):
             return False
 
@@ -1491,14 +1491,14 @@ class TargetFile(BaseFile):
         self.unrecognized_fields = unrecognized_fields
 
     @property
-    def custom(self) -> Any:
+    def custom(self) -> Any:  # noqa: ANN401
         """Get implementation specific data related to the target.
 
         python-tuf does not use or validate this data.
         """
         return self.unrecognized_fields.get("custom")
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, TargetFile):
             return False
 
@@ -1642,7 +1642,7 @@ class Targets(Signed, _DelegatorMixin):
         self.targets = targets if targets is not None else {}
         self.delegations = delegations
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Targets):
             return False
 

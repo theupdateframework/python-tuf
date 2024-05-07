@@ -83,25 +83,34 @@ line-length=80
 [tool.ruff.lint]
 select = [
     "A",   # flake8-builtins
+    "ANN", # flake8-annotations
+    "ARG", # flake8-unused-arguments
     "B",   # flake8-bugbear
     "BLE", # flake8-blind-except
     "C4",  # flake8-comprehensions
     "D",   # pydocstyle
     "DTZ", # flake8-datetimez
     "E",   # pycodestyle
+    "EXE", # flake8-executable
     "F",   # pyflakes
     "I",   # isort
     "ISC", # flake8-implicit-str-concat
     "N",   # pep8-naming
     "PL",  # pylint
+    "PGH", # pygrep-hooks
+    "PIE", # flake8-pie
+    "PYI", # flake8-pyi
     "RET", # flake8-return
+    "RSE", # flake8-raise
     "RUF", # ruff-specific rules
     "S",   # flake8-bandit
     "SIM", # flake8-simplify
+    "SLF", # flake8-self
     "UP",  # pyupgrade
     "W",   # pycodestyle-warning
 ] 
 ignore = [
+    "ANN101", "ANN102", # nonsense, deprecated in ruff
     "D400", "D415", "D213", "D205", "D202", "D107", "D407", "D413", "D212", "D104", "D406", "D105", "D411", "D401", "D200", "D203",
     "PLR0913", "PLR2004",
     "ISC001", # incompatible with ruff formatter
@@ -111,8 +120,9 @@ ignore = [
 "tests/*" = [
     "D",      # pydocstyle: no docstrings required for tests
     "E501",   # line-too-long: embedded test data in "fmt: off" blocks is ok
-    "S",      # bandit: Not running bandit on tests
     "RUF012", # ruff: mutable-class-default
+    "S",      # bandit: Not running bandit on tests
+    "SLF001"  # private member access is ok in tests
 ]
 "examples/*/*" = [
     "D", # pydocstyle: no docstrings required for examples
@@ -121,6 +131,9 @@ ignore = [
 "verify_release" = [
     "S603", # bandit: this flags all uses of subprocess.run as vulnerable
 ]
+
+[tool.ruff.lint.flake8-annotations]
+mypy-init-return = true
 
 # mypy section
 # Read more here: https://mypy.readthedocs.io/en/stable/config_file.html#using-a-pyproject-toml-file

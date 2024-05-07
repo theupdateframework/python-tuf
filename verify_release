@@ -19,7 +19,7 @@ from tempfile import TemporaryDirectory
 from typing import Optional
 
 try:
-    import build as _  # type: ignore # noqa: F401
+    import build as _  # type: ignore[import-not-found] # noqa: F401
     import requests
 except ImportError:
     print("Error: verify_release requires modules 'requests' and 'build':")

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright 2021, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
@@ -107,7 +105,7 @@ class TestFetcher(unittest.TestCase):
 
     # Response read timeout error
     @patch.object(requests.Session, "get")
-    def test_response_read_timeout(self, mock_session_get: Any) -> None:
+    def test_response_read_timeout(self, mock_session_get: Mock) -> None:
         mock_response = Mock()
         attr = {
             "iter_content.side_effect": requests.exceptions.ConnectionError(
@@ -127,7 +125,7 @@ class TestFetcher(unittest.TestCase):
         "get",
         side_effect=requests.exceptions.Timeout("Simulated timeout"),
     )
-    def test_session_get_timeout(self, mock_session_get: Any) -> None:
+    def test_session_get_timeout(self, mock_session_get: Mock) -> None:
         with self.assertRaises(exceptions.SlowRetrievalError):
             self.fetcher.fetch(self.url)
         mock_session_get.assert_called_once()
