@@ -68,7 +68,7 @@ class FetcherInterface(metaclass=abc.ABCMeta):
             return self._fetch(url)
         except exceptions.DownloadError as e:
             raise e
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             raise exceptions.DownloadError(f"Failed to download {url}") from e
 
     @contextmanager
