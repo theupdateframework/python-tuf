@@ -218,7 +218,7 @@ class TestServerProcess:
 
         self._wait_for_port(timeout)
 
-        self.__logger.info(self.server + " serving on " + str(self.port))
+        self.__logger.info("%s serving on %d", self.server, self.port)
 
     def _start_process(self, extra_cmd_args: List[str], popen_cwd: str) -> None:
         """Starts the process running the server."""
@@ -319,9 +319,7 @@ class TestServerProcess:
         assert isinstance(self.__server_process, subprocess.Popen)
         if self.is_process_running():
             self.__logger.info(
-                "Server process "
-                + str(self.__server_process.pid)
-                + " terminated."
+                "Server process %d terminated", self.__server_process.pid
             )
             self.__server_process.kill()
             self.__server_process.wait()
