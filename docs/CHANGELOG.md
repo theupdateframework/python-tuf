@@ -4,7 +4,7 @@
 
 This release, most notably, marks stable securesystemslib v1.0.0 as minimum
 requirement. The update causes a minor break in the new DSSE API (see below)
-and might affect usage of the Metadata API. See the [securesystemslib release
+and affects users who also directly depend on securesystemslib. See the [securesystemslib release
 notes](https://github.com/secure-systems-lab/securesystemslib/blob/main/CHANGELOG.md#securesystemslib-v100)
 and the updated python-tuf `examples` (#2617) for details. ngclient API remains
 backwards-compatible.
