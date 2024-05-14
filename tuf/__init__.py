@@ -4,4 +4,4 @@
 """TUF."""
 
 # This value is used in the requests user agent.
-__version__ = "4.0.0"
+__version__ = "5.0.0"

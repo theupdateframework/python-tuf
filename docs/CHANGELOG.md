@@ -1,5 +1,21 @@
 # Changelog
 
+## v5.0.0
+
+This release, most notably, marks stable securesystemslib v1.0.0 as minimum
+requirement. The update causes a minor break in the new DSSE API (see below)
+and might affect usage of the Metadata API. See the [securesystemslib release
+notes](https://github.com/secure-systems-lab/securesystemslib/blob/main/CHANGELOG.md#securesystemslib-v100)
+and the updated python-tuf `examples` (#2617) for details. ngclient API remains
+backwards-compatible.
+
+### Changed
+* DSSE API: change `SimpleEnvelope.signatures` type to `dict`, remove
+  `SimpleEnvelope.signatures_dict` (#2617)
+* ngclient: support app-specific user-agents (#2612)
+* Various build, test and lint improvements
+
+
 ## v4.0.0
 
 This release is a small API change for Metadata API users (see below).
