@@ -325,7 +325,7 @@ class TestUpdater(unittest.TestCase):
         self.updater.refresh()
         session = next(iter(self.updater._fetcher._sessions.values()))
         ua = session.headers["User-Agent"]
-        self.assertEqual(ua[:4], "tuf/")
+        self.assertEqual(ua[:11], "python-tuf/")
 
         # test custom UA
         updater = Updater(
@@ -339,7 +339,7 @@ class TestUpdater(unittest.TestCase):
         session = next(iter(updater._fetcher._sessions.values()))
         ua = session.headers["User-Agent"]
 
-        self.assertEqual(ua[:16], "MyApp/1.2.3 tuf/")
+        self.assertEqual(ua[:23], "MyApp/1.2.3 python-tuf/")
 
 
 if __name__ == "__main__":

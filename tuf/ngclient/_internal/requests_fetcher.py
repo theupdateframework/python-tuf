@@ -141,7 +141,7 @@ class RequestsFetcher(FetcherInterface):
             session = requests.Session()
             self._sessions[session_index] = session
 
-            ua = f"tuf/{tuf.__version__} {session.headers['User-Agent']}"
+            ua = f"python-tuf/{tuf.__version__} {session.headers['User-Agent']}"
             if self.app_user_agent is not None:
                 ua = f"{self.app_user_agent} {ua}"
             session.headers["User-Agent"] = ua
