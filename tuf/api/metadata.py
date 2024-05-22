@@ -27,7 +27,7 @@ is known to be ``Root``.
 Currently Metadata API supports JSON as the file format.
 
 A basic example of repository implementation using the Metadata is available in
-`examples/repo_example <https://github.com/theupdateframework/python-tuf/tree/develop/examples/repo_example>`_.
+`examples/repository <https://github.com/theupdateframework/python-tuf/tree/develop/examples/repository>`_.
 """
 
 import logging
