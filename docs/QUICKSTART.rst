@@ -1,7 +1,7 @@
 QuickStart Guide
 =================
 
-This guide will walk you through the basic steps to set up and use TUF (The Update Framework) in your Python projects using the python-tuf library.
+The guide will walk through the basic steps to set up and use TUF in your Python projects using the python-tuf library.
 
 Prerequisites
 -------------
@@ -17,7 +17,7 @@ Check the `Installation guide <./INSTALLATION.rst>`_ for installing TUF.
 Step 1: Initialize a Repository
 -------------------------------
 
-Create a new directory for your repository and initialize it. This step creates the necessary directory structure and configuration files for a TUF repository:
+Create a new directory for your repository and initialize it. This creates the necessary directory structure and configuration files for a TUF repository:
 
 .. code-block:: bash
 
@@ -28,7 +28,7 @@ Create a new directory for your repository and initialize it. This step creates 
 Step 2: Generate Keys
 ---------------------
 
-Generate keys for the root, targets, snapshot, and timestamp roles. These keys are used to sign the TUF metadata files that ensure the integrity and authenticity of the repository:
+Generate keys for the root, targets, snapshot, and timestamp roles. These keys are used to sign the TUF metadata files, ensuring the integrity and authenticity of the repository:
 
 .. code-block:: bash
 
@@ -37,12 +37,12 @@ Generate keys for the root, targets, snapshot, and timestamp roles. These keys a
    tuf generate-key snapshot
    tuf generate-key timestamp
 
-Keep these keys secure, especially the root key, as they form the trust basis for your repository.
+Keep these keys secure, especially the root key. They form the basis of trust for your repository.
 
 Step 3: Add a Target File
 -------------------------
 
-Create a sample target file and add it to the repository. This file represents the actual content you want to distribute securely:
+Create a sample target file and include it in the repository. This file represents the actual content that you want to distribute securely:
 
 .. code-block:: bash
 
@@ -52,7 +52,7 @@ Create a sample target file and add it to the repository. This file represents t
 Step 4: Sign the Repository
 ---------------------------
 
-Sign the repository's metadata files using the generated keys. This step ensures the authenticity and integrity of the metadata:
+Sign the metadata files of the repository using the generated keys, which ensures authenticity and integrity of the metadata:
 
 .. code-block:: bash
 
@@ -61,7 +61,7 @@ Sign the repository's metadata files using the generated keys. This step ensures
 Step 5: Serve the Repository
 ----------------------------
 
-To make the repository accessible to clients, serve the metadata and target files via a web server. For example, using Python's built-in HTTP server:
+Now, make the repository available to clients by serving the metadata and target files with a web server. For example, with Python's built-in HTTP server:
 
 .. code-block:: bash
 
@@ -70,7 +70,7 @@ To make the repository accessible to clients, serve the metadata and target file
 Step 6: Set Up the Client
 -------------------------
 
-To use the TUF client, set up a Python script that initializes the `Updater` class, pointing it to your repository's metadata and target files:
+Now, to use the TUF client, set up a Python script that creates an instance of the `Updater` class, pointing to your repository's metadata and target files:
 
 .. code-block:: python
 
@@ -91,7 +91,7 @@ To use the TUF client, set up a Python script that initializes the `Updater` cla
 Step 7: Run the Client Script
 -----------------------------
 
-Execute your client script to download the target file securely:
+Run your client script to download the target file securely:
 
 .. code-block:: bash
 
@@ -105,29 +105,24 @@ Updating the Target File
 To update the target file on the repository side:
 
 1. Modify the `hello_world.txt` file with new content.
-2. Run `tuf add-target./hello_world.txt` to update the targets metadata.
+2. Then run `tuf add-target./hello_world.txt` to update the targets metadata.
 3. Run `tuf sign` to sign the updated metadata.
-4. Serve the updated repository files.
+4. Serve updated repository files.
 
-On the client side, run the client script again:
+On the client side, run the client script once again:
 
 .. code-block:: bash
 
    python client_script.py
 
-The client will detect the updated metadata and download the new version of the target file.
+The client will notice the updated metadata and download the new version of the target file.
 
 Best Practices
 --------------
 
-- Keep your keys secure and protect them from unauthorized access. Consider using hardware security modules (HSMs) for key storage.
-- Regularly rotate your keys to limit the impact of key compromises.
-- Use separate keys for each role to minimize the trust placed in individual keys.
-- Continuously monitor your repository for signs of tampering or unauthorized changes.
+- Keep your keys safe, and secure them against unauthorized access. Use HSMs (hardware security modules) for key storage.
+- Rotate your keys regularly to limit key compromise.
+- Use different keys for each role to keep the trust given to single keys low.
+- Monitor your repository regularly for tampering and other unauthorized changes.
 
-Conclusion
-----------
-
-This QuickStart guide provides a foundational overview of using TUF in Python. It covers the essentials of setting up a repository, managing keys, serving files, and using the client for secure downloads and updates. By following these steps and best practices, you can leverage TUF to secure your software update process.
-
-For more advanced features and detailed information, refer to the [python-tuf documentation](https://python-tuf.readthedocs.io/).
+For more advanced features and details, see the `python-tuf documentation <https://python-tuf.readthedocs.io/>`_.
