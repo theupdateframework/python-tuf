@@ -55,7 +55,7 @@ Documentation
 * [The TUF Specification](https://theupdateframework.github.io/specification/latest/)
 * [Developer documentation](https://theupdateframework.readthedocs.io/), including
   [API reference](
-    https://theupdateframework.readthedocs.io/en/latest/api/api-reference.html)
+    https://theupdateframework.readthedocs.io/en/latest/api/api-reference.html) and [instructions for contributors](https://theupdateframework.readthedocs.io/en/latest/CONTRIBUTING.html)
 * [Usage examples](https://github.com/theupdateframework/python-tuf/tree/develop/examples/)
 * [Governance](https://github.com/theupdateframework/python-tuf/blob/develop/docs/GOVERNANCE.md)
 and [Maintainers](https://github.com/theupdateframework/python-tuf/blob/develop/docs/MAINTAINERS.txt)
