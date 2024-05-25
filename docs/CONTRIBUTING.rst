@@ -31,7 +31,7 @@ tox run.
 
 ::
 
-    $ tox
+     tox
 
 Below, you will see more details about each step managed by ``tox``, in case
 you need debug/run outside ``tox``.
@@ -44,16 +44,16 @@ the test aggregation script inside the *tests* subdirectory. ``tuf`` and its
 dependencies must already be installed.
 ::
 
-    $ cd tests/
-    $ python3 aggregate_tests.py
+     cd tests/
+     python3 aggregate_tests.py
 
 
 Individual tests can also be executed. Optional ``-v`` flags can be added to
 increase log level up to DEBUG (``-vvvv``).
 ::
 
-    $ cd tests/
-    $ python3 test_updater_ng.py -v
+     cd tests/
+     python3 test_updater_ng.py -v
 
 
 Coverage
@@ -64,8 +64,8 @@ invoked with the ``coverage`` tool (requires installation of ``coverage``, e.g.
 via PyPI).
 ::
 
-    $ cd tests/
-    $ coverage run aggregate_tests.py && coverage report
+     cd tests/
+     coverage run aggregate_tests.py && coverage report
 
 
 Auto-formatting
@@ -76,4 +76,4 @@ The linter in CI/CD will check that new TUF code is formatted with
 command line:
 ::
 
-    $ tox -e fix
+     tox -e fix
