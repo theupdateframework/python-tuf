@@ -63,6 +63,16 @@ for the reference implementation
 * [Miscellaneous Docs](https://github.com/theupdateframework/python-tuf/tree/develop/docs)
 * [Python-TUF development blog](https://theupdateframework.github.io/python-tuf/)
 
+Contribution and Community
+--------
+We welcome Contributions, updates, [discrepancy reports](https://github.com/theupdateframework/python-tuf/issues) and [pull requests](https://github.com/theupdateframework/python-tuf/pulls) are welcome. This project thrives on community collaboration. Contributors are expected to adhere to our [Code of Conduct](https://github.com/theupdateframework/python-tuf/blob/develop/docs/CODE-OF-CONDUCT.md).
+
+Jump into our [Slack](https://communityinviter.com/apps/cloud-native/cncf)! Our projects are community-built and welcome collaboration. 
+
+For developer documentation, including API reference and instructions for contributors, please visit:
+* [Developer Documentation](https://theupdateframework.readthedocs.io/en/latest/)
+* [API Reference](https://theupdateframework.readthedocs.io/en/latest/api/api-reference.html)
+* [Instructions for Contributors](https://theupdateframework.readthedocs.io/en/latest/CONTRIBUTING.html)
 
 Contact
 -------
