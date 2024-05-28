@@ -52,7 +52,7 @@ class SimpleEnvelope(Generic[T], BaseSimpleEnvelope):
 
     """
 
-    _DEFAULT_PAYLOAD_TYPE = "application/vnd.tuf+json"
+    DEFAULT_PAYLOAD_TYPE = "application/vnd.tuf+json"
 
     @classmethod
     def from_bytes(cls, data: bytes) -> "SimpleEnvelope[T]":
@@ -119,7 +119,7 @@ class SimpleEnvelope(Generic[T], BaseSimpleEnvelope):
         except Exception as e:
             raise SerializationError from e
 
-        return cls(json_bytes, cls._DEFAULT_PAYLOAD_TYPE, {})
+        return cls(json_bytes, cls.DEFAULT_PAYLOAD_TYPE, {})
 
     def get_signed(self) -> T:
         """Extract and deserialize payload JSON bytes from envelope.

@@ -490,9 +490,9 @@ def _load_from_simple_envelope(
 
     envelope = SimpleEnvelope[T].from_bytes(data)
 
-    if envelope.payload_type != SimpleEnvelope._DEFAULT_PAYLOAD_TYPE:  # noqa: SLF001
+    if envelope.payload_type != SimpleEnvelope.DEFAULT_PAYLOAD_TYPE:  # noqa: SLF001
         raise exceptions.RepositoryError(
-            f"Expected '{SimpleEnvelope._DEFAULT_PAYLOAD_TYPE}', "  # noqa: SLF001
+            f"Expected '{SimpleEnvelope.DEFAULT_PAYLOAD_TYPE}', "  # noqa: SLF001
             f"got '{envelope.payload_type}'"
         )
 
