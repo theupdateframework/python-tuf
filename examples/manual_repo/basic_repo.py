@@ -104,8 +104,8 @@ roles["targets"] = Metadata(Targets(expires=_in(7)))
 # 'target path', which a client uses to locate the target file relative to a
 # configured mirror base URL.
 #
-#      |----base URL---||-------target path-------|
-# e.g. tuf-examples.org/repo_example/basic_repo.py
+#      |----base artifact URL---||-------target path-------|
+# e.g. tuf-examples.org/artifacts/manual_repo/basic_repo.py
 
 local_path = Path(__file__).resolve()
 target_path = f"{local_path.parts[-2]}/{local_path.parts[-1]}"
