@@ -273,7 +273,7 @@ roles["targets"].signed.delegations = Delegations(
             keyids=[delegatee_key.keyid],
             threshold=1,
             terminating=True,
-            paths=["*.py"],
+            paths=["manual_repo/*.py"],
         ),
     },
 )
