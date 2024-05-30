@@ -188,6 +188,12 @@ class Repository(ABC):
         update_version = force
         removed: Dict[str, MetaFile] = {}
 
+        root = self.root()
+        snapshot = self.snapshot()
+
+        if not root.verify_signature(snapshot):
+            update_version = True
+
         with self.edit_snapshot() as snapshot:
             for keyname, new_meta in self.targets_infos.items():
                 if keyname not in snapshot.meta:
@@ -228,6 +234,13 @@ class Repository(ABC):
         """
         update_version = force
         removed = None
+
+        root = self.root()
+        timestampt = self.timestamp()
+
+        if not root.verify_signature(timestamp):
+            update_version = True
+
         with self.edit_timestamp() as timestamp:
             if self.snapshot_info.version < timestamp.snapshot_meta.version:
                 raise ValueError("snapshot version rollback")
