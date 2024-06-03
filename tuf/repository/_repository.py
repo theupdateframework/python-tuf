@@ -9,6 +9,7 @@ from contextlib import contextmanager, suppress
 from copy import deepcopy
 from typing import Dict, Generator, Optional, Tuple
 
+from tuf.api.exceptions import UnsignedMetadataError
 from tuf.api.metadata import (
     Metadata,
     MetaFile,
@@ -189,9 +190,15 @@ class Repository(ABC):
         removed: Dict[str, MetaFile] = {}
 
         root = self.root()
-        snapshot = self.snapshot()
+        snapshot_md = self.open(Snapshot.type)
 
-        if not root.verify_signature(snapshot):
+        try:
+            root.verify_delegate(
+                Snapshot.type,
+                snapshot_md.signed_bytes,
+                snapshot_md.signatures,
+            )
+        except UnsignedMetadataError:
             update_version = True
 
         with self.edit_snapshot() as snapshot:
@@ -236,9 +243,15 @@ class Repository(ABC):
         removed = None
 
         root = self.root()
-        timestampt = self.timestamp()
+        timestamp_md = self.open(Timestamp.type)
 
-        if not root.verify_signature(timestamp):
+        try:
+            root.verify_delegate(
+                Timestamp.type,
+                timestamp_md.signed_bytes,
+                timestamp_md.signatures,
+            )
+        except UnsignedMetadataError:
             update_version = True
 
         with self.edit_timestamp() as timestamp:
