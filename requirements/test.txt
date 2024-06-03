@@ -4,4 +4,4 @@
 -r pinned.txt
 
 # coverage measurement
-coverage==7.5.2
+coverage==7.5.3
