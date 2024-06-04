@@ -227,7 +227,8 @@ class TestRepository(unittest.TestCase):
         self.assertEqual(2, len(timestamp_versions))
         self.assertEqual(2, timestamp_versions[-1].signed.version)
 
-    def test_do_timestamp_after_timestamp_key_change(self) -> None:        # change timestamp signing keys
+    def test_do_timestamp_after_timestamp_key_change(self) -> None:
+        # change timestamp signing keys
         with self.repo.edit_root() as root:
             # remove key
             keyid = root.roles["timestamp"].keyids[0]
