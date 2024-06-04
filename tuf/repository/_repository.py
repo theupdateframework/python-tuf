@@ -9,6 +9,7 @@ from contextlib import contextmanager, suppress
 from copy import deepcopy
 from typing import Dict, Generator, Optional, Tuple
 
+from tuf.api.exceptions import UnsignedMetadataError
 from tuf.api.metadata import (
     Metadata,
     MetaFile,
@@ -188,6 +189,18 @@ class Repository(ABC):
         update_version = force
         removed: Dict[str, MetaFile] = {}
 
+        root = self.root()
+        snapshot_md = self.open(Snapshot.type)
+
+        try:
+            root.verify_delegate(
+                Snapshot.type,
+                snapshot_md.signed_bytes,
+                snapshot_md.signatures,
+            )
+        except UnsignedMetadataError:
+            update_version = True
+
         with self.edit_snapshot() as snapshot:
             for keyname, new_meta in self.targets_infos.items():
                 if keyname not in snapshot.meta:
@@ -228,6 +241,19 @@ class Repository(ABC):
         """
         update_version = force
         removed = None
+
+        root = self.root()
+        timestamp_md = self.open(Timestamp.type)
+
+        try:
+            root.verify_delegate(
+                Timestamp.type,
+                timestamp_md.signed_bytes,
+                timestamp_md.signatures,
+            )
+        except UnsignedMetadataError:
+            update_version = True
+
         with self.edit_timestamp() as timestamp:
             if self.snapshot_info.version < timestamp.snapshot_meta.version:
                 raise ValueError("snapshot version rollback")

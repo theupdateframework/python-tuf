@@ -186,7 +186,6 @@ class TestRepository(unittest.TestCase):
         self.assertEqual(2, len(snapshot_versions))
         self.assertEqual(2, snapshot_versions[-1].signed.version)
 
-    @unittest.expectedFailure  # Issue 2438
     def test_do_snapshot_after_snapshot_key_change(self) -> None:
         # change snapshot signing keys
         with self.repo.edit_root() as root:
@@ -228,7 +227,6 @@ class TestRepository(unittest.TestCase):
         self.assertEqual(2, len(timestamp_versions))
         self.assertEqual(2, timestamp_versions[-1].signed.version)
 
-    @unittest.expectedFailure  # Issue 2438
     def test_do_timestamp_after_timestamp_key_change(self) -> None:
         # change timestamp signing keys
         with self.repo.edit_root() as root:
