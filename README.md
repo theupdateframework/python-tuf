@@ -1,4 +1,8 @@
-# <img src="https://github.com/cncf/artwork/blob/main/projects/tuf/stacked/white/tuf-stacked-white.svg" height="100" valign="middle" alt="TUF" style="background-color:white"/> A Framework for Securing Software Update Systems
+<div align="center">
+  <img src="https://github.com/cncf/artwork/blob/main/projects/tuf/stacked/white/tuf-stacked-white.svg" height="150" alt="TUF" style="background-color:white"/>
+</div>
+
+# <div align="center">A Framework for Securing Software Update Systems</div>
 
 ![Build](https://github.com/theupdateframework/python-tuf/actions/workflows/ci.yml/badge.svg)
 [![Coveralls](https://coveralls.io/repos/theupdateframework/python-tuf/badge.svg?branch=develop)](https://coveralls.io/r/theupdateframework/python-tuf?branch=develop)
