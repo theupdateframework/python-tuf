@@ -96,3 +96,7 @@ This work is dual-licensed and distributed under the (1) MIT License and (2) Apa
 This project is hosted by the Linux Foundation under the Cloud Native Computing Foundation. TUF's early development was managed by members of the [Secure Systems Lab](https://ssl.engineering.nyu.edu/) at [New York University](https://engineering.nyu.edu/). We appreciate the efforts of all [maintainers and emeritus maintainers](https://github.com/theupdateframework/python-tuf/blob/develop/docs/MAINTAINERS.txt), as well as the contributors Konstantin Andrianov, Kairo de Araujo, Ivana Atanasova, Geremy Condra, Zane Fisher, Pankhuri Goyal, Justin Samuel, Tian Tian, Martin Vrachev, and Yuyu Zheng who significantly contributed to TUF's reference implementation. Maintainers and Contributors are governed by the [CNCF Community Code of Conduct](https://github.com/cncf/foundation/blob/master/code-of-conduct.md).
 
 This material is based upon work supported by the National Science Foundation under Grant Nos. CNS-1345049 and CNS-0959138. Any opinions, findings, and conclusions or recommendations expressed in this material are those of the author(s) and do not necessarily reflect the views of the National Science Foundation.
+
+---
+
+[![](https://img.shields.io/badge/Move%20to%20Top-%E2%86%91%20Back%20to%20Top-blue)](#img-srchttpscdnrawgitcomtheupdateframeworkartwork3a649fa6tuf-logosvg-height100-valignmiddle-alttuf-stylebackground-colorwhite-a-framework-for-securing-software-update-systems)
