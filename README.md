@@ -1,6 +1,9 @@
 <div align="center">
-  <img src="https://github.com/cncf/artwork/blob/main/projects/tuf/horizontal/white/tuf-horizontal-white.svg" height="200" alt="TUF" style="background-color:white"/>
+  <a href="https://theupdateframework.com/">
+    <img src="https://github.com/cncf/artwork/blob/main/projects/tuf/horizontal/white/tuf-horizontal-white.svg" height="200" alt="TUF" style="background-color:white"/>
+  </a>
 </div>
+
 
 # <div align="center">A Framework for Securing Software Update Systems</div>
 
@@ -30,7 +33,17 @@
 
 ## Introduction
 
-The Update Framework (TUF) is a robust framework for secure content delivery and updates. It safeguards against various types of supply chain attacks and ensures resilience to compromise.
+The Update Framework (TUF) is a framework for secure content delivery and updates. It protects against various types of supply chain attacks and provides resilience to compromise. This repository is a **reference implementation** written in Python. It is intended to conform to version 1.0 of the [TUF specification](https://theupdateframework.github.io/specification/latest/).
+
+Python-TUF provides the following APIs:
+  
+- [`tuf.api.metadata`](https://theupdateframework.readthedocs.io/en/latest/api/tuf.api.html): A "low-level" API designed to provide easy and safe access to TUF metadata and to handle (de)serialization from/to files.
+  
+- [`tuf.ngclient`](https://theupdateframework.readthedocs.io/en/latest/api/tuf.ngclient.html): A client implementation built on top of the metadata API.
+  
+- `tuf.repository`: A repository library also built on top of the metadata API. This module is currently not considered part of python-tuf stable API.
+
+The reference implementation strives to be a readable guide and demonstration for those working on implementing TUF in their own languages, environments, or update systems.
 
 ---
 
@@ -103,10 +116,12 @@ This material is based upon work supported by the National Science Foundation un
 
 ---
 
-## The Update Framework is a CNCF graduated project
+## <div align="center"> The Update Framework (TUF) is a CNCF graduated project </div>
 
 <div align="center">
-  <img src="https://github.com/cncf/artwork/blob/main/other/cncf/horizontal/white/cncf-white.png" height="150" alt="TUF" style="background-color:white"/>
+  <a href="https://www.cncf.io/">
+    <img src="https://github.com/cncf/artwork/blob/main/other/cncf/horizontal/white/cncf-white.png" height="150" alt="TUF" style="background-color:white"/>
+  </a>
 </div>
 
 ---
