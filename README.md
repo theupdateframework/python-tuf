@@ -24,6 +24,7 @@
 - [About The Update Framework](#about-the-update-framework)
 - [Key Features](#key-features)
 - [Documentation](#documentation)
+- [Installation](#installation)
 - [Contact](#contact)
 - [Security Issues and Bugs](#security-issues-and-bugs)
 - [License](#license)
@@ -74,6 +75,12 @@ For more information about TUF, visit [TUF's website](https://theupdateframework
 - [Governance](https://github.com/theupdateframework/python-tuf/blob/develop/docs/GOVERNANCE.md): Outlines the governance model for the reference implementation of TUF.
 - [Miscellaneous Docs](https://github.com/theupdateframework/python-tuf/tree/develop/docs): Additional documentation covering various aspects of TUF implementation and usage.
 - [Python-TUF Development Blog](https://theupdateframework.github.io/python-tuf/): Provides insights, updates, and news related to Python-TUF development.
+
+---
+
+## Installation
+
+For installation instructions, please visit the [installation page](https://theupdateframework.readthedocs.io/en/latest/INSTALLATION.html).
 
 ---
 
