@@ -111,4 +111,5 @@ This material is based upon work supported by the National Science Foundation un
 
 ---
 
-[![](https://img.shields.io/badge/Move%20to%20Top-%E2%86%91%20Back%20to%20Top-blue)](#img-srchttpscdnrawgitcomtheupdateframeworkartwork3a649fa6tuf-logosvg-height100-valignmiddle-alttuf-stylebackground-colorwhite-a-framework-for-securing-software-update-systems)
+[![](https://img.shields.io/badge/Move%20to%20Top-%E2%86%91%20Back%20to%20Top-blue)](#a-framework-for-securing-software-update-systems)
+
