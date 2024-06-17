@@ -1,8 +1,11 @@
 <div align="center">
-  <a href="https://theupdateframework.com/">
-    <img src="https://github.com/cncf/artwork/blob/main/projects/tuf/horizontal/white/tuf-horizontal-white.svg" height="200" alt="TUF" style="background-color:white"/>
-  </a>
+  <picture>
+    <source srcset="https://github.com/cncf/artwork/blob/main/projects/tuf/horizontal/white/tuf-horizontal-white.png" media="(prefers-color-scheme: dark)">
+    <source srcset="https://github.com/cncf/artwork/blob/main/projects/tuf/horizontal/black/tuf-horizontal-black.png" media="(prefers-color-scheme: light)">
+    <img src="https://github.com/cncf/artwork/blob/main/projects/tuf/horizontal/white/tuf-horizontal-white.svg" height="200" alt="TUF">
+  </picture>
 </div>
+
 
 
 # <div align="center">A Framework for Securing Software Update Systems</div>
