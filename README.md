@@ -128,9 +128,14 @@ This material is based upon work supported by the National Science Foundation un
 
 <div align="center">
   <a href="https://www.cncf.io/">
-    <img src="https://github.com/cncf/artwork/blob/main/other/cncf/horizontal/white/cncf-white.png" height="150" alt="TUF" style="background-color:white"/>
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://github.com/shubhusion/python-tuf/blob/develop/cncf-white.png">
+      <source media="(prefers-color-scheme: light)" srcset="https://github.com/shubhusion/python-tuf/blob/develop/cncf-black.png">
+      <img src="https://github.com/shubhusion/python-tuf/blob/develop/cncf-black.png" height="150" alt="TUF" style="background-color:white"/>
+    </picture>
   </a>
 </div>
+
 
 ---
 
