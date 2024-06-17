@@ -1,10 +1,8 @@
-<div align="center">
-  <picture>
-    <source srcset="https://github.com/cncf/artwork/blob/main/projects/tuf/horizontal/white/tuf-horizontal-white.png" media="(prefers-color-scheme: dark)">
-    <source srcset="https://github.com/cncf/artwork/blob/main/projects/tuf/horizontal/black/tuf-horizontal-black.png" media="(prefers-color-scheme: light)">
-    <img src="https://github.com/cncf/artwork/blob/main/projects/tuf/horizontal/white/tuf-horizontal-white.svg" height="200" alt="TUF">
-  </picture>
-</div>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/shubhusion/python-tuf/blob/develop/tuf-horizontal-black.png">
+  <source media="(prefers-color-scheme: light)" srcset="https://github.com/shubhusion/python-tuf/blob/develop/tuf-horizontal-black.png">
+  <img alt="Shows an illustrated sun in light mode and a moon with stars in dark mode." src="https://github.com/shubhusion/python-tuf/blob/develop/tuf-horizontal-black.png">
+</picture>
 
 
 
