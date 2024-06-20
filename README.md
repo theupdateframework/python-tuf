@@ -26,8 +26,7 @@ Python-TUF provides the following APIs:
 
 The reference implementation strives to be a readable guide and demonstration
 for those working on implementing TUF in their own languages, environments, or
-update systems.
-
+update systems
 
 About The Update Framework
 --------------------------
@@ -47,7 +46,6 @@ called [Uptane](https://uptane.github.io/) is used to secure over-the-air
 updates in automobiles.
 
 Please see [TUF's website](https://theupdateframework.com/) for more information about TUF!
-
 
 Documentation
 -------------
@@ -78,17 +76,14 @@ repo](https://github.com/theupdateframework/specification/issues).
 
 Security Issues and Bugs
 ------------------------
-
 See [SECURITY.md](docs/SECURITY.md)
 
 License
 -------
-
 This work is [dual-licensed](https://en.wikipedia.org/wiki/Multi-licensing) and
 distributed under the (1) MIT License and (2) Apache License, Version 2.0.
 Please see [LICENSE-MIT](https://github.com/theupdateframework/python-tuf/blob/develop/LICENSE-MIT)
 and [LICENSE](https://github.com/theupdateframework/python-tuf/blob/develop/LICENSE).
-
 
 Acknowledgements
 ----------------
