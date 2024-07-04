@@ -5,7 +5,7 @@
 [![Docs](https://readthedocs.org/projects/theupdateframework/badge/)](https://theupdateframework.readthedocs.io/)
 [![CII](https://bestpractices.coreinfrastructure.org/projects/1351/badge)](https://bestpractices.coreinfrastructure.org/projects/1351)
 [![PyPI](https://img.shields.io/pypi/v/tuf)](https://pypi.org/project/tuf/)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/theupdateframework/python-tuf/badge)](https://api.securityscorecards.dev/projects/github.com/theupdateframework/python-tuf)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/theupdateframework/python-tuf/badge)](https://scorecard.dev/viewer/?uri=github.com/theupdateframework/python-tuf)
 
 ----------------------------
 [The Update Framework (TUF)](https://theupdateframework.io/) is a framework for
