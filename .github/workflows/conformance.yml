@@ -2,7 +2,7 @@ on:
   # manual dispatch only while the conformance test suite is under rapid development
   workflow_dispatch:
 
-name: CI
+name: Conformance test
 jobs:
   conformance:
     runs-on: ubuntu-latest
