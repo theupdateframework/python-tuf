@@ -124,6 +124,9 @@ ignore = [
     "S603",   # bandit: this flags all uses of subprocess.run as vulnerable
     "T201",   # print is ok in verify_release
 ]
+".github/scripts/*" = [
+    "T201",   # print is ok in conformance client
+]
 
 [tool.ruff.lint.flake8-annotations]
 mypy-init-return = true
