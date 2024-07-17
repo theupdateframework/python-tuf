@@ -44,7 +44,7 @@ class UpdaterConfig:
             prefixed to ngclient user agent when the default fetcher is used.
     """
 
-    max_root_rotations: int = 32
+    max_root_rotations: int = 256
     max_delegations: int = 32
     root_max_length: int = 512000  # bytes
     timestamp_max_length: int = 16384  # bytes
