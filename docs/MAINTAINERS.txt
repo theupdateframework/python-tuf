@@ -14,12 +14,6 @@ Maintainers:
     Email: mm9693@nyu.edu
     GitHub username: @mnm678
 
-  Trishank Karthik Kuppusamy
-    Email: trishank@nyu.edu
-    GitHub username: @trishankatdatadog
-    PGP fingerprint: 8C48 08B5 B684 53DE 06A3  08FD 5C09 0ED7 318B 6C1E
-    Keybase username: trishankdatadog
-
   Lukas Puehringer
     Email: lukas.puehringer@nyu.edu
     GitHub username: @lukpueh
@@ -38,7 +32,8 @@ Maintainers:
 
 Emeritus Maintainers:
 
-  Sebastien Awwad
-  Vladimir Diaz
-  Teodora Sechkova
   Santiago Torres-Arias
+  Sebastien Awwad
+  Teodora Sechkova
+  Trishank Karthik Kuppusamy (NYU, Datadog)
+  Vladimir Diaz
