@@ -1,0 +1,16 @@
+on:
+  # manual dispatch only while the conformance test suite is under rapid development
+  workflow_dispatch:
+
+name: Conformance test
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout conformance client
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Run test suite
+        uses: theupdateframework/tuf-conformance@main
+        with:
+          entrypoint: ".github/scripts/conformance-client.py"
