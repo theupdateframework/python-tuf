@@ -1,10 +1,7 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/shubhusion/python-tuf/blob/develop/tuf-horizontal-white.png">
-  <source media="(prefers-color-scheme: light)" srcset="https://github.com/shubhusion/python-tuf/blob/develop/tuf-horizontal-black.png">
-  <img alt="Shows an illustrated sun in light mode and a moon with stars in dark mode." src="https://github.com/shubhusion/python-tuf/blob/develop/tuf-horizontal-black.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/cncf/artwork/blob/main/projects/tuf/horizontal/white/tuf-horizontal-white.png">
+  <img alt="Shows an illustrated sun in light mode and a moon with stars in dark mode." src="https://github.com/cncf/artwork/blob/main/projects/tuf/horizontal/black/tuf-horizontal-black.png">
 </picture>
-
-
 
 # <div align="center">A Framework for Securing Software Update Systems</div>
 
@@ -14,24 +11,6 @@
 [![CII](https://bestpractices.coreinfrastructure.org/projects/1351/badge)](https://bestpractices.coreinfrastructure.org/projects/1351)
 [![PyPI](https://img.shields.io/pypi/v/tuf)](https://pypi.org/project/tuf/)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/theupdateframework/python-tuf/badge)](https://api.securityscorecards.dev/projects/github.com/theupdateframework/python-tuf)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-
----
-
-## Table of Contents
-
-- [Introduction](#introduction)
-- [About The Update Framework](#about-the-update-framework)
-- [Key Features](#key-features)
-- [Documentation](#documentation)
-- [Installation](#installation)
-- [Contact](#contact)
-- [Security Issues and Bugs](#security-issues-and-bugs)
-- [License](#license)
-- [Acknowledgements](#acknowledgements)
-
----
 
 ## Introduction
 
@@ -47,8 +26,6 @@ Python-TUF provides the following APIs:
 
 The reference implementation strives to be a readable guide and demonstration for those working on implementing TUF in their own languages, environments, or update systems.
 
----
-
 ## About The Update Framework
 
 The Update Framework (TUF) is a design that helps developers maintain the security of a software update system, even against attackers that compromise the repository or signing keys. TUF provides a flexible specification defining functionality that developers can use in any software update system or re-implement to fit their needs.
@@ -57,16 +34,12 @@ TUF is hosted by the [Linux Foundation](https://www.linuxfoundation.org/) as par
 
 For more information about TUF, visit [TUF's website](https://theupdateframework.com/).
 
----
-
 ## Key Features
 
 - **Robust Security**: TUF ensures the security of software update systems, even in the face of compromise or supply chain attacks. It employs a variety of cryptographic techniques to guarantee the integrity and authenticity of software updates.
 - **Flexible Specification**: TUF provides a flexible specification that developers can adapt to fit their specific software update system requirements. This allows for easy integration into existing systems and promotes interoperability.
 - **Production Usage**: TUF is utilized in production by various tech companies and open-source organizations, demonstrating its reliability and effectiveness in real-world scenarios.
 - **Variant Support**: TUF's variant, Uptane, is specifically designed to secure over-the-air updates in automobiles, showcasing its versatility and applicability across different domains.
-
----
 
 ## Documentation
 
@@ -77,13 +50,9 @@ For more information about TUF, visit [TUF's website](https://theupdateframework
 - [Miscellaneous Docs](https://github.com/theupdateframework/python-tuf/tree/develop/docs): Additional documentation covering various aspects of TUF implementation and usage.
 - [Python-TUF Development Blog](https://theupdateframework.github.io/python-tuf/): Provides insights, updates, and news related to Python-TUF development.
 
----
-
 ## Installation
 
 For installation instructions, please visit the [installation page](https://theupdateframework.readthedocs.io/en/latest/INSTALLATION.html).
-
----
 
 ## Contact
 
@@ -97,15 +66,11 @@ For installation instructions, please visit the [installation page](https://theu
 
 Questions, feedback, and suggestions are welcomed on our mailing list or the CNCF Slack channel.
 
----
-
 ## Security Issues and Bugs
 
 [![Security](https://img.shields.io/badge/Security%20Issues-SECURITY.md-red)](docs/SECURITY.md)
 
 If you encounter any security issues or bugs, please refer to the [security policy](docs/SECURITY.md) for reporting and guidelines.
-
----
 
 ## License
 
@@ -135,9 +100,3 @@ This material is based upon work supported by the National Science Foundation un
     </picture>
   </a>
 </div>
-
-
----
-
-[![](https://img.shields.io/badge/Move%20to%20Top-%E2%86%91%20Back%20to%20Top-blue)](#a-framework-for-securing-software-update-systems)
-
