@@ -1,5 +1,8 @@
 on:
-  # manual dispatch only while the conformance test suite is under rapid development
+  push:
+    branches:
+      - develop
+  pull_request:
   workflow_dispatch:
 
 name: Conformance test
