@@ -2,6 +2,9 @@ on:
   # manual dispatch only while the conformance test suite is under rapid development
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 name: Conformance test
 jobs:
   conformance:
