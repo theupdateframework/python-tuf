@@ -23,7 +23,7 @@ jobs:
           ref: ${{ github.event.workflow_run.head_branch }}
 
       - name: Set up Python
-        uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f # v5.1.1
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         with:
           python-version: '3.x'
 
@@ -36,7 +36,7 @@ jobs:
           awk "/## $GITHUB_REF_NAME/{flag=1; next} /## v/{flag=0} flag" docs/CHANGELOG.md > changelog
 
       - name: Store build artifacts
-        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: build-artifacts
           path: |
@@ -99,7 +99,7 @@ jobs:
       - name: Publish binary wheel and source tarball on PyPI
         # Only attempt pypi upload in upstream repository
         if: github.repository == 'theupdateframework/python-tuf'
-        uses: pypa/gh-action-pypi-publish@ec4db0b4ddc65acdf4bff5fa45ac92d78b56bdf0 # v1.9.0
+        uses: pypa/gh-action-pypi-publish@8a08d616893759ef8e1aa1f2785787c0b97e20d6 # v1.10.0
 
       - name: Finalize GitHub release
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
