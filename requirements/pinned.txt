@@ -1,4 +1,4 @@
-certifi==2024.7.4        # via requests
+certifi==2024.8.30        # via requests
 cffi==1.17.0              # via cryptography, pynacl
 charset-normalizer==3.3.2 # via requests
 cryptography==43.0.0      # via securesystemslib
