@@ -17,6 +17,6 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Run test suite
-        uses: theupdateframework/tuf-conformance@5ae68349ec6b85ae443c110d967ac21807f1cdb7 # v1.0.0
+        uses: theupdateframework/tuf-conformance@d8ab40ba95e4a62db7170376b6ccaa0e0001dcc6 # v1.1.0
         with:
           entrypoint: ".github/scripts/conformance-client.py"
