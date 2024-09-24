@@ -30,6 +30,11 @@ Maintainers:
     GitHub username: @jku
     PGP fingerprint: 1343 C98F AB84 859F E5EC  9E37 0527 D8A3 7F52 1A2F
 
+  Kairo de Araujo
+    Email: kairo@dearaujo.nl
+    GitHub username: @kairoaraujo
+    PGP fingerprint: FFD5 219E 49E0 06C2 1D9C  7C89 F26E 23EE 723E C8CA
+
 Emeritus Maintainers:
 
   Santiago Torres-Arias
