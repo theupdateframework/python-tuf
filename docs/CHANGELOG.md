@@ -1,5 +1,17 @@
 # Changelog
 
+## v5.1.0
+
+### Changed
+
+* ngclient: default user-agent was updated from "tuf/x.y.z" to "python-tuf/x.y.z" (#2632)
+* ngclient: max_root_rotations default value was bumped to 256 to prevent a too small value 
+  from creating issues in actual deployments were the embedded root is not easily
+  updateable (#2675)
+* repository: do_snapshot() and do_timestamp() now always create new versions if current version
+  is not correctly signed (#2650)
+* Various infrastructure and documentation improvements
+
 ## v5.0.0
 
 This release, most notably, marks stable securesystemslib v1.0.0 as minimum
