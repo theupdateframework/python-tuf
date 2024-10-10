@@ -8,3 +8,6 @@
 # are pinned to prevent unexpected linting failures when tools update)
 ruff==0.6.9
 mypy==1.11.2
+
+# Required for type stubs
+freezegun==1.5.1
