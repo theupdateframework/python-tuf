@@ -1,6 +1,6 @@
 certifi==2024.8.30        # via requests
 cffi==1.17.1              # via cryptography, pynacl
-charset-normalizer==3.3.2 # via requests
+charset-normalizer==3.4.0 # via requests
 cryptography==43.0.1      # via securesystemslib
 idna==3.10                 # via requests
 pycparser==2.22           # via cffi
