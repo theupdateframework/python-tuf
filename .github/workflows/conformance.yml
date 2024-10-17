@@ -8,7 +8,7 @@ on:
 permissions:
   contents: read
 
-name: Conformance test
+name: Conformance
 jobs:
   conformance:
     runs-on: ubuntu-latest
