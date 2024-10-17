@@ -1,11 +1,12 @@
 # <img src="https://cdn.rawgit.com/theupdateframework/artwork/3a649fa6/tuf-logo.svg" height="100" valign="middle" alt="TUF"/> A Framework for Securing Software Update Systems
 
-![Build](https://github.com/theupdateframework/python-tuf/actions/workflows/ci.yml/badge.svg)
-[![Coveralls](https://coveralls.io/repos/theupdateframework/python-tuf/badge.svg?branch=develop)](https://coveralls.io/r/theupdateframework/python-tuf?branch=develop)
-[![Docs](https://readthedocs.org/projects/theupdateframework/badge/)](https://theupdateframework.readthedocs.io/)
-[![CII](https://bestpractices.coreinfrastructure.org/projects/1351/badge)](https://bestpractices.coreinfrastructure.org/projects/1351)
-[![PyPI](https://img.shields.io/pypi/v/tuf)](https://pypi.org/project/tuf/)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/theupdateframework/python-tuf/badge)](https://scorecard.dev/viewer/?uri=github.com/theupdateframework/python-tuf)
+[![CI badge](https://github.com/theupdateframework/python-tuf/actions/workflows/ci.yml/badge.svg)](https://github.com/theupdateframework/python-tuf/actions/workflows/ci.yml)
+[![Conformance badge](https://github.com/theupdateframework/python-tuf/actions/workflows/conformance.yml/badge.svg)](https://github.com/theupdateframework/python-tuf/actions/workflows/conformance.yml)
+[![Coveralls badge](https://coveralls.io/repos/theupdateframework/python-tuf/badge.svg?branch=develop)](https://coveralls.io/r/theupdateframework/python-tuf?branch=develop)
+[![Docs badge](https://readthedocs.org/projects/theupdateframework/badge/)](https://theupdateframework.readthedocs.io/)
+[![CII badge](https://bestpractices.coreinfrastructure.org/projects/1351/badge)](https://bestpractices.coreinfrastructure.org/projects/1351)
+[![PyPI badge](https://img.shields.io/pypi/v/tuf)](https://pypi.org/project/tuf/)
+[![Scorecard badge](https://api.scorecard.dev/projects/github.com/theupdateframework/python-tuf/badge)](https://scorecard.dev/viewer/?uri=github.com/theupdateframework/python-tuf)
 
 ----------------------------
 [The Update Framework (TUF)](https://theupdateframework.io/) is a framework for
