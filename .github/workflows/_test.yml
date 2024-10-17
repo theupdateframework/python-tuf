@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python (oldest supported version)
         uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         with:
-          python-version: 3.8
+          python-version: "3.9"
           cache: 'pip'
           cache-dependency-path: |
             requirements/*.txt
@@ -36,12 +36,12 @@ jobs:
     needs: lint-test
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         os: [ubuntu-latest]
         include:
-          - python-version: "3.12"
+          - python-version: "3.x"
             os: macos-latest
-          - python-version: "3.12"
+          - python-version: "3.x"
             os: windows-latest
 
     runs-on: ${{ matrix.os }}
