@@ -2,4 +2,4 @@
 # during CI and CD Github workflows
 build==1.2.2.post1
 tox==4.1.2
-hatchling==1.26.1
+hatchling==1.26.3
