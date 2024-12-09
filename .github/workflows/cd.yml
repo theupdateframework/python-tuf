@@ -99,7 +99,7 @@ jobs:
       - name: Publish binary wheel and source tarball on PyPI
         # Only attempt pypi upload in upstream repository
         if: github.repository == 'theupdateframework/python-tuf'
-        uses: pypa/gh-action-pypi-publish@15c56dba361d8335944d31a2ecd17d700fc7bcbc # v1.12.2
+        uses: pypa/gh-action-pypi-publish@67339c736fd9354cd4f8cb0b744f2b82a74b5c70 # v1.12.3
 
       - name: Finalize GitHub release
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
