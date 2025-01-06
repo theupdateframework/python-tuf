@@ -6,7 +6,7 @@
 # Lint tools
 # (We are not so interested in the specific versions of the tools: the versions
 # are pinned to prevent unexpected linting failures when tools update)
-ruff==0.8.4
+ruff==0.8.6
 mypy==1.14.1
 
 # Required for type stubs
