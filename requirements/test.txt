@@ -4,5 +4,5 @@
 -r pinned.txt
 
 # coverage measurement
-coverage[toml]==7.6.11
+coverage[toml]==7.6.12
 freezegun==1.5.1
