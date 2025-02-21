@@ -33,7 +33,7 @@ jobs:
 
       - name: Build binary wheel, source tarball and changelog
         run: |
-          PIP_CONSTRAINT=requirements/build.txt python3 -m build --sdist --wheel --outdir dist/ .
+          python3 -m build --sdist --wheel --outdir dist/ .
           awk "/## $GITHUB_REF_NAME/{flag=1; next} /## v/{flag=0} flag" docs/CHANGELOG.md > changelog
 
       - name: Store build artifacts
