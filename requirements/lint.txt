@@ -6,7 +6,7 @@
 # Lint tools
 # (We are not so interested in the specific versions of the tools: the versions
 # are pinned to prevent unexpected linting failures when tools update)
-ruff==0.9.6
+ruff==0.9.7
 mypy==1.15.0
 zizmor==1.3.1
 
