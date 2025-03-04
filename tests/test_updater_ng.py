@@ -331,8 +331,10 @@ class TestUpdater(unittest.TestCase):
     def test_user_agent(self) -> None:
         # test default
         self.updater.refresh()
-        session = self.updater._fetcher._poolManager
-        ua = session.headers["User-Agent"]
+        poolmgr = self.updater._fetcher._proxy_env.get_pool_manager(
+            "http", "localhost"
+        )
+        ua = poolmgr.headers["User-Agent"]
         self.assertEqual(ua[:11], "python-tuf/")
 
         # test custom UA
@@ -344,8 +346,10 @@ class TestUpdater(unittest.TestCase):
             config=UpdaterConfig(app_user_agent="MyApp/1.2.3"),
         )
         updater.refresh()
-        session = updater._fetcher._poolManager
-        ua = session.headers["User-Agent"]
+        poolmgr = updater._fetcher._proxy_env.get_pool_manager(
+            "http", "localhost"
+        )
+        ua = poolmgr.headers["User-Agent"]
 
         self.assertEqual(ua[:23], "MyApp/1.2.3 python-tuf/")
 

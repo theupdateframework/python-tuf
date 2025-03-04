@@ -15,6 +15,7 @@ import urllib3
 
 import tuf
 from tuf.api import exceptions
+from tuf.ngclient._internal.proxy import ProxyEnvironment
 from tuf.ngclient.fetcher import FetcherInterface
 
 if TYPE_CHECKING:
@@ -49,7 +50,7 @@ class Urllib3Fetcher(FetcherInterface):
         if app_user_agent is not None:
             ua = f"{app_user_agent} {ua}"
 
-        self._poolManager = urllib3.PoolManager(headers={"User-Agent": ua})
+        self._proxy_env = ProxyEnvironment(headers={"User-Agent": ua})
 
     def _fetch(self, url: str) -> Iterator[bytes]:
         """Fetch the contents of HTTP/HTTPS url from a remote server.
@@ -72,7 +73,7 @@ class Urllib3Fetcher(FetcherInterface):
         #  - connect timeout (max delay before first byte is received)
         #  - read (gap) timeout (max delay between bytes received)
         try:
-            response = self._poolManager.request(
+            response = self._proxy_env.request(
                 "GET",
                 url,
                 preload_content=False,

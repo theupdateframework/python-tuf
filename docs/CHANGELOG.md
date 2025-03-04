@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+This release is API compatible but contains a major internal change in the HTTP handling.
+
+* ngclient: urllib3 is used as the HTTP library by default instead of requests (#2762,
+  #2773, #2789)
+  * This removes dependencies on `requests`, `idna`, `charset-normalizer` and `certifi`
+  * The deprecated RequestsFetcher implementation is available but requires selecting
+    the fetcher at Updater initialization and explicitly depending on requests
+* ngclient: TLS certificate source was changed. Certificates now come from operating
+  system certificate store instead of `certifi` (#2762)
+* Test infrastucture has improved and should now be more usable externally, e.g. in
+  distro test suites (#2749)
+
 ## v5.1.0
 
 ### Changed

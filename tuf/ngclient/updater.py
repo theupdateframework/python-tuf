@@ -36,6 +36,19 @@ the same time is not supported.
 A simple example of using the Updater to implement a Python TUF client that
 downloads target files is available in `examples/client
 <https://github.com/theupdateframework/python-tuf/tree/develop/examples/client>`_.
+
+Notes on how Updater uses HTTP by default:
+  * urllib3 is the HTTP library
+  * Typically all requests are retried by urllib3 three times (in cases where
+    this seems useful)
+  * Operating system certificate store is used for TLS, in other words
+    ``certifi`` is not used as the certificate source
+  * Proxy use can be configured with ``https_proxy`` and other similar
+    environment variables
+
+All of the HTTP decisions can be changed with ``fetcher`` argument:
+Custom ``FetcherInterface`` implementations are possible. The alternative
+``RequestsFetcher`` implementation is also provided (although deprecated).
 """
 
 from __future__ import annotations
