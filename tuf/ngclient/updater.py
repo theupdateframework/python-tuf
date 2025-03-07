@@ -58,6 +58,7 @@ import logging
 import os
 import shutil
 import tempfile
+from pathlib import Path
 from typing import TYPE_CHECKING, cast
 from urllib import parse
 
@@ -267,6 +268,7 @@ class Updater:
 
         if filepath is None:
             filepath = self._generate_target_file_path(targetinfo)
+        Path(filepath).parent.mkdir(exist_ok=True, parents=True)
 
         if target_base_url is None:
             if self._target_base_url is None:
@@ -332,10 +334,9 @@ class Updater:
         The metadata is stored with version prefix (e.g.
         "root_history/1.root.json").
         """
-        rootdir = os.path.join(self._dir, "root_history")
-        with contextlib.suppress(FileExistsError):
-            os.mkdir(rootdir)
-        self._persist_file(os.path.join(rootdir, f"{version}.root.json"), data)
+        rootdir = Path(self._dir, "root_history")
+        rootdir.mkdir(exist_ok=True, parents=True)
+        self._persist_file(str(rootdir / f"{version}.root.json"), data)
 
     def _persist_file(self, filename: str, data: bytes) -> None:
         """Write a file to disk atomically to avoid data loss."""
