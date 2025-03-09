@@ -12,6 +12,7 @@ import sys
 import tempfile
 import unittest
 from datetime import timezone
+from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, call, patch
 
@@ -57,8 +58,6 @@ class TestRefresh(unittest.TestCase):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.metadata_dir = os.path.join(self.temp_dir.name, "metadata")
         self.targets_dir = os.path.join(self.temp_dir.name, "targets")
-        os.mkdir(self.metadata_dir)
-        os.mkdir(self.targets_dir)
 
         self.sim = RepositorySimulator()
 
@@ -134,7 +133,8 @@ class TestRefresh(unittest.TestCase):
             self._run_refresh(skip_bootstrap=True)
 
         # Metadata dir is empty
-        self.assertFalse(os.listdir(self.metadata_dir))
+        with self.assertRaises(FileNotFoundError):
+            os.listdir(self.metadata_dir)
 
     def test_trusted_root_expired(self) -> None:
         # Create an expired root version
@@ -166,6 +166,7 @@ class TestRefresh(unittest.TestCase):
 
     def test_trusted_root_unsigned_without_bootstrap(self) -> None:
         # Cached root is not signed, bootstrap root is not used
+        Path(self.metadata_dir).mkdir(parents=True)
         root_path = os.path.join(self.metadata_dir, "root.json")
         md_root = Metadata.from_bytes(self.sim.signed_roots[0])
         md_root.signatures.clear()

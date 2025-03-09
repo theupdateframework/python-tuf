@@ -38,9 +38,6 @@ def init_tofu(base_url: str) -> bool:
 
     metadata_dir = build_metadata_dir(base_url)
 
-    if not os.path.isdir(metadata_dir):
-        os.makedirs(metadata_dir)
-
     response = urllib3.request("GET", f"{base_url}/metadata/1.root.json")
     if response.status != 200:
         print(f"Failed to download initial root {base_url}/metadata/1.root.json")
@@ -80,9 +77,6 @@ def download(base_url: str, target: str) -> bool:
         return False
 
     print(f"Using trusted root in {metadata_dir}")
-
-    if not os.path.isdir(DOWNLOAD_DIR):
-        os.mkdir(DOWNLOAD_DIR)
 
     try:
         # NOTE: initial root should be provided with ``bootstrap``  argument:
