@@ -7,7 +7,7 @@ functionality to that of the deprecated legacy 'repository_tool' and
 'repository_lib'. (see ADR-0010 for details about repository library design)
 
 Contents:
-- Re-usable hash bin delegation helpers
+- Reusable hash bin delegation helpers
 - Basic hash bin delegation example
 
 See 'basic_repo.py' for a more comprehensive TUF metadata API example.
@@ -133,7 +133,7 @@ def find_hash_bin(path: str) -> str:
 # Keys
 # ----
 # Given that the primary concern of hash bin delegation is to reduce network
-# overhead, it is acceptable to re-use one signing key for all delegated
+# overhead, it is acceptable to reuse one signing key for all delegated
 # targets roles (bin-n). However, we do use a different key for the delegating
 # targets role (bins). Considering the high responsibility but also low
 # volatility of the bins role, it is recommended to require signature

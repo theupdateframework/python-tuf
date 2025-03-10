@@ -261,7 +261,7 @@ class TestServerProcess:
     @staticmethod
     def _log_queue_worker(stream: IO, line_queue: queue.Queue) -> None:
         """
-        Worker function to run in a seprate thread.
+        Worker function to run in a separate thread.
         Reads from 'stream', puts lines in a Queue (Queue is thread-safe).
         """
 
@@ -356,7 +356,7 @@ class TestServerProcess:
         Calls flush_log to check for logged information, but not yet flushed.
         """
 
-        # If there is anything logged, flush it before closing the resourses.
+        # If there is anything logged, flush it before closing the resources.
         self.flush_log()
 
         self._kill_server_process()

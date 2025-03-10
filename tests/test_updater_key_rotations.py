@@ -209,7 +209,7 @@ class TestUpdaterKeyRotations(unittest.TestCase):
             MdVersion(keys=[2], threshold=1, sigs=[1, 3, 4], res=UnsignedMetadataError),
         "3-of-5, one key signature wrong: not signed with 3 expected keys":
             MdVersion(keys=[0, 1, 3, 4, 5], threshold=3, sigs=[0, 2, 4], res=UnsignedMetadataError),
-        "2-of-5, one key signature mising: threshold not reached":
+        "2-of-5, one key signature missing: threshold not reached":
             MdVersion(keys=[0, 1, 3, 4, 5], threshold=3, sigs=[0, 4], res=UnsignedMetadataError),
         "3-of-5, sign first combo":
             MdVersion(keys=[0, 1, 2, 3, 4], threshold=3, sigs=[0, 2, 4]),

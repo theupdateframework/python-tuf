@@ -8,8 +8,8 @@
 import socketserver
 from http.server import SimpleHTTPRequestHandler
 
-# Allow re-use so you can re-run tests as often as you want even if the
-# tests re-use ports. Otherwise TCP TIME-WAIT prevents reuse for ~1 minute
+# Allow reuse so you can re-run tests as often as you want even if the
+# tests reuse ports. Otherwise TCP TIME-WAIT prevents reuse for ~1 minute
 socketserver.TCPServer.allow_reuse_address = True
 
 httpd = socketserver.TCPServer(("localhost", 0), SimpleHTTPRequestHandler)

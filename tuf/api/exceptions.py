@@ -63,7 +63,7 @@ class DownloadHTTPError(DownloadError):
     Returned by FetcherInterface implementations for HTTP errors.
 
     Args:
-        message: The HTTP error messsage
+        message: The HTTP error message
         status_code: The HTTP status code
     """
 

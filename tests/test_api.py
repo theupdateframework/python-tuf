@@ -105,7 +105,7 @@ class TestMetadata(unittest.TestCase):
             (Timestamp.type, Timestamp),
             (Targets.type, Targets),
         ]:
-            # Load JSON-formatted metdata of each supported type from file
+            # Load JSON-formatted metadata of each supported type from file
             # and from out-of-band read JSON string
             path = os.path.join(self.repo_dir, "metadata", metadata + ".json")
             md_obj = Metadata.from_file(path)
@@ -181,7 +181,7 @@ class TestMetadata(unittest.TestCase):
             with open(path, "rb") as f:
                 metadata_bytes = f.read()
             md_obj = Metadata.from_bytes(metadata_bytes)
-            # Comparate that from_bytes/to_bytes doesn't change the content
+            # Compare that from_bytes/to_bytes doesn't change the content
             # for two cases for the serializer: noncompact and compact.
 
             # Case 1: test noncompact by overriding the default serializer.

@@ -29,7 +29,7 @@ class UpdaterConfig:
     Args:
         max_root_rotations: Maximum number of root rotations.
         max_delegations: Maximum number of delegations.
-        root_max_length: Maxmimum length of a root metadata file.
+        root_max_length: Maximum length of a root metadata file.
         timestamp_max_length: Maximum length of a timestamp metadata file.
         snapshot_max_length: Maximum length of a snapshot metadata file.
         targets_max_length: Maximum length of a targets metadata file.

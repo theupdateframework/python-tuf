@@ -152,17 +152,17 @@ class TestTrustedMetadataSet(unittest.TestCase):
         )
         snapshot = self.trusted_set.update_snapshot(self.metadata["snapshot"])
         targets = self.trusted_set.update_targets(self.metadata["targets"])
-        delegeted_targets_1 = self.trusted_set.update_delegated_targets(
+        delegated_targets_1 = self.trusted_set.update_delegated_targets(
             self.metadata["role1"], "role1", "targets"
         )
-        delegeted_targets_2 = self.trusted_set.update_delegated_targets(
+        delegated_targets_2 = self.trusted_set.update_delegated_targets(
             self.metadata["role2"], "role2", "role1"
         )
         self.assertIsInstance(timestamp, Timestamp)
         self.assertIsInstance(snapshot, Snapshot)
         self.assertIsInstance(targets, Targets)
-        self.assertIsInstance(delegeted_targets_1, Targets)
-        self.assertIsInstance(delegeted_targets_2, Targets)
+        self.assertIsInstance(delegated_targets_1, Targets)
+        self.assertIsInstance(delegated_targets_2, Targets)
 
     def test_out_of_order_ops(self) -> None:
         # Update snapshot before timestamp
@@ -193,7 +193,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
         self.trusted_set.update_targets(self.metadata[Targets.type])
 
-        # Update snapshot after sucessful targets update
+        # Update snapshot after successful targets update
         with self.assertRaises(RuntimeError):
             self.trusted_set.update_snapshot(self.metadata[Snapshot.type])
 

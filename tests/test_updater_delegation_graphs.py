@@ -399,7 +399,7 @@ class TestDelegationsGraphs(TestDelegations):
     ) -> None:
         """Test that delegated roles are traversed in the order of appearance
         in the delegator's metadata, using pre-order depth-first search and that
-        they correctly reffer to the corresponding hash bin prefixes"""
+        they correctly refer to the corresponding hash bin prefixes"""
 
         try:
             exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order]
@@ -440,37 +440,37 @@ class TestDelegationsGraphs(TestDelegations):
     # In each test case target_path is a path to a random target we want to
     # fetch and expected_target_bin is the bin we are expecting to visit.
     succinct_bins_graph = {
-        "bin amount = 2, taget bin index 0": SuccinctRolesTestCase(
+        "bin amount = 2, target bin index 0": SuccinctRolesTestCase(
             bit_length=1,
             target_path="boo",
             expected_target_bin="bin-0",
         ),
-        "bin amount = 2, taget bin index 1": SuccinctRolesTestCase(
+        "bin amount = 2, target bin index 1": SuccinctRolesTestCase(
             bit_length=1,
             target_path="too",
             expected_target_bin="bin-1",
         ),
-        "bin amount = 4, taget bin index 0": SuccinctRolesTestCase(
+        "bin amount = 4, target bin index 0": SuccinctRolesTestCase(
             bit_length=2,
             target_path="foo",
             expected_target_bin="bin-0",
         ),
-        "bin amount = 4, taget bin index 1": SuccinctRolesTestCase(
+        "bin amount = 4, target bin index 1": SuccinctRolesTestCase(
             bit_length=2,
             target_path="doo",
             expected_target_bin="bin-1",
         ),
-        "bin amount = 4, taget bin index 2": SuccinctRolesTestCase(
+        "bin amount = 4, target bin index 2": SuccinctRolesTestCase(
             bit_length=2,
             target_path="too",
             expected_target_bin="bin-2",
         ),
-        "bin amount = 4, taget bin index 3": SuccinctRolesTestCase(
+        "bin amount = 4, target bin index 3": SuccinctRolesTestCase(
             bit_length=2,
             target_path="bar",
             expected_target_bin="bin-3",
         ),
-        "bin amount = 256, taget bin index fc": SuccinctRolesTestCase(
+        "bin amount = 256, target bin index fc": SuccinctRolesTestCase(
             bit_length=8,
             target_path="bar",
             expected_target_bin="bin-fc",

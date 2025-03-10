@@ -48,7 +48,7 @@ class TestRepoExamples(unittest.TestCase):
     def _run_script_and_assert_files(
         self, script_name: str, filenames_created: list[str]
     ) -> None:
-        """Run script in exmple dir and assert that it created the
+        """Run script in example dir and assert that it created the
         files corresponding to the passed filenames inside a 'tmp*' test dir at
         CWD."""
         script_path = str(self.repo_examples_dir / script_name)
