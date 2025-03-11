@@ -209,7 +209,7 @@ class TestRepository(unittest.TestCase):
         self.assertEqual(2, snapshot_versions[-1].signed.version)
 
     def test_do_timestamp(self) -> None:
-        # Expect no-op because snpashot has not changed and timestamp is still valid
+        # Expect no-op because snapshot has not changed and timestamp is still valid
         created, _ = self.repo.do_timestamp()
 
         self.assertFalse(created)

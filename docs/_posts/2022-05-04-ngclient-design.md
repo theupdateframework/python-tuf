@@ -7,7 +7,7 @@ We recently released a new TUF client implementation, `ngclient`, in Python-TUF.
 
 # Simpler implementation, "correct" abstractions
 
-The legacy code had a few problems that could be summarized as non-optimal abstractions: Significant effort had been put to code re-use, but not enough attention had been paid to ensure the expectations and promises of that shared code were the same in all cases of re-use. This combined with Pythons type ambiguity, use of dictionaries as "blob"-like data structures and extensive use of global state meant touching the shared functions was a gamble: there was no way to be sure something wouldn't break.
+The legacy code had a few problems that could be summarized as non-optimal abstractions: Significant effort had been put to code reuse, but not enough attention had been paid to ensure the expectations and promises of that shared code were the same in all cases of reuse. This combined with Pythons type ambiguity, use of dictionaries as "blob"-like data structures and extensive use of global state meant touching the shared functions was a gamble: there was no way to be sure something wouldn't break.
 
 During the redesign, we really concentrated on finding abstractions that fit the processes we wanted to implement. It may be worth mentioning that in some cases this meant abstractions that have no equivalent in the TUF specification: some of the issues in the legacy implementation look like the result of mapping the TUF specifications [_Detailed client workflow_](https://theupdateframework.github.io/specification/latest/#detailed-client-workflow) directly into code.
 

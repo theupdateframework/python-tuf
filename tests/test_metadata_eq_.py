@@ -27,7 +27,7 @@ from tuf.api.metadata import (
 )
 
 
-class TestMetadataComparisions(unittest.TestCase):
+class TestMetadataComparisons(unittest.TestCase):
     """Test __eq__ for all classes inside tuf/api/metadata.py."""
 
     metadata: ClassVar[dict[str, bytes]]

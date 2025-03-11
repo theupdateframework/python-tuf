@@ -13,7 +13,7 @@ This release is API compatible but contains a major internal change in the HTTP 
     the fetcher at Updater initialization and explicitly depending on requests
 * ngclient: TLS certificate source was changed. Certificates now come from operating
   system certificate store instead of `certifi` (#2762)
-* Test infrastucture has improved and should now be more usable externally, e.g. in
+* Test infrastructure has improved and should now be more usable externally, e.g. in
   distro test suites (#2749)
 
 ## v5.1.0
@@ -789,7 +789,7 @@ Note: This is a backwards-incompatible pre-release.
 * Minor bug fixes, such as catching correct type and number of exceptions,
   detection of slow retrieval attack, etc.
 
-* Do not list Root's hash and lenth in Snapshot (only its version number).
+* Do not list Root's hash and length in Snapshot (only its version number).
 
 * Allow user to configure hashing algorithm used to generate hashed bin delegations.
 

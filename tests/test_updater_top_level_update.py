@@ -820,7 +820,7 @@ class TestRefresh(unittest.TestCase):
          - Repository bumps snapshot and targets to v2 on day 0
          - Timestamp v2 expiry set to day 21
          - Second updater refresh performed on day 18,
-           it is successful and timestamp/snaphot final versions are v2"""
+           it is successful and timestamp/snapshot final versions are v2"""
 
         now = datetime.datetime.now(timezone.utc)
         self.sim.timestamp.expires = now + datetime.timedelta(days=7)

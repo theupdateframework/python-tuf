@@ -90,7 +90,7 @@ class Updater:
             download both metadata and targets. Default is ``Urllib3Fetcher``
         config: ``Optional``; ``UpdaterConfig`` could be used to setup common
             configuration options.
-        bootstrap: ``Optional``; initial root metadata. A boostrap root should
+        bootstrap: ``Optional``; initial root metadata. A bootstrap root should
             always be provided. If it is not, the current root.json in the
             metadata cache is used as the initial root.
 
