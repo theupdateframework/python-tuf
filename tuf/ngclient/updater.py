@@ -459,7 +459,7 @@ class Updater:
 
         # Avoid loading 'role' more than once during "get_targetinfo"
         if role in self._trusted_set:
-            return cast(Targets, self._trusted_set[role])
+            return cast("Targets", self._trusted_set[role])
 
         try:
             data = self._load_local_metadata(role)
