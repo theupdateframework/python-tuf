@@ -199,7 +199,7 @@ class Metadata(Generic[T]):
 
         return cls(
             # Specific type T is not known at static type check time: use cast
-            signed=cast(T, inner_cls.from_dict(metadata.pop("signed"))),
+            signed=cast("T", inner_cls.from_dict(metadata.pop("signed"))),
             signatures=signatures,
             # All fields left in the metadata dict are unrecognized.
             unrecognized_fields=metadata,

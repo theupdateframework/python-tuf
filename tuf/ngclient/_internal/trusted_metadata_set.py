@@ -145,22 +145,22 @@ class TrustedMetadataSet(abc.Mapping):
     @property
     def root(self) -> Root:
         """Get current root."""
-        return cast(Root, self._trusted_set[Root.type])
+        return cast("Root", self._trusted_set[Root.type])
 
     @property
     def timestamp(self) -> Timestamp:
         """Get current timestamp."""
-        return cast(Timestamp, self._trusted_set[Timestamp.type])
+        return cast("Timestamp", self._trusted_set[Timestamp.type])
 
     @property
     def snapshot(self) -> Snapshot:
         """Get current snapshot."""
-        return cast(Snapshot, self._trusted_set[Snapshot.type])
+        return cast("Snapshot", self._trusted_set[Snapshot.type])
 
     @property
     def targets(self) -> Targets:
         """Get current top-level targets."""
-        return cast(Targets, self._trusted_set[Targets.type])
+        return cast("Targets", self._trusted_set[Targets.type])
 
     # Methods for updating metadata
     def update_root(self, data: bytes) -> Root:
