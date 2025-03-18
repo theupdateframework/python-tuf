@@ -17,7 +17,6 @@ from pathlib import Path
 from typing import ClassVar
 
 from securesystemslib import exceptions as sslib_exceptions
-from securesystemslib import hash as sslib_hash
 from securesystemslib.signer import (
     CryptoSigner,
     Key,
@@ -958,9 +957,7 @@ class TestMetadata(unittest.TestCase):
         # Test with a non-existing file
         file_path = os.path.join(self.repo_dir, Targets.type, "file123.txt")
         with self.assertRaises(FileNotFoundError):
-            TargetFile.from_file(
-                file_path, file_path, [sslib_hash.DEFAULT_HASH_ALGORITHM]
-            )
+            TargetFile.from_file(file_path, file_path, ["sha256"])
 
         # Test with an unsupported algorithm
         file_path = os.path.join(self.repo_dir, Targets.type, "file1.txt")
