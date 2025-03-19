@@ -49,28 +49,36 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T", "Root", "Timestamp", "Snapshot", "Targets")
 
 
-def _hash(algo: str) -> Any:  # noqa: ANN401
-    """Returns new hash object, supporting custom "blake2b-256" algo name."""
+def _get_digest(algo: str) -> Any:  # noqa: ANN401
+    """New digest helper to support custom "blake2b-256" algo name."""
     if algo == _BLAKE_HASH_ALGORITHM:
         return hashlib.blake2b(digest_size=32)
 
     return hashlib.new(algo)
 
 
-def _file_hash(f: IO[bytes], algo: str) -> Any:  # noqa: ANN401
-    """Returns hashed file."""
+def _hash_bytes(data: bytes, algo: str) -> str:
+    """Returns hexdigest for data using algo."""
+    digest = _get_digest(algo)
+    digest.update(data)
+
+    return digest.hexdigest()
+
+
+def _hash_file(f: IO[bytes], algo: str) -> str:
+    """Returns hexdigest for file using algo."""
     f.seek(0)
     if sys.version_info >= (3, 11):
-        digest = hashlib.file_digest(f, lambda: _hash(algo))  # type: ignore[arg-type]
+        digest = hashlib.file_digest(f, lambda: _get_digest(algo))  # type: ignore[arg-type]
 
     else:
         # Fallback for older Pythons. Chunk size is taken from the previously
         # used and now deprecated `securesystemslib.hash.digest_fileobject`.
-        digest = _hash(algo)
+        digest = _get_digest(algo)
         for chunk in iter(lambda: f.read(4096), b""):
             digest.update(chunk)
 
-    return digest
+    return digest.hexdigest()
 
 
 class Signed(metaclass=abc.ABCMeta):
@@ -695,17 +703,15 @@ class BaseFile:
         for algo, exp_hash in expected_hashes.items():
             try:
                 if isinstance(data, bytes):
-                    digest_object = _hash(algo)
-                    digest_object.update(data)
+                    observed_hash = _hash_bytes(data, algo)
                 else:
                     # if data is not bytes, assume it is a file object
-                    digest_object = _file_hash(data, algo)
+                    observed_hash = _hash_file(data, algo)
             except (ValueError, TypeError) as e:
                 raise LengthOrHashMismatchError(
                     f"Unsupported algorithm '{algo}'"
                 ) from e
 
-            observed_hash = digest_object.hexdigest()
             if observed_hash != exp_hash:
                 raise LengthOrHashMismatchError(
                     f"Observed hash {observed_hash} does not match "
@@ -760,14 +766,11 @@ class BaseFile:
         for algorithm in hash_algorithms:
             try:
                 if isinstance(data, bytes):
-                    digest_object = _hash(algorithm)
-                    digest_object.update(data)
+                    hashes[algorithm] = _hash_bytes(data, algorithm)
                 else:
-                    digest_object = _file_hash(data, algorithm)
+                    hashes[algorithm] = _hash_file(data, algorithm)
             except (ValueError, TypeError) as e:
                 raise ValueError(f"Unsupported algorithm '{algorithm}'") from e
-
-            hashes[algorithm] = digest_object.hexdigest()
 
         return (length, hashes)
 
