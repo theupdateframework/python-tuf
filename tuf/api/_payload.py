@@ -854,7 +854,7 @@ class MetaFile(BaseFile):
             version: Version of the metadata file.
             data: Metadata bytes that the metafile represents.
             hash_algorithms: Hash algorithms to create the hashes with. If not
-            specified, the securesystemslib default hash algorithm is used.
+            specified, "sha256" is used.
 
         Raises:
             ValueError: The hash algorithms list contains an unsupported
@@ -1564,7 +1564,7 @@ class TargetFile(BaseFile):
                 targets URL.
             local_path: Local path to target file content.
             hash_algorithms: Hash algorithms to calculate hashes with. If not
-                specified the securesystemslib default hash algorithm is used.
+                specified, "sha256" is used.
 
         Raises:
             FileNotFoundError: The file doesn't exist.
@@ -1588,7 +1588,7 @@ class TargetFile(BaseFile):
                 targets URL.
             data: Target file content.
             hash_algorithms: Hash algorithms to create the hashes with. If not
-                specified the securesystemslib default hash algorithm is used.
+                specified, "sha256" is used.
 
         Raises:
             ValueError: The hash algorithms list contains an unsupported
