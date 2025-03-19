@@ -45,6 +45,7 @@ Example::
 from __future__ import annotations
 
 import datetime
+import hashlib
 import logging
 import os
 import tempfile
@@ -52,7 +53,6 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 from urllib import parse
 
-import securesystemslib.hash as sslib_hash
 from securesystemslib.signer import CryptoSigner, Signer
 
 from tuf.api.exceptions import DownloadHTTPError
@@ -79,6 +79,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 SPEC_VER = ".".join(SPECIFICATION_VERSION)
+
+_HASH_ALGORITHM = "sha256"
 
 
 @dataclass
@@ -292,9 +294,9 @@ class RepositorySimulator(FetcherInterface):
         self, role: str
     ) -> tuple[dict[str, str], int]:
         data = self.fetch_metadata(role)
-        digest_object = sslib_hash.digest(sslib_hash.DEFAULT_HASH_ALGORITHM)
+        digest_object = hashlib.new(_HASH_ALGORITHM)
         digest_object.update(data)
-        hashes = {sslib_hash.DEFAULT_HASH_ALGORITHM: digest_object.hexdigest()}
+        hashes = {_HASH_ALGORITHM: digest_object.hexdigest()}
         return hashes, len(data)
 
     def update_timestamp(self) -> None:

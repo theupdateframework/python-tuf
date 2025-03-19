@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import abc
 import fnmatch
+import hashlib
 import io
 import logging
+import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import (
@@ -21,7 +23,6 @@ from typing import (
 )
 
 from securesystemslib import exceptions as sslib_exceptions
-from securesystemslib import hash as sslib_hash
 from securesystemslib.signer import Key, Signature
 
 from tuf.api.exceptions import LengthOrHashMismatchError, UnsignedMetadataError
@@ -34,6 +35,9 @@ _SNAPSHOT = "snapshot"
 _TARGETS = "targets"
 _TIMESTAMP = "timestamp"
 
+_DEFAULT_HASH_ALGORITHM = "sha256"
+_BLAKE_HASH_ALGORITHM = "blake2b-256"
+
 # We aim to support SPECIFICATION_VERSION and require the input metadata
 # files to have the same major version (the first number) as ours.
 SPECIFICATION_VERSION = ["1", "0", "31"]
@@ -43,6 +47,38 @@ logger = logging.getLogger(__name__)
 
 # T is a Generic type constraint for container payloads
 T = TypeVar("T", "Root", "Timestamp", "Snapshot", "Targets")
+
+
+def _get_digest(algo: str) -> Any:  # noqa: ANN401
+    """New digest helper to support custom "blake2b-256" algo name."""
+    if algo == _BLAKE_HASH_ALGORITHM:
+        return hashlib.blake2b(digest_size=32)
+
+    return hashlib.new(algo)
+
+
+def _hash_bytes(data: bytes, algo: str) -> str:
+    """Returns hexdigest for data using algo."""
+    digest = _get_digest(algo)
+    digest.update(data)
+
+    return digest.hexdigest()
+
+
+def _hash_file(f: IO[bytes], algo: str) -> str:
+    """Returns hexdigest for file using algo."""
+    f.seek(0)
+    if sys.version_info >= (3, 11):
+        digest = hashlib.file_digest(f, lambda: _get_digest(algo))  # type: ignore[arg-type]
+
+    else:
+        # Fallback for older Pythons. Chunk size is taken from the previously
+        # used and now deprecated `securesystemslib.hash.digest_fileobject`.
+        digest = _get_digest(algo)
+        for chunk in iter(lambda: f.read(4096), b""):
+            digest.update(chunk)
+
+    return digest.hexdigest()
 
 
 class Signed(metaclass=abc.ABCMeta):
@@ -664,24 +700,18 @@ class BaseFile:
         data: bytes | IO[bytes], expected_hashes: dict[str, str]
     ) -> None:
         """Verify that the hash of ``data`` matches ``expected_hashes``."""
-        is_bytes = isinstance(data, bytes)
         for algo, exp_hash in expected_hashes.items():
             try:
-                if is_bytes:
-                    digest_object = sslib_hash.digest(algo)
-                    digest_object.update(data)
+                if isinstance(data, bytes):
+                    observed_hash = _hash_bytes(data, algo)
                 else:
                     # if data is not bytes, assume it is a file object
-                    digest_object = sslib_hash.digest_fileobject(data, algo)
-            except (
-                sslib_exceptions.UnsupportedAlgorithmError,
-                sslib_exceptions.FormatError,
-            ) as e:
+                    observed_hash = _hash_file(data, algo)
+            except (ValueError, TypeError) as e:
                 raise LengthOrHashMismatchError(
                     f"Unsupported algorithm '{algo}'"
                 ) from e
 
-            observed_hash = digest_object.hexdigest()
             if observed_hash != exp_hash:
                 raise LengthOrHashMismatchError(
                     f"Observed hash {observed_hash} does not match "
@@ -731,24 +761,16 @@ class BaseFile:
         hashes = {}
 
         if hash_algorithms is None:
-            hash_algorithms = [sslib_hash.DEFAULT_HASH_ALGORITHM]
+            hash_algorithms = [_DEFAULT_HASH_ALGORITHM]
 
         for algorithm in hash_algorithms:
             try:
                 if isinstance(data, bytes):
-                    digest_object = sslib_hash.digest(algorithm)
-                    digest_object.update(data)
+                    hashes[algorithm] = _hash_bytes(data, algorithm)
                 else:
-                    digest_object = sslib_hash.digest_fileobject(
-                        data, algorithm
-                    )
-            except (
-                sslib_exceptions.UnsupportedAlgorithmError,
-                sslib_exceptions.FormatError,
-            ) as e:
+                    hashes[algorithm] = _hash_file(data, algorithm)
+            except (ValueError, TypeError) as e:
                 raise ValueError(f"Unsupported algorithm '{algorithm}'") from e
-
-            hashes[algorithm] = digest_object.hexdigest()
 
         return (length, hashes)
 
@@ -832,7 +854,7 @@ class MetaFile(BaseFile):
             version: Version of the metadata file.
             data: Metadata bytes that the metafile represents.
             hash_algorithms: Hash algorithms to create the hashes with. If not
-            specified, the securesystemslib default hash algorithm is used.
+            specified, "sha256" is used.
 
         Raises:
             ValueError: The hash algorithms list contains an unsupported
@@ -1150,7 +1172,7 @@ class DelegatedRole(Role):
         if self.path_hash_prefixes is not None:
             # Calculate the hash of the filepath
             # to determine in which bin to find the target.
-            digest_object = sslib_hash.digest(algorithm="sha256")
+            digest_object = hashlib.new(name="sha256")
             digest_object.update(target_filepath.encode("utf-8"))
             target_filepath_hash = digest_object.hexdigest()
 
@@ -1269,7 +1291,7 @@ class SuccinctRoles(Role):
             target_filepath: URL path to a target file, relative to a base
                 targets URL.
         """
-        hasher = sslib_hash.digest(algorithm="sha256")
+        hasher = hashlib.new(name="sha256")
         hasher.update(target_filepath.encode("utf-8"))
 
         # We can't ever need more than 4 bytes (32 bits).
@@ -1542,7 +1564,7 @@ class TargetFile(BaseFile):
                 targets URL.
             local_path: Local path to target file content.
             hash_algorithms: Hash algorithms to calculate hashes with. If not
-                specified the securesystemslib default hash algorithm is used.
+                specified, "sha256" is used.
 
         Raises:
             FileNotFoundError: The file doesn't exist.
@@ -1566,7 +1588,7 @@ class TargetFile(BaseFile):
                 targets URL.
             data: Target file content.
             hash_algorithms: Hash algorithms to create the hashes with. If not
-                specified the securesystemslib default hash algorithm is used.
+                specified, "sha256" is used.
 
         Raises:
             ValueError: The hash algorithms list contains an unsupported
