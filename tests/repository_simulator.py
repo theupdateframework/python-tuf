@@ -80,7 +80,7 @@ logger = logging.getLogger(__name__)
 
 SPEC_VER = ".".join(SPECIFICATION_VERSION)
 
-_DEFAULT_HASH_ALGORITHM = "sha256"
+_HASH_ALGORITHM = "sha256"
 
 
 @dataclass
@@ -294,9 +294,9 @@ class RepositorySimulator(FetcherInterface):
         self, role: str
     ) -> tuple[dict[str, str], int]:
         data = self.fetch_metadata(role)
-        digest_object = hashlib.new(_DEFAULT_HASH_ALGORITHM)
+        digest_object = hashlib.new(_HASH_ALGORITHM)
         digest_object.update(data)
-        hashes = {_DEFAULT_HASH_ALGORITHM: digest_object.hexdigest()}
+        hashes = {_HASH_ALGORITHM: digest_object.hexdigest()}
         return hashes, len(data)
 
     def update_timestamp(self) -> None:
