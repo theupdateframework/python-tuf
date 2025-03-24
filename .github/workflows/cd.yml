@@ -37,7 +37,7 @@ jobs:
           awk "/## $GITHUB_REF_NAME/{flag=1; next} /## v/{flag=0} flag" docs/CHANGELOG.md > changelog
 
       - name: Store build artifacts
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: build-artifacts
           path: |
@@ -54,7 +54,7 @@ jobs:
       release_id: ${{ steps.gh-release.outputs.result }}
     steps:
       - name: Fetch build artifacts
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
         with:
           name: build-artifacts
 
@@ -96,7 +96,7 @@ jobs:
       id-token: write # to authenticate as Trusted Publisher to pypi.org
     steps:
       - name: Fetch build artifacts
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
         with:
           name: build-artifacts
 
