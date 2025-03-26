@@ -132,12 +132,6 @@ disallow_untyped_calls = "True"
 show_error_codes = "True"
 disable_error_code = ["attr-defined"]
 
-[[tool.mypy.overrides]]
-module = [
-  "requests.*",
-]
-ignore_missing_imports = "True"
-
 [tool.coverage.report]
 exclude_also = [
     # abstract class method definition
