@@ -135,7 +135,6 @@ disable_error_code = ["attr-defined"]
 [[tool.mypy.overrides]]
 module = [
   "requests.*",
-  "securesystemslib.*",
 ]
 ignore_missing_imports = "True"
 
