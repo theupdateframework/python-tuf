@@ -6,7 +6,7 @@
 #
 cffi==1.17.1
     # via cryptography
-cryptography==45.0.3
+cryptography==45.0.4
     # via securesystemslib
 pycparser==2.22
     # via cffi
