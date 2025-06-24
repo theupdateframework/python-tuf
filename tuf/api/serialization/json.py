@@ -8,9 +8,6 @@ metadata to the OLPC Canonical JSON format for signature generation and
 verification.
 """
 
-# We should not have shadowed stdlib json but that milk spilled already
-# ruff: noqa: A005
-
 from __future__ import annotations
 
 import json

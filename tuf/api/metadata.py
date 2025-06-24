@@ -147,12 +147,15 @@ class Metadata(Generic[T]):
             and self.unrecognized_fields == other.unrecognized_fields
         )
 
+    def __hash__(self) -> int:
+        return hash((self.signatures, self.signed, self.unrecognized_fields))
+
     @property
     def signed_bytes(self) -> bytes:
         """Default canonical json byte representation of ``self.signed``."""
 
         # Use local scope import to avoid circular import errors
-        from tuf.api.serialization.json import CanonicalJSONSerializer
+        from tuf.api.serialization.json import CanonicalJSONSerializer  # noqa: I001, PLC0415
 
         return CanonicalJSONSerializer().serialize(self.signed)
 
@@ -261,7 +264,7 @@ class Metadata(Generic[T]):
 
         if deserializer is None:
             # Use local scope import to avoid circular import errors
-            from tuf.api.serialization.json import JSONDeserializer
+            from tuf.api.serialization.json import JSONDeserializer  # noqa: I001, PLC0415
 
             deserializer = JSONDeserializer()
 
@@ -288,7 +291,7 @@ class Metadata(Generic[T]):
 
         if serializer is None:
             # Use local scope import to avoid circular import errors
-            from tuf.api.serialization.json import JSONSerializer
+            from tuf.api.serialization.json import JSONSerializer  # noqa: I001, PLC0415
 
             serializer = JSONSerializer(compact=True)
 
