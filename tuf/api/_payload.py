@@ -181,6 +181,17 @@ class Signed(metaclass=abc.ABCMeta):
             and self.unrecognized_fields == other.unrecognized_fields
         )
 
+    def __hash__(self) -> int:
+        return hash(
+            (
+                self.type,
+                self.version,
+                self.spec_version,
+                self.expires,
+                self.unrecognized_fields,
+            )
+        )
+
     @abc.abstractmethod
     def to_dict(self) -> dict[str, Any]:
         """Serialize and return a dict representation of self."""
@@ -298,6 +309,9 @@ class Role:
             and self.threshold == other.threshold
             and self.unrecognized_fields == other.unrecognized_fields
         )
+
+    def __hash__(self) -> int:
+        return hash((self.keyids, self.threshold, self.unrecognized_fields))
 
     @classmethod
     def from_dict(cls, role_dict: dict[str, Any]) -> Role:
@@ -549,6 +563,17 @@ class Root(Signed, _DelegatorMixin):
             and self.keys == other.keys
             and self.roles == other.roles
             and self.consistent_snapshot == other.consistent_snapshot
+        )
+
+    def __hash__(self) -> int:
+        return hash(
+            (
+                super().__hash__(),
+                self.keys,
+                self.roles,
+                self.consistent_snapshot,
+                self.unrecognized_fields,
+            )
         )
 
     @classmethod
@@ -826,6 +851,11 @@ class MetaFile(BaseFile):
             and self.unrecognized_fields == other.unrecognized_fields
         )
 
+    def __hash__(self) -> int:
+        return hash(
+            (self.version, self.length, self.hashes, self.unrecognized_fields)
+        )
+
     @classmethod
     def from_dict(cls, meta_dict: dict[str, Any]) -> MetaFile:
         """Create ``MetaFile`` object from its json/dict representation.
@@ -940,6 +970,9 @@ class Timestamp(Signed):
             super().__eq__(other) and self.snapshot_meta == other.snapshot_meta
         )
 
+    def __hash__(self) -> int:
+        return hash((super().__hash__(), self.snapshot_meta))
+
     @classmethod
     def from_dict(cls, signed_dict: dict[str, Any]) -> Timestamp:
         """Create ``Timestamp`` object from its json/dict representation.
@@ -1000,6 +1033,9 @@ class Snapshot(Signed):
             return False
 
         return super().__eq__(other) and self.meta == other.meta
+
+    def __hash__(self) -> int:
+        return hash((super().__hash__(), self.meta))
 
     @classmethod
     def from_dict(cls, signed_dict: dict[str, Any]) -> Snapshot:
@@ -1096,6 +1132,17 @@ class DelegatedRole(Role):
             and self.terminating == other.terminating
             and self.paths == other.paths
             and self.path_hash_prefixes == other.path_hash_prefixes
+        )
+
+    def __hash__(self) -> int:
+        return hash(
+            (
+                super().__hash__(),
+                self.name,
+                self.terminating,
+                self.path,
+                self.path_hash_prefixes,
+            )
         )
 
     @classmethod
@@ -1256,6 +1303,9 @@ class SuccinctRoles(Role):
             and self.name_prefix == other.name_prefix
         )
 
+    def __hash__(self) -> int:
+        return hash((super().__hash__(), self.bit_length, self.name_prefix))
+
     @classmethod
     def from_dict(cls, role_dict: dict[str, Any]) -> SuccinctRoles:
         """Create ``SuccinctRoles`` object from its json/dict representation.
@@ -1408,6 +1458,16 @@ class Delegations:
 
         return all_attributes_check
 
+    def __hash__(self) -> int:
+        return hash(
+            (
+                self.keys,
+                self.roles,
+                self.succinct_roles,
+                self.unrecognized_fields,
+            )
+        )
+
     @classmethod
     def from_dict(cls, delegations_dict: dict[str, Any]) -> Delegations:
         """Create ``Delegations`` object from its json/dict representation.
@@ -1527,6 +1587,11 @@ class TargetFile(BaseFile):
             and self.hashes == other.hashes
             and self.path == other.path
             and self.unrecognized_fields == other.unrecognized_fields
+        )
+
+    def __hash__(self) -> int:
+        return hash(
+            (self.length, self.hashes, self.path, self.unrecognized_fields)
         )
 
     @classmethod
@@ -1671,6 +1736,9 @@ class Targets(Signed, _DelegatorMixin):
             and self.targets == other.targets
             and self.delegations == other.delegations
         )
+
+    def __hash__(self) -> int:
+        return hash((super().__hash__(), self.targets, self.delegations))
 
     @classmethod
     def from_dict(cls, signed_dict: dict[str, Any]) -> Targets:

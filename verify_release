@@ -108,7 +108,7 @@ def verify_github_release(version: str, compare_dir: str) -> bool:
                 "GET", url, preload_content=False, timeout=HTTP_TIMEOUT
             )
             with open(os.path.join(github_dir, filename), "wb") as f:
-                for data in response.stream():
+                for data in response.stream():  #  noqa: FURB122
                     f.write(data)
 
         return cmp(
