@@ -4,6 +4,7 @@ on:
 
 permissions: {}
 
+name: Test securesystemslib main branch
 jobs:
   sslib-main:
     name: Test securesystemslib main branch (not a merge blocker)

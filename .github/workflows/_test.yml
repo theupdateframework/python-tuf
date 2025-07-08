@@ -4,6 +4,7 @@ on:
 
 permissions: {}
 
+name: Lint and run test suite
 jobs:
   lint-test:
     name: Lint Test
@@ -89,6 +90,7 @@ jobs:
       - run: echo "All test jobs have completed successfully."
 
   coveralls-fin:
+    name: Submit coverage to Coveralls.io
     # Always run when all 'tests' jobs have finished even if they failed
     # TODO: Replace always() with a 'at least one job succeeded' expression
     if: always()

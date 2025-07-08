@@ -11,6 +11,7 @@ permissions:
 name: Conformance
 jobs:
   conformance:
+    name: Conformance
     runs-on: ubuntu-latest
     steps:
       - name: Checkout conformance client

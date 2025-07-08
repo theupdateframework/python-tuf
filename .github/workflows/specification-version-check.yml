@@ -10,6 +10,7 @@ permissions: {}
 jobs:
   # Get the version of the TUF specification the project states it supports
   get-supported-tuf-version:
+    name: Get TUF spec version supported by python-tuf
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.get-version.outputs.version }}
