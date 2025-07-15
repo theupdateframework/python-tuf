@@ -11,4 +11,4 @@ mypy==1.16.1
 zizmor==1.9.0
 
 # Required for type stubs
-freezegun==1.5.2
+freezegun==1.5.3
