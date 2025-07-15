@@ -62,8 +62,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, cast
 from urllib import parse
 
+from filelock import FileLock
+
 from tuf.api import exceptions
 from tuf.api.metadata import Root, Snapshot, TargetFile, Targets, Timestamp
+from tuf.ngclient._internal.file_lock import create_lockfile
 from tuf.ngclient._internal.trusted_metadata_set import TrustedMetadataSet
 from tuf.ngclient.config import EnvelopeType, UpdaterConfig
 from tuf.ngclient.urllib3_fetcher import Urllib3Fetcher
@@ -348,7 +351,11 @@ class Updater:
             ) as temp_file:
                 temp_file_name = temp_file.name
                 temp_file.write(data)
-            os.replace(temp_file.name, filename)
+            #print(f"filename: {filename}")
+
+            lck = os.path.join(self._dir, ".root.json.lck")
+            with FileLock(create_lockfile(lck)):
+                os.replace(temp_file.name, filename)
         except OSError as e:
             # remove tempfile if we managed to create one,
             # then let the exception happen
@@ -362,9 +369,13 @@ class Updater:
         linkname = os.path.join(self._dir, "root.json")
         version = self._trusted_set.root.version
         current = os.path.join("root_history", f"{version}.root.json")
-        with contextlib.suppress(FileNotFoundError):
-            os.remove(linkname)
-        os.symlink(current, linkname)
+
+        #print(f"lck:{lck}")
+        lck = os.path.join(self._dir, ".root.json.lck")
+        with FileLock(create_lockfile(lck)):
+            with contextlib.suppress(FileNotFoundError):
+                os.remove(linkname)
+            os.symlink(current, linkname)
 
     def _load_root(self) -> None:
         """Load root metadata.
@@ -375,6 +386,7 @@ class Updater:
         If metadata is loaded from remote repository, store it in local cache.
         """
 
+        Path(self._dir).mkdir(exist_ok=True, parents=True)
         # Update the root role
         lower_bound = self._trusted_set.root.version + 1
         upper_bound = lower_bound + self.config.max_root_rotations
@@ -386,8 +398,10 @@ class Updater:
                     root_path = os.path.join(
                         self._dir, "root_history", f"{next_version}.root.json"
                     )
-                    with open(root_path, "rb") as f:
-                        self._trusted_set.update_root(f.read())
+                    lck = os.path.join(self._dir, ".root.json.lck")
+                    with FileLock(create_lockfile(lck)):
+                        with open(root_path, "rb") as f:
+                            self._trusted_set.update_root(f.read())
                     continue
                 except (OSError, exceptions.RepositoryError) as e:
                     # this root did not exist locally or is invalid
