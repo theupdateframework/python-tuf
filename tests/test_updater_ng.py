@@ -10,6 +10,7 @@ import os
 import shutil
 import sys
 import tempfile
+import subprocess
 import unittest
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Callable, ClassVar
@@ -353,6 +354,44 @@ class TestUpdater(unittest.TestCase):
 
         self.assertEqual(ua[:23], "MyApp/1.2.3 python-tuf/")
 
+
+class TestParallelUpdater(TestUpdater):
+    def test_parallel_updaters(self) -> None:
+        # Refresh two updaters in parallel many times, using the same local metadata cache.
+        # This should reveal race conditions.
+
+        iterations = 100
+
+        # The project root is the parent of the tests directory
+        project_root = os.path.dirname(utils.TESTS_DIR)
+
+        command = [
+            sys.executable,
+            "-m",
+            "tests.refresh_script",
+            str(iterations),
+            self.client_directory,
+            self.metadata_url,
+        ]
+
+        p1 = subprocess.Popen(
+            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=project_root
+        )
+        p2 = subprocess.Popen(
+            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=project_root
+        )
+
+        stdout1, stderr1 = p1.communicate()
+        stdout2, stderr2 = p2.communicate()
+
+        if p1.returncode != 0 or p2.returncode != 0:
+            self.fail(
+                "Parallel refresh failed"
+                f"\nprocess 1 stdout: \n{stdout1.decode()}"
+                f"\nprocess 1 stderr: \n{stderr1.decode()}"
+                f"\nprocess 2 stdout: \n{stdout2.decode()}"
+                f"\nprocess 2 stderr: \n{stderr2.decode()}"
+            )
 
 if __name__ == "__main__":
     utils.configure_test_logging(sys.argv)
