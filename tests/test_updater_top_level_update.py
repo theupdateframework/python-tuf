@@ -135,8 +135,7 @@ class TestRefresh(unittest.TestCase):
             self._run_refresh(skip_bootstrap=True)
 
         # Metadata dir is empty
-        with self.assertRaises(FileNotFoundError):
-            os.listdir(self.metadata_dir)
+        self._assert_files_exist([])
 
     def test_trusted_root_expired(self) -> None:
         # Create an expired root version
