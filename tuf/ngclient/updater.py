@@ -337,6 +337,7 @@ class Updater:
 
             target_file.seek(0)
             with open(filepath, "wb") as destination_file:
+                _lock_file(destination_file)
                 shutil.copyfileobj(target_file, destination_file)
 
         logger.debug("Downloaded target %s", targetinfo.path)
