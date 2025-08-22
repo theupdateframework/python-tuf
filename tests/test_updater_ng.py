@@ -158,7 +158,9 @@ class TestUpdater(unittest.TestCase):
         """Assert that local metadata files match 'roles'"""
         expected_files = [f"{role}.json" for role in roles]
         found_files = [
-            e.name for e in os.scandir(self.client_directory) if e.is_file() and e.name != ".lock"
+            e.name
+            for e in os.scandir(self.client_directory)
+            if e.is_file() and e.name != ".lock"
         ]
 
         self.assertListEqual(sorted(found_files), sorted(expected_files))
@@ -375,10 +377,16 @@ class TestParallelUpdater(TestUpdater):
         ]
 
         p1 = subprocess.Popen(
-            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=project_root
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=project_root,
         )
         p2 = subprocess.Popen(
-            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=project_root
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=project_root,
         )
 
         stdout1, stderr1 = p1.communicate()
@@ -392,6 +400,7 @@ class TestParallelUpdater(TestUpdater):
                 f"\nprocess 2 stdout: \n{stdout2.decode()}"
                 f"\nprocess 2 stderr: \n{stderr2.decode()}"
             )
+
 
 if __name__ == "__main__":
     utils.configure_test_logging(sys.argv)

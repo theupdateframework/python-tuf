@@ -78,6 +78,7 @@ logger = logging.getLogger(__name__)
 try:
     # advisory file locking for posix
     import fcntl
+
     def _lock_file(f: IO) -> None:
         if f.writable():
             fcntl.lockf(f, fcntl.LOCK_EX)
@@ -87,7 +88,7 @@ except ModuleNotFoundError:
     import msvcrt
 
     def _lock_file(f: IO) -> None:
-        # On Windows we lock bytes, not the file
+        # On Windows we lock a byte range and file must not be empty
         f.write(b"\0")
         f.flush()
         f.seek(0)
@@ -162,7 +163,6 @@ class Updater:
         with self._lock_metadata():
             self._persist_root(self._trusted_set.root.version, bootstrap)
             self._update_root_symlink()
-
 
     @contextlib.contextmanager
     def _lock_metadata(self) -> Iterator[None]:
