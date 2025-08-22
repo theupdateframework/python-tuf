@@ -59,7 +59,7 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import IO, TYPE_CHECKING, cast
 from urllib import parse
 
 from tuf.api import exceptions
@@ -69,9 +69,29 @@ from tuf.ngclient.config import EnvelopeType, UpdaterConfig
 from tuf.ngclient.urllib3_fetcher import Urllib3Fetcher
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from tuf.ngclient.fetcher import FetcherInterface
 
 logger = logging.getLogger(__name__)
+
+try:
+    # advisory file locking for posix
+    import fcntl
+    def _lock_file(f: IO) -> None:
+        if f.writable():
+            fcntl.lockf(f, fcntl.LOCK_EX)
+
+except ModuleNotFoundError:
+    # Windows file locking
+    import msvcrt
+
+    def _lock_file(f: IO) -> None:
+        # On Windows we lock bytes, not the file
+        f.write(b"\0")
+        f.flush()
+        f.seek(0)
+        msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, 1)
 
 
 class Updater:
@@ -139,8 +159,23 @@ class Updater:
         self._trusted_set = TrustedMetadataSet(
             bootstrap, self.config.envelope_type
         )
-        self._persist_root(self._trusted_set.root.version, bootstrap)
-        self._update_root_symlink()
+        with self._lock_metadata():
+            self._persist_root(self._trusted_set.root.version, bootstrap)
+            self._update_root_symlink()
+
+
+    @contextlib.contextmanager
+    def _lock_metadata(self) -> Iterator[None]:
+        """Context manager for locking the metadata directory."""
+        # Ensure the whole metadata directory structure exists
+        rootdir = Path(self._dir, "root_history")
+        rootdir.mkdir(exist_ok=True, parents=True)
+
+        with open(os.path.join(self._dir, ".lock"), "wb") as f:
+            logger.debug("Getting metadata lock...")
+            _lock_file(f)
+            yield
+            logger.debug("Releasing metadata lock")
 
     def refresh(self) -> None:
         """Refresh top-level metadata.
@@ -166,10 +201,11 @@ class Updater:
             DownloadError: Download of a metadata file failed in some way
         """
 
-        self._load_root()
-        self._load_timestamp()
-        self._load_snapshot()
-        self._load_targets(Targets.type, Root.type)
+        with self._lock_metadata():
+            self._load_root()
+            self._load_timestamp()
+            self._load_snapshot()
+            self._load_targets(Targets.type, Root.type)
 
     def _generate_target_file_path(self, targetinfo: TargetFile) -> str:
         if self.target_dir is None:
@@ -205,9 +241,14 @@ class Updater:
             ``TargetFile`` instance or ``None``.
         """
 
-        if Targets.type not in self._trusted_set:
-            self.refresh()
-        return self._preorder_depth_first_walk(target_path)
+        with self._lock_metadata():
+            if Targets.type not in self._trusted_set:
+                # refresh
+                self._load_root()
+                self._load_timestamp()
+                self._load_snapshot()
+                self._load_targets(Targets.type, Root.type)
+            return self._preorder_depth_first_walk(target_path)
 
     def find_cached_target(
         self,
@@ -335,7 +376,6 @@ class Updater:
         "root_history/1.root.json").
         """
         rootdir = Path(self._dir, "root_history")
-        rootdir.mkdir(exist_ok=True, parents=True)
         self._persist_file(str(rootdir / f"{version}.root.json"), data)
 
     def _persist_file(self, filename: str, data: bytes) -> None:

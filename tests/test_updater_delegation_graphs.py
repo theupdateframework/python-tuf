@@ -136,7 +136,7 @@ class TestDelegations(unittest.TestCase):
         """Assert that local metadata files match 'roles'"""
         expected_files = [f"{role}.json" for role in roles]
         found_files = [
-            e.name for e in os.scandir(self.metadata_dir) if e.is_file()
+            e.name for e in os.scandir(self.metadata_dir) if e.is_file() and e.name != ".lock"
         ]
 
         self.assertListEqual(sorted(found_files), sorted(expected_files))

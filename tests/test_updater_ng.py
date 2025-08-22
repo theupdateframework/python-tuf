@@ -8,9 +8,9 @@ from __future__ import annotations
 import logging
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
-import subprocess
 import unittest
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Callable, ClassVar
@@ -158,7 +158,7 @@ class TestUpdater(unittest.TestCase):
         """Assert that local metadata files match 'roles'"""
         expected_files = [f"{role}.json" for role in roles]
         found_files = [
-            e.name for e in os.scandir(self.client_directory) if e.is_file()
+            e.name for e in os.scandir(self.client_directory) if e.is_file() and e.name != ".lock"
         ]
 
         self.assertListEqual(sorted(found_files), sorted(expected_files))

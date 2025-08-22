@@ -94,7 +94,7 @@ class TestRefresh(unittest.TestCase):
         """Assert that local metadata files match 'roles'"""
         expected_files = [f"{role}.json" for role in roles]
         found_files = [
-            e.name for e in os.scandir(self.metadata_dir) if e.is_file()
+            e.name for e in os.scandir(self.metadata_dir) if e.is_file() and e.name != ".lock"
         ]
 
         self.assertListEqual(sorted(found_files), sorted(expected_files))
@@ -644,14 +644,16 @@ class TestRefresh(unittest.TestCase):
         wrapped_open.reset_mock()
 
         # First time looking for "somepath", only 'role1' must be loaded
+        # (and ".lock" for metadata locking)
         updater.get_targetinfo("somepath")
-        wrapped_open.assert_called_once_with(
+        self.assertEqual(wrapped_open.call_count, 2)
+        wrapped_open.assert_called_with(
             os.path.join(self.metadata_dir, "role1.json"), "rb"
         )
         wrapped_open.reset_mock()
         # Second call to get_targetinfo, all metadata is already loaded
         updater.get_targetinfo("somepath")
-        wrapped_open.assert_not_called()
+        self.assertEqual(wrapped_open.call_count, 1)
 
     def test_snapshot_rollback_with_local_snapshot_hash_mismatch(self) -> None:
         # Test triggering snapshot rollback check on a newly downloaded snapshot
@@ -709,6 +711,7 @@ class TestRefresh(unittest.TestCase):
         root_dir = os.path.join(self.metadata_dir, "root_history")
         wrapped_open.assert_has_calls(
             [
+                call(os.path.join(self.metadata_dir, ".lock"), "wb"),
                 call(os.path.join(root_dir, "2.root.json"), "rb"),
                 call(os.path.join(self.metadata_dir, "timestamp.json"), "rb"),
                 call(os.path.join(self.metadata_dir, "snapshot.json"), "rb"),
