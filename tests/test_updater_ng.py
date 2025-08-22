@@ -356,16 +356,14 @@ class TestUpdater(unittest.TestCase):
 
         self.assertEqual(ua[:23], "MyApp/1.2.3 python-tuf/")
 
-
-class TestParallelUpdater(TestUpdater):
     def test_parallel_updaters(self) -> None:
-        # Refresh two updaters in parallel many times, using the same local metadata cache.
+        # Refresh many updaters in parallel many times, using the same local metadata cache.
         # This should reveal race conditions.
 
-        iterations = 100
+        iterations = 50
+        process_count = 10
 
-        # The project root is the parent of the tests directory
-        project_root = os.path.dirname(utils.TESTS_DIR)
+        project_root_dir = os.path.dirname(utils.TESTS_DIR)
 
         command = [
             sys.executable,
@@ -376,29 +374,26 @@ class TestParallelUpdater(TestUpdater):
             self.metadata_url,
         ]
 
-        p1 = subprocess.Popen(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            cwd=project_root,
-        )
-        p2 = subprocess.Popen(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            cwd=project_root,
-        )
+        procs = [
+            subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                cwd=project_root_dir,
+            )
+            for _ in range(process_count)
+        ]
 
-        stdout1, stderr1 = p1.communicate()
-        stdout2, stderr2 = p2.communicate()
-
-        if p1.returncode != 0 or p2.returncode != 0:
+        errout = ""
+        for proc in procs:
+            stdout, stderr = proc.communicate()
+            if proc.returncode != 0:
+                errout += "Parallel Refresh script failed:"
+                errout += f"\nprocess stdout: \n{stdout.decode()}"
+                errout += f"\nprocess stderr: \n{stderr.decode()}"
+        if errout:
             self.fail(
-                "Parallel refresh failed"
-                f"\nprocess 1 stdout: \n{stdout1.decode()}"
-                f"\nprocess 1 stderr: \n{stderr1.decode()}"
-                f"\nprocess 2 stdout: \n{stdout2.decode()}"
-                f"\nprocess 2 stderr: \n{stderr2.decode()}"
+                f"One or more scripts failed parallel refresh test:\n{errout}"
             )
 
 

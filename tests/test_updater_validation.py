@@ -53,9 +53,9 @@ class TestUpdater(unittest.TestCase):
 
     def test_non_existing_metadata_dir(self) -> None:
         with self.assertRaises(FileNotFoundError):
-            # Initialize Updater with non-existing metadata_dir
+            # Initialize Updater with non-existing metadata_dir and no bootstrap root
             Updater(
-                "non_existing_metadata_dir",
+                f"{self.temp_dir.name}/non_existing_metadata_dir",
                 "https://example.com/metadata/",
                 fetcher=self.sim,
             )
