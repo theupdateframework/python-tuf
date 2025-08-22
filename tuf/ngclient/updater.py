@@ -92,6 +92,7 @@ except ModuleNotFoundError:
         f.write(b"\0")
         f.flush()
         f.seek(0)
+
         msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, 1)
 
 
@@ -152,15 +153,15 @@ class Updater:
                 f"got '{self.config.envelope_type}'"
             )
 
-        if not bootstrap:
-            # if no root was provided, use the cached non-versioned root.json
-            bootstrap = self._load_local_metadata(Root.type)
-
-        # Load the initial root, make sure it's cached
-        self._trusted_set = TrustedMetadataSet(
-            bootstrap, self.config.envelope_type
-        )
         with self._lock_metadata():
+            if not bootstrap:
+                # if no root was provided, use the cached non-versioned root
+                bootstrap = self._load_local_metadata(Root.type)
+
+            # Load the initial root, make sure it's cached
+            self._trusted_set = TrustedMetadataSet(
+                bootstrap, self.config.envelope_type
+            )
             self._persist_root(self._trusted_set.root.version, bootstrap)
             self._update_root_symlink()
 
