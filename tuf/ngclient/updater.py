@@ -58,13 +58,13 @@ import logging
 import os
 import shutil
 import tempfile
-import time
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, cast
 from urllib import parse
 
 from tuf.api import exceptions
 from tuf.api.metadata import Root, Snapshot, TargetFile, Targets, Timestamp
+from tuf.ngclient._internal.file_lock import lock_file
 from tuf.ngclient._internal.trusted_metadata_set import TrustedMetadataSet
 from tuf.ngclient.config import EnvelopeType, UpdaterConfig
 from tuf.ngclient.urllib3_fetcher import Urllib3Fetcher
@@ -75,55 +75,6 @@ if TYPE_CHECKING:
     from tuf.ngclient.fetcher import FetcherInterface
 
 logger = logging.getLogger(__name__)
-
-try:
-    # advisory file locking for posix
-    import fcntl
-
-    @contextlib.contextmanager
-    def _lock_file(path: str) -> Iterator[IO]:
-        with open(path, "wb") as f:
-            fcntl.lockf(f, fcntl.LOCK_EX)
-            yield f
-
-except ModuleNotFoundError:
-    # Windows file locking, in belt-and-suspenders-from-Temu style:
-    # Use a loop that tries to open the lockfile for 30 secs, but also
-    # use msvcrt.locking().
-    # * since open() usually just fails when another process has the file open
-    #   msvcrt.locking() almost never gets called when there is a lock. open()
-    #   sometimes succeeds for multiple processes though
-    # * msvcrt.locking() does not even block until file is available: it just
-    #   tries once per second in a non-blocking manner for 10 seconds. So if
-    #   another process keeps opening the file it's unlikely that we actually
-    #   get the lock
-    import msvcrt
-
-    @contextlib.contextmanager
-    def _lock_file(path: str) -> Iterator[IO]:
-        err = None
-        locked = False
-        for _ in range(100):
-            try:
-                with open(path, "wb") as f:
-                    msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, 1)
-                    locked = True
-                    yield f
-                    return
-            except FileNotFoundError:
-                # could be from yield or from open() -- either way we bail
-                raise
-            except OSError as e:
-                if locked:
-                    # yield has raised, let's not continue loop
-                    raise e
-                err = e
-                logger.warning("Unsuccessful lock attempt for %s: %s", path, e)
-                time.sleep(0.3)
-
-        # raise the last failure if we never got a lock
-        if err is not None:
-            raise err
 
 
 class Updater:
@@ -204,7 +155,7 @@ class Updater:
         """Context manager for locking the metadata directory."""
 
         logger.debug("Getting metadata lock...")
-        with _lock_file(os.path.join(self._dir, ".lock")):
+        with lock_file(os.path.join(self._dir, ".lock")):
             yield
         logger.debug("Released metadata lock")
 
@@ -274,7 +225,7 @@ class Updater:
 
         with self._lock_metadata():
             if Targets.type not in self._trusted_set:
-                # refresh
+                # implicit refresh
                 self._load_root()
                 self._load_timestamp()
                 self._load_snapshot()
@@ -367,7 +318,7 @@ class Updater:
             targetinfo.verify_length_and_hashes(target_file)
 
             target_file.seek(0)
-            with _lock_file(filepath) as destination_file:
+            with lock_file(filepath) as destination_file:
                 shutil.copyfileobj(target_file, destination_file)
 
         logger.debug("Downloaded target %s", targetinfo.path)
