@@ -4,11 +4,11 @@
 #
 #    pip-compile --output-file=requirements/pinned.txt --strip-extras requirements/main.txt
 #
-cffi==1.17.1
+cffi==2.0.0
     # via cryptography
 cryptography==45.0.7
     # via securesystemslib
-pycparser==2.22
+pycparser==2.23
     # via cffi
 securesystemslib==1.3.0
     # via -r requirements/main.txt
