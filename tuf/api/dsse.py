@@ -34,7 +34,7 @@ from tuf.api._payload import (  # noqa: F401
 from tuf.api.serialization import DeserializationError, SerializationError
 
 
-class SimpleEnvelope(Generic[T], BaseSimpleEnvelope):
+class SimpleEnvelope(BaseSimpleEnvelope, Generic[T]):
     """Dead Simple Signing Envelope (DSSE) for TUF payloads.
 
     * Sign with ``self.sign()`` (inherited).
