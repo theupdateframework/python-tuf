@@ -5,6 +5,8 @@ updates:
   directory: "/"
   schedule:
     interval: "weekly"
+  cooldown:
+    default-days: 7
   open-pull-requests-limit: 10
   groups:
     build-and-release-dependencies:
@@ -31,6 +33,8 @@ updates:
   directory: "/"
   schedule:
     interval: "weekly"
+  cooldown:
+    default-days: 7
   open-pull-requests-limit: 10
   groups:
     action-dependencies:
