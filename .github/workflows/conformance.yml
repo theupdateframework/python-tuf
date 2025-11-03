@@ -4,6 +4,8 @@ on:
       - develop
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: '30 6 * * 3'
 
 permissions:
   contents: read
@@ -19,6 +21,6 @@ jobs:
           persist-credentials: false
 
       - name: Run test suite
-        uses: theupdateframework/tuf-conformance@9bfc222a371e30ad5511eb17449f68f855fb9d8f # v2.3.0
+        uses: theupdateframework/tuf-conformance@500c525c9ce287a472fd334fe8d885cace667d32 # v2.4.0
         with:
           entrypoint: ".github/scripts/conformance-client.py"
