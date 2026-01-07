@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 # Imports
 import urllib3
+from urllib3.util.retry import Retry
 
 import tuf
 from tuf.api import exceptions
@@ -50,7 +51,19 @@ class Urllib3Fetcher(FetcherInterface):
         if app_user_agent is not None:
             ua = f"{app_user_agent} {ua}"
 
-        self._proxy_env = ProxyEnvironment(headers={"User-Agent": ua})
+        # Configure retry strategy: retry on read timeouts and connection errors
+        # This enables retries for streaming failures, not just initial connection
+        retry_strategy = Retry(
+            total=3,
+            read=3,
+            connect=3,
+            status_forcelist=[500, 502, 503, 504],
+            raise_on_status=False,
+        )
+
+        self._proxy_env = ProxyEnvironment(
+            headers={"User-Agent": ua}, retries=retry_strategy
+        )
 
     def _fetch(self, url: str) -> Iterator[bytes]:
         """Fetch the contents of HTTP/HTTPS url from a remote server.
@@ -82,6 +95,7 @@ class Urllib3Fetcher(FetcherInterface):
         except urllib3.exceptions.MaxRetryError as e:
             if isinstance(e.reason, urllib3.exceptions.TimeoutError):
                 raise exceptions.SlowRetrievalError from e
+            raise
 
         if response.status >= 400:
             response.close()
@@ -106,6 +120,59 @@ class Urllib3Fetcher(FetcherInterface):
         except urllib3.exceptions.MaxRetryError as e:
             if isinstance(e.reason, urllib3.exceptions.TimeoutError):
                 raise exceptions.SlowRetrievalError from e
+            raise
+        except (
+            urllib3.exceptions.ReadTimeoutError,
+            urllib3.exceptions.ProtocolError,
+        ) as e:
+            raise exceptions.SlowRetrievalError from e
 
         finally:
             response.release_conn()
+
+    def download_bytes(self, url: str, max_length: int) -> bytes:
+        """Download bytes from given ``url`` with retry on streaming failures.
+
+        This override adds retry logic for mid-stream timeout and connection
+        errors that are not automatically retried by urllib3.
+
+        Args:
+            url: URL string that represents the location of the file.
+            max_length: Upper bound of data size in bytes.
+
+        Raises:
+            exceptions.DownloadError: An error occurred during download.
+            exceptions.DownloadLengthMismatchError: Downloaded bytes exceed
+                ``max_length``.
+            exceptions.DownloadHTTPError: An HTTP error code was received.
+
+        Returns:
+            Content of the file in bytes.
+        """
+        max_retries = 3
+        last_exception: Exception | None = None
+
+        for attempt in range(max_retries):
+            try:
+                return super().download_bytes(url, max_length)
+            except exceptions.SlowRetrievalError as e:
+                last_exception = e
+                if attempt < max_retries - 1:
+                    logger.debug(
+                        "Retrying download after streaming error "
+                        "(attempt %d/%d): %s",
+                        attempt + 1,
+                        max_retries,
+                        url,
+                    )
+                    continue
+                raise
+            except (
+                exceptions.DownloadHTTPError,
+                exceptions.DownloadLengthMismatchError,
+            ):
+                raise
+
+        if last_exception:
+            raise last_exception
+        raise exceptions.DownloadError(f"Failed to download {url}")
