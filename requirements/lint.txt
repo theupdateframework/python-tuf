@@ -8,7 +8,7 @@
 # are pinned to prevent unexpected linting failures when tools update)
 ruff==0.14.10
 mypy==1.19.1
-zizmor==1.16.3
+zizmor==1.19.0
 
 # Required for type stubs
 freezegun==1.5.5
