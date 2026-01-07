@@ -51,9 +51,10 @@ class Urllib3Fetcher(FetcherInterface):
         if app_user_agent is not None:
             ua = f"{app_user_agent} {ua}"
 
-        # Configure retry strategy: retry on read timeouts and
-        # connection errors. This enables retries for streaming failures,
-        # not just initial connection.
+        # Configure retry strategy for connection-level retries.
+        # Note: This only retries at the HTTP request level (before streaming
+        # begins). Streaming failures are handled by the retry loop in
+        # download_bytes().
         retry_strategy = Retry(
             total=3,
             read=3,
