@@ -31,13 +31,12 @@ import sys
 import threading
 import time
 import warnings
-from collections.abc import Callable
 from contextlib import contextmanager
 from typing import IO, TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     import unittest
-    from collections.abc import Iterator
+    from collections.abc import Callable, Iterator
 
 logger = logging.getLogger(__name__)
 

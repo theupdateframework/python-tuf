@@ -1191,8 +1191,8 @@ class DelegatedRole(Role):
 
         # Every part in the pathpattern could include a glob pattern, that's why
         # each of the target and pathpattern parts should match.
-        for target_dir, pattern_dir in zip(target_parts, pattern_parts):
-            if not fnmatch.fnmatch(target_dir, pattern_dir):
+        for target, pattern in zip(target_parts, pattern_parts, strict=False):
+            if not fnmatch.fnmatch(target, pattern):
                 return False
 
         return True

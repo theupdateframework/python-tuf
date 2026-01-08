@@ -11,7 +11,7 @@ import shutil
 import sys
 import tempfile
 import unittest
-from collections.abc import Callable, Iterable
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, ClassVar
 from unittest.mock import MagicMock, patch
 
@@ -30,7 +30,7 @@ from tuf.api.metadata import (
 from tuf.ngclient import Updater, UpdaterConfig
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Callable, Iterable
 
 logger = logging.getLogger(__name__)
 

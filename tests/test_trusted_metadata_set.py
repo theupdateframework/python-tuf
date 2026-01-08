@@ -6,9 +6,8 @@ import logging
 import os
 import sys
 import unittest
-from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from securesystemslib.signer import Signer
 
@@ -30,6 +29,9 @@ from tuf.ngclient._internal.trusted_metadata_set import (
     _load_from_simple_envelope,
 )
 from tuf.ngclient.config import EnvelopeType
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 

@@ -66,7 +66,7 @@ from __future__ import annotations
 import datetime
 import logging
 from collections import abc
-from typing import TYPE_CHECKING, Union, cast
+from typing import TYPE_CHECKING, cast
 
 from tuf.api import exceptions
 from tuf.api.dsse import SimpleEnvelope
@@ -88,7 +88,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-Delegator = Union[Root, Targets]
+Delegator = Root | Targets
 
 
 class TrustedMetadataSet(abc.Mapping):
