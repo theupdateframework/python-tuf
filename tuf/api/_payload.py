@@ -396,19 +396,15 @@ class RootVerificationResult:
     def signed(self) -> dict[str, Key]:
         """Dictionary of all signing keys that have signed, from both
         VerificationResults.
-        return a union of all signed (in python<3.9 this requires
-        dict unpacking)
         """
-        return {**self.first.signed, **self.second.signed}
+        return self.first.signed | self.second.signed
 
     @property
     def unsigned(self) -> dict[str, Key]:
         """Dictionary of all signing keys that have not signed, from both
         VerificationResults.
-        return a union of all unsigned (in python<3.9 this requires
-        dict unpacking)
         """
-        return {**self.first.unsigned, **self.second.unsigned}
+        return self.first.unsigned | self.second.unsigned
 
 
 class _DelegatorMixin(metaclass=abc.ABCMeta):

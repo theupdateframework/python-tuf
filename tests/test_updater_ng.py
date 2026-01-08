@@ -11,8 +11,8 @@ import shutil
 import sys
 import tempfile
 import unittest
-from collections.abc import Iterable
-from typing import TYPE_CHECKING, Callable, ClassVar
+from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING, ClassVar
 from unittest.mock import MagicMock, patch
 
 from securesystemslib.signer import Signer

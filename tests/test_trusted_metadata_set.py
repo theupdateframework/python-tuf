@@ -6,8 +6,9 @@ import logging
 import os
 import sys
 import unittest
+from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Callable, ClassVar
+from typing import ClassVar
 
 from securesystemslib.signer import Signer
 
