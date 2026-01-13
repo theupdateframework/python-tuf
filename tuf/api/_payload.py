@@ -396,19 +396,15 @@ class RootVerificationResult:
     def signed(self) -> dict[str, Key]:
         """Dictionary of all signing keys that have signed, from both
         VerificationResults.
-        return a union of all signed (in python<3.9 this requires
-        dict unpacking)
         """
-        return {**self.first.signed, **self.second.signed}
+        return self.first.signed | self.second.signed
 
     @property
     def unsigned(self) -> dict[str, Key]:
         """Dictionary of all signing keys that have not signed, from both
         VerificationResults.
-        return a union of all unsigned (in python<3.9 this requires
-        dict unpacking)
         """
-        return {**self.first.unsigned, **self.second.unsigned}
+        return self.first.unsigned | self.second.unsigned
 
 
 class _DelegatorMixin(metaclass=abc.ABCMeta):
@@ -1195,8 +1191,8 @@ class DelegatedRole(Role):
 
         # Every part in the pathpattern could include a glob pattern, that's why
         # each of the target and pathpattern parts should match.
-        for target_dir, pattern_dir in zip(target_parts, pattern_parts):
-            if not fnmatch.fnmatch(target_dir, pattern_dir):
+        for target, pattern in zip(target_parts, pattern_parts, strict=True):
+            if not fnmatch.fnmatch(target, pattern):
                 return False
 
         return True

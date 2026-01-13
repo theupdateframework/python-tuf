@@ -170,9 +170,10 @@ class TestFetcher(unittest.TestCase):
 
     # Download a file bigger than expected
     def test_download_file_length_mismatch(self) -> None:
-        with self.assertRaises(
-            exceptions.DownloadLengthMismatchError
-        ), self.fetcher.download_file(self.url, self.file_length - 4):
+        with (
+            self.assertRaises(exceptions.DownloadLengthMismatchError),
+            self.fetcher.download_file(self.url, self.file_length - 4),
+        ):
             pass  # we never get here as download_file() raises
 
 

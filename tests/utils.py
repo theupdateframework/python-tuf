@@ -32,11 +32,11 @@ import threading
 import time
 import warnings
 from contextlib import contextmanager
-from typing import IO, TYPE_CHECKING, Any, Callable
+from typing import IO, TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     import unittest
-    from collections.abc import Iterator
+    from collections.abc import Callable, Iterator
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +111,7 @@ def wait_for_server(
             sock.settimeout(remaining_timeout)
             sock.connect((host, port))
             succeeded = True
-        except socket.timeout:
+        except TimeoutError:
             pass
         except OSError as e:
             # ECONNREFUSED is expected while the server is not started
