@@ -47,6 +47,7 @@ class LocalRepository(Repository):
         self.updater = Updater(
             metadata_dir=metadata_dir,
             metadata_base_url=f"{base_url}/metadata/",
+            bootstrap=None,
         )
         self.updater.refresh()
 

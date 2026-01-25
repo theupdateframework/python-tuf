@@ -88,6 +88,7 @@ class TestConsistentSnapshot(unittest.TestCase):
             self.targets_dir,
             "https://example.com/targets/",
             self.sim,
+            bootstrap=self.sim.signed_roots[-1],
         )
 
     def _assert_metadata_files_exist(self, roles: Iterable[str]) -> None:

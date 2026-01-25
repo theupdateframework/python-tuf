@@ -13,7 +13,8 @@ High-level description of ``Updater`` functionality:
   * Initializing an ``Updater`` loads and validates the trusted local root
     metadata: This root metadata is used as the source of trust for all other
     metadata. Updater should always be initialized with the ``bootstrap``
-    argument: if this is not possible, it can be initialized from cache only.
+    argument: pass ``bootstrap=None`` only to explicitly opt into using the
+    cached root.json as the trust anchor.
   * ``refresh()`` can optionally be called to update and load all top-level
     metadata as described in the specification, using both locally cached
     metadata and metadata downloaded from the remote repository. If refresh is
@@ -79,7 +80,8 @@ class Updater:
 
     Args:
         metadata_dir: Local metadata directory. Directory must be
-            writable and it must contain a trusted root.json file
+            writable. If ``bootstrap`` is ``None``, this directory must contain
+            a trusted root.json file.
         metadata_base_url: Base URL for all remote metadata downloads
         target_dir: Local targets directory. Directory must be writable. It
             will be used as the default target download directory by
@@ -90,9 +92,11 @@ class Updater:
             download both metadata and targets. Default is ``Urllib3Fetcher``
         config: ``Optional``; ``UpdaterConfig`` could be used to setup common
             configuration options.
-        bootstrap: ``Optional``; initial root metadata. A bootstrap root should
-            always be provided. If it is not, the current root.json in the
-            metadata cache is used as the initial root.
+        bootstrap: Initial root metadata bytes. This argument is required.
+            Pass the embedded root metadata bytes for secure initialization.
+            Pass ``None`` only if you explicitly want to use the cached
+            root.json as the trust anchor (not recommended for most
+            deployments).
 
     Raises:
         OSError: Local root.json cannot be read
@@ -107,7 +111,8 @@ class Updater:
         target_base_url: str | None = None,
         fetcher: FetcherInterface | None = None,
         config: UpdaterConfig | None = None,
-        bootstrap: bytes | None = None,
+        *,
+        bootstrap: bytes | None,
     ):
         self._dir = metadata_dir
         self._metadata_base_url = _ensure_trailing_slash(metadata_base_url)
@@ -131,7 +136,7 @@ class Updater:
                 f"got '{self.config.envelope_type}'"
             )
 
-        if not bootstrap:
+        if bootstrap is None:
             # if no root was provided, use the cached non-versioned root.json
             bootstrap = self._load_local_metadata(Root.type)
 

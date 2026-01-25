@@ -65,6 +65,7 @@ class TestFetchTarget(unittest.TestCase):
             self.targets_dir,
             "https://example.com/targets/",
             self.sim,
+            bootstrap=self.sim.signed_roots[0],
         )
 
     targets = {

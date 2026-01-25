@@ -38,7 +38,17 @@ class TestUpdater(unittest.TestCase):
             self.targets_dir,
             "https://example.com/targets/",
             fetcher=self.sim,
+            bootstrap=self.sim.signed_roots[0],
         )
+
+    def test_bootstrap_argument_required(self) -> None:
+        with self.assertRaises(TypeError) as ctx:
+            Updater(
+                self.metadata_dir,
+                "https://example.com/metadata/",
+                fetcher=self.sim,
+            )
+        self.assertIn("bootstrap", str(ctx.exception))
 
     def test_local_target_storage_fail(self) -> None:
         self.sim.add_target("targets", b"content", "targetpath")
@@ -52,12 +62,14 @@ class TestUpdater(unittest.TestCase):
             updater.download_target(target_info, filepath="")
 
     def test_non_existing_metadata_dir(self) -> None:
+        non_existing_dir = os.path.join(self.temp_dir.name, "non-existing-dir")
         with self.assertRaises(FileNotFoundError):
             # Initialize Updater with non-existing metadata_dir
             Updater(
-                "non_existing_metadata_dir",
+                non_existing_dir,
                 "https://example.com/metadata/",
                 fetcher=self.sim,
+                bootstrap=None,
             )
 
 

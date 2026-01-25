@@ -130,6 +130,7 @@ class TestDelegations(unittest.TestCase):
             self.targets_dir,
             "https://example.com/targets/",
             self.sim,
+            bootstrap=self.sim.signed_roots[0],
         )
 
     def _assert_files_exist(self, roles: Iterable[str]) -> None:

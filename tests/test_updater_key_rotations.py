@@ -79,6 +79,7 @@ class TestUpdaterKeyRotations(unittest.TestCase):
             self.metadata_dir,
             "https://example.com/metadata/",
             fetcher=self.sim,
+            bootstrap=self.sim.signed_roots[0],
         )
         updater.refresh()
 

@@ -36,8 +36,10 @@ Example::
     updater = Updater(
         dir,
         "https://example.com/metadata/",
+        dir,
         "https://example.com/targets/",
-        sim
+        sim,
+        bootstrap=sim.signed_roots[0],
     )
     updater.refresh()
 """
