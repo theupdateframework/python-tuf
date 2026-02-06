@@ -53,8 +53,8 @@ from GitHub, change into the project root directory, and install with pip
    python3 -m pip install -r requirements/dev.txt
 
 
-Bootstrap root metadata
------------------------
+Application deployment
+----------------------
 
 The initial trusted root metadata (``root.json``) is the trust anchor for all
 subsequent metadata verification. Applications should deploy a trusted root

@@ -74,10 +74,6 @@ class TestConsistentSnapshot(unittest.TestCase):
         sim.publish_root()
         sim.prefix_targets_with_hash = prefix_targets
 
-        # Init trusted root with the latest consistent_snapshot
-        with open(os.path.join(self.metadata_dir, "root.json"), "bw") as f:
-            f.write(sim.signed_roots[-1])
-
         return sim
 
     def _init_updater(self) -> Updater:

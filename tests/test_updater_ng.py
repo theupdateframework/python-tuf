@@ -249,7 +249,10 @@ class TestUpdater(unittest.TestCase):
     def test_both_target_urls_not_set(self) -> None:
         # target_base_url = None and Updater._target_base_url = None
         updater = Updater(
-            self.client_directory, self.metadata_url, self.dl_dir, bootstrap=None
+            self.client_directory,
+            self.metadata_url,
+            self.dl_dir,
+            bootstrap=None,
         )
         info = TargetFile(1, {"sha256": ""}, "targetpath")
         with self.assertRaises(ValueError):
@@ -257,7 +260,9 @@ class TestUpdater(unittest.TestCase):
 
     def test_no_target_dir_no_filepath(self) -> None:
         # filepath = None and Updater.target_dir = None
-        updater = Updater(self.client_directory, self.metadata_url, bootstrap=None)
+        updater = Updater(
+            self.client_directory, self.metadata_url, bootstrap=None
+        )
         info = TargetFile(1, {"sha256": ""}, "targetpath")
         with self.assertRaises(ValueError):
             updater.find_cached_target(info)

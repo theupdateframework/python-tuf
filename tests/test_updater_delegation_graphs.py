@@ -120,10 +120,6 @@ class TestDelegations(unittest.TestCase):
 
     def _init_updater(self) -> Updater:
         """Create a new Updater instance"""
-        # Init trusted root for Updater
-        with open(os.path.join(self.metadata_dir, "root.json"), "bw") as f:
-            f.write(self.sim.signed_roots[0])
-
         return Updater(
             self.metadata_dir,
             "https://example.com/metadata/",

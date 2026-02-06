@@ -23,10 +23,8 @@ class TestUpdater(unittest.TestCase):
         os.mkdir(self.metadata_dir)
         os.mkdir(self.targets_dir)
 
-        # Setup the repository, bootstrap client root.json
+        # Setup the repository
         self.sim = RepositorySimulator()
-        with open(os.path.join(self.metadata_dir, "root.json"), "bw") as f:
-            f.write(self.sim.signed_roots[0])
 
     def tearDown(self) -> None:
         self.temp_dir.cleanup()
@@ -47,7 +45,7 @@ class TestUpdater(unittest.TestCase):
                 self.metadata_dir,
                 "https://example.com/metadata/",
                 fetcher=self.sim,
-            )
+            )  # type: ignore[call-arg]
         self.assertIn("bootstrap", str(ctx.exception))
 
     def test_local_target_storage_fail(self) -> None:
