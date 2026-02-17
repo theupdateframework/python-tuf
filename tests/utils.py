@@ -115,7 +115,7 @@ def wait_for_server(
             pass
         except OSError as e:
             # ECONNREFUSED is expected while the server is not started
-            if e.errno not in [errno.ECONNREFUSED]:
+            if e.errno != errno.ECONNREFUSED:
                 logger.warning(
                     "Unexpected error while waiting for server: %s", str(e)
                 )
