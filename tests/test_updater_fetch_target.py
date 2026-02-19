@@ -40,10 +40,8 @@ class TestFetchTarget(unittest.TestCase):
         os.mkdir(self.metadata_dir)
         os.mkdir(self.targets_dir)
 
-        # Setup the repository, bootstrap client root.json
+        # Setup the repository
         self.sim = RepositorySimulator()
-        with open(os.path.join(self.metadata_dir, "root.json"), "bw") as f:
-            f.write(self.sim.signed_roots[0])
 
         if self.dump_dir is not None:
             # create test specific dump directory
@@ -65,6 +63,7 @@ class TestFetchTarget(unittest.TestCase):
             self.targets_dir,
             "https://example.com/targets/",
             self.sim,
+            bootstrap=self.sim.signed_roots[0],
         )
 
     targets = {

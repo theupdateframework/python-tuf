@@ -79,14 +79,15 @@ def download(base_url: str, target: str) -> bool:
     print(f"Using trusted root in {metadata_dir}")
 
     try:
-        # NOTE: initial root should be provided with ``bootstrap``  argument:
-        # This examples uses unsafe Trust-On-First-Use initialization so it is
-        # not possible here.
+        # NOTE: production deployments should provide embedded root metadata
+        # bytes via the ``bootstrap`` argument. This example uses Trust-On-First-Use
+        # initialization, so it explicitly opts into using cached root.json.
         updater = Updater(
             metadata_dir=metadata_dir,
             metadata_base_url=f"{base_url}/metadata/",
             target_base_url=f"{base_url}/targets/",
             target_dir=DOWNLOAD_DIR,
+            bootstrap=None,
         )
         updater.refresh()
 

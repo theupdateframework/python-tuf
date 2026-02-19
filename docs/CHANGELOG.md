@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Changed
+
+* ngclient: `Updater()` now requires an explicit `bootstrap` argument
+  * This is a breaking change: callers must pass `bootstrap=<root_bytes>` or `bootstrap=None`
+  * `bootstrap=None` explicitly opts into using cached `root.json` as trust anchor
+
 ## v6.0.0
 
 This release is not strictly speaking an API break from 5.1 but it does contain some

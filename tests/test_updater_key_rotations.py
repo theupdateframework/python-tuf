@@ -72,13 +72,12 @@ class TestUpdaterKeyRotations(unittest.TestCase):
 
         # bootstrap with initial root
         self.metadata_dir = tempfile.mkdtemp(dir=self.temp_dir.name)
-        with open(os.path.join(self.metadata_dir, "root.json"), "bw") as f:
-            f.write(self.sim.signed_roots[0])
 
         updater = Updater(
             self.metadata_dir,
             "https://example.com/metadata/",
             fetcher=self.sim,
+            bootstrap=self.sim.signed_roots[0],
         )
         updater.refresh()
 

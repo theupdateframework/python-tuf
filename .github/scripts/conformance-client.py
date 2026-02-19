@@ -27,6 +27,7 @@ def refresh(metadata_url: str, metadata_dir: str) -> None:
     updater = Updater(
         metadata_dir,
         metadata_url,
+        bootstrap=None,
     )
     updater.refresh()
     print(f"python-tuf test client: Refreshed metadata in {metadata_dir}")
@@ -46,6 +47,7 @@ def download_target(
         metadata_url,
         download_dir,
         target_base_url,
+        bootstrap=None,
     )
     target_info = updater.get_targetinfo(target_name)
     if not target_info:

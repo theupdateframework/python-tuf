@@ -53,6 +53,39 @@ from GitHub, change into the project root directory, and install with pip
    python3 -m pip install -r requirements/dev.txt
 
 
+Application deployment
+----------------------
+
+The initial trusted root metadata (``root.json``) is the trust anchor for all
+subsequent metadata verification. Applications should deploy a trusted root
+with the application and provide it to :class:`tuf.ngclient.Updater`.
+
+Recommended storage locations for bootstrap root metadata include:
+
+* a system-wide read-only path (e.g. ``/usr/share/your-app/root.json``)
+* an application bundle with appropriate permissions
+* a read-only mounted volume in containerized deployments
+
+Not recommended:
+
+* ``metadata_dir`` (the metadata cache) since it is writable by design
+* user-writable install paths (e.g. a user site-packages directory)
+* any location writable by the account running the updater
+
+Example::
+
+   from tuf.ngclient import Updater
+
+   with open("/usr/share/your-app/root.json", "rb") as f:
+       bootstrap = f.read()
+
+   updater = Updater(
+       metadata_dir="/var/lib/your-app/tuf/metadata",
+       metadata_base_url="https://example.com/metadata/",
+       bootstrap=bootstrap,
+   )
+
+
 Verify release signatures
 -------------------------
 
