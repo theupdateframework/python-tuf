@@ -29,10 +29,6 @@ High-level description of ``Updater`` functionality:
       * ``Updater.download_target()`` downloads a target file and ensures it is
         verified correct by the metadata.
 
-Note that applications using ``Updater`` should be 'single instance'
-applications: running multiple instances that use the same cache directories at
-the same time is not supported.
-
 A simple example of using the Updater to implement a Python TUF client that
 downloads target files is available in `examples/client
 <https://github.com/theupdateframework/python-tuf/tree/develop/examples/client>`_.
@@ -64,11 +60,14 @@ from urllib import parse
 
 from tuf.api import exceptions
 from tuf.api.metadata import Root, Snapshot, TargetFile, Targets, Timestamp
+from tuf.ngclient._internal.file_lock import lock_file
 from tuf.ngclient._internal.trusted_metadata_set import TrustedMetadataSet
 from tuf.ngclient.config import EnvelopeType, UpdaterConfig
 from tuf.ngclient.urllib3_fetcher import Urllib3Fetcher
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from tuf.ngclient.fetcher import FetcherInterface
 
 logger = logging.getLogger(__name__)
@@ -131,16 +130,30 @@ class Updater:
                 f"got '{self.config.envelope_type}'"
             )
 
-        if not bootstrap:
-            # if no root was provided, use the cached non-versioned root.json
-            bootstrap = self._load_local_metadata(Root.type)
+        # Ensure the whole metadata directory structure exists
+        rootdir = Path(self._dir, "root_history")
+        rootdir.mkdir(exist_ok=True, parents=True)
 
-        # Load the initial root, make sure it's cached
-        self._trusted_set = TrustedMetadataSet(
-            bootstrap, self.config.envelope_type
-        )
-        self._persist_root(self._trusted_set.root.version, bootstrap)
-        self._update_root_symlink()
+        with self._lock_metadata():
+            if not bootstrap:
+                # if no root was provided, use the cached non-versioned root
+                bootstrap = self._load_local_metadata(Root.type)
+
+            # Load the initial root, make sure it's cached
+            self._trusted_set = TrustedMetadataSet(
+                bootstrap, self.config.envelope_type
+            )
+            self._persist_root(self._trusted_set.root.version, bootstrap)
+            self._update_root_symlink()
+
+    @contextlib.contextmanager
+    def _lock_metadata(self) -> Iterator[None]:
+        """Context manager for locking the metadata directory."""
+
+        logger.debug("Getting metadata lock...")
+        with lock_file(os.path.join(self._dir, ".lock")):
+            yield
+        logger.debug("Released metadata lock")
 
     def refresh(self) -> None:
         """Refresh top-level metadata.
@@ -166,10 +179,11 @@ class Updater:
             DownloadError: Download of a metadata file failed in some way
         """
 
-        self._load_root()
-        self._load_timestamp()
-        self._load_snapshot()
-        self._load_targets(Targets.type, Root.type)
+        with self._lock_metadata():
+            self._load_root()
+            self._load_timestamp()
+            self._load_snapshot()
+            self._load_targets(Targets.type, Root.type)
 
     def _generate_target_file_path(self, targetinfo: TargetFile) -> str:
         if self.target_dir is None:
@@ -205,9 +219,14 @@ class Updater:
             ``TargetFile`` instance or ``None``.
         """
 
-        if Targets.type not in self._trusted_set:
-            self.refresh()
-        return self._preorder_depth_first_walk(target_path)
+        with self._lock_metadata():
+            if Targets.type not in self._trusted_set:
+                # implicit refresh
+                self._load_root()
+                self._load_timestamp()
+                self._load_snapshot()
+                self._load_targets(Targets.type, Root.type)
+            return self._preorder_depth_first_walk(target_path)
 
     def find_cached_target(
         self,
@@ -295,7 +314,7 @@ class Updater:
             targetinfo.verify_length_and_hashes(target_file)
 
             target_file.seek(0)
-            with open(filepath, "wb") as destination_file:
+            with lock_file(filepath) as destination_file:
                 shutil.copyfileobj(target_file, destination_file)
 
         logger.debug("Downloaded target %s", targetinfo.path)
@@ -335,7 +354,6 @@ class Updater:
         "root_history/1.root.json").
         """
         rootdir = Path(self._dir, "root_history")
-        rootdir.mkdir(exist_ok=True, parents=True)
         self._persist_file(str(rootdir / f"{version}.root.json"), data)
 
     def _persist_file(self, filename: str, data: bytes) -> None:

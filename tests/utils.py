@@ -161,7 +161,7 @@ def cleanup_metadata_dir(path: str) -> None:
         for entry in it:
             if entry.name == "root_history":
                 cleanup_metadata_dir(entry.path)
-            elif entry.name.endswith(".json"):
+            elif entry.name.endswith(".json") or entry.name == ".lock":
                 os.remove(entry.path)
             else:
                 raise ValueError(f"Unexpected local metadata file {entry.path}")

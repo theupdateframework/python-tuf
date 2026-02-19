@@ -8,6 +8,7 @@ from __future__ import annotations
 import logging
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -157,7 +158,9 @@ class TestUpdater(unittest.TestCase):
         """Assert that local metadata files match 'roles'"""
         expected_files = [f"{role}.json" for role in roles]
         found_files = [
-            e.name for e in os.scandir(self.client_directory) if e.is_file()
+            e.name
+            for e in os.scandir(self.client_directory)
+            if e.is_file() and e.name != ".lock"
         ]
 
         self.assertListEqual(sorted(found_files), sorted(expected_files))
@@ -352,6 +355,46 @@ class TestUpdater(unittest.TestCase):
         ua = poolmgr.headers["User-Agent"]
 
         self.assertEqual(ua[:23], "MyApp/1.2.3 python-tuf/")
+
+    def test_parallel_updaters(self) -> None:
+        # Refresh many updaters in parallel many times, using the same local metadata cache.
+        # This should reveal race conditions.
+
+        iterations = 50
+        process_count = 10
+
+        project_root_dir = os.path.dirname(utils.TESTS_DIR)
+
+        command = [
+            sys.executable,
+            "-m",
+            "tests.refresh_script",
+            str(iterations),
+            self.client_directory,
+            self.metadata_url,
+        ]
+
+        procs = [
+            subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                cwd=project_root_dir,
+            )
+            for _ in range(process_count)
+        ]
+
+        errout = ""
+        for proc in procs:
+            stdout, stderr = proc.communicate()
+            if proc.returncode != 0:
+                errout += "Parallel Refresh script failed:"
+                errout += f"\nprocess stdout: \n{stdout.decode()}"
+                errout += f"\nprocess stderr: \n{stderr.decode()}"
+        if errout:
+            self.fail(
+                f"One or more scripts failed parallel refresh test:\n{errout}"
+            )
 
 
 if __name__ == "__main__":
