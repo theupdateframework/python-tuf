@@ -18,34 +18,11 @@ Builder (CB).  The project's Consensus Builder (CB) is Justin Cappos
 <jcappos@nyu.edu, @JustinCappos>, who has a lifetime appointment.
 
 ## Contributions
-[A contributor can submit GitHub pull
-requests](CONTRIBUTING.rst)
-to the project's repositories.  They must follow the project's [code of
-conduct](CODE-OF-CONDUCT.md), the [developer certificate of
-origin](https://developercertificate.org/), the [code style
-guidelines](https://github.com/secure-systems-lab/code-style-guidelines), and
-must unit test any new software feature or change.  Submitted pull requests
-undergo review and automated testing, including, but not limited to:
-
-* Unit and build testing via [GitHub Actions](https://github.com/theupdateframework/python-tuf/actions) and
-[Tox](https://tox.readthedocs.io/en/latest/).
-* Static code analysis via [Pylint](https://www.pylint.org/) and
-[Bandit](https://wiki.openstack.org/wiki/Security/Projects/Bandit).
-- Auto-formatting with [black](https://black.readthedocs.io/) and
-[isort](https://pycqa.github.io/isort/).
-* Checks for Signed-off-by commits via [Probot: DCO](https://github.com/probot/dco).
-* Review by one or more
-[maintainers](MAINTAINERS.txt).
-
-A contributor can propose changes to the specification with a [TUF Augmentation
-Proposal](https://github.com/theupdateframework/taps) (TAP).  It is a design
-document providing information to the TUF community, or describing a new
-feature for TUF or its processes or environment.
-
-A [TAP](TAP.rst) can be approved or rejected by the CB after it has been reviewed and
-discussed.  Discussions take place on the project's [mailing
-list](https://groups.google.com/forum/?fromgroups#!forum/theupdateframework) or
-the TAPs GitHub issue tracker.
+Contributors can submit pull requests to the project's repositories. They must
+follow the project's [code of conduct](CODE-OF-CONDUCT.md), the
+[developer certificate of origin](https://developercertificate.org/), and the
+repository specific contribution guidelines, such as
+[CONTRIBUTING.rst](CONTRIBUTING.rst).
 
 ## Changes in maintainership
 
