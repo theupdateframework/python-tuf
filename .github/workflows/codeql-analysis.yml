@@ -28,9 +28,9 @@ jobs:
         persist-credentials: false
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v4 # zizmor: ignore[unpinned-uses]
+      uses: github/codeql-action/init@v4.35.3 # zizmor: ignore[unpinned-uses]
       with:
         languages: 'python'
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v4 # zizmor: ignore[unpinned-uses]
+      uses: github/codeql-action/analyze@v4.35.3 # zizmor: ignore[unpinned-uses]
