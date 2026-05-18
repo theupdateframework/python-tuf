@@ -746,6 +746,8 @@ class TestMetadata(unittest.TestCase):
             ("foo-version-alpha.tgz", "foo-version-?.tgz"),
             ("foo//bar", "*/bar"),
             ("foo/bar", "f?/bar"),
+            ("FOO.tgz", "foo.tgz"),
+            ("foo/bar", "Foo/*"),
         ]
         for targetpath, pathpattern in invalid_use_cases:
             self.assertFalse(
