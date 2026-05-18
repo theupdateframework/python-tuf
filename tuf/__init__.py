@@ -4,4 +4,4 @@
 """TUF."""
 
 # This value is used in the ngclient user agent.
-__version__ = "6.0.0"
+__version__ = "7.0.0"

@@ -2,11 +2,23 @@
 
 ## Unreleased
 
+## v7.0.0
+
+This is a major release only because of a minor ngclient API tweak: there
+are no large functional changes.
+
+### Fixed
+
+* Fix [GHSA-qp9x-wp8f-qgjj](https://github.com/theupdateframework/python-tuf/security/advisories/GHSA-qp9x-wp8f-qgjj):
+  Incorrect delegation path matching on Windows
+* Various documentation fixes (#2812, #2922, #2923)
+
 ### Changed
 
-* ngclient: `Updater()` now requires an explicit `bootstrap` argument
-  * This is a breaking change: callers must pass `bootstrap=<root_bytes>` or `bootstrap=None`
-  * `bootstrap=None` explicitly opts into using cached `root.json` as trust anchor
+* ngclient: `Updater()` now requires the named bootstrap argument to make it
+  clearer that providing one is strongly recommended: previous default
+  functionality can be reproduced with `bootstrap=None` (#2903)
+* Prepare for removal of securesystemslib.hash (#2815)
 
 ## v6.0.0
 
