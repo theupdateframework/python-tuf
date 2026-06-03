@@ -41,12 +41,18 @@ from tests import utils
 _METADATA_URL = "metadata"
 
 
+# Number of times to retry starting the server on a fresh port. A retry is
+# only needed if another process grabs the port in the small window between
+# _get_free_port() releasing it and the server binding it, which is rare.
+_MAX_SERVER_STARTS = 5
+
+
 def _get_free_port() -> int:
     """Return a currently-free localhost TCP port.
 
     The port is handed to the example repository server via '-p'. There is a
-    small race between closing this socket and the server binding the port,
-    but the readiness poll in setUp() tolerates it.
+    small race between closing this socket and the server binding the port;
+    _start_server() retries on a fresh port if the server loses that race.
     """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind((utils.TEST_HOST_ADDRESS, 0))
@@ -57,6 +63,9 @@ class TestExamplesEnd2End(unittest.TestCase):
     """Run the repository, uploader and client examples against each other."""
 
     examples_dir: ClassVar[Path]
+
+    server: subprocess.Popen[bytes]
+    _stopped_output: str | None
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -79,26 +88,57 @@ class TestExamplesEnd2End(unittest.TestCase):
             for name in ("repository", "uploader", "client")
         )
 
-        self.port = _get_free_port()
-        self.base_url = f"http://{utils.TEST_HOST_ADDRESS}:{self.port}"
+        self._stopped_output = None
+        self._start_server()
 
-        # Start the repository example as a live server subprocess.
+    def _start_server(self) -> None:
+        """Start the repository example and wait until it serves metadata.
+
+        The server is started as a subprocess on a free port. If it loses the
+        race for that port (another process binds it first) the subprocess
+        exits with "Address already in use"; in that case we pick a new port
+        and try again rather than reporting a misleading connection timeout.
+        """
         repo_script = self.examples_dir / "repository" / "repo"
-        self.server = subprocess.Popen(
-            [sys.executable, "-u", str(repo_script), "-p", str(self.port)],
-            env=self.env,
-            cwd=self.test_dir,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-        )
-        self.addCleanup(self._stop_server)
+        for attempt in range(_MAX_SERVER_STARTS):
+            self.port = _get_free_port()
+            self.base_url = f"http://{utils.TEST_HOST_ADDRESS}:{self.port}"
 
-        utils.wait_for_server(
-            utils.TEST_HOST_ADDRESS, "repository example", self.port
-        )
-        # wait_for_server only confirms the port is open; also wait until the
-        # repository has published its initial root metadata.
-        self._wait_for_root()
+            self._stopped_output = None
+            self.server = subprocess.Popen(
+                [sys.executable, "-u", str(repo_script), "-p", str(self.port)],
+                env=self.env,
+                cwd=self.test_dir,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+            )
+
+            if self._wait_for_root():
+                # Tear the server down at the end of the test.
+                self.addCleanup(self._stop_server)
+                return
+
+            # The server never served root metadata. Stop it (which drains its
+            # output) before deciding whether to retry.
+            exited_early = self.server.poll() is not None
+            self._stop_server()
+            output = self._server_output()
+
+            # A lost race for the port shows up as a bind failure: retry on a
+            # fresh port rather than reporting a misleading connection timeout.
+            if (
+                exited_early
+                and "Address already in use" in output
+                and attempt + 1 < _MAX_SERVER_STARTS
+            ):
+                continue
+
+            reason = (
+                f"exited early with code {self.server.returncode}"
+                if exited_early
+                else "did not serve root metadata in time"
+            )
+            self.fail(f"repository example {reason}:\n{output}")
 
     def _rmtree(self, path: str) -> None:
         # shutil.rmtree wrapper registered with addCleanup.
@@ -111,32 +151,43 @@ class TestExamplesEnd2End(unittest.TestCase):
         except subprocess.TimeoutExpired:
             self.server.kill()
             self.server.wait()
+        # Stash any remaining output before closing the pipe so it stays
+        # available to _server_output() after the server has been stopped.
         if self.server.stdout is not None:
+            self._stopped_output = self.server.stdout.read().decode(
+                "utf-8", errors="replace"
+            )
             self.server.stdout.close()
 
-    def _wait_for_root(self, timeout: int = 10) -> None:
-        """Poll until the server serves 1.root.json (or time out)."""
+    def _wait_for_root(self, timeout: int = 10) -> bool:
+        """Poll until the server serves 1.root.json.
+
+        Returns True once the server answers with the initial root metadata.
+        Returns False if the server process exits before then (so the caller
+        can retry on a new port) or if the timeout is reached without the
+        server ever exiting (a genuine readiness failure).
+        """
         deadline = time.monotonic() + timeout
         url = f"{self.base_url}/{_METADATA_URL}/1.root.json"
-        last_error: Exception | None = None
         while time.monotonic() < deadline:
             if self.server.poll() is not None:
-                self.fail(
-                    "repository example exited early with code "
-                    f"{self.server.returncode}:\n{self._server_output()}"
-                )
+                # Server exited; let the caller inspect its output.
+                return False
             try:
                 response = urllib3.request("GET", url)
                 if response.status == 200:
-                    return
-            except urllib3.exceptions.HTTPError as e:
-                last_error = e
+                    return True
+            except urllib3.exceptions.HTTPError:
+                # Connection refused/reset while the server is still starting.
+                pass
             time.sleep(0.05)
-        self.fail(
-            f"repository example never served root metadata: {last_error}"
-        )
+        return False
 
     def _server_output(self) -> str:
+        # If the server has been stopped, _stop_server() already drained the
+        # pipe; otherwise read whatever it has produced so far.
+        if self._stopped_output is not None:
+            return self._stopped_output
         if self.server.stdout is None:
             return ""
         return self.server.stdout.read().decode("utf-8", errors="replace")
