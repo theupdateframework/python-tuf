@@ -82,6 +82,9 @@ class Urllib3Fetcher(FetcherInterface):
         except urllib3.exceptions.MaxRetryError as e:
             if isinstance(e.reason, urllib3.exceptions.TimeoutError):
                 raise exceptions.SlowRetrievalError from e
+            # Any other reason (e.g. TLS or connection error): let the original
+            # error propagate instead of falling through to an unbound response.
+            raise
 
         if response.status >= 400:
             response.close()
