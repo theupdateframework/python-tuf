@@ -6,8 +6,8 @@
 # Lint tools
 # (We are not so interested in the specific versions of the tools: the versions
 # are pinned to prevent unexpected linting failures when tools update)
-ruff==0.15.20
-mypy==2.1.0
+ruff==0.15.21
+mypy==2.3.0
 zizmor==1.26.1
 
 # Required for type stubs
