@@ -311,7 +311,7 @@ class Role:
         )
 
     def __hash__(self) -> int:
-        return hash((self.keyids, self.threshold, self.unrecognized_fields))
+        return hash((tuple(self.keyids), self.threshold))
 
     @classmethod
     def from_dict(cls, role_dict: dict[str, Any]) -> Role:
@@ -1131,13 +1131,19 @@ class DelegatedRole(Role):
         )
 
     def __hash__(self) -> int:
+        paths = tuple(self.paths) if self.paths is not None else None
+        prefixes = (
+            tuple(self.path_hash_prefixes)
+            if self.path_hash_prefixes is not None
+            else None
+        )
         return hash(
             (
                 super().__hash__(),
                 self.name,
                 self.terminating,
-                self.path,
-                self.path_hash_prefixes,
+                paths,
+                prefixes,
             )
         )
 
