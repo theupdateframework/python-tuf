@@ -42,5 +42,5 @@ client needs to run `tofu` every time you restart the repository application.
 ./client --url https://jku.github.io/tuf-demo tofu
 
 # Then download example files from the repository:
-./client --url https://jku.github.io/tuf-demo download demo/succinctly-delegated-1.txt
+./client --url https://jku.github.io/tuf-demo download rdimitrov/artifact-example.md
 ```
