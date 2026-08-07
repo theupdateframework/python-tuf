@@ -369,7 +369,11 @@ class Updater:
         current = os.path.join("root_history", f"{version}.root.json")
         with contextlib.suppress(FileNotFoundError):
             os.remove(linkname)
-        os.symlink(current, linkname)
+        try:
+            os.symlink(current, linkname)
+        except OSError:
+            # fallback for windows "required privilege is not held by client"
+            shutil.copyfile(os.path.join(self._dir, current), linkname)
 
     def _load_root(self) -> None:
         """Load root metadata.

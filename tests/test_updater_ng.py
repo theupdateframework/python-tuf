@@ -362,6 +362,25 @@ class TestUpdater(unittest.TestCase):
 
         self.assertEqual(ua[:23], "MyApp/1.2.3 python-tuf/")
 
+    @patch("os.symlink", side_effect=OSError("Required privilege not held"))
+    def test_update_root_symlink_oserror_fallback(
+        self, mock_symlink: MagicMock
+    ) -> None:
+        """Test fallback to copyfile when os.symlink raises OSError."""
+        self.updater._update_root_symlink()
+        mock_symlink.assert_called_once()
+
+        linkname = os.path.join(self.updater._dir, "root.json")
+        self.assertTrue(os.path.isfile(linkname))
+        self.assertFalse(os.path.islink(linkname))
+
+        version = self.updater._trusted_set.root.version
+        target = os.path.join(
+            self.updater._dir, "root_history", f"{version}.root.json"
+        )
+        with open(linkname, "rb") as f1, open(target, "rb") as f2:
+            self.assertEqual(f1.read(), f2.read())
+
 
 if __name__ == "__main__":
     utils.configure_test_logging(sys.argv)
