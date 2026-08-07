@@ -5,6 +5,11 @@ All versions of ``python-tuf`` can be installed from
 `PyPI <https://pypi.org/project/tuf/>`_ with
 `pip <https://pip.pypa.io/en/stable/>`_.
 
+.. note::
+
+   Windows users: replace ``python3`` with ``python`` or use the
+   ``py`` launcher (e.g. ``py -m pip install tuf``).
+
 ::
 
    python3 -m pip install tuf
