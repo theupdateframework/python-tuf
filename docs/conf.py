@@ -65,6 +65,9 @@ html_favicon = "tuf-icon-32.png"
 add_module_names = False
 python_use_unqualified_type_names = True
 
+# Mock optional dependencies so ReadTheDocs doesn't crash on them
+autodoc_mock_imports = ["httpx"]
+
 # Show typehints in argument doc lines, but not in signatures
 autodoc_typehints = "description"
 
