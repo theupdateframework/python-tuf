@@ -366,7 +366,7 @@ class TestUpdater(unittest.TestCase):
     def test_update_root_symlink_oserror_fallback(
         self, mock_symlink: MagicMock
     ) -> None:
-        """Test fallback to copyfile when os.symlink raises OSError."""
+        """Test fallback to os.link when os.symlink raises OSError."""
         self.updater._update_root_symlink()
         mock_symlink.assert_called_once()
 

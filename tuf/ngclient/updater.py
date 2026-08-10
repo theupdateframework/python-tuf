@@ -372,8 +372,8 @@ class Updater:
         try:
             os.symlink(current, linkname)
         except OSError:
-            # fallback for windows "required privilege is not held by client"
-            shutil.copyfile(os.path.join(self._dir, current), linkname)
+            # Fallback for NTFS "required privilege is not held by client"
+            os.link(os.path.join(self._dir, current), linkname)
 
     def _load_root(self) -> None:
         """Load root metadata.
