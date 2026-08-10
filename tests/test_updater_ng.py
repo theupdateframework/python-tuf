@@ -362,11 +362,15 @@ class TestUpdater(unittest.TestCase):
 
         self.assertEqual(ua[:23], "MyApp/1.2.3 python-tuf/")
 
-    @patch("os.symlink", side_effect=OSError("Required privilege not held"))
+    @patch("os.symlink")
     def test_update_root_symlink_oserror_fallback(
         self, mock_symlink: MagicMock
     ) -> None:
         """Test fallback to os.link when os.symlink raises OSError."""
+        err = OSError("A required privilege is not held by the client")
+        err.winerror = 1314
+        mock_symlink.side_effect = err
+
         self.updater._update_root_symlink()
         mock_symlink.assert_called_once()
 

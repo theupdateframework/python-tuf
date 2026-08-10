@@ -371,9 +371,12 @@ class Updater:
             os.remove(linkname)
         try:
             os.symlink(current, linkname)
-        except OSError:
-            # Fallback for NTFS "required privilege is not held by client"
-            os.link(os.path.join(self._dir, current), linkname)
+        except OSError as e:
+            if getattr(e, "winerror", None) == 1314:
+                # Fallback for NTFS "required privilege is not held by client"
+                os.link(os.path.join(self._dir, current), linkname)
+            else:
+                raise
 
     def _load_root(self) -> None:
         """Load root metadata.
