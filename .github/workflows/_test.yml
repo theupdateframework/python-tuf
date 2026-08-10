@@ -67,8 +67,37 @@ jobs:
         run: |
           python3 -m pip install --constraint requirements/build.txt tox coveralls
 
-      - name: Run tox
+      - name: Run tox (non-Windows)
+        if: runner.os != 'Windows'
         run: tox -e py
+
+      - name: Run tox on Windows (unprivileged user without Developer Mode)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          # Disable Developer Mode in registry
+          Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" -Name "AllowDevelopmentWithoutDevLicense" -Value 0 -ErrorAction SilentlyContinue
+
+          # Create a non-admin local user
+          $secpasswd = ConvertTo-SecureString "Password123!" -AsPlainText -Force
+          $user = New-LocalUser -Name "testuser" -Password $secpasswd -FullName "Test User" -ErrorAction SilentlyContinue
+
+          # Grant testuser permission to workspace directory and ancestors
+          $curr = Get-Item $pwd
+          while ($curr -ne $null) {
+              $acl = Get-Acl $curr.FullName
+              $rule = New-Object System.Security.AccessControl.FileSystemAccessRule("testuser", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
+              $acl.AddAccessRule($rule)
+              Set-Acl $curr.FullName $acl
+              $curr = $curr.Parent
+          }
+
+          # Run tox as unprivileged user
+          $cred = New-Object System.Management.Automation.PSCredential ("testuser", $secpasswd)
+          $process = Start-Process -FilePath "tox" -ArgumentList "-e py" -Credential $cred -NoNewWindow -Wait -PassThru
+          if ($process.ExitCode -ne 0) {
+              exit $process.ExitCode
+          }
 
       - name: Publish on coveralls.io
         # A failure to publish coverage results on coveralls should not
