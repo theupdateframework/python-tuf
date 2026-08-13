@@ -348,15 +348,24 @@ class TestDelegationsGraphs(TestDelegations):
         )
         self._init_repo(test_case)
 
-        # release metadata is only signed by parent-a
+        # Client happy path: Both delegation paths work since release is signed
+        # by both parents
+        updater = self._init_updater()
+        target_a = updater.get_targetinfo("path-a")
+        self.assertIsNotNone(target_a)
+        target_b = updater.get_targetinfo("path-b")
+        self.assertIsNotNone(target_b)
+
+        # Create release v2: only signed by parent-a
         first_keyid = next(iter(self.sim.signers["release"].keys()))
         self.sim.signers["release"] = {
             first_keyid: self.sim.signers["release"][first_keyid]
         }
+        self.sim.md_delegates["release"].signed.version += 1
         self.sim.update_snapshot()
 
         # Client step 1: Get path-a targetinfo via parent-a -> release
-        # This primes TrustedMetadataSet to contain release metadata
+        # This primes TrustedMetadataSet to contain release v2
         updater = self._init_updater()
         target_a = updater.get_targetinfo("path-a")
         self.assertIsNotNone(target_a)
