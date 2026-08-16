@@ -137,6 +137,108 @@ class TestFetcher(unittest.TestCase):
             self.fetcher.fetch(self.url)
         mock_session_get.assert_called_once()
 
+    # Test retry on ReadTimeoutError during streaming
+    @patch.object(urllib3.PoolManager, "request")
+    def test_download_bytes_retry_on_streaming_timeout(
+        self, mock_request: Mock
+    ) -> None:
+        """Test that download_bytes retries when ReadTimeoutError occurs during streaming."""
+        mock_response_fail = Mock()
+        mock_response_fail.status = 200
+        mock_response_fail.stream.side_effect = (
+            urllib3.exceptions.ReadTimeoutError(
+                urllib3.connectionpool.ConnectionPool("localhost"),
+                "",
+                "Read timed out",
+            )
+        )
+
+        mock_response_success = Mock()
+        mock_response_success.status = 200
+        mock_response_success.stream.return_value = iter(
+            [self.file_contents[:4], self.file_contents[4:]]
+        )
+
+        mock_request.side_effect = [
+            mock_response_fail,
+            mock_response_fail,
+            mock_response_success,
+        ]
+
+        data = self.fetcher.download_bytes(self.url, self.file_length)
+        self.assertEqual(self.file_contents, data)
+        self.assertEqual(mock_request.call_count, 3)
+
+    # Test retry exhaustion
+    @patch.object(urllib3.PoolManager, "request")
+    def test_download_bytes_retry_exhaustion(self, mock_request: Mock) -> None:
+        """Test that download_bytes fails after exhausting all retries."""
+        # All attempts fail
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_response.stream.side_effect = urllib3.exceptions.ReadTimeoutError(
+            urllib3.connectionpool.ConnectionPool("localhost"),
+            "",
+            "Read timed out",
+        )
+        mock_request.return_value = mock_response
+
+        with self.assertRaises(exceptions.SlowRetrievalError):
+            self.fetcher.download_bytes(self.url, self.file_length)
+        # Should have been called 3 times (max_retries=3)
+        self.assertEqual(mock_request.call_count, 3)
+
+    # Test retry on ProtocolError during streaming
+    @patch.object(urllib3.PoolManager, "request")
+    def test_download_bytes_retry_on_protocol_error(
+        self, mock_request: Mock
+    ) -> None:
+        """Test that download_bytes retries when ProtocolError occurs during streaming."""
+        # First attempt fails with protocol error, second succeeds
+        mock_response_fail = Mock()
+        mock_response_fail.status = 200
+        mock_response_fail.stream.side_effect = (
+            urllib3.exceptions.ProtocolError("Connection broken")
+        )
+
+        mock_response_success = Mock()
+        mock_response_success.status = 200
+        mock_response_success.stream.return_value = iter(
+            [self.file_contents[:4], self.file_contents[4:]]
+        )
+
+        mock_request.side_effect = [
+            mock_response_fail,
+            mock_response_success,
+        ]
+
+        data = self.fetcher.download_bytes(self.url, self.file_length)
+        self.assertEqual(self.file_contents, data)
+        self.assertEqual(mock_request.call_count, 2)
+
+    # Test that non-timeout errors are not retried
+    @patch.object(urllib3.PoolManager, "request")
+    def test_download_bytes_no_retry_on_http_error(
+        self, mock_request: Mock
+    ) -> None:
+        """Test that download_bytes does not retry on HTTP errors like 404."""
+        mock_response = Mock()
+        mock_response.status = 404
+        mock_request.return_value = mock_response
+
+        with self.assertRaises(exceptions.DownloadHTTPError):
+            self.fetcher.download_bytes(self.url, self.file_length)
+        # Should only be called once, no retries
+        mock_request.assert_called_once()
+
+    # Test that length mismatch errors are not retried
+    def test_download_bytes_no_retry_on_length_mismatch(self) -> None:
+        """Test that download_bytes does not retry on length mismatch errors."""
+        # Try to download more data than the file contains
+        with self.assertRaises(exceptions.DownloadLengthMismatchError):
+            # File is self.file_length bytes, asking for less should fail
+            self.fetcher.download_bytes(self.url, self.file_length - 4)
+
     # Simple bytes download
     def test_download_bytes(self) -> None:
         data = self.fetcher.download_bytes(self.url, self.file_length)
