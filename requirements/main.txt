@@ -7,4 +7,4 @@
 # triggers CI/CD builds to automatically test against updated dependencies.
 #
 securesystemslib[crypto]
-urllib3
+urllib3~=2.0
