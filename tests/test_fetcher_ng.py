@@ -137,6 +137,25 @@ class TestFetcher(unittest.TestCase):
             self.fetcher.fetch(self.url)
         mock_session_get.assert_called_once()
 
+    # A non-timeout connection failure (e.g. TLS error) must surface as the
+    # original error, not be masked by an UnboundLocalError on "response".
+    @patch.object(
+        urllib3.PoolManager,
+        "request",
+        side_effect=urllib3.exceptions.MaxRetryError(
+            urllib3.connectionpool.ConnectionPool("localhost"),
+            "",
+            urllib3.exceptions.SSLError("certificate verify failed"),
+        ),
+    )
+    def test_session_get_ssl_error(self, mock_session_get: Mock) -> None:
+        with self.assertRaises(exceptions.DownloadError) as cm:
+            self.fetcher.fetch(self.url)
+        mock_session_get.assert_called_once()
+        self.assertIsInstance(
+            cm.exception.__cause__, urllib3.exceptions.MaxRetryError
+        )
+
     # Simple bytes download
     def test_download_bytes(self) -> None:
         data = self.fetcher.download_bytes(self.url, self.file_length)
