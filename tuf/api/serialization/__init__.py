@@ -1,4 +1,4 @@
-# Copyright New York University and the TUF contributors
+# Copyright 2021-2024, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 """``tuf.api.serialization`` module provides abstract base classes and concrete

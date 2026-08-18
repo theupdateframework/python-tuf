@@ -1,4 +1,4 @@
-# Copyright New York University and the TUF contributors
+# Copyright 2020-2025, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 """The low-level Metadata API.

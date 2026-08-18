@@ -1,3 +1,6 @@
+# Copyright 2021-2026, the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """Unit tests for 'tuf/ngclient/_internal/trusted_metadata_set.py'."""
 
 from __future__ import annotations

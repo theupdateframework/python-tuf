@@ -1,3 +1,6 @@
+# Copyright 2023-2025, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """Low-level TUF DSSE API. (experimental!)"""
 
 from __future__ import annotations

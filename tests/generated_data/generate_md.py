@@ -1,7 +1,7 @@
-"""Script for generating new metadata files."""
-
-# Copyright New York University and the TUF contributors
+# Copyright 2022-2024, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
+
+"""Script for generating new metadata files."""
 
 from __future__ import annotations
 
