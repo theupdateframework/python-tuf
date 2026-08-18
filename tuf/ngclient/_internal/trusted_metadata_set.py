@@ -1,4 +1,4 @@
-# Copyright the TUF contributors
+# Copyright 2021-2026, the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 """Trusted collection of client-side TUF Metadata.

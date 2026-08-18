@@ -103,7 +103,7 @@ class Updater:
         RepositoryError: Local root.json is invalid
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0917
         self,
         metadata_dir: str,
         metadata_base_url: str,

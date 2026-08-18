@@ -1,7 +1,7 @@
-"""Unit tests for 'tests/generated_data/generate_md.py'."""
-
-# Copyright New York University and the TUF contributors
+# Copyright 2022-2024, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
+
+"""Unit tests for 'tests/generated_data/generate_md.py'."""
 
 import sys
 import unittest

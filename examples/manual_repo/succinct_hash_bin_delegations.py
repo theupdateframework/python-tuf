@@ -1,4 +1,4 @@
-# Copyright New York University and the TUF contributors
+# Copyright 2022-2024, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 """
 A TUF succinct hash bin delegation example using the low-level TUF Metadata API.

@@ -1,4 +1,4 @@
-# Copyright the TUF contributors
+# Copyright 2020-2026, the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 
@@ -530,7 +530,7 @@ class Root(Signed, _DelegatorMixin):
 
     type = _ROOT
 
-    def __init__(
+    def __init__(  # noqa: PLR0917
         self,
         version: int | None = None,
         spec_version: str | None = None,
@@ -1089,7 +1089,7 @@ class DelegatedRole(Role):
         ValueError: Invalid arguments.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0917
         self,
         name: str,
         keyids: list[str],
@@ -1710,7 +1710,7 @@ class Targets(Signed, _DelegatorMixin):
 
     type = _TARGETS
 
-    def __init__(
+    def __init__(  # noqa: PLR0917
         self,
         version: int | None = None,
         spec_version: str | None = None,
