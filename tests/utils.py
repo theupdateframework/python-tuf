@@ -64,7 +64,11 @@ def run_sub_tests_with_dataset(
                 with test_cls.subTest(case=case):
                     # Save case name for future reference
                     test_cls.case_name = case.replace(" ", "_")
-                    function(test_cls, data)
+                    try:
+                        function(test_cls, data)
+                    finally:
+                        if hasattr(test_cls, "teardown_subtest"):
+                            test_cls.teardown_subtest()
 
         return wrapper
 
