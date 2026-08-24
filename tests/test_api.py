@@ -14,7 +14,7 @@ import unittest
 from copy import copy, deepcopy
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib.signer import (
@@ -47,6 +47,9 @@ from tuf.api.metadata import (
 )
 from tuf.api.serialization import DeserializationError, SerializationError
 from tuf.api.serialization.json import JSONSerializer
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -1110,6 +1113,51 @@ class TestMetadata(unittest.TestCase):
         # a DelegatedRole must now actually work as a set member / dict key
         role_set = {dr, dr2}
         self.assertEqual(len(role_set), 1)
+
+    def test_metadata_hash(self) -> None:
+        # Each of these __hash__ implementations passed a raw dict
+        # (unrecognized_fields, keys, roles, meta, targets, hashes,
+        # signatures) to hash(), which raises TypeError.
+        expires = datetime(2030, 1, 1, tzinfo=timezone.utc)
+        key = SSlibKey("kid1", "ed25519", "ed25519", {"public": "aa"})
+        delegated_role = DelegatedRole("r", ["kid1"], 1, False, ["*"], None)
+
+        factories: dict[str, Callable[[], object]] = {
+            "MetaFile": lambda: MetaFile(1, 10, {"sha256": "ab"}),
+            "TargetFile": lambda: TargetFile(10, {"sha256": "ab"}, "p"),
+            "Delegations": lambda: Delegations(
+                {"kid1": key}, {"r": delegated_role}
+            ),
+            "Root": lambda: Root(expires=expires),
+            "Timestamp": lambda: Timestamp(expires=expires),
+            "Snapshot": lambda: Snapshot(expires=expires),
+            "Targets": lambda: Targets(expires=expires),
+            "Metadata": lambda: Metadata(Snapshot(expires=expires)),
+        }
+
+        for name, factory in factories.items():
+            with self.subTest(name):
+                obj, equal_obj = factory(), factory()
+
+                self.assertIsInstance(hash(obj), int)
+
+                # equal objects must produce equal hashes (Python data model)
+                self.assertEqual(obj, equal_obj)
+                self.assertEqual(hash(obj), hash(equal_obj))
+
+                # the object must work as a set member / dict key
+                self.assertEqual(len({obj, equal_obj}), 1)
+
+    def test_metadata_hash_ignores_unrecognized_fields(self) -> None:
+        # unrecognized_fields holds arbitrary (possibly nested) JSON, so it is
+        # left out of __hash__. Objects differing only in unrecognized_fields
+        # are unequal but may share a hash, which the data model allows.
+        expires = datetime(2030, 1, 1, tzinfo=timezone.utc)
+        plain = Snapshot(expires=expires)
+        extra = Snapshot(expires=expires, unrecognized_fields={"a": ["b"]})
+
+        self.assertNotEqual(plain, extra)
+        self.assertIsInstance(hash(extra), int)
 
     def test_is_delegated_role_in_succinct_roles(self) -> None:
         succinct_roles = SuccinctRoles([], 1, 5, "bin")
