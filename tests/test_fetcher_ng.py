@@ -122,6 +122,46 @@ class TestFetcher(unittest.TestCase):
             next(self.fetcher.fetch(self.url))
         mock_response.stream.assert_called_once()
 
+    # urllib3 raises ReadTimeoutError directly when the gap timeout expires
+    # mid-stream: it is a TimeoutError but not a MaxRetryError, so it is not
+    # covered by the MaxRetryError case above.
+    @patch.object(urllib3.PoolManager, "request")
+    def test_response_read_timeout_error(self, mock_session_get: Mock) -> None:
+        mock_response = Mock()
+        mock_response.status = 200
+        attr = {
+            "stream.side_effect": urllib3.exceptions.ReadTimeoutError(
+                urllib3.connectionpool.ConnectionPool("localhost"),
+                "",
+                "Read timed out.",
+            )
+        }
+        mock_response.configure_mock(**attr)
+        mock_session_get.return_value = mock_response
+
+        with self.assertRaises(exceptions.SlowRetrievalError):
+            next(self.fetcher.fetch(self.url))
+        mock_response.stream.assert_called_once()
+
+    # The public download_* API documents DownloadError: a mid-stream timeout
+    # must not escape as a raw urllib3 error.
+    @patch.object(urllib3.PoolManager, "request")
+    def test_download_bytes_read_timeout(self, mock_session_get: Mock) -> None:
+        mock_response = Mock()
+        mock_response.status = 200
+        attr = {
+            "stream.side_effect": urllib3.exceptions.ReadTimeoutError(
+                urllib3.connectionpool.ConnectionPool("localhost"),
+                "",
+                "Read timed out.",
+            )
+        }
+        mock_response.configure_mock(**attr)
+        mock_session_get.return_value = mock_response
+
+        with self.assertRaises(exceptions.SlowRetrievalError):
+            self.fetcher.download_bytes(self.url, self.file_length)
+
     # Read/connect session timeout error
     @patch.object(
         urllib3.PoolManager,
