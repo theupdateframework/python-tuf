@@ -43,6 +43,36 @@ def can_connect(port: int) -> bool:
             sock.close()
 
 
+class TestRunSubTestsWithDataset(unittest.TestCase):
+    def test_teardown_subtest_runs_after_failure(self) -> None:
+        events = []
+
+        class SubTestCase(unittest.TestCase):
+            def teardown_subtest(self) -> None:
+                events.append(f"cleanup:{self.case_name}")
+
+            @utils.run_sub_tests_with_dataset(
+                {"failing": False, "passing": True}
+            )
+            def test_subtests(self, succeeds: bool) -> None:
+                events.append(f"run:{self.case_name}")
+                self.assertTrue(succeeds)
+
+        result = unittest.TestResult()
+        SubTestCase("test_subtests").run(result)
+
+        self.assertEqual(
+            [
+                "run:failing",
+                "cleanup:failing",
+                "run:passing",
+                "cleanup:passing",
+            ],
+            events,
+        )
+        self.assertEqual(len(result.failures), 1)
+
+
 class TestServerProcess(unittest.TestCase):
     """Test functionality provided in TestServerProcess from tests/utils.py."""
 
