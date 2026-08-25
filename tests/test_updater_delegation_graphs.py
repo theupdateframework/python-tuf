@@ -330,6 +330,52 @@ class TestDelegationsGraphs(TestDelegations):
         finally:
             self.teardown_subtest()
 
+    def test_shared_delegation_signature_check(self) -> None:
+        """Test that a role delegated by multiple parents is signature-checked
+        for each delegator link.
+        """
+        test_case = DelegationsTestCase(
+            delegations=[
+                TestDelegation("targets", "parent-a", paths=["path-a"]),
+                TestDelegation("targets", "parent-b", paths=["path-b"]),
+                TestDelegation("parent-a", "release", paths=["path-a"]),
+                TestDelegation("parent-b", "release", paths=["path-b"]),
+            ],
+            target_files=[
+                TestTarget("release", b"content-a", "path-a"),
+                TestTarget("release", b"malicious-content-b", "path-b"),
+            ],
+        )
+        self._init_repo(test_case)
+
+        # Client happy path: Both delegation paths work since release is signed
+        # by both parents
+        updater = self._init_updater()
+        target_a = updater.get_targetinfo("path-a")
+        self.assertIsNotNone(target_a)
+        target_b = updater.get_targetinfo("path-b")
+        self.assertIsNotNone(target_b)
+
+        # Create release v2: only signed by parent-a
+        first_keyid = next(iter(self.sim.signers["release"].keys()))
+        self.sim.signers["release"] = {
+            first_keyid: self.sim.signers["release"][first_keyid]
+        }
+        self.sim.md_delegates["release"].signed.version += 1
+        self.sim.update_snapshot()
+
+        # Client step 1: Get path-a targetinfo via parent-a -> release
+        # This primes TrustedMetadataSet to contain release v2
+        updater = self._init_updater()
+        target_a = updater.get_targetinfo("path-a")
+        self.assertIsNotNone(target_a)
+
+        # Client step 2: Get path-b targetinfo via parent-b -> release
+        # Must fail because release while loaded in TrustedMetadataSet, is not signed
+        # by parent-b's keys
+        with self.assertRaises(UnsignedMetadataError):
+            updater.get_targetinfo("path-b")
+
     def test_safely_encoded_rolenames(self) -> None:
         """Test that delegated roles names are safely encoded in the filenames
         and URLs.

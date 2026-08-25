@@ -152,6 +152,19 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
         self.assertTrue(count, 6)
 
+    def test_contains(self) -> None:
+        self.assertFalse(self.trusted_set.contains("role1", Targets.type))
+
+        self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
+        self.trusted_set.update_snapshot(self.metadata[Snapshot.type])
+        self.trusted_set.update_targets(self.metadata[Targets.type])
+        self.trusted_set.update_delegated_targets(
+            self.metadata["role1"], "role1", Targets.type
+        )
+
+        self.assertTrue(self.trusted_set.contains("role1", Targets.type))
+        self.assertFalse(self.trusted_set.contains("role1", "other-parent"))
+
     def test_update_metadata_output(self) -> None:
         timestamp = self.trusted_set.update_timestamp(
             self.metadata["timestamp"]
