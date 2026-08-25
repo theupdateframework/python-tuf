@@ -846,7 +846,12 @@ class MetaFile(BaseFile):
         )
 
     def __hash__(self) -> int:
-        return hash((self.version, self.length))
+        hashes = (
+            tuple(sorted(self.hashes.items()))
+            if self.hashes is not None
+            else None
+        )
+        return hash((self.version, self.length, hashes))
 
     @classmethod
     def from_dict(cls, meta_dict: dict[str, Any]) -> MetaFile:
@@ -1027,7 +1032,7 @@ class Snapshot(Signed):
         return super().__eq__(other) and self.meta == other.meta
 
     def __hash__(self) -> int:
-        return hash((super().__hash__(), len(self.meta)))
+        return hash((super().__hash__(), tuple(sorted(self.meta.items()))))
 
     @classmethod
     def from_dict(cls, signed_dict: dict[str, Any]) -> Snapshot:
@@ -1588,7 +1593,9 @@ class TargetFile(BaseFile):
         )
 
     def __hash__(self) -> int:
-        return hash((self.length, self.path))
+        return hash(
+            (self.length, self.path, tuple(sorted(self.hashes.items())))
+        )
 
     @classmethod
     def from_dict(cls, target_dict: dict[str, Any], path: str) -> TargetFile:
@@ -1734,7 +1741,13 @@ class Targets(Signed, _DelegatorMixin):
         )
 
     def __hash__(self) -> int:
-        return hash((super().__hash__(), len(self.targets), self.delegations))
+        return hash(
+            (
+                super().__hash__(),
+                tuple(sorted(self.targets.items())),
+                self.delegations,
+            )
+        )
 
     @classmethod
     def from_dict(cls, signed_dict: dict[str, Any]) -> Targets:

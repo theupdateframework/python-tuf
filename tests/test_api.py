@@ -1148,6 +1148,42 @@ class TestMetadata(unittest.TestCase):
                 # the object must work as a set member / dict key
                 self.assertEqual(len({obj, equal_obj}), 1)
 
+    def test_metadata_hash_covers_content(self) -> None:
+        # Objects that differ only in their contained collections must not
+        # collide: the file hashes identify a MetaFile/TargetFile, and meta
+        # and targets identify a Snapshot/Targets.
+        expires = datetime(2030, 1, 1, tzinfo=timezone.utc)
+
+        pairs = {
+            "MetaFile": (
+                MetaFile(1, 10, {"sha256": "aa"}),
+                MetaFile(1, 10, {"sha256": "bb"}),
+            ),
+            "TargetFile": (
+                TargetFile(10, {"sha256": "aa"}, "f"),
+                TargetFile(10, {"sha256": "bb"}, "f"),
+            ),
+            "Snapshot": (
+                Snapshot(expires=expires, meta={"a.json": MetaFile(1)}),
+                Snapshot(expires=expires, meta={"b.json": MetaFile(2)}),
+            ),
+            "Targets": (
+                Targets(
+                    expires=expires,
+                    targets={"a": TargetFile(1, {"sha256": "aa"}, "a")},
+                ),
+                Targets(
+                    expires=expires,
+                    targets={"b": TargetFile(2, {"sha256": "bb"}, "b")},
+                ),
+            ),
+        }
+
+        for name, (first, second) in pairs.items():
+            with self.subTest(name):
+                self.assertNotEqual(first, second)
+                self.assertNotEqual(hash(first), hash(second))
+
     def test_metadata_hash_ignores_unrecognized_fields(self) -> None:
         # unrecognized_fields holds arbitrary (possibly nested) JSON, so it is
         # left out of __hash__. Objects differing only in unrecognized_fields
