@@ -54,6 +54,22 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _sslib_hashable() -> bool:
+    """Return True if securesystemslib Key objects can be hashed.
+
+    Metadata containing Key or Signature objects is only hashable once
+    securesystemslib makes those hashable.
+    """
+    try:
+        hash(SSlibKey("kid", "ed25519", "ed25519", {"public": "aa"}))
+    except TypeError:
+        return False
+    return True
+
+
+SSLIB_HASHABLE = _sslib_hashable()
+
+
 class TestMetadata(unittest.TestCase):
     """Tests for public API of all classes in 'tuf/api/metadata.py'."""
 
@@ -1121,6 +1137,12 @@ class TestMetadata(unittest.TestCase):
         expires = datetime(2030, 1, 1, tzinfo=timezone.utc)
         key = SSlibKey("kid1", "ed25519", "ed25519", {"public": "aa"})
         delegated_role = DelegatedRole("r", ["kid1"], 1, False, ["*"], None)
+        signature = Signature("kid1", "abcd")
+
+        def root_with_key() -> Root:
+            root = Root(expires=expires)
+            root.add_key(key, "targets")
+            return root
 
         factories: dict[str, Callable[[], object]] = {
             "MetaFile": lambda: MetaFile(1, 10, {"sha256": "ab"}),
@@ -1128,15 +1150,24 @@ class TestMetadata(unittest.TestCase):
             "Delegations": lambda: Delegations(
                 {"kid1": key}, {"r": delegated_role}
             ),
-            "Root": lambda: Root(expires=expires),
+            "Root": root_with_key,
             "Timestamp": lambda: Timestamp(expires=expires),
             "Snapshot": lambda: Snapshot(expires=expires),
             "Targets": lambda: Targets(expires=expires),
-            "Metadata": lambda: Metadata(Snapshot(expires=expires)),
+            "Metadata": lambda: Metadata(
+                Snapshot(expires=expires), {"kid1": signature}
+            ),
         }
+
+        # Metadata holding securesystemslib Key or Signature objects cannot be
+        # hashed until those are hashable in securesystemslib itself.
+        needs_sslib_hashing = {"Root", "Delegations", "Metadata"}
 
         for name, factory in factories.items():
             with self.subTest(name):
+                if name in needs_sslib_hashing and not SSLIB_HASHABLE:
+                    self.skipTest("securesystemslib Key/Signature not hashable")
+
                 obj, equal_obj = factory(), factory()
 
                 self.assertIsInstance(hash(obj), int)
