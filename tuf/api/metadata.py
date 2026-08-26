@@ -148,7 +148,10 @@ class Metadata(Generic[T]):
         )
 
     def __hash__(self) -> int:
-        return hash((self.signatures, self.signed, self.unrecognized_fields))
+        # Convert dict to tuple of sorted items for hashability
+        # Exclude unrecognized_fields as it can hold arbitrary nested JSON
+        signatures = tuple(sorted(self.signatures.items()))
+        return hash((signatures, self.signed))
 
     @property
     def signed_bytes(self) -> bytes:

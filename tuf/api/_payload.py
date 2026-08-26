@@ -182,13 +182,13 @@ class Signed(metaclass=abc.ABCMeta):
         )
 
     def __hash__(self) -> int:
+        # Exclude unrecognized_fields as it can hold arbitrary nested JSON
         return hash(
             (
                 self.type,
                 self.version,
                 self.spec_version,
                 self.expires,
-                self.unrecognized_fields,
             )
         )
 
@@ -562,13 +562,16 @@ class Root(Signed, _DelegatorMixin):
         )
 
     def __hash__(self) -> int:
+        # Convert dicts to tuples of sorted items for hashability
+        # Exclude unrecognized_fields as it can hold arbitrary nested JSON
+        keys = tuple(sorted((k, v) for k, v in self.keys.items()))
+        roles = tuple(sorted((k, v) for k, v in self.roles.items()))
         return hash(
             (
                 super().__hash__(),
-                self.keys,
-                self.roles,
+                keys,
+                roles,
                 self.consistent_snapshot,
-                self.unrecognized_fields,
             )
         )
 
@@ -848,9 +851,13 @@ class MetaFile(BaseFile):
         )
 
     def __hash__(self) -> int:
-        return hash(
-            (self.version, self.length, self.hashes, self.unrecognized_fields)
-        )
+        # Convert dict to tuple of sorted items for hashability
+        # Exclude unrecognized_fields as it can hold arbitrary nested JSON
+        if self.hashes is not None:
+            hashes = tuple(sorted(self.hashes.items()))
+        else:
+            hashes = None
+        return hash((self.version, self.length, hashes))
 
     @classmethod
     def from_dict(cls, meta_dict: dict[str, Any]) -> MetaFile:
@@ -1031,7 +1038,9 @@ class Snapshot(Signed):
         return super().__eq__(other) and self.meta == other.meta
 
     def __hash__(self) -> int:
-        return hash((super().__hash__(), self.meta))
+        # Convert dict to tuple of sorted items for hashability
+        meta = tuple(sorted((k, v) for k, v in self.meta.items()))
+        return hash((super().__hash__(), meta))
 
     @classmethod
     def from_dict(cls, signed_dict: dict[str, Any]) -> Snapshot:
@@ -1461,14 +1470,15 @@ class Delegations:
         return all_attributes_check
 
     def __hash__(self) -> int:
-        return hash(
-            (
-                self.keys,
-                self.roles,
-                self.succinct_roles,
-                self.unrecognized_fields,
-            )
+        # Convert dicts to tuples of sorted items for hashability
+        # Exclude unrecognized_fields as it can hold arbitrary nested JSON
+        keys = tuple(sorted((k, v) for k, v in self.keys.items()))
+        roles = (
+            tuple(sorted((k, v) for k, v in self.roles.items()))
+            if self.roles is not None
+            else None
         )
+        return hash((keys, roles, self.succinct_roles))
 
     @classmethod
     def from_dict(cls, delegations_dict: dict[str, Any]) -> Delegations:
@@ -1592,9 +1602,10 @@ class TargetFile(BaseFile):
         )
 
     def __hash__(self) -> int:
-        return hash(
-            (self.length, self.hashes, self.path, self.unrecognized_fields)
-        )
+        # Convert dict to tuple of sorted items for hashability
+        # Exclude unrecognized_fields as it can hold arbitrary nested JSON
+        hashes = tuple(sorted(self.hashes.items()))
+        return hash((self.length, hashes, self.path))
 
     @classmethod
     def from_dict(cls, target_dict: dict[str, Any], path: str) -> TargetFile:
@@ -1740,7 +1751,9 @@ class Targets(Signed, _DelegatorMixin):
         )
 
     def __hash__(self) -> int:
-        return hash((super().__hash__(), self.targets, self.delegations))
+        # Convert dict to tuple of sorted items for hashability
+        targets = tuple(sorted((k, v) for k, v in self.targets.items()))
+        return hash((super().__hash__(), targets, self.delegations))
 
     @classmethod
     def from_dict(cls, signed_dict: dict[str, Any]) -> Targets:
