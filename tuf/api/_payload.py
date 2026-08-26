@@ -1466,7 +1466,7 @@ class Delegations:
             (
                 tuple(sorted(self.keys)),
                 # Order of the delegated roles matters (see __eq__)
-                tuple(self.roles) if self.roles is not None else None,
+                tuple(self.roles.items()) if self.roles is not None else None,
                 self.succinct_roles,
             )
         )
