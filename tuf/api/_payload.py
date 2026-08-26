@@ -565,7 +565,7 @@ class Root(Signed, _DelegatorMixin):
             (
                 super().__hash__(),
                 tuple(sorted(self.keys)),
-                tuple(sorted(self.roles)),
+                tuple(sorted(self.roles.items())),
                 self.consistent_snapshot,
             )
         )
