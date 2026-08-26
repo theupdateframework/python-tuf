@@ -1464,7 +1464,7 @@ class Delegations:
     def __hash__(self) -> int:
         return hash(
             (
-                tuple(sorted(self.keys)),
+                tuple(sorted(self.keys.items())),
                 # Order of the delegated roles matters (see __eq__)
                 tuple(self.roles.items()) if self.roles is not None else None,
                 self.succinct_roles,
