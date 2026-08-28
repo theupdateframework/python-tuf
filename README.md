@@ -28,6 +28,14 @@ Python-TUF provides the following APIs:
 The reference implementation strives to be a readable guide and demonstration
 for those working on implementing TUF in their own languages, environments, or
 update systems.
+## Table of Contents
+
+- [About The Update Framework](#about-the-update-framework)
+- [Documentation](#documentation)
+- [Contact](#contact)
+- [Security Issues and Bugs](#security-issues-and-bugs)
+- [License](#license)
+- [Acknowledgements](#acknowledgements)
 
 
 About The Update Framework
