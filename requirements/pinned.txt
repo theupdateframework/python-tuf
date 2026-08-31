@@ -10,7 +10,7 @@ cryptography==50.0.0
     # via securesystemslib
 pycparser==3.0
     # via cffi
-securesystemslib==1.4.0
+securesystemslib==1.5.0
     # via -r requirements/main.txt
 urllib3==2.7.0
     # via -r requirements/main.txt
