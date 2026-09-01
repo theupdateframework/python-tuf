@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## v7.0.1
+
+### Fixed
+
+* Fix hash method on Role and DelegatedRole (#2973)
+* Fix incorrect dependency range for urllib3 (#2990)
+* ngclient: Fix connection exception handling (#2964, #2993)
+* ngclient: Fix incorrect delegation in diamond-shape case (#2978)
+* ngclient: Avoid use of symlink on Windows: it requires privileges (#2981)
+
 ## v7.0.0
 
 This is a major release only because of a minor ngclient API tweak: there
