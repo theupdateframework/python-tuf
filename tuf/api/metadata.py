@@ -148,7 +148,7 @@ class Metadata(Generic[T]):
         )
 
     def __hash__(self) -> int:
-        return hash((self.signatures, self.signed, self.unrecognized_fields))
+        return hash((tuple(self.signatures.items()), self.signed))
 
     @property
     def signed_bytes(self) -> bytes:
