@@ -252,8 +252,9 @@ class Signed(metaclass=abc.ABCMeta):
         """Check metadata expiration against a reference time.
 
         Args:
-            reference_time: Time to check expiration date against. A naive
-                datetime in UTC expected. Default is current UTC date and time.
+            reference_time: Time to check expiration date against. A
+                timezone-aware datetime is expected. Default is current UTC
+                date and time.
 
         Returns:
             ``True`` if expiration time is less than the reference time.
