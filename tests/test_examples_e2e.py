@@ -83,10 +83,18 @@ class TestExamplesEnd2End(unittest.TestCase):
 
         self.env = os.environ.copy()
         self.env["HOME"] = self.test_dir
-        self.env["PYTHONPATH"] = os.pathsep.join(
+        # The example scripts import their sibling modules, so the example
+        # directories go on PYTHONPATH. Prepend rather than replace: the test
+        # runner may already be using PYTHONPATH to make tuf itself importable,
+        # and dropping it leaves the subprocess unable to import tuf at all.
+        example_paths = [
             str(self.examples_dir / name)
             for name in ("repository", "uploader", "client")
-        )
+        ]
+        existing_pythonpath = self.env.get("PYTHONPATH")
+        if existing_pythonpath:
+            example_paths.append(existing_pythonpath)
+        self.env["PYTHONPATH"] = os.pathsep.join(example_paths)
 
         self._stopped_output = None
         self._start_server()
