@@ -34,6 +34,7 @@ from tuf.api.metadata import (
     Delegations,
     Metadata,
     MetaFile,
+    Role,
     Root,
     RootVerificationResult,
     Signature,
@@ -1081,6 +1082,34 @@ class TestMetadata(unittest.TestCase):
             role = DelegatedRole("", [], 1, False, None, hash_prefixes)
             self.assertFalse(role.is_delegated_path("a/non-matching path"))
             self.assertTrue(role.is_delegated_path("a/path"))
+
+    def test_role_and_delegated_role_hash(self) -> None:
+        # Role.__hash__ previously tried to hash self.keyids (a list) and
+        # self.unrecognized_fields (a dict), both unhashable, so hash()
+        # crashed with TypeError for every Role subclass.
+        role = Role(["keyid1", "keyid2"], 1)
+        self.assertIsInstance(hash(role), int)
+
+        # equal objects must produce equal hashes (Python data model)
+        role2 = Role(["keyid1", "keyid2"], 1)
+        self.assertEqual(role, role2)
+        self.assertEqual(hash(role), hash(role2))
+
+        # DelegatedRole.__hash__ also referenced a non-existent 'path'
+        # attribute (the real attribute is 'paths'); verify it's hashable
+        # with both paths and path_hash_prefixes variants.
+        dr = DelegatedRole("role1", [], 1, False, ["*"], None)
+        self.assertIsInstance(hash(dr), int)
+        dr2 = DelegatedRole("role1", [], 1, False, ["*"], None)
+        self.assertEqual(dr, dr2)
+        self.assertEqual(hash(dr), hash(dr2))
+
+        dr_prefix = DelegatedRole("role2", [], 1, False, None, ["abc"])
+        self.assertIsInstance(hash(dr_prefix), int)
+
+        # a DelegatedRole must now actually work as a set member / dict key
+        role_set = {dr, dr2}
+        self.assertEqual(len(role_set), 1)
 
     def test_is_delegated_role_in_succinct_roles(self) -> None:
         succinct_roles = SuccinctRoles([], 1, 5, "bin")

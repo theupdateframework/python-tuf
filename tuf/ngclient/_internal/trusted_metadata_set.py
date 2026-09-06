@@ -1,4 +1,4 @@
-# Copyright the TUF contributors
+# Copyright 2021-2026, the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 """Trusted collection of client-side TUF Metadata.
@@ -115,6 +115,7 @@ class TrustedMetadataSet(abc.Mapping):
                 error type and content will contain more details.
         """
         self._trusted_set: dict[str, Signed] = {}
+        self._trusted_delegations: set[tuple[str, str]] = set()
         self.reference_time = datetime.datetime.now(datetime.timezone.utc)
 
         if envelope_type is EnvelopeType.SIMPLE:
@@ -126,6 +127,17 @@ class TrustedMetadataSet(abc.Mapping):
         # metadata is required
         logger.debug("Updating initial trusted root")
         self._load_trusted_root(root_data)
+
+    def contains(self, role: str, delegator: str) -> bool:
+        """Check if ``role`` is in ``TrustedMetadataSet`` and was verified
+        against ``delegator``.
+        """
+        return (delegator, role) in self._trusted_delegations
+
+    def _add(self, role: str, signed: Signed, delegator: str) -> None:
+        """Add role to trusted set, keep track of delegator(s)"""
+        self._trusted_set[role] = signed
+        self._trusted_delegations.add((delegator, role))
 
     def __getitem__(self, role: str) -> Signed:
         """Return current ``Signed`` for ``role``."""
@@ -196,7 +208,7 @@ class TrustedMetadataSet(abc.Mapping):
         # Verify that new root is signed by itself
         new_root.verify_delegate(Root.type, new_root_bytes, new_root_signatures)
 
-        self._trusted_set[Root.type] = new_root
+        self._add(Root.type, new_root, Root.type)
         logger.debug("Updated root v%d", new_root.version)
 
         return new_root
@@ -259,7 +271,7 @@ class TrustedMetadataSet(abc.Mapping):
         # expiry not checked to allow old timestamp to be used for rollback
         # protection of new timestamp: expiry is checked in update_snapshot()
 
-        self._trusted_set[Timestamp.type] = new_timestamp
+        self._add(Timestamp.type, new_timestamp, Root.type)
         logger.debug("Updated timestamp v%d", new_timestamp.version)
 
         # timestamp is loaded: raise if it is not valid _final_ timestamp
@@ -346,7 +358,7 @@ class TrustedMetadataSet(abc.Mapping):
         # expiry not checked to allow old snapshot to be used for rollback
         # protection of new snapshot: it is checked when targets is updated
 
-        self._trusted_set[Snapshot.type] = new_snapshot
+        self._add(Snapshot.type, new_snapshot, Root.type)
         logger.debug("Updated snapshot v%d", new_snapshot.version)
 
         # snapshot is loaded, but we raise if it's not valid _final_ snapshot
@@ -434,7 +446,7 @@ class TrustedMetadataSet(abc.Mapping):
         if new_delegate.is_expired(self.reference_time):
             raise exceptions.ExpiredMetadataError(f"New {role_name} is expired")
 
-        self._trusted_set[role_name] = new_delegate
+        self._add(role_name, new_delegate, delegator_name)
         logger.debug("Updated %s v%d", role_name, version)
 
         return new_delegate
@@ -450,7 +462,7 @@ class TrustedMetadataSet(abc.Mapping):
         )
         new_root.verify_delegate(Root.type, new_root_bytes, new_root_signatures)
 
-        self._trusted_set[Root.type] = new_root
+        self._add(Root.type, new_root, Root.type)
         logger.debug("Loaded trusted root v%d", new_root.version)
 
 

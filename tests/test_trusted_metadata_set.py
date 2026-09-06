@@ -1,3 +1,6 @@
+# Copyright 2021-2026, the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """Unit tests for 'tuf/ngclient/_internal/trusted_metadata_set.py'."""
 
 from __future__ import annotations
@@ -148,6 +151,19 @@ class TestTrustedMetadataSet(unittest.TestCase):
             count += 1
 
         self.assertTrue(count, 6)
+
+    def test_contains(self) -> None:
+        self.assertFalse(self.trusted_set.contains("role1", Targets.type))
+
+        self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
+        self.trusted_set.update_snapshot(self.metadata[Snapshot.type])
+        self.trusted_set.update_targets(self.metadata[Targets.type])
+        self.trusted_set.update_delegated_targets(
+            self.metadata["role1"], "role1", Targets.type
+        )
+
+        self.assertTrue(self.trusted_set.contains("role1", Targets.type))
+        self.assertFalse(self.trusted_set.contains("role1", "other-parent"))
 
     def test_update_metadata_output(self) -> None:
         timestamp = self.trusted_set.update_timestamp(

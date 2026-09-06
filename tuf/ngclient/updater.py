@@ -103,7 +103,7 @@ class Updater:
         RepositoryError: Local root.json is invalid
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0917
         self,
         metadata_dir: str,
         metadata_base_url: str,
@@ -369,7 +369,14 @@ class Updater:
         current = os.path.join("root_history", f"{version}.root.json")
         with contextlib.suppress(FileNotFoundError):
             os.remove(linkname)
-        os.symlink(current, linkname)
+        try:
+            os.symlink(current, linkname)
+        except OSError as e:
+            if getattr(e, "winerror", None) == 1314:
+                # Fallback for NTFS "required privilege is not held by client"
+                os.link(os.path.join(self._dir, current), linkname)
+            else:
+                raise
 
     def _load_root(self) -> None:
         """Load root metadata.
@@ -462,8 +469,8 @@ class Updater:
     def _load_targets(self, role: str, parent_role: str) -> Targets:
         """Load local (and if needed remote) metadata for ``role``."""
 
-        # Avoid loading 'role' more than once during "get_targetinfo"
-        if role in self._trusted_set:
+        # Avoid loading 'role' more than once for the same parent_role
+        if self._trusted_set.contains(role, parent_role):
             return cast("Targets", self._trusted_set[role])
 
         try:

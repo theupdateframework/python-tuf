@@ -82,6 +82,9 @@ class Urllib3Fetcher(FetcherInterface):
         except urllib3.exceptions.MaxRetryError as e:
             if isinstance(e.reason, urllib3.exceptions.TimeoutError):
                 raise exceptions.SlowRetrievalError from e
+            # Any other reason (e.g. TLS or connection error): let the original
+            # error propagate instead of falling through to an unbound response.
+            raise
 
         if response.status >= 400:
             response.close()
@@ -103,9 +106,16 @@ class Urllib3Fetcher(FetcherInterface):
 
         try:
             yield from response.stream(self.chunk_size)
+        except urllib3.exceptions.TimeoutError as e:
+            # Raised directly when the gap timeout expires mid-stream:
+            # ReadTimeoutError is a TimeoutError but not a MaxRetryError.
+            raise exceptions.SlowRetrievalError from e
         except urllib3.exceptions.MaxRetryError as e:
             if isinstance(e.reason, urllib3.exceptions.TimeoutError):
                 raise exceptions.SlowRetrievalError from e
+            # Any other reason: propagate rather than ending the stream
+            # silently, which would look like a complete download.
+            raise
 
         finally:
             response.release_conn()

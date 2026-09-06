@@ -126,23 +126,20 @@ class TestConsistentSnapshot(unittest.TestCase):
     ) -> None:
         # Test if the client fetches and stores metadata files with the
         # correct version prefix, depending on 'consistent_snapshot' config
-        try:
-            consistent_snapshot: bool = test_case_data["consistent_snapshot"]
-            exp_calls: list[Any] = test_case_data["calls"]
+        consistent_snapshot: bool = test_case_data["consistent_snapshot"]
+        exp_calls: list[Any] = test_case_data["calls"]
 
-            self.setup_subtest(consistent_snapshot)
-            updater = self._init_updater()
+        self.setup_subtest(consistent_snapshot)
+        updater = self._init_updater()
 
-            # cleanup fetch tracker metadata
-            self.sim.fetch_tracker.metadata.clear()
-            updater.refresh()
+        # cleanup fetch tracker metadata
+        self.sim.fetch_tracker.metadata.clear()
+        updater.refresh()
 
-            # metadata files are fetched with the expected version (or None)
-            self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
-            # metadata files are always persisted without a version prefix
-            self._assert_metadata_files_exist(TOP_LEVEL_ROLE_NAMES)
-        finally:
-            self.teardown_subtest()
+        # metadata files are fetched with the expected version (or None)
+        self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
+        # metadata files are always persisted without a version prefix
+        self._assert_metadata_files_exist(TOP_LEVEL_ROLE_NAMES)
 
     delegated_roles_data = {
         "consistent_snaphot disabled": {
@@ -161,35 +158,30 @@ class TestConsistentSnapshot(unittest.TestCase):
     ) -> None:
         # Test if the client fetches and stores delegated metadata files with
         # the correct version prefix, depending on 'consistent_snapshot' config
-        try:
-            consistent_snapshot: bool = test_case_data["consistent_snapshot"]
-            exp_version: int | None = test_case_data["expected_version"]
-            rolenames = ["role1", "..", "."]
-            exp_calls = [(role, exp_version) for role in rolenames]
+        consistent_snapshot: bool = test_case_data["consistent_snapshot"]
+        exp_version: int | None = test_case_data["expected_version"]
+        rolenames = ["role1", "..", "."]
+        exp_calls = [(role, exp_version) for role in rolenames]
 
-            self.setup_subtest(consistent_snapshot)
-            # Add new delegated targets
-            spec_version = ".".join(SPECIFICATION_VERSION)
-            for role in rolenames:
-                delegated_role = DelegatedRole(role, [], 1, False, ["*"], None)
-                targets = Targets(
-                    1, spec_version, self.sim.safe_expiry, {}, None
-                )
-                self.sim.add_delegation("targets", delegated_role, targets)
-            self.sim.update_snapshot()
-            updater = self._init_updater()
-            updater.refresh()
+        self.setup_subtest(consistent_snapshot)
+        # Add new delegated targets
+        spec_version = ".".join(SPECIFICATION_VERSION)
+        for role in rolenames:
+            delegated_role = DelegatedRole(role, [], 1, False, ["*"], None)
+            targets = Targets(1, spec_version, self.sim.safe_expiry, {}, None)
+            self.sim.add_delegation("targets", delegated_role, targets)
+        self.sim.update_snapshot()
+        updater = self._init_updater()
+        updater.refresh()
 
-            # cleanup fetch tracker metadata
-            self.sim.fetch_tracker.metadata.clear()
-            # trigger updater to fetch the delegated metadata
-            updater.get_targetinfo("anything")
-            # metadata files are fetched with the expected version (or None)
-            self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
-            # metadata files are always persisted without a version prefix
-            self._assert_metadata_files_exist(rolenames)
-        finally:
-            self.teardown_subtest()
+        # cleanup fetch tracker metadata
+        self.sim.fetch_tracker.metadata.clear()
+        # trigger updater to fetch the delegated metadata
+        updater.get_targetinfo("anything")
+        # metadata files are fetched with the expected version (or None)
+        self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
+        # metadata files are always persisted without a version prefix
+        self._assert_metadata_files_exist(rolenames)
 
     targets_download_data = {
         "consistent_snaphot disabled": {
@@ -217,40 +209,37 @@ class TestConsistentSnapshot(unittest.TestCase):
         # Test if the client fetches and stores target files with
         # the correct hash prefix, depending on 'consistent_snapshot'
         # and 'prefix_targets_with_hash' config
-        try:
-            consistent_snapshot: bool = test_case_data["consistent_snapshot"]
-            prefix_targets_with_hash: bool = test_case_data["prefix_targets"]
-            hash_algo: str | None = test_case_data["hash_algo"]
-            targetpaths: list[str] = test_case_data["targetpaths"]
+        consistent_snapshot: bool = test_case_data["consistent_snapshot"]
+        prefix_targets_with_hash: bool = test_case_data["prefix_targets"]
+        hash_algo: str | None = test_case_data["hash_algo"]
+        targetpaths: list[str] = test_case_data["targetpaths"]
 
-            self.setup_subtest(consistent_snapshot, prefix_targets_with_hash)
-            # Add targets to repository
-            for targetpath in targetpaths:
-                self.sim.targets.version += 1
-                self.sim.add_target("targets", b"content", targetpath)
-            self.sim.update_snapshot()
+        self.setup_subtest(consistent_snapshot, prefix_targets_with_hash)
+        # Add targets to repository
+        for targetpath in targetpaths:
+            self.sim.targets.version += 1
+            self.sim.add_target("targets", b"content", targetpath)
+        self.sim.update_snapshot()
 
-            updater = self._init_updater()
-            updater.config.prefix_targets_with_hash = prefix_targets_with_hash
-            updater.refresh()
+        updater = self._init_updater()
+        updater.config.prefix_targets_with_hash = prefix_targets_with_hash
+        updater.refresh()
 
-            for path in targetpaths:
-                info = updater.get_targetinfo(path)
-                assert isinstance(info, TargetFile)
-                updater.download_target(info)
+        for path in targetpaths:
+            info = updater.get_targetinfo(path)
+            assert isinstance(info, TargetFile)
+            updater.download_target(info)
 
-                # target files are always persisted without hash prefix
-                self._assert_targets_files_exist([info.path])
+            # target files are always persisted without hash prefix
+            self._assert_targets_files_exist([info.path])
 
-                # files are fetched with the expected hash prefix (or None)
-                exp_calls = [
-                    (path, None if not hash_algo else info.hashes[hash_algo])
-                ]
+            # files are fetched with the expected hash prefix (or None)
+            exp_calls = [
+                (path, None if not hash_algo else info.hashes[hash_algo])
+            ]
 
-                self.assertListEqual(self.sim.fetch_tracker.targets, exp_calls)
-                self.sim.fetch_tracker.targets.clear()
-        finally:
-            self.teardown_subtest()
+            self.assertListEqual(self.sim.fetch_tracker.targets, exp_calls)
+            self.sim.fetch_tracker.targets.clear()
 
 
 if __name__ == "__main__":

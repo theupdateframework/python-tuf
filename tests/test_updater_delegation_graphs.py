@@ -264,32 +264,29 @@ class TestDelegationsGraphs(TestDelegations):
         """Test that delegated roles are traversed in the order of appearance
         in the delegator's metadata, using pre-order depth-first search"""
 
-        try:
-            exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order]
-            exp_calls = [(role, 1) for role in test_data.visited_order]
+        exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order]
+        exp_calls = [(role, 1) for role in test_data.visited_order]
 
-            self._init_repo(test_data)
-            self.setup_subtest()
+        self._init_repo(test_data)
+        self.setup_subtest()
 
-            updater = self._init_updater()
-            # restrict the max number of delegations to simplify the test
-            updater.config.max_delegations = 4
-            # Call explicitly refresh to simplify the expected_calls list
-            updater.refresh()
-            self.sim.fetch_tracker.metadata.clear()
-            # Check that metadata dir contains only top-level roles
-            self._assert_files_exist(TOP_LEVEL_ROLE_NAMES)
+        updater = self._init_updater()
+        # restrict the max number of delegations to simplify the test
+        updater.config.max_delegations = 4
+        # Call explicitly refresh to simplify the expected_calls list
+        updater.refresh()
+        self.sim.fetch_tracker.metadata.clear()
+        # Check that metadata dir contains only top-level roles
+        self._assert_files_exist(TOP_LEVEL_ROLE_NAMES)
 
-            # Looking for a non-existing targetpath forces updater
-            # to visit all possible delegated roles
-            targetfile = updater.get_targetinfo("missingpath")
-            self.assertIsNone(targetfile)
-            # Check that the delegated roles were visited in the expected
-            # order and the corresponding metadata files were persisted
-            self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
-            self._assert_files_exist(exp_files)
-        finally:
-            self.teardown_subtest()
+        # Looking for a non-existing targetpath forces updater
+        # to visit all possible delegated roles
+        targetfile = updater.get_targetinfo("missingpath")
+        self.assertIsNone(targetfile)
+        # Check that the delegated roles were visited in the expected
+        # order and the corresponding metadata files were persisted
+        self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
+        self._assert_files_exist(exp_files)
 
     invalid_metadata = {
         "unsigned delegated role": DelegationsTestCase(
@@ -305,30 +302,73 @@ class TestDelegationsGraphs(TestDelegations):
 
     @utils.run_sub_tests_with_dataset(invalid_metadata)
     def test_invalid_metadata(self, test_data: DelegationsTestCase) -> None:
-        try:
-            self._init_repo(test_data)
-            # The invalid role is the last visited
-            invalid_role = test_data.visited_order[-1]
-            self.sim.signers[invalid_role].clear()
+        self._init_repo(test_data)
+        # The invalid role is the last visited
+        invalid_role = test_data.visited_order[-1]
+        self.sim.signers[invalid_role].clear()
 
-            self.setup_subtest()
-            # The invalid role metadata must not be persisted
-            exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order[:-1]]
-            exp_calls = [(role, 1) for role in test_data.visited_order]
+        self.setup_subtest()
+        # The invalid role metadata must not be persisted
+        exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order[:-1]]
+        exp_calls = [(role, 1) for role in test_data.visited_order]
 
-            updater = self._init_updater()
-            # Call explicitly refresh to simplify the expected_calls list
-            updater.refresh()
-            self.sim.fetch_tracker.metadata.clear()
+        updater = self._init_updater()
+        # Call explicitly refresh to simplify the expected_calls list
+        updater.refresh()
+        self.sim.fetch_tracker.metadata.clear()
 
-            with self.assertRaises(UnsignedMetadataError):
-                updater.get_targetinfo("missingpath")
-            # Check that there were no visited roles after the invalid one
-            # and only the valid metadata files were persisted
-            self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
-            self._assert_files_exist(exp_files)
-        finally:
-            self.teardown_subtest()
+        with self.assertRaises(UnsignedMetadataError):
+            updater.get_targetinfo("missingpath")
+        # Check that there were no visited roles after the invalid one
+        # and only the valid metadata files were persisted
+        self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
+        self._assert_files_exist(exp_files)
+
+    def test_shared_delegation_signature_check(self) -> None:
+        """Test that a role delegated by multiple parents is signature-checked
+        for each delegator link.
+        """
+        test_case = DelegationsTestCase(
+            delegations=[
+                TestDelegation("targets", "parent-a", paths=["path-a"]),
+                TestDelegation("targets", "parent-b", paths=["path-b"]),
+                TestDelegation("parent-a", "release", paths=["path-a"]),
+                TestDelegation("parent-b", "release", paths=["path-b"]),
+            ],
+            target_files=[
+                TestTarget("release", b"content-a", "path-a"),
+                TestTarget("release", b"malicious-content-b", "path-b"),
+            ],
+        )
+        self._init_repo(test_case)
+
+        # Client happy path: Both delegation paths work since release is signed
+        # by both parents
+        updater = self._init_updater()
+        target_a = updater.get_targetinfo("path-a")
+        self.assertIsNotNone(target_a)
+        target_b = updater.get_targetinfo("path-b")
+        self.assertIsNotNone(target_b)
+
+        # Create release v2: only signed by parent-a
+        first_keyid = next(iter(self.sim.signers["release"].keys()))
+        self.sim.signers["release"] = {
+            first_keyid: self.sim.signers["release"][first_keyid]
+        }
+        self.sim.md_delegates["release"].signed.version += 1
+        self.sim.update_snapshot()
+
+        # Client step 1: Get path-a targetinfo via parent-a -> release
+        # This primes TrustedMetadataSet to contain release v2
+        updater = self._init_updater()
+        target_a = updater.get_targetinfo("path-a")
+        self.assertIsNotNone(target_a)
+
+        # Client step 2: Get path-b targetinfo via parent-b -> release
+        # Must fail because release while loaded in TrustedMetadataSet, is not signed
+        # by parent-b's keys
+        with self.assertRaises(UnsignedMetadataError):
+            updater.get_targetinfo("path-b")
 
     def test_safely_encoded_rolenames(self) -> None:
         """Test that delegated roles names are safely encoded in the filenames
@@ -398,34 +438,31 @@ class TestDelegationsGraphs(TestDelegations):
         in the delegator's metadata, using pre-order depth-first search and that
         they correctly refer to the corresponding hash bin prefixes"""
 
-        try:
-            exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order]
-            exp_calls = [(role, 1) for role in test_data.visited_order]
+        exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order]
+        exp_calls = [(role, 1) for role in test_data.visited_order]
 
-            self._init_repo(test_data)
-            self.setup_subtest()
+        self._init_repo(test_data)
+        self.setup_subtest()
 
-            updater = self._init_updater()
-            # Call explicitly refresh to simplify the expected_calls list
-            updater.refresh()
-            self.sim.fetch_tracker.metadata.clear()
-            # Check that metadata dir contains only top-level roles
-            self._assert_files_exist(TOP_LEVEL_ROLE_NAMES)
+        updater = self._init_updater()
+        # Call explicitly refresh to simplify the expected_calls list
+        updater.refresh()
+        self.sim.fetch_tracker.metadata.clear()
+        # Check that metadata dir contains only top-level roles
+        self._assert_files_exist(TOP_LEVEL_ROLE_NAMES)
 
-            # Looking for a non-existing targetpath forces updater
-            # to visit a correspondning delegated role
-            targetfile = updater.get_targetinfo("missingpath")
-            self.assertIsNone(targetfile)
-            targetfile = updater.get_targetinfo("othermissingpath")
-            self.assertIsNone(targetfile)
-            targetfile = updater.get_targetinfo("thirdmissingpath")
-            self.assertIsNone(targetfile)
-            # Check that the delegated roles were visited in the expected
-            # order and the corresponding metadata files were persisted
-            self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
-            self._assert_files_exist(exp_files)
-        finally:
-            self.teardown_subtest()
+        # Looking for a non-existing targetpath forces updater
+        # to visit a correspondning delegated role
+        targetfile = updater.get_targetinfo("missingpath")
+        self.assertIsNone(targetfile)
+        targetfile = updater.get_targetinfo("othermissingpath")
+        self.assertIsNone(targetfile)
+        targetfile = updater.get_targetinfo("thirdmissingpath")
+        self.assertIsNone(targetfile)
+        # Check that the delegated roles were visited in the expected
+        # order and the corresponding metadata files were persisted
+        self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
+        self._assert_files_exist(exp_files)
 
     @dataclass
     class SuccinctRolesTestCase:
@@ -482,35 +519,31 @@ class TestDelegationsGraphs(TestDelegations):
         # successful traversal all top level metadata files plus the expected
         # bin should exist locally and only one bin must be downloaded.
 
-        try:
-            exp_files = [*TOP_LEVEL_ROLE_NAMES, test_data.expected_target_bin]
-            exp_calls = [(test_data.expected_target_bin, 1)]
+        exp_files = [*TOP_LEVEL_ROLE_NAMES, test_data.expected_target_bin]
+        exp_calls = [(test_data.expected_target_bin, 1)]
 
-            self.sim = RepositorySimulator()
-            self.sim.add_succinct_roles("targets", test_data.bit_length, "bin")
-            self.sim.update_snapshot()
+        self.sim = RepositorySimulator()
+        self.sim.add_succinct_roles("targets", test_data.bit_length, "bin")
+        self.sim.update_snapshot()
 
-            self.setup_subtest()
+        self.setup_subtest()
 
-            updater = self._init_updater()
-            # Call explicitly refresh to simplify the expected_calls list.
-            updater.refresh()
-            self.sim.fetch_tracker.metadata.clear()
-            # Check that metadata dir contains only top-level roles
-            self._assert_files_exist(TOP_LEVEL_ROLE_NAMES)
+        updater = self._init_updater()
+        # Call explicitly refresh to simplify the expected_calls list.
+        updater.refresh()
+        self.sim.fetch_tracker.metadata.clear()
+        # Check that metadata dir contains only top-level roles
+        self._assert_files_exist(TOP_LEVEL_ROLE_NAMES)
 
-            # Looking for a non-existing targetpath forces updater
-            # to visit a corresponding delegated role.
-            targetfile = updater.get_targetinfo(test_data.target_path)
-            self.assertIsNone(targetfile)
+        # Looking for a non-existing targetpath forces updater
+        # to visit a corresponding delegated role.
+        targetfile = updater.get_targetinfo(test_data.target_path)
+        self.assertIsNone(targetfile)
 
-            # Check that the delegated roles were visited in the expected
-            # order and the corresponding metadata files were persisted.
-            self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
-            self._assert_files_exist(exp_files)
-
-        finally:
-            self.teardown_subtest()
+        # Check that the delegated roles were visited in the expected
+        # order and the corresponding metadata files were persisted.
+        self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
+        self._assert_files_exist(exp_files)
 
 
 class TestTargetFileSearch(TestDelegations):
@@ -564,29 +597,26 @@ class TestTargetFileSearch(TestDelegations):
 
     @utils.run_sub_tests_with_dataset(targets)
     def test_targetfile_search(self, test_data: TargetTestCase) -> None:
-        try:
-            self.setup_subtest()
-            exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order]
-            exp_calls = [(role, 1) for role in test_data.visited_order]
-            exp_target = self.sim.target_files[test_data.targetpath].target_file
+        self.setup_subtest()
+        exp_files = [*TOP_LEVEL_ROLE_NAMES, *test_data.visited_order]
+        exp_calls = [(role, 1) for role in test_data.visited_order]
+        exp_target = self.sim.target_files[test_data.targetpath].target_file
 
-            updater = self._init_updater()
-            # Call explicitly refresh to simplify the expected_calls list
-            updater.refresh()
-            self.sim.fetch_tracker.metadata.clear()
-            target = updater.get_targetinfo(test_data.targetpath)
-            if target is not None:
-                # Confirm that the expected TargetFile is found
-                self.assertTrue(test_data.found)
-                self.assertDictEqual(target.to_dict(), exp_target.to_dict())
-            else:
-                self.assertFalse(test_data.found)
-            # Check that the delegated roles were visited in the expected
-            # order and the corresponding metadata files were persisted
-            self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
-            self._assert_files_exist(exp_files)
-        finally:
-            self.teardown_subtest()
+        updater = self._init_updater()
+        # Call explicitly refresh to simplify the expected_calls list
+        updater.refresh()
+        self.sim.fetch_tracker.metadata.clear()
+        target = updater.get_targetinfo(test_data.targetpath)
+        if target is not None:
+            # Confirm that the expected TargetFile is found
+            self.assertTrue(test_data.found)
+            self.assertDictEqual(target.to_dict(), exp_target.to_dict())
+        else:
+            self.assertFalse(test_data.found)
+        # Check that the delegated roles were visited in the expected
+        # order and the corresponding metadata files were persisted
+        self.assertListEqual(self.sim.fetch_tracker.metadata, exp_calls)
+        self._assert_files_exist(exp_files)
 
 
 if __name__ == "__main__":

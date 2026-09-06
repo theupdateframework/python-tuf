@@ -11,12 +11,12 @@ jobs:
 
     steps:
       - name: Checkout TUF
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Python (oldest supported version)
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.10"
           cache: 'pip'
@@ -50,12 +50,12 @@ jobs:
 
     steps:
       - name: Checkout TUF
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
@@ -67,8 +67,37 @@ jobs:
         run: |
           python3 -m pip install --constraint requirements/build.txt tox coveralls
 
-      - name: Run tox
+      - name: Run tox (non-Windows)
+        if: runner.os != 'Windows'
         run: tox -e py
+
+      - name: Run tox on Windows (unprivileged user without Developer Mode)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          # Disable Developer Mode in registry
+          Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" -Name "AllowDevelopmentWithoutDevLicense" -Value 0 -ErrorAction SilentlyContinue
+
+          # Create a non-admin local user
+          $secpasswd = ConvertTo-SecureString "Password123!" -AsPlainText -Force
+          $user = New-LocalUser -Name "testuser" -Password $secpasswd -FullName "Test User" -ErrorAction SilentlyContinue
+
+          # Grant testuser permission to workspace directory and ancestors
+          $curr = Get-Item $pwd
+          while ($curr -ne $null) {
+              $acl = Get-Acl $curr.FullName
+              $rule = New-Object System.Security.AccessControl.FileSystemAccessRule("testuser", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
+              $acl.AddAccessRule($rule)
+              Set-Acl $curr.FullName $acl
+              $curr = $curr.Parent
+          }
+
+          # Run tox as unprivileged user
+          $cred = New-Object System.Management.Automation.PSCredential ("testuser", $secpasswd)
+          $process = Start-Process -FilePath "tox" -ArgumentList "-e py" -Credential $cred -NoNewWindow -Wait -PassThru
+          if ($process.ExitCode -ne 0) {
+              exit $process.ExitCode
+          }
 
       - name: Publish on coveralls.io
         # A failure to publish coverage results on coveralls should not
@@ -99,7 +128,7 @@ jobs:
         run: touch requirements.txt
 
       - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.x'
           cache: 'pip'
