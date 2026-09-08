@@ -10,7 +10,7 @@ permissions: {}
 
 jobs:
   test:
-    uses: ./.github/workflows/_test.yml
+    uses: $/.github/workflows/_test.yml
 
   build:
     name: Build
