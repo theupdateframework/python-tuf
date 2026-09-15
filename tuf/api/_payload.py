@@ -1428,7 +1428,11 @@ class Delegations:
 
         if roles is not None:
             for role in roles:
-                if not role or role in TOP_LEVEL_ROLE_NAMES:
+                # Compare case-insensitively: the client stores delegated
+                # metadata as "<quoted rolename>.json", and quoting leaves
+                # ASCII letters alone, so "Root" and "root" are the same file
+                # on a case-insensitive filesystem.
+                if not role or role.lower() in TOP_LEVEL_ROLE_NAMES:
                     raise ValueError(
                         "Delegated roles cannot be empty or use top-level "
                         "role names"

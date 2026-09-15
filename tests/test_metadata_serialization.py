@@ -490,6 +490,11 @@ class TestSerialization(unittest.TestCase):
                 {"keyids": ["keyid1"], "name": "b", "terminating": true, "paths": ["fn1"], "threshold": 3}, \
                 {"keyids": ["keyid2"], "name": "root", "terminating": true, "paths": ["fn2"], "threshold": 4} ] \
             }',
+        "using top-level role name in a different case": '{"keys": { \
+                "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
+            "roles": [ \
+                {"keyids": ["keyid1"], "name": "Root", "terminating": true, "paths": ["fn1"], "threshold": 3}] \
+            }',
         "roles and succinct_roles set": '{"keys": { \
                 "keyid1" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}, \
                 "keyid2" : {"keytype": "ed25519", "scheme": "ed25519", "keyval": {"public": "bar"}}}, \

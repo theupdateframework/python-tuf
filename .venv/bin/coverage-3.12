@@ -1,0 +1,6 @@
+#!/private/tmp/claude-501/-Users-arpitjain-Downloads-code-opensource-guru/26dcf4a8-e3c1-4a1d-9ba4-7aba6b9aa61c/scratchpad/ptuf/.venv/bin/python3.12
+import sys
+from coverage.cmdline import main_deprecated
+if __name__ == '__main__':
+    sys.argv[0] = sys.argv[0].removesuffix('.exe')
+    sys.exit(main_deprecated())
