@@ -10,7 +10,19 @@ import os
 import shutil
 import sys
 
+from securesystemslib.signer import KEY_FOR_TYPE_AND_SCHEME, SSlibKey
+
 from tuf.ngclient import Updater
+
+# ML-DSA is not in securesystemslib default verifiers yet in v1.5.0:
+# enable it in the conformance client
+KEY_FOR_TYPE_AND_SCHEME.update(
+    {
+        ("ml-dsa", "ml-dsa-44/1"): SSlibKey,
+        ("ml-dsa", "ml-dsa-65/1"): SSlibKey,
+        ("ml-dsa", "ml-dsa-87/1"): SSlibKey,
+    }
+)
 
 
 def init(metadata_dir: str, trusted_root: str) -> None:
