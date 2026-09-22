@@ -6,9 +6,9 @@
 # Lint tools
 # (We are not so interested in the specific versions of the tools: the versions
 # are pinned to prevent unexpected linting failures when tools update)
-ruff==0.16.6
+ruff==0.16.7
 mypy==2.3.1
-zizmor==1.30.0
+zizmor==1.30.1
 
 # Required for type stubs
 freezegun==1.5.5
