@@ -119,6 +119,51 @@ class TestFetchTarget(unittest.TestCase):
         self.assertEqual(path, updater.find_cached_target(info))
         self.assertEqual(path, updater.find_cached_target(info, path))
 
+    @utils.run_sub_tests_with_dataset(targets)
+    def test_fetch_target_bytes(self, target: TestTarget) -> None:
+        path = os.path.join(self.targets_dir, target.encoded_path)
+
+        # Add target to repository
+        self.sim.targets.version += 1
+        self.sim.add_target("targets", target.content, target.path)
+        self.sim.update_snapshot()
+
+        updater = self._init_updater()
+        info = updater.get_targetinfo(target.path)
+        assert info is not None
+
+        # download_target_bytes returns the verified content
+        self.assertEqual(target.content, updater.download_target_bytes(info))
+
+        # ...and does not touch the local cache
+        self.assertFalse(os.path.exists(path))
+        self.assertIsNone(updater.find_cached_target(info))
+
+    def test_invalid_target_download_bytes(self) -> None:
+        target = TestTarget("targetpath", b"content", "targetpath")
+
+        # Add target to repository
+        self.sim.targets.version += 1
+        self.sim.add_target("targets", target.content, target.path)
+        self.sim.update_snapshot()
+
+        updater = self._init_updater()
+        info = updater.get_targetinfo(target.path)
+        assert info is not None
+
+        # Corrupt the file content to not match the hash
+        self.sim.target_files[target.path].data = b"conten@"
+        with self.assertRaises(RepositoryError):
+            updater.download_target_bytes(info)
+
+        # Corrupt the file content to not match the length
+        self.sim.target_files[target.path].data = b"cont"
+        with self.assertRaises(RepositoryError):
+            updater.download_target_bytes(info)
+
+        # Verify nothing is persisted in cache
+        self.assertIsNone(updater.find_cached_target(info))
+
     def test_download_targets_with_succinct_roles(self) -> None:
         self.sim.add_succinct_roles("targets", 8, "bin")
         self.sim.update_snapshot()
