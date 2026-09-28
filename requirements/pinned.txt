@@ -12,5 +12,5 @@ pycparser==3.0
     # via cffi
 securesystemslib==1.5.1
     # via -r requirements/main.txt
-urllib3==2.7.0
+urllib3==2.8.0
     # via -r requirements/main.txt
