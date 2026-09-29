@@ -367,16 +367,23 @@ class Updater:
         linkname = os.path.join(self._dir, "root.json")
         version = self._trusted_set.root.version
         current = os.path.join("root_history", f"{version}.root.json")
-        with contextlib.suppress(FileNotFoundError):
-            os.remove(linkname)
+
+        temp_name = f"{linkname}.tmp"
         try:
-            os.symlink(current, linkname)
-        except OSError as e:
-            if getattr(e, "winerror", None) == 1314:
+            with contextlib.suppress(FileNotFoundError):
+                os.remove(temp_name)
+            try:
+                os.symlink(current, temp_name)
+            except OSError as e:
+                if getattr(e, "winerror", None) != 1314:
+                    raise
                 # Fallback for NTFS "required privilege is not held by client"
-                os.link(os.path.join(self._dir, current), linkname)
-            else:
-                raise
+                os.link(os.path.join(self._dir, current), temp_name)
+            os.replace(temp_name, linkname)
+        except OSError:
+            with contextlib.suppress(FileNotFoundError):
+                os.remove(temp_name)
+            raise
 
     def _load_root(self) -> None:
         """Load root metadata.
