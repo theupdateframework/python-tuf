@@ -87,10 +87,14 @@ class TestExamplesEnd2End(unittest.TestCase):
         # directories go on PYTHONPATH. Prepend rather than replace: the test
         # runner may already be using PYTHONPATH to make tuf itself importable,
         # and dropping it leaves the subprocess unable to import tuf at all.
+        # The repo root goes on too: when tuf is not installed into the
+        # environment the test process imports it from the checkout via the
+        # current directory, and the subprocess runs with cwd=test_dir.
         example_paths = [
             str(self.examples_dir / name)
             for name in ("repository", "uploader", "client")
         ]
+        example_paths.append(str(self.examples_dir.parent))
         existing_pythonpath = self.env.get("PYTHONPATH")
         if existing_pythonpath:
             example_paths.append(existing_pythonpath)
