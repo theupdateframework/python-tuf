@@ -11,6 +11,7 @@ import os
 import sys
 import tempfile
 import unittest
+from dataclasses import FrozenInstanceError, replace
 from datetime import timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -37,7 +38,7 @@ from tuf.api.metadata import (
     Targets,
     Timestamp,
 )
-from tuf.ngclient import Updater
+from tuf.ngclient import Updater, UpdaterConfig
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -76,7 +77,11 @@ class TestRefresh(unittest.TestCase):
         updater.refresh()
         return updater
 
-    def _init_updater(self, skip_bootstrap: bool = False) -> Updater:
+    def _init_updater(
+        self,
+        skip_bootstrap: bool = False,
+        config: UpdaterConfig | None = None,
+    ) -> Updater:
         """Create a new Updater instance"""
         if self.dump_dir is not None:
             self.sim.write()
@@ -87,6 +92,7 @@ class TestRefresh(unittest.TestCase):
             self.targets_dir,
             "https://example.com/targets/",
             self.sim,
+            config=config,
             bootstrap=None if skip_bootstrap else self.sim.signed_roots[0],
         )
 
@@ -183,8 +189,7 @@ class TestRefresh(unittest.TestCase):
     def test_max_root_rotations(self) -> None:
         # Root must stop looking for new versions after Y number of
         # intermediate files were downloaded.
-        updater = self._init_updater()
-        updater.config.max_root_rotations = 3
+        updater = self._init_updater(config=UpdaterConfig(max_root_rotations=3))
 
         # Create some number of roots greater than 'max_root_rotations'
         while self.sim.root.version < updater.config.max_root_rotations + 3:
@@ -200,6 +205,30 @@ class TestRefresh(unittest.TestCase):
         self._assert_version_equals(
             Root.type, initial_root_version + updater.config.max_root_rotations
         )
+
+    def test_configuration_is_immutable(self) -> None:
+        config = UpdaterConfig(max_root_rotations=3)
+        updater = self._init_updater(config=config)
+        self.assertIs(updater.config, config)
+        field_name = "max_root_rotations"
+        config_attribute = "config"
+
+        for refresh in (False, True):
+            with self.subTest(refresh=refresh):
+                if refresh:
+                    updater.refresh()
+                with self.assertRaises(FrozenInstanceError):
+                    setattr(config, field_name, 10)
+                with self.assertRaises(FrozenInstanceError):
+                    setattr(updater.config, field_name, 10)
+                with self.assertRaises(AttributeError):
+                    setattr(updater, config_attribute, UpdaterConfig())
+                self.assertEqual(updater.config.max_root_rotations, 3)
+
+        # A new configuration can be derived without changing the old one.
+        new_config = replace(config, max_root_rotations=10)
+        self.assertEqual(new_config.max_root_rotations, 10)
+        self.assertEqual(config.max_root_rotations, 3)
 
     def test_intermediate_root_incorrectly_signed(self) -> None:
         # Check for an arbitrary software attack
@@ -855,16 +884,15 @@ class TestRefresh(unittest.TestCase):
         self.sim.root.version += 1
         self.sim.publish_root()
 
-        config_vars = [
-            "root_max_length",
-            "timestamp_max_length",
-            "snapshot_max_length",
-            "targets_max_length",
+        configs = [
+            UpdaterConfig(root_max_length=100),
+            UpdaterConfig(timestamp_max_length=100),
+            UpdaterConfig(snapshot_max_length=100),
+            UpdaterConfig(targets_max_length=100),
         ]
         # make sure going over any length limit raises DownloadLengthMismatchError
-        for var_name in config_vars:
-            updater = self._init_updater()
-            setattr(updater.config, var_name, 100)
+        for config in configs:
+            updater = self._init_updater(config=config)
             with self.assertRaises(DownloadLengthMismatchError):
                 updater.refresh()
 

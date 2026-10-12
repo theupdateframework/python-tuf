@@ -22,7 +22,7 @@ from tuf.api.metadata import (
     DelegatedRole,
     Targets,
 )
-from tuf.ngclient import Updater
+from tuf.ngclient import Updater, UpdaterConfig
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -118,7 +118,7 @@ class TestDelegations(unittest.TestCase):
             self.sim.targets.version += 1
         self.sim.update_snapshot()
 
-    def _init_updater(self) -> Updater:
+    def _init_updater(self, config: UpdaterConfig | None = None) -> Updater:
         """Create a new Updater instance"""
         return Updater(
             self.metadata_dir,
@@ -126,6 +126,7 @@ class TestDelegations(unittest.TestCase):
             self.targets_dir,
             "https://example.com/targets/",
             self.sim,
+            config=config,
             bootstrap=self.sim.signed_roots[0],
         )
 
@@ -270,9 +271,8 @@ class TestDelegationsGraphs(TestDelegations):
         self._init_repo(test_data)
         self.setup_subtest()
 
-        updater = self._init_updater()
         # restrict the max number of delegations to simplify the test
-        updater.config.max_delegations = 4
+        updater = self._init_updater(config=UpdaterConfig(max_delegations=4))
         # Call explicitly refresh to simplify the expected_calls list
         updater.refresh()
         self.sim.fetch_tracker.metadata.clear()
