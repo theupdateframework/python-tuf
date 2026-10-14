@@ -91,7 +91,8 @@ class Updater:
         fetcher: ``Optional``; ``FetcherInterface`` implementation used to
             download both metadata and targets. Default is ``Urllib3Fetcher``
         config: ``Optional``; ``UpdaterConfig`` could be used to setup common
-            configuration options.
+            configuration options. Configuration cannot be changed after
+            initialization: create a new ``Updater`` to use different options.
         bootstrap: Initial root metadata bytes. This argument is required.
             Pass the embedded root metadata bytes for secure initialization.
             Pass ``None`` only if you explicitly want to use the cached
@@ -122,7 +123,7 @@ class Updater:
         else:
             self._target_base_url = _ensure_trailing_slash(target_base_url)
 
-        self.config = config or UpdaterConfig()
+        self._config = config or UpdaterConfig()
         if fetcher is not None:
             self._fetcher = fetcher
         else:
@@ -146,6 +147,11 @@ class Updater:
         )
         self._persist_root(self._trusted_set.root.version, bootstrap)
         self._update_root_symlink()
+
+    @property
+    def config(self) -> UpdaterConfig:
+        """Read-only configuration used for this Updater's lifetime."""
+        return self._config
 
     def refresh(self) -> None:
         """Refresh top-level metadata.
