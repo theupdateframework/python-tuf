@@ -1385,6 +1385,11 @@ class SuccinctRoles(Role):
         except ValueError:
             return False
 
+        # int() also accepts a sign, surrounding whitespace, underscores and
+        # upper case digits: only accept the exact name get_roles() produces
+        if suffix != f"{num:0{self.suffix_len}x}":
+            return False
+
         return 0 <= num < self.number_of_bins
 
 
