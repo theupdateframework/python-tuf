@@ -8,7 +8,7 @@ cffi==2.1.1
     # via cryptography
 cryptography==50.0.2
     # via securesystemslib
-pycparser==3.0
+pycparser==3.11
     # via cffi
 securesystemslib==1.5.1
     # via -r requirements/main.txt
