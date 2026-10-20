@@ -41,10 +41,13 @@ from tests import utils
 _METADATA_URL = "metadata"
 
 
-# Number of times to retry starting the server on a fresh port. A retry is
-# only needed if another process grabs the port in the small window between
-# _get_free_port() releasing it and the server binding it, which is rare.
+# Number of times to start the server before giving up. A restart is needed
+# when another process grabs the port in the small window between
+# _get_free_port() releasing it and the server binding it.
 _MAX_SERVER_STARTS = 5
+
+# Total budget for getting a server up, across restarts.
+_SERVER_START_TIMEOUT = 10
 
 
 def _get_free_port() -> int:
@@ -106,12 +109,16 @@ class TestExamplesEnd2End(unittest.TestCase):
     def _start_server(self) -> None:
         """Start the repository example and wait until it serves metadata.
 
-        The server is started as a subprocess on a free port. If it loses the
-        race for that port (another process binds it first) the subprocess
-        exits with "Address already in use"; in that case we pick a new port
-        and try again rather than reporting a misleading connection timeout.
+        The server is started as a subprocess on a free port and is given
+        _SERVER_START_TIMEOUT to bind that port and answer for root metadata.
+        A subprocess that loses the race for the port exits with "Address
+        already in use"; that is retried on a fresh port, as long as there is
+        budget left, rather than reported as a readiness failure. A subprocess
+        that dies for any other reason is reported immediately, since starting
+        it again would only repeat the same crash.
         """
         repo_script = self.examples_dir / "repository" / "repo"
+        deadline = time.monotonic() + _SERVER_START_TIMEOUT
         for attempt in range(_MAX_SERVER_STARTS):
             self.port = _get_free_port()
             self.base_url = f"http://{utils.TEST_HOST_ADDRESS}:{self.port}"
@@ -125,31 +132,39 @@ class TestExamplesEnd2End(unittest.TestCase):
                 stderr=subprocess.STDOUT,
             )
 
-            if self._wait_for_root():
+            listening = self._wait_for_port(deadline)
+            if listening and self._wait_for_root(deadline):
                 # Tear the server down at the end of the test.
                 self.addCleanup(self._stop_server)
                 return
 
-            # The server never served root metadata. Stop it (which drains its
-            # output) before deciding whether to retry.
+            # Stop the server (which drains its output) before deciding
+            # whether to retry.
             exited_early = self.server.poll() is not None
+            returncode = self.server.returncode
             self._stop_server()
             output = self._server_output()
 
-            # A lost race for the port shows up as a bind failure: retry on a
-            # fresh port rather than reporting a misleading connection timeout.
+            lost_port_race = exited_early and "Address already in use" in output
             if (
-                exited_early
-                and "Address already in use" in output
+                lost_port_race
                 and attempt + 1 < _MAX_SERVER_STARTS
+                and time.monotonic() < deadline
             ):
                 continue
 
-            reason = (
-                f"exited early with code {self.server.returncode}"
-                if exited_early
-                else "did not serve root metadata in time"
-            )
+            if exited_early:
+                reason = f"exited early with code {returncode}"
+            elif not listening:
+                reason = (
+                    f"did not start listening on port {self.port} within "
+                    f"{_SERVER_START_TIMEOUT}s"
+                )
+            else:
+                reason = (
+                    "started listening but did not serve root metadata "
+                    f"within {_SERVER_START_TIMEOUT}s"
+                )
             self.fail(f"repository example {reason}:\n{output}")
 
     def _rmtree(self, path: str) -> None:
@@ -171,22 +186,43 @@ class TestExamplesEnd2End(unittest.TestCase):
             )
             self.server.stdout.close()
 
-    def _wait_for_root(self, timeout: int = 10) -> bool:
+    def _wait_for_port(self, deadline: float) -> bool:
+        """Poll until the server accepts connections on its port.
+
+        Returns False if the deadline passes or the server process exits
+        first, so the caller can tell a server that never bound apart from one
+        that bound but never served.
+        """
+        address = (utils.TEST_HOST_ADDRESS, self.port)
+        while time.monotonic() < deadline:
+            if self.server.poll() is not None:
+                # Server exited; let the caller inspect its output.
+                return False
+            try:
+                with socket.create_connection(address, timeout=1):
+                    return True
+            except OSError:
+                # Not listening yet (ECONNREFUSED on every platform we test).
+                time.sleep(0.05)
+        return False
+
+    def _wait_for_root(self, deadline: float) -> bool:
         """Poll until the server serves 1.root.json.
 
         Returns True once the server answers with the initial root metadata.
-        Returns False if the server process exits before then (so the caller
-        can retry on a new port) or if the timeout is reached without the
-        server ever exiting (a genuine readiness failure).
+        Returns False if the server process exits before then or the deadline
+        passes.
         """
-        deadline = time.monotonic() + timeout
         url = f"{self.base_url}/{_METADATA_URL}/1.root.json"
         while time.monotonic() < deadline:
             if self.server.poll() is not None:
                 # Server exited; let the caller inspect its output.
                 return False
             try:
-                response = urllib3.request("GET", url)
+                # The example accepts connections before its request loop
+                # runs, so bound the wait for a response and do not let
+                # urllib3 spend the deadline on its own retries.
+                response = urllib3.request("GET", url, timeout=1, retries=False)
                 if response.status == 200:
                     return True
             except urllib3.exceptions.HTTPError:
