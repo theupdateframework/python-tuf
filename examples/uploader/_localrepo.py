@@ -10,7 +10,7 @@ import copy
 import json
 import logging
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from securesystemslib.signer import CryptoSigner, Signer
 from urllib3 import request
@@ -87,7 +87,7 @@ class LocalRepository(Repository):
         signer = Signer.from_priv_key_uri(uri, public_key)
 
         md.signed.version += 1
-        md.signed.expires = datetime.now(timezone.utc) + self.expiry_period
+        md.signed.expires = datetime.now(UTC) + self.expiry_period
 
         md.sign(signer, append=False)
 

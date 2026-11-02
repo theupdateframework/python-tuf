@@ -9,7 +9,7 @@ import logging
 import os
 import sys
 import unittest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, ClassVar
 
 from securesystemslib.signer import Signer
@@ -299,7 +299,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
     def test_root_expired_final_root(self) -> None:
         def root_expired_modifier(root: Root) -> None:
-            root.expires = datetime(1970, 1, 1, tzinfo=timezone.utc)
+            root.expires = datetime(1970, 1, 1, tzinfo=UTC)
 
         # intermediate root can be expired
         root = self.modify_metadata(Root.type, root_expired_modifier)
@@ -349,7 +349,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
     def test_update_timestamp_expired(self) -> None:
         # new_timestamp has expired
         def timestamp_expired_modifier(timestamp: Timestamp) -> None:
-            timestamp.expires = datetime(1970, 1, 1, tzinfo=timezone.utc)
+            timestamp.expires = datetime(1970, 1, 1, tzinfo=UTC)
 
         # expired intermediate timestamp is loaded but raises
         timestamp = self.modify_metadata(
@@ -426,7 +426,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
         self.trusted_set.update_timestamp(self.metadata[Timestamp.type])
 
         def snapshot_expired_modifier(snapshot: Snapshot) -> None:
-            snapshot.expires = datetime(1970, 1, 1, tzinfo=timezone.utc)
+            snapshot.expires = datetime(1970, 1, 1, tzinfo=UTC)
 
         # expired intermediate snapshot is loaded but will raise
         snapshot = self.modify_metadata(
@@ -506,7 +506,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
 
         # new_delegated_target has expired
         def target_expired_modifier(target: Targets) -> None:
-            target.expires = datetime(1970, 1, 1, tzinfo=timezone.utc)
+            target.expires = datetime(1970, 1, 1, tzinfo=UTC)
 
         targets = self.modify_metadata(Targets.type, target_expired_modifier)
         with self.assertRaises(exceptions.ExpiredMetadataError):

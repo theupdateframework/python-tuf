@@ -11,7 +11,6 @@ import os
 import sys
 import tempfile
 import unittest
-from datetime import timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, call, patch
@@ -50,7 +49,7 @@ class TestRefresh(unittest.TestCase):
     # set dump_dir to trigger repository state dumps
     dump_dir: str | None = None
 
-    past_datetime = datetime.datetime.now(timezone.utc).replace(
+    past_datetime = datetime.datetime.now(datetime.UTC).replace(
         microsecond=0
     ) - datetime.timedelta(days=5)
 
@@ -312,7 +311,7 @@ class TestRefresh(unittest.TestCase):
          - Second updater refresh performed on day 18:
            assert that rollback check uses expired timestamp v1"""
 
-        now = datetime.datetime.now(timezone.utc)
+        now = datetime.datetime.now(datetime.UTC)
         self.sim.timestamp.expires = now + datetime.timedelta(days=7)
 
         self.sim.timestamp.version = 2
@@ -325,7 +324,7 @@ class TestRefresh(unittest.TestCase):
         self.sim.timestamp.version = 1
 
         patcher = freezegun.freeze_time(
-            datetime.datetime.now(timezone.utc) + datetime.timedelta(days=18)
+            datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=18)
         )
         # Check that a rollback protection is performed even if
         # local timestamp has expired
@@ -346,7 +345,7 @@ class TestRefresh(unittest.TestCase):
          - Second updater refresh performed on day 18:
            assert that rollback protection is done with expired timestamp v1"""
 
-        now = datetime.datetime.now(timezone.utc)
+        now = datetime.datetime.now(datetime.UTC)
         self.sim.timestamp.expires = now + datetime.timedelta(days=7)
 
         # Bump the snapshot version number to 3
@@ -362,7 +361,7 @@ class TestRefresh(unittest.TestCase):
         self.sim.timestamp.expires = now + datetime.timedelta(days=21)
 
         patcher = freezegun.freeze_time(
-            datetime.datetime.now(timezone.utc) + datetime.timedelta(days=18)
+            datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=18)
         )
         # Assert that rollback protection is done even if
         # local timestamp has expired
@@ -822,7 +821,7 @@ class TestRefresh(unittest.TestCase):
          - Second updater refresh performed on day 18,
            it is successful and timestamp/snapshot final versions are v2"""
 
-        now = datetime.datetime.now(timezone.utc)
+        now = datetime.datetime.now(datetime.UTC)
         self.sim.timestamp.expires = now + datetime.timedelta(days=7)
 
         # Make a successful update of valid metadata which stores it in cache
@@ -835,7 +834,7 @@ class TestRefresh(unittest.TestCase):
         # Mocking time so that local timestam has expired
         # but the new timestamp has not
         with freezegun.freeze_time(
-            datetime.datetime.now(timezone.utc) + datetime.timedelta(days=18)
+            datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=18)
         ):
             self._run_refresh()
 

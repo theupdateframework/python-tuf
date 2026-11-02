@@ -24,7 +24,7 @@ from __future__ import annotations
 import hashlib
 import os
 import tempfile
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -45,9 +45,7 @@ if TYPE_CHECKING:
 
 def _in(days: float) -> datetime:
     """Adds 'days' to now and returns datetime object w/o microseconds."""
-    return datetime.now(timezone.utc).replace(microsecond=0) + timedelta(
-        days=days
-    )
+    return datetime.now(UTC).replace(microsecond=0) + timedelta(days=days)
 
 
 roles: dict[str, Metadata[Targets]] = {}

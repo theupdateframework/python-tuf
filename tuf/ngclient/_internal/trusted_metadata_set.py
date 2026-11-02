@@ -116,7 +116,7 @@ class TrustedMetadataSet(abc.Mapping):
         """
         self._trusted_set: dict[str, Signed] = {}
         self._trusted_delegations: set[tuple[str, str]] = set()
-        self.reference_time = datetime.datetime.now(datetime.timezone.utc)
+        self.reference_time = datetime.datetime.now(datetime.UTC)
 
         if envelope_type is EnvelopeType.SIMPLE:
             self._load_data = _load_from_simple_envelope

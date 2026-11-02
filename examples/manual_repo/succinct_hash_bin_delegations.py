@@ -23,7 +23,7 @@ from __future__ import annotations
 import math
 import os
 import tempfile
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from securesystemslib.signer import CryptoSigner
@@ -95,9 +95,7 @@ targets_signer = CryptoSigner.generate_ecdsa()
 # NOTE: See "Targets" and "Targets delegation" paragraphs in 'basic_repo.py'
 # example for more details about the Targets object.
 
-expiration_date = datetime.now(timezone.utc).replace(microsecond=0) + timedelta(
-    days=7
-)
+expiration_date = datetime.now(UTC).replace(microsecond=0) + timedelta(days=7)
 targets = Metadata(Targets(expires=expiration_date))
 
 succinct_roles = SuccinctRoles(
