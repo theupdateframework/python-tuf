@@ -63,9 +63,9 @@ Example of loading root, timestamp and snapshot:
 
 from __future__ import annotations
 
-import datetime
 import logging
 from collections import abc
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, cast
 
 from tuf.api import exceptions
@@ -116,7 +116,7 @@ class TrustedMetadataSet(abc.Mapping):
         """
         self._trusted_set: dict[str, Signed] = {}
         self._trusted_delegations: set[tuple[str, str]] = set()
-        self.reference_time = datetime.datetime.now(datetime.UTC)
+        self.reference_time = datetime.now(UTC)
 
         if envelope_type is EnvelopeType.SIMPLE:
             self._load_data = _load_from_simple_envelope

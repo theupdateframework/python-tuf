@@ -155,7 +155,7 @@ class Metadata(Generic[T]):
         """Default canonical json byte representation of ``self.signed``."""
 
         # Use local scope import to avoid circular import errors
-        from tuf.api.serialization.json import CanonicalJSONSerializer  # noqa: I001, PLC0415
+        from tuf.api.serialization.json import CanonicalJSONSerializer  # noqa: PLC0415
 
         return CanonicalJSONSerializer().serialize(self.signed)
 
@@ -264,7 +264,7 @@ class Metadata(Generic[T]):
 
         if deserializer is None:
             # Use local scope import to avoid circular import errors
-            from tuf.api.serialization.json import JSONDeserializer  # noqa: I001, PLC0415
+            from tuf.api.serialization.json import JSONDeserializer  # noqa: PLC0415
 
             deserializer = JSONDeserializer()
 
@@ -291,7 +291,7 @@ class Metadata(Generic[T]):
 
         if serializer is None:
             # Use local scope import to avoid circular import errors
-            from tuf.api.serialization.json import JSONSerializer  # noqa: I001, PLC0415
+            from tuf.api.serialization.json import JSONSerializer  # noqa: PLC0415
 
             serializer = JSONSerializer(compact=True)
 
