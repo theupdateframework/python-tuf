@@ -11,9 +11,8 @@ import fnmatch
 import hashlib
 import io
 import logging
-import sys
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -68,16 +67,7 @@ def _hash_bytes(data: bytes, algo: str) -> str:
 def _hash_file(f: IO[bytes], algo: str) -> str:
     """Returns hexdigest for file using algo."""
     f.seek(0)
-    if sys.version_info >= (3, 11):
-        digest = hashlib.file_digest(f, lambda: _get_digest(algo))  # type: ignore[arg-type]
-
-    else:
-        # Fallback for older Pythons. Chunk size is taken from the previously
-        # used and now deprecated `securesystemslib.hash.digest_fileobject`.
-        digest = _get_digest(algo)
-        for chunk in iter(lambda: f.read(4096), b""):
-            digest.update(chunk)
-
+    digest = hashlib.file_digest(f, lambda: _get_digest(algo))  # type: ignore[arg-type]
     return digest.hexdigest()
 
 
@@ -127,8 +117,8 @@ class Signed(metaclass=abc.ABCMeta):
         self._expires = value.replace(microsecond=0)
         if self._expires.tzinfo is None:
             # Naive datetime: just make it UTC
-            self._expires = self._expires.replace(tzinfo=timezone.utc)
-        elif self._expires.tzinfo != timezone.utc:
+            self._expires = self._expires.replace(tzinfo=UTC)
+        elif self._expires.tzinfo != UTC:
             raise ValueError(f"Expected tz UTC, not {self._expires.tzinfo}")
 
     # NOTE: Signed is a stupid name, because this might not be signed yet, but
@@ -156,7 +146,7 @@ class Signed(metaclass=abc.ABCMeta):
 
         self.spec_version = spec_version
 
-        self.expires = expires or datetime.now(timezone.utc)
+        self.expires = expires or datetime.now(UTC)
 
         if version is None:
             version = 1
@@ -228,7 +218,7 @@ class Signed(metaclass=abc.ABCMeta):
         # what the constructor expects and what we store. The inverse operation
         # is implemented in '_common_fields_to_dict'.
         expires = datetime.strptime(expires_str, "%Y-%m-%dT%H:%M:%SZ").replace(
-            tzinfo=timezone.utc
+            tzinfo=UTC
         )
 
         return version, spec_version, expires
@@ -260,7 +250,7 @@ class Signed(metaclass=abc.ABCMeta):
             ``True`` if expiration time is less than the reference time.
         """
         if reference_time is None:
-            reference_time = datetime.now(timezone.utc)
+            reference_time = datetime.now(UTC)
 
         return reference_time >= self.expires
 

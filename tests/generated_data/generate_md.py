@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from securesystemslib.signer import CryptoSigner, Signer, SSlibKey
@@ -55,7 +55,7 @@ for index in range(len(keyids)):
     private_key = Ed25519PrivateKey.from_private_bytes(private_values[index])
     signers.append(CryptoSigner(private_key, key))
 
-EXPIRY = datetime(2050, 1, 1, tzinfo=timezone.utc)
+EXPIRY = datetime(2050, 1, 1, tzinfo=UTC)
 
 SERIALIZER = JSONSerializer()
 

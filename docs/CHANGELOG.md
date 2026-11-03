@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Changed
+
+* Add Python 3.15 to tested versions, remove 3.10 from tested versions.
+  Require at least 3.11
+
 ## v7.0.1
 
 ### Fixed
