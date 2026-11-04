@@ -275,6 +275,67 @@ class Updater:
             filepath = self._generate_target_file_path(targetinfo)
         Path(filepath).parent.mkdir(exist_ok=True, parents=True)
 
+        full_url = self._target_file_url(targetinfo, target_base_url)
+
+        with self._fetcher.download_file(
+            full_url, targetinfo.length
+        ) as target_file:
+            targetinfo.verify_length_and_hashes(target_file)
+
+            target_file.seek(0)
+            with open(filepath, "wb") as destination_file:
+                shutil.copyfileobj(target_file, destination_file)
+
+        logger.debug("Downloaded target %s", targetinfo.path)
+        return filepath
+
+    def download_target_bytes(
+        self,
+        targetinfo: TargetFile,
+        target_base_url: str | None = None,
+    ) -> bytes:
+        """Download the target file specified by ``targetinfo`` as bytes.
+
+        This is like ``download_target()`` but returns the verified target
+        content instead of writing it into the local cache. The local target
+        cache is neither read nor written, so ``find_cached_target()`` is not
+        consulted: use ``download_target()`` if caching is wanted.
+
+        The whole target is buffered in memory (the content cannot be verified
+        until it has been downloaded in full), so this is not suitable for very
+        large targets.
+
+        Args:
+            targetinfo: ``TargetFile`` from ``get_targetinfo()``.
+            target_base_url: Base URL used to form the final target
+                download URL. Default is the value provided in ``Updater()``
+
+        Raises:
+            ValueError: Invalid arguments
+            DownloadError: Download of the target file failed in some way
+            RepositoryError: Downloaded target failed to be verified in some way
+
+        Returns:
+            Verified target file content
+        """
+
+        full_url = self._target_file_url(targetinfo, target_base_url)
+
+        with self._fetcher.download_file(
+            full_url, targetinfo.length
+        ) as target_file:
+            targetinfo.verify_length_and_hashes(target_file)
+
+            target_file.seek(0)
+            data: bytes = target_file.read()
+
+        logger.debug("Downloaded target %s", targetinfo.path)
+        return data
+
+    def _target_file_url(
+        self, targetinfo: TargetFile, target_base_url: str | None
+    ) -> str:
+        """Build the remote download URL for a target file."""
         if target_base_url is None:
             if self._target_base_url is None:
                 raise ValueError(
@@ -292,19 +353,7 @@ class Updater:
             hashes = list(targetinfo.hashes.values())
             dirname, sep, basename = target_filepath.rpartition("/")
             target_filepath = f"{dirname}{sep}{hashes[0]}.{basename}"
-        full_url = f"{target_base_url}{target_filepath}"
-
-        with self._fetcher.download_file(
-            full_url, targetinfo.length
-        ) as target_file:
-            targetinfo.verify_length_and_hashes(target_file)
-
-            target_file.seek(0)
-            with open(filepath, "wb") as destination_file:
-                shutil.copyfileobj(target_file, destination_file)
-
-        logger.debug("Downloaded target %s", targetinfo.path)
-        return filepath
+        return f"{target_base_url}{target_filepath}"
 
     def _download_metadata(
         self, rolename: str, length: int, version: int | None = None
