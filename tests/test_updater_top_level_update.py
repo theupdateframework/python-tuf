@@ -6,11 +6,11 @@
 from __future__ import annotations
 
 import builtins
-import datetime
 import os
 import sys
 import tempfile
 import unittest
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, call, patch
@@ -49,9 +49,7 @@ class TestRefresh(unittest.TestCase):
     # set dump_dir to trigger repository state dumps
     dump_dir: str | None = None
 
-    past_datetime = datetime.datetime.now(datetime.UTC).replace(
-        microsecond=0
-    ) - datetime.timedelta(days=5)
+    past_datetime = datetime.now(UTC).replace(microsecond=0) - timedelta(days=5)
 
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -311,21 +309,19 @@ class TestRefresh(unittest.TestCase):
          - Second updater refresh performed on day 18:
            assert that rollback check uses expired timestamp v1"""
 
-        now = datetime.datetime.now(datetime.UTC)
-        self.sim.timestamp.expires = now + datetime.timedelta(days=7)
+        now = datetime.now(UTC)
+        self.sim.timestamp.expires = now + timedelta(days=7)
 
         self.sim.timestamp.version = 2
 
         # Make a successful update of valid metadata which stores it in cache
         self._run_refresh()
 
-        self.sim.timestamp.expires = now + datetime.timedelta(days=21)
+        self.sim.timestamp.expires = now + timedelta(days=21)
 
         self.sim.timestamp.version = 1
 
-        patcher = freezegun.freeze_time(
-            datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=18)
-        )
+        patcher = freezegun.freeze_time(datetime.now(UTC) + timedelta(days=18))
         # Check that a rollback protection is performed even if
         # local timestamp has expired
         with patcher, self.assertRaises(BadVersionNumberError):
@@ -345,8 +341,8 @@ class TestRefresh(unittest.TestCase):
          - Second updater refresh performed on day 18:
            assert that rollback protection is done with expired timestamp v1"""
 
-        now = datetime.datetime.now(datetime.UTC)
-        self.sim.timestamp.expires = now + datetime.timedelta(days=7)
+        now = datetime.now(UTC)
+        self.sim.timestamp.expires = now + timedelta(days=7)
 
         # Bump the snapshot version number to 3
         self.sim.update_snapshot()
@@ -358,11 +354,9 @@ class TestRefresh(unittest.TestCase):
         self.sim.snapshot.version = 1
         # Snapshot version number is set to 2, which is still less than 3
         self.sim.update_snapshot()
-        self.sim.timestamp.expires = now + datetime.timedelta(days=21)
+        self.sim.timestamp.expires = now + timedelta(days=21)
 
-        patcher = freezegun.freeze_time(
-            datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=18)
-        )
+        patcher = freezegun.freeze_time(datetime.now(UTC) + timedelta(days=18))
         # Assert that rollback protection is done even if
         # local timestamp has expired
         with patcher, self.assertRaises(BadVersionNumberError):
@@ -443,7 +437,7 @@ class TestRefresh(unittest.TestCase):
 
         # Modify snapshot contents without updating
         # timestamp's snapshot hash
-        self.sim.snapshot.expires += datetime.timedelta(days=1)
+        self.sim.snapshot.expires += timedelta(days=1)
         self.sim.snapshot.version += 1  # snapshot v2
         self.sim.timestamp.snapshot_meta.version = self.sim.snapshot.version
         self.sim.timestamp.version += 1  # timestamp v3
@@ -821,21 +815,19 @@ class TestRefresh(unittest.TestCase):
          - Second updater refresh performed on day 18,
            it is successful and timestamp/snapshot final versions are v2"""
 
-        now = datetime.datetime.now(datetime.UTC)
-        self.sim.timestamp.expires = now + datetime.timedelta(days=7)
+        now = datetime.now(UTC)
+        self.sim.timestamp.expires = now + timedelta(days=7)
 
         # Make a successful update of valid metadata which stores it in cache
         self._run_refresh()
 
         self.sim.targets.version += 1
         self.sim.update_snapshot()
-        self.sim.timestamp.expires = now + datetime.timedelta(days=21)
+        self.sim.timestamp.expires = now + timedelta(days=21)
 
         # Mocking time so that local timestam has expired
         # but the new timestamp has not
-        with freezegun.freeze_time(
-            datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=18)
-        ):
+        with freezegun.freeze_time(datetime.now(UTC) + timedelta(days=18)):
             self._run_refresh()
 
         # Assert that the final version of timestamp/snapshot is version 2

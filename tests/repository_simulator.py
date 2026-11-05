@@ -46,12 +46,12 @@ Example::
 
 from __future__ import annotations
 
-import datetime
 import hashlib
 import logging
 import os
 import tempfile
 from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 from urllib import parse
 
@@ -129,10 +129,8 @@ class RepositorySimulator(FetcherInterface):
 
         self.fetch_tracker = FetchTracker()
 
-        now = datetime.datetime.now(datetime.UTC)
-        self.safe_expiry = now.replace(microsecond=0) + datetime.timedelta(
-            days=30
-        )
+        now = datetime.now(UTC)
+        self.safe_expiry = now.replace(microsecond=0) + timedelta(days=30)
 
         self._initialize()
 
