@@ -20,7 +20,7 @@ from tuf.api.metadata import (
     TargetFile,
     Targets,
 )
-from tuf.ngclient import Updater
+from tuf.ngclient import Updater, UpdaterConfig
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -76,7 +76,7 @@ class TestConsistentSnapshot(unittest.TestCase):
 
         return sim
 
-    def _init_updater(self) -> Updater:
+    def _init_updater(self, config: UpdaterConfig | None = None) -> Updater:
         """Create a new Updater instance"""
         return Updater(
             self.metadata_dir,
@@ -84,6 +84,7 @@ class TestConsistentSnapshot(unittest.TestCase):
             self.targets_dir,
             "https://example.com/targets/",
             self.sim,
+            config=config,
             bootstrap=self.sim.signed_roots[-1],
         )
 
@@ -221,8 +222,11 @@ class TestConsistentSnapshot(unittest.TestCase):
             self.sim.add_target("targets", b"content", targetpath)
         self.sim.update_snapshot()
 
-        updater = self._init_updater()
-        updater.config.prefix_targets_with_hash = prefix_targets_with_hash
+        updater = self._init_updater(
+            config=UpdaterConfig(
+                prefix_targets_with_hash=prefix_targets_with_hash
+            )
+        )
         updater.refresh()
 
         for path in targetpaths:
