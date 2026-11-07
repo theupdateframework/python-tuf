@@ -178,7 +178,6 @@ class Signed(metaclass=abc.ABCMeta):
                 self.version,
                 self.spec_version,
                 self.expires,
-                self.unrecognized_fields,
             )
         )
 
@@ -556,10 +555,9 @@ class Root(Signed, _DelegatorMixin):
         return hash(
             (
                 super().__hash__(),
-                self.keys,
-                self.roles,
+                tuple(sorted(self.keys.items())),
+                tuple(sorted(self.roles.items())),
                 self.consistent_snapshot,
-                self.unrecognized_fields,
             )
         )
 
@@ -839,9 +837,12 @@ class MetaFile(BaseFile):
         )
 
     def __hash__(self) -> int:
-        return hash(
-            (self.version, self.length, self.hashes, self.unrecognized_fields)
+        hashes = (
+            tuple(sorted(self.hashes.items()))
+            if self.hashes is not None
+            else None
         )
+        return hash((self.version, self.length, hashes))
 
     @classmethod
     def from_dict(cls, meta_dict: dict[str, Any]) -> MetaFile:
@@ -1022,7 +1023,7 @@ class Snapshot(Signed):
         return super().__eq__(other) and self.meta == other.meta
 
     def __hash__(self) -> int:
-        return hash((super().__hash__(), self.meta))
+        return hash((super().__hash__(), tuple(sorted(self.meta.items()))))
 
     @classmethod
     def from_dict(cls, signed_dict: dict[str, Any]) -> Snapshot:
@@ -1454,10 +1455,10 @@ class Delegations:
     def __hash__(self) -> int:
         return hash(
             (
-                self.keys,
-                self.roles,
+                tuple(sorted(self.keys.items())),
+                # Order of the delegated roles matters (see __eq__)
+                tuple(self.roles.items()) if self.roles is not None else None,
                 self.succinct_roles,
-                self.unrecognized_fields,
             )
         )
 
@@ -1584,7 +1585,7 @@ class TargetFile(BaseFile):
 
     def __hash__(self) -> int:
         return hash(
-            (self.length, self.hashes, self.path, self.unrecognized_fields)
+            (self.length, self.path, tuple(sorted(self.hashes.items())))
         )
 
     @classmethod
@@ -1731,7 +1732,13 @@ class Targets(Signed, _DelegatorMixin):
         )
 
     def __hash__(self) -> int:
-        return hash((super().__hash__(), self.targets, self.delegations))
+        return hash(
+            (
+                super().__hash__(),
+                tuple(sorted(self.targets.items())),
+                self.delegations,
+            )
+        )
 
     @classmethod
     def from_dict(cls, signed_dict: dict[str, Any]) -> Targets:
