@@ -11,6 +11,7 @@ live repository by adding new target files periodically.
 
 import argparse
 import logging
+import socketserver
 import sys
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -106,6 +107,17 @@ class RepositoryServer(ThreadingHTTPServer):
         super().__init__(("127.0.0.1", port), ReqHandler)
         self.timeout = 1
         self.repo = SimpleRepository()
+
+    def server_bind(self):
+        """Bind the socket without resolving the bind address.
+
+        HTTPServer.server_bind() fills in server_name with a reverse DNS
+        lookup of the bind address. Nothing here uses server_name, and the
+        lookup happens before the socket starts listening, so a slow resolver
+        delays startup by however long it takes to answer.
+        """
+        socketserver.TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address[:2]
 
 
 def main(argv: List[str]) -> None:
