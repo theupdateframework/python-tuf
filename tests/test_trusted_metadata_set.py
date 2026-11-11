@@ -15,9 +15,11 @@ from typing import TYPE_CHECKING, ClassVar
 from securesystemslib.signer import Signer
 
 from tests import utils
+from tests.repository_simulator import RepositorySimulator
 from tuf.api import exceptions
 from tuf.api.dsse import SimpleEnvelope
 from tuf.api.metadata import (
+    DelegatedRole,
     Metadata,
     MetaFile,
     Root,
@@ -559,6 +561,64 @@ class TestTrustedMetadataSet(unittest.TestCase):
         envelope_bad_signed_bytes = envelope_bad_signed.to_bytes()
         with self.assertRaises(exceptions.RepositoryError):
             _load_from_simple_envelope(Targets, envelope_bad_signed_bytes)
+
+    def test_update_with_simple_envelopes(self) -> None:
+        """Verify DSSE envelopes through the complete trusted metadata chain."""
+        repository = RepositorySimulator()
+        repository.add_delegation(
+            Targets.type,
+            DelegatedRole("delegate", [], 1, False, paths=["*"]),
+            Targets(expires=repository.safe_expiry),
+        )
+        repository.add_target("delegate", b"target content", "target.txt")
+        repository.update_snapshot()
+
+        envelopes = {}
+        for role, metadata in {
+            Root.type: repository.md_root,
+            Timestamp.type: repository.md_timestamp,
+            Snapshot.type: repository.md_snapshot,
+            Targets.type: repository.md_targets,
+            "delegate": repository.md_delegates["delegate"],
+        }.items():
+            envelope = SimpleEnvelope.from_signed(metadata.signed)
+            for signer in repository.signers[role].values():
+                envelope.sign(signer)
+            envelopes[role] = envelope.to_bytes()
+
+        trusted = TrustedMetadataSet(envelopes[Root.type], EnvelopeType.SIMPLE)
+
+        # An unsigned timestamp must fail before any later role is trusted.
+        unsigned = SimpleEnvelope.from_signed(repository.timestamp)
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            trusted.update_timestamp(unsigned.to_bytes())
+        self.assertEqual(len(trusted), 1)
+        self.assertFalse(trusted.contains(Timestamp.type, Root.type))
+
+        trusted.update_timestamp(envelopes[Timestamp.type])
+        trusted.update_snapshot(envelopes[Snapshot.type])
+        trusted.update_targets(envelopes[Targets.type])
+        trusted.update_delegated_targets(
+            envelopes["delegate"], "delegate", Targets.type
+        )
+        self.assertEqual(len(trusted), 5)
+        self.assertTrue(trusted.contains("delegate", Targets.type))
+        target = trusted["delegate"].targets["target.txt"]
+        target.verify_length_and_hashes(b"target content")
+
+        # Changing the signed content must invalidate the delegated signature.
+        tampered = SimpleEnvelope.from_bytes(envelopes["delegate"])
+        tampered.payload = tampered.payload.replace(
+            b"target.txt", b"edited.txt"
+        )
+        fresh = TrustedMetadataSet(envelopes[Root.type], EnvelopeType.SIMPLE)
+        fresh.update_timestamp(envelopes[Timestamp.type])
+        fresh.update_snapshot(envelopes[Snapshot.type])
+        fresh.update_targets(envelopes[Targets.type])
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            fresh.update_delegated_targets(
+                tampered.to_bytes(), "delegate", Targets.type
+            )
 
 
 if __name__ == "__main__":
