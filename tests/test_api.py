@@ -1120,6 +1120,12 @@ class TestMetadata(unittest.TestCase):
             "bin-0t",
             "bin-20",
             "bin-100",
+            # int(x, 16) accepts these, but they are not bin names
+            "bin-+f",
+            "bin- f",
+            "bin-f ",
+            "bin-0F",
+            "bin-1F",
         ]
         for role_name in false_role_name_examples:
             msg = f"Error for {role_name}"
@@ -1130,6 +1136,11 @@ class TestMetadata(unittest.TestCase):
         for role_name in true_name_examples:
             msg = f"Error for {role_name}"
             self.assertTrue(succinct_roles.is_delegated_role(role_name), msg)
+
+        # int(x, 16) ignores underscores between digits
+        succinct_roles = SuccinctRoles([], 1, 12, "bin")
+        self.assertFalse(succinct_roles.is_delegated_role("bin-1_0"))
+        self.assertTrue(succinct_roles.is_delegated_role("bin-010"))
 
     def test_get_roles_in_succinct_roles(self) -> None:
         succinct_roles = SuccinctRoles([], 1, 16, "bin")
