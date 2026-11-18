@@ -22,9 +22,13 @@ class EnvelopeType(Flag):
     SIMPLE = 2
 
 
-@dataclass
+@dataclass(frozen=True)
 class UpdaterConfig:
     """Used to store ``Updater`` configuration.
+
+    Configuration is immutable. Set options in the constructor or use
+    :func:`dataclasses.replace` to create a modified configuration for a new
+    ``Updater`` instance.
 
     Args:
         max_root_rotations: Maximum number of root rotations.
