@@ -1802,9 +1802,11 @@ class Targets(Signed, _DelegatorMixin):
             if key.keyid not in self.delegations.roles[role].keyids:
                 self.delegations.roles[role].keyids.append(key.keyid)
 
-        elif self.delegations.succinct_roles is not None:
-            if key.keyid not in self.delegations.succinct_roles.keyids:
-                self.delegations.succinct_roles.keyids.append(key.keyid)
+        elif (
+            self.delegations.succinct_roles is not None
+            and key.keyid not in self.delegations.succinct_roles.keyids
+        ):
+            self.delegations.succinct_roles.keyids.append(key.keyid)
 
         self.delegations.keys[key.keyid] = key
 
