@@ -1099,12 +1099,18 @@ class DelegatedRole(Role):
                 "Only one of (paths, path_hash_prefixes) must be set"
             )
 
-        if paths is not None and any(not isinstance(p, str) for p in paths):
-            raise ValueError("Paths must be strings")
-        if path_hash_prefixes is not None and any(
-            not isinstance(p, str) for p in path_hash_prefixes
+        # A str is iterable too, so it needs to be rejected explicitly: its
+        # characters would otherwise be used as separate patterns/prefixes
+        if paths is not None and (
+            not isinstance(paths, list)
+            or any(not isinstance(p, str) for p in paths)
         ):
-            raise ValueError("Path_hash_prefixes must be strings")
+            raise ValueError("Paths must be a list of strings")
+        if path_hash_prefixes is not None and (
+            not isinstance(path_hash_prefixes, list)
+            or any(not isinstance(p, str) for p in path_hash_prefixes)
+        ):
+            raise ValueError("Path_hash_prefixes must be a list of strings")
 
         self.paths = paths
         self.path_hash_prefixes = path_hash_prefixes
