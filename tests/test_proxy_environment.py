@@ -189,6 +189,24 @@ class TestProxyEnvironment(unittest.TestCase):
         self.assert_pool_managers(env, ["http://localhost:8888", None])
 
     @patch("tuf.ngclient._internal.proxy.getproxies")
+    def test_proxy_without_scheme(self, mock_getproxies: Mock) -> None:
+        # Proxy variables commonly omit the scheme, e.g. "proxy.example:3128":
+        # this should be treated as a http proxy, not raise
+        mock_getproxies.return_value = {
+            "https": "localhost:8888",
+            "all": "user:secret@localhost:9999",
+        }
+
+        env = ProxyEnvironment()
+        env.get_pool_manager("https", "example.com")
+        env.get_pool_manager("http", "example.com")
+
+        # https proxy variable and all_proxy fallback, both as http:// proxies
+        self.assert_pool_managers(
+            env, ["http://localhost:8888", "http://user:secret@localhost:9999"]
+        )
+
+    @patch("tuf.ngclient._internal.proxy.getproxies")
     def test_all_proxy_and_no_proxy_set(self, mock_getproxies: Mock) -> None:
         mock_getproxies.return_value = {
             "all": "http://localhost:8888",

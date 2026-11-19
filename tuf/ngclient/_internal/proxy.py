@@ -12,6 +12,18 @@ from urllib3 import BaseHTTPResponse, PoolManager, ProxyManager
 from urllib3.util.url import parse_url
 
 
+def _with_scheme(proxy_url: str) -> str:
+    """Return ``proxy_url`` with "http://" added if it has no scheme.
+
+    Proxy variables often omit the scheme (e.g. ``https_proxy=proxy:3128``)
+    and curl and requests treat that as a http proxy, but urllib3 raises
+    ``ProxySchemeUnknown`` for it.
+    """
+    if "://" in proxy_url:
+        return proxy_url
+    return f"http://{proxy_url}"
+
+
 # TODO: ProxyEnvironment could implement the whole PoolManager.RequestMethods
 # Mixin: We only need request() so nothing else is currently implemented
 class ProxyEnvironment:
@@ -60,9 +72,9 @@ class ProxyEnvironment:
                 return None
 
         if scheme in self._proxies:
-            return self._proxies[scheme]
+            return _with_scheme(self._proxies[scheme])
         if self._all_proxy is not None:
-            return self._all_proxy
+            return _with_scheme(self._all_proxy)
 
         return None
 
