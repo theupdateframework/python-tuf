@@ -399,6 +399,10 @@ class TestSerialization(unittest.TestCase):
             "terminating": false, "threshold": 1}',
         "invalid path_hash_prefixes type": '{"keyids": ["keyid"], "name": "a", "path_hash_prefixes": [1,2,3], \
             "terminating": false, "threshold": 1}',
+        "paths is a string": '{"keyids": ["keyid"], "name": "a", "paths": "fn1", \
+            "terminating": false, "threshold": 1}',
+        "path_hash_prefixes is a string": '{"keyids": ["keyid"], "name": "a", "path_hash_prefixes": "h1", \
+            "terminating": false, "threshold": 1}',
     }
 
     @utils.run_sub_tests_with_dataset(invalid_delegated_roles)
