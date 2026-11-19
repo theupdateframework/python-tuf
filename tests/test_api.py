@@ -1242,6 +1242,33 @@ class TestSimpleEnvelope(unittest.TestCase):
             with self.assertRaises(DeserializationError):
                 envelope.get_signed()
 
+    def test_fail_invalid_payload_content_deserialization(self) -> None:
+        """Payload has a known role type but its content is not valid."""
+        valid = {
+            "_type": "timestamp",
+            "version": 1,
+            "spec_version": "1.0.31",
+            "expires": "2030-01-01T00:00:00Z",
+            "meta": {"snapshot.json": {"version": 1}},
+        }
+        invalid_payloads = [
+            {"_type": "root"},  # required fields are missing
+            {**valid, "version": "1"},  # wrong type
+            {**valid, "version": 0},  # invalid value
+            {**valid, "expires": "tomorrow"},  # invalid date
+        ]
+        for payload in invalid_payloads:
+            envelope = SimpleEnvelope(json.dumps(payload).encode(), "bar", {})
+            with (
+                self.subTest(payload=payload),
+                self.assertRaises(DeserializationError),
+            ):
+                envelope.get_signed()
+
+        # The same payload, with valid content, deserializes
+        envelope = SimpleEnvelope(json.dumps(valid).encode(), "bar", {})
+        self.assertIsInstance(envelope.get_signed(), Timestamp)
+
     def test_verify_delegate(self) -> None:
         """Basic verification test.
 

@@ -150,7 +150,9 @@ class SimpleEnvelope(BaseSimpleEnvelope, Generic[T]):
             else:
                 raise ValueError(f'unrecognized role type "{_type}"')
 
+            signed = inner_cls.from_dict(payload_dict)
+
         except Exception as e:
             raise DeserializationError from e
 
-        return cast("T", inner_cls.from_dict(payload_dict))
+        return cast("T", signed)
