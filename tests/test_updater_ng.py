@@ -385,6 +385,31 @@ class TestUpdater(unittest.TestCase):
         with open(linkname, "rb") as f1, open(target, "rb") as f2:
             self.assertEqual(f1.read(), f2.read())
 
+    @patch("os.link")
+    @patch("os.symlink")
+    def test_update_root_symlink_keeps_root_on_failure(
+        self, mock_symlink: MagicMock, mock_link: MagicMock
+    ) -> None:
+        """Cached root.json must survive a failed link update."""
+        linkname = os.path.join(self.updater._dir, "root.json")
+        with open(linkname, "rb") as f:
+            original = f.read()
+
+        err = OSError("no link for you")
+        mock_symlink.side_effect = err
+        mock_link.side_effect = err
+
+        with self.assertRaises(OSError):
+            self.updater._update_root_symlink()
+
+        # root.json is the trust anchor for bootstrap=None: losing it would
+        # leave the client unable to start
+        self.assertTrue(os.path.exists(linkname))
+        with open(linkname, "rb") as f:
+            self.assertEqual(f.read(), original)
+
+        self.assertFalse(os.path.exists(f"{linkname}.tmp"))
+
 
 if __name__ == "__main__":
     utils.configure_test_logging(sys.argv)
