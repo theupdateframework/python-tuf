@@ -16,11 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout conformance client
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
 
       - name: Run test suite
-        uses: theupdateframework/tuf-conformance@1bc18916ee35f753b6eb8ee19dabb98449ca7326 # v2.5.0
+        uses: theupdateframework/tuf-conformance@v2.5.0
         with:
           entrypoint: ".github/scripts/conformance-client.py"
