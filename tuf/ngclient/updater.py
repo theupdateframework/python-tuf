@@ -141,12 +141,12 @@ class Updater:
             # if no root was provided, use the cached non-versioned root.json
             bootstrap = self._load_local_metadata(Root.type)
 
-        # Load the initial root, make sure it's cached
+        # Load the initial root, make sure it's cached (versioned and not)
         self._trusted_set = TrustedMetadataSet(
             bootstrap, self.config.envelope_type
         )
         self._persist_root(self._trusted_set.root.version, bootstrap)
-        self._update_root_symlink()
+        self._persist_metadata(Root.type, bootstrap)
 
     @property
     def config(self) -> UpdaterConfig:
@@ -368,22 +368,6 @@ class Updater:
                     os.remove(temp_file_name)
             raise e
 
-    def _update_root_symlink(self) -> None:
-        """Symlink root.json to current trusted root version in root_history/"""
-        linkname = os.path.join(self._dir, "root.json")
-        version = self._trusted_set.root.version
-        current = os.path.join("root_history", f"{version}.root.json")
-        with contextlib.suppress(FileNotFoundError):
-            os.remove(linkname)
-        try:
-            os.symlink(current, linkname)
-        except OSError as e:
-            if getattr(e, "winerror", None) == 1314:
-                # Fallback for NTFS "required privilege is not held by client"
-                os.link(os.path.join(self._dir, current), linkname)
-            else:
-                raise
-
     def _load_root(self) -> None:
         """Load root metadata.
 
@@ -397,6 +381,7 @@ class Updater:
         lower_bound = self._trusted_set.root.version + 1
         upper_bound = lower_bound + self.config.max_root_rotations
 
+        new_root_bytes: bytes | None = None
         try:
             for next_version in range(lower_bound, upper_bound):
                 # look for next_version in local cache
@@ -405,7 +390,9 @@ class Updater:
                         self._dir, "root_history", f"{next_version}.root.json"
                     )
                     with open(root_path, "rb") as f:
-                        self._trusted_set.update_root(f.read())
+                        data = f.read()
+                    self._trusted_set.update_root(data)
+                    new_root_bytes = data
                     continue
                 except (OSError, exceptions.RepositoryError) as e:
                     # this root did not exist locally or is invalid
@@ -420,6 +407,7 @@ class Updater:
                     )
                     self._trusted_set.update_root(data)
                     self._persist_root(next_version, data)
+                    new_root_bytes = data
 
                 except exceptions.DownloadHTTPError as exception:
                     if exception.status_code not in {403, 404}:
@@ -427,8 +415,9 @@ class Updater:
                     # 404/403 means current root is newest available
                     break
         finally:
-            # Make sure the non-versioned root.json links to current version
-            self._update_root_symlink()
+            # Make sure the non-versioned root.json matches current version
+            if new_root_bytes is not None:
+                self._persist_metadata(Root.type, new_root_bytes)
 
     def _load_timestamp(self) -> None:
         """Load local and remote timestamp metadata."""

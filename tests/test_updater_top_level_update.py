@@ -794,6 +794,7 @@ class TestRefresh(unittest.TestCase):
         )
         expected_calls = [("root", 4), ("timestamp", None)]
         self.assertListEqual(self.sim.fetch_tracker.metadata, expected_calls)
+        self._assert_content_equals(Root.type, 3)
 
     def test_intermediate_root_cache_poisoning(self) -> None:
         """Test that refresh works as expected when intermediate roots in cache are poisoned"""
@@ -831,6 +832,7 @@ class TestRefresh(unittest.TestCase):
 
         expected_calls = [("root", 4), ("timestamp", None)]
         self.assertListEqual(self.sim.fetch_tracker.metadata, expected_calls)
+        self._assert_content_equals(Root.type, 3)
 
     def test_expired_metadata(self) -> None:
         """Verifies that expired local timestamp/snapshot can be used for
