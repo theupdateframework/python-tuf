@@ -12,7 +12,7 @@ import sys
 import tempfile
 import unittest
 from copy import copy, deepcopy
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from typing import ClassVar
 
@@ -333,6 +333,19 @@ class TestMetadata(unittest.TestCase):
         is_expired = md.signed.is_expired()
         self.assertFalse(is_expired)
         md.signed.expires = expires
+
+    def test_signed_expires_setter_invalid_timezone(self) -> None:
+        # Use of Timestamp is arbitrary, we're just testing the base class
+        timestamp = Timestamp(expires=datetime(2030, 1, 1, tzinfo=UTC))
+
+        # A timezone other than UTC is rejected...
+        plus_two = timezone(timedelta(hours=2))
+        with self.assertRaises(ValueError):
+            timestamp.expires = datetime(2031, 1, 1, 12, 0, tzinfo=plus_two)
+
+        # ... and the rejected value must not leak into the object
+        self.assertEqual(timestamp.expires, datetime(2030, 1, 1, tzinfo=UTC))
+        self.assertEqual(timestamp.to_dict()["expires"], "2030-01-01T00:00:00Z")
 
     def test_metadata_verify_delegate(self) -> None:
         root_path = os.path.join(self.repo_dir, "metadata", "root.json")

@@ -114,12 +114,15 @@ class Signed(metaclass=abc.ABCMeta):
         # Use 'datetime' module to e.g. expire in seven days from now
         obj.expires = now(timezone.utc) + timedelta(days=7)
         """
-        self._expires = value.replace(microsecond=0)
-        if self._expires.tzinfo is None:
+        expires = value.replace(microsecond=0)
+        if expires.tzinfo is None:
             # Naive datetime: just make it UTC
-            self._expires = self._expires.replace(tzinfo=UTC)
-        elif self._expires.tzinfo != UTC:
-            raise ValueError(f"Expected tz UTC, not {self._expires.tzinfo}")
+            expires = expires.replace(tzinfo=UTC)
+        elif expires.tzinfo != UTC:
+            raise ValueError(f"Expected tz UTC, not {expires.tzinfo}")
+
+        # Store the value only after it has been validated
+        self._expires = expires
 
     # NOTE: Signed is a stupid name, because this might not be signed yet, but
     # we keep it to match spec terminology (I often refer to this as "payload",
