@@ -103,6 +103,50 @@ class TestFetcher(unittest.TestCase):
             self.fetcher.fetch(self.url)
         self.assertEqual(cm.exception.status_code, 404)
 
+    @patch.object(urllib3.HTTPConnectionPool, "_make_request")
+    def test_http_error_retry(self, mock_request: Mock) -> None:
+        for status in (502, 503, 504):
+            with self.subTest(status=status):
+                mock_request.reset_mock()
+                mock_request.side_effect = [
+                    urllib3.HTTPResponse(status=status, body=io.BytesIO()),
+                    urllib3.HTTPResponse(
+                        status=200,
+                        body=io.BytesIO(self.file_contents),
+                        preload_content=False,
+                    ),
+                ]
+                data = self.fetcher.download_bytes(self.url, self.file_length)
+                self.assertEqual(data, self.file_contents)
+                self.assertEqual(mock_request.call_count, 2)
+
+    @patch.object(urllib3.HTTPConnectionPool, "_make_request")
+    def test_http_error_retry_exhausted(self, mock_request: Mock) -> None:
+        for status in (502, 503, 504):
+            with self.subTest(status=status):
+                mock_request.reset_mock()
+                mock_request.side_effect = [
+                    urllib3.HTTPResponse(status=status, body=io.BytesIO())
+                    for _ in range(4)
+                ]
+                with self.assertRaises(exceptions.DownloadHTTPError) as cm:
+                    self.fetcher.fetch(self.url)
+                self.assertEqual(cm.exception.status_code, status)
+                self.assertEqual(mock_request.call_count, 4)
+
+    @patch.object(urllib3.HTTPConnectionPool, "_make_request")
+    def test_http_error_no_retry(self, mock_request: Mock) -> None:
+        for status in (400, 403, 404, 500):
+            with self.subTest(status=status):
+                mock_request.reset_mock()
+                mock_request.return_value = urllib3.HTTPResponse(
+                    status=status, body=io.BytesIO()
+                )
+                with self.assertRaises(exceptions.DownloadHTTPError) as cm:
+                    self.fetcher.fetch(self.url)
+                self.assertEqual(cm.exception.status_code, status)
+                mock_request.assert_called_once()
+
     # Response read timeout error
     @patch.object(urllib3.PoolManager, "request")
     def test_response_read_timeout(self, mock_session_get: Mock) -> None:
