@@ -312,7 +312,7 @@ class TestMetadata(unittest.TestCase):
         snapshot_path = os.path.join(self.repo_dir, "metadata", "snapshot.json")
         md = Metadata.from_file(snapshot_path)
 
-        expected_expiry = datetime(2030, 1, 1, 0, 0, tzinfo=UTC)
+        expected_expiry = datetime(2050, 1, 1, 0, 0, tzinfo=UTC)
         self.assertEqual(md.signed.expires, expected_expiry)
 
         # Test is_expired with reference_time provided
@@ -916,7 +916,7 @@ class TestMetadata(unittest.TestCase):
 
             # test with custom blake algorithm
             snapshot_metafile.hashes = {
-                "blake2b-256": "963a3c31aad8e2a91cfc603fdba12555e48dd0312674ac48cce2c19c243236a1"
+                "blake2b-256": "380f5ca9a6b080729674f00cf15932d7358529de1fc8a61c1986c572630e8997"
             }
             snapshot_metafile.verify_length_and_hashes(data)
 
