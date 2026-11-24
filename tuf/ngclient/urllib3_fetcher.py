@@ -29,6 +29,8 @@ logger = logging.getLogger(__name__)
 class Urllib3Fetcher(FetcherInterface):
     """An implementation of ``FetcherInterface`` based on the urllib3 library.
 
+    Requests are retried up to three times on HTTP 502, 503 and 504 errors.
+
     Attributes:
         socket_timeout: Timeout in seconds, used for both initial connection
             delay and the maximum delay between bytes received.
@@ -50,7 +52,14 @@ class Urllib3Fetcher(FetcherInterface):
         if app_user_agent is not None:
             ua = f"{app_user_agent} {ua}"
 
-        self._proxy_env = ProxyEnvironment(headers={"User-Agent": ua})
+        self._proxy_env = ProxyEnvironment(
+            headers={"User-Agent": ua},
+            retries=urllib3.Retry(
+                total=3,
+                status_forcelist=(502, 503, 504),
+                raise_on_status=False,
+            ),
+        )
 
     def _fetch(self, url: str) -> Iterator[bytes]:
         """Fetch the contents of HTTP/HTTPS url from a remote server.
