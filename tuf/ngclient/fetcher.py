@@ -43,7 +43,7 @@ class FetcherInterface(metaclass=abc.ABCMeta):
             url: URL string that represents a file location.
 
         Raises:
-            exceptions.DownloadHTTPError: HTTP error code was received.
+            DownloadHTTPError: HTTP error code was received.
 
         Returns:
             Bytes iterator
@@ -57,8 +57,8 @@ class FetcherInterface(metaclass=abc.ABCMeta):
             url: URL string that represents a file location.
 
         Raises:
-            exceptions.DownloadError: An error occurred during download.
-            exceptions.DownloadHTTPError: An HTTP error code was received.
+            DownloadError: An error occurred during download.
+            DownloadHTTPError: An HTTP error code was received.
 
         Returns:
             Bytes iterator
@@ -85,10 +85,10 @@ class FetcherInterface(metaclass=abc.ABCMeta):
             max_length: Upper bound of file size in bytes.
 
         Raises:
-            exceptions.DownloadError: An error occurred during download.
-            exceptions.DownloadLengthMismatchError: Downloaded bytes exceed
+            DownloadError: An error occurred during download.
+            DownloadLengthMismatchError: Downloaded bytes exceed
                 ``max_length``.
-            exceptions.DownloadHTTPError: An HTTP error code was received.
+            DownloadHTTPError: An HTTP error code was received.
 
         Yields:
             ``TemporaryFile`` object that points to the contents of ``url``.
@@ -128,10 +128,10 @@ class FetcherInterface(metaclass=abc.ABCMeta):
             max_length: Upper bound of data size in bytes.
 
         Raises:
-            exceptions.DownloadError: An error occurred during download.
-            exceptions.DownloadLengthMismatchError: Downloaded bytes exceed
+            DownloadError: An error occurred during download.
+            DownloadLengthMismatchError: Downloaded bytes exceed
                 ``max_length``.
-            exceptions.DownloadHTTPError: An HTTP error code was received.
+            DownloadHTTPError: An HTTP error code was received.
 
         Returns:
             Content of the file in bytes.
