@@ -19,6 +19,7 @@ from securesystemslib.signer import Signer
 
 from tests import utils
 from tuf.api import exceptions
+from tuf.api.dsse import SimpleEnvelope
 from tuf.api.metadata import (
     Metadata,
     Root,
@@ -28,6 +29,7 @@ from tuf.api.metadata import (
     Timestamp,
 )
 from tuf.ngclient import Updater, UpdaterConfig
+from tuf.ngclient.config import EnvelopeType
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
@@ -384,6 +386,105 @@ class TestUpdater(unittest.TestCase):
         )
         with open(linkname, "rb") as f1, open(target, "rb") as f2:
             self.assertEqual(f1.read(), f2.read())
+
+    def _convert_repository_to_simple_envelope(self) -> bytes:
+        """Convert repository metadata to SimpleEnvelope format and return root bytes."""
+        root = (
+            Metadata[Root]
+            .from_file(
+                os.path.join(self.repository_directory, "metadata", "root.json")
+            )
+            .signed
+        )
+        signers = {
+            role: Signer.from_priv_key_uri(
+                f"file2:{os.path.join(self.keystore_directory, f'{role}_key')}",
+                root.get_key(root.get_delegated_role(role).keyids[0]),
+            )
+            for role in [Root.type, Timestamp.type, Snapshot.type, Targets.type]
+        }
+
+        # Convert targets to SimpleEnvelope
+        targets_path = os.path.join(
+            self.repository_directory, "metadata", "targets.json"
+        )
+        targets = Metadata[Targets].from_file(targets_path).signed
+        targets_env = SimpleEnvelope.from_signed(targets)
+        targets_env.sign(signers[Targets.type])
+        with open(targets_path, "wb") as f:
+            f.write(targets_env.to_bytes())
+
+        # Convert snapshot to SimpleEnvelope (clear hashes/length to match envelope)
+        snap_path = os.path.join(
+            self.repository_directory, "metadata", "snapshot.json"
+        )
+        snap = Metadata[Snapshot].from_file(snap_path).signed
+        for meta in snap.meta.values():
+            meta.hashes = None
+            meta.length = None
+        snap_env = SimpleEnvelope.from_signed(snap)
+        snap_env.sign(signers[Snapshot.type])
+        with open(snap_path, "wb") as f:
+            f.write(snap_env.to_bytes())
+
+        # Convert timestamp to SimpleEnvelope (clear hashes/length to match envelope)
+        ts_path = os.path.join(
+            self.repository_directory, "metadata", "timestamp.json"
+        )
+        ts = Metadata[Timestamp].from_file(ts_path).signed
+        ts.snapshot_meta.hashes = None
+        ts.snapshot_meta.length = None
+        ts_env = SimpleEnvelope.from_signed(ts)
+        ts_env.sign(signers[Timestamp.type])
+        with open(ts_path, "wb") as f:
+            f.write(ts_env.to_bytes())
+
+        # Convert repository root and versioned root to SimpleEnvelope
+        root_path = os.path.join(
+            self.repository_directory, "metadata", "root.json"
+        )
+        versioned_root_path = os.path.join(
+            self.repository_directory, "metadata", f"{root.version}.root.json"
+        )
+        root_env = SimpleEnvelope.from_signed(root)
+        root_env.sign(signers[Root.type])
+        root_env_bytes = root_env.to_bytes()
+        with open(root_path, "wb") as f:
+            f.write(root_env_bytes)
+        with open(versioned_root_path, "wb") as f:
+            f.write(root_env_bytes)
+
+        return root_env_bytes
+
+    def test_refresh_simple_envelope(self) -> None:
+        """Test updater refresh and target download with EnvelopeType.SIMPLE."""
+        root_env_bytes = self._convert_repository_to_simple_envelope()
+
+        # Client root in simple envelope format
+        client_root_path = os.path.join(self.client_directory, "root.json")
+        with open(client_root_path, "wb") as f:
+            f.write(root_env_bytes)
+
+        # Initialize updater with EnvelopeType.SIMPLE
+        config = UpdaterConfig(envelope_type=EnvelopeType.SIMPLE)
+        updater = Updater(
+            metadata_dir=self.client_directory,
+            metadata_base_url=self.metadata_url,
+            target_dir=self.dl_dir,
+            target_base_url=self.targets_url,
+            bootstrap=None,
+            config=config,
+        )
+
+        # Execute refresh and target fetch
+        updater.refresh()
+        target_info = updater.get_targetinfo("file1.txt")
+        self.assertIsNotNone(target_info)
+        assert target_info is not None
+        target_path = updater.download_target(target_info)
+        self.assertTrue(os.path.exists(target_path))
+        with open(target_path, encoding="utf-8") as f:
+            self.assertEqual(f.read(), "This is an example target file.")
 
 
 if __name__ == "__main__":
