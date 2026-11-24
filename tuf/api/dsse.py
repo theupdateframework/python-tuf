@@ -71,8 +71,7 @@ class SimpleEnvelope(BaseSimpleEnvelope, Generic[T]):
             data: envelope JSON bytes.
 
         Raises:
-            tuf.api.serialization.DeserializationError:
-                data cannot be deserialized.
+            DeserializationError: data cannot be deserialized.
 
         Returns:
             TUF ``SimpleEnvelope`` object.
@@ -94,8 +93,7 @@ class SimpleEnvelope(BaseSimpleEnvelope, Generic[T]):
         serialize a ``Signed`` object and wrap it in an SimpleEnvelope.
 
         Raises:
-            tuf.api.serialization.SerializationError:
-                self cannot be serialized.
+            SerializationError: self cannot be serialized.
         """
         try:
             envelope_dict = self.to_dict()
@@ -114,8 +112,7 @@ class SimpleEnvelope(BaseSimpleEnvelope, Generic[T]):
             signed: ``Signed`` object.
 
         Raises:
-            tuf.api.serialization.SerializationError:
-                The signed object cannot be serialized.
+            SerializationError: The signed object cannot be serialized.
         """
         try:
             signed_dict = signed.to_dict()
@@ -130,8 +127,7 @@ class SimpleEnvelope(BaseSimpleEnvelope, Generic[T]):
         """Extract and deserialize payload JSON bytes from envelope.
 
         Raises:
-            tuf.api.serialization.DeserializationError:
-                The signed object cannot be deserialized.
+            DeserializationError: The signed object cannot be deserialized.
         """
 
         try:

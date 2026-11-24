@@ -76,9 +76,8 @@ class RequestsFetcher(FetcherInterface):
             url: URL string that represents a file location.
 
         Raises:
-            exceptions.SlowRetrievalError: Timeout occurs while receiving
-                data.
-            exceptions.DownloadHTTPError: HTTP error code is received.
+            SlowRetrievalError: Timeout occurs while receiving data.
+            DownloadHTTPError: HTTP error code is received.
 
         Returns:
             Bytes iterator
@@ -133,7 +132,7 @@ class RequestsFetcher(FetcherInterface):
         combination.
 
         Raises:
-            exceptions.DownloadError: When there is a problem parsing the url.
+            DownloadError: When there is a problem parsing the url.
         """
         # Use a different requests.Session per schema+hostname combination, to
         # reuse connections while minimizing subtle security issues.

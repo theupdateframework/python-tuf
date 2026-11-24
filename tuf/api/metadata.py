@@ -228,8 +228,7 @@ class Metadata(Generic[T]):
 
         Raises:
             StorageError: The file cannot be read.
-            tuf.api.serialization.DeserializationError:
-                The file cannot be deserialized.
+            DeserializationError: The file cannot be deserialized.
 
         Returns:
             TUF ``Metadata`` object.
@@ -255,8 +254,7 @@ class Metadata(Generic[T]):
                 Default is ``JSONDeserializer``.
 
         Raises:
-            tuf.api.serialization.DeserializationError:
-                The file cannot be deserialized.
+            DeserializationError: The file cannot be deserialized.
 
         Returns:
             TUF ``Metadata`` object.
@@ -285,8 +283,7 @@ class Metadata(Generic[T]):
                 desired serialization format. Default is ``JSONSerializer``.
 
         Raises:
-            tuf.api.serialization.SerializationError:
-                The metadata object cannot be serialized.
+            SerializationError: The metadata object cannot be serialized.
         """
 
         if serializer is None:
@@ -331,8 +328,7 @@ class Metadata(Generic[T]):
                 is ``FilesystemBackend`` (i.e. a local file).
 
         Raises:
-            tuf.api.serialization.SerializationError:
-                The metadata object cannot be serialized.
+            SerializationError: The metadata object cannot be serialized.
             StorageError: The file cannot be written.
         """
 
@@ -364,8 +360,7 @@ class Metadata(Generic[T]):
                 serialization format. Default is ``CanonicalJSONSerializer``.
 
         Raises:
-            tuf.api.serialization.SerializationError:
-                ``signed`` cannot be serialized.
+            SerializationError: ``signed`` cannot be serialized.
             UnsignedMetadataError: Signing errors.
 
         Returns:

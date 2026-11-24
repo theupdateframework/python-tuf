@@ -59,9 +59,8 @@ class Urllib3Fetcher(FetcherInterface):
             url: URL string that represents a file location.
 
         Raises:
-            exceptions.SlowRetrievalError: Timeout occurs while receiving
-                data.
-            exceptions.DownloadHTTPError: HTTP error code is received.
+            SlowRetrievalError: Timeout occurs while receiving data.
+            DownloadHTTPError: HTTP error code is received.
 
         Returns:
             Bytes iterator
