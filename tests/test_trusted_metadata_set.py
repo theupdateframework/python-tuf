@@ -10,7 +10,7 @@ import os
 import sys
 import unittest
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, cast
 
 from securesystemslib.signer import Signer
 
@@ -97,6 +97,15 @@ class TestTrustedMetadataSet(unittest.TestCase):
             key = root.get_key(role_obj.keyids[0])
             cls.keystore[role] = Signer.from_priv_key_uri(uri, key)
 
+        targets_md = Metadata[Targets].from_bytes(cls.metadata[Targets.type])
+        delegated_role = targets_md.signed.get_delegated_role("role1")
+        delegated_key = targets_md.signed.get_key(delegated_role.keyids[0])
+        cls.keystore["role1"] = Signer.from_priv_key_uri(
+            f"file2:{os.path.join(keystore_dir, 'delegation_key')}",
+            delegated_key,
+        )
+        cls.keystore["role2"] = cls.keystore["role1"]
+
         def hashes_length_modifier(timestamp: Timestamp) -> None:
             timestamp.snapshot_meta.hashes = None
             timestamp.snapshot_meta.length = None
@@ -104,6 +113,19 @@ class TestTrustedMetadataSet(unittest.TestCase):
         cls.metadata[Timestamp.type] = cls.modify_metadata(
             Timestamp.type, hashes_length_modifier
         )
+
+    @classmethod
+    def _to_simple_envelope(
+        cls,
+        rolename: str,
+        signed_obj: Signed | None = None,
+    ) -> bytes:
+        """Helper to create and sign SimpleEnvelope bytes for rolename."""
+        if signed_obj is None:
+            signed_obj = Metadata.from_bytes(cls.metadata[rolename]).signed
+        envelope = SimpleEnvelope.from_signed(cast("Targets", signed_obj))
+        envelope.sign(cls.keystore[rolename])
+        return envelope.to_bytes()
 
     def setUp(self) -> None:
         self.trusted_set = TrustedMetadataSet(
@@ -515,10 +537,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
     # TODO test updating over initial metadata (new keys, newer timestamp, etc)
 
     def test_load_from_simple_envelope(self) -> None:
-        """Basic unit test for ``_load_from_simple_envelope`` helper.
-
-        TODO: Test via trusted metadata set tests like for traditional metadata
-        """
+        """Basic unit test for ``_load_from_simple_envelope`` helper."""
         metadata = Metadata.from_bytes(self.metadata[Root.type])
         root = metadata.signed
         envelope = SimpleEnvelope.from_signed(root)
@@ -559,6 +578,71 @@ class TestTrustedMetadataSet(unittest.TestCase):
         envelope_bad_signed_bytes = envelope_bad_signed.to_bytes()
         with self.assertRaises(exceptions.RepositoryError):
             _load_from_simple_envelope(Targets, envelope_bad_signed_bytes)
+
+    def test_update_simple_envelope(self) -> None:
+        """Test full update workflow with EnvelopeType.SIMPLE."""
+        root_envelope = self._to_simple_envelope(Root.type)
+        trusted_set = TrustedMetadataSet(root_envelope, EnvelopeType.SIMPLE)
+
+        snap = Metadata.from_bytes(self.metadata[Snapshot.type]).signed
+        for meta in snap.meta.values():
+            meta.hashes = None
+            meta.length = None
+        snapshot_envelope = self._to_simple_envelope(Snapshot.type, snap)
+
+        timestamp_envelope = self._to_simple_envelope(Timestamp.type)
+        targets_envelope = self._to_simple_envelope(Targets.type)
+        role1_envelope = self._to_simple_envelope("role1")
+        role2_envelope = self._to_simple_envelope("role2")
+
+        trusted_set.update_timestamp(timestamp_envelope)
+        trusted_set.update_snapshot(snapshot_envelope)
+        trusted_set.update_targets(targets_envelope)
+        trusted_set.update_delegated_targets(
+            role1_envelope, "role1", Targets.type
+        )
+        trusted_set.update_delegated_targets(role2_envelope, "role2", "role1")
+
+        self.assertEqual(len(trusted_set), 6)
+        for md in trusted_set:
+            self.assertIsInstance(md, Signed)
+
+    def test_update_simple_envelope_expired(self) -> None:
+        """Test updating with expired simple envelope raises ExpiredMetadataError."""
+        root_envelope = self._to_simple_envelope(Root.type)
+        trusted_set = TrustedMetadataSet(root_envelope, EnvelopeType.SIMPLE)
+
+        ts = Metadata.from_bytes(self.metadata[Timestamp.type]).signed
+        ts.expires = datetime(2000, 1, 1, tzinfo=UTC)
+        ts_expired_envelope = self._to_simple_envelope(Timestamp.type, ts)
+
+        with self.assertRaises(exceptions.ExpiredMetadataError):
+            trusted_set.update_timestamp(ts_expired_envelope)
+
+    def test_update_simple_envelope_untrusted_signature(self) -> None:
+        """Test updating with untrusted signature raises UnsignedMetadataError."""
+        root_envelope = self._to_simple_envelope(Root.type)
+        trusted_set = TrustedMetadataSet(root_envelope, EnvelopeType.SIMPLE)
+
+        ts = Metadata.from_bytes(self.metadata[Timestamp.type]).signed
+        env = SimpleEnvelope.from_signed(ts)
+        env.sign(self.keystore[Targets.type])
+
+        with self.assertRaises(exceptions.UnsignedMetadataError):
+            trusted_set.update_timestamp(env.to_bytes())
+
+    def test_update_simple_envelope_unexpected_payload_type(self) -> None:
+        """Test updating with unexpected payload type raises RepositoryError."""
+        root_envelope = self._to_simple_envelope(Root.type)
+        trusted_set = TrustedMetadataSet(root_envelope, EnvelopeType.SIMPLE)
+
+        ts = Metadata.from_bytes(self.metadata[Timestamp.type]).signed
+        env = SimpleEnvelope.from_signed(ts)
+        env.payload_type = "invalid-payload-type"
+        env.sign(self.keystore[Timestamp.type])
+
+        with self.assertRaises(exceptions.RepositoryError):
+            trusted_set.update_timestamp(env.to_bytes())
 
 
 if __name__ == "__main__":
