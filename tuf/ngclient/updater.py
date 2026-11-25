@@ -58,6 +58,7 @@ import contextlib
 import logging
 import os
 import shutil
+import stat
 import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
@@ -70,6 +71,8 @@ from tuf.ngclient.config import EnvelopeType, UpdaterConfig
 from tuf.ngclient.urllib3_fetcher import Urllib3Fetcher
 
 if TYPE_CHECKING:
+    from typing import IO
+
     from tuf.ngclient.fetcher import FetcherInterface
 
 logger = logging.getLogger(__name__)
@@ -262,8 +265,9 @@ class Updater:
             targetinfo: ``TargetFile`` from ``get_targetinfo()``.
             filepath: Local path to download into. If ``None``, the file is
                 downloaded into directory defined by ``target_dir`` constructor
-                argument using a generated filename. If file already exists,
-                it is overwritten.
+                argument using a generated filename. An existing regular file
+                is replaced atomically after the download has been verified
+                and written successfully.
             target_base_url: Base URL used to form the final target
                 download URL. Default is the value provided in ``Updater()``
 
@@ -304,13 +308,52 @@ class Updater:
             full_url, targetinfo.length
         ) as target_file:
             targetinfo.verify_length_and_hashes(target_file)
-
             target_file.seek(0)
-            with open(filepath, "wb") as destination_file:
-                shutil.copyfileobj(target_file, destination_file)
+
+            mode = None
+            with contextlib.suppress(FileNotFoundError):
+                mode = os.stat(filepath).st_mode
+            if mode is not None and not stat.S_ISREG(mode):
+                # Keep the usual file I/O behavior for devices and pipes.
+                with open(filepath, "wb") as destination_file:
+                    shutil.copyfileobj(target_file, destination_file)
+            else:
+                self._persist_target(filepath, target_file, mode)
 
         logger.debug("Downloaded target %s", targetinfo.path)
         return filepath
+
+    @staticmethod
+    def _persist_target(
+        filepath: str, target_file: IO[bytes], mode: int | None
+    ) -> None:
+        """Atomically replace a regular target file."""
+        if mode is not None:
+            # Preserve the write-access check without truncating the file.
+            flags = os.O_WRONLY | getattr(os, "O_NONBLOCK", 0)
+            os.close(os.open(filepath, flags))
+
+        # Follow final symlinks without normalizing their spelling. In
+        # particular, a trailing slash requires a directory at that path.
+        destination = filepath
+        while os.path.islink(destination):
+            destination = os.path.join(
+                os.path.dirname(destination), os.readlink(destination)
+            )
+
+        # Stage next to the destination so replacement is atomic. A private
+        # directory lets open() apply the usual umask for a new file.
+        parent = os.path.realpath(
+            os.path.dirname(destination) or ".", strict=True
+        )
+        with tempfile.TemporaryDirectory(dir=parent) as temporary_dir:
+            staged_target = os.path.join(temporary_dir, "target")
+            with open(staged_target, "wb") as destination_file:
+                shutil.copyfileobj(target_file, destination_file)
+
+            if mode is not None:
+                os.chmod(staged_target, mode & 0o777)
+            os.replace(staged_target, destination)
 
     def _download_metadata(
         self, rolename: str, length: int, version: int | None = None

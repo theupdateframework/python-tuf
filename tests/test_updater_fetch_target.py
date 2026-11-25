@@ -7,11 +7,15 @@ target files storing/loading from cache.
 
 from __future__ import annotations
 
+import errno
 import os
 import sys
 import tempfile
 import unittest
 from dataclasses import dataclass
+from pathlib import Path
+from typing import BinaryIO
+from unittest.mock import patch
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
@@ -206,6 +210,106 @@ class TestFetchTarget(unittest.TestCase):
         self.assertEqual(path, updater.find_cached_target(info))
         with open(path, "rb") as f:
             self.assertEqual(f.read(), target.content)
+
+    def test_failed_target_write_preserves_existing_file(self) -> None:
+        self.sim.add_target("targets", b"new target", "targetpath")
+        self.sim.update_snapshot()
+
+        updater = self._init_updater()
+        info = updater.get_targetinfo("targetpath")
+        assert info is not None
+        path = Path(self.targets_dir, "targetpath")
+        path.write_bytes(b"old target")
+
+        def fail_copy(source: BinaryIO, destination: BinaryIO) -> None:
+            destination.write(source.read(3))
+            destination.flush()
+            raise OSError(errno.ENOSPC, "No space left on device")
+
+        with (
+            patch("tuf.ngclient.updater.shutil.copyfileobj", fail_copy),
+            self.assertRaises(OSError) as caught,
+        ):
+            updater.download_target(info)
+
+        self.assertEqual(caught.exception.errno, errno.ENOSPC)
+        self.assertEqual(path.read_bytes(), b"old target")
+        self.assertEqual(list(path.parent.iterdir()), [path])
+
+    @unittest.skipUnless(os.name == "posix", "requires POSIX symlink semantics")
+    def test_download_target_through_symlinks(self) -> None:
+        self.sim.add_target("targets", b"new target", "targetpath")
+        self.sim.update_snapshot()
+        updater = self._init_updater()
+        info = updater.get_targetinfo("targetpath")
+        assert info is not None
+
+        destination = Path(self.targets_dir, "destination")
+        destination.write_bytes(b"old target")
+        link = Path(self.targets_dir, "link")
+        link.symlink_to(f"{destination.name}/")
+        with self.assertRaises(NotADirectoryError):
+            updater.download_target(info, str(link))
+        self.assertEqual(destination.read_bytes(), b"old target")
+        self.assertTrue(link.is_symlink())
+
+        link.unlink()
+        link.symlink_to(destination.name)
+        self.assertEqual(updater.download_target(info, str(link)), str(link))
+        self.assertEqual(destination.read_bytes(), b"new target")
+        self.assertTrue(link.is_symlink())
+
+        destination.unlink()
+        self.assertEqual(updater.download_target(info, str(link)), str(link))
+        self.assertEqual(destination.read_bytes(), b"new target")
+        self.assertTrue(link.is_symlink())
+
+        nested = Path(self.targets_dir, "nested")
+        (nested / "child").mkdir(parents=True)
+        directory_link = Path(self.targets_dir, "directory-link")
+        directory_link.symlink_to(
+            Path("nested", "child"), target_is_directory=True
+        )
+        link.unlink()
+        link.symlink_to("directory-link/../destination")
+        self.assertEqual(updater.download_target(info, str(link)), str(link))
+        self.assertEqual((nested / "destination").read_bytes(), b"new target")
+        self.assertCountEqual(os.listdir(nested), ["child", "destination"])
+
+    @unittest.skipUnless(
+        getattr(os, "geteuid", lambda: 0)() != 0,
+        "requires unprivileged POSIX permissions",
+    )
+    def test_download_target_preserves_read_only_file(self) -> None:
+        self.sim.add_target("targets", b"new target", "targetpath")
+        self.sim.update_snapshot()
+        updater = self._init_updater()
+        info = updater.get_targetinfo("targetpath")
+        assert info is not None
+
+        path = Path(self.targets_dir, "targetpath")
+        path.write_bytes(b"old target")
+        path.chmod(0o444)
+        with self.assertRaises(PermissionError):
+            updater.download_target(info)
+        self.assertEqual(path.read_bytes(), b"old target")
+        self.assertEqual(list(path.parent.iterdir()), [path])
+
+    @unittest.skipUnless(os.name == "posix", "requires a POSIX null device")
+    def test_download_target_to_nonregular_destinations(self) -> None:
+        self.sim.add_target("targets", b"new target", "targetpath")
+        self.sim.update_snapshot()
+        updater = self._init_updater()
+        info = updater.get_targetinfo("targetpath")
+        assert info is not None
+
+        self.assertEqual(updater.download_target(info, os.devnull), os.devnull)
+        with self.assertRaises(IsADirectoryError):
+            updater.download_target(info, self.targets_dir)
+
+        Path(self.targets_dir, "targetpath").mkdir()
+        with self.assertRaises(IsADirectoryError):
+            updater.download_target(info)
 
     def test_meta_missing_delegated_role(self) -> None:
         """Test a delegation where the role is not part of the snapshot"""
