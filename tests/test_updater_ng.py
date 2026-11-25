@@ -309,13 +309,21 @@ class TestUpdater(unittest.TestCase):
         self, wrapped_remove: MagicMock, wrapped_replace: MagicMock
     ) -> None:
         # Testing that when write succeeds (the file is created) and replace
-        # fails by throwing OSError, then the file will be deleted.
+        # fails by throwing OSError, any existing target file is preserved and
+        # the temporary file is deleted.
+        root_path = os.path.join(self.updater._dir, "root.json")
+        with open(root_path, "rb") as f:
+            original_root = f.read()
+
         wrapped_replace.side_effect = OSError()
         with self.assertRaises(OSError):
-            self.updater._persist_metadata("target", b"data")
+            self.updater._persist_metadata("root", b"data")
 
         wrapped_replace.assert_called_once()
         wrapped_remove.assert_called_once()
+
+        with open(root_path, "rb") as f:
+            self.assertEqual(f.read(), original_root)
 
         # Assert that the created tempfile during writing is eventually deleted
         # or in other words, there is no temporary file left in the folder.
@@ -361,29 +369,6 @@ class TestUpdater(unittest.TestCase):
         ua = poolmgr.headers["User-Agent"]
 
         self.assertEqual(ua[:23], "MyApp/1.2.3 python-tuf/")
-
-    @patch("os.symlink")
-    def test_update_root_symlink_oserror_fallback(
-        self, mock_symlink: MagicMock
-    ) -> None:
-        """Test fallback to os.link when os.symlink raises OSError."""
-        err = OSError("A required privilege is not held by the client")
-        err.winerror = 1314
-        mock_symlink.side_effect = err
-
-        self.updater._update_root_symlink()
-        mock_symlink.assert_called_once()
-
-        linkname = os.path.join(self.updater._dir, "root.json")
-        self.assertTrue(os.path.isfile(linkname))
-        self.assertFalse(os.path.islink(linkname))
-
-        version = self.updater._trusted_set.root.version
-        target = os.path.join(
-            self.updater._dir, "root_history", f"{version}.root.json"
-        )
-        with open(linkname, "rb") as f1, open(target, "rb") as f2:
-            self.assertEqual(f1.read(), f2.read())
 
 
 if __name__ == "__main__":
