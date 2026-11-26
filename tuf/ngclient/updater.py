@@ -55,6 +55,8 @@ Custom ``FetcherInterface`` implementations are possible. The alternative
 from __future__ import annotations
 
 import contextlib
+import errno
+import hashlib
 import logging
 import os
 import shutil
@@ -188,7 +190,19 @@ class Updater:
 
         # Use URL encoded target path as filename
         filename = parse.quote(targetinfo.path, "")
-        return os.path.join(self.target_dir, filename)
+        filepath = os.path.join(self.target_dir, filename)
+        # The quoted filename is ASCII, so its byte and character lengths match.
+        limit = _target_filename_limit(self.target_dir)
+        if len(filename) > limit or _path_is_too_long(filepath):
+            digest = hashlib.sha256(targetinfo.path.encode("utf-8")).hexdigest()
+            # The leading @ is always escaped in regular cache filenames.
+            name = f"@{digest}"
+            components = [
+                name[start : start + limit]
+                for start in range(0, len(name), limit)
+            ]
+            return os.path.join(self.target_dir, *components)
+        return filepath
 
     def get_targetinfo(self, target_path: str) -> TargetFile | None:
         """Return ``TargetFile`` instance with information for ``target_path``.
@@ -579,6 +593,38 @@ class Updater:
 
         # If this point is reached then target is not found, return None
         return None
+
+
+def _target_filename_limit(directory: str) -> int:
+    """Return the filesystem's filename limit for the target cache."""
+    if hasattr(os, "pathconf"):
+        path = Path(directory)
+        # The cache directory may not exist before the first download.
+        for candidate in (path, *path.parents):
+            try:
+                limit = os.pathconf(candidate, "PC_NAME_MAX")
+            except FileNotFoundError:
+                continue
+            except (OSError, ValueError):
+                break
+            if limit > 0:
+                return limit
+            break
+
+    # Use the common filesystem limit where pathconf is unavailable.
+    return 255
+
+
+def _path_is_too_long(filepath: str) -> bool:
+    """Check for a path length error from the operating system."""
+    try:
+        os.lstat(filepath)
+    except OSError as e:
+        # Windows can report ERROR_FILENAME_EXCED_RANGE as ENOENT.
+        return (
+            e.errno == errno.ENAMETOOLONG or getattr(e, "winerror", None) == 206
+        )
+    return False
 
 
 def _ensure_trailing_slash(url: str) -> str:
