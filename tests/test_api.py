@@ -15,6 +15,7 @@ from copy import copy, deepcopy
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from typing import ClassVar
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib.signer import (
@@ -334,11 +335,38 @@ class TestMetadata(unittest.TestCase):
         self.assertFalse(is_expired)
         md.signed.expires = expires
 
+    def test_signed_expires_normalizes_utc(self) -> None:
+        expires = datetime(2030, 1, 1, 12, 0, microsecond=123456, tzinfo=UTC)
+        expected = expires.replace(microsecond=0)
+        for tz in (None, UTC, timezone(timedelta(0), "GMT")):
+            with self.subTest(tz=tz):
+                timestamp = Timestamp(expires=expires.replace(tzinfo=tz))
+                self.assertEqual(timestamp.expires, expected)
+                self.assertIs(timestamp.expires.tzinfo, UTC)
+                self.assertEqual(
+                    timestamp.to_dict()["expires"], "2030-01-01T12:00:00Z"
+                )
+
+    def test_signed_expires_accepts_zoneinfo_utc(self) -> None:
+        try:
+            utc_zone = ZoneInfo("UTC")
+        except ZoneInfoNotFoundError:
+            self.skipTest("IANA timezone data for UTC is unavailable")
+
+        expires = datetime(2030, 1, 1, 12, 0, tzinfo=utc_zone)
+        timestamp = Timestamp(expires=expires)
+        self.assertEqual(timestamp.expires, expires)
+        self.assertIs(timestamp.expires.tzinfo, UTC)
+
+        timestamp.expires = expires + timedelta(days=1)
+        self.assertIs(timestamp.expires.tzinfo, UTC)
+        self.assertEqual(timestamp.to_dict()["expires"], "2030-01-02T12:00:00Z")
+
     def test_signed_expires_setter_invalid_timezone(self) -> None:
         # Use of Timestamp is arbitrary, we're just testing the base class
         timestamp = Timestamp(expires=datetime(2030, 1, 1, tzinfo=UTC))
 
-        # A timezone other than UTC is rejected...
+        # A nonzero UTC offset is rejected...
         plus_two = timezone(timedelta(hours=2))
         with self.assertRaises(ValueError):
             timestamp.expires = datetime(2031, 1, 1, 12, 0, tzinfo=plus_two)

@@ -12,7 +12,7 @@ import hashlib
 import io
 import logging
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -114,15 +114,11 @@ class Signed(metaclass=abc.ABCMeta):
         # Use 'datetime' module to e.g. expire in seven days from now
         obj.expires = now(timezone.utc) + timedelta(days=7)
         """
-        expires = value.replace(microsecond=0)
-        if expires.tzinfo is None:
-            # Naive datetime: just make it UTC
-            expires = expires.replace(tzinfo=UTC)
-        elif expires.tzinfo != UTC:
-            raise ValueError(f"Expected tz UTC, not {expires.tzinfo}")
+        if value.tzinfo is not None and value.utcoffset() != timedelta(0):
+            raise ValueError(f"Expected tz UTC, not {value.tzinfo}")
 
-        # Store the value only after it has been validated
-        self._expires = expires
+        # Treat naive datetimes as UTC and store all expirations in UTC.
+        self._expires = value.replace(microsecond=0, tzinfo=UTC)
 
     # NOTE: Signed is a stupid name, because this might not be signed yet, but
     # we keep it to match spec terminology (I often refer to this as "payload",
