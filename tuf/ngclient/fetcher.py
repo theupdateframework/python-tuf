@@ -8,7 +8,7 @@ import abc
 import logging
 import tempfile
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from typing import IO
 
 from tuf.api import exceptions
@@ -16,7 +16,29 @@ from tuf.api import exceptions
 logger = logging.getLogger(__name__)
 
 
-# Classes
+class _DownloadIterator(Iterator[bytes]):
+    """Normalize stream errors and forward explicit close calls."""
+
+    def __init__(self, chunks: Iterator[bytes], url: str) -> None:
+        self._chunks = chunks
+        self._url = url
+
+    def __next__(self) -> bytes:
+        try:
+            return next(self._chunks)
+        except (StopIteration, exceptions.DownloadError):
+            raise
+        except Exception as e:
+            raise exceptions.DownloadError(
+                f"Failed to download {self._url}"
+            ) from e
+
+    def close(self) -> None:
+        close = getattr(self._chunks, "close", None)
+        if close is not None:
+            close()
+
+
 class FetcherInterface(metaclass=abc.ABCMeta):
     """Defines an interface for abstract network download.
 
@@ -37,7 +59,7 @@ class FetcherInterface(metaclass=abc.ABCMeta):
 
         Implementations may raise any errors but the ones that are not
         ``DownloadErrors`` will be wrapped in a ``DownloadError`` by
-        ``fetch()``.
+        ``fetch()``, including errors raised while iterating over the chunks.
 
         Args:
             url: URL string that represents a file location.
@@ -63,14 +85,15 @@ class FetcherInterface(metaclass=abc.ABCMeta):
         Returns:
             Bytes iterator
         """
-        # Ensure that fetch() only raises DownloadErrors, regardless of the
-        # fetcher implementation
+        # Start the download now so connection and HTTP errors stay immediate.
         try:
-            return self._fetch(url)
-        except exceptions.DownloadError as e:
-            raise e
+            chunks = self._fetch(url)
+        except exceptions.DownloadError:
+            raise
         except Exception as e:
             raise exceptions.DownloadError(f"Failed to download {url}") from e
+
+        return _DownloadIterator(chunks, url)
 
     @contextmanager
     def download_file(self, url: str, max_length: int) -> Iterator[IO]:
@@ -99,15 +122,24 @@ class FetcherInterface(metaclass=abc.ABCMeta):
 
         with tempfile.TemporaryFile() as temp_file:
             chunks = self.fetch(url)
-            for chunk in chunks:
-                number_of_bytes_received += len(chunk)
-                if number_of_bytes_received > max_length:
-                    raise exceptions.DownloadLengthMismatchError(
-                        f"Downloaded {number_of_bytes_received} bytes exceeding"
-                        f" the maximum allowed length of {max_length}"
-                    )
+            try:
+                for chunk in chunks:
+                    number_of_bytes_received += len(chunk)
+                    if number_of_bytes_received > max_length:
+                        raise exceptions.DownloadLengthMismatchError(
+                            f"Downloaded {number_of_bytes_received} bytes "
+                            "exceeding the maximum allowed length of "
+                            f"{max_length}"
+                        )
 
-                temp_file.write(chunk)
+                    temp_file.write(chunk)
+            except BaseException:
+                # Preserve the original error if closing the stream fails.
+                with suppress(Exception):
+                    close = getattr(chunks, "close", None)
+                    if close is not None:
+                        close()
+                raise
 
             logger.debug(
                 "Downloaded %d out of %d bytes",
