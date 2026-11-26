@@ -7,16 +7,19 @@ target files storing/loading from cache.
 
 from __future__ import annotations
 
+import errno
 import os
 import sys
 import tempfile
 import unittest
 from dataclasses import dataclass
+from pathlib import Path
+from unittest.mock import patch
 
 from tests import utils
 from tests.repository_simulator import RepositorySimulator
 from tuf.api.exceptions import RepositoryError
-from tuf.api.metadata import DelegatedRole, Delegations
+from tuf.api.metadata import DelegatedRole, Delegations, TargetFile
 from tuf.ngclient import Updater
 
 
@@ -118,6 +121,94 @@ class TestFetchTarget(unittest.TestCase):
         self.assertEqual(path, updater.download_target(info, path))
         self.assertEqual(path, updater.find_cached_target(info))
         self.assertEqual(path, updater.find_cached_target(info, path))
+
+    def test_fetch_target_with_long_cache_filename(self) -> None:
+        os.rmdir(self.targets_dir)
+        # Encoding the nested path expands it from 247 to 307 bytes.
+        prefix = "segment/" * 30
+        first_target = prefix + "first00"
+        second_target = prefix + "second0"
+        content = b"shared content"
+        self.sim.add_target("targets", content, first_target)
+        self.sim.add_target("targets", content, second_target)
+        self.sim.update_snapshot()
+
+        updater = self._init_updater()
+        first_info = updater.get_targetinfo(first_target)
+        second_info = updater.get_targetinfo(second_target)
+        assert first_info is not None
+        assert second_info is not None
+        self.assertIsNone(updater.find_cached_target(first_info))
+        self.assertFalse(os.path.exists(self.targets_dir))
+
+        explicit_path = os.path.join(self.temp_dir.name, "explicit")
+        self.assertEqual(
+            updater.download_target(first_info, explicit_path), explicit_path
+        )
+        self.assertEqual(
+            updater.find_cached_target(first_info, explicit_path), explicit_path
+        )
+
+        first_path = updater.download_target(first_info)
+        self.assertTrue(Path(first_path).is_relative_to(self.targets_dir))
+        self.assertIsNone(updater.find_cached_target(second_info))
+        second_path = updater.download_target(second_info)
+        self.assertNotEqual(first_path, second_path)
+
+        updater = self._init_updater()
+        self.assertEqual(updater.find_cached_target(first_info), first_path)
+        self.assertEqual(updater.find_cached_target(second_info), second_path)
+
+    def test_generated_target_filename_at_filesystem_limit(self) -> None:
+        os.rmdir(self.targets_dir)
+        updater = self._init_updater()
+        target = TargetFile.from_data("a" * 100, b"content")
+        with patch.object(
+            os, "pathconf", side_effect=[FileNotFoundError, 100], create=True
+        ) as pathconf:
+            self.assertEqual(
+                updater._generate_target_file_path(target),
+                os.path.join(self.targets_dir, target.path),
+            )
+            self.assertEqual(pathconf.call_count, 2)
+
+        target = TargetFile.from_data("a" * 101, b"content")
+        with patch.object(os, "pathconf", return_value=100, create=True):
+            path = updater._generate_target_file_path(target)
+        self.assertLess(len(os.path.basename(path)), 100)
+
+    def test_generated_target_path_exceeds_full_path_limit(self) -> None:
+        updater = self._init_updater()
+        target = TargetFile.from_data("nested/path/target", b"content")
+        encoded_path = os.path.join(self.targets_dir, "nested%2Fpath%2Ftarget")
+        with (
+            patch.object(os, "pathconf", return_value=255, create=True),
+            patch.object(
+                os, "lstat", side_effect=OSError(errno.ENAMETOOLONG, "too long")
+            ) as probe,
+        ):
+            path = updater._generate_target_file_path(target)
+
+        self.assertTrue(Path(path).name.startswith("@"))
+        probe.assert_called_once_with(encoded_path)
+
+    def test_fetch_target_with_low_filename_limit(self) -> None:
+        target_path = "nested/path/target"
+        self.sim.add_target("targets", b"content", target_path)
+        self.sim.update_snapshot()
+
+        updater = self._init_updater()
+        target = updater.get_targetinfo(target_path)
+        assert target is not None
+        with patch.object(os, "pathconf", return_value=14, create=True):
+            self.assertIsNone(updater.find_cached_target(target))
+            path = updater.download_target(target)
+            self.assertEqual(updater.find_cached_target(target), path)
+
+        components = Path(path).relative_to(self.targets_dir).parts
+        self.assertTrue(components[0].startswith("@"))
+        self.assertTrue(all(len(component) <= 14 for component in components))
+        self.assertEqual(len("".join(components)), 65)
 
     def test_download_targets_with_succinct_roles(self) -> None:
         self.sim.add_succinct_roles("targets", 8, "bin")
