@@ -8,6 +8,8 @@ library.
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
+from contextlib import suppress
 from typing import TYPE_CHECKING
 
 # Imports
@@ -19,13 +21,43 @@ from tuf.ngclient._internal.proxy import ProxyEnvironment
 from tuf.ngclient.fetcher import FetcherInterface
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
 
 # Globals
 logger = logging.getLogger(__name__)
 
 
-# Classes
+def _discard_response(response: urllib3.response.BaseHTTPResponse) -> None:
+    """Close the response before returning its connection to the pool."""
+    response.close()
+    response.release_conn()
+
+
+class _ResponseStream(Iterator[bytes]):
+    """Own the response until the chunk generator starts reading."""
+
+    def __init__(
+        self,
+        response: urllib3.response.BaseHTTPResponse,
+        chunks: Generator[bytes, None, None],
+    ) -> None:
+        self._unread_response: urllib3.response.BaseHTTPResponse | None = (
+            response
+        )
+        self._chunks = chunks
+
+    def __next__(self) -> bytes:
+        self._unread_response = None
+        return next(self._chunks)
+
+    def close(self) -> None:
+        response = self._unread_response
+        self._unread_response = None
+        self._chunks.close()
+        if response is not None:
+            _discard_response(response)
+
+
 class Urllib3Fetcher(FetcherInterface):
     """An implementation of ``FetcherInterface`` based on the urllib3 library.
 
@@ -92,29 +124,26 @@ class Urllib3Fetcher(FetcherInterface):
                 response.status,
             )
 
-        return self._chunks(response)
+        return _ResponseStream(response, self._chunks(response))
 
     def _chunks(
         self, response: urllib3.response.BaseHTTPResponse
-    ) -> Iterator[bytes]:
-        """A generator function to be returned by fetch.
-
-        This way the caller of fetch can differentiate between connection
-        and actual data download.
-        """
-
+    ) -> Generator[bytes, None, None]:
+        """Stream the response body and manage its connection on exit."""
         try:
             yield from response.stream(self.chunk_size)
-        except urllib3.exceptions.TimeoutError as e:
-            # Raised directly when the gap timeout expires mid-stream:
-            # ReadTimeoutError is a TimeoutError but not a MaxRetryError.
-            raise exceptions.SlowRetrievalError from e
-        except urllib3.exceptions.MaxRetryError as e:
-            if isinstance(e.reason, urllib3.exceptions.TimeoutError):
-                raise exceptions.SlowRetrievalError from e
-            # Any other reason: propagate rather than ending the stream
-            # silently, which would look like a complete download.
+        except GeneratorExit:
+            _discard_response(response)
             raise
-
-        finally:
+        except BaseException as e:
+            # Preserve the original failure if discarding the response fails.
+            with suppress(Exception):
+                _discard_response(response)
+            if isinstance(e, urllib3.exceptions.TimeoutError) or (
+                isinstance(e, urllib3.exceptions.MaxRetryError)
+                and isinstance(e.reason, urllib3.exceptions.TimeoutError)
+            ):
+                raise exceptions.SlowRetrievalError from e
+            raise
+        else:
             response.release_conn()

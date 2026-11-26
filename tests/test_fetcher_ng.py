@@ -10,16 +10,48 @@ import os
 import sys
 import tempfile
 import unittest
+from collections.abc import Generator, Iterator
 from typing import ClassVar
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, call, patch
 
 import urllib3
 
 from tests import utils
 from tuf.api import exceptions
 from tuf.ngclient import Urllib3Fetcher
+from tuf.ngclient.fetcher import FetcherInterface
 
 logger = logging.getLogger(__name__)
+
+
+class TestFetcherInterface(unittest.TestCase):
+    def test_custom_fetcher_stream_error(self) -> None:
+        stream_error = OSError("stream interrupted")
+
+        class CustomFetcher(FetcherInterface):
+            def _fetch(self, url: str) -> Iterator[bytes]:
+                yield url.encode()
+                raise stream_error
+
+        url = "https://example.com/file"
+        chunks = CustomFetcher().fetch(url)
+        self.assertEqual(next(chunks), url.encode())
+        with self.assertRaises(exceptions.DownloadError) as cm:
+            next(chunks)
+        self.assertIs(cm.exception.__cause__, stream_error)
+
+    @patch.object(Urllib3Fetcher, "_fetch")
+    def test_close_before_iteration(self, fetch: Mock) -> None:
+        stream = MagicMock(spec=Generator)
+        fetch.return_value = stream
+
+        url = "https://example.com/file"
+        chunks = Urllib3Fetcher().fetch(url)
+        fetch.assert_called_once_with(url)
+        assert hasattr(chunks, "close")
+        chunks.close()
+        stream.close.assert_called_once_with()
+        stream.__next__.assert_not_called()
 
 
 class TestFetcher(unittest.TestCase):
@@ -58,6 +90,21 @@ class TestFetcher(unittest.TestCase):
     def setUp(self) -> None:
         # Instantiate a concrete instance of FetcherInterface
         self.fetcher = Urllib3Fetcher()
+
+    def _pooled_response(
+        self, data: bytes, headers: dict[str, str] | None = None
+    ) -> tuple[urllib3.response.HTTPResponse, Mock]:
+        transport = Mock()
+        response = urllib3.response.HTTPResponse(
+            body=io.BytesIO(data),
+            status=200,
+            headers=headers,
+            preload_content=False,
+            pool=transport.pool,
+            connection=transport.connection,
+        )
+        self.addCleanup(response.close)
+        return response, transport
 
     # Simple fetch.
     def test_fetch(self) -> None:
@@ -161,6 +208,113 @@ class TestFetcher(unittest.TestCase):
 
         with self.assertRaises(exceptions.SlowRetrievalError):
             self.fetcher.download_bytes(self.url, self.file_length)
+
+    @patch.object(urllib3.PoolManager, "request")
+    def test_download_bytes_interrupted_stream(self, request: Mock) -> None:
+        stream_error = urllib3.exceptions.ProtocolError("stream interrupted")
+
+        def interrupted_stream() -> Iterator[bytes]:
+            yield b"part"
+            raise stream_error
+
+        response = request.return_value
+        response.status = 200
+        response.stream.return_value = interrupted_stream()
+
+        with self.assertRaises(exceptions.DownloadError) as cm:
+            self.fetcher.download_bytes(self.url, self.file_length)
+        self.assertIs(cm.exception.__cause__, stream_error)
+        response.release_conn.assert_called_once_with()
+
+    @patch.object(urllib3.PoolManager, "request")
+    def test_close_stream(self, request: Mock) -> None:
+        response = request.return_value
+        response.status = 200
+        response.stream.return_value = iter([b"first", b"second"])
+
+        chunks = self.fetcher.fetch(self.url)
+        self.assertEqual(next(chunks), b"first")
+        assert hasattr(chunks, "close")
+        chunks.close()
+        response.close.assert_called_once_with()
+        response.release_conn.assert_called_once_with()
+
+    @patch.object(urllib3.PoolManager, "request")
+    def test_close_unread_response(self, request: Mock) -> None:
+        response, transport = self._pooled_response(b"unread data")
+        request.return_value = response
+
+        chunks = self.fetcher.fetch(self.url)
+        request.assert_called_once()
+        assert hasattr(chunks, "close")
+        chunks.close()
+        chunks.close()
+
+        self.assertEqual(list(chunks), [])
+        self.assertEqual(response.tell(), 0)
+        self.assertTrue(response.closed)
+        self.assertEqual(
+            transport.mock_calls,
+            [
+                call.connection.close(),
+                call.pool._put_conn(transport.connection),
+            ],
+        )
+
+    @patch.object(urllib3.PoolManager, "request")
+    def test_close_response_on_decode_error(self, request: Mock) -> None:
+        data = b"uncompressed response content"
+        response, transport = self._pooled_response(
+            data, {"Content-Encoding": "gzip"}
+        )
+        request.return_value = response
+        self.fetcher.chunk_size = 8
+
+        with self.assertRaises(exceptions.DownloadError) as cm:
+            self.fetcher.download_bytes(self.url, len(data))
+
+        self.assertIsInstance(
+            cm.exception.__cause__, urllib3.exceptions.DecodeError
+        )
+        self.assertLess(response.tell(), len(data))
+        self.assertTrue(response.closed)
+        self.assertEqual(
+            transport.mock_calls,
+            [
+                call.connection.close(),
+                call.pool._put_conn(transport.connection),
+            ],
+        )
+
+    @patch.object(urllib3.PoolManager, "request")
+    def test_complete_read_releases_connection(self, request: Mock) -> None:
+        data = b"complete response content"
+        response, transport = self._pooled_response(data)
+        request.return_value = response
+
+        self.assertEqual(self.fetcher.download_bytes(self.url, len(data)), data)
+        self.assertEqual(
+            transport.mock_calls, [call.pool._put_conn(transport.connection)]
+        )
+
+    @patch.object(Urllib3Fetcher, "_fetch")
+    @patch("tuf.ngclient.fetcher.tempfile.TemporaryFile")
+    def test_download_bytes_local_write_error(
+        self, temporary_file: Mock, fetch: Mock
+    ) -> None:
+        stream = MagicMock(spec=Generator)
+        stream.__next__.return_value = b"part"
+        stream.close.side_effect = OSError("close failed")
+        fetch.return_value = stream
+        write_error = OSError("local write failed")
+        temporary_file.return_value.__enter__.return_value.write.side_effect = (
+            write_error
+        )
+
+        with self.assertRaises(OSError) as cm:
+            self.fetcher.download_bytes(self.url, self.file_length)
+        self.assertIs(cm.exception, write_error)
+        stream.close.assert_called_once_with()
 
     # Read/connect session timeout error
     @patch.object(
