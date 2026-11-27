@@ -8,7 +8,6 @@ name: 'Dependency Review'
 on: [pull_request]
 
 permissions:
-  # NOTE: If you add security critical permissions, start pinning used actions
   contents: read
 
 jobs:
@@ -16,8 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 'Checkout Repository'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - name: 'Dependency Review'
-        uses: actions/dependency-review-action@v5.0.0 # zizmor: ignore[unpinned-uses]
+        uses: actions/dependency-review-action@v5.0.0

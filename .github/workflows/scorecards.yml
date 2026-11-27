@@ -14,7 +14,6 @@ jobs:
     name: Scorecards analysis
     runs-on: ubuntu-latest
     permissions:
-      # NOTE: If you add security critical permissions, start pinning used actions
       security-events: write # for uploading to code-scanning dashboard
       id-token: write # for publishing results in scorecard public dataset
       actions: read
@@ -22,12 +21,12 @@ jobs:
 
     steps:
       - name: "Checkout code"
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
 
       - name: "Run analysis"
-        uses: ossf/scorecard-action@fa7117db83c52d787ae5a89f350999701505d78e # v2.5.0
+        uses: ossf/scorecard-action@v2.5.0
         with:
           results_file: results.sarif
           # sarif format required by upload-sarif action
@@ -37,6 +36,6 @@ jobs:
           publish_results: true
 
       - name: "Upload to code-scanning dashboard"
-        uses: github/codeql-action/upload-sarif@v4.39.3 # zizmor: ignore[unpinned-uses]
+        uses: github/codeql-action/upload-sarif@v4.39.3
         with:
           sarif_file: results.sarif

@@ -11,12 +11,12 @@ jobs:
 
     steps:
       - name: Checkout TUF
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Python (oldest supported version)
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: "3.11"
           cache: 'pip'
@@ -33,9 +33,29 @@ jobs:
           RUFF_OUTPUT_FORMAT: github
         run: tox -e lint
 
+  lint-actions-lock:
+    name: Lint Actions Lockfile
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout TUF
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install gh-actions-lock
+        run: gh extension install github/gh-actions-lock
+
+      - name: Verify GitHub Actions lockfile
+        run: gh actions-lock --verify
+
   tests:
     name: Tests
-    needs: lint-test
+    needs: [lint-test, lint-actions-lock]
     strategy:
       matrix:
         python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
@@ -50,12 +70,12 @@ jobs:
 
     steps:
       - name: Checkout TUF
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
@@ -112,7 +132,7 @@ jobs:
 
   all-tests-pass:
     name: All tests passed
-    needs: [lint-test, tests]
+    needs: [lint-test, lint-actions-lock, tests]
     runs-on: ubuntu-latest
     steps:
       - run: echo "All test jobs have completed successfully."
@@ -128,7 +148,7 @@ jobs:
         run: touch requirements.txt
 
       - name: Set up Python
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: '3.x'
           cache: 'pip'
