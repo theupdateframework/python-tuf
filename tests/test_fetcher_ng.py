@@ -9,7 +9,9 @@ import math
 import os
 import sys
 import tempfile
+import threading
 import unittest
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import ClassVar
 from unittest.mock import Mock, patch
 
@@ -234,6 +236,62 @@ class TestFetcher(unittest.TestCase):
             self.fetcher.download_file(self.url, self.file_length - 4),
         ):
             pass  # we never get here as download_file() raises
+
+    def test_retry_transient_5xx(self) -> None:
+        responses = iter([502, 503, 504, 200])
+        attempts = 0
+        payload = self.file_contents
+
+        class _Handler(BaseHTTPRequestHandler):
+            def do_GET(self) -> None:
+                nonlocal attempts
+                attempts += 1
+                code = next(responses)
+                self.send_response(code)
+                self.end_headers()
+                if code == 200:
+                    self.wfile.write(payload)
+
+            def log_message(self, *_args: object) -> None:
+                pass
+
+        server = HTTPServer(("127.0.0.1", 0), _Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            url = f"http://127.0.0.1:{server.server_port}/test"
+            data = self.fetcher.download_bytes(url, len(payload))
+            self.assertEqual(data, payload)
+            self.assertEqual(attempts, 4)
+        finally:
+            server.shutdown()
+            server.server_close()
+
+    def test_retry_exhausted_5xx_raises_download_http_error(self) -> None:
+        attempts = 0
+
+        class _Handler(BaseHTTPRequestHandler):
+            def do_GET(self) -> None:
+                nonlocal attempts
+                attempts += 1
+                self.send_response(504)
+                self.end_headers()
+
+            def log_message(self, *_args: object) -> None:
+                pass
+
+        server = HTTPServer(("127.0.0.1", 0), _Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            url = f"http://127.0.0.1:{server.server_port}/test"
+            with self.assertRaises(exceptions.DownloadHTTPError) as cm:
+                self.fetcher.fetch(url)
+            self.assertEqual(cm.exception.status_code, 504)
+            self.assertEqual(attempts, 4)
+        finally:
+            server.shutdown()
+            server.server_close()
 
 
 # Run unit test.

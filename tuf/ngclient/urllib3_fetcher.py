@@ -77,6 +77,11 @@ class Urllib3Fetcher(FetcherInterface):
                 url,
                 preload_content=False,
                 timeout=urllib3.Timeout(self.socket_timeout),
+                retries=urllib3.Retry(
+                    total=3,
+                    status_forcelist=frozenset({502, 503, 504}),
+                    raise_on_status=False,
+                ),
             )
         except urllib3.exceptions.MaxRetryError as e:
             if isinstance(e.reason, urllib3.exceptions.TimeoutError):
